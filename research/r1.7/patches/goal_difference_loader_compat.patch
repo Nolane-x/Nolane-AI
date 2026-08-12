@@ -1,0 +1,18 @@
+--- Phase-A loader compatibility
++++ Phase-B loader compatibility
+@@
+     allowed_missing.update(key for key in missing if key.startswith("causal_law_"))
++    allowed_missing.update(key for key in missing if key.startswith("goal_difference_"))
+@@
+-    model = NeuralSystem2Workspace(**architecture)
+-    model.load_state_dict(payload["model_state"], strict=True)
++    model = NeuralSystem2Workspace(**architecture)
++    incompatible = model.load_state_dict(payload["model_state"], strict=False)
++    missing = set(incompatible.missing_keys)
++    allowed_missing = {key for key in missing if key.startswith("goal_difference_")}
++    if missing - allowed_missing or incompatible.unexpected_keys:
++        raise RuntimeError(
++            "R1.7 checkpoint architecture mismatch: "
++            f"missing={sorted(missing - allowed_missing)}, "
++            f"unexpected={sorted(incompatible.unexpected_keys)}"
++        )
