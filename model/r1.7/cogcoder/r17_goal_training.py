@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import copy
+from collections import defaultdict
 from dataclasses import dataclass
 
 import torch
+import torch.nn.functional as F
 from torch import Tensor
 
 from .neural_system2 import (
@@ -180,3 +182,119 @@ def collect_goal_difference_episode(
             break
 
     return GoalDifferenceEpisode(task_id=task.task_id, family=task.family, steps=tuple(rows))
+
+
+def evaluate_goal_difference_episodes(
+    model: NeuralSystem2Workspace,
+    episodes: list[GoalDifferenceEpisode] | tuple[GoalDifferenceEpisode, ...],
+) -> dict[str, object]:
+    """Evaluate counterfactual progress prediction against last-progress persistence."""
+    model.eval()
+    total_sq = 0.0
+    baseline_sq = 0.0
+    total_n = 0
+    family = defaultdict(lambda: {"candidate_sq": 0.0, "baseline_sq": 0.0, "n": 0})
+    with torch.no_grad():
+        for episode in episodes:
+            for step in episode.steps:
+                mask = step.predict_mask
+                if not bool(mask.any().item()):
+                    continue
+                out = model.goal_difference_scores(
+                    step.structured_atoms.unsqueeze(0),
+                    step.structured_mask.unsqueeze(0),
+                    step.predicted_deltas.unsqueeze(0),
+                    step.action_embeddings.unsqueeze(0),
+                    step.confidence.unsqueeze(0),
+                )
+                pred = out["predicted_progress"].squeeze(0)
+                target = step.target_progress
+                baseline = step.baseline_progress
+                diff = pred[mask] - target[mask]
+                base_diff = baseline[mask] - target[mask]
+                sq = float((diff * diff).sum())
+                bsq = float((base_diff * base_diff).sum())
+                n = int(diff.numel())
+                total_sq += sq
+                baseline_sq += bsq
+                total_n += n
+                family[episode.family]["candidate_sq"] += sq
+                family[episode.family]["baseline_sq"] += bsq
+                family[episode.family]["n"] += n
+    rows: dict[str, dict[str, float | int]] = {}
+    for name, values in family.items():
+        denom = max(1, int(values["n"]))
+        candidate_mse = float(values["candidate_sq"]) / denom
+        baseline_mse = float(values["baseline_sq"]) / denom
+        rows[name] = {
+            "candidate_mse": candidate_mse,
+            "baseline_mse": baseline_mse,
+            "relative_improvement": 1.0 - candidate_mse / max(baseline_mse, 1e-12),
+            "elements": int(values["n"]),
+        }
+    candidate_mse = total_sq / max(1, total_n)
+    baseline_mse = baseline_sq / max(1, total_n)
+    return {
+        "candidate_mse": candidate_mse,
+        "baseline_mse": baseline_mse,
+        "relative_improvement": 1.0 - candidate_mse / max(baseline_mse, 1e-12),
+        "elements": total_n,
+        "families": rows,
+    }
+
+
+def train_goal_difference_epoch(
+    model: NeuralSystem2Workspace,
+    episodes: list[GoalDifferenceEpisode] | tuple[GoalDifferenceEpisode, ...],
+    optimizer: torch.optim.Optimizer,
+) -> float:
+    """Train one epoch of the Goal-Difference progress model only."""
+    model.train()
+    total = 0.0
+    count = 0
+    for episode in episodes:
+        optimizer.zero_grad(set_to_none=True)
+        episode_loss = torch.zeros((), dtype=torch.float32)
+        terms = 0
+        for step in episode.steps:
+            mask = step.predict_mask
+            if not bool(mask.any().item()):
+                continue
+            out = model.goal_difference_scores(
+                step.structured_atoms.unsqueeze(0),
+                step.structured_mask.unsqueeze(0),
+                step.predicted_deltas.unsqueeze(0),
+                step.action_embeddings.unsqueeze(0),
+                step.confidence.unsqueeze(0),
+            )
+            pred = out["predicted_progress"].squeeze(0)
+            episode_loss = episode_loss + F.mse_loss(
+                pred[mask], step.target_progress[mask]
+            )
+            terms += 1
+        if not terms:
+            continue
+        episode_loss = episode_loss / terms
+        episode_loss.backward()
+        trainable = [parameter for parameter in model.parameters() if parameter.requires_grad]
+        if trainable:
+            torch.nn.utils.clip_grad_norm_(trainable, max_norm=1.0)
+        optimizer.step()
+        total += float(episode_loss.detach())
+        count += 1
+    return total / max(1, count)
+
+
+def goal_difference_internal_gate(metrics: dict[str, object]) -> bool:
+    """Preregistered Phase-B world-model acceptance rule."""
+    candidate = float(metrics["candidate_mse"])
+    baseline = float(metrics["baseline_mse"])
+    if not candidate < baseline:
+        return False
+    families = metrics.get("families", {})
+    if not isinstance(families, dict) or not families:
+        return False
+    for row in families.values():
+        if float(row["candidate_mse"]) > float(row["baseline_mse"]):
+            return False
+    return True
