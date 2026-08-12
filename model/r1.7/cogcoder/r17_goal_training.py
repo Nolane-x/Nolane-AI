@@ -73,6 +73,24 @@ def _counterfactual_progress(task: R17Task, action_index: int) -> float:
     return float(result.progress_delta)
 
 
+def _safe_exploration_action(
+    task: R17Task, non_submit: list[int], observed_counts: list[int]
+) -> int:
+    """Choose a low-usage probe that preserves an exact teacher continuation."""
+    ranked = sorted(non_submit, key=lambda index: (observed_counts[index], index))
+    for action_index in ranked:
+        branch = copy.deepcopy(task)
+        result = branch.step(action_index)
+        if result.done:
+            continue
+        try:
+            oracle_plan(branch)
+        except RuntimeError:
+            continue
+        return int(action_index)
+    return int(oracle_plan(copy.deepcopy(task))[0])
+
+
 def collect_goal_difference_episode(
     model: NeuralSystem2Workspace,
     task: R17Task,
@@ -118,7 +136,7 @@ def collect_goal_difference_episode(
         predict_mask = non_submit_mask & confidence.gt(1e-6)
 
         if len(rows) < exploration_steps and non_submit:
-            executed = min(non_submit, key=lambda i: (observed_counts[i], i))
+            executed = _safe_exploration_action(task, non_submit, observed_counts)
         else:
             plan = oracle_plan(copy.deepcopy(task))
             executed = int(plan[0])
