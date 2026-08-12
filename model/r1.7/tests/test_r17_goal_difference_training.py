@@ -65,3 +65,41 @@ def test_goal_difference_safe_exploration_preserves_teacher_continuation_on_trap
     )
     assert ep.steps
     assert len(ep.steps)<=14
+
+
+def test_goal_difference_training_primitives_evaluate_and_keep_policy_scale_zero():
+    from cogcoder.r17_goal_training import (
+        evaluate_goal_difference_episodes,
+        train_goal_difference_epoch,
+    )
+    model=_load_law(); model.eval()
+    episode=collect_goal_difference_episode(
+        model,make_r17_task('causal_laws','train',56),exploration_steps=2,max_steps=4
+    )
+    metrics=evaluate_goal_difference_episodes(model,[episode])
+    assert metrics['elements']>0
+    assert metrics['candidate_mse']>=0
+    assert metrics['baseline_mse']>=0
+    names=set(goal_difference_trainable_parameter_names(model,include_policy_scale=False))
+    for name,p in model.named_parameters():
+        p.requires_grad_(name in names)
+    optimizer=torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],lr=1e-4)
+    before=float(model.goal_difference_policy_scale.detach())
+    loss=train_goal_difference_epoch(model,[episode],optimizer)
+    after=float(model.goal_difference_policy_scale.detach())
+    assert loss>=0
+    assert before==0.0 and after==0.0
+
+
+def test_goal_difference_internal_gate_requires_aggregate_and_each_family_to_beat_baseline():
+    from cogcoder.r17_goal_training import goal_difference_internal_gate
+    passing={
+        'candidate_mse':0.3,'baseline_mse':0.5,
+        'families':{
+            'causal_laws':{'candidate_mse':0.2,'baseline_mse':0.4},
+            'causal_switch':{'candidate_mse':0.4,'baseline_mse':0.6},
+        },
+    }
+    assert goal_difference_internal_gate(passing)
+    failing={**passing,'families':{**passing['families'],'causal_switch':{'candidate_mse':0.7,'baseline_mse':0.6}}}
+    assert not goal_difference_internal_gate(failing)
