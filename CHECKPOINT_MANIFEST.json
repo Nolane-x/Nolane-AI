@@ -1,0 +1,26 @@
+{
+  "version": "R1.5",
+  "count": 20,
+  "checkpoints": [
+    {"name":"Nolane-48M-Stage2-Policy.pt","bytes":92320737,"sha256":"ea25dac647c0091638d9a915ba1b0dd6219f01344160718edb08d098370f80df"},
+    {"name":"Nolane-Rebuild-R1.1-ContractRouter.pt","bytes":797965,"sha256":"80a9e1d18b1ba014220ea4cc6476822d03e721addb3f57cd0beef64e9178467e"},
+    {"name":"Nolane-Rebuild-R1.2-ACE.pt","bytes":1715106,"sha256":"b644df8d383242493013de6a773ca3433f3666b6c2e16951178201049c20e026"},
+    {"name":"Nolane-Rebuild-R1.3-FGE.pt","bytes":875185,"sha256":"4cd7099613540af42ed3885f6545880744e6cd9718c443729daa3102b52c9528"},
+    {"name":"Nolane-Rebuild-R1.4-Semantic-Recurrent.pt","bytes":1559313,"sha256":"d28dfb7644b0facba0c1e7ed0d7d2c4827ad0b0bfb6b2d85c84bea8230d1eda9"},
+    {"name":"Nolane-Stage3.10-AK-Structural-Role-Scalar-Calibrated.pt","bytes":3135,"sha256":"ea9a1e21dfe4f8bd7e6f53853ac4155ebfbd8a43d9910ad8be07407e333f075c"},
+    {"name":"Nolane-Stage3.10-Structural-Role-Head.pt","bytes":2517,"sha256":"ec9dfcaa40efba65e46f7bb26130213fa5a16878162e989c4e91949bd96f13ee"},
+    {"name":"Nolane-Stage3.7-U-Factorized-Control-Candidate.pt","bytes":38511,"sha256":"68872f132150c4bb4a8b912fe0bc6d3b6e421844914d8d6f485b982aad5163fc"},
+    {"name":"Nolane-Stage4-AM-Raw-Intent-Inducer.pt","bytes":664361,"sha256":"365690690c42852cd3688d521c2f7daa97ccefa964e98e567b5aaab85a275afd"},
+    {"name":"Nolane-Stage4-AN-Shared-Byte-Semantic-Intent.pt","bytes":188491,"sha256":"a116032185d93f11340915139647e6503d72bbdf04d42ccb011d13f9e9436878"},
+    {"name":"Nolane-Stage4-AP-Ngram-Semantic-Perception.pt","bytes":481813,"sha256":"a2a9ba9f85ee2b99cb430b91b14c762be4346756576d9af6536e0f3c7c8bedc8"},
+    {"name":"Nolane-Stage4-AQ-Factorized-Semantic.pt","bytes":488679,"sha256":"9740a4fd62c16d9570d16e0ae1a12f3645d9b7877d76e1e903db0e2caf43aab8"},
+    {"name":"Nolane-Stage4-AR-Semantic-Bridge.pt","bytes":488563,"sha256":"b3d10dd525867ab73ea41ccc792d8936a5ffa2d323795bc92c52df70ba76370c"},
+    {"name":"Nolane-Stage4-AS-Operator-Language.pt","bytes":116909,"sha256":"d9bf787927f1170d598abf56db9f465d1ed589ff5e1691d03096e40c7bcd7538"},
+    {"name":"Nolane-Stage4-AT-Micro-Semantic-Transformer.pt","bytes":1367822,"sha256":"d07cce688e6250ab9e0ebda0a23160401db31243c7ea3ea83ab9d481250480c9"},
+    {"name":"Nolane-Stage4-AU-Proposition-Binding.pt","bytes":1370779,"sha256":"7b9cdf9c32972ac9295f4144a475ca984eb47f54db3e8d92baf72eae972de753"},
+    {"name":"Nolane-Stage4-AV-Rich-Proposition-Binding.pt","bytes":1371222,"sha256":"f32eebbdd4049d0aa8f35a82f65dfef889711d42afd66ff15c877901fcffb57f"},
+    {"name":"Nolane-Stage4-AY3-Compositional-Role-Head.pt","bytes":2613,"sha256":"156c2d6f1c5bf7cb0ddce54942a93c9005f184d8ba03acf23125b108b8a69cf5"},
+    {"name":"Nolane-Stage4-AY4-Compositional-Sequence-Control.pt","bytes":34103,"sha256":"091fd8d61ca6608d86d4571e298d23e4c49b1ce2e54324c479dba088a77a8b65"},
+    {"name":"dev-spec-ir120.pt","bytes":2187277,"sha256":"c34475036d1a37b753d74526c1f1dd5675b71cbde65c0a97895128a9b2b2c414"}
+  ]
+}
