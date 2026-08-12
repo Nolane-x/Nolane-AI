@@ -1,0 +1,29 @@
+{
+  "protocol": "effect-progress-two-slice-causal-gain-v1",
+  "slices": {"A": "dev[66:72]", "B": "dev[72:78]"},
+  "control": {
+    "slice_A_solved": 3,
+    "slice_B_solved": 4,
+    "aggregate_solved": 7,
+    "aggregate_causal_solved": 0
+  },
+  "candidate": {
+    "slice_A_solved": 7,
+    "slice_B_solved": 8,
+    "aggregate_solved": 15,
+    "aggregate_causal_solved": 2
+  },
+  "conditions": {
+    "non_regression_slice_A": true,
+    "non_regression_slice_B": true,
+    "strict_aggregate_total_gain": true,
+    "strict_aggregate_causal_gain": true
+  },
+  "accepted": true,
+  "selected_checkpoint": "checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt",
+  "candidate_sha256": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+  "current_best_sha256": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+  "decision_file_sha256": "945cab6974580ccdfc8a0d8f25b9eb5c194a2a1aef1613f66236217c7c030270",
+  "effective_parameters": 71848959,
+  "fresh_opened": false
+}
