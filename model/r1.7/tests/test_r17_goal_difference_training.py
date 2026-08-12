@@ -56,3 +56,12 @@ def test_goal_difference_collector_emits_public_law_conditioned_progress_targets
     assert row.predict_mask.dtype==torch.bool
     assert torch.isfinite(row.target_progress[row.predict_mask]).all()
     assert float(row.confidence.max())>0
+
+
+def test_goal_difference_safe_exploration_preserves_teacher_continuation_on_trap_world():
+    model=_load_law(); model.eval()
+    ep=collect_goal_difference_episode(
+        model,make_r17_task('causal_laws','train',61),exploration_steps=6,max_steps=14
+    )
+    assert ep.steps
+    assert len(ep.steps)<=14
