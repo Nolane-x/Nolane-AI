@@ -1,0 +1,10 @@
+--- /mnt/data/Nolane-R1.7-NCPM-WORK/r16_parent/Nolane-60M-R1.6-NS2-WORK/cogcoder/neural_system2_training.py	2026-08-12 10:12:47.000000000 +0000
++++ /mnt/data/Nolane-R1.7-NCPM-WORK/r17_work/cogcoder/neural_system2_training.py	2026-08-12 15:28:13.077747850 +0000
+@@ -118,6 +118,7 @@
+     allowed_missing.update(key for key in missing if key.startswith("dual_role_causal_"))
+     allowed_missing.update(key for key in missing if key.startswith("effect_progress_critic."))
+     allowed_missing.update(key for key in missing if key.startswith("rule_program_"))
++    allowed_missing.update(key for key in missing if key.startswith("causal_law_"))
+     allowed_missing.update(key for key in missing if key.startswith("distance_head."))
+     allowed_missing.add("distance_policy_scale")
+     allowed_missing.update(key for key in missing if key.startswith("plan_state_projection."))
