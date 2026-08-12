@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 
 import torch
 import torch.nn.functional as F
@@ -38,6 +39,19 @@ class GoalDifferenceEpisode:
     task_id: str
     family: str
     steps: tuple[GoalDifferenceTrainingStep, ...]
+
+
+def goal_difference_parent_provenance(path, metadata: dict[str, object]) -> dict[str, object]:
+    """Return byte-bound parent provenance without assuming loader-added hash fields."""
+    from .r17_training import sha256_file
+
+    checkpoint_path = Path(path)
+    if "candidate_effective_parameters" not in metadata:
+        raise KeyError("candidate_effective_parameters")
+    return {
+        "sha256": sha256_file(checkpoint_path),
+        "candidate_effective_parameters": int(metadata["candidate_effective_parameters"]),
+    }
 
 
 def goal_difference_trainable_parameter_names(
