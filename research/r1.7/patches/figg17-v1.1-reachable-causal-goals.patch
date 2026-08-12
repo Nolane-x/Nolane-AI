@@ -1,0 +1,36 @@
+--- FIGG-17 v1
++++ FIGG-17 v1.1
+@@
+-R17_BENCHMARK_VERSION = "nolane-figg17-v1"
++R17_BENCHMARK_VERSION = "nolane-figg17-v1.1"
+@@
+     def _init_causal_laws(self) -> None:
+         self._modulus = 5
+         self._state = [0, 0, 0]
+-        goal = [self._rng.randrange(self._modulus) for _ in range(3)]
+-        while goal == [0, 0, 0] or sum(goal) < 4:
+-            goal = [self._rng.randrange(self._modulus) for _ in range(3)]
+-        self._goal = tuple(goal)
+         dimensions = [0, 1, 2]
+@@
+             self._laws[kind] = (dimension, condition_dim, even_delta * 10 + odd_delta)
+             actions.append((kind, f"opaque actuator {label}"))
++
++        # Generate the target by executing this world's own dynamics from the
++        # public start state. Earlier v1 sampled an arbitrary target and could
++        # create unreachable conditional-modular worlds. A witnessed target is
++        # still hidden from the causal law itself, but exact success is now
++        # guaranteed to be well-defined for every seed.
++        witness = tuple(self._state)
++        actuator_kinds = [f"act:{i}" for i in range(3)]
++        for _ in range(8 + self._rng.randrange(5)):
++            kind = actuator_kinds[self._rng.randrange(len(actuator_kinds))]
++            witness = self._transition_state(witness, kind, 0)
++        if witness == (0, 0, 0):
++            for kind in actuator_kinds:
++                witness = self._transition_state(witness, kind, 0)
++                if witness != (0, 0, 0):
++                    break
++        self._goal = tuple(int(v) for v in witness)
+ 
+         actions.append(("submit", "submit current hypothesis"))
