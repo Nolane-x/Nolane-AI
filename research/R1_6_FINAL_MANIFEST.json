@@ -1,0 +1,34 @@
+{
+  "version": "Nolane-R1.6-Neural-System2-final",
+  "date": "2026-08-12",
+  "fresh_consumed": true,
+  "fresh_results": {
+    "psr_planner": 15,
+    "effect_progress": 28,
+    "pre_fresh_current_best": 23,
+    "total": 60,
+    "oracle": 60,
+    "random_mean": 1.8
+  },
+  "locked_checkpoint_sha256": {
+    "psr_planner": "594e19faaf07094532d86629457dd81322113f06f7a932e05b07367f3c5dbb90",
+    "effect_progress": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+    "pre_fresh_current_best": "f3108d2e74f955c57578bb42baca5f33890545d07310ef05d239b48333911648"
+  },
+  "effective_parameters": {
+    "psr_planner": 70993913,
+    "effect_progress": 71848959,
+    "pre_fresh_current_best": 72260609
+  },
+  "pre_fresh_lock_payload_sha256": "15aa66f6e4a031e4f290b0cf9903a1b743deb448bdfef379601b3223f7e01296",
+  "reality_report_sha256": "816c200e6a1586304f5cd471dced309b31ec67c836b9949811702b4bb9980771",
+  "strongest_locked_checkpoint_on_consumed_fresh": "checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt",
+  "verification": {
+    "r1_6_and_evaluator": "63/63 pass",
+    "r1_1_r1_2_benchmark_integrity": "33/33 pass",
+    "full_historical_suite": "incomplete/time-capped; two deterministic legacy EffectProgress API contract-test failures found before completion"
+  },
+  "post_fresh_tuning": false,
+  "r1_6_fresh_must_not_be_reused_as_untouched_test": true,
+  "local_manifest_sha256": "ca7d9328d69ae9c38412ff1dbfab6b70732c0a173ceb2d38c05f49f3c5f133bb"
+}
