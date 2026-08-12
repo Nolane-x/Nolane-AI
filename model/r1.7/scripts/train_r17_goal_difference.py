@@ -13,6 +13,7 @@ from cogcoder.r17_goal_training import (
     collect_goal_difference_episode,
     evaluate_goal_difference_episodes,
     goal_difference_internal_gate,
+    goal_difference_parent_provenance,
     goal_difference_trainable_parameter_names,
     train_goal_difference_epoch,
 )
@@ -72,6 +73,7 @@ def main() -> None:
         expected_r1_2_checkpoint=r12,
         expected_r1_6_parent_checkpoint=r16,
     )
+    law_provenance = goal_difference_parent_provenance(law_parent, law_meta)
 
     trainable_names = set(
         goal_difference_trainable_parameter_names(model, include_policy_scale=False)
@@ -162,10 +164,8 @@ def main() -> None:
             "epochs": args.epochs,
             "lr": args.lr,
         },
-        "law_parent_sha256": law_meta["sha256"],
-        "law_parent_candidate_effective_parameters": law_meta[
-            "candidate_effective_parameters"
-        ],
+        "law_parent_sha256": law_provenance["sha256"],
+        "law_parent_candidate_effective_parameters": law_provenance["candidate_effective_parameters"],
         "trainable_parameters": sum(
             parameter.numel() for parameter in model.parameters() if parameter.requires_grad
         ),
@@ -202,7 +202,7 @@ def main() -> None:
         r1_6_parent_checkpoint=r16,
         report={
             "phase": "goal-difference-world-model",
-            "law_parent_sha256": law_meta["sha256"],
+            "law_parent_sha256": law_provenance["sha256"],
             "internal_gate": best,
         },
     )
