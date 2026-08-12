@@ -103,3 +103,14 @@ def test_goal_difference_internal_gate_requires_aggregate_and_each_family_to_bea
     assert goal_difference_internal_gate(passing)
     failing={**passing,'families':{**passing['families'],'causal_switch':{'candidate_mse':0.7,'baseline_mse':0.6}}}
     assert not goal_difference_internal_gate(failing)
+
+
+def test_goal_difference_parent_provenance_hashes_file_not_loaded_metadata(tmp_path):
+    from cogcoder.r17_goal_training import goal_difference_parent_provenance
+    payload=tmp_path/'parent.pt'
+    payload.write_bytes(b'causal-law-parent-bytes')
+    meta={'candidate_effective_parameters':73_642_371}
+    provenance=goal_difference_parent_provenance(payload,meta)
+    import hashlib
+    assert provenance['sha256']==hashlib.sha256(payload.read_bytes()).hexdigest()
+    assert provenance['candidate_effective_parameters']==73_642_371
