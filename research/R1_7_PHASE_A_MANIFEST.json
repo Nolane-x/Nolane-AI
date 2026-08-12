@@ -1,0 +1,23 @@
+{
+  "version": "r1.7-phase-a-v1",
+  "verdict": "accepted-world-model-only",
+  "parent_sha256": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+  "candidate_sha256": "e6c99e5944b68c2fde7f89e7dec478b54e93f3a3250adfd806e1020b46239dbc",
+  "candidate_effective_parameters": 73642371,
+  "figg17_fresh_opened": false,
+  "verification": {
+    "focused": "86/86 passed",
+    "parent_integrity": "33/33 passed"
+  },
+  "key_source_hashes": {
+    "cogcoder/neural_system2.py": "6e6c6d26cb183056efcd05477f901ef02d1580d2459521e053f257e2d9b2580d",
+    "cogcoder/r17_benchmark.py": "c92ce9952c319df2b0a1d52373e6214cc02bfcfedfb15425cc716d4bdd906233",
+    "cogcoder/r17_training.py": "bb42f86d8fdba69f6a8fa70c9f0103c44da10fb65cf09baebd3aca86e00ad3a0",
+    "scripts/train_r17_causal_laws.py": "8528aa9dedb25742d9cf91b50b62cec59d73ce6e82a5b6a1997dbbe209cdd100",
+    "scripts/eval_r17_causal_law_world_model.py": "f7c078fb3565838169d43ba7ec0cb7609011872f33d0ea9356f58889c89f59b4"
+  },
+  "internal_world_model_improvement": 0.5259179009680364,
+  "heldout_dev_world_model_improvement": 0.5228348990844518,
+  "policy_residual_internal_gate": "rejected",
+  "figg17_version": "nolane-figg17-v1.1"
+}
