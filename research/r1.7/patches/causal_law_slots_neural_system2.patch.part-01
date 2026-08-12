@@ -1,0 +1,114 @@
++        else:
++            action_ids = torch.as_tensor(
++                action_index, device=state_sketch.device, dtype=torch.long
++            )
++            if action_ids.ndim == 0:
++                action_ids = action_ids.expand(batch)
++        if action_ids.shape != (batch,):
++            raise ValueError("action_index must be scalar or shape [batch]")
++        if bool(((action_ids < 0) | (action_ids >= action_count)).any().item()):
++            raise ValueError("action_index out of range")
++        expected_slots = (batch, self.causal_law_slot_count, self.causal_law_dim)
++        expected_meta = (batch, self.causal_law_slot_count)
++        if tuple(law_state.slots.shape) != expected_slots:
++            raise ValueError(f"law slots must have shape {expected_slots}")
++        if tuple(law_state.confidence.shape) != expected_meta:
++            raise ValueError(f"law confidence must have shape {expected_meta}")
++        if tuple(law_state.usage.shape) != expected_meta:
++            raise ValueError(f"law usage must have shape {expected_meta}")
++
++        rows = torch.arange(batch, device=state_sketch.device)
++        selected_action = action_embeddings[rows, action_ids]
++        state_term = torch.tanh(self.causal_law_state_projection(state_sketch))
++        action_term = torch.tanh(self.causal_law_action_projection(selected_action))
++        effect_term = torch.tanh(self.causal_law_effect_projection(observed_delta))
++        evidence = self.causal_law_evidence_projection(
++            torch.cat((state_term, action_term, effect_term), dim=-1)
++        )
++        query = self.causal_law_address_query(evidence)
++        keys = self.causal_law_address_key(law_state.slots)
++        logits = torch.einsum("bd,bkd->bk", query, keys) / math.sqrt(self.causal_law_dim)
++        # Slightly prefer less-used slots when content matches equally well. This
++        # prevents a single early hypothesis from absorbing every intervention.
++        logits = logits - 0.05 * law_state.usage
++        weights = torch.softmax(logits, dim=-1)
++        candidate = self.causal_law_update(
++            evidence.unsqueeze(1).expand(-1, self.causal_law_slot_count, -1).reshape(
++                batch * self.causal_law_slot_count, self.causal_law_dim
++            ),
++            law_state.slots.reshape(batch * self.causal_law_slot_count, self.causal_law_dim),
++        ).reshape(batch, self.causal_law_slot_count, self.causal_law_dim)
++        new_slots = law_state.slots + weights.unsqueeze(-1) * (candidate - law_state.slots)
++        new_confidence = law_state.confidence + weights * (1.0 - law_state.confidence)
++        new_usage = law_state.usage + weights
++        return CausalLawState(
++            slots=new_slots, confidence=new_confidence.clamp(0.0, 1.0), usage=new_usage
++        )
++
++    def causal_law_scores(
++        self,
++        state_sketch: Tensor,
++        action_embeddings: Tensor,
++        law_state: CausalLawState,
++    ) -> dict[str, Tensor]:
++        if state_sketch.ndim != 2 or state_sketch.shape[-1] != self.psr_sketch_dim:
++            raise ValueError("state_sketch must have shape [batch, psr_sketch_dim]")
++        if (
++            action_embeddings.ndim != 3
++            or action_embeddings.shape[0] != state_sketch.shape[0]
++            or action_embeddings.shape[-1] != self.workspace_dim
++        ):
++            raise ValueError(
++                "action_embeddings must have shape [batch, actions, workspace_dim]"
++            )
++        batch, actions, _ = action_embeddings.shape
++        expected_slots = (batch, self.causal_law_slot_count, self.causal_law_dim)
++        if tuple(law_state.slots.shape) != expected_slots:
++            raise ValueError(f"law slots must have shape {expected_slots}")
++        state_term = torch.tanh(self.causal_law_state_projection(state_sketch)).unsqueeze(1)
++        action_term = torch.tanh(self.causal_law_action_projection(action_embeddings))
++        query_state = torch.tanh(state_term + action_term)
++        query = self.causal_law_retrieval_query(query_state)
++        keys = self.causal_law_retrieval_key(law_state.slots)
++        logits = torch.einsum("badh,bkh->badk", query.unsqueeze(2), keys).squeeze(2)
++        logits = logits / math.sqrt(self.causal_law_dim)
++        weights = torch.softmax(logits, dim=-1)
++        retrieved = torch.einsum("bak,bkh->bah", weights, law_state.slots)
++        confidence = torch.einsum("bak,bk->ba", weights, law_state.confidence)
++        predicted_delta = (
++            4.0
++            * torch.tanh(self.causal_law_delta_head(retrieved))
++            * confidence.unsqueeze(-1)
++        )
++        relation = torch.cat(
++            (
++                query_state,
++                retrieved,
++                query_state * retrieved,
++                torch.abs(query_state - retrieved),
++            ),
++            dim=-1,
+         )
++        raw_bonus = self.causal_law_policy_head(relation).squeeze(-1)
++        policy_bonus = (
++            torch.tanh(self.causal_law_policy_scale) * confidence * raw_bonus
++        )
++        return {
++            "predicted_delta": predicted_delta,
++            "confidence": confidence,
++            "policy_bonus": policy_bonus,
++            "slot_attention": weights,
++        }
+ 
+     def _validate_state(
+         self, state: System2State, *, batch: int, actions: int
+-    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor]:
++    ) -> tuple[Tensor, Tensor, Tensor, Tensor, Tensor, CausalLawState]:
+         expected_slots = (batch, self.slot_count, self.workspace_dim)
+         if tuple(state.slots.shape) != expected_slots:
+             raise ValueError(f"state slots must have shape {expected_slots}")
+@@ -897,9 +1107,25 @@
+             if tuple(state.action_effect_sketch.shape) != expected_effect:
+                 raise ValueError(f"state action_effect_sketch must have shape {expected_effect}")
+             action_effect_sketch = state.action_effect_sketch
++        if state.causal_laws is None:
