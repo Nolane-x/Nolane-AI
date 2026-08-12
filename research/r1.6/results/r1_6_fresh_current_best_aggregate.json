@@ -1,0 +1,17 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.6-NS2-CurrentBest.pt",
+  "sha256": "f3108d2e74f955c57578bb42baca5f33890545d07310ef05d239b48333911648",
+  "effective_parameters": 72260609,
+  "split": "fresh[0:20]",
+  "solved": 23,
+  "total": 60,
+  "mean_steps": 6.766666666666667,
+  "families": {
+    "causal_identification": {"solved": 1, "total": 20, "mean_steps": 9.25},
+    "delayed_resource": {"solved": 20, "total": 20, "mean_steps": 8.5},
+    "compositional_rule": {"solved": 2, "total": 20, "mean_steps": 2.55}
+  },
+  "aggregate_file_sha256": "1df882824fa8e6e0b3dc057c6d3ae84e882a03855012e071df725596f31ff494",
+  "lock_payload_sha256": "15aa66f6e4a031e4f290b0cf9903a1b743deb448bdfef379601b3223f7e01296",
+  "tuning_after_fresh": false
+}
