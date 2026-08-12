@@ -1,0 +1,21 @@
+{
+  "baseline_verification": {
+    "r1_1_r1_2_benchmark_integrity": "33/33 passed",
+    "r1_6_focused": "63/63 passed"
+  },
+  "final_delivery_zip_bytes": 3788846806,
+  "final_delivery_zip_sha256": "1ab75a90f56b88389fe2c0b4e03d15fd58310cd756986a32e1ffdccefd1e7101",
+  "known_frozen_r1_6_issue": "two historical EffectProgressCritic class definitions / old standalone contract drift; do not edit R1.6 historical evidence, R1.7 source may clean this with new hashes",
+  "parent_checkpoint": "checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt",
+  "parent_checkpoint_sha256": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+  "parent_effective_parameters": 71848959,
+  "parent_lineage": "R1.6 EffectProgress fresh-best",
+  "r1_6_fresh_consumed": true,
+  "r1_7_parent_policy": "R1.6 consumed fresh must never be used for R1.7 training or model selection",
+  "source_hashes": {
+    "cogcoder/frontier_interactive.py": "902a2ea1a865703a99d512c31b64bb8fab5afbbd02c53fd0e9961b0dd3b4e107",
+    "cogcoder/neural_system2.py": "ed54e1908d28b29946ba3c45a11e2cf506b5748301fa0f8521541b3c27ae98b2",
+    "cogcoder/neural_system2_training.py": "6fc0c6fc82670253bd7bd7da48155919e6ea100461ee64669a2909fc925cb1e7"
+  },
+  "version": "r1.7-parent-audit-v1"
+}
