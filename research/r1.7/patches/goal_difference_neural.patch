@@ -1,0 +1,130 @@
+--- /mnt/data/Nolane-R1.7-NCPM-WORK/Nolane-R1.7-Phase-A-COMPLETE-DELIVERY/cogcoder/neural_system2.py	2026-08-12 15:28:12.498565759 +0000
++++ cogcoder/neural_system2.py	2026-08-12 16:07:28.374026336 +0000
+@@ -861,6 +861,43 @@
+         )
+         self.causal_law_policy_scale = nn.Parameter(torch.tensor(0.0))
+ 
++        # R1.7 Phase B Goal-Difference Workspace. Two learned role queries
++        # attend to public structured atoms independently, allowing the model
++        # to separate current-like and target-like evidence without hard-coding
++        # JSON field names. Counterfactual causal-law deltas are then scored
++        # against the resulting relational goal representation. The policy
++        # scale starts at zero so Phase-A checkpoints remain behavior-neutral.
++        self.goal_difference_dim = 256
++        self.goal_difference_atom_key = nn.Linear(
++            self.structured_atom_dim, self.goal_difference_dim, bias=False
++        )
++        self.goal_difference_current_query = nn.Parameter(
++            torch.empty(self.goal_difference_dim)
++        )
++        self.goal_difference_target_query = nn.Parameter(
++            torch.empty(self.goal_difference_dim)
++        )
++        nn.init.normal_(self.goal_difference_current_query, mean=0.0, std=0.02)
++        nn.init.normal_(self.goal_difference_target_query, mean=0.0, std=0.02)
++        self.goal_difference_context = nn.Sequential(
++            nn.Linear(self.structured_atom_dim * 4, self.goal_difference_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.goal_difference_dim),
++        )
++        self.goal_difference_delta_projection = nn.Linear(
++            self.psr_sketch_dim, self.goal_difference_dim, bias=False
++        )
++        self.goal_difference_action_projection = nn.Linear(
++            workspace_dim, self.goal_difference_dim, bias=False
++        )
++        self.goal_difference_scorer = nn.Sequential(
++            nn.Linear(self.goal_difference_dim * 5, 384),
++            nn.GELU(),
++            nn.LayerNorm(384),
++            nn.Linear(384, 1),
++        )
++        self.goal_difference_policy_scale = nn.Parameter(torch.tensor(0.0))
++
+         self.psr_dim = 256
+@@ -1083,6 +1120,90 @@
+             "slot_attention": weights,
+         }
+ 
++    def goal_difference_scores(
++        self,
++        structured_atoms: Tensor,
++        structured_mask: Tensor,
++        predicted_deltas: Tensor,
++        action_embeddings: Tensor,
++        confidence: Tensor,
++    ) -> dict[str, Tensor]:
++        """Score predicted action effects against learned public goal evidence.
++
++        The two role queries are deliberately field-name agnostic. They attend
++        over the same structured atoms but can specialize into current-like and
++        target-like evidence. Action ordering enters only through the shared
++        delta/action branches, preserving permutation equivariance.
++        """
++        if structured_atoms.ndim != 3 or structured_atoms.shape[-1] != self.structured_atom_dim:
++            raise ValueError("structured_atoms must have shape [batch, atoms, structured_atom_dim]")
++        if structured_mask.shape != structured_atoms.shape[:2]:
++            raise ValueError("structured_mask must match [batch, atoms]")
++        if structured_mask.dtype != torch.bool:
++            structured_mask = structured_mask.to(torch.bool)
++        if bool((~structured_mask.any(dim=1)).any().item()):
++            raise ValueError("every structured observation requires at least one atom")
++        batch = structured_atoms.shape[0]
++        if predicted_deltas.ndim != 3 or predicted_deltas.shape[0] != batch or predicted_deltas.shape[-1] != self.psr_sketch_dim:
++            raise ValueError("predicted_deltas must have shape [batch, actions, psr_sketch_dim]")
++        actions = predicted_deltas.shape[1]
++        if tuple(action_embeddings.shape) != (batch, actions, self.workspace_dim):
++            raise ValueError("action_embeddings must have shape [batch, actions, workspace_dim]")
++        if tuple(confidence.shape) != (batch, actions):
++            raise ValueError("confidence must have shape [batch, actions]")
++
++        keys = self.goal_difference_atom_key(structured_atoms)
++        scale = math.sqrt(self.goal_difference_dim)
++        current_logits = torch.einsum("bnd,d->bn", keys, self.goal_difference_current_query) / scale
++        target_logits = torch.einsum("bnd,d->bn", keys, self.goal_difference_target_query) / scale
++        current_logits = current_logits.masked_fill(~structured_mask, -1e9)
++        target_logits = target_logits.masked_fill(~structured_mask, -1e9)
++        current_attention = torch.softmax(current_logits, dim=-1)
++        target_attention = torch.softmax(target_logits, dim=-1)
++        current = torch.einsum("bn,bnd->bd", current_attention, structured_atoms)
++        target = torch.einsum("bn,bnd->bd", target_attention, structured_atoms)
++        goal_context = self.goal_difference_context(torch.cat((current, target, target-current, torch.abs(target-current)), dim=-1))
++
++        effect = torch.tanh(self.goal_difference_delta_projection(predicted_deltas))
++        action = torch.tanh(self.goal_difference_action_projection(action_embeddings))
++        goal = goal_context.unsqueeze(1).expand(-1, actions, -1)
++        relation = torch.cat((goal, effect, goal*effect, torch.abs(goal-effect), action), dim=-1)
++        raw_progress = self.goal_difference_scorer(relation).squeeze(-1)
++        predicted_progress = torch.tanh(raw_progress) * confidence.clamp(0.0, 1.0)
++        policy_bonus = torch.tanh(self.goal_difference_policy_scale) * predicted_progress
++        return {
++            "predicted_progress": predicted_progress,
++            "policy_bonus": policy_bonus,
++            "current_attention": current_attention,
++            "target_attention": target_attention,
++        }
++
+@@ -1797,6 +1918,7 @@
+         effect_progress_bonus = torch.zeros_like(semantic_logits)
+         causal_law_bonus = torch.zeros_like(semantic_logits)
++        goal_difference_bonus = torch.zeros_like(semantic_logits)
+@@ -1822,9 +1944,18 @@
+-                causal_law_bonus = self.causal_law_scores(
++                law_scores = self.causal_law_scores(
+                     current_psr_state, enriched_actions, causal_laws
+-                )["policy_bonus"]
++                )
++                causal_law_bonus = law_scores["policy_bonus"]
++                if structured_atoms is not None and structured_mask is not None:
++                    goal_difference_bonus = self.goal_difference_scores(
++                        structured_atoms,
++                        structured_mask,
++                        law_scores["predicted_delta"],
++                        enriched_actions,
++                        law_scores["confidence"],
++                    )["policy_bonus"]
+@@ -1853,6 +1984,7 @@
+                 + effect_progress_bonus
+                 + causal_law_bonus
++                + goal_difference_bonus
+                 + rule_program_bonus
