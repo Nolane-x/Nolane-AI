@@ -1,0 +1,34 @@
+{
+  "protocol": "rule-program-two-slice-rule-gain-v1",
+  "accepted": true,
+  "control": {
+    "slice_A_solved": 9,
+    "slice_B_solved": 4,
+    "aggregate_solved": 13,
+    "aggregate_rule": 0,
+    "aggregate_causal": 3,
+    "aggregate_resource": 10
+  },
+  "candidate": {
+    "slice_A_solved": 10,
+    "slice_B_solved": 8,
+    "aggregate_solved": 18,
+    "aggregate_rule": 1,
+    "aggregate_causal": 5,
+    "aggregate_resource": 12
+  },
+  "conditions": {
+    "slice_A_non_regression": true,
+    "slice_B_non_regression": true,
+    "strict_total_gain": true,
+    "strict_rule_gain": true,
+    "causal_non_regression": true,
+    "resource_non_regression": true
+  },
+  "selected_checkpoint": "checkpoints/Nolane-R1.6-NS2-RuleProgramPriorBroad.pt",
+  "candidate_sha256": "f3108d2e74f955c57578bb42baca5f33890545d07310ef05d239b48333911648",
+  "current_best_sha256": "f3108d2e74f955c57578bb42baca5f33890545d07310ef05d239b48333911648",
+  "decision_file_sha256": "226fca061676ead9ef51d2f730aaa7e2a00de8ad3f5177d5be3ce9feac6ce261",
+  "effective_parameters": 72260609,
+  "fresh_opened": false
+}
