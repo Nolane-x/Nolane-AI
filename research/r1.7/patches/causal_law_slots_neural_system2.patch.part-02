@@ -1,0 +1,102 @@
+            causal_laws = self.init_causal_law_state(
++                batch_size=batch,
++                device=state.action_memory.device,
++                dtype=state.action_memory.dtype,
++            )
++        else:
++            causal_laws = state.causal_laws
++            expected_law_slots = (batch, self.causal_law_slot_count, self.causal_law_dim)
++            expected_law_meta = (batch, self.causal_law_slot_count)
++            if tuple(causal_laws.slots.shape) != expected_law_slots:
++                raise ValueError(f"state causal law slots must have shape {expected_law_slots}")
++            if tuple(causal_laws.confidence.shape) != expected_law_meta:
++                raise ValueError(f"state causal law confidence must have shape {expected_law_meta}")
++            if tuple(causal_laws.usage.shape) != expected_law_meta:
++                raise ValueError(f"state causal law usage must have shape {expected_law_meta}")
+         return (
+             state.slots, state.action_memory, state.action_counts, state.last_context,
+-            action_effect_sketch,
++            action_effect_sketch, causal_laws,
+         )
+ 
+     def _refine(
+@@ -1426,13 +1652,18 @@
+                 latent.shape[0], action_count, self.psr_sketch_dim,
+                 device=latent.device, dtype=latent.dtype,
+             )
++            causal_laws = self.init_causal_law_state(
++                batch_size=latent.shape[0], device=latent.device, dtype=latent.dtype
++            )
+             last_context = context
+             if previous_action is not None:
+                 raise ValueError("previous_action requires a recurrent state")
+             if previous_feedback is not None:
+                 raise ValueError("previous_feedback requires a recurrent state and previous_action")
+         else:
+-            slots, action_memory, action_counts, last_context, action_effect_sketch = self._validate_state(
++            (
++                slots, action_memory, action_counts, last_context, action_effect_sketch, causal_laws
++            ) = self._validate_state(
+                 state, batch=latent.shape[0], actions=action_count
+             )
+             if previous_feedback is not None and previous_action is None:
+@@ -1475,6 +1706,11 @@
+                     and state.last_structured_ids is not None
+                     and state.last_structured_values is not None
+                 ):
++                    previous_state_sketch = structured_numeric_state_sketch(
++                        state.last_structured_ids,
++                        state.last_structured_values,
++                        sketch_dim=self.psr_sketch_dim,
++                    )
+                     delta_sketch = structured_numeric_delta_sketch(
+                         state.last_structured_ids,
+                         state.last_structured_values,
+@@ -1482,6 +1718,13 @@
+                         structured_values,
+                         sketch_dim=self.psr_sketch_dim,
+                     )
++                    causal_laws = self.update_causal_laws(
++                        previous_state_sketch,
++                        action_embeddings,
++                        previous_ids,
++                        delta_sketch,
++                        causal_laws,
++                    )
+                     structured_effect = self.structured_delta_encoder(delta_sketch)
+                     effect_selector = F.one_hot(previous_ids, num_classes=action_count).to(
+                         latent.dtype
+@@ -1553,6 +1796,7 @@
+         causal_evidence_bonus = torch.zeros_like(semantic_logits)
+         dual_role_causal_bonus = torch.zeros_like(semantic_logits)
+         effect_progress_bonus = torch.zeros_like(semantic_logits)
++        causal_law_bonus = torch.zeros_like(semantic_logits)
+         if structured_atoms is not None and structured_mask is not None:
+             causal_evidence_bonus = self.causal_evidence_policy_bonus(
+                 structured_atoms, structured_mask, contrastive_effect, action_counts
+@@ -1578,6 +1822,9 @@
+                 effect_progress_bonus = self.effect_progress_policy_bonus(
+                     current_psr_state, contrastive_effect, action_counts
+                 )
++                causal_law_bonus = self.causal_law_scores(
++                    current_psr_state, enriched_actions, causal_laws
++                )["policy_bonus"]
+         psr_adjustment = torch.zeros_like(semantic_logits)
+         if (
+             policy_mode == "full"
+@@ -1605,6 +1852,7 @@
+                 + causal_evidence_bonus
+                 + dual_role_causal_bonus
+                 + effect_progress_bonus
++                + causal_law_bonus
+                 + rule_program_bonus
+                 + self.imagination_utility(progress, information_gain, failure_probability)
+                 + distance_adjustment
+@@ -1645,6 +1893,7 @@
+                 last_structured_ids=structured_ids,
+                 last_structured_values=structured_values,
+                 action_effect_sketch=action_effect_sketch,
++                causal_laws=causal_laws,
+             ),
+         )
+         if not single:
