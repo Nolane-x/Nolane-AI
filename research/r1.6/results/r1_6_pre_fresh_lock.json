@@ -1,0 +1,57 @@
+{
+  "benchmark": "nolane-frontier-interactive-v2",
+  "checkpoint_sha256": {
+    "current_best": "f3108d2e74f955c57578bb42baca5f33890545d07310ef05d239b48333911648",
+    "effect_progress": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+    "psr_planner": "594e19faaf07094532d86629457dd81322113f06f7a932e05b07367f3c5dbb90",
+    "r1_2": "b644df8d383242493013de6a773ca3433f3666b6c2e16951178201049c20e026",
+    "stage2": "ea25dac647c0091638d9a915ba1b0dd6219f01344160718edb08d098370f80df"
+  },
+  "checkpoints": {
+    "current_best": "checkpoints/Nolane-R1.6-NS2-CurrentBest.pt",
+    "effect_progress": "checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt",
+    "psr_planner": "checkpoints/Nolane-R1.6-NS2-PSRPlanner.pt",
+    "r1_2": "checkpoints/Nolane-Rebuild-R1.2-ACE.pt",
+    "stage2": "checkpoints/Nolane-48M-Stage2-Policy.pt"
+  },
+  "current_best_effective_parameters": 72260609,
+  "evaluation": {
+    "evaluator": "scripts/eval_r1_6_slice.py",
+    "policy_mode": "full",
+    "refinement_steps": 1,
+    "split": "fresh"
+  },
+  "fresh_split": {
+    "indices": [0,19],
+    "per_family": 20,
+    "total": 60,
+    "seed_rule": "seed = 990000 + family_index*10000 + item_index*97 + 17",
+    "family_order": ["causal_identification","delayed_resource","compositional_rule"],
+    "task_id_rule": "nolane-frontier-interactive-v2:fresh:{family}:{seed}",
+    "first_last": {
+      "causal_identification": ["nolane-frontier-interactive-v2:fresh:causal_identification:990017","nolane-frontier-interactive-v2:fresh:causal_identification:991860"],
+      "delayed_resource": ["nolane-frontier-interactive-v2:fresh:delayed_resource:1000017","nolane-frontier-interactive-v2:fresh:delayed_resource:1001860"],
+      "compositional_rule": ["nolane-frontier-interactive-v2:fresh:compositional_rule:1010017","nolane-frontier-interactive-v2:fresh:compositional_rule:1011860"]
+    }
+  },
+  "lock_payload_sha256": "15aa66f6e4a031e4f290b0cf9903a1b743deb448bdfef379601b3223f7e01296",
+  "lock_file_sha256": "d78ee37354fe742cd4a4850fc485a5866989dffceceb0ee9f12421a704cd62f5",
+  "protocol": {
+    "controls": ["psr_planner","effect_progress","current_best"],
+    "fresh_opened": false,
+    "no_r1_6_tuning_after_fresh": true,
+    "no_source_or_checkpoint_changes_after_lock": true
+  },
+  "source_sha256": {
+    "cogcoder/frontier_interactive.py": "902a2ea1a865703a99d512c31b64bb8fab5afbbd02c53fd0e9961b0dd3b4e107",
+    "cogcoder/neural_system2.py": "ed54e1908d28b29946ba3c45a11e2cf506b5748301fa0f8521541b3c27ae98b2",
+    "cogcoder/neural_system2_curriculum.py": "5f3ff0b9953341341dc9743790861585b1ada720b9776689c2d2398dd6e6ceb4",
+    "cogcoder/neural_system2_training.py": "6fc0c6fc82670253bd7bd7da48155919e6ea100461ee64669a2909fc925cb1e7",
+    "scripts/eval_r1_6_slice.py": "d92f4b52fd7dcea869fafec9c53866932f9229ec6d8524ce11b89b37d077c638",
+    "tests/test_neural_system2.py": "c4d168a0e9fb2dd8e73d1034e1e3335eaa31fa4ef86c61b3517a139750eacb6e",
+    "tests/test_neural_system2_curriculum.py": "2bc2d0a1714b4b906ea39c77490a8f6692f9630f21c6b111332db2739087fbe0",
+    "tests/test_neural_system2_training.py": "99f6738ca07cae22632e7ef11be583b26130439e711c65d53729b9dd48857588",
+    "tests/test_r1_6_evaluator_protocol.py": "476b7683759e4d407b7b78edf9cf0e4b9e7cb387067b8a34cfba1355ecfb8ab8"
+  },
+  "version": "r1.6-pre-fresh-lock-v1"
+}
