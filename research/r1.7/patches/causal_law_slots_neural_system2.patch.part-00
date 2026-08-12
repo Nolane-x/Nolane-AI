@@ -1,0 +1,143 @@
+--- /mnt/data/Nolane-R1.7-NCPM-WORK/r16_parent/Nolane-60M-R1.6-NS2-WORK/cogcoder/neural_system2.py	2026-08-12 10:12:47.000000000 +0000
++++ /mnt/data/Nolane-R1.7-NCPM-WORK/r17_work/cogcoder/neural_system2.py	2026-08-12 15:28:12.498565759 +0000
+@@ -266,6 +266,15 @@
+ 
+ 
+ @dataclass(frozen=True)
++class CausalLawState:
++    """Content-addressed recurrent hypotheses about public action dynamics."""
++
++    slots: Tensor
++    confidence: Tensor
++    usage: Tensor
++
++
++@dataclass(frozen=True)
+ class System2State:
+     slots: Tensor
+     action_memory: Tensor
+@@ -277,6 +286,7 @@
+     # parameter-free episodic state, not an oracle: an untried action remains
+     # exactly zero until its public successor observation is seen.
+     action_effect_sketch: Tensor | None = None
++    causal_laws: CausalLawState | None = None
+ 
+ 
+ @dataclass(frozen=True)
+@@ -801,6 +811,56 @@
+         # sketches. Unlike free latent recursion, this state space has explicit
+         # simulator-supervised successor targets for every train/dev action.
+         self.psr_sketch_dim = 128
++
++        # R1.7 content-addressed Causal Law Slots.  These recurrent hypotheses
++        # bind a public pre-action state, dynamic action representation, and
++        # observed structured successor delta.  They are global slots rather
++        # than fixed action-index memories; action identity enters only through
++        # the shared action embedding, preserving permutation equivariance.
++        self.causal_law_slot_count = 8
++        self.causal_law_dim = 256
++        self.causal_law_seed_slots = nn.Parameter(
++            torch.empty(self.causal_law_slot_count, self.causal_law_dim)
++        )
++        nn.init.normal_(self.causal_law_seed_slots, mean=0.0, std=0.02)
++        self.causal_law_state_projection = nn.Linear(
++            self.psr_sketch_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_action_projection = nn.Linear(
++            workspace_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_effect_projection = nn.Linear(
++            self.psr_sketch_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_evidence_projection = nn.Sequential(
++            nn.Linear(self.causal_law_dim * 3, self.causal_law_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.causal_law_dim),
++        )
++        self.causal_law_address_query = nn.Linear(
++            self.causal_law_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_address_key = nn.Linear(
++            self.causal_law_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_update = nn.GRUCell(self.causal_law_dim, self.causal_law_dim)
++        self.causal_law_retrieval_query = nn.Linear(
++            self.causal_law_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_retrieval_key = nn.Linear(
++            self.causal_law_dim, self.causal_law_dim, bias=False
++        )
++        self.causal_law_delta_head = nn.Linear(
++            self.causal_law_dim, self.psr_sketch_dim
++        )
++        self.causal_law_policy_head = nn.Sequential(
++            nn.Linear(self.causal_law_dim * 4, self.causal_law_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.causal_law_dim),
++            nn.Linear(self.causal_law_dim, 1),
++        )
++        self.causal_law_policy_scale = nn.Parameter(torch.tensor(0.0))
++
+         self.psr_dim = 256
+         self.max_psr_delta_component = 4.0
+         self.psr_state_encoder = nn.Sequential(
+@@ -865,17 +925,167 @@
+             latent.shape[0], action_count, self.psr_sketch_dim,
+             device=latent.device, dtype=latent.dtype,
+         )
++        causal_laws = self.init_causal_law_state(
++            batch_size=latent.shape[0], device=latent.device, dtype=latent.dtype
++        )
+         return System2State(
+             slots=slots,
+             action_memory=action_memory,
+             action_counts=action_counts,
+             last_context=context,
+             action_effect_sketch=action_effect_sketch,
++            causal_laws=causal_laws,
++        )
++
++    def init_causal_law_state(
++        self,
++        *,
++        batch_size: int,
++        device: torch.device | None = None,
++        dtype: torch.dtype | None = None,
++    ) -> CausalLawState:
++        if int(batch_size) < 1:
++            raise ValueError("batch_size must be positive")
++        if dtype is None:
++            dtype = self.causal_law_seed_slots.dtype
++        slots = self.causal_law_seed_slots.to(device=device, dtype=dtype).unsqueeze(0)
++        slots = slots.expand(int(batch_size), -1, -1).clone()
++        confidence = torch.zeros(
++            int(batch_size), self.causal_law_slot_count, device=device, dtype=dtype
++        )
++        usage = torch.zeros_like(confidence)
++        return CausalLawState(slots=slots, confidence=confidence, usage=usage)
++
++    def update_causal_laws(
++        self,
++        state_sketch: Tensor,
++        action_embeddings: Tensor,
++        action_index: int | Tensor,
++        observed_delta: Tensor,
++        law_state: CausalLawState,
++    ) -> CausalLawState:
++        if state_sketch.ndim != 2 or state_sketch.shape[-1] != self.psr_sketch_dim:
++            raise ValueError("state_sketch must have shape [batch, psr_sketch_dim]")
++        if (
++            action_embeddings.ndim != 3
++            or action_embeddings.shape[0] != state_sketch.shape[0]
++            or action_embeddings.shape[-1] != self.workspace_dim
++        ):
++            raise ValueError(
++                "action_embeddings must have shape [batch, actions, workspace_dim]"
++            )
++        if observed_delta.shape != state_sketch.shape:
++            raise ValueError("observed_delta must match state_sketch")
++        batch, action_count, _ = action_embeddings.shape
++        if isinstance(action_index, int):
++            action_ids = torch.full(
++                (batch,), int(action_index), device=state_sketch.device, dtype=torch.long
++            )
