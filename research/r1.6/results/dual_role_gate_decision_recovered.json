@@ -1,0 +1,36 @@
+{
+  "protocol": "dual-role-two-slice-strict-both-v1",
+  "first_slice": "dev[54:60]",
+  "control": {
+    "checkpoint": "checkpoints/Nolane-R1.6-NS2-PSRPlanner.pt",
+    "slice": "dev[54:60]",
+    "solved": 3,
+    "total": 18,
+    "mean_steps": 7.555555555555555,
+    "families": {
+      "causal_identification": {"solved": 0, "total": 6, "mean_steps": 12.166666666666666},
+      "delayed_resource": {"solved": 3, "total": 6, "mean_steps": 7.333333333333333},
+      "compositional_rule": {"solved": 0, "total": 6, "mean_steps": 3.1666666666666665}
+    }
+  },
+  "candidate": {
+    "checkpoint": "checkpoints/Nolane-R1.6-NS2-DualRoleCausalBinder.pt",
+    "slice": "dev[54:60]",
+    "solved": 3,
+    "total": 18,
+    "mean_steps": 6.722222222222222,
+    "families": {
+      "causal_identification": {"solved": 0, "total": 6, "mean_steps": 10.5},
+      "delayed_resource": {"solved": 3, "total": 6, "mean_steps": 6.5},
+      "compositional_rule": {"solved": 0, "total": 6, "mean_steps": 3.1666666666666665}
+    }
+  },
+  "first_slice_strict_win": false,
+  "second_slice_required": false,
+  "accepted": false,
+  "selected_checkpoint": "checkpoints/Nolane-R1.6-NS2-PSRPlanner.pt",
+  "selected_checkpoint_sha256": "594e19faaf07094532d86629457dd81322113f06f7a932e05b07367f3c5dbb90",
+  "current_best_sha256": "594e19faaf07094532d86629457dd81322113f06f7a932e05b07367f3c5dbb90",
+  "reason": "candidate did not strictly beat control on first preregistered slice; strict-both rule cannot be satisfied",
+  "fresh_opened": false
+}
