@@ -1,0 +1,25 @@
+{
+  "version": "R1.6-live-2026-08-12",
+  "parameter_policy": "capacity may grow modestly; current verified candidate approximately 68.94M before termination guard / ~69M research line",
+  "source": [
+    {"path":"cogcoder/neural_system2.py","bytes":40009,"sha256":"765829a3dd83df4405fe9be63a92988b3099a9d591dc06eddb0ce2338471ec58"},
+    {"path":"cogcoder/neural_system2_curriculum.py","bytes":22340,"sha256":"924f6abc13c6fa640585c3fdfca3bba9f7b2ea30df8773db76ceb7d6fa057cfc"},
+    {"path":"cogcoder/neural_system2_training.py","bytes":5199,"sha256":"2c408ed34ca1265d47d23abb419b8af2950ff3612a3b0a6d4d402b5e7c7e4db3"},
+    {"path":"tests/test_neural_system2.py","bytes":15334,"sha256":"ec8e0396c6091531033daa7a5ed83e6538cb43be76f0fb74269be3c8ef861c4d"},
+    {"path":"tests/test_neural_system2_curriculum.py","bytes":4884,"sha256":"bc3e803428bdff86492afc2f38677338c65573052a98711fa4513f0342ff767b"},
+    {"path":"scripts/train_r1_6_termination_guard.py","bytes":4490,"sha256":"9ecd7a998087dfcf65241634dc2d5584881b3b4297c24b729f072aa838205654"},
+    {"path":"scripts/train_r1_6_structured_delta.py","bytes":7444,"sha256":"027c34c2ce24b4feedd92a68a31aca4ad764704bf043d98a39c07a4e7d5fa390"},
+    {"path":"scripts/train_r1_6_causal_memory_path.py","bytes":8134,"sha256":"a74a51e98c566fe426908b70e922174fb7afc735ad65f7dabd8b95ac6239aa89"},
+    {"path":"scripts/diagnose_r1_6_dev.py","bytes":2802,"sha256":"96487e70ec2f0b6365680898eb4849f59bcdc5000029b52b34455f0254c2857d"},
+    {"path":"results/r1_6_counterfactual_world.json","bytes":12091,"sha256":"5d60b2c57959b9b9c5116465c67b6195b032b2c1f5a1f3d4857a0a4fa20c3df0"},
+    {"path":"results/r1_6_parent_dev_diagnostic.json","bytes":178323,"sha256":"828c27ac283e2a73490754081f51452634b0b98e919817137dce7caae7397ee8"},
+    {"path":"results/r1_6_structured_delta_dev.json","bytes":2080,"sha256":"ed071e18794702ee1aa470c08d00c42e281526bc34e8f15dcd1efd0d854ebcbe"},
+    {"path":"results/r1_6_causal_memory_path_dev.json","bytes":2107,"sha256":"b2335a2e40e9e8e954559ba79a8dec99cba93d2e17b7bed96cec3f40d64cf3f3"}
+  ],
+  "checkpoints": [
+    {"path":"checkpoints/Nolane-R1.6-NS2-CounterfactualWorld.pt","bytes":77679671,"sha256":"28326c3f7f208f6566206bfe3ce580119a37967f8c5c3de5f6b270522a43afc5"},
+    {"path":"checkpoints/Nolane-R1.6-NS2-StructuredDelta.pt","bytes":77809877,"sha256":"9f594271c6006bb242f446f079cf5112195d0ec43d42f602f09255217b9a491b"},
+    {"path":"checkpoints/Nolane-R1.6-NS2-CausalMemoryPath.pt","bytes":77810020,"sha256":"3dfb21085fc44ba181bb60429d0526e20cd265956f88dbf1cfe56602d08c38be"},
+    {"path":"checkpoints/Nolane-R1.6-NS2-TerminationGuard.pt","bytes":78470044,"sha256":"cd116982d6a586b944704495742032a7c95f895ebc9cda1fc75a4e9c2516baa9"}
+  ]
+}
