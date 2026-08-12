@@ -1,0 +1,16 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt",
+  "sha256": "0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace",
+  "split": "fresh[0:20]",
+  "solved": 28,
+  "total": 60,
+  "mean_steps": 6.933333333333334,
+  "families": {
+    "causal_identification": {"solved": 2, "total": 20, "mean_steps": 9.25},
+    "delayed_resource": {"solved": 20, "total": 20, "mean_steps": 8.5},
+    "compositional_rule": {"solved": 6, "total": 20, "mean_steps": 3.05}
+  },
+  "aggregate_file_sha256": "92ecc170fccaad6c43ff85a9c08d596e1be7cf32403dfe1be931ec49309bcee6",
+  "lock_payload_sha256": "15aa66f6e4a031e4f290b0cf9903a1b743deb448bdfef379601b3223f7e01296",
+  "tuning_after_fresh": false
+}
