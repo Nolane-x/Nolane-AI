@@ -1,0 +1,17 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.6-NS2-PSRPlanner.pt",
+  "sha256": "594e19faaf07094532d86629457dd81322113f06f7a932e05b07367f3c5dbb90",
+  "split": "fresh[0:20]",
+  "solved": 15,
+  "total": 60,
+  "mean_steps": 7.166666666666667,
+  "families": {
+    "causal_identification": {"solved": 0, "total": 20, "mean_steps": 11.6},
+    "delayed_resource": {"solved": 10, "total": 20, "mean_steps": 7.0},
+    "compositional_rule": {"solved": 5, "total": 20, "mean_steps": 2.9}
+  },
+  "aggregate_file_sha256": "7e661c1445a2b146bf0cc93137fb5111f54c562f5939b8df552f68fb3403980c",
+  "lock_payload_sha256": "15aa66f6e4a031e4f290b0cf9903a1b743deb448bdfef379601b3223f7e01296",
+  "fresh_opened": true,
+  "tuning_after_fresh": false
+}
