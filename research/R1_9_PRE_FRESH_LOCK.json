@@ -1,0 +1,15 @@
+{
+  "checkpoint_sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+  "dev_relative_improvement": 0.3952811444225157,
+  "dev_result": "results/r1_9_frontier_rollout_dev.json",
+  "fresh_indices": [
+    0,
+    8
+  ],
+  "fresh_split": "fresh",
+  "max_states": 2,
+  "no_parameter_or_code_tuning_after_fresh": true,
+  "parent_sha256": "400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16",
+  "program_horizon": 2,
+  "version": "r1.9-pre-fresh-lock-v1"
+}
