@@ -1,0 +1,20 @@
+{
+  "version": "R2.2-Epistemic-Workspace",
+  "status": "accepted_train_dev_fresh",
+  "parent_runtime": "R2.1a-Cognition-Time-Retrieval-Fabric",
+  "neural_effective_parameters": 78779253,
+  "new_r2_2_neural_parameters": 0,
+  "deployment_weight": "Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+  "deployment_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "source_sha256": {
+    "workspace": "eeefdfbff19ad782a9556824cd63beb5e735f42e256968c7d77685f36ed10c47",
+    "rule_layer": "68362c38bb2fffde50631cc7407c5f02f4a9f82aa0d635d12afec2c17f8363f9",
+    "runtime": "3325ad0c5fdb81b61c614d19fa9629f59c8fe444009f374f7b99fe1d842e5a81",
+    "benchmark": "4ad2a5418b80962abee123d31b38b1e22675bfb40a09471a5afcde2d3dfcda4d",
+    "evaluator": "3e6ae23ace21bb399c4bb242b11bb3c5812d9f1fd442d55bec839e6c6185e5ea"
+  },
+  "train": {"baseline": 0.47, "candidate": 1.0, "gain_pp": 53.0},
+  "dev": {"baseline": 0.455, "candidate": 0.995, "gain_pp": 54.0},
+  "fresh": {"indices": [5000, 5200], "consumed": true, "baseline": 0.51, "candidate": 1.0, "gain_pp": 49.0, "integrity_errors": 0},
+  "claim_boundary": "Accepted on locked synthetic KFIGG-22 as a bounded zero-parameter external-knowledge workspace. This is not an AGI or greater-than-100B superiority claim."
+}
