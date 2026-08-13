@@ -71,7 +71,18 @@ class EpistemicWorkspace:
         self._chunks[chunk.chunk_id] = chunk
         match = _CLAIM.match(chunk.text.strip())
         if match:
-            self._claims.append(ClaimRecord(match.group(1).strip(), match.group(2).strip(), match.group(3).strip(), chunk.chunk_id, chunk.source_uri, chunk.version, float(chunk.score), float(chunk.trust_score)))
+            self._claims.append(
+                ClaimRecord(
+                    match.group(1).strip(),
+                    match.group(2).strip(),
+                    match.group(3).strip(),
+                    chunk.chunk_id,
+                    chunk.source_uri,
+                    chunk.version,
+                    float(chunk.score),
+                    float(chunk.trust_score),
+                )
+            )
         return True
 
     def ingest_many(self, chunks: Iterable[EvidenceChunk]) -> int:
@@ -85,7 +96,8 @@ class EpistemicWorkspace:
         by_source: dict[str, list[ClaimRecord]] = defaultdict(list)
         for claim in relevant:
             by_source[claim.source_uri].append(claim)
-        current, superseded = [], []
+        current: list[ClaimRecord] = []
+        superseded: list[ClaimRecord] = []
         for rows in by_source.values():
             best_key = max(_version_key(row.version) for row in rows)
             latest = [row for row in rows if _version_key(row.version) == best_key]
@@ -115,7 +127,17 @@ class EpistemicWorkspace:
         second = scored[1][0] if len(scored) > 1 else 0.0
         contested = len(scored) > 1 and (top_support - second) <= self.contest_margin * max(1.0, top_support)
         alternatives = tuple(row[2] for row in scored[1:])
-        return Belief(subject, relation, obj, confidence, contested, sources, tuple(sorted(row.chunk_id for row in rows)), tuple(row.chunk_id for row in superseded), alternatives)
+        return Belief(
+            subject,
+            relation,
+            obj,
+            confidence,
+            contested,
+            sources,
+            tuple(sorted(row.chunk_id for row in rows)),
+            tuple(row.chunk_id for row in superseded),
+            alternatives,
+        )
 
     def conflicts(self) -> tuple[EpistemicConflict, ...]:
         keys = sorted({(claim.subject, claim.relation) for claim in self._claims})
