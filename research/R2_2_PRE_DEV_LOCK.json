@@ -3,7 +3,7 @@
   "stage": "pre_dev_lock",
   "neural_effective_parameters": 78779253,
   "new_neural_parameters": 0,
-  "locked_main_commit": "9d0f8bd4c8cd19ecbc3529087ef691450f6e3abc",
+  "locked_main_commit": "7c07d716c7b4d149b2c81f563f1c99504d2c49b9",
   "core_sha256": {
     "workspace": "eeefdfbff19ad782a9556824cd63beb5e735f42e256968c7d77685f36ed10c47",
     "rule_layer": "68362c38bb2fffde50631cc7407c5f02f4a9f82aa0d635d12afec2c17f8363f9",
@@ -32,5 +32,5 @@
   "dev": {"indices": [4000, 4200], "consumed": false},
   "fresh": {"indices": [5000, 5200], "consumed": false},
   "admission": {"min_gain_pp": 10.0, "max_provenance_failures": 0, "max_version_resolution_errors": 0},
-  "note": "Final protocol was selected on TRAIN only. DEV and FRESH were unopened when this lock was committed."
+  "note": "The only pre-DEV amendment restored GitHub workspace bytes to the already-locked local source hash. No protocol, metric, split, or behavior changed; DEV and FRESH were still unopened."
 }
