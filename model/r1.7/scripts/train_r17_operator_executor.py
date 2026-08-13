@@ -27,7 +27,7 @@ def _collect(start: int, count: int):
 
 def main():
     seed=170917; epochs=80; lr=0.002; batch_size=128
-    torch.manual_seed(seed); random.seed(seed); torch.set_num_threads(1)
+    torch.manual_seed(seed); random.seed(seed); torch.set_num_threads(4)
     root=Path(__file__).resolve().parents[1]
     r12=root/'checkpoints/Nolane-Rebuild-R1.2-ACE.pt'; r16=root/'checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt'; parent=root/'checkpoints/Nolane-R1.7-NCPM-GoalDifference.pt'
     model,parent_meta=load_r17_checkpoint(parent,expected_r1_2_checkpoint=r12,expected_r1_6_parent_checkpoint=r16)
