@@ -5,12 +5,15 @@ from .arc_local import fit_local_programs
 from .arc_pair_v2 import fit_pair_programs
 
 
+MAX_LOCAL_RULES=8
+
+
 def program_set(pairs, limit=64):
     pairs=tuple(pairs)
     if not pairs or limit<1:
         return ()
     pool={p.signature:p for p in fast_program_set(pairs,limit=limit)}
-    for program in fit_local_programs(pairs,max_rules=8):
+    for program in fit_local_programs(pairs,max_rules=MAX_LOCAL_RULES):
         pool[program.signature]=program
     for program in fit_pair_programs(pairs):
         pool[program.signature]=program
