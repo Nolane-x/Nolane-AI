@@ -1,0 +1,114 @@
+--- cogcoder/neural_system2.py.r17-phase-c
++++ cogcoder/neural_system2.py.r18-conditional-law
+@@ -994,6 +994,51 @@
+         )
+         self.causal_law_policy_scale = nn.Parameter(torch.tensor(0.0))
+ 
++        # R1.8 Conditional Causal State Machine world-model prior.  The module
++        # is deliberately not wired into policy logits at construction time.
++        # It predicts public structured successor effects from current state,
++        # public context, dynamic action semantics, and context-indexed observed
++        # evidence.  Shared action processing preserves permutation equivariance.
++        self.conditional_law_dim = 256
++        self.conditional_law_context_dim = 64
++        self.conditional_law_state_projection = nn.Linear(
++            self.psr_sketch_dim, self.conditional_law_dim, bias=False
++        )
++        self.conditional_law_context_projection = nn.Linear(
++            self.conditional_law_context_dim, self.conditional_law_dim, bias=False
++        )
++        self.conditional_law_action_projection = nn.Linear(
++            workspace_dim, self.conditional_law_dim, bias=False
++        )
++        self.conditional_law_evidence_projection = nn.Linear(
++            self.psr_sketch_dim, self.conditional_law_dim, bias=False
++        )
++        self.conditional_law_meta_projection = nn.Sequential(
++            nn.Linear(3, 64),
++            nn.GELU(),
++            nn.LayerNorm(64),
++        )
++        conditional_relation_dim = self.conditional_law_dim * 6 + 64
++        self.conditional_law_relation = nn.Sequential(
++            nn.Linear(conditional_relation_dim, 512),
++            nn.GELU(),
++            nn.LayerNorm(512),
++            nn.Linear(512, self.conditional_law_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.conditional_law_dim),
++        )
++        self.conditional_law_effect_head = nn.Linear(
++            self.conditional_law_dim, self.psr_sketch_dim
++        )
++        self.conditional_law_confidence_head = nn.Linear(self.conditional_law_dim, 1)
++        # Persistence/abstention is the safe prior before FIGG-18 training.
++        nn.init.zeros_(self.conditional_law_effect_head.weight)
++        nn.init.zeros_(self.conditional_law_effect_head.bias)
++        nn.init.zeros_(self.conditional_law_confidence_head.weight)
++        nn.init.zeros_(self.conditional_law_confidence_head.bias)
++
+         # R1.7 Phase B Goal-Difference Workspace. Two learned role queries
+         # attend to public structured atoms independently, allowing the model
+         # to separate current-like and target-like evidence without hard-coding
+@@ -1323,6 +1368,74 @@
+             "policy_bonus": policy_bonus,
+         }
+ 
++    def conditional_law_scores(
++        self,
++        state_sketch: Tensor,
++        context_fingerprint: Tensor,
++        action_embeddings: Tensor,
++        evidence_effects: Tensor,
++        evidence_meta: Tensor,
++    ) -> dict[str, Tensor]:
++        """Predict context-conditioned public action effects.
++
++        This method is a world-model API only.  R1.8 does not add its output to
++        policy logits until a later closed-loop gate proves that the learned law
++        representation is useful for control.
++        """
++        if state_sketch.ndim != 2 or state_sketch.shape[-1] != self.psr_sketch_dim:
++            raise ValueError("state_sketch must have shape [batch, psr_sketch_dim]")
++        batch = state_sketch.shape[0]
++        if tuple(context_fingerprint.shape) != (batch, self.conditional_law_context_dim):
++            raise ValueError("context_fingerprint must have shape [batch, conditional_law_context_dim]")
++        if action_embeddings.ndim != 3 or action_embeddings.shape[0] != batch or action_embeddings.shape[-1] != self.workspace_dim:
++            raise ValueError("action_embeddings must have shape [batch, actions, workspace_dim]")
++        actions = action_embeddings.shape[1]
++        if tuple(evidence_effects.shape) != (batch, actions, self.psr_sketch_dim):
++            raise ValueError("evidence_effects must have shape [batch, actions, psr_sketch_dim]")
++        if tuple(evidence_meta.shape) != (batch, actions, 3):
++            raise ValueError("evidence_meta must have shape [batch, actions, 3]")
++
++        state = torch.tanh(self.conditional_law_state_projection(state_sketch))
++        context = torch.tanh(self.conditional_law_context_projection(context_fingerprint))
++        action = torch.tanh(self.conditional_law_action_projection(action_embeddings))
++        evidence = torch.tanh(self.conditional_law_evidence_projection(evidence_effects))
++        meta = self.conditional_law_meta_projection(evidence_meta)
++        state = state.unsqueeze(1).expand(-1, actions, -1)
++        context = context.unsqueeze(1).expand(-1, actions, -1)
++        relation = torch.cat(
++            (
++                state,
++                context,
++                action,
++                evidence,
++                state * evidence,
++                torch.abs(state - evidence),
++                meta,
++            ),
++            dim=-1,
++        )
++        hidden = self.conditional_law_relation(relation)
++        predicted_effect = 4.0 * torch.tanh(self.conditional_law_effect_head(hidden))
++        confidence = torch.sigmoid(self.conditional_law_confidence_head(hidden)).squeeze(-1)
++        return {
++            "predicted_effect": predicted_effect,
++            "confidence": confidence,
++            "hidden": hidden,
++        }
++
+     def goal_difference_scores(
+         self,
+         structured_atoms: Tensor,
