@@ -4,6 +4,8 @@ from collections import Counter, deque
 from dataclasses import dataclass
 from typing import Iterable
 
+from .grid_prior import preferred_background
+
 
 @dataclass(frozen=True)
 class Grid:
@@ -50,8 +52,7 @@ class Grid:
 
 
 def infer_background(grid: Grid) -> int:
-    hist = grid.histogram()
-    return min(hist, key=lambda color: (-hist[color], color != 0, color))
+    return preferred_background(grid.histogram())
 
 
 def components(grid: Grid, *, color: int | None = None, background: int | None = None, connectivity: int = 4) -> tuple[frozenset[tuple[int,int]], ...]:
