@@ -1,0 +1,50 @@
+{
+  "admission": {
+    "max_integrity_failures": 0,
+    "min_candidate_solve_rate": 0.85,
+    "min_composition": 0.8,
+    "min_gain_pp": 20.0,
+    "min_retention": 0.9,
+    "min_revision": 0.9
+  },
+  "dev": {
+    "consumed": false,
+    "indices": [7000, 7200]
+  },
+  "fresh": {
+    "consumed": false,
+    "indices": [8000, 8200]
+  },
+  "neural_effective_parameters": 78779253,
+  "new_r2_3_neural_parameters": 0,
+  "note": "Protocol selected using TRAIN only. DEV/FRESH unopened.",
+  "protocol": {
+    "composition_seen_probability": 0.25,
+    "demonstrations_per_skill": 3,
+    "max_candidates": 100000,
+    "max_depth": 3,
+    "seen_probability": 0.35
+  },
+  "source_sha256": {
+    "cogcoder/kfigg23.py": "e1d0570e2c49c7f4fbeeecfea4b882c6cd30d4103335a1185232b49e6cfd8a8c",
+    "cogcoder/r23_runtime.py": "b43551c472f4f0eb35332a6e8be1239248bccb80dbfdea2102d9141db2238746",
+    "cogcoder/skill_memory.py": "183ab171bf532a6239b2761efcd8bdc7a10cd5b12f9d450b511f5955b5e3ac4d",
+    "cogcoder/skill_synthesis.py": "1b6e1651a72a0966831bb123282569800d02548f4a0eacd02163e18174391fd8",
+    "scripts/evaluate_r23_continual.py": "38bff89ba33d1194a52b6772b732c53a55d91a4ef634910c34d387f086a40753"
+  },
+  "stage": "pre_dev_lock",
+  "train": {
+    "baseline_solve_rate": 0.33625,
+    "candidate_solve_rate": 0.94625,
+    "cases": 200,
+    "composition_solve_rate": 0.9,
+    "gain_pp": 61.0,
+    "indices": [6000, 6200],
+    "integrity_failures": 0,
+    "queries": 800,
+    "retention_solve_rate": 0.945,
+    "revision_solve_rate": 0.99,
+    "synthesis_failures": 1
+  },
+  "version": "R2.3-Continual-Skill-Synthesis"
+}
