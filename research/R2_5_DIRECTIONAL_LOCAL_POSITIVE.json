@@ -1,0 +1,29 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development-positive-result",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "reference": {
+    "solved": 59,
+    "cases": 1000,
+    "solve_rate": 0.059,
+    "github_actions_run_id": 31754612655
+  },
+  "directional_local_plus_geometric_view": {
+    "solved": 60,
+    "cases": 1000,
+    "solve_rate": 0.06,
+    "gain_tasks": 1,
+    "gain_pp": 0.1,
+    "mean_candidate_programs": 0.308,
+    "mean_attempts_emitted": 0.089,
+    "approx_measure_seconds": 114,
+    "max_local_rules": 8,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "github_actions_run_id": 31755171804,
+    "source_commit": "0080682386321fc6ea42660ac605d29d3a7b6ca5"
+  },
+  "conclusion": "Directional local context added one solved official training task with near-baseline compute and is retained for the next training candidate.",
+  "public_evaluation_used_for_feedback": false
+}
