@@ -37,3 +37,16 @@ def test_operator_gate_requires_exact_element_and_each_operator_threshold():
     assert not operator_executor_internal_gate(dict(good,exact_vector_accuracy=.97))
     bad=dict(good);bad['operators']={'a':{'exact_vector_accuracy':.94},'b':{'exact_vector_accuracy':1.0}}
     assert not operator_executor_internal_gate(bad)
+
+
+def test_operator_batch_encodes_one_dynamic_action_per_transition_with_action_axis():
+    from cogcoder.r17_operator_training import OperatorTransition, _batch_tensors
+    model=_model()
+    rows=[
+        OperatorTransition((0,1,2,3),'rotate vector one cell left',(1,2,3,0)),
+        OperatorTransition((1,2,3,4),'add one modulo seven to each value',(2,3,4,5)),
+    ]
+    before,after,actions=_batch_tensors(model,rows)
+    assert before.shape==(2,4)
+    assert after.shape==(2,4)
+    assert actions.shape==(2,model.workspace_dim)
