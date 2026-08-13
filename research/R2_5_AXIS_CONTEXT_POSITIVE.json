@@ -1,0 +1,29 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development-positive-result",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "reference": {
+    "solved": 60,
+    "cases": 1000,
+    "solve_rate": 0.06,
+    "github_actions_run_id": 31755171804
+  },
+  "axis_context_candidate": {
+    "solved": 66,
+    "cases": 1000,
+    "solve_rate": 0.066,
+    "gain_tasks": 6,
+    "gain_pp": 0.6,
+    "mean_candidate_programs": 0.339,
+    "mean_attempts_emitted": 0.105,
+    "approx_measure_seconds": 135,
+    "max_local_rules": 8,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "github_actions_run_id": 31755477810,
+    "source_commit": "ed8ce339bd3ef527576275739741877ee2b4ba7c"
+  },
+  "conclusion": "Row/column set-count context added six solved official training tasks over directional local plus geometric-view context, with moderate compute increase. It is retained.",
+  "public_evaluation_used_for_feedback": false
+}
