@@ -1,0 +1,21 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.9-FGR-FrontierRollout.pt",
+  "checkpoint_sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+  "indices": [0, 8],
+  "max_states": 2,
+  "metrics": {
+    "baseline_mse": 0.003911447234503822,
+    "candidate_mse": 0.002365325895300867,
+    "families": {
+      "causal_prerequisites": {"baseline_mse": 0.0015852815873222425, "candidate_mse": 0.001336205639140644, "relative_improvement": 0.1571177954588634},
+      "conditional_regimes": {"baseline_mse": 0.0058586256638793405, "candidate_mse": 0.0032005774499137057, "relative_improvement": 0.45369825048791135},
+      "implicit_goal_regimes": {"baseline_mse": 0.006384386230719328, "candidate_mse": 0.0032150432730809874, "relative_improvement": 0.4964209311755957},
+      "regime_switch": {"baseline_mse": 0.005952901051083852, "candidate_mse": 0.0035390243411307486, "relative_improvement": 0.40549585643013597}
+    },
+    "relative_improvement": 0.3952811444225157
+  },
+  "parent_sha256": "400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16",
+  "rows": 832,
+  "split": "dev",
+  "version": "r1.9-frontier-rollout-dev-v1"
+}
