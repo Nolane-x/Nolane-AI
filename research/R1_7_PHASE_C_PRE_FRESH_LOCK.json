@@ -1,0 +1,32 @@
+{
+  "version": "r1.7-phase-c-pre-fresh-v1",
+  "benchmark": "nolane-figg17-v1.1",
+  "fresh_scope": {
+    "split": "fresh",
+    "family": "composition_holdout",
+    "indices": [0, 60],
+    "max_horizon": 4,
+    "trainable_parameters": 0,
+    "seed_start": 18200080,
+    "seed_stride": 997,
+    "task_id_format": "nolane-figg17-v1.1:fresh:composition_holdout:{seed}",
+    "first_task_id": "nolane-figg17-v1.1:fresh:composition_holdout:18200080",
+    "last_task_id": "nolane-figg17-v1.1:fresh:composition_holdout:18258903"
+  },
+  "hashes": {
+    "checkpoint": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+    "cogcoder/r17_benchmark.py": "c92ce9952c319df2b0a1d52373e6214cc02bfcfedfb15425cc716d4bdd906233",
+    "cogcoder/neural_system2.py": "26d19f273d67eced45ce3628765586e0df5372ea4714d588a182a269317b80c3",
+    "cogcoder/r17_program_induction.py": "5fd8a6cb79e2eb72a1643897207d802b46f7d0f1a5b56071c0f0884a00c16ae5",
+    "scripts/eval_r17_functional_program_search.py": "70815836be65a587526721cc0b4f8025b4050a257e4b9b7ce7baf10d22aadebf",
+    "scripts/eval_r17_functional_program_search_dev.py": "a28477bfe1d97bcafa6a3dd90b002b565feceadc93b0b69e012e90e65b2d2a37",
+    "tests/test_r17_functional_program.py": "659362312c7bf5bb55fd285afb4520f031d0c504ec4a7dfa00c7c1c452e6877a",
+    "results/r1_7_functional_program_search_internal.json": "aaeb696b9e59722ffec8dd6d0b385edaea260ff5b3c61db159f992193c8439f4",
+    "results/r1_7_functional_program_search_dev.json": "27a52131a044d69b294379cf97ae921d2fafed9bb20689455420c3f08c15c143"
+  },
+  "verification": {
+    "r17_tests_passed": 81,
+    "full_local_lock_sha256": "ec929e1fc80204a158ff29d703e75b422adf96fa3e4c0a01022a50fa3e475a13"
+  },
+  "rule": "After this lock is pushed to main, source/checkpoint/evaluator are immutable for this fresh run. No tuning from fresh results is permitted."
+}
