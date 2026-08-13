@@ -1,0 +1,27 @@
+name: R2.1 Integrity
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/knowledge_*.py'
+      - 'cogcoder/retrieval_microcycle.py'
+      - 'cogcoder/generation_retrieval.py'
+      - 'cogcoder/kfigg21.py'
+      - 'cogcoder/r21_runtime.py'
+      - 'research/R2_1*'
+      - 'research/r2.1/**'
+      - 'scripts/verify_r21_release.py'
+      - '.github/workflows/r21-integrity.yml'
+  workflow_dispatch:
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate locked R2.1 provenance
+        run: python scripts/verify_r21_release.py --metadata-only
+      - name: Compile retrieval runtime
+        run: python -m py_compile cogcoder/knowledge_types.py cogcoder/knowledge_store.py cogcoder/knowledge_ledger.py cogcoder/retrieval_microcycle.py cogcoder/generation_retrieval.py cogcoder/kfigg21.py cogcoder/knowledge_adapters.py
