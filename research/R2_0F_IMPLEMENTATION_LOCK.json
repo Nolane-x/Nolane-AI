@@ -1,0 +1,20 @@
+{
+  "version": "r2.0f-implementation-lock-v1",
+  "date": "2026-08-13",
+  "pretrain_lock": "research/R2_0F_GOAL_CRITIC_PRETRAIN_LOCK.json",
+  "critic_sha256": "b005f07d39324d93a167bf25bcbc80380a81ecefb59f352a6d6edd48f2c90a70",
+  "critic_test_sha256": "f7f49d49209a2fc94e9daadca9344d2726ff3e553253b2be5b15f11fdcd1f90a",
+  "training_sha256": "158b09709097e34bf9dc1672a65ff2e03bebccfd489d1022d3dbcfb40d326da8",
+  "training_test_sha256": "e15f710e31b4bdb921ddd7d60be24e421e68b51bbb31a4eadcbf82d7181655af",
+  "critic_parameters": 55954,
+  "candidate_effective_parameters": 78835207,
+  "branch_value_target": "1.0 solved; -1.0 terminal-unsolved; otherwise exp(-remaining_oracle_steps/6); oracle is label-only on train",
+  "runtime_residual": "frozen_r20e_depth1_logits + critic_residual_logits",
+  "fit_indices": [1400, 1464],
+  "validation_indices": [1464, 1480],
+  "untouched_train_gate_indices": [1480, 1500],
+  "collection_started": false,
+  "train_gate_opened": false,
+  "dev_opened": false,
+  "fresh_opened": false
+}
