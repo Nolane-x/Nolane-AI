@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .arc_chain import chain_programs
+from .arc_chain_fast import chain_programs
 from .arc_current import program_set as fast_program_set
 from .arc_local import fit_local_programs
 
