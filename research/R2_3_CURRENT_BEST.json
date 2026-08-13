@@ -1,0 +1,45 @@
+{
+  "version": "R2.3-Continual-Skill-Synthesis",
+  "status": "accepted_train_dev_final_heldout",
+  "parent_runtime": "R2.2-Epistemic-Workspace",
+  "neural_effective_parameters": 78779253,
+  "new_r2_3_neural_parameters": 0,
+  "deployment_weight": "Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+  "deployment_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "train": {
+    "indices": [6000, 6200],
+    "baseline": 0.33625,
+    "candidate": 0.94625,
+    "gain_pp": 61.0,
+    "retention": 0.945,
+    "revision": 0.99,
+    "composition": 0.90
+  },
+  "dev": {
+    "indices": [7000, 7200],
+    "baseline": 0.3325,
+    "candidate": 0.9425,
+    "gain_pp": 61.0,
+    "induction": 0.955,
+    "retention": 0.95,
+    "revision": 0.955,
+    "composition": 0.91,
+    "integrity_failures": 0,
+    "workflow_run": 31705841354
+  },
+  "final_heldout": {
+    "indices": [8000, 8200],
+    "consumed": true,
+    "baseline": 0.3375,
+    "candidate": 0.93125,
+    "gain_pp": 59.375,
+    "induction": 0.94,
+    "retention": 0.965,
+    "revision": 0.925,
+    "composition": 0.895,
+    "integrity_failures": 0,
+    "synthesis_failures": 0,
+    "workflow_run": 31706020197
+  },
+  "claim_boundary": "R2.3 establishes bounded zero-neural-parameter continual skill induction, retention, revision and composition on locked synthetic curricula. It is not unrestricted lifelong learning, autonomous self-improvement, AGI, or evidence of superiority over frontier models."
+}
