@@ -6,6 +6,8 @@ from typing import Iterable
 from .arc_grid import Grid, bbox, components, crop, infer_background, scale_nearest, transform
 from .block_matrix import expand_masked
 from .d4_predicate import invariant_under
+from .edge_relation import anchored_complement_mirror, repeat_edge_frame
+from .panel_combine import first_visible, mark_shared_empty
 from .panel_grid import overlay_from_separated
 from .periodic_grid import recover_missing_patch
 
@@ -113,6 +115,10 @@ def apply_step(step: Step, grid: Grid) -> Grid:
     if step.op == 'block_expand': return expand_masked(grid,infer_background(grid))
     if step.op == 'periodic_patch': return recover_missing_patch(grid)
     if step.op == 'panel_overlay': return overlay_from_separated(grid)
+    if step.op == 'edge_frame': return repeat_edge_frame(grid)
+    if step.op == 'complement_mirror': return anchored_complement_mirror(grid,int(step.args[0]))
+    if step.op == 'joint_background': return mark_shared_empty(grid,str(step.args[0]),int(step.args[1]))
+    if step.op == 'priority_merge': return first_visible(grid,tuple(int(x) for x in step.args[0]))
     if step.op == 'binary_feature':
         kind,yes,no=step.args
         return Grid.from_rows([[int(yes) if invariant_under(grid,str(kind)) else int(no)]])
