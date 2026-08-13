@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 from .arc_grid import Grid, bbox, components, crop, infer_background, scale_nearest, transform
+from .block_matrix import expand_masked
 
 
 @dataclass(frozen=True)
@@ -106,6 +107,7 @@ def apply_step(step: Step, grid: Grid) -> Grid:
     if step.op == 'crop_color': return crop_color(grid,int(step.args[0]))
     if step.op == 'concat': return concat(grid,str(step.args[0]),int(step.args[1]))
     if step.op == 'tile': return tile(grid,int(step.args[0]),int(step.args[1]))
+    if step.op == 'block_expand': return expand_masked(grid,infer_background(grid))
     raise ValueError(f'unknown step {step.op}')
 
 
