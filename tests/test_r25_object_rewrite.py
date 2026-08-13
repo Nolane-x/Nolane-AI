@@ -1,5 +1,5 @@
 from cogcoder.arc_grid import Grid
-from cogcoder.arc_object_rule import fit_object_programs
+from cogcoder.component_fit import programs as fit_object_programs
 from cogcoder.arc_ops_view import apply_program
 
 
@@ -17,7 +17,7 @@ def test_recolors_components_by_generic_area_property():
             g([[0,1,1,0],[0,1,1,0],[0,0,0,2],[0,0,0,0]]),
         ),
     )
-    programs=fit_object_programs(pairs,max_rules=4)
+    programs=fit_object_programs(pairs,max_items=4)
     assert programs, 'expected an object-property rewrite rule'
     test_input=g([[0,0,0,0],[1,1,0,0],[1,1,0,0],[0,0,1,0]])
     expected=g([[0,0,0,0],[1,1,0,0],[1,1,0,0],[0,0,2,0]])
