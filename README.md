@@ -1,53 +1,94 @@
-# Nolane AI — 50M Cognitive Architecture Research
+# Nolane AI — R1.9 Frontier-Generalization Research
 
-Nolane AI is an experimental sub-50M-parameter neural cognitive system developed together with an external cognitive workspace and Habitat-style execution environment.
+Nolane AI is an experimental compact neural cognitive system developed with explicit external-memory/workspace and verifier boundaries. The repository preserves accepted and rejected research branches rather than presenting scaffold performance as neural capability.
 
-## Current research line
+## Current accepted lineage
 
-- **Neural core:** recurrent, weight-shared ~50M architecture.
-- **R1.2:** Adaptive Cognitive Executive (ACE).
-- **R1.3:** dynamic semantic action scorer + learned micro world-model.
-- **R1.4:** semantic recurrent adapter (retained as a negative/ablation branch because it did not beat the R1.3 parent on its fresh gate).
-- **R1.5:** public-observation System-2 cognitive workspace for hypothesis induction, evidence binding, causal system identification and planning.
+The project has progressed beyond the original ~50M label:
 
-## Research discipline
+- **48.3M self-grown core** — recurrent/sparse-expert foundation.
+- **R1.2–R1.6** — executive control, semantic perception, predictive state and System-2 mechanisms.
+- **R1.7 NCPM** — **75,387,546 effective parameters**; learned operator executor + functional program composition.
+- **R1.8 CCSM** — **76,619,419 effective parameters**; +1,231,873 conditional-law parameters over R1.7.
+- **R1.9 FrontierRollout** — **78,214,173 effective parameters**; +1,594,754 recurrent relational rollout parameters over frozen R1.8.
 
-This repository treats benchmark integrity as part of the model. Fresh splits are locked before evaluation, hidden/internal fields are forbidden from policy inputs, and negative results are retained. The Frontier Generalization Gauntlet (FGG) uses exact verifiers rather than free-form LLM judging.
+R1.9 deliberately grows by only ~2.08% over R1.8. The new module predicts a residual correction to the additive composition of frozen R1.8 one-step causal effects; its recurrent refinement cell is weight-shared rather than duplicated with reasoning depth.
 
-### Latest locked evidence
+## Latest locked evidence — FIGG-19
 
-Fresh3 used 140 previously uninstantiated procedural tasks across seven arenas. The recorded controls were:
+R1.9 was trained only on preregistered `train` worlds and then frozen. The same checkpoint was evaluated on disjoint DEV and finally an untouched FRESH split.
 
-| Condition | Fresh3 result |
-|---|---:|
-| Oracle | 140/140 |
-| Random | 12% overall |
-| Neural without workspace | 60/140 (42.86%) |
-| Workspace only | 137/140 (97.86%) |
-| Full Nolane | 140/140 |
+| Gate | R1.8 additive baseline MSE | R1.9 MSE | Relative improvement |
+|---|---:|---:|---:|
+| Internal held-out train worlds | 0.00402608 | 0.00246383 | **38.80%** |
+| DEV | 0.00391145 | 0.00236533 | **39.53%** |
+| FRESH | 0.00379843 | 0.00223250 | **41.23%** |
 
-These results are **not** presented as proof of AGI. In particular, the workspace-only control shows that much of the System-2 capability currently lives in the cognitive architecture surrounding the neural core; the neural system provides measurable last-mile value but does not independently solve the hardest held-out arenas.
+All four preregistered families improved on FRESH:
+
+- causal prerequisites: **20.87%**
+- conditional regimes: **47.26%**
+- implicit-goal regimes: **46.89%**
+- regime switch: **44.84%**
+
+The FRESH split is now **consumed**. `research/R1_9_PRE_FRESH_LOCK.json` binds the checkpoint and evaluation settings, and no model/evaluator tuning is permitted after that fresh evaluation.
+
+## Benchmark integrity
+
+The project treats benchmark integrity as part of the research object:
+
+- training collectors reject DEV/FRESH worlds;
+- hidden/private answer fields are not model inputs;
+- parent tensors are frozen and digest-checked;
+- candidate and baseline are scored on identical rows;
+- acceptance requires every family to improve, not only aggregate metrics;
+- fresh checkpoints/splits are SHA-bound before opening;
+- negative results and inherited failures are reported rather than hidden.
+
+`benchmarks/frontier100b/` adds an external evaluation contract inspired by ARC-AGI-2, HLE/HLE-Verified, FrontierMath and Terminal-Bench. It explicitly refuses `hard_for_gt100b=true` unless a named >100B model has actually been evaluated with a finite score, recorded budget and locked protocol SHA.
+
+**No >100B model has been run in R1.9 yet, so this repository does not claim that Nolane beats >100B systems.**
 
 ## Test status
 
-The focused R1.3–R1.5 frontier suite is green (44/44 in the recorded local audit). R1.2/R1.1 regression gates are also green (24/24), and a critical legacy V5 subset is green (9/9). The historical full suite is currently not a clean gate because three legacy checkpoints are absent from the supplied milestone lineage:
+The focused R1.8 + R1.9 research gate is green:
 
-- `checkpoints/dev-curriculum90.pt`
-- `checkpoints/Nolane-Stage3.2-Candidate-Generator.pt`
-- `checkpoints/Nolane-Stage3-Reconstructed-Generator-V1.pt`
+```text
+31 passed, 11 warnings
+```
 
-The project does not fabricate replacement weights merely to make historical tests pass.
+A broad historical suite is **not** claimed clean. During the R1.9 audit, two inherited legacy `EffectProgressCritic` interface failures were observed in the recovered R1.7 lineage; they were not introduced by R1.9. Because fresh had already been consumed, model/evaluator code was not changed afterward merely to improve the test headline.
 
-## Repository artifact layout
+## Real weights and provenance
 
-The full research source snapshot (code, tests, benchmark definitions, docs and evaluation evidence, excluding binary `.pt` weights and caches) is stored under `artifacts/` with a SHA-256 manifest. CI reconstructs the source tree from that immutable snapshot and runs the frontier integrity gates.
+The complete R1.9 delivery contains **8 real PyTorch checkpoints** totaling **598,970,206 bytes**. Important current hashes:
 
-Large binary checkpoints remain provenance-bound by SHA-256 in milestone delivery packages because the connected GitHub interface used for this research session is not a bulk/LFS binary uploader. Future checkpoints should be published through Git LFS or release assets while preserving the hashes recorded by the research manifests.
+- R1.7 OperatorExecutor: `bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735`
+- R1.8 ConditionalLaw: `400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16`
+- R1.9 FrontierRollout delta: `1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279`
 
-## Benchmark inspiration
+`WEIGHTS_MANIFEST_R1_9.json` records exact size and SHA-256 for every included checkpoint.
 
-The evaluation philosophy borrows principles from ARC-AGI (first-seen fluid reasoning and exact success), SWE-bench/Terminal-Bench (reproducible executable verification), and modern agent benchmarks that require tool interaction and long-horizon state tracking. Nolane-specific tasks are procedural and seed-locked so benchmark answers cannot simply be memorized.
+The conversational GitHub channel can publish source/manifests but cannot practically stream the 90–108MB binary checkpoints through model-mediated base64, and it exposes no LFS/release-asset upload action. Therefore this repo does **not** contain fake weight placeholders. `.gitattributes` and `scripts/publish_weights_lfs.sh` define the authenticated Git LFS path for publishing the real binaries from the COMPLETE delivery.
+
+## R1.9 files
+
+- `model/r1.9/cogcoder/r19_frontier.py` — recurrent residual rollout head
+- `model/r1.9/cogcoder/r19_rollout.py` — locked two-step counterfactual collector
+- `model/r1.9/cogcoder/r19_training.py` — training/evaluation/checkpoint gate
+- `model/r1.9/scripts/train_r19_frontier_rollout.py` — preregistered trainer
+- `model/r1.9/tests/` — isolation, equivariance, parameter and provenance tests
+- `benchmarks/frontier100b/` — external frontier comparison contract
+- `research/R1_9_REALITY_REPORT.md` — exact claim boundary and results
+- `research/R1_9_CURRENT_BEST.json` — current accepted lineage
+- `research/R1_9_PRE_FRESH_LOCK.json` — immutable fresh lock
+- `research/r1.9/results/` — DEV/FRESH evidence
+- `WEIGHTS_MANIFEST_R1_9.json` — binary provenance
+
+## Scientific boundary
+
+R1.9 demonstrates a bounded gain in two-step conditional-causal rollout prediction with transfer to a fresh procedural split while adding only ~1.59M parameters. It does **not** prove AGI, broad language intelligence, long-horizon open-world planning, performance on ARC-AGI-2/HLE/FrontierMath/Terminal-Bench without actually running them, or superiority to frontier >100B models.
 
 ## License
 
-Research code currently follows the licenses embedded in the imported/derived components. A repository-wide license should only be declared after those component licenses are audited.
+Research code currently follows licenses embedded in imported/derived components. A repository-wide license should only be declared after those component licenses are audited.
