@@ -1,0 +1,37 @@
+{
+  "version": "r2.0e-restored-train-gate-lock-v1",
+  "date": "2026-08-13",
+  "checkpoint": "checkpoints/Nolane-R2.0e-RIE-EvidenceEffect.pt",
+  "checkpoint_sha256": "cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "candidate_effective_parameters": 78779253,
+  "best_epoch": 25,
+  "validation_loss": 0.8352651538027583,
+  "validation_action_accuracy": 0.5664160401002506,
+  "validation_depth_accuracy": 1.0,
+  "split": "train",
+  "indices": [1280, 1300],
+  "families": ["conditional_regimes", "regime_switch", "implicit_goal_regimes", "causal_prerequisites"],
+  "beam_width": 1,
+  "modes": ["random", "greedy_parent", "fixed_depth_1", "fixed_depth_2", "fixed_depth_8", "adaptive"],
+  "primary_recursive_mode": "fixed_depth_2",
+  "primary_shallow_baseline": "fixed_depth_1",
+  "acceptance": {
+    "aggregate_absolute_solve_rate_gain_pp": 10.0,
+    "high_baseline_exception": "if fixed_depth_1 solve rate >= 0.90, require >=25% relative error reduction",
+    "max_family_regression_pp": 5.0,
+    "must_show_recursive_compute_benefit": true,
+    "parameter_ceiling": 79000000,
+    "fresh_must_remain_closed_on_rejection": true
+  },
+  "source_sha256": {
+    "model/r2.0/cogcoder/r20e_executive.py": "cf4fa7c888fa687400fc0e94f27ba5cc4072c00320148121206528ecb64a0151",
+    "model/r2.0/cogcoder/r20e_imagination.py": "a745ec9008c2eb683f8e380e75fbccc5cae3bad20d30bbe4b67380dcfa4bbbbb",
+    "model/r2.0/cogcoder/r20e_training.py": "c2ba6496a53de7f3942763d9209a4c7833130a3277a697360cb252d1dba31103",
+    "model/r2.0/cogcoder/r20e_controller.py": "be255aa7eabcf0488fb2df01b6d13ce5c97fcf21536ebdd79bf2b4e3c64a55ab"
+  },
+  "adaptive_is_secondary_ablation": true,
+  "no_tuning_after_gate_open": true,
+  "dev_opened": false,
+  "fresh_opened": false
+}
