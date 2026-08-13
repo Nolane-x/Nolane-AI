@@ -1,0 +1,10 @@
+--- cogcoder/r17_training.py
++++ cogcoder/r17_training.py
+@@
+-... or key.startswith("conditional_reliability_")
++... or key.startswith("conditional_reliability_") or key.startswith("r18_executive_")
+--- cogcoder/neural_system2_training.py
++++ cogcoder/neural_system2_training.py
+@@
+     allowed_missing.update(key for key in missing if key.startswith("conditional_reliability_"))
++    allowed_missing.update(key for key in missing if key.startswith("r18_executive_"))
