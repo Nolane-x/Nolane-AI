@@ -1,0 +1,15 @@
+{
+  "version": "R1.9-Frontier-Generalization",
+  "parent_checkpoint": "checkpoints/Nolane-R1.8-CCSM-ConditionalLaw.pt",
+  "parent_sha256": "400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16",
+  "delta_checkpoint": "checkpoints/Nolane-R1.9-FGR-FrontierRollout.pt",
+  "delta_sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+  "parent_effective_parameters": 76619419,
+  "delta_parameters": 1594754,
+  "candidate_effective_parameters": 78214173,
+  "internal_relative_improvement": 0.3880332089220303,
+  "dev_relative_improvement": 0.3952811444225157,
+  "fresh_relative_improvement": 0.4122564825113949,
+  "fresh_consumed": true,
+  "claim_boundary": "two-step conditional causal rollout prediction within FIGG-19; no >100B superiority claim without external reference runs"
+}
