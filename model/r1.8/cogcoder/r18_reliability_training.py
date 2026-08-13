@@ -15,6 +15,11 @@ def reliability_trainable_parameter_names(model)->list[str]:
     if set(names)!=allowed: raise ValueError('model does not expose the expected conditional-law confidence head')
     return names
 
+def configure_reliability_training(model)->list[str]:
+    names=reliability_trainable_parameter_names(model); allowed=set(names)
+    for name,parameter in model.named_parameters(): parameter.requires_grad_(name in allowed)
+    return names
+
 def learned_certificate_scores(confidence:Tensor,evidence_meta:Tensor)->Tensor:
     if confidence.ndim!=2: raise ValueError('confidence must have shape [batch,actions]')
     if evidence_meta.shape!=confidence.shape+(3,): raise ValueError('evidence_meta must have shape [batch,actions,3]')
