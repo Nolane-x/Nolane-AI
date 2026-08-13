@@ -1,0 +1,13 @@
+{
+  "version":"r2.0i-fresh-v1",
+  "split":"fresh",
+  "indices":[512,532],
+  "fresh_consumed":true,
+  "candidate_effective_parameters":78779253,
+  "new_neural_parameters":0,
+  "summary":{"fixed_depth_1":{"solved":29,"tasks":80,"solve_rate":0.3625},"hybrid_active_causal":{"solved":48,"tasks":80,"solve_rate":0.6,"active_paths":20}},
+  "per_family":{"conditional_regimes":{"fixed_depth_1":0.5,"hybrid_active_causal":0.5},"regime_switch":{"fixed_depth_1":0.25,"hybrid_active_causal":0.25},"implicit_goal_regimes":{"fixed_depth_1":0.65,"hybrid_active_causal":0.65},"causal_prerequisites":{"fixed_depth_1":0.05,"hybrid_active_causal":1.0}},
+  "acceptance":{"accepted":true,"observed_gain_pp":23.75,"causal_gain_pp":95.0,"max_family_regression_pp":0.0},
+  "local_result_sha256":"a8e42ce71138fe722ca73afcebc88158afe1a8aa3c7c8d5fd6e2d43bef19e2e0",
+  "post_fresh_tuning_forbidden":true
+}
