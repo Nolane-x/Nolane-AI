@@ -9,6 +9,8 @@ on:
 jobs:
   dev:
     runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: .
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
