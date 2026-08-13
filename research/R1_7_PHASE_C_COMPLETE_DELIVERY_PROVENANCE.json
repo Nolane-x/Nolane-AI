@@ -1,0 +1,31 @@
+{
+  "version": "R1.7-Phase-C-complete-delivery",
+  "date": "2026-08-13",
+  "zip_name": "Nolane-R1.7-Phase-C-COMPLETE-DELIVERY-2026-08-13.zip",
+  "zip_size_bytes": 457673247,
+  "zip_sha256": "f4afbcc160009a72f31aebf6c4c0b85c641ad4ace0830d483fa8e37621a64a67",
+  "zip_integrity": "No errors detected in compressed data",
+  "library": {
+    "folder": "/Nolane/R1.7-Phase-C/",
+    "single_zip_upload": "rejected by runtime uploader despite nominal size limit",
+    "volume_recovery": true,
+    "parts": [
+      {"name": "Nolane-R1.7-Phase-C-COMPLETE.part-00", "size_bytes": 157286400, "sha256": "ad4968a057ba8222f6127ca2d84f57f300e636487fbda153eccb6930a6b8ad65"},
+      {"name": "Nolane-R1.7-Phase-C-COMPLETE.part-01", "size_bytes": 157286400, "sha256": "b9708fea1664cef9020184c64dec5f6e7542c7ea137a1168098c3d2fb6306850"},
+      {"name": "Nolane-R1.7-Phase-C-COMPLETE.part-02", "size_bytes": 143100447, "sha256": "7c1f6e85b43e27a7d30f0625f8f6e289b8ac9483b4f0f79520116d04cf6ac952"}
+    ],
+    "reassembly_sha256_verified": "f4afbcc160009a72f31aebf6c4c0b85c641ad4ace0830d483fa8e37621a64a67"
+  },
+  "current_best": {
+    "checkpoint": "Nolane-R1.7-NCPM-OperatorExecutor.pt",
+    "checkpoint_sha256": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+    "effective_parameters": 75387546,
+    "inference_mode": "functional_program_search"
+  },
+  "verification": {
+    "r17_tests": "81/81",
+    "lineage_regressions": "28/28",
+    "fresh_length4": "60/60",
+    "fresh_consumed": true
+  }
+}
