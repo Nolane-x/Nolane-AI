@@ -1,0 +1,32 @@
+name: R2.3 Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/continual_skills.py'
+      - 'cogcoder/curriculum_cases.py'
+      - 'cogcoder/curriculum_eval.py'
+      - 'cogcoder/skill_curriculum.py'
+      - 'cogcoder/skill_memory.py'
+      - 'cogcoder/skill_synthesis.py'
+      - 'scripts/evaluate_r23_continual.py'
+      - 'scripts/verify_r23_release.py'
+      - 'research/R2_3_CURRENT_BEST.json'
+      - '.github/workflows/r23-integrity.yml'
+
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile R2.3 source
+        run: |
+          python -m compileall -q cogcoder/continual_skills.py cogcoder/curriculum_cases.py cogcoder/curriculum_eval.py cogcoder/skill_curriculum.py cogcoder/skill_memory.py cogcoder/skill_synthesis.py scripts/evaluate_r23_continual.py scripts/verify_r23_release.py
+      - name: Verify exact accepted R2.3 release
+        run: python scripts/verify_r23_release.py
