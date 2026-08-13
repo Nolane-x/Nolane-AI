@@ -18,6 +18,26 @@ def test_directional_context_distinguishes_right_marker():
     assert any(apply_program(p,test_input)==expected for p in programs)
 
 
+def test_row_column_context_sees_distant_marker():
+    pairs=(
+        (
+            g([[0,0,0,0,0],[0,1,0,0,4],[0,0,0,0,0]]),
+            g([[0,0,0,0,0],[0,2,0,0,4],[0,0,0,0,0]]),
+        ),
+        (
+            g([[0,0,0,0,0],[0,1,0,0,0],[0,0,0,0,4]]),
+            g([[0,0,0,0,0],[0,1,0,0,0],[0,0,0,0,4]]),
+        ),
+    )
+    programs=fit_local_programs(pairs,max_rules=8)
+    axis=[p for p in programs if p.steps and str(p.steps[0].args[0]) in ('axis_set','axis_counts')]
+    assert axis, 'expected a row-column context rule'
+    test_input=g([[0,0,0,0,0],[4,0,0,1,0],[0,0,0,0,0]])
+    expected=g([[0,0,0,0,0],[4,0,0,2,0],[0,0,0,0,0]])
+    assert any(apply_program(p,test_input)==expected for p in axis)
+
+
 if __name__=='__main__':
     test_directional_context_distinguishes_right_marker()
-    print('R2.5 directional local test PASS')
+    test_row_column_context_sees_distant_marker()
+    print('R2.5 directional/axis local tests PASS')
