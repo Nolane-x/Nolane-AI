@@ -6,6 +6,7 @@ from .arc_pair_v2 import fit_pair_programs
 
 
 MAX_LOCAL_RULES=8
+LOCAL_FEATURE_GENERATION=2
 
 
 def program_set(pairs, limit=64):
