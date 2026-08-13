@@ -1,0 +1,19 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development",
+  "arc_repository": "arcprize/ARC-AGI-2",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "cases": 1000,
+  "scored": 1000,
+  "solved": 45,
+  "solve_rate": 0.045,
+  "errors": 0,
+  "max_attempts_per_test_input": 2,
+  "max_programs": 64,
+  "mean_candidate_programs": 0.223,
+  "mean_attempts_emitted": 0.055,
+  "github_actions_run_id": 31752710519,
+  "source_commit": "ec8a10bd52969ce510a10a708384b93ad48833eb",
+  "notes": "Development evidence only. The official public evaluation split has not been used for solver feedback."
+}
