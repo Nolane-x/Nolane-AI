@@ -1,0 +1,36 @@
+{
+  "version": "R2.2-Epistemic-Workspace",
+  "stage": "pre_dev_lock",
+  "neural_effective_parameters": 78779253,
+  "new_neural_parameters": 0,
+  "locked_main_commit": "9d0f8bd4c8cd19ecbc3529087ef691450f6e3abc",
+  "core_sha256": {
+    "workspace": "eeefdfbff19ad782a9556824cd63beb5e735f42e256968c7d77685f36ed10c47",
+    "rule_layer": "68362c38bb2fffde50631cc7407c5f02f4a9f82aa0d635d12afec2c17f8363f9",
+    "runtime": "3325ad0c5fdb81b61c614d19fa9629f59c8fe444009f374f7b99fe1d842e5a81",
+    "benchmark": "4ad2a5418b80962abee123d31b38b1e22675bfb40a09471a5afcde2d3dfcda4d",
+    "evaluator": "3e6ae23ace21bb399c4bb242b11bb3c5812d9f1fd442d55bec839e6c6185e5ea"
+  },
+  "protocol": {
+    "top_k": 2,
+    "max_calls": 7,
+    "chunk_budget": 14,
+    "stale_mix": 0.04,
+    "documented_rule_mix": 0.08,
+    "dependency_mix": 0.60,
+    "distractors": 48
+  },
+  "train": {
+    "indices": [3000, 3200],
+    "cases": 200,
+    "baseline_solve_rate": 0.47,
+    "candidate_solve_rate": 1.0,
+    "gain_pp": 53.0,
+    "provenance_failures": 0,
+    "version_resolution_errors": 0
+  },
+  "dev": {"indices": [4000, 4200], "consumed": false},
+  "fresh": {"indices": [5000, 5200], "consumed": false},
+  "admission": {"min_gain_pp": 10.0, "max_provenance_failures": 0, "max_version_resolution_errors": 0},
+  "note": "Final protocol was selected on TRAIN only. DEV and FRESH were unopened when this lock was committed."
+}
