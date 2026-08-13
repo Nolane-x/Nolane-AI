@@ -1,5 +1,5 @@
 from cogcoder.arc_grid import Grid
-from cogcoder.arc_current import program_set
+from cogcoder.arc_current_plus import program_set
 from cogcoder.arc_ops import apply_program
 
 
