@@ -149,10 +149,7 @@ def _batched_orientation_search(
     orientation: int,
     max_horizon: int,
 ) -> FunctionalProgramHypothesis:
-    oriented = [
-        (pair[orientation], pair[1 - orientation])
-        for pair in pairs
-    ]
+    oriented = [(pair[orientation], pair[1 - orientation]) for pair in pairs]
     inputs = torch.tensor([left for left, _ in oriented], dtype=torch.long)
     targets = torch.tensor([right for _, right in oriented], dtype=torch.long)
     if inputs.ndim != 2 or targets.shape != inputs.shape:
@@ -179,33 +176,19 @@ def _batched_orientation_search(
                 .reshape(prefix_count * action_count * demo_count, selected.shape[-1])
             )
             logits = model.program_execute_logits(vectors, embedded)
-            next_states = logits.argmax(-1).reshape(
-                prefix_count, action_count, demo_count, vector_length
-            )
-            expanded_sequences = [
-                prefix + (int(action_index),)
-                for prefix in sequences
-                for action_index in action_indices
-            ]
-            flat_states = next_states.reshape(
-                prefix_count * action_count, demo_count, vector_length
-            )
+            next_states = logits.argmax(-1).reshape(prefix_count, action_count, demo_count, vector_length)
+            expanded_sequences = [prefix + (int(action_index),) for prefix in sequences for action_index in action_indices]
+            flat_states = next_states.reshape(prefix_count * action_count, demo_count, vector_length)
             matches = flat_states.eq(targets.unsqueeze(0)).sum(dim=(1, 2))
             exact_mask = matches.eq(total_elements)
             exact_indices = torch.nonzero(exact_mask, as_tuple=False).flatten()
             if exact_indices.numel():
                 index = int(exact_indices[0].item())
-                return FunctionalProgramHypothesis(
-                    expanded_sequences[index], True, horizon, orientation,
-                    total_elements, total_elements,
-                )
+                return FunctionalProgramHypothesis(expanded_sequences[index], True, horizon, orientation, total_elements, total_elements)
             max_matches = int(matches.max().item())
             if max_matches > best.matched_elements:
                 index = int(matches.argmax().item())
-                best = FunctionalProgramHypothesis(
-                    expanded_sequences[index], False, horizon, orientation,
-                    max_matches, total_elements,
-                )
+                best = FunctionalProgramHypothesis(expanded_sequences[index], False, horizon, orientation, max_matches, total_elements)
             sequences = expanded_sequences
             states = flat_states
     return best
@@ -223,26 +206,38 @@ def infer_functional_program(
     if not pairs:
         raise ValueError("no public demonstration vector pairs found")
     descriptions = tuple(str(item) for item in action_descriptions)
-    action_indices = tuple(
-        index for index, description in enumerate(descriptions)
-        if "submit" not in description.lower()
-    )
+    action_indices = tuple(index for index, description in enumerate(descriptions) if "submit" not in description.lower())
     if not action_indices:
         raise ValueError("no public non-submit actions found")
     tokens = encode_action_descriptions(descriptions, max_bytes=64).unsqueeze(0)
     with torch.no_grad():
         action_embeddings = model.action_encoder(tokens)[0]
     hypotheses = [
-        _batched_orientation_search(
-            model, pairs, action_indices, action_embeddings,
-            orientation=orientation, max_horizon=max_horizon,
-        )
+        _batched_orientation_search(model, pairs, action_indices, action_embeddings, orientation=orientation, max_horizon=max_horizon)
         for orientation in (0, 1)
     ]
     exact = [candidate for candidate in hypotheses if candidate.exact]
     if exact:
         return min(exact, key=lambda item: (item.horizon, item.sequence, item.orientation))
-    return max(
-        hypotheses,
-        key=lambda item: (item.matched_elements, -item.horizon, tuple(-x for x in item.sequence)),
-    )
+    return max(hypotheses, key=lambda item: (item.matched_elements, -item.horizon, tuple(-x for x in item.sequence)))
+
+
+def execute_functional_program_hypothesis(task, hypothesis: FunctionalProgramHypothesis) -> dict[str, object]:
+    """Execute an inferred public-action program, then submit via public action text."""
+    descriptions = tuple(str(item) for item in task.action_descriptions)
+    submit = [index for index, description in enumerate(descriptions) if "submit" in description.lower()]
+    if len(submit) != 1:
+        raise ValueError("functional program execution requires exactly one public submit action")
+    used = 0
+    solved = False
+    done = False
+    for action_index in hypothesis.sequence:
+        result = task.step(int(action_index))
+        used += 1
+        done = bool(result.done)
+        solved = bool(result.solved)
+        if done:
+            return {"solved": solved, "done": done, "used_actions": used, "pre_submit_actions": used}
+    result = task.step(int(submit[0]))
+    used += 1
+    return {"solved": bool(result.solved), "done": bool(result.done), "used_actions": used, "pre_submit_actions": max(0, used - 1)}
