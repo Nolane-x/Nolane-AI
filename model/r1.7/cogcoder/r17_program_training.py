@@ -20,6 +20,35 @@ class ProgramTrainingRow:
     is_submit: bool
 
 
+def build_program_rows(episodes, cached_rows, template_ids) -> list[ProgramTrainingRow]:
+    """Align frozen cached policy features with raw program episodes exactly."""
+    if len(episodes) != len(template_ids):
+        raise ValueError("template_ids must align one-to-one with episodes")
+    expected = sum(len(episode.steps) for episode in episodes)
+    if len(cached_rows) != expected:
+        raise ValueError("cached rows do not align with raw program steps")
+    rows: list[ProgramTrainingRow] = []
+    cursor = 0
+    for episode, template_id in zip(episodes, template_ids):
+        for program_step, step in enumerate(episode.steps):
+            cached = cached_rows[cursor]
+            cursor += 1
+            if int(cached.label) != int(step.label):
+                raise ValueError("cached teacher label does not align with raw program step")
+            description = step.descriptions[int(step.label)]
+            rows.append(
+                ProgramTrainingRow(
+                    template_id=int(template_id),
+                    program_step=float(program_step),
+                    base_logits=cached.base_logits.clone(),
+                    policy_features=cached.policy_features.clone(),
+                    label=int(step.label),
+                    is_submit="submit" in description.lower(),
+                )
+            )
+    return rows
+
+
 def latent_program_trainable_parameter_names(model: NeuralSystem2Workspace) -> list[str]:
     names = [name for name, _ in model.named_parameters() if name.startswith("latent_program_ranker.")]
     if not names:
