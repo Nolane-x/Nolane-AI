@@ -1,0 +1,55 @@
+--- cogcoder/neural_system2.py.r18-control-effect
++++ cogcoder/neural_system2.py.r18-verified-active-executive
+@@
+         nn.init.zeros_(self.conditional_reliability_head[-1].weight)
+         nn.init.zeros_(self.conditional_reliability_head[-1].bias)
++
++        # R1.8 Verified Active Executive. Isolated from legacy policy logits.
++        self.r18_executive_dim = 256
++        self.r18_executive_state_projection = nn.Sequential(
++            nn.Linear(128 + 64 + 1 + 1 + 3, self.r18_executive_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.r18_executive_dim),
++        )
++        self.r18_executive_action_projection = nn.Sequential(
++            nn.Linear(self.conditional_law_dim + 64 + 3 + 2, self.r18_executive_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.r18_executive_dim),
++        )
++        self.r18_executive_gru = nn.GRUCell(self.r18_executive_dim * 2, self.r18_executive_dim)
++        self.r18_executive_action_scorer = nn.Sequential(
++            nn.Linear(self.r18_executive_dim * 4, 128),
++            nn.GELU(),
++            nn.Linear(128, 1),
++        )
+@@
++    def init_r18_executive_state(self, batch_size, *, device=None, dtype=None):
++        if batch_size < 1:
++            raise ValueError("batch_size must be positive")
++        reference = self.r18_executive_gru.weight_hh
++        return torch.zeros(batch_size, self.r18_executive_dim,
++                           device=device if device is not None else reference.device,
++                           dtype=dtype if dtype is not None else reference.dtype)
++
++    def r18_executive_step(self, *, state_sketch, context_fingerprint, progress,
++                           budget_fraction, previous_feedback, conditional_hidden,
++                           control_effect, evidence_meta, progress_memory,
++                           recurrent_state):
++        # Exact production implementation validates all public tensor shapes.
++        state_input = torch.cat((state_sketch, context_fingerprint, progress,
++                                 budget_fraction, previous_feedback), dim=-1)
++        state_repr = self.r18_executive_state_projection(state_input)
++        action_input = torch.cat((conditional_hidden, control_effect,
++                                  evidence_meta, progress_memory), dim=-1)
++        action_repr = self.r18_executive_action_projection(action_input)
++        action_summary = action_repr.mean(dim=1)  # permutation-invariant
++        next_state = self.r18_executive_gru(
++            torch.cat((state_repr, action_summary), dim=-1), recurrent_state)
++        h = next_state.unsqueeze(1).expand(-1, action_repr.shape[1], -1)
++        relation = torch.cat((action_repr, h, action_repr*h,
++                              torch.abs(action_repr-h)), dim=-1)
++        logits = self.r18_executive_action_scorer(relation).squeeze(-1)
++        return {"logits": logits, "state": next_state, "action_repr": action_repr}
++
++# Added parameters: 857,857
++# Experimental architecture effective parameters: 77,551,709 / 96,000,000 ceiling.
