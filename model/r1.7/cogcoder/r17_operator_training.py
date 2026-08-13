@@ -55,7 +55,7 @@ def _batch_tensors(model: NeuralSystem2Workspace, rows: list[OperatorTransition]
     after = torch.tensor([row.after for row in rows], dtype=torch.long)
     action_tokens = encode_action_descriptions([row.action_description for row in rows], max_bytes=64)
     with torch.no_grad():
-        action_embeddings = model.action_encoder(action_tokens).detach()
+        action_embeddings = model.action_encoder(action_tokens.unsqueeze(1)).squeeze(1).detach()
     return before, after, action_embeddings
 
 
