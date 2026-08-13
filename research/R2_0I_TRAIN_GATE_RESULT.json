@@ -1,0 +1,12 @@
+{
+  "version":"r2.0i-active-causal-discovery-train-gate-v1",
+  "candidate_effective_parameters":78779253,
+  "new_neural_parameters":0,
+  "indices":[2000,2020],
+  "summary":{"fixed_depth_1":{"solved":30,"tasks":80,"solve_rate":0.375},"hybrid_active_causal":{"solved":47,"tasks":80,"solve_rate":0.5875,"active_paths":20}},
+  "per_family":{"conditional_regimes":{"fixed_depth_1":0.45,"hybrid_active_causal":0.45},"regime_switch":{"fixed_depth_1":0.30,"hybrid_active_causal":0.30},"implicit_goal_regimes":{"fixed_depth_1":0.60,"hybrid_active_causal":0.60},"causal_prerequisites":{"fixed_depth_1":0.15,"hybrid_active_causal":1.0}},
+  "acceptance":{"accepted":true,"observed_gain_pp":21.25,"causal_gain_pp":85.0,"max_family_regression_pp":0.0},
+  "full_local_result_sha256":"044b6a398e35a750bbb619d2d0fae51cede43217841ab7bb9294afc9d5902676",
+  "dev_opened":false,
+  "fresh_opened":false
+}
