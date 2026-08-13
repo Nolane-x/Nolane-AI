@@ -1,0 +1,27 @@
+--- cogcoder/r18_executive_training.py
++++ cogcoder/r18_executive_training.py
+@@
++def executive_trainable_state(model):
++    """CPU-clone exactly the `r18_executive_*` parameter subset."""
++    names = executive_trainable_parameter_names(model)
++    named = dict(model.named_parameters())
++    return {name: named[name].detach().cpu().clone() for name in names}
++
++def restore_executive_trainable_state(model, state):
++    """Restore only executive weights; reject missing/extra/shape-mismatched tensors."""
++    expected = set(executive_trainable_parameter_names(model))
++    if set(state) != expected:
++        raise ValueError("executive state mismatch")
++    named = dict(model.named_parameters())
++    with torch.no_grad():
++        for name in sorted(expected):
++            if tuple(state[name].shape) != tuple(named[name].shape):
++                raise ValueError(f"executive tensor shape mismatch for {name}")
++            named[name].copy_(state[name].to(device=named[name].device,dtype=named[name].dtype))
++
++# Runtime incident motivating process isolation:
++# - one complete 320-episode epoch measured ~5-8 seconds;
++# - long-lived multi-epoch Python processes repeatedly stalled after 2-3 epochs;
++# - no orphan trainer process remained and data collection was ~10-12 seconds.
++# Resume-safe process isolation keeps model/data/optimizer/hyperparameters fixed and
++# carries exact optimizer + RNG + executive state between one-epoch subprocesses.
