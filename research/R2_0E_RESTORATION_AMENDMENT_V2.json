@@ -1,0 +1,22 @@
+{
+  "version": "r2.0e-restoration-amendment-v2",
+  "date": "2026-08-13",
+  "supersedes": "research/R2_0E_RESTORATION_AMENDMENT.json",
+  "trigger": "The first five reconstructed epochs reproduced the prior action-accuracy scale but not the prior validation-loss/depth-learning curve.",
+  "root_cause": "The restoration inferred depth supervision from oracle-plan length. The R2.0 lineage instead trained the compute-depth head against the preregistered primary training depth=2, which is why earlier candidates rapidly reached 100% depth accuracy.",
+  "fix": "Set target_depth_index to the index of training_depth (depth=2 => index 1) for every cached training/validation row. No state, action, evidence, memory, parent-effect, imagined-effect, target-action, or benchmark split tensor is changed.",
+  "training_source_sha256": "c2ba6496a53de7f3942763d9209a4c7833130a3277a697360cb252d1dba31103",
+  "training_test_sha256": "c26e935df6fa4581a5b003e040c0966bbeadd880a00c15bf907cacc07a0398cd",
+  "fit_rows": 1738,
+  "validation_rows": 399,
+  "fit_indices": [1200, 1264],
+  "validation_indices": [1264, 1280],
+  "untouched_train_gate_indices": [1280, 1300],
+  "seed": 200420,
+  "restart_epoch": 1,
+  "epochs": 25,
+  "checkpoint_selection": "lowest preregistered validation total loss only",
+  "train_gate_opened": false,
+  "dev_opened": false,
+  "fresh_opened": false
+}
