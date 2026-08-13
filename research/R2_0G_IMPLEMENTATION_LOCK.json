@@ -1,0 +1,18 @@
+{
+  "version":"r2.0g-implementation-lock-v1",
+  "date":"2026-08-13",
+  "pretrain_lock":"research/R2_0G_COMPUTE_UTILITY_PRETRAIN_LOCK.json",
+  "selector_sha256":"95a57012e961b34def3c60e3da4d5567da53cca122a435530ae0b6458a6bccef",
+  "selector_test_sha256":"cd030e9eb0dac03409baa30cb4afc34fdac2dd6ad8a9545f9a57cd84f0b00362",
+  "training_sha256":"26bf53640ae16c1f42c49b451425c22ce5e6d33e222e395c53182c76c2dda70d",
+  "training_test_sha256":"3b47d5d5880e0aeb35cf04ce05945927234e1ace96a8f9920ff36f32dbf63153",
+  "selector_parameters":9778,
+  "candidate_effective_parameters":78789031,
+  "fit_indices":[1600,1664],
+  "validation_indices":[1664,1680],
+  "untouched_train_gate_indices":[1680,1700],
+  "collection_started":false,
+  "train_gate_opened":false,
+  "dev_opened":false,
+  "fresh_opened":false
+}
