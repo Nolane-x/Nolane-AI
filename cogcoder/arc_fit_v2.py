@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .arc_grid import Grid
+from .arc_grid import Grid, transform
 from .arc_ops import Program, Step, apply_program, infer_color_map
 from .arc_templates import _bases
 
@@ -54,7 +54,20 @@ def fit_across_pairs(pairs, limit=64):
     if not pairs or limit<1:
         return ()
     first_input,first_output=pairs[0]
-    candidates={}
+    periodic=Program((Step('periodic_patch',()),),3)
+    candidates={periodic.signature:periodic}
+    if all(y.shape==(1,1) for _,y in pairs):
+        for kind in ('flip_h','flip_v','transpose','anti_transpose','rot180','rot90','rot270'):
+            labels={}; consistent=True
+            for x,y in pairs:
+                flag=transform(x,kind)==x
+                label=y.cell(0,0)
+                if flag in labels and labels[flag]!=label:
+                    consistent=False; break
+                labels[flag]=label
+            if consistent and True in labels and False in labels:
+                item=Program((Step('binary_feature',(kind,labels[True],labels[False])),),3)
+                candidates[item.signature]=item
     for base in _bases(first_input):
         for item in _variants(base,first_input,first_output):
             candidates[item.signature]=item
