@@ -1,0 +1,27 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development-negative-result",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "baseline": {
+    "solved": 45,
+    "cases": 1000,
+    "solve_rate": 0.045,
+    "mean_candidate_programs": 0.223,
+    "approx_measure_seconds": 120
+  },
+  "bounded_composition": {
+    "solved": 45,
+    "cases": 1000,
+    "solve_rate": 0.045,
+    "mean_candidate_programs": 0.293,
+    "mean_attempts_emitted": 0.058,
+    "approx_measure_seconds": 329,
+    "max_prefixes": 24,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "github_actions_run_id": 31753540567
+  },
+  "conclusion": "The tested depth-2 family/base-prefix plus one generic suffix search increased exact demonstration-fitting candidates but did not improve task solve rate and materially increased compute. It is not sufficient evidence for promotion by itself.",
+  "public_evaluation_used_for_feedback": false
+}
