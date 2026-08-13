@@ -50,3 +50,17 @@ def test_operator_batch_encodes_one_dynamic_action_per_transition_with_action_ax
     assert before.shape==(2,4)
     assert after.shape==(2,4)
     assert actions.shape==(2,model.workspace_dim)
+
+
+def test_operator_trainable_snapshot_restore_roundtrip_changes_only_executor():
+    import torch
+    from cogcoder.r17_operator_training import snapshot_trainable_state, restore_trainable_state
+    model=_model(); names=operator_executor_trainable_parameter_names(model)
+    parent_name=next(n for n,_ in model.named_parameters() if not n.startswith('program_executor_'))
+    parent_before=dict(model.named_parameters())[parent_name].detach().clone()
+    snap=snapshot_trainable_state(model,names)
+    first=names[0]
+    with torch.no_grad(): dict(model.named_parameters())[first].add_(3.0)
+    restore_trainable_state(model,snap)
+    assert torch.allclose(dict(model.named_parameters())[first],snap[first])
+    assert torch.allclose(dict(model.named_parameters())[parent_name],parent_before)
