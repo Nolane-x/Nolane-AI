@@ -114,3 +114,9 @@ def test_goal_difference_parent_provenance_hashes_file_not_loaded_metadata(tmp_p
     import hashlib
     assert provenance['sha256']==hashlib.sha256(payload.read_bytes()).hexdigest()
     assert provenance['candidate_effective_parameters']==73_642_371
+
+
+def test_goal_difference_policy_scope_is_exactly_one_scalar():
+    from cogcoder.r17_goal_training import goal_difference_policy_trainable_parameter_names
+    model=_load_law()
+    assert goal_difference_policy_trainable_parameter_names(model)==['goal_difference_policy_scale']
