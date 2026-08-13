@@ -1,0 +1,47 @@
+{
+  "claim_boundary": "Synthetic matched-budget interleaved retrieval mechanism; not general world knowledge, not per-token LM proof, not AGI, not >100B superiority.",
+  "fresh": {
+    "benchmark": "KFIGG-21",
+    "cases": 200,
+    "consumed": true,
+    "gain_pp": 33.0,
+    "indices": [2000, 2200],
+    "interleaved_solved": 200,
+    "median_chars_ratio": 0.75,
+    "provenance_failures": 0,
+    "retrieve_once_solved": 134
+  },
+  "locked_source_sha256": {
+    "generation_retrieval.py": "1cbf607a62e19acef744d1fb7e4243cb7e3f50f1121a6aa68dc55401a2b6ee12",
+    "kfigg21.py": "558e8c7bb940a2b63eabfced1f829e889fba7ee963cbbd0b5267434e4d33b74e",
+    "knowledge_ledger.py": "9202965529f8a89594c9fa7e6ee9994ef3f5ce71332acf037663795851e7d8d8",
+    "knowledge_store.py": "f4b56bdd3eb3fe4ddc94cf77b765e8f349dc479359bf59d413817d8c5d3f14c0",
+    "knowledge_types.py": "ba4ccff2c5d15e1b280e5a64c0ed6a40d1485a137519e3d3911d15803a72bb93",
+    "retrieval_microcycle.py": "3c1e43c7233b7961b2a1abcbdeca93cc273cb891ee3ca79f6507879a652bb3d7"
+  },
+  "neural_effective_parameters": 78779253,
+  "new_r2_1_neural_parameters": 0,
+  "single_weight": {
+    "bytes": 59773663,
+    "path": "checkpoints/Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+    "sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e"
+  },
+  "status": "accepted_train_dev_fresh",
+  "verification": {
+    "full_retrieval_reproduction": "PASS",
+    "github_ci_conclusion": "success",
+    "github_ci_head": "dbd9541adad86fc735e90c4a35106ccd9069cb55",
+    "github_ci_run": 31697954845,
+    "r21_tests": "19 passed, 2 warnings"
+  },
+  "version": "R2.1a-Cognition-Time-Retrieval-Fabric",
+  "complete_zip": {
+    "name": "Nolane-R2.1a-Cognition-Time-Retrieval-COMPLETE-2026-08-13.zip",
+    "bytes": 54857008,
+    "entries": 679,
+    "pt_count": 1,
+    "sha256": "9eba9a9c1a82b63c4b1f1f6c1ca71df09af46f14fe157b97e84a7515467d004b",
+    "zip_test": "PASS"
+  },
+  "library_recovery_path": "/Nolane/R2.1a-Cognition-Time-Retrieval/FINAL/"
+}
