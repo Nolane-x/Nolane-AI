@@ -61,7 +61,6 @@ def test_inference_uses_both_global_demo_orientations_without_field_names():
                 else: nxt=v
                 for j,x in enumerate(nxt): logits[i,j,x]=20.0
             return logits
-    # Pairs are deliberately written output first, input second with arbitrary keys.
     source=[(0,1,2,3),(3,2,1,0)]
     transformed=[tuple(reversed(tuple((x+1)%7 for x in v))) for v in source]
     payload={
@@ -76,3 +75,22 @@ def test_inference_uses_both_global_demo_orientations_without_field_names():
     assert result.exact
     assert result.orientation==1
     assert result.sequence==(0,1)
+
+
+def test_execute_hypothesis_runs_sequence_then_public_submit():
+    from types import SimpleNamespace
+    from cogcoder.r17_program_induction import FunctionalProgramHypothesis, execute_functional_program_hypothesis
+    class FakeTask:
+        action_descriptions=('increment state','submit current hypothesis')
+        def __init__(self): self.value=0; self.done=False
+        def step(self,index):
+            if index==0:
+                self.value+=1
+                return SimpleNamespace(done=False,solved=False)
+            self.done=True
+            return SimpleNamespace(done=True,solved=self.value==1)
+    task=FakeTask()
+    result=execute_functional_program_hypothesis(task,FunctionalProgramHypothesis((0,),True,1))
+    assert result['solved'] is True
+    assert result['used_actions']==2
+    assert result['pre_submit_actions']==1
