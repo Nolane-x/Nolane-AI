@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .arc_chain import chain_programs
 from .arc_current import program_set as fast_program_set
+from .arc_local import fit_local_programs
 
 
 def program_set(pairs, limit=64):
@@ -9,6 +10,8 @@ def program_set(pairs, limit=64):
     if not pairs or limit < 1:
         return ()
     pool = {p.signature: p for p in fast_program_set(pairs, limit=limit)}
+    for program in fit_local_programs(pairs, max_rules=8):
+        pool[program.signature] = program
     if len(pool) < 2:
         for program in chain_programs(pairs, max_prefixes=24, limit=min(32, limit)):
             pool[program.signature] = program
