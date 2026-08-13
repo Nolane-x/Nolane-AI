@@ -1,0 +1,23 @@
+{
+  "version": "r2.0c-public-memory-train-gate-lock-v1",
+  "checkpoint": "checkpoints/Nolane-R2.0c-RME-PublicMemory.pt",
+  "checkpoint_sha256": "31d98d6b170366ebf58c9ba7dc0b337a7768bc2ea8036af598df4968b802816a",
+  "parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "candidate_effective_parameters": 78768917,
+  "split": "train",
+  "indices": [800, 820],
+  "families": ["conditional_regimes", "regime_switch", "implicit_goal_regimes", "causal_prerequisites"],
+  "beam_width": 1,
+  "modes": ["random", "greedy_parent", "fixed_depth_1", "fixed_depth_2", "fixed_depth_8", "adaptive"],
+  "primary_shallow_baseline": "fixed_depth_1",
+  "acceptance": {
+    "aggregate_absolute_solve_rate_gain_pp": 10.0,
+    "high_baseline_exception": "if fixed_depth_1 solve rate >= 0.90, require >=25% relative error reduction",
+    "max_family_regression_pp": 5.0,
+    "must_show_deeper_compute_benefit": true,
+    "parameter_ceiling": 79000000,
+    "fresh_must_remain_closed_on_rejection": true
+  },
+  "retired_probe_block": [780, 800],
+  "no_tuning_after_gate_open": true
+}
