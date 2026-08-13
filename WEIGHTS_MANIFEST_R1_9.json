@@ -1,0 +1,27 @@
+{
+  "version": "r1.9-weights-manifest-v1",
+  "date": "2026-08-13",
+  "current_parent": {
+    "name": "Nolane-R1.8-CCSM-ConditionalLaw.pt",
+    "sha256": "400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16",
+    "effective_parameters": 76619419
+  },
+  "current_delta": {
+    "name": "Nolane-R1.9-FGR-FrontierRollout.pt",
+    "sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+    "delta_parameters": 1594754,
+    "candidate_effective_parameters": 78214173
+  },
+  "checkpoint_count": 8,
+  "checkpoints": [
+    {"name":"Nolane-48M-Stage2-Policy.pt","path":"checkpoints/Nolane-48M-Stage2-Policy.pt","bytes":92320737,"sha256":"ea25dac647c0091638d9a915ba1b0dd6219f01344160718edb08d098370f80df"},
+    {"name":"Nolane-R1.6-NS2-EffectProgressCritic.pt","path":"checkpoints/Nolane-R1.6-NS2-EffectProgressCritic.pt","bytes":89355327,"sha256":"0a1688062f7640739847070a54ea079a28c10c010b286c5b640645214e912ace"},
+    {"name":"Nolane-R1.7-NCPM-CausalLaws.pt","path":"checkpoints/Nolane-R1.7-NCPM-CausalLaws.pt","bytes":96541771,"sha256":"e6c99e5944b68c2fde7f89e7dec478b54e93f3a3250adfd806e1020b46239dbc"},
+    {"name":"Nolane-R1.7-NCPM-GoalDifference.pt","path":"checkpoints/Nolane-R1.7-NCPM-GoalDifference.pt","bytes":100619499,"sha256":"84c00198b9cc0d65e68789b445c3635dba8403e105b4fc9d05029e047ef3a11a"},
+    {"name":"Nolane-R1.7-NCPM-OperatorExecutor.pt","path":"checkpoints/Nolane-R1.7-NCPM-OperatorExecutor.pt","bytes":103545139,"sha256":"bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735"},
+    {"name":"Nolane-R1.8-CCSM-ConditionalLaw.pt","path":"checkpoints/Nolane-R1.8-CCSM-ConditionalLaw.pt","bytes":108479069,"sha256":"400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16"},
+    {"name":"Nolane-R1.9-FGR-FrontierRollout.pt","path":"checkpoints/Nolane-R1.9-FGR-FrontierRollout.pt","bytes":6393558,"sha256":"1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279"},
+    {"name":"Nolane-Rebuild-R1.2-ACE.pt","path":"checkpoints/Nolane-Rebuild-R1.2-ACE.pt","bytes":1715106,"sha256":"b644df8d383242493013de6a773ca3433f3666b6c2e16951178201049c20e026"}
+  ],
+  "note": "Binary checkpoints are included in the COMPLETE delivery/Library recovery package. GitHub text provenance binds every binary by SHA-256."
+}
