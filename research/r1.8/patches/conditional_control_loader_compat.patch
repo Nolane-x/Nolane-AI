@@ -1,0 +1,10 @@
+--- cogcoder/r17_training.py
++++ cogcoder/r17_training.py
+@@
+-        if key.startswith("goal_difference_") or key.startswith("causal_role_goal_") or key.startswith("causal_role_effect_ranker.") or key.startswith("latent_program_") or key.startswith("program_executor_") or key.startswith("conditional_law_")
++        if key.startswith("goal_difference_") or key.startswith("causal_role_goal_") or key.startswith("causal_role_effect_ranker.") or key.startswith("latent_program_") or key.startswith("program_executor_") or key.startswith("conditional_law_") or key.startswith("conditional_control_")
+--- cogcoder/neural_system2_training.py
++++ cogcoder/neural_system2_training.py
+@@
+     allowed_missing.update(key for key in missing if key.startswith("conditional_law_"))
++    allowed_missing.update(key for key in missing if key.startswith("conditional_control_"))
