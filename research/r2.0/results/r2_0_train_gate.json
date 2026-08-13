@@ -1,0 +1,57 @@
+{
+  "acceptance": {
+    "absolute_gain_pp": 2.5,
+    "accepted": false,
+    "adaptive_solve_rate": 0.05,
+    "baseline_solve_rate": 0.025,
+    "primary_shallow_baseline": "fixed_depth_1",
+    "required_gain_pp": 10.0
+  },
+  "aggregate": {
+    "adaptive": {"mean_steps": 28.7875, "solve_rate": 0.05, "solved": 4, "tasks": 80},
+    "fixed_depth_1": {"mean_steps": 30.125, "solve_rate": 0.025, "solved": 2, "tasks": 80},
+    "fixed_depth_2": {"mean_steps": 28.6, "solve_rate": 0.0625, "solved": 5, "tasks": 80},
+    "fixed_depth_8": {"mean_steps": 30.5, "solve_rate": 0.0, "solved": 0, "tasks": 80},
+    "greedy_parent": {"mean_steps": 18.325, "solve_rate": 0.0125, "solved": 1, "tasks": 80},
+    "random": {"mean_steps": 3.9875, "solve_rate": 0.0, "solved": 0, "tasks": 80}
+  },
+  "beam_width": 1,
+  "chunks": 16,
+  "families": {
+    "causal_prerequisites": {
+      "adaptive": {"mean_steps": 28.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "fixed_depth_1": {"mean_steps": 28.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "fixed_depth_2": {"mean_steps": 28.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "fixed_depth_8": {"mean_steps": 28.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "greedy_parent": {"mean_steps": 25.4, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "random": {"mean_steps": 4.15, "solve_rate": 0.0, "solved": 0, "tasks": 20}
+    },
+    "conditional_regimes": {
+      "adaptive": {"mean_steps": 29.9, "solve_rate": 0.1, "solved": 2, "tasks": 20},
+      "fixed_depth_1": {"mean_steps": 32.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "fixed_depth_2": {"mean_steps": 29.9, "solve_rate": 0.1, "solved": 2, "tasks": 20},
+      "fixed_depth_8": {"mean_steps": 32.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "greedy_parent": {"mean_steps": 24.45, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "random": {"mean_steps": 3.0, "solve_rate": 0.0, "solved": 0, "tasks": 20}
+    },
+    "implicit_goal_regimes": {
+      "adaptive": {"mean_steps": 29.0, "solve_rate": 0.05, "solved": 1, "tasks": 20},
+      "fixed_depth_1": {"mean_steps": 32.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "fixed_depth_2": {"mean_steps": 29.0, "solve_rate": 0.05, "solved": 1, "tasks": 20},
+      "fixed_depth_8": {"mean_steps": 32.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "greedy_parent": {"mean_steps": 14.55, "solve_rate": 0.05, "solved": 1, "tasks": 20},
+      "random": {"mean_steps": 4.25, "solve_rate": 0.0, "solved": 0, "tasks": 20}
+    },
+    "regime_switch": {
+      "adaptive": {"mean_steps": 28.25, "solve_rate": 0.05, "solved": 1, "tasks": 20},
+      "fixed_depth_1": {"mean_steps": 28.5, "solve_rate": 0.1, "solved": 2, "tasks": 20},
+      "fixed_depth_2": {"mean_steps": 27.5, "solve_rate": 0.1, "solved": 2, "tasks": 20},
+      "fixed_depth_8": {"mean_steps": 30.0, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "greedy_parent": {"mean_steps": 8.9, "solve_rate": 0.0, "solved": 0, "tasks": 20},
+      "random": {"mean_steps": 4.55, "solve_rate": 0.0, "solved": 0, "tasks": 20}
+    }
+  },
+  "indices": [480, 500],
+  "split": "train",
+  "version": "r2.0-train-gate-v1"
+}
