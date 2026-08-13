@@ -1,0 +1,12 @@
+--- cogcoder/r17_training.py.r17-phase-c
++++ cogcoder/r17_training.py.r18-conditional-law
+@@
+     allowed_missing.update(key for key in missing if key.startswith("causal_law_"))
++    allowed_missing.update(key for key in missing if key.startswith("conditional_law_"))
+     allowed_missing.update(key for key in missing if key.startswith("goal_difference_"))
+--- cogcoder/neural_system2_training.py.r17-phase-c
++++ cogcoder/neural_system2_training.py.r18-conditional-law
+@@
+     allowed_missing.update(key for key in missing if key.startswith("causal_law_"))
++    allowed_missing.update(key for key in missing if key.startswith("conditional_law_"))
+     allowed_missing.update(key for key in missing if key.startswith("goal_difference_"))
