@@ -1,0 +1,28 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development-positive-result",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "local_only_reference": {
+    "solved": 57,
+    "cases": 1000,
+    "solve_rate": 0.057,
+    "github_actions_run_id": 31754101990
+  },
+  "local_plus_geometric_view": {
+    "solved": 59,
+    "cases": 1000,
+    "solve_rate": 0.059,
+    "gain_pp_over_local": 0.2,
+    "gain_tasks_over_local": 2,
+    "mean_candidate_programs": 0.286,
+    "mean_attempts_emitted": 0.084,
+    "approx_measure_seconds": 122,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "github_actions_run_id": 31754612655,
+    "source_commit": "27eee88838de57a05224e1f15bcf98a465dc4093"
+  },
+  "conclusion": "A color-agnostic geometric view-combine family added two solved official training tasks with approximately unchanged runtime, so it is retained in the training candidate.",
+  "public_evaluation_used_for_feedback": false
+}
