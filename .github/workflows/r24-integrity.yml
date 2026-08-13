@@ -1,0 +1,37 @@
+name: R2.4 Integrity
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/r24-integrity.yml'
+
+jobs:
+  integrity:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify canonical blobs
+        run: |
+          test "$(git hash-object cogcoder/longhorizon_world.py)" = "4c8728231f5102ab3801c1e3b39c9c16613d5c5a"
+          test "$(git hash-object cogcoder/sequence_refresh.py)" = "c6d01e6db6810d37135a98224e5b8ebf69ed24ad"
+          test "$(git hash-object cogcoder/kfigg24.py)" = "9238c558d413f10e3cb9eceb0c7f8efe2fff935c"
+          test "$(git hash-object scripts/measure_r24.py)" = "6f36550543838a46e8dc74d92fdbad3f451eef6b"
+      - name: Reproduce accepted aggregate
+        run: |
+          python scripts/measure_r24.py --start 12000 --count 200 --max-steps 26 --retry-budget 2 > r24.json
+          python - <<'PY'
+          import json
+          d=json.load(open('r24.json'))
+          assert d['baseline_solved'] == 67, d
+          assert d['candidate_solved'] == 189, d
+          assert d['candidate_blocked_attempts'] == 0, d
+          assert abs(d['requirement_change_recovery'] - 0.9172932330827067) < 1e-12, d
+          assert abs(d['transient_recovery'] - 0.8888888888888888) < 1e-12, d
+          print('R2.4 INTEGRITY PASS')
+          PY
