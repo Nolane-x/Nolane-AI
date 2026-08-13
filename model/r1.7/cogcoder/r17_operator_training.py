@@ -38,6 +38,25 @@ def collect_operator_transitions(task: R17Task) -> list[OperatorTransition]:
     return rows
 
 
+def snapshot_trainable_state(model: NeuralSystem2Workspace, names) -> dict[str, torch.Tensor]:
+    selected = set(names)
+    return {
+        name: parameter.detach().cpu().clone()
+        for name, parameter in model.named_parameters()
+        if name in selected
+    }
+
+
+def restore_trainable_state(model: NeuralSystem2Workspace, state: dict[str, torch.Tensor]) -> None:
+    parameters = dict(model.named_parameters())
+    missing = [name for name in state if name not in parameters]
+    if missing:
+        raise KeyError(f"unknown trainable parameters: {missing}")
+    with torch.no_grad():
+        for name, value in state.items():
+            parameters[name].copy_(value.to(parameters[name].device, dtype=parameters[name].dtype))
+
+
 def operator_executor_trainable_parameter_names(model: NeuralSystem2Workspace) -> list[str]:
     names = [name for name, _ in model.named_parameters() if name.startswith('program_executor_')]
     if not names:
