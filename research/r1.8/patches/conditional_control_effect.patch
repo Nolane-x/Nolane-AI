@@ -1,0 +1,21 @@
+--- cogcoder/neural_system2.py.r18-conditional-law
++++ cogcoder/neural_system2.py.r18-control-effect
+@@
+         nn.init.zeros_(self.conditional_law_confidence_head.weight)
+         nn.init.zeros_(self.conditional_law_confidence_head.bias)
++        # R1.8 control-sufficient successor effect: frozen ConditionalLaw hidden -> role coordinates.
++        self.conditional_control_effect_head = nn.Linear(self.conditional_law_dim, 64)
++        nn.init.zeros_(self.conditional_control_effect_head.weight)
++        nn.init.zeros_(self.conditional_control_effect_head.bias)
+@@
+         return {
+             "predicted_effect": predicted_effect,
+             "confidence": confidence,
+             "hidden": hidden,
+         }
++
++    def conditional_control_effect_scores(self, conditional_hidden: Tensor) -> Tensor:
++        """Predict control-relevant successor effects in role-relative 64D coordinates."""
++        if conditional_hidden.ndim != 3 or conditional_hidden.shape[-1] != self.conditional_law_dim:
++            raise ValueError("conditional_hidden must have shape [batch,actions,conditional_law_dim]")
++        return 4.0 * torch.tanh(self.conditional_control_effect_head(conditional_hidden))
