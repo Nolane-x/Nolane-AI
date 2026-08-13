@@ -1,0 +1,28 @@
+{
+  "milestone": "R2.5 External Abstract Reasoning",
+  "status": "training-development-positive-result",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "baseline": {
+    "solved": 45,
+    "cases": 1000,
+    "solve_rate": 0.045,
+    "mean_candidate_programs": 0.223,
+    "approx_measure_seconds": 120
+  },
+  "local_only": {
+    "solved": 57,
+    "cases": 1000,
+    "solve_rate": 0.057,
+    "gain_pp": 1.2,
+    "mean_candidate_programs": 0.282,
+    "mean_attempts_emitted": 0.081,
+    "approx_measure_seconds": 123,
+    "max_rules": 8,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "github_actions_run_id": 31754101990
+  },
+  "conclusion": "Sparse local-rule induction improved broad training solve rate with approximately baseline runtime, unlike the zero-gain depth-2 composition experiment.",
+  "public_evaluation_used_for_feedback": false
+}
