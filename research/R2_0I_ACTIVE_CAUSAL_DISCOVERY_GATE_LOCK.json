@@ -1,0 +1,23 @@
+{
+  "version":"r2.0i-active-causal-discovery-gate-lock-v1",
+  "date":"2026-08-13",
+  "r19_parent_sha256":"6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "frozen_r20e_sha256":"cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "neural_effective_parameters":78779253,
+  "new_neural_parameters":0,
+  "candidate_effective_parameters":78779253,
+  "controller":"public active causal discovery overlay with exact R2.0e fixed-depth-1 fallback",
+  "controller_contract":"Uses only public observe()/step()/action_descriptions and public state/target/auxiliary numeric transitions. Opaque non-submit action names are not interpreted. Auxiliary role detection is numeric/key-name-agnostic. No private simulator fields, oracle plan, hidden answer, or training label is available at runtime.",
+  "probe_evidence":{"indices":[1950,1960],"causal_solved":10,"causal_tasks":10,"public_proxy_private_access_blocked":true,"focused_tests":"13 passed, 6 warnings"},
+  "split":"train",
+  "indices":[2000,2020],
+  "families":["conditional_regimes","regime_switch","implicit_goal_regimes","causal_prerequisites"],
+  "modes":["fixed_depth_1","hybrid_active_causal","random","greedy_parent"],
+  "primary_mode":"hybrid_active_causal",
+  "baseline_mode":"fixed_depth_1",
+  "acceptance":{"aggregate_absolute_solve_rate_gain_pp":10.0,"max_family_regression_pp":0.0,"causal_absolute_solve_rate_gain_pp":25.0,"must_use_public_active_discovery_on_at_least_one_newly_solved_gate_episode":true,"parameter_ceiling":79000000,"fresh_must_remain_closed_on_rejection":true},
+  "source_sha256":{"model/r2.0/cogcoder/r20i_causal_discovery.py":"cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672","model/r2.0/tests/test_r20i_causal_discovery.py":"97c21cc10f5decd78dfa230857da11fd82ae748322c05df26d6dbeec5c8218d0"},
+  "no_tuning_after_gate_open":true,
+  "dev_opened":false,
+  "fresh_opened":false
+}
