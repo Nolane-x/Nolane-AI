@@ -1,0 +1,33 @@
+name: R2.5 Local Measure
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'cogcoder/arc_current_local.py'
+      - 'cogcoder/arc_local.py'
+      - 'cogcoder/local_grid.py'
+      - 'cogcoder/arc_score_local.py'
+      - 'scripts/measure_r25_local.py'
+      - '.github/workflows/r25-local-measure.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check local rule
+        run: python tests/test_r25_arc_local.py
+      - name: Measure local-only
+        run: python scripts/measure_r25_local.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r25_local.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-local-measure
+          path: r25_local.json
