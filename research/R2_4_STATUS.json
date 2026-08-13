@@ -1,0 +1,17 @@
+{
+  "version": "R2.4",
+  "state": "accepted",
+  "parent": "R2.3",
+  "neural_effective_parameters": 78779253,
+  "new_neural_parameters": 0,
+  "weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "source_blobs": {
+    "world": "4c8728231f5102ab3801c1e3b39c9c16613d5c5a",
+    "sequence": "c6d01e6db6810d37135a98224e5b8ebf69ed24ad",
+    "score": "9238c558d413f10e3cb9eceb0c7f8efe2fff935c",
+    "entrypoint": "6f36550543838a46e8dc74d92fdbad3f451eef6b"
+  },
+  "train": {"first": 0.33, "second": 0.95, "difference_pp": 62.0},
+  "stage2": {"run_id": 31709604495, "first": 0.335, "second": 0.935, "difference_pp": 60.0, "change_completion": 0.9022556390977443, "event_completion": 0.87},
+  "stage3": {"run_id": 31709736674, "range": [12000, 12200], "first": 0.335, "second": 0.945, "difference_pp": 61.0, "change_completion": 0.9172932330827067, "event_completion": 0.8888888888888888, "blocked": 0, "mean_steps": 21.51851851851852}
+}
