@@ -1,0 +1,20 @@
+name: R2.5 O
+on:
+  push:
+    paths:
+      - 'tests/test_r25_object_rewrite.py'
+      - 'cogcoder/arc_object_rule.py'
+      - '.github/workflows/r25-o.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  o:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/test_r25_object_rewrite.py
