@@ -3,7 +3,7 @@ import pytest
 import torch
 from cogcoder.r17_training import load_r17_checkpoint
 from cogcoder.r18_benchmark import make_r18_task
-from cogcoder.r18_executive_training import collect_executive_episode,configure_executive_training,executive_trainable_parameter_names
+from cogcoder.r18_executive_training import collect_executive_episode,configure_executive_training,evaluate_executive_episodes,executive_trainable_parameter_names,train_executive_epoch
 
 def _model():
     root=Path(__file__).resolve().parents[1]
@@ -16,3 +16,5 @@ def test_executive_scope_is_exactly_857857_parameters():
     m=_model();names=set(configure_executive_training(m));assert names==set(executive_trainable_parameter_names(m));assert all(n.startswith('r18_executive_') for n in names);assert sum(p.numel() for p in m.parameters() if p.requires_grad)==857_857;assert not m.conditional_control_effect_head.weight.requires_grad
 def test_regime_switch_collector_keeps_context_specific_progress_memory():
     m=_model().eval();ep=collect_executive_episode(m,make_r18_task('regime_switch','train',200),max_steps=16);assert len(ep.steps)>=6;assert torch.count_nonzero(ep.steps[0].progress_memory)==0;assert any(torch.count_nonzero(step.progress_memory)>0 for step in ep.steps[1:])
+def test_executive_sequence_training_and_evaluation_are_recurrent_and_parent_frozen():
+    m=_model();episodes=[collect_executive_episode(m,make_r18_task('conditional_regimes','train',200+i),max_steps=10) for i in range(2)];configure_executive_training(m);parent_before=m.conditional_control_effect_head.weight.detach().clone();exec_before=m.r18_executive_action_scorer[0].weight.detach().clone();optimizer=torch.optim.AdamW([p for p in m.parameters() if p.requires_grad],lr=1e-3);before=evaluate_executive_episodes(m,episodes);loss=train_executive_epoch(m,episodes,optimizer);after=evaluate_executive_episodes(m,episodes);reset=evaluate_executive_episodes(m,episodes,reset_state_each_step=True);assert before['steps']>0 and after['steps']==before['steps'] and reset['steps']==before['steps'];assert loss>=0 and torch.isfinite(torch.tensor(loss));assert torch.equal(m.conditional_control_effect_head.weight,parent_before);assert not torch.equal(m.r18_executive_action_scorer[0].weight,exec_before);assert 0.0<=after['accuracy']<=1.0 and after['cross_entropy']>=0.0
