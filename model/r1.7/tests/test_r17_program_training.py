@@ -36,3 +36,17 @@ def test_program_training_row_keeps_template_phase_and_submit_metadata():
     assert row.program_step==2.0
     assert row.is_submit is True
     assert row.policy_features.shape==(5,384)
+
+def test_program_row_conversion_preserves_episode_template_phase_and_submit_alignment():
+    from types import SimpleNamespace
+    import torch
+    from cogcoder.r17_program_training import build_program_rows
+    ep0=SimpleNamespace(steps=[SimpleNamespace(label=1,descriptions=('a','op','submit')),SimpleNamespace(label=2,descriptions=('a','op','submit'))])
+    ep1=SimpleNamespace(steps=[SimpleNamespace(label=0,descriptions=('op','b','submit'))])
+    cached=[
+        SimpleNamespace(base_logits=torch.tensor([0.,1.,0.]),policy_features=torch.zeros(3,384),label=1),
+        SimpleNamespace(base_logits=torch.tensor([0.,0.,1.]),policy_features=torch.zeros(3,384),label=2),
+        SimpleNamespace(base_logits=torch.tensor([1.,0.,0.]),policy_features=torch.zeros(3,384),label=0),
+    ]
+    rows=build_program_rows([ep0,ep1],cached,[6,7])
+    assert [(r.template_id,r.program_step,r.label,r.is_submit) for r in rows]==[(6,0.0,1,False),(6,1.0,2,True),(7,0.0,0,False)]
