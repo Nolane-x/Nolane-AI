@@ -1,0 +1,24 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.9-FGR-FrontierRollout.pt",
+  "checkpoint_sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+  "fresh_consumed": true,
+  "indices": [0, 8],
+  "max_states": 2,
+  "metrics": {
+    "baseline_mse": 0.0037984334159178756,
+    "candidate_mse": 0.00223250461681783,
+    "elements": 106496,
+    "families": {
+      "causal_prerequisites": {"baseline_mse": 0.0015955171868336038, "candidate_mse": 0.0012624877750477025, "elements": 51200, "relative_improvement": 0.20872818828534045},
+      "conditional_regimes": {"baseline_mse": 0.0060733146524904035, "candidate_mse": 0.0032029336828398097, "elements": 18432, "relative_improvement": 0.4726218109699907},
+      "implicit_goal_regimes": {"baseline_mse": 0.005952119419008441, "candidate_mse": 0.0031612067434454933, "elements": 18432, "relative_improvement": 0.46889393157166925},
+      "regime_switch": {"baseline_mse": 0.005489077923711092, "candidate_mse": 0.0030278646513074315, "elements": 18432, "relative_improvement": 0.4483837370520817}
+    },
+    "relative_improvement": 0.4122564825113949,
+    "rows": 832
+  },
+  "parent_sha256": "400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16",
+  "post_fresh_tuning_forbidden": true,
+  "split": "fresh",
+  "version": "r1.9-frontier-rollout-fresh-v1"
+}
