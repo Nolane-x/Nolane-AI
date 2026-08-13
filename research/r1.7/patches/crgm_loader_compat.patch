@@ -1,0 +1,13 @@
+--- R1.7/R1.6 checkpoint loader compatibility
++++ CRGM compatibility
+@@ r17_training.py
+-    allowed_missing = {key for key in missing if key.startswith("goal_difference_")}
++    allowed_missing = {
++        key for key in missing
++        if key.startswith("goal_difference_") or key.startswith("causal_role_goal_")
++    }
+@@ neural_system2_training.py
+     allowed_missing.update(key for key in missing if key.startswith("goal_difference_"))
++    allowed_missing.update(key for key in missing if key.startswith("causal_role_goal_"))
+
+This is compatibility-only. CRGM policy scale initializes at zero and no legacy checkpoint tensor is modified.
