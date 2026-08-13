@@ -25,6 +25,7 @@ def make_kfigg21_case(*,seed:int,hops:int|None=None,distractors:int=36,contradic
     for i,(a,b) in enumerate(chain): docs.append(KnowledgeDocument(f'true-{i}',f'kfigg://{seed}/true/{i}',f'{a} --next--> {b}',version='1',trust_score=.99))
     for i in range(distractors):
         a=_name(rng,'D',i); b=_name(rng,'X',i); docs.append(KnowledgeDocument(f'd-{i}',f'kfigg://{seed}/d/{i}',f'{a} --next--> {b}',version='1',trust_score=.72))
+    # Low-trust contradictions test that relevance and truth confidence remain separate.
     for i in range(min(contradictions,hops)):
         a=chain[i][0]; wrong=_name(rng,'W',i); docs.append(KnowledgeDocument(f'c-{i}',f'kfigg://{seed}/c/{i}',f'{a} --next--> {wrong}',version='obsolete',trust_score=.15))
     rng.shuffle(docs)
