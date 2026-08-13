@@ -1,0 +1,31 @@
+{
+  "version": "r1.9-results-manifest-v1",
+  "checkpoint_sha256": "1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279",
+  "results": [
+    {
+      "path": "results/r1_9_frontier_rollout_internal.json",
+      "bytes": 21264,
+      "sha256": "087dcbc37eb8669f6fc886a1266830b9da51981c71534252ced87ec8c2c08555",
+      "relative_improvement": 0.3880332089220303,
+      "baseline_mse": 0.004026081536975513,
+      "candidate_mse": 0.0024638281988011647
+    },
+    {
+      "path": "results/r1_9_frontier_rollout_dev.json",
+      "bytes": 1293,
+      "sha256": "10fa447247cfd4e79114dfb16687ec8c0c753ce345e2dd997170f40e7c077048",
+      "relative_improvement": 0.3952811444225157,
+      "baseline_mse": 0.003911447234503822,
+      "candidate_mse": 0.002365325895300867
+    },
+    {
+      "path": "results/r1_9_frontier_rollout_fresh.json",
+      "bytes": 1497,
+      "sha256": "3bb070a2e647492897b84a4358c105839be71c10350a1b7be5b6d668e3958f22",
+      "relative_improvement": 0.4122564825113949,
+      "baseline_mse": 0.0037984334159178756,
+      "candidate_mse": 0.00223250461681783
+    }
+  ],
+  "note": "The COMPLETE delivery contains the byte-exact full JSON files; this manifest binds them for GitHub provenance."
+}
