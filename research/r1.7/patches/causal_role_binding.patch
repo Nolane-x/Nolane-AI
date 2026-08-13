@@ -1,0 +1,43 @@
+--- R1.7 Goal-Difference/Causal-Law architecture
++++ R1.7 parameter-free causal role binding
+@@
++def infer_causal_numeric_roles(
++    previous_ids,
++    previous_values,
++    current_ids,
++    current_values,
++    *,
++    sketch_dim=64,
++    change_tolerance=1e-6,
++):
++    """Infer controllable/current and target-like vector roles from public dynamics.
++
++    Literal key semantics are never inspected. Structural hashes are used only
++    to track the same vector across consecutive observations. Exactly one
++    changed multi-position numeric vector is required for a current role, and
++    exactly one invariant same-shape numeric vector is required for a target.
++    Ambiguity yields confidence zero.
++
++    The need sketch hashes only list positions plus target-current numeric
++    differences, making the representation invariant to literal field renaming.
++    """
++    # production implementation groups numeric atoms by public structural vector
++    # identity, rejects scalars, detects changed/invariant groups, and emits a
++    # 64D position/value-difference sketch only for an unambiguous role pair.
+@@ causal_law_scores(...)
+         return {
+             "predicted_delta": predicted_delta,
+             "confidence": confidence,
+             "policy_bonus": policy_bonus,
+             "slot_attention": weights,
++            "retrieved_law": retrieved,
+         }
+
+Verified invariants before any CRGM neural training:
+- synthetic changed-vector + unique invariant target binding: PASS
+- literal key-renaming invariance of need sketch: PASS
+- ambiguous same-shape invariant targets => confidence 0: PASS
+- retrieved-law action permutation equivariance: PASS
+- real FIGG train worlds 162..169 for causal_laws/causal_switch: unambiguous role binding PASS
+- focused R1.7 stack: 42/42 passed
+- new parameters: 0
