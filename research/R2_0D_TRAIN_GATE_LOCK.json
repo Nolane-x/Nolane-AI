@@ -1,0 +1,24 @@
+{
+  "version": "r2.0d-evidence-conditioned-train-gate-lock-v1",
+  "checkpoint": "checkpoints/Nolane-R2.0d-RME-EvidenceImagination.pt",
+  "checkpoint_sha256": "4dac4bfffa8c007a83d61233100b17fb3214927d9ed76a94a9209f03503f41c9",
+  "parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "candidate_effective_parameters": 78768917,
+  "split": "train",
+  "indices": [980, 1000],
+  "families": ["conditional_regimes", "regime_switch", "implicit_goal_regimes", "causal_prerequisites"],
+  "beam_width": 1,
+  "modes": ["random", "greedy_parent", "fixed_depth_1", "fixed_depth_2", "fixed_depth_8", "adaptive"],
+  "primary_recursive_mode": "fixed_depth_2",
+  "primary_shallow_baseline": "fixed_depth_1",
+  "acceptance": {
+    "aggregate_absolute_solve_rate_gain_pp": 10.0,
+    "high_baseline_exception": "if fixed_depth_1 solve rate >= 0.90, require >=25% relative error reduction",
+    "max_family_regression_pp": 5.0,
+    "must_show_recursive_compute_benefit": true,
+    "parameter_ceiling": 79000000,
+    "fresh_must_remain_closed_on_rejection": true
+  },
+  "adaptive_is_secondary_ablation": true,
+  "no_tuning_after_gate_open": true
+}
