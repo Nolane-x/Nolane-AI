@@ -1,0 +1,35 @@
+{
+  "release": "R2.3-Continual-Skill-Synthesis",
+  "status": "accepted_and_delivered",
+  "neural_effective_parameters": 78779253,
+  "new_r2_3_neural_parameters": 0,
+  "one_weight": {
+    "name": "Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+    "size_bytes": 59773663,
+    "sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e"
+  },
+  "complete_zip": {
+    "name": "Nolane-R2.3-Continual-Skill-Synthesis-COMPLETE-2026-08-13.zip",
+    "size_bytes": 54880115,
+    "entries": 693,
+    "pt_count": 1,
+    "sha256": "23e313dae2fb3bd4a438942460323e4e3a05f4902129a4224e5edfc6ea89cd09",
+    "archive_test": "pass"
+  },
+  "library_path": "/Nolane/R2.3-Continual-Skill-Synthesis/FINAL/",
+  "github_runs": {
+    "dev": 31705841354,
+    "final_heldout": 31706020197,
+    "integrity": 31706520042
+  },
+  "final_heldout": {
+    "baseline": 0.3375,
+    "candidate": 0.93125,
+    "gain_pp": 59.375,
+    "induction": 0.94,
+    "retention": 0.965,
+    "revision": 0.925,
+    "composition": 0.895,
+    "integrity_failures": 0
+  }
+}
