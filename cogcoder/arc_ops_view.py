@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from .arc_ops import Program, Step, apply_program as apply_base_program, apply_step as apply_base_step
 from .grid_fold import combine_with_view
+from .local_grid_v2 import rewrite_sparse as rewrite_sparse_v2
 
 
 def apply_step(step: Step, grid):
     if step.op=='view_combine':
         return combine_with_view(grid,str(step.args[0]))
+    if step.op=='local_rewrite' and str(step.args[0]) in ('orth_tuple','neighbor_tuple'):
+        return rewrite_sparse_v2(grid,str(step.args[0]),step.args[1])
     return apply_base_step(step,grid)
 
 
