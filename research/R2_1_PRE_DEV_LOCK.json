@@ -1,0 +1,10 @@
+{
+  "version": "R2.1a-Cognition-Time-Retrieval-Fabric-lock-v1",
+  "parent": {"version": "R2.0i-Active-Causal-Discovery", "effective_parameters": 78779253, "one_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e"},
+  "r2_1_new_neural_parameters": 0,
+  "benchmark": "KFIGG-21",
+  "configuration": {"top_k_per_call": 1, "max_calls": 4, "total_chunk_budget": 4, "distractors": 36, "hops": "deterministic 2..4 from seed", "contradictions_per_case_max": 3},
+  "splits": {"train_gate": [0, 200], "dev": [1000, 1200], "fresh": [2000, 2200]},
+  "source_sha256": {"knowledge_types.py":"ba4ccff2c5d15e1b280e5a64c0ed6a40d1485a137519e3d3911d15803a72bb93","knowledge_store.py":"f4b56bdd3eb3fe4ddc94cf77b765e8f349dc479359bf59d413817d8c5d3f14c0","knowledge_ledger.py":"9202965529f8a89594c9fa7e6ee9994ef3f5ce71332acf037663795851e7d8d8","retrieval_microcycle.py":"3c1e43c7233b7961b2a1abcbdeca93cc273cb891ee3ca79f6507879a652bb3d7","generation_retrieval.py":"1cbf607a62e19acef744d1fb7e4243cb7e3f50f1121a6aa68dc55401a2b6ee12","kfigg21.py":"558e8c7bb940a2b63eabfced1f829e889fba7ee963cbbd0b5267434e4d33b74e"},
+  "acceptance": {"minimum_interleaved_gain_pp_over_retrieve_once": 15.0, "provenance_failures": 0, "max_median_retrieved_chars_ratio_vs_retrieve_once": 1.5, "no_tuning_after_dev_open": true, "fresh_must_be_opened_once_only_after_dev_acceptance": true}
+}
