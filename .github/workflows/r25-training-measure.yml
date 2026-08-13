@@ -13,6 +13,7 @@ on:
       - 'cogcoder/shape_place.py'
       - 'tests/test_r25_arc_chain.py'
       - 'tests/test_r25_arc_local.py'
+      - 'tests/test_r25_arc_pair.py'
       - 'scripts/measure_r25_arc_current.py'
       - '.gitmodules'
       - '.github/workflows/r25-training-measure.yml'
@@ -41,6 +42,8 @@ jobs:
         run: python tests/test_r25_arc_chain.py
       - name: Check local rule requirement
         run: python tests/test_r25_arc_local.py
+      - name: Check D4 relation requirement
+        run: python tests/test_r25_arc_pair.py
       - name: Measure training corpus
         run: python scripts/measure_r25_arc_current.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r25_training.json
       - uses: actions/upload-artifact@v4
