@@ -1,0 +1,28 @@
+--- scripts/train_r17_causal_law_policy.py
++++ scripts/train_r17_causal_law_policy.py
+@@
+ def _build_episode(family: str, index: int, *, exploration_steps: int, max_steps: int) -> RawEpisode:
+     task = make_r17_task(family, "train", index)
+     counts = [0 for _ in task.action_descriptions]
+     steps: list[RawStep] = []
+     prev_feedback = (0.0, 0.0, 0.0)
++    composition_plan = (
++        tuple(int(action) for action in oracle_plan(copy.deepcopy(task)))
++        if family == "composition_holdout"
++        else ()
++    )
+     while not task.done and len(steps) < max_steps:
+         text = task.render_observation()
+         if family == "composition_holdout":
+-            label = int(oracle_plan(copy.deepcopy(task))[0])
++            if len(steps) >= len(composition_plan):
++                raise RuntimeError(
++                    "composition teacher exhausted its initial oracle plan before task completion"
++                )
++            label = composition_plan[len(steps)]
+         elif len(steps) < exploration_steps:
+             ...
+
+Root cause: `oracle_plan()` correctly returns the full hidden functional program when called on the initial composition task, but the generic collector repeatedly called it after every operation and selected element zero. Because composition `oracle_plan()` is intentionally program-based rather than state-replanning, this produced `op1, op1, op1, ...` instead of `op1, op2, submit`.
+
+The fix snapshots the exact oracle plan once at episode start and replays it sequentially. Causal families are unchanged.
