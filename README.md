@@ -14,6 +14,22 @@ The project has progressed beyond the original ~50M label:
 
 R1.9 deliberately grows by only ~2.08% over R1.8. The new module predicts a residual correction to the additive composition of frozen R1.8 one-step causal effects; its recurrent refinement cell is weight-shared rather than duplicated with reasoning depth.
 
+## Current deployment artifact: ONE weight
+
+The default artifact is now a **single checkpoint**:
+
+`Nolane-R1.9-78M-STRONGEST-ONE-WEIGHT-FP16.pt`
+
+- size: **57,498,059 bytes**
+- SHA-256: `6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a`
+- effective parameters: **78,214,173**
+- storage: FP16 tensors, loaded into FP32 runtime modules
+- contents: R1.8 ConditionalLaw parent + R1.9 FrontierRollout delta + architecture/provenance metadata
+
+`CURRENT_ONE_WEIGHT_R1_9.json` is the canonical deployment manifest. `model/r1.9/cogcoder/r19_standalone.py` loads this one file into the R1.8 parent and R1.9 head.
+
+The historical 8-checkpoint package is retained only for research provenance and disaster recovery; ordinary use should prefer the one-weight artifact.
+
 ## Latest locked evidence — FIGG-19
 
 R1.9 was trained only on preregistered `train` worlds and then frozen. The same checkpoint was evaluated on disjoint DEV and finally an untouched FRESH split.
@@ -22,14 +38,10 @@ R1.9 was trained only on preregistered `train` worlds and then frozen. The same 
 |---|---:|---:|---:|
 | Internal held-out train worlds | 0.00402608 | 0.00246383 | **38.80%** |
 | DEV | 0.00391145 | 0.00236533 | **39.53%** |
-| FRESH | 0.00379843 | 0.00223250 | **41.23%** |
+| FRESH FP32 reference | 0.00379843 | 0.00223250 | **41.23%** |
+| FRESH one-weight FP16 storage | 0.00379816 | 0.00223243 | **41.22%** |
 
-All four preregistered families improved on FRESH:
-
-- causal prerequisites: **20.87%**
-- conditional regimes: **47.26%**
-- implicit-goal regimes: **46.89%**
-- regime switch: **44.84%**
+All four preregistered families improved on FRESH. The FP16-storage one-weight artifact reproduces the FP32 reference to within about **0.0023 percentage points** of relative improvement.
 
 The FRESH split is now **consumed**. `research/R1_9_PRE_FRESH_LOCK.json` binds the checkpoint and evaluation settings, and no model/evaluator tuning is permitted after that fresh evaluation.
 
@@ -59,31 +71,22 @@ The focused R1.8 + R1.9 research gate is green:
 
 A broad historical suite is **not** claimed clean. During the R1.9 audit, two inherited legacy `EffectProgressCritic` interface failures were observed in the recovered R1.7 lineage; they were not introduced by R1.9. Because fresh had already been consumed, model/evaluator code was not changed afterward merely to improve the test headline.
 
-## Real weights and provenance
+## GitHub binary boundary
 
-The complete R1.9 delivery contains **8 real PyTorch checkpoints** totaling **598,970,206 bytes**. Important current hashes:
-
-- R1.7 OperatorExecutor: `bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735`
-- R1.8 ConditionalLaw: `400fc43ef46c9b6c7664703b49c0de7896b49eb728939423288b74847cb27c16`
-- R1.9 FrontierRollout delta: `1b088c7837b76d37d3d1b288189f4a2ee9b378f069a398867ededef8c2a4d279`
-
-`WEIGHTS_MANIFEST_R1_9.json` records exact size and SHA-256 for every included checkpoint.
-
-The conversational GitHub channel can publish source/manifests but cannot practically stream the 90–108MB binary checkpoints through model-mediated base64, and it exposes no LFS/release-asset upload action. Therefore this repo does **not** contain fake weight placeholders. `.gitattributes` and `scripts/publish_weights_lfs.sh` define the authenticated Git LFS path for publishing the real binaries from the COMPLETE delivery.
+GitHub source, loader, tests, manifests, hashes and CI live on `main`. The current connected GitHub tool can create text/base64 blobs but cannot stream a local 57.5MB file or upload an LFS/release asset directly, so the raw one-weight bytes are persisted in ChatGPT Library and exposed as the milestone download rather than replaced by a fake pointer. `.gitattributes` and `scripts/publish_weights_lfs.sh` remain the authenticated LFS path when a binary-capable git channel is available.
 
 ## R1.9 files
 
 - `model/r1.9/cogcoder/r19_frontier.py` — recurrent residual rollout head
 - `model/r1.9/cogcoder/r19_rollout.py` — locked two-step counterfactual collector
 - `model/r1.9/cogcoder/r19_training.py` — training/evaluation/checkpoint gate
+- `model/r1.9/cogcoder/r19_standalone.py` — one-file deployment loader
 - `model/r1.9/scripts/train_r19_frontier_rollout.py` — preregistered trainer
 - `model/r1.9/tests/` — isolation, equivariance, parameter and provenance tests
 - `benchmarks/frontier100b/` — external frontier comparison contract
 - `research/R1_9_REALITY_REPORT.md` — exact claim boundary and results
 - `research/R1_9_CURRENT_BEST.json` — current accepted lineage
-- `research/R1_9_PRE_FRESH_LOCK.json` — immutable fresh lock
-- `research/r1.9/results/` — DEV/FRESH evidence
-- `WEIGHTS_MANIFEST_R1_9.json` — binary provenance
+- `CURRENT_ONE_WEIGHT_R1_9.json` — canonical one-weight artifact manifest
 
 ## Scientific boundary
 
