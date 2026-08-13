@@ -1,0 +1,40 @@
+{
+  "acceptance": {
+    "accepted": false,
+    "family_gain_pp": {
+      "causal_prerequisites": -10.0,
+      "conditional_regimes": 0.0,
+      "implicit_goal_regimes": 9.999999999999998,
+      "regime_switch": -9.999999999999998
+    },
+    "max_family_regression_pp": 5.0,
+    "observed_gain_pp": -2.500000000000002,
+    "required_gain_pp": 10.0
+  },
+  "beam_width": 1,
+  "candidate_effective_parameters": 78779253,
+  "checkpoint_sha256": "cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "dev_opened": false,
+  "fresh_opened": false,
+  "indices": [1280, 1300],
+  "parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "primary_recursive_mode": "fixed_depth_2",
+  "primary_shallow_baseline": "fixed_depth_1",
+  "split": "train",
+  "summary": {
+    "adaptive": {"solved": 34, "tasks": 80, "solve_rate": 0.425},
+    "fixed_depth_1": {"solved": 36, "tasks": 80, "solve_rate": 0.45},
+    "fixed_depth_2": {"solved": 34, "tasks": 80, "solve_rate": 0.425},
+    "fixed_depth_8": {"solved": 32, "tasks": 80, "solve_rate": 0.4},
+    "greedy_parent": {"solved": 1, "tasks": 80, "solve_rate": 0.0125},
+    "random": {"solved": 0, "tasks": 80, "solve_rate": 0.0}
+  },
+  "per_family_primary": {
+    "conditional_regimes": {"fixed_depth_1": 0.65, "fixed_depth_2": 0.65, "gain_pp": 0.0},
+    "regime_switch": {"fixed_depth_1": 0.5, "fixed_depth_2": 0.4, "gain_pp": -10.0},
+    "implicit_goal_regimes": {"fixed_depth_1": 0.55, "fixed_depth_2": 0.65, "gain_pp": 10.0},
+    "causal_prerequisites": {"fixed_depth_1": 0.1, "fixed_depth_2": 0.0, "gain_pp": -10.0}
+  },
+  "full_result_artifact_sha256": "0b7219276aedf4c5d9aa2f1d3537a7a9ea323ee3fe7e5dc97b1471e7451bdaea",
+  "version": "r2.0e-restored-train-gate-v1"
+}
