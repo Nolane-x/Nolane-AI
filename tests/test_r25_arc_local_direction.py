@@ -1,6 +1,6 @@
 from cogcoder.arc_grid import Grid
 from cogcoder.arc_local import fit_local_programs
-from cogcoder.arc_ops import apply_program
+from cogcoder.arc_ops_view import apply_program
 
 
 def g(rows): return Grid.from_rows(rows)
