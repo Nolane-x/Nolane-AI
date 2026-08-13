@@ -1,0 +1,24 @@
+{
+  "candidate_name": "Nolane R1.7 Neural Causal Program Machine + Functional Program Search",
+  "claim_boundary": "bounded FIGG-17 learned-operator composition; not AGI or unrestricted program synthesis",
+  "current_checkpoint": "checkpoints/Nolane-R1.7-NCPM-OperatorExecutor.pt",
+  "current_checkpoint_sha256": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+  "date": "2026-08-13",
+  "effective_parameters": 75387546,
+  "functional_program_search": {
+    "dev_length3": {"demo_exact": 59, "parent_policy_solved": 5, "solved": 60, "total": 60},
+    "fresh_length4": {"demo_exact": 60, "fresh_consumed": true, "parent_policy_solved": 0, "solved": 60, "total": 60},
+    "train_heldout": {"demo_exact": 64, "solved": 64, "total": 64}
+  },
+  "functional_search_trainable_parameters": 0,
+  "operator_executor_gate": {"element_accuracy": 0.995, "exact_vector_accuracy": 0.995, "heldout_transitions": 200},
+  "verification": {"lineage_regressions": "28/28", "r17_tests": "81/81"},
+  "key_hashes": {
+    "checkpoint": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+    "r17_benchmark": "c92ce9952c319df2b0a1d52373e6214cc02bfcfedfb15425cc716d4bdd906233",
+    "neural_system2": "26d19f273d67eced45ce3628765586e0df5372ea4714d588a182a269317b80c3",
+    "program_induction": "5fd8a6cb79e2eb72a1643897207d802b46f7d0f1a5b56071c0f0884a00c16ae5",
+    "fresh_result": "694a281533da15eb910c5b4c1709953f4b9b08b318e123cb0cef852e44ebd6af"
+  },
+  "version": "R1.7-Phase-C-final"
+}
