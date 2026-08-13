@@ -10,6 +10,7 @@ from .edge_relation import anchored_complement_mirror, repeat_edge_frame
 from .grid_repeat import alternating_reflect, extend_period
 from .panel_combine import first_visible, mark_shared_empty
 from .panel_grid import overlay_from_separated
+from .panel_overlap import common_filled
 from .periodic_grid import recover_missing_patch
 from .shape_place import bottom_anchor_shift, corner_chain
 
@@ -120,6 +121,7 @@ def apply_step(step: Step, grid: Grid) -> Grid:
     if step.op == 'edge_frame': return repeat_edge_frame(grid)
     if step.op == 'complement_mirror': return anchored_complement_mirror(grid,int(step.args[0]))
     if step.op == 'joint_background': return mark_shared_empty(grid,str(step.args[0]),int(step.args[1]))
+    if step.op == 'joint_foreground': return common_filled(grid,str(step.args[0]),int(step.args[1]))
     if step.op == 'priority_merge': return first_visible(grid,tuple(int(x) for x in step.args[0]))
     if step.op == 'alt_reflect_repeat': return alternating_reflect(grid,int(step.args[0]),int(step.args[1]))
     if step.op == 'periodic_extend': return extend_period(grid,str(step.args[0]),int(step.args[1]),int(step.args[2]))
