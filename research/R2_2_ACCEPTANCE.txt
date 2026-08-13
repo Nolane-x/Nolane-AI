@@ -1,0 +1,4 @@
+R2.2 accepted evaluation record, 2026-08-13.
+Parent: 102/200 (51.0%). Candidate: 200/200 (100.0%). Difference: +49.0 percentage points.
+Integrity errors: 0. Evidence budget: 14 chunks maximum.
+Evaluation indices 5000 through 5199 are now consumed. Accepted core hashes remain unchanged.
