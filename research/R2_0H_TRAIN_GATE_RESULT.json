@@ -1,0 +1,13 @@
+{
+  "version":"r2.0h-episode-compute-router-train-gate-v1",
+  "checkpoint_sha256":"6c7c6d6805cef1bf59ce81bf0a3f70c94cc16432b4ef3ed136971e54ea744ae8",
+  "candidate_effective_parameters":78811591,
+  "indices":[1920,1940],
+  "summary":{"fixed_depth_1":{"solved":26,"tasks":80,"solve_rate":0.325},"fixed_depth_2":{"solved":24,"tasks":80,"solve_rate":0.3},"episode_adaptive_depth12":{"solved":26,"tasks":80,"solve_rate":0.325,"depth2_episodes":33},"greedy_parent":{"solved":0,"tasks":80,"solve_rate":0.0},"random":{"solved":1,"tasks":80,"solve_rate":0.0125}},
+  "per_family":{"conditional_regimes":{"fixed_depth_1":0.5,"fixed_depth_2":0.35,"episode_adaptive_depth12":0.4},"regime_switch":{"fixed_depth_1":0.3,"fixed_depth_2":0.35,"episode_adaptive_depth12":0.4},"implicit_goal_regimes":{"fixed_depth_1":0.5,"fixed_depth_2":0.5,"episode_adaptive_depth12":0.5},"causal_prerequisites":{"fixed_depth_1":0.0,"fixed_depth_2":0.0,"episode_adaptive_depth12":0.0}},
+  "depth1_depth2_union":{"solved":33,"tasks":80,"solve_rate":0.4125,"depth1_only":9,"depth2_only":7},
+  "acceptance":{"accepted":false,"observed_gain_pp":0.0,"family_gain_pp":{"conditional_regimes":-10.0,"regime_switch":10.0,"implicit_goal_regimes":0.0,"causal_prerequisites":0.0}},
+  "full_local_result_sha256":"1904280a9638abe3d834dd8fd8f3b8f89964ced80eda3edddd8b9fdf1eaf17f9",
+  "dev_opened":false,
+  "fresh_opened":false
+}
