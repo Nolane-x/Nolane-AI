@@ -1,0 +1,43 @@
+name: R2.5 Training Measure
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'cogcoder/arc_*.py'
+      - 'cogcoder/block_matrix.py'
+      - 'cogcoder/d4_predicate.py'
+      - 'cogcoder/edge_relation.py'
+      - 'cogcoder/grid_repeat.py'
+      - 'cogcoder/panel_*.py'
+      - 'cogcoder/periodic_grid.py'
+      - 'cogcoder/shape_place.py'
+      - 'scripts/measure_r25_arc_current.py'
+      - '.gitmodules'
+      - '.github/workflows/r25-training-measure.yml'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned corpus
+        run: |
+          test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+          git -C external/ARC-AGI-2 rev-parse HEAD
+      - name: Measure training corpus
+        run: python scripts/measure_r25_arc_current.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r25_training.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-training-measure
+          path: r25_training.json
