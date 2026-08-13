@@ -1,0 +1,12 @@
+{
+  "version":"r2.0i-complete-release-manifest-v1",
+  "date":"2026-08-13",
+  "status":"accepted_train_dev_fresh",
+  "current_weight":{"artifact":"Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt","bytes":59773663,"sha256":"b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e","effective_parameters":78779253},
+  "controller":{"path":"model/r2.0/cogcoder/r20i_causal_discovery.py","sha256":"cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672","new_neural_parameters":0},
+  "complete_zip":{"artifact":"Nolane-R2.0i-Active-Causal-Discovery-COMPLETE-2026-08-13.zip","bytes":54943807,"sha256":"b81c2359856b2fc2d72f74a459142f7619707cb6790e9115afbb5e8fdb9d07d8","zip_test":"PASS","pt_files_inside":1},
+  "deployment_verification":{"release_pytest":"8 passed, 1 PyTorch warning","fresh_replay_episodes":80,"fresh_replay_solved":48,"action_or_solve_mismatches":0},
+  "fresh":{"indices":[512,532],"consumed":true,"baseline_solve_rate":0.3625,"candidate_solve_rate":0.6,"gain_pp":23.75,"causal_candidate_solve_rate":1.0},
+  "research_test_boundary":"Historical R2.0e-h tests are retained as research provenance but require split checkpoint fixtures intentionally omitted from the one-weight delivery.",
+  "claim_boundary":"Accepted bounded hybrid FIGG-18 runtime only. The causal gain comes from zero-parameter public active discovery around the neural core; not AGI and not evidence of >100B superiority."
+}
