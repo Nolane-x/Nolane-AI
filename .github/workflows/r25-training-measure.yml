@@ -12,6 +12,7 @@ on:
       - 'cogcoder/periodic_grid.py'
       - 'cogcoder/shape_place.py'
       - 'tests/test_r25_arc_chain.py'
+      - 'tests/test_r25_arc_local.py'
       - 'scripts/measure_r25_arc_current.py'
       - '.gitmodules'
       - '.github/workflows/r25-training-measure.yml'
@@ -38,6 +39,8 @@ jobs:
           git -C external/ARC-AGI-2 rev-parse HEAD
       - name: Check composition requirement
         run: python tests/test_r25_arc_chain.py
+      - name: Check local rule requirement
+        run: python tests/test_r25_arc_local.py
       - name: Measure training corpus
         run: python scripts/measure_r25_arc_current.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r25_training.json
       - uses: actions/upload-artifact@v4
