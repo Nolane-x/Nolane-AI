@@ -1,0 +1,26 @@
+--- cogcoder/neural_system2.py.r18-control-effect
++++ cogcoder/neural_system2.py.r18-nonlinear-reliability
+@@
+         self.conditional_control_effect_head = nn.Linear(self.conditional_law_dim, 64)
+         nn.init.zeros_(self.conditional_control_effect_head.weight)
+         nn.init.zeros_(self.conditional_control_effect_head.bias)
++        self.conditional_reliability_input_dim = self.conditional_law_dim + 64 * 3 + 3
++        self.conditional_reliability_head = nn.Sequential(
++            nn.Linear(self.conditional_reliability_input_dim, 128),
++            nn.GELU(),
++            nn.Linear(128, 1),
++        )
++        nn.init.zeros_(self.conditional_reliability_head[-1].weight)
++        nn.init.zeros_(self.conditional_reliability_head[-1].bias)
+@@
+     def conditional_control_effect_scores(self, conditional_hidden: Tensor) -> Tensor:
+         ...
++
++    def conditional_reliability_scores(self, conditional_hidden, predicted_control, evidence_control, evidence_meta):
++        # Shared per-action nonlinear runtime certificate.  Input is 451D:
++        # hidden256 + predicted64 + evidence64 + |pred-evidence|64 + meta3.
++        features = torch.cat((conditional_hidden, predicted_control, evidence_control,
++                              torch.abs(predicted_control-evidence_control), evidence_meta), dim=-1)
++        logits = self.conditional_reliability_head(features).squeeze(-1)
++        seen = evidence_meta[..., 0].gt(0).to(logits.dtype)
++        return {"logits": logits, "score": seen * torch.sigmoid(logits), "features": features}
