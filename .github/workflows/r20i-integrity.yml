@@ -1,0 +1,28 @@
+name: R2.0i Integrity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate R2.0i provenance
+        run: python scripts/verify_r20i_release.py --metadata-only
+      - name: Compile current R2.0i source
+        run: |
+          python -m py_compile \
+            model/r2.0/cogcoder/r20i_causal_discovery.py \
+            model/r2.0/cogcoder/r20i_standalone.py \
+            model/r2.0/cogcoder/r20e_executive.py \
+            model/r2.0/cogcoder/r20e_controller.py
+      - name: Validate frontier claim contract
+        run: |
+          python -m pip install -q pytest
+          python -m pytest -q model/r1.9/tests/test_frontier100b_harness.py
