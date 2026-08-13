@@ -1,0 +1,22 @@
+{
+  "version":"r2.0i-pre-fresh-lock-v1",
+  "date":"2026-08-13",
+  "train_gate_result":"research/R2_0I_TRAIN_GATE_RESULT.json",
+  "dev_result":"research/r2.0/results/r2_0i_dev.json",
+  "r19_parent_sha256":"6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "frozen_r20e_sha256":"cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "controller_sha256":"cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672",
+  "candidate_effective_parameters":78779253,
+  "new_neural_parameters":0,
+  "fresh_split":"fresh",
+  "fresh_indices":[512,532],
+  "families":["conditional_regimes","regime_switch","implicit_goal_regimes","causal_prerequisites"],
+  "primary_mode":"hybrid_active_causal",
+  "baseline_mode":"fixed_depth_1",
+  "beam_width":1,
+  "acceptance":{"aggregate_absolute_solve_rate_gain_pp":10.0,"max_family_regression_pp":0.0,"causal_absolute_solve_rate_gain_pp":25.0,"must_use_public_active_discovery_on_at_least_one_newly_solved_fresh_episode":true},
+  "r1_9_consumed_fresh_0_7_not_reused":true,
+  "no_model_controller_evaluator_or_threshold_tuning_after_fresh_open":true,
+  "fresh_opened":false,
+  "fresh_consumed":false
+}
