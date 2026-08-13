@@ -1,0 +1,34 @@
+name: R2.5 Measure B
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'cogcoder/arc_chain.py'
+      - 'cogcoder/arc_current_plus.py'
+      - 'cogcoder/arc_score_plus.py'
+      - 'scripts/measure_r25_plus.py'
+      - '.github/workflows/r25-measure-b.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  measure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify corpus
+        run: test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+      - name: Check composed case
+        run: python tests/test_r25_arc_chain.py
+      - name: Measure
+        run: python scripts/measure_r25_plus.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r25_measure_b.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-measure-b
+          path: r25_measure_b.json
