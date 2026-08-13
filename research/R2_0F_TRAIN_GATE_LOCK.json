@@ -1,0 +1,37 @@
+{
+  "version": "r2.0f-goal-directed-future-critic-train-gate-lock-v1",
+  "date": "2026-08-13",
+  "r19_parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "frozen_r20e_sha256": "cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "critic_checkpoint": "Nolane-R2.0f-GDIC.pt",
+  "critic_checkpoint_sha256": "6187bc5cb2e7ce1f251b464b9516990571cb0ee9e2bcbbad7954c57ef0d34816",
+  "critic_parameters": 55954,
+  "candidate_effective_parameters": 78835207,
+  "best_epoch": 2,
+  "validation_loss": 0.8634904479969323,
+  "validation_action_accuracy": 0.5605381165919282,
+  "validation_branch_value_mse": 0.10150796879954434,
+  "split": "train",
+  "indices": [1480, 1500],
+  "families": ["conditional_regimes", "regime_switch", "implicit_goal_regimes", "causal_prerequisites"],
+  "beam_width": 1,
+  "modes": ["random", "greedy_parent", "fixed_depth_1", "r20e_depth_2", "goal_depth_2"],
+  "primary_recursive_mode": "goal_depth_2",
+  "primary_shallow_baseline": "fixed_depth_1",
+  "acceptance": {
+    "aggregate_absolute_solve_rate_gain_pp": 10.0,
+    "max_family_regression_pp": 5.0,
+    "must_show_recursive_compute_benefit": true,
+    "parameter_ceiling": 79000000,
+    "fresh_must_remain_closed_on_rejection": true
+  },
+  "source_sha256": {
+    "model/r2.0/cogcoder/r20f_critic.py": "b005f07d39324d93a167bf25bcbc80380a81ecefb59f352a6d6edd48f2c90a70",
+    "model/r2.0/cogcoder/r20f_training.py": "a8a0e1e05849c75533837d46605df9cb940984d20a85f131bce5f288dbacb1b5",
+    "model/r2.0/cogcoder/r20f_controller.py": "f00a1349330e89deed32a80ab22f1145fd92237e11e2167cd1c883586cd03c14"
+  },
+  "training_result_sha256": "d73ba2db1e7b72728feb4c9e094377ad9e5dd9e6802a3ab714490ceddd0bb147",
+  "no_tuning_after_gate_open": true,
+  "dev_opened": false,
+  "fresh_opened": false
+}
