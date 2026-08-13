@@ -1,0 +1,18 @@
+{
+  "version": "r2.0f-implementation-amendment-v1",
+  "date": "2026-08-13",
+  "supersedes_training_hash_in": "research/R2_0F_IMPLEMENTATION_LOCK.json",
+  "trigger": "The first attempted collection produced no cache because a counterfactual branch was provably unsolvable within the remaining task budget and the training oracle raised RuntimeError.",
+  "root_cause_example": {"family":"conditional_regimes","train_index":1425,"action_sequence":[1,2]},
+  "fix": "Map oracle budget exhaustion on a counterfactual branch to branch_value=-1.0. This is an explicit low-value teacher label; it does not alter runtime features or benchmark splits.",
+  "training_sha256": "a8a0e1e05849c75533837d46605df9cb940984d20a85f131bce5f288dbacb1b5",
+  "training_test_sha256": "54ee930a24fb3f84bccbd10f3d5f749f74c72c7a3dd658b0654c0d8a740a85a9",
+  "tests": "5 passed",
+  "successful_collection_started": false,
+  "fit_indices": [1400,1464],
+  "validation_indices": [1464,1480],
+  "untouched_train_gate_indices": [1480,1500],
+  "train_gate_opened": false,
+  "dev_opened": false,
+  "fresh_opened": false
+}
