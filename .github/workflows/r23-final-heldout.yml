@@ -1,0 +1,35 @@
+name: R2.3 Final Heldout
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/r23-final-heldout.yml'
+
+jobs:
+  final:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run frozen heldout
+        run: |
+          python scripts/evaluate_r23_continual.py --start 8000 --count 200 --demonstrations-per-skill 3 > r23_final.json
+          cat r23_final.json
+      - name: Enforce frozen thresholds
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('r23_final.json'))
+          assert d['candidate_solve_rate'] >= 0.85, d
+          assert d['gain_pp'] >= 20.0, d
+          assert d['retention_solve_rate'] >= 0.90, d
+          assert d['revision_solve_rate'] >= 0.90, d
+          assert d['composition_solve_rate'] >= 0.80, d
+          assert d['integrity_failures'] == 0, d
+          print('R2.3 FINAL HELDOUT PASS')
+          PY
