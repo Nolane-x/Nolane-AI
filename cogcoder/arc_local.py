@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from .arc_ops import Program, Step, apply_program
-from .local_grid import KINDS, feature
+from .arc_ops_view import Program, Step, apply_program
+from .local_grid_v2 import KINDS, feature
 
 
-_KIND_COST={'orth_set':0,'neighbor_set':1,'orth_counts':1,'neighbor_counts':2}
+_KIND_COST={'orth_set':0,'neighbor_set':1,'orth_counts':1,'neighbor_counts':2,'orth_tuple':1,'neighbor_tuple':2}
 
 
 def fit_local_programs(pairs, *, max_rules=8):
