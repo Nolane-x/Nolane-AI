@@ -1,0 +1,32 @@
+{
+  "version": "r2.0e-restoration-amendment-v1",
+  "date": "2026-08-13",
+  "reason": "The ephemeral local R2.0e training workspace was cleaned after epoch 20 before its checkpoint/optimizer state was persisted. The untouched train gate 1280..1299 had not been opened.",
+  "decision": "Restart R2.0e deterministically from epoch 1 using the already preregistered seed, data ranges, optimizer, loss weights, parameter budget and checkpoint-selection rule. Do not claim byte-identical continuation from the lost epoch-20 state.",
+  "parent_artifact": "Nolane-R1.9-78M-STRONGEST-ONE-WEIGHT-FP16.pt",
+  "parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "candidate_effective_parameters": 78779253,
+  "fit_indices": [1200, 1264],
+  "validation_indices": [1264, 1280],
+  "untouched_train_gate_indices": [1280, 1300],
+  "seed": 200420,
+  "epochs": 25,
+  "source_sha256": {
+    "model/r2.0/cogcoder/r20e_executive.py": "cf4fa7c888fa687400fc0e94f27ba5cc4072c00320148121206528ecb64a0151",
+    "model/r2.0/cogcoder/r20e_imagination.py": "a745ec9008c2eb683f8e380e75fbccc5cae3bad20d30bbe4b67380dcfa4bbbbb",
+    "model/r2.0/cogcoder/r20e_training.py": "97aafad4dfe19235f84e2af34cb374a0ec1b7184631cef715ef0e139c8171b45",
+    "model/r2.0/tests/test_r20e_evidence_effect.py": "9d92fdb7dd6d998fd98d33e22ecc5604ebd369d06c8ac0c9be11afa66fd267f0",
+    "model/r2.0/tests/test_r20e_training.py": "6b1d99b863cee34629913a14211ae84a3c17162dc59e9f54de0f880fdb315067"
+  },
+  "architecture_reconstruction": {
+    "executive_parameters": 565080,
+    "public_action_memory_dim": 7,
+    "evidence_effect_dim": 128,
+    "evidence_effect_projection_dim": 32,
+    "shared_action_memory_projection_dim": 32,
+    "planner_parameters": 0
+  },
+  "dev_opened": false,
+  "fresh_opened": false,
+  "train_gate_opened": false
+}
