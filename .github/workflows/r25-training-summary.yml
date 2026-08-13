@@ -1,0 +1,30 @@
+name: R2.5 Training Summary
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'scripts/summarize_r25_train.py'
+      - '.github/workflows/r25-training-summary.yml'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  summarize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Summarize pinned training corpus
+        run: python scripts/summarize_r25_train.py external/ARC-AGI-2/data/training --examples 8 | tee r25_training_summary.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-training-summary
+          path: r25_training_summary.json
