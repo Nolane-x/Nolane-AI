@@ -1,0 +1,9 @@
+{
+  "checkpoint": "checkpoints/Nolane-R1.7-NCPM-OperatorExecutor.pt",
+  "checkpoint_sha256": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+  "effective_parameters": 75387546,
+  "fresh_composition_score": "60/60",
+  "fresh_consumed": true,
+  "inference_mode": "functional_program_search",
+  "version": "R1.7-Phase-C"
+}
