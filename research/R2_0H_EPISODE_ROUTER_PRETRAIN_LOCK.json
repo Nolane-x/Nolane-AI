@@ -1,0 +1,41 @@
+{
+  "version": "r2.0h-episode-compute-router-pretrain-lock-v1",
+  "date": "2026-08-13",
+  "r19_parent_sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "frozen_r20e_sha256": "cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "router_parameters": 32338,
+  "candidate_effective_parameters": 78811591,
+  "parameter_ceiling": 79000000,
+  "architecture": "Choose depth 1 or depth 2 exactly once from the initial public/neural episode representation, then run the frozen R2.0e policy at that fixed depth for the entire episode. The router sees initial state/context, permutation-invariant pooled action semantics, and 11 depth1/depth2 confidence/entropy/margin/uncertainty/value signals. The output head is zero-initialized so the untrained router defaults to depth 1.",
+  "training_label": "Run frozen R2.0e fixed-depth-1 and fixed-depth-2 on independent clones of each train episode. Label depth2 only when depth2 solves and depth1 fails. Label depth1 when depth1 solves, including when both solve to prefer cheaper compute. Exclude both-fail episodes because routing cannot repair them. No oracle action or hidden task field is used to create routing labels.",
+  "fit_indices": [1800, 1896],
+  "validation_indices": [1896, 1920],
+  "untouched_train_gate_indices": [1920, 1940],
+  "families": ["conditional_regimes", "regime_switch", "implicit_goal_regimes", "causal_prerequisites"],
+  "seed": 200720,
+  "epochs": 50,
+  "optimizer": "AdamW",
+  "learning_rate": 0.001,
+  "weight_decay": 0.0001,
+  "gradient_clip_norm": 1.0,
+  "loss": "class-balanced cross entropy; weights computed from fit labels only",
+  "checkpoint_selection": "lowest preregistered class-balanced validation cross entropy only",
+  "primary_mode": "episode_adaptive_depth12",
+  "baseline_mode": "fixed_depth_1",
+  "acceptance": {
+    "aggregate_absolute_solve_rate_gain_pp": 10.0,
+    "max_family_regression_pp": 5.0,
+    "must_choose_depth2_on_at_least_one_newly_solved_gate_episode": true,
+    "parameter_ceiling": 79000000,
+    "fresh_must_remain_closed_on_rejection": true
+  },
+  "source_sha256": {
+    "model/r2.0/cogcoder/r20h_router.py": "77ce62e2ad2f710de8400a1f1906274068021fe34ae86873c7ce503b5d111354",
+    "model/r2.0/cogcoder/r20h_training.py": "47546bef8b248101c6e8d5ff1c044220f508fd93f651ac0c70d16dadfc866722",
+    "model/r2.0/tests/test_r20h_router.py": "0f96e3bd01a205c126c30ebc8a3a9db63d77bf6ffa40c9612eab18b1d7846bdf",
+    "model/r2.0/tests/test_r20h_training.py": "0345d64a7e065e8ff773a12ee631cca5497f5255ac9757e6c444d6aa445b930b"
+  },
+  "train_gate_opened": false,
+  "dev_opened": false,
+  "fresh_opened": false
+}
