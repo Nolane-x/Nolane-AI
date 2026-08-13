@@ -1,0 +1,1 @@
+{"split":"train_gate","indices":[0,200],"cases":200,"retrieve_once_solved":136,"retrieve_once_solve_rate":0.68,"interleaved_solved":200,"interleaved_solve_rate":1.0,"gain_pp":32.0,"provenance_failures":0,"retrieve_once_median_chars_solved":108.0,"interleaved_median_chars_solved":81.0,"median_chars_ratio":0.75,"interleaved_median_calls":3.0,"decision":"ACCEPT_TRAIN_GATE"}
