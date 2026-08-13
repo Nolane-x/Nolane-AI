@@ -1,0 +1,18 @@
+{
+  "version": "R2.1a-Cognition-Time-Retrieval-Fabric",
+  "status": "accepted_train_dev_fresh",
+  "parent_runtime": "R2.0i-Active-Causal-Discovery",
+  "neural_effective_parameters": 78779253,
+  "new_r2_1_neural_parameters": 0,
+  "deployment_weight": "Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+  "deployment_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "capability": "interleaved external retrieval between cognition/generation steps with provenance ledger and repeated query revision",
+  "kfigg21": {
+    "configuration": {"top_k_per_call": 1, "max_calls": 4, "total_chunk_budget": 4, "distractors": 36},
+    "train": {"cases": 200, "retrieve_once": 0.68, "interleaved": 1.0, "gain_pp": 32.0},
+    "dev": {"cases": 200, "retrieve_once": 0.665, "interleaved": 1.0, "gain_pp": 33.5},
+    "fresh": {"indices": [2000, 2200], "consumed": true, "cases": 200, "retrieve_once": 0.67, "interleaved": 1.0, "gain_pp": 33.0, "provenance_failures": 0, "median_chars_ratio": 0.75},
+    "fresh_by_hops_descriptive": {"2_hop": {"cases": 71, "retrieve_once": 1.0, "interleaved": 1.0}, "3_hop": {"cases": 63, "retrieve_once": 1.0, "interleaved": 1.0}, "4_hop": {"cases": 66, "retrieve_once": 0.0, "interleaved": 1.0}}
+  },
+  "claim_boundary": "R2.1a proves a zero-parameter interleaved-retrieval mechanism on locked synthetic KFIGG-21, not general world knowledge, not token-level LM improvement, not AGI, and not superiority to >100B models. The accepted core source is SHA-bound; post-fresh host adapters are utility code and are not part of the KFIGG-21 fresh claim."
+}
