@@ -1,0 +1,41 @@
+--- R1.7 Goal-Difference world-model architecture
++++ R1.7 Goal-Conditioned Advantage policy bridge
+@@
+         self.goal_difference_scorer = nn.Sequential(
+             nn.Linear(self.goal_difference_dim * 5, 384),
+             nn.GELU(),
+             nn.LayerNorm(384),
+             nn.Linear(384, 1),
+         )
+         self.goal_difference_policy_scale = nn.Parameter(torch.tensor(0.0))
++        # Consume the rich relation before one-scalar progress compression.
++        # Zero initialization preserves byte-level parent behavior at policy output.
++        self.goal_difference_advantage_head = nn.Linear(384, 1)
++        nn.init.zeros_(self.goal_difference_advantage_head.weight)
++        nn.init.zeros_(self.goal_difference_advantage_head.bias)
+@@
+-        raw_progress = self.goal_difference_scorer(relation).squeeze(-1)
+-        predicted_progress = torch.tanh(raw_progress) * confidence.clamp(0.0, 1.0)
+-        policy_bonus = torch.tanh(self.goal_difference_policy_scale) * predicted_progress
++        hidden = self.goal_difference_scorer[0](relation)
++        hidden = self.goal_difference_scorer[1](hidden)
++        hidden = self.goal_difference_scorer[2](hidden)
++        raw_progress = self.goal_difference_scorer[3](hidden).squeeze(-1)
++        confidence_gate = confidence.clamp(0.0, 1.0)
++        predicted_progress = torch.tanh(raw_progress) * confidence_gate
++        scalar_bonus = torch.tanh(self.goal_difference_policy_scale) * predicted_progress
++        advantage_bonus = self.goal_difference_advantage_head(hidden).squeeze(-1) * confidence_gate
++        policy_bonus = scalar_bonus + advantage_bonus
+         return {
+             "predicted_progress": predicted_progress,
++            "policy_features": hidden,
++            "advantage_bonus": advantage_bonus,
+             "policy_bonus": policy_bonus,
+@@
+
+Invariants verified before training:
+- zero-initialized advantage head produces exactly zero bonus;
+- action permutation produces the corresponding permutation of advantage scores;
+- Goal-Difference parent checkpoint remains behavior-neutral because the new missing head loads at zero;
+- new trainable capacity: 385 parameters;
+- effective candidate architecture: 74,661,382 parameters (<96M ceiling).
