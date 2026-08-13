@@ -1,0 +1,29 @@
+name: R1.9 Integrity
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate R1.9 provenance
+        run: python scripts/verify_r19_release.py
+      - name: Compile R1.9 source
+        run: |
+          python -m py_compile \
+            model/r1.9/cogcoder/r19_frontier.py \
+            model/r1.9/cogcoder/r19_rollout.py \
+            model/r1.9/cogcoder/r19_training.py \
+            model/r1.9/scripts/train_r19_frontier_rollout.py \
+            benchmarks/frontier100b/harness.py
+      - name: Test frontier claim contract
+        run: |
+          python -m pip install -q pytest
+          python -m pytest -q model/r1.9/tests/test_frontier100b_harness.py
