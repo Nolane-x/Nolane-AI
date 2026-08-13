@@ -1,0 +1,48 @@
+--- R1.7 Goal-Difference architecture with accepted Causal Laws
++++ R1.7 Causal Role-Goal Matcher (CRGM)
+@@
++        self.causal_role_goal_need_dim = 64
++        self.causal_role_goal_dim = self.causal_law_dim
++        self.causal_role_goal_need_projection = nn.Linear(
++            self.causal_role_goal_need_dim, self.causal_role_goal_dim, bias=False
++        )
++        self.causal_role_goal_scorer = nn.Sequential(
++            nn.Linear(self.causal_role_goal_dim * 4, self.causal_role_goal_dim),
++            nn.GELU(),
++            nn.LayerNorm(self.causal_role_goal_dim),
++            nn.Linear(self.causal_role_goal_dim, 1),
++        )
++        self.causal_role_goal_policy_scale = nn.Parameter(torch.tensor(0.0))
+@@
++    def causal_role_goal_scores(self, need_sketch, role_confidence, retrieved_law, law_confidence):
++        need = torch.tanh(self.causal_role_goal_need_projection(need_sketch)).unsqueeze(1)
++        need = need.expand(-1, retrieved_law.shape[1], -1)
++        law = torch.tanh(retrieved_law)
++        relation = torch.cat((need, law, need * law, torch.abs(need - law)), dim=-1)
++        raw = self.causal_role_goal_scorer(relation).squeeze(-1)
++        confidence = role_confidence.clamp(0.0, 1.0).unsqueeze(-1) * law_confidence.clamp(0.0, 1.0)
++        predicted_progress = torch.tanh(raw) * confidence
++        policy_bonus = torch.tanh(self.causal_role_goal_policy_scale) * predicted_progress
++        return {
++            "predicted_progress": predicted_progress,
++            "policy_bonus": policy_bonus,
++            "confidence": confidence,
++        }
+@@ causal_law_scores(...)
+         return {
+             "predicted_delta": predicted_delta,
+             "confidence": confidence,
+             "policy_bonus": policy_bonus,
+             "slot_attention": weights,
++            "retrieved_law": retrieved,
+         }
+
+Architecture properties verified before training:
+- parameter-free role binding supplies 64D key-name-invariant need sketch;
+- CRGM shares one scorer across actions (permutation equivariant);
+- role confidence * law confidence gates predictions;
+- policy scale initializes exactly zero;
+- GoalDifference checkpoint loads with CRGM neutral;
+- CRGM trainable architecture parameters: 279,554;
+- effective candidate architecture: 74,940,936 (<96M ceiling);
+- focused R1.7 regression stack: 46/46 passed.
