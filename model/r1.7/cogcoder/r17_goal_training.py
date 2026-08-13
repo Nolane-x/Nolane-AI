@@ -54,6 +54,15 @@ def goal_difference_parent_provenance(path, metadata: dict[str, object]) -> dict
     }
 
 
+def goal_difference_policy_trainable_parameter_names(
+    model: NeuralSystem2Workspace,
+) -> list[str]:
+    names = [name for name, _ in model.named_parameters() if name == "goal_difference_policy_scale"]
+    if names != ["goal_difference_policy_scale"]:
+        raise ValueError("model must expose exactly goal_difference_policy_scale for policy calibration")
+    return names
+
+
 def goal_difference_trainable_parameter_names(
     model: NeuralSystem2Workspace, *, include_policy_scale: bool = False
 ) -> list[str]:
