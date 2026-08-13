@@ -1,96 +1,128 @@
-# Nolane AI — R1.9 Frontier-Generalization Research
+# Nolane AI — R2.0i Active Causal Discovery
 
-Nolane AI is an experimental compact neural cognitive system developed with explicit external-memory/workspace and verifier boundaries. The repository preserves accepted and rejected research branches rather than presenting scaffold performance as neural capability.
+Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, verification and runtime control. The repository preserves rejected branches and separates **neural capability** from **hybrid runtime capability** rather than attributing scaffold gains to the weight itself.
 
-## Current accepted lineage
+## Current accepted deployment
 
-The project has progressed beyond the original ~50M label:
+The current accepted neural stack is **78,779,253 effective parameters**:
 
-- **48.3M self-grown core** — recurrent/sparse-expert foundation.
-- **R1.2–R1.6** — executive control, semantic perception, predictive state and System-2 mechanisms.
-- **R1.7 NCPM** — **75,387,546 effective parameters**; learned operator executor + functional program composition.
-- **R1.8 CCSM** — **76,619,419 effective parameters**; +1,231,873 conditional-law parameters over R1.7.
-- **R1.9 FrontierRollout** — **78,214,173 effective parameters**; +1,594,754 recurrent relational rollout parameters over frozen R1.8.
+- R1.9 FrontierRollout parent: **78,214,173** effective parameters.
+- R2.0e EvidenceEffect executive: **+565,080** parameters.
+- R2.0i Active Causal Discovery: **+0 neural parameters**.
 
-R1.9 deliberately grows by only ~2.08% over R1.8. The new module predicts a residual correction to the additive composition of frozen R1.8 one-step causal effects; its recurrent refinement cell is weight-shared rather than duplicated with reasoning depth.
+R2.0i is the first R2.0 candidate to pass the locked **TRAIN -> DEV -> FRESH** closed-loop admission sequence. Its prerequisite gain comes from a zero-parameter public active-experimentation controller around the neural stack. It is therefore a hybrid-system gain, not evidence that the neural weight alone learned that algorithm.
 
 ## Current deployment artifact: ONE weight
 
-The default artifact is now a **single checkpoint**:
+Use one checkpoint:
 
-`Nolane-R1.9-78M-STRONGEST-ONE-WEIGHT-FP16.pt`
+`Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt`
 
-- size: **57,498,059 bytes**
-- SHA-256: `6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a`
-- effective parameters: **78,214,173**
-- storage: FP16 tensors, loaded into FP32 runtime modules
-- contents: R1.8 ConditionalLaw parent + R1.9 FrontierRollout delta + architecture/provenance metadata
+- size: **59,773,663 bytes**
+- SHA-256: `b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e`
+- effective neural parameters: **78,779,253**
+- contents: complete R1.9 standalone parent/frontier state + frozen R2.0e EvidenceEffectExecutive state + architecture/provenance metadata
+- runtime binding: R2.0i controller SHA-256 `cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672`
 
-`CURRENT_ONE_WEIGHT_R1_9.json` is the canonical deployment manifest. `model/r1.9/cogcoder/r19_standalone.py` loads this one file into the R1.8 parent and R1.9 head.
+`CURRENT_ONE_WEIGHT_R2_0I.json` is the canonical deployment manifest. `model/r2.0/cogcoder/r20i_standalone.py` loads the single neural weight. `model/r2.0/cogcoder/r20i_causal_discovery.py` supplies the zero-parameter public active-causal runtime required for the accepted hybrid behavior.
 
-The historical 8-checkpoint package is retained only for research provenance and disaster recovery; ordinary use should prefer the one-weight artifact.
+## Locked R2.0i evidence
 
-## Latest locked evidence — FIGG-19
+### TRAIN — FIGG-18 indices 2000..2019
 
-R1.9 was trained only on preregistered `train` worlds and then frozen. The same checkpoint was evaluated on disjoint DEV and finally an untouched FRESH split.
+| Family | Frozen R2.0e depth1 | R2.0i hybrid |
+|---|---:|---:|
+| conditional regimes | 45% | 45% |
+| regime switch | 30% | 30% |
+| implicit goal regimes | 60% | 60% |
+| causal prerequisites | 15% | **100%** |
+| **Aggregate** | **37.5% (30/80)** | **58.75% (47/80)** |
 
-| Gate | R1.8 additive baseline MSE | R1.9 MSE | Relative improvement |
-|---|---:|---:|---:|
-| Internal held-out train worlds | 0.00402608 | 0.00246383 | **38.80%** |
-| DEV | 0.00391145 | 0.00236533 | **39.53%** |
-| FRESH FP32 reference | 0.00379843 | 0.00223250 | **41.23%** |
-| FRESH one-weight FP16 storage | 0.00379816 | 0.00223243 | **41.22%** |
+Gain: **+21.25 percentage points**. Maximum family regression: **0**.
 
-All four preregistered families improved on FRESH. The FP16-storage one-weight artifact reproduces the FP32 reference to within about **0.0023 percentage points** of relative improvement.
+### DEV — indices 256..275
 
-The FRESH split is now **consumed**. `research/R1_9_PRE_FRESH_LOCK.json` binds the checkpoint and evaluation settings, and no model/evaluator tuning is permitted after that fresh evaluation.
+- baseline: **29/80 = 36.25%**
+- R2.0i: **48/80 = 60.0%**
+- gain: **+23.75 points**
+- causal prerequisites: **5% -> 100%**
+- maximum family regression: **0**
 
-## Benchmark integrity
+### FRESH — indices 512..531
 
-The project treats benchmark integrity as part of the research object:
+The pre-fresh lock was committed before opening this split. R1.9's consumed fresh 0..7 region was not reused.
 
-- training collectors reject DEV/FRESH worlds;
-- hidden/private answer fields are not model inputs;
-- parent tensors are frozen and digest-checked;
-- candidate and baseline are scored on identical rows;
-- acceptance requires every family to improve, not only aggregate metrics;
-- fresh checkpoints/splits are SHA-bound before opening;
-- negative results and inherited failures are reported rather than hidden.
+- baseline: **29/80 = 36.25%**
+- R2.0i: **48/80 = 60.0%**
+- gain: **+23.75 points**
+- conditional: **50% -> 50%**
+- regime switch: **25% -> 25%**
+- implicit goal: **65% -> 65%**
+- causal prerequisites: **5% -> 100%**
+- maximum family regression: **0**
 
-`benchmarks/frontier100b/` adds an external evaluation contract inspired by ARC-AGI-2, HLE/HLE-Verified, FrontierMath and Terminal-Bench. It explicitly refuses `hard_for_gt100b=true` unless a named >100B model has actually been evaluated with a finite score, recorded budget and locked protocol SHA.
+Fresh 512..531 is now **consumed**. No R2.0i tuning is allowed after that result.
 
-**No >100B model has been run in R1.9 yet, so this repository does not claim that Nolane beats >100B systems.**
+The final one-weight deployment was then replayed on those already-consumed 80 fresh episodes purely as a packaging-reproduction check: **48/80 solved, 0 action/solve mismatches** versus the acceptance run.
 
-## Test status
+## What the active-causal controller actually does
 
-The focused R1.8 + R1.9 research gate is green:
+On prerequisite-like public environments, the controller does not know hidden action roles. Non-submit action descriptions remain opaque. It uses public experiments to infer:
+
+1. which actuator changes auxiliary public state while the goal state is unchanged;
+2. which actuator enables a prerequisite after sufficient accumulation;
+3. which remaining opaque actuators control individual public state dimensions;
+4. how to navigate the public state to the public target and submit.
+
+A test proxy explicitly rejects private/non-contract attribute access. The runtime does not read hidden action kinds, hidden goal/resource/gate fields, transition internals, oracle plans or hidden answers.
+
+For environments without this public prerequisite structure, R2.0i falls back exactly to the frozen R2.0e depth-1 policy.
+
+## R2.0 negative research is retained
+
+R2.0a-h were rejected rather than hidden. Among the key findings:
+
+- deeper imagination alone did not improve closed-loop solve rate;
+- full-trajectory supervision alone was insufficient;
+- explicit public action/effect memory materially strengthened the shallow neural policy;
+- depth-2 future simulation could regress action ranking;
+- goal-directed value reduced regressions but did not meet admission gain;
+- per-step and per-episode compute routing exposed complementary policies but did not transfer reliably to solve rate;
+- causal prerequisites remained the dominant failure until active public experimentation was introduced.
+
+See the `research/R2_0*` lock/result/rejection files for exact boundaries.
+
+## Verification status
+
+Current one-weight-oriented R1.9-frontier + R2.0e-i focused release suite:
 
 ```text
-31 passed, 11 warnings
+51 passed, 28 PyTorch warnings
 ```
 
-A broad historical suite is **not** claimed clean. During the R1.9 audit, two inherited legacy `EffectProgressCritic` interface failures were observed in the recovered R1.7 lineage; they were not introduced by R1.9. Because fresh had already been consumed, model/evaluator code was not changed afterward merely to improve the test headline.
+A broader historical invocation additionally tried seven R1.9 rollout/training tests that require the old split `Nolane-R1.8-CCSM-ConditionalLaw.pt` binary. They stop with `FileNotFoundError` because this release intentionally carries one current deployment weight rather than restoring historical split checkpoint binaries. The repository does **not** claim that historical fixture-dependent suite is green.
+
+## Benchmark integrity and frontier boundary
+
+The project keeps train/DEV/FRESH locks, source/checkpoint SHA binding, one-time fresh consumption, negative-result retention, and explicit neural-vs-runtime ablations. `benchmarks/frontier100b/` also refuses a `hard_for_gt100b=true` claim unless an actual >100B reference model has been run under a locked protocol with a measured score and budget.
+
+**R2.0i is not AGI and is not evidence of superiority to >100B models.** ARC-AGI-2, HLE/HLE-Verified, FrontierMath, Terminal-Bench and other external frontier suites still need actual official/verifier-backed runs before broad frontier claims are allowed.
+
+## Key files
+
+- `model/r2.0/cogcoder/r20e_executive.py` — frozen EvidenceEffect neural executive
+- `model/r2.0/cogcoder/r20i_causal_discovery.py` — zero-parameter public active-causal runtime
+- `model/r2.0/cogcoder/r20i_standalone.py` — one-file neural deployment loader/builder
+- `research/R2_0I_REALITY_REPORT.md` — exact scientific claim boundary
+- `research/R2_0_CURRENT_BEST.json` — current accepted state
+- `research/R2_0I_PRE_FRESH_LOCK.json` — immutable fresh lock
+- `research/r2.0/results/r2_0i_dev.json` and `r2_0i_fresh.json` — transfer evidence
+- `CURRENT_ONE_WEIGHT_R2_0I.json` — canonical one-weight deployment manifest
+- `benchmarks/frontier100b/` — external frontier comparison contract
 
 ## GitHub binary boundary
 
-GitHub source, loader, tests, manifests, hashes and CI live on `main`. The current connected GitHub tool can create text/base64 blobs but cannot stream a local 57.5MB file or upload an LFS/release asset directly, so the raw one-weight bytes are persisted in ChatGPT Library and exposed as the milestone download rather than replaced by a fake pointer. `.gitattributes` and `scripts/publish_weights_lfs.sh` remain the authenticated LFS path when a binary-capable git channel is available.
-
-## R1.9 files
-
-- `model/r1.9/cogcoder/r19_frontier.py` — recurrent residual rollout head
-- `model/r1.9/cogcoder/r19_rollout.py` — locked two-step counterfactual collector
-- `model/r1.9/cogcoder/r19_training.py` — training/evaluation/checkpoint gate
-- `model/r1.9/cogcoder/r19_standalone.py` — one-file deployment loader
-- `model/r1.9/scripts/train_r19_frontier_rollout.py` — preregistered trainer
-- `model/r1.9/tests/` — isolation, equivariance, parameter and provenance tests
-- `benchmarks/frontier100b/` — external frontier comparison contract
-- `research/R1_9_REALITY_REPORT.md` — exact claim boundary and results
-- `research/R1_9_CURRENT_BEST.json` — current accepted lineage
-- `CURRENT_ONE_WEIGHT_R1_9.json` — canonical one-weight artifact manifest
-
-## Scientific boundary
-
-R1.9 demonstrates a bounded gain in two-step conditional-causal rollout prediction with transfer to a fresh procedural split while adding only ~1.59M parameters. It does **not** prove AGI, broad language intelligence, long-horizon open-world planning, performance on ARC-AGI-2/HLE/FrontierMath/Terminal-Bench without actually running them, or superiority to frontier >100B models.
+Source, loaders, tests, locks, results, manifests and CI live on `main`. The current conversational GitHub connector still does not expose a practical local-binary/LFS/release-asset upload path, so the raw ~59.8MB one-weight bytes are preserved in ChatGPT Library and the milestone download instead of being replaced by a fake pointer. The repository keeps exact SHA-256 provenance for that binary.
 
 ## License
 
