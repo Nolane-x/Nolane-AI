@@ -1,0 +1,34 @@
+--- R1.7 latent-program research architecture
++++ R1.7 Neural Operator Executor
+@@
++        self.program_executor_value_vocab = 16
++        self.program_executor_max_length = 16
++        self.program_executor_dim = 128
++        self.program_executor_value_embedding = nn.Embedding(16, 64)
++        self.program_executor_position_embedding = nn.Embedding(16, 64)
++        self.program_executor_token_projection = nn.Linear(64, 128)
++        self.program_executor_action_projection = nn.Linear(workspace_dim, 128, bias=False)
++        executor_layer = nn.TransformerEncoderLayer(
++            d_model=128, nhead=4, dim_feedforward=256,
++            dropout=0.0, activation="gelu", batch_first=True, norm_first=True,
++        )
++        self.program_executor_transformer = nn.TransformerEncoder(executor_layer, num_layers=2)
++        self.program_executor_norm = nn.LayerNorm(128)
++        self.program_executor_output = nn.Linear(128, 16)
+@@
++    def program_execute_logits(self, vectors, action_embeddings):
++        # validates [B,L] values 0..15, L<=16 and [B,workspace_dim] action context
++        # value + position token -> action-conditioned 2-layer contextual executor
++        # returns [B,L,16] categorical successor-value logits
++        ...
+
+The executor is standalone and is not wired into policy logits before its own transition gate.
+
+Verified before data collection:
+- variable-length shape and value bounds: PASS
+- action conditioning changes predictions: PASS
+- GoalDifference checkpoint compatibility: PASS
+- R1.7 focused stack: **72/72 passed**
+- executor parameters: **359,568**
+- effective live architecture: **75,387,546**
+- hard ceiling: 96,000,000
