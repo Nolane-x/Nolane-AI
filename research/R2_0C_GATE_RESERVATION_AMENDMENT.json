@@ -1,0 +1,11 @@
+{
+  "version": "r2.0c-gate-reservation-amendment-v1",
+  "date": "2026-08-13",
+  "reason": "Closed-loop unit tests exercised train indices 780, 781 and 782 before the candidate gate was opened. To preserve untouched-gate semantics, the entire preregistered 780..799 block is retired from acceptance evidence.",
+  "retired_gate_indices": [780, 800],
+  "unit_test_probe_indices": [780, 781, 782],
+  "replacement_untouched_train_gate_indices": [800, 820],
+  "checkpoint_was_not_tuned_from_retired_gate_metrics": true,
+  "dev_opened": false,
+  "fresh_opened": false
+}
