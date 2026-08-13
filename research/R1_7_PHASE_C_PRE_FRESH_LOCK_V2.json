@@ -1,0 +1,36 @@
+{
+  "version": "r1.7-phase-c-pre-fresh-v2",
+  "supersedes": "R1_7_PHASE_C_PRE_FRESH_LOCK.json",
+  "fresh_opened_before_this_lock": false,
+  "benchmark": "nolane-figg17-v1.1",
+  "fresh_scope": {
+    "split": "fresh",
+    "family": "composition_holdout",
+    "indices": [0, 60],
+    "program_length": 4,
+    "max_horizon": 4,
+    "trainable_parameters": 0,
+    "seed_start": 18200080,
+    "seed_stride": 997,
+    "first_task_id": "nolane-figg17-v1.1:fresh:composition_holdout:18200080",
+    "last_task_id": "nolane-figg17-v1.1:fresh:composition_holdout:18258903"
+  },
+  "acceptance": {
+    "demo_exact_rate_min": 0.85,
+    "task_solve_rate_min": 0.80,
+    "false_exact_rate_max": 0.05,
+    "per_template_solve_rate_min": 0.70
+  },
+  "hashes": {
+    "checkpoint": "bfea6717c5a59b485934b2c9b0f3a48c65ac749a2f638a48a3cfedce6902a735",
+    "cogcoder/r17_benchmark.py": "c92ce9952c319df2b0a1d52373e6214cc02bfcfedfb15425cc716d4bdd906233",
+    "cogcoder/neural_system2.py": "26d19f273d67eced45ce3628765586e0df5372ea4714d588a182a269317b80c3",
+    "cogcoder/r17_program_induction.py": "5fd8a6cb79e2eb72a1643897207d802b46f7d0f1a5b56071c0f0884a00c16ae5",
+    "scripts/eval_r17_functional_program_search_fresh.py": "d6029077c671af961c3e1f8dbb6fdca0181d230e54f54f23501184589721a0fb",
+    "tests/test_r17_functional_program.py": "659362312c7bf5bb55fd285afb4520f031d0c504ec4a7dfa00c7c1c452e6877a"
+  },
+  "verification": {
+    "r17_tests_passed": 81
+  },
+  "rule": "After this V2 lock is pushed to main, the listed checkpoint, inference source and fresh evaluator are immutable for the one-time fresh run. No tuning or source edits based on fresh results are permitted."
+}
