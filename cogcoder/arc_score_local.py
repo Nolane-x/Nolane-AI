@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from .arc_current_local import program_set
 from .arc_eval import ParsedTask, TaskScore, load_task, parse_task
-from .arc_ops import apply_program
+from .arc_ops_view import apply_program
 
 
 def score_local(task: ParsedTask, *, max_attempts=2, max_programs=64):
