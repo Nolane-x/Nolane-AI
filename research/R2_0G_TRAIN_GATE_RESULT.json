@@ -1,0 +1,24 @@
+{
+  "version": "r2.0g-compute-utility-train-gate-v1",
+  "checkpoint_sha256": "d8c92fe032df065e727b5a51f06baf4249b0892e441b77833ecce7cd2608e8c2",
+  "candidate_effective_parameters": 78789031,
+  "split": "train",
+  "indices": [1680, 1700],
+  "summary": {
+    "fixed_depth_1": {"solved": 27, "tasks": 80, "solve_rate": 0.3375},
+    "fixed_depth_2": {"solved": 22, "tasks": 80, "solve_rate": 0.275},
+    "adaptive_depth12": {"solved": 22, "tasks": 80, "solve_rate": 0.275, "depth2_steps": 294}
+  },
+  "primary_gain_pp": -6.25,
+  "per_family_adaptive_minus_depth1_pp": {
+    "conditional_regimes": -5.0,
+    "regime_switch": -10.0,
+    "implicit_goal_regimes": -5.0,
+    "causal_prerequisites": -5.0
+  },
+  "depth1_depth2_union": {"solved": 35, "tasks": 80, "solve_rate": 0.4375, "depth1_only": 13, "depth2_only": 8},
+  "accepted": false,
+  "full_local_result_sha256": "97e27f060471d5e3a3de5f971fdcbde71732effeab9178ed237d6b0205006804",
+  "dev_opened": false,
+  "fresh_opened": false
+}
