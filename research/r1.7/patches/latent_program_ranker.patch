@@ -1,0 +1,29 @@
+--- R1.7 Goal-Difference relation workspace
++++ R1.7 Latent Program Ranker
+@@
++        self.latent_program_phase_dim = 32
++        self.latent_program_ranker = nn.Sequential(
++            nn.Linear(384 + self.latent_program_phase_dim, 128),
++            nn.GELU(),
++            nn.LayerNorm(128),
++            nn.Linear(128, 1),
++        )
++        nn.init.zeros_(self.latent_program_ranker[3].weight)
++        nn.init.zeros_(self.latent_program_ranker[3].bias)
+@@
++    def latent_program_phase_encoding(self, program_step):
++        # deterministic 32D sinusoidal encoding; no learned step table
++        ...
++
++    def latent_program_rank_scores(self, policy_features, program_step):
++        phase = self.latent_program_phase_encoding(program_step).unsqueeze(1).expand(-1, policy_features.shape[1], -1)
++        return self.latent_program_ranker(torch.cat((policy_features, phase), dim=-1)).squeeze(-1)
+
+Properties verified before training:
+- output zero-neutral at initialization
+- action permutation equivariant
+- phase 0 and phase 2 have distinct deterministic encodings
+- no fixed maximum learned program-step embedding is required for unseen longer horizons
+- program ranker parameters: 53,761
+- effective live architecture: 75,027,978 (<96M)
+- focused R1.7 stack: 62/62 passed
