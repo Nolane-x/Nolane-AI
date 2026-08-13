@@ -1,0 +1,34 @@
+name: R2.4 DEV Admission
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/r24-dev-admission.yml'
+
+jobs:
+  dev:
+    runs-on: ubuntu-24.04
+    env:
+      PYTHONPATH: .
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Run locked DEV
+        run: |
+          python scripts/measure_r24.py --start 11000 --count 200 --max-steps 26 --retry-budget 2 > r24_dev.json
+          cat r24_dev.json
+      - name: Enforce admission thresholds
+        run: |
+          python - <<'PY'
+          import json
+          d=json.load(open('r24_dev.json'))
+          assert d['candidate_solve_rate'] >= 0.85, d
+          assert d['gain_pp'] >= 20.0, d
+          assert d['requirement_change_recovery'] >= 0.85, d
+          assert d['transient_recovery'] >= 0.85, d
+          assert d['candidate_blocked_attempts'] == 0, d
+          print('R2.4 DEV ADMISSION PASS')
+          PY
