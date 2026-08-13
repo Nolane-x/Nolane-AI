@@ -1,0 +1,26 @@
+{
+  "version": "R1.9-Frontier-Generalization",
+  "artifact": "Nolane-R1.9-78M-STRONGEST-ONE-WEIGHT-FP16.pt",
+  "format": "nolane-r1.9-standalone-bundle-fp16-storage-v1",
+  "size_bytes": 57498059,
+  "sha256": "6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "effective_parameters": 78214173,
+  "storage_dtype": "float16",
+  "runtime_load_dtype": "float32",
+  "contains": [
+    "R1.8 ConditionalLaw parent state",
+    "R1.9 FrontierRollout delta state",
+    "architecture metadata",
+    "provenance hashes"
+  ],
+  "fresh_validation": {
+    "rows": 832,
+    "baseline_mse": 0.0037981568682250956,
+    "candidate_mse": 0.002232429920251906,
+    "relative_improvement": 0.41223335483372603,
+    "fp32_reference_relative_improvement": 0.4122564825113949,
+    "absolute_relative_improvement_delta": -0.00002312767766887
+  },
+  "binary_location": "ChatGPT Library /Nolane/R1.9-One-Weight/",
+  "github_binary_status": "not uploaded: current connector cannot stream a local binary file into GitHub; GitHub provenance is committed here instead"
+}
