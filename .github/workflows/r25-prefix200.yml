@@ -3,10 +3,12 @@ on:
   workflow_dispatch:
   push:
     paths:
-      - 'cogcoder/arc_current_plus.py'
-      - 'cogcoder/arc_chain_fast.py'
+      - 'cogcoder/arc_current_local.py'
       - 'cogcoder/arc_local.py'
-      - 'cogcoder/local_grid.py'
+      - 'cogcoder/local_grid_v2.py'
+      - 'cogcoder/arc_pair_v2.py'
+      - 'cogcoder/arc_ops_view.py'
+      - 'scripts/measure_r25_local.py'
       - '.github/workflows/r25-prefix200.yml'
 permissions:
   contents: read
@@ -28,7 +30,7 @@ jobs:
           find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | sort | head -n 200 | xargs -I{} cp {} r25_prefix200/
           test "$(find r25_prefix200 -name '*.json' | wc -l)" -eq 200
       - name: Measure prefix
-        run: python scripts/measure_r25_plus.py r25_prefix200 --max-attempts 2 --max-programs 64 | tee r25_prefix200.json
+        run: python scripts/measure_r25_local.py r25_prefix200 --max-attempts 2 --max-programs 64 | tee r25_prefix200.json
       - uses: actions/upload-artifact@v4
         with:
           name: r25-prefix200
