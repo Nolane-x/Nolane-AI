@@ -1,0 +1,18 @@
+{
+  "version":"R2.0i-Active-Causal-Discovery",
+  "status":"accepted_train_dev_fresh",
+  "neural_effective_parameters":78779253,
+  "r2_0i_new_neural_parameters":0,
+  "neural_parent":"R1.9 one-weight + frozen R2.0e EvidenceEffect executive",
+  "r19_parent_sha256":"6081a38f65142ae06dc36cba1c9a567a9d0754c08d683d89a8e76f7aade9c52a",
+  "r20e_sha256":"cb56914f3c9be1c2b0f0b77ff8cb14c16fbca5b2e42d16f227410fc335bf0e0e",
+  "runtime_controller_sha256":"cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672",
+  "deployment_weight":"Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+  "deployment_weight_sha256":"b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "deployment_weight_bytes":59773663,
+  "train_gate":{"baseline_solve_rate":0.375,"candidate_solve_rate":0.5875,"gain_pp":21.25,"causal_candidate":1.0},
+  "dev":{"baseline_solve_rate":0.3625,"candidate_solve_rate":0.6,"gain_pp":23.75,"causal_candidate":1.0},
+  "fresh":{"indices":[512,532],"consumed":true,"baseline_solve_rate":0.3625,"candidate_solve_rate":0.6,"gain_pp":23.75,"causal_candidate":1.0},
+  "deployment_reproduction":{"fresh_episodes":80,"action_or_solve_mismatches":0,"candidate_solved":48},
+  "claim_boundary":"Accepted as a bounded FIGG-18 hybrid closed-loop runtime. The causal gain is produced by a zero-parameter public active-discovery controller around the neural core; it is not evidence that the 78.8M neural weight alone learned the causal algorithm, not AGI, and not a >100B superiority claim."
+}
