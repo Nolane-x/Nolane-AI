@@ -1,0 +1,12 @@
+{
+  "version":"r2.0i-dev-v1",
+  "split":"dev",
+  "indices":[256,276],
+  "candidate_effective_parameters":78779253,
+  "new_neural_parameters":0,
+  "summary":{"fixed_depth_1":{"solved":29,"tasks":80,"solve_rate":0.3625},"hybrid_active_causal":{"solved":48,"tasks":80,"solve_rate":0.6,"active_paths":20}},
+  "per_family":{"conditional_regimes":{"fixed_depth_1":0.45,"hybrid_active_causal":0.45},"regime_switch":{"fixed_depth_1":0.45,"hybrid_active_causal":0.45},"implicit_goal_regimes":{"fixed_depth_1":0.5,"hybrid_active_causal":0.5},"causal_prerequisites":{"fixed_depth_1":0.05,"hybrid_active_causal":1.0}},
+  "acceptance":{"accepted":true,"observed_gain_pp":23.75,"causal_gain_pp":95.0,"max_family_regression_pp":0.0},
+  "local_result_sha256":"7c19d24a0f7b49fcda08519865c6ffa5429b8107859cfa1badaf2c5ade983447",
+  "fresh_opened":false
+}
