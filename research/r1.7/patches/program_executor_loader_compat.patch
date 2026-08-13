@@ -1,0 +1,10 @@
+--- R1.7 checkpoint compatibility
++++ Neural Operator Executor compatibility
+@@ r17_training.py
+-        ... latent_program_ ...
++        ... latent_program_ ... or program_executor_ ...
+@@ neural_system2_training.py
+     allowed_missing.update(key for key in missing if key.startswith("latent_program_"))
++    allowed_missing.update(key for key in missing if key.startswith("program_executor_"))
+
+Compatibility only: old checkpoint tensors and forward policy behavior are unchanged. The new executor is standalone until its transition gate passes.
