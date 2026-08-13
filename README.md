@@ -1,108 +1,91 @@
-# Nolane AI — R2.1a Cognition-Time Retrieval Fabric
+# Nolane AI — R2.2 Epistemic Workspace
 
-Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, verification, active experimentation and external knowledge access. The repository preserves rejected branches and separates **neural capability** from **hybrid runtime capability** rather than attributing runtime gains to the weight itself.
+Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, verification, active experimentation and external knowledge access. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
 ## Current accepted system
 
-The current neural stack remains **78,779,253 effective parameters**:
+The neural stack remains **78,779,253 effective parameters**:
 
-- R1.9 FrontierRollout parent: **78,214,173** effective parameters.
-- R2.0e EvidenceEffect executive: **+565,080** parameters.
-- R2.0i Active Causal Discovery: **+0 neural parameters**.
-- R2.1a Cognition-Time Retrieval Fabric: **+0 neural parameters**.
+- R1.9 FrontierRollout parent: **78,214,173**
+- R2.0e EvidenceEffect executive: **+565,080**
+- R2.0i Active Causal Discovery: **+0 neural parameters**
+- R2.1a Cognition-Time Retrieval Fabric: **+0**
+- R2.2 Epistemic Workspace: **+0**
 
-R2.0i remains the accepted active-causal controller. R2.1a adds an opt-in external knowledge fabric that can retrieve **between cognition/generation steps**, revise later queries from evidence just retrieved, keep provenance, retain contradictions and stop retrieval under explicit call/character budgets. With no knowledge source attached, R2.1 calls the frozen R2.0i runtime directly.
+R2.2 keeps the same one neural weight and strengthens the runtime instead of storing all world knowledge in model weights. It can repeatedly retrieve during cognition, track source/version/SHA provenance, distinguish stale from current evidence, retain disagreements, ask narrow follow-up queries, and temporarily apply small externally documented deterministic rules for the current task.
 
-The design goal is not to force world knowledge into the neural weights. The compact neural system can instead acquire task-relevant external evidence when it becomes useful during an ongoing reasoning/generation trajectory.
-
-## Current deployment artifact: ONE weight
-
-Use the same single checkpoint:
+## One deployment weight
 
 `Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt`
 
 - size: **59,773,663 bytes**
 - SHA-256: `b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e`
-- effective neural parameters: **78,779,253**
-- R2.1 new neural parameters: **0**
+- neural parameters: **78,779,253**
 
-R2.1 is a runtime upgrade rather than a new neural checkpoint. `CURRENT_ONE_WEIGHT_R2_0I.json` remains the canonical weight manifest; `research/R2_1_CURRENT_BEST.json` is the current accepted system manifest.
+R2.1 and R2.2 are zero-neural-parameter runtime upgrades, so a new weight is intentionally not created.
 
-## R2.1 locked retrieval evidence — KFIGG-21
+## R2.2 locked evidence — KFIGG-22
 
-KFIGG-21 isolates a specific capability: whether an agent can retrieve new evidence *during* a multi-hop reasoning trajectory rather than performing one static retrieval before reasoning begins.
+The final protocol was calibrated only on TRAIN. DEV and FRESH were not used for tuning.
 
-Both methods receive the same maximum evidence budget of **4 chunks**:
-
-- **retrieve-once:** one initial query, up to four chunks;
-- **interleaved:** up to four retrieval calls, one chunk per call; every later query may use only the original task and evidence already retrieved.
-
-| Split | Retrieve once | R2.1 interleaved | Gain |
+| Split | R2.1 parent | R2.2 | Gain |
 |---|---:|---:|---:|
-| TRAIN gate — 200 cases | 68.0% | **100%** | **+32.0 pp** |
-| DEV — 200 cases | 66.5% | **100%** | **+33.5 pp** |
-| FRESH 2000..2199 — 200 cases | 67.0% | **100%** | **+33.0 pp** |
+| TRAIN 3000..3199 | 47.0% | **100.0%** | **+53.0 pp** |
+| DEV 4000..4199 | 45.5% | **99.5%** | **+54.0 pp** |
+| FRESH 5000..5199 | 51.0% | **100.0%** | **+49.0 pp** |
 
-FRESH provenance failures: **0**. Median retrieved characters among solved cases: **108 retrieve-once vs 81 interleaved**, ratio **0.75**.
+FRESH provenance/version integrity errors: **0**. Both systems use the same maximum evidence budget: top-k 2, at most 7 retrieval calls and at most 14 chunks.
 
-Descriptively on the consumed FRESH split, retrieve-once solved all 2-hop and 3-hop cases but **0/66 four-hop cases** under the locked four-chunk budget; interleaved solved **200/200** total cases. The mechanism is that later-hop entities cannot be targeted until earlier evidence reveals them.
+FRESH 5000..5199 is consumed. The accepted R2.2 core source files are SHA-bound and frozen.
 
-FRESH 2000..2199 is now **consumed**. The six accepted R2.1 core source files are SHA-bound; no post-FRESH tuning is allowed for this claim.
+## What R2.2 adds over R2.1
 
-## How cognition-time retrieval works
+R2.1 proved repeated retrieval between reasoning steps under a locked synthetic multi-hop benchmark. R2.2 adds an epistemic workspace on top:
 
-The accepted runtime is deliberately backend-agnostic:
+1. retrieved evidence remains bound to immutable source/version/hash provenance;
+2. newer evidence from the same source can supersede an older version without deleting history;
+3. independent-source corroboration is distinguished from duplicated evidence;
+4. contradictions remain visible instead of being silently overwritten;
+5. unresolved beliefs produce targeted follow-up queries;
+6. small externally documented deterministic rules can be used temporarily for the current task without being stored in neural weights.
 
-1. the current cognitive/generation state emits a knowledge need plus uncertainty/query-drift signals;
-2. the retriever decides whether another lookup is justified;
-3. returned chunks are bound to source URI, version, byte range and SHA-256;
-4. evidence enters an append-only ledger that retains conflicting claims instead of silently overwriting them;
-5. newly discovered anchors may alter the next retrieval query;
-6. retrieval stops when confidence stabilizes or the call/character budget is exhausted.
+This is a step toward the project goal of a compact neural core that can acquire relevant external knowledge when cognition needs it rather than memorizing the entire world inside parameters.
 
-`cogcoder/generation_retrieval.py` exposes `before_step` / `after_step` hooks. A future autoregressive decoder or host may invoke these hooks per token or per token block. **Current Nolane is not yet a conventional autoregressive text decoder with a measured per-token retrieval intervention**, so the accepted R2.1 evidence is cognition-step retrieval rather than a claim about token-level language-model performance.
+## Previous accepted evidence retained
 
-`cogcoder/knowledge_adapters.py` can bridge live host search — web, files, vector databases or ordinary databases — into the same provenance-bound evidence contract. That adapter was added after FRESH and is utility code, not part of the locked KFIGG-21 performance claim.
+R2.1a KFIGG-21 FRESH: retrieve-once **67%**, interleaved retrieval **100%**, +33 pp under the same four-chunk budget.
 
-## R2.0i active-causal evidence retained
+R2.0i FIGG-18 FRESH: frozen neural baseline **36.25%**, hybrid active-causal runtime **60.0%**, +23.75 pp; causal-prerequisite family **5% -> 100%**.
 
-R2.0i previously passed locked TRAIN -> DEV -> FRESH closed-loop admission without increasing neural parameters. On its consumed FIGG-18 FRESH split:
+## Verification
 
-- frozen R2.0e baseline: **29/80 = 36.25%**
-- R2.0i hybrid: **48/80 = 60.0%**
-- gain: **+23.75 pp**
-- causal prerequisites: **5% -> 100%**
-- maximum family regression: **0**
+- `research/R2_2_CURRENT_BEST.json` records current accepted provenance and consumed split.
+- `scripts/verify_r22_release.py` checks locked source SHA values and accepted metadata.
+- `.github/workflows/r22-integrity.yml` runs the integrity gate on GitHub Actions.
+- GitHub Actions `R2.2 Integrity` is required to stay green before release claims are made.
 
-That causal gain comes from a zero-parameter public active-experimentation controller around the neural stack, not from hidden simulator fields and not from new neural weights.
+Historical research tests that require intentionally removed split checkpoint binaries are not represented as green. The release continues to keep one current deployment weight.
 
-## Verification and scientific boundary
+## Scientific boundary
 
-R2.1 keeps exact train/DEV/FRESH locks, source SHA binding, one-time FRESH consumption, matched retrieval budgets and explicit neural-vs-runtime attribution. `scripts/verify_r21_release.py` can replay all 200 consumed FRESH KFIGG-21 cases and verify the accepted aggregate result.
+KFIGG-21 and KFIGG-22 are synthetic capability-isolation benchmarks. Their high scores do **not** mean Nolane is AGI or has complete world knowledge. Broad language ability, coding, mathematics, multimodal perception, open-world continual learning, long-horizon self-directed work and external benchmarks such as ARC-AGI-2, HLE/HLE-Verified, FrontierMath and Terminal-Bench remain incomplete or unmeasured.
 
-KFIGG-21 is synthetic and intentionally narrow. R2.1a does **not** prove general open-web question answering, scientific-literature mastery, coding-repository mastery, AGI, or superiority to >100B models. ARC-AGI-2, HLE/HLE-Verified, FrontierMath, Terminal-Bench and matched-budget reference-model runs remain separate external evaluation work.
+The repository also does not claim superiority to >100B models without an actual matched-budget reference run.
 
-The historical test tree is also not claimed universally green: some recovered R1.9/R2.0 research tests require old split checkpoint binaries that were intentionally removed from the one-weight release. Current R2.1 tests and release verification are separated from those historical fixtures.
+## Key files
 
-## Key R2.1 files
+- `cogcoder/retrieval_microcycle.py` — cognition-time retrieval
+- `cogcoder/knowledge_ledger.py` — provenance and contradiction retention
+- `cogcoder/epistemic_workspace.py` — version-aware belief workspace
+- `cogcoder/epistemic_program.py` — bounded provenance-bound documented-rule layer
+- `cogcoder/r22_runtime.py` — R2.2 runtime integration
+- `cogcoder/kfigg22.py` — locked R2.2 benchmark
+- `research/R2_2_CURRENT_BEST.json` — accepted state
+- `scripts/verify_r22_release.py` — integrity verifier
 
-- `cogcoder/knowledge_types.py` — immutable evidence/provenance contracts
-- `cogcoder/knowledge_store.py` — deterministic zero-parameter hybrid retrieval
-- `cogcoder/knowledge_ledger.py` — provenance verification, bounded working set, contradiction retention
-- `cogcoder/retrieval_microcycle.py` — repeated uncertainty/query-drift-driven retrieval
-- `cogcoder/generation_retrieval.py` — cognition/generation-step retrieval hook
-- `cogcoder/knowledge_adapters.py` — host callback bridge for live external knowledge sources
-- `cogcoder/r21_runtime.py` — behavior-preserving R2.0i + optional retrieval wrapper
-- `cogcoder/kfigg21.py` — locked multi-hop retrieval mechanism benchmark
-- `research/R2_1_CURRENT_BEST.json` — current accepted system state
-- `research/R2_1_REALITY_REPORT.md` — exact claim boundary
-- `scripts/verify_r21_release.py` — locked release verifier
+## GitHub binary boundary
 
-## GitHub binary and Library boundary
-
-GitHub `main` contains source, tests, locks, results, manifests, SHA-256 provenance and CI. The current conversational GitHub connector does not expose a practical local-binary/LFS/release-asset streaming path for the ~59.8MB `.pt`, so the repository does not pretend the raw weight bytes are present when they are not.
-
-The milestone delivery also attempts persistent ChatGPT Library storage. If the Library backend rejects the artifact, that failure is reported explicitly rather than being represented as successful persistence.
+GitHub `main` contains source, locks, results, manifests and CI. The current conversational GitHub connector still does not provide a practical local-binary/LFS/release-asset stream for the ~59.8MB `.pt`; therefore the repository keeps its exact SHA instead of pretending the binary is present. Milestone artifacts are also persisted to ChatGPT Library when available.
 
 ## License
 
