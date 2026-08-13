@@ -1,0 +1,28 @@
+--- R1.7 role-relative causal projection
++++ R1.7 Role-Effect Ranker
+@@
++        self.causal_role_effect_ranker = nn.Sequential(
++            nn.Linear(self.causal_role_goal_need_dim * 4, 128),
++            nn.GELU(),
++            nn.LayerNorm(128),
++            nn.Linear(128, 1),
++        )
++        nn.init.zeros_(self.causal_role_effect_ranker[3].weight)
++        nn.init.zeros_(self.causal_role_effect_ranker[3].bias)
+@@
++    def causal_role_effect_rank_scores(self, need_sketch, role_confidence, role_effects, law_confidence):
++        need = need_sketch.unsqueeze(1).expand(-1, role_effects.shape[1], -1)
++        relation = torch.cat((need, role_effects, need * role_effects, torch.abs(need - role_effects)), dim=-1)
++        raw = self.causal_role_effect_ranker(relation).squeeze(-1)
++        return raw * role_confidence.clamp(0.0, 1.0).unsqueeze(-1) * law_confidence.clamp(0.0, 1.0)
+
+The ranker consumes only key-name-invariant role need and role-projected accepted Causal Law effects. It is shared across actions, action-permutation equivariant, and final-output zero initialized.
+
+Verified before training:
+- zero-neutral output: PASS
+- action permutation equivariance: PASS
+- legacy/GoalDifference checkpoint compatibility: PASS
+- exact trainable scope prefix: `causal_role_effect_ranker.*`
+- ranker params: 33,281
+- effective live architecture: 74,974,217 (<96M)
+- focused R1.7 stack: 57/57 passed
