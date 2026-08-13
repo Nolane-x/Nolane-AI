@@ -3,12 +3,18 @@ from __future__ import annotations
 from collections import Counter
 from .arc_grid import Grid
 
-KINDS=('orth_set','neighbor_set','orth_counts','neighbor_counts','orth_tuple','neighbor_tuple')
+KINDS=('orth_set','neighbor_set','orth_counts','neighbor_counts','orth_tuple','neighbor_tuple','axis_set','axis_counts')
 
 
 def _neighbors(grid: Grid,r:int,c:int,diagonal:bool):
     offsets=(tuple((dr,dc) for dr in (-1,0,1) for dc in (-1,0,1) if (dr,dc)!=(0,0)) if diagonal else ((-1,0),(0,1),(1,0),(0,-1)))
     return tuple(grid.cell(r+dr,c+dc) if 0<=r+dr<grid.h and 0<=c+dc<grid.w else -1 for dr,dc in offsets)
+
+
+def _axis_values(grid:Grid,r:int,c:int):
+    row=tuple(grid.rows[r])
+    col=tuple(grid.cell(rr,c) for rr in range(grid.h))
+    return row,col
 
 
 def feature(grid: Grid,r:int,c:int,kind:str):
@@ -20,6 +26,9 @@ def feature(grid: Grid,r:int,c:int,kind:str):
     if kind=='neighbor_counts': return (center,tuple(sorted(Counter(neigh).items())))
     if kind=='orth_tuple': return (center,orth)
     if kind=='neighbor_tuple': return (center,neigh)
+    row,col=_axis_values(grid,r,c)
+    if kind=='axis_set': return (center,tuple(sorted(set(row))),tuple(sorted(set(col))))
+    if kind=='axis_counts': return (center,tuple(sorted(Counter(row).items())),tuple(sorted(Counter(col).items())))
     raise ValueError('unknown local feature kind')
 
 
