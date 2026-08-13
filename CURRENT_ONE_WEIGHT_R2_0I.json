@@ -1,0 +1,13 @@
+{
+  "version":"R2.0i-Active-Causal-Discovery",
+  "artifact":"Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt",
+  "format":"nolane-r2.0i-hybrid-standalone-bundle-v1",
+  "size_bytes":59773663,
+  "sha256":"b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "effective_parameters":78779253,
+  "contains":["R1.9 standalone parent state","R1.9 FrontierRollout state","R2.0e EvidenceEffectExecutive state","architecture/provenance metadata","SHA binding for R2.0i public active-causal controller"],
+  "controller_sha256":"cc254838dd42e1081e888619f71276a3d1af1cf7ba0a55af7796ddbf39eec672",
+  "fresh_validation":{"split":"fresh","indices":[512,532],"episodes":80,"baseline_solved":29,"candidate_solved":48,"candidate_solve_rate":0.6,"gain_pp":23.75,"causal_solved":20,"causal_tasks":20,"deployment_reproduction_mismatches":0},
+  "binary_location":"ChatGPT Library /Nolane/R2.0i-Active-Causal-Discovery/ and milestone download",
+  "github_binary_status":"raw binary not uploaded through the current connector; source, loader, provenance and hashes are committed on main"
+}
