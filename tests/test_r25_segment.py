@@ -1,5 +1,5 @@
 from cogcoder.arc_grid import Grid
-from cogcoder.segment_fit import programs
+from cogcoder.span_fit import programs
 from cogcoder.arc_ops_view import apply_program
 
 
