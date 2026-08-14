@@ -1,0 +1,31 @@
+name: R2.5 Stage3
+on:
+  push:
+    paths:
+      - '.github/workflows/r25-stage3.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  stage3:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify frozen source
+        run: |
+          test "$(git rev-parse HEAD)" = "bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4"
+          test "$(git -C external/ARC-AGI-2 rev-parse HEAD)" = "f3283f727488ad98fe575ea6a5ac981e4a188e49"
+          test "$(find external/ARC-AGI-2/data/evaluation -maxdepth 1 -name '*.json' | wc -l)" -eq 120
+      - name: Run frozen stage
+        run: python -c "import json; from cogcoder.r25_n2 import run; print(json.dumps(run('external/ARC-AGI-2/data/evaluation',2,64),indent=2,sort_keys=True))" | tee r25_stage3.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-stage3
+          path: r25_stage3.json
