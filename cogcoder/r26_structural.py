@@ -93,6 +93,61 @@ def separator_repack(grid: Grid) -> Grid:
     return Grid.from_rows(rows)
 
 
+def _active_bands(grid: Grid, *, axis: str, background: int) -> tuple[tuple[int, int], ...]:
+    if axis == 'rows':
+        active = [any(v != background for v in grid.rows[r]) for r in range(grid.h)]
+    elif axis == 'cols':
+        active = [any(grid.cell(r, c) != background for r in range(grid.h)) for c in range(grid.w)]
+    else:
+        raise ValueError('axis must be rows or cols')
+    bands: list[tuple[int, int]] = []
+    start = None
+    for index, is_active in enumerate(active + [False]):
+        if is_active and start is None:
+            start = index
+        elif not is_active and start is not None:
+            bands.append((start, index))
+            start = None
+    return tuple(bands)
+
+
+def unique_foreground_panel(grid: Grid) -> Grid:
+    """Select the background-separated panel whose sole foreground color is unique.
+
+    The rule is position- and raw-color-independent. Every non-empty panel must
+    contain exactly one non-background color. Exactly one panel color must occur
+    once while at least one other panel color occurs multiple times.
+    """
+    background = infer_background(grid)
+    row_bands = _active_bands(grid, axis='rows', background=background)
+    col_bands = _active_bands(grid, axis='cols', background=background)
+    if len(row_bands) < 2 or len(col_bands) < 2:
+        raise ValueError('unique panel extraction requires a background-separated panel grid')
+
+    panels: list[tuple[Grid, int]] = []
+    for r0, r1 in row_bands:
+        for c0, c1 in col_bands:
+            panel = Grid.from_rows(row[c0:c1] for row in grid.rows[r0:r1])
+            foreground = sorted(panel.colors - {background})
+            if not foreground:
+                continue
+            if len(foreground) != 1:
+                raise ValueError('panel has multiple foreground colors')
+            panels.append((panel, int(foreground[0])))
+    if len(panels) < 3:
+        raise ValueError('not enough non-empty panels')
+
+    counts = Counter(color for _, color in panels)
+    unique_colors = [color for color, count in counts.items() if count == 1]
+    repeated_colors = [color for color, count in counts.items() if count >= 2]
+    if len(unique_colors) != 1 or not repeated_colors:
+        raise ValueError('foreground-color uniqueness is absent or ambiguous')
+    selected = [panel for panel, color in panels if color == unique_colors[0]]
+    if len(selected) != 1:
+        raise ValueError('unique panel is ambiguous')
+    return selected[0]
+
+
 def _perfect_frame_boxes(grid: Grid) -> tuple[tuple[int, int, int, int], ...]:
     boxes: set[tuple[int, int, int, int]] = set()
     background = infer_background(grid)
@@ -126,6 +181,7 @@ _OPERATIONS = (
     ('separator_map', separator_map, 2),
     ('separator_repack', separator_repack, 3),
     ('frame_inner', frame_inner, 2),
+    ('unique_foreground_panel', unique_foreground_panel, 3),
 )
 
 
