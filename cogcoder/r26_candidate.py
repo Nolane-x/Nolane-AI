@@ -5,11 +5,13 @@ from typing import Callable
 
 from .arc_grid import Grid
 from .arc_local import fit_local_programs
-from .arc_ops_view import Program, Step, apply_program
+from .arc_ops_view import Program, Step
 from .arc_pair_v2 import fit_pair_programs
 from .component_fit import programs as component_programs
 from .r25_n2 import _program_set as frozen_program_set
 from .r26_firewall import Evidence, validate_family
+from .r26_ops import apply_program
+from .r26_structural import programs as structural_programs
 from .span_fit import programs as span_programs
 
 Pair = tuple[Grid, Grid]
@@ -57,12 +59,16 @@ def _span(pairs: tuple[Pair, ...]) -> tuple[Program, ...]:
     return tuple(span_programs(pairs))
 
 
-_FAMILIES: tuple[tuple[str, str, Infer], ...] = (
+_LEGACY_FAMILIES: tuple[tuple[str, str, Infer], ...] = (
     ('local', 'local_rewrite', _local),
     ('pair', 'view_combine', _pair),
     ('component', 'object_rewrite', _component),
     ('region', 'region_project', _region),
     ('span', 'span', _span),
+)
+
+_NEW_FAMILIES: tuple[tuple[str, Infer], ...] = (
+    ('structural', structural_programs),
 )
 
 
@@ -131,10 +137,10 @@ def program_set(pairs, limit: int = 64) -> tuple[Candidate, ...]:
         for program in frozen
     ]
 
-    # Semantic no-op optimization: an additive family cannot promote a program
-    # unless a program with its distinguishing op already survived the frozen
-    # R2.5 64-program pool. Skip re-inference/firewall for absent families.
-    for family, op, infer in _FAMILIES:
+    # Legacy families may only relabel/re-rank signatures that already survived
+    # the frozen R2.5 pool. This preserves the semantics of the earlier negative
+    # robustness-ranking experiment.
+    for family, op, infer in _LEGACY_FAMILIES:
         if op not in present_ops:
             continue
         programs = tuple(infer(pairs))
@@ -146,5 +152,17 @@ def program_set(pairs, limit: int = 64) -> tuple[Candidate, ...]:
         for program in programs:
             if program.signature in frozen_signatures:
                 pool.append(Candidate(program, evidence, False, family))
+
+    # New R2.6 abstraction families are allowed to introduce a new signature,
+    # but only after exact demonstration fit inside the family inducer and a
+    # full pass over every applicable LOEO/metamorphic firewall check.
+    for family, infer in _NEW_FAMILIES:
+        programs = tuple(infer(pairs))
+        if not programs:
+            continue
+        evidence = validate_family(infer, pairs)
+        if not _fully_robust(evidence):
+            continue
+        pool.extend(Candidate(program, evidence, False, family) for program in programs)
 
     return rank_candidates(pool, limit=limit)
