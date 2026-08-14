@@ -1,0 +1,21 @@
+name: R2.5 S
+on:
+  push:
+    paths:
+      - 'tests/test_r25_segment.py'
+      - 'cogcoder/segment_fit.py'
+      - 'cogcoder/segment_grid.py'
+      - '.github/workflows/r25-s.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  s:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/test_r25_segment.py
