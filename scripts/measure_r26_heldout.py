@@ -12,6 +12,7 @@ from cogcoder.r26_split import partition_paths
 ARC_REVISION = 'f3283f727488ad98fe575ea6a5ac981e4a188e49'
 CANDIDATE_RUNTIME_COMMIT = '059ba04f134954880e19c1e6ec89d2ff5d0cdc1d'
 CANDIDATE_LOCK_COMMIT = 'e51bcbed97ec0d90cd5264b38f72a2fc9229b1a5'
+CANDIDATE_LOCK_AMENDMENT_COMMIT = '5ae2391472138eecbdebf9073eb1d6413a12b7af'
 
 
 def measure(directory: str | Path, *, max_attempts: int = 2, max_programs: int = 64) -> dict:
@@ -52,6 +53,7 @@ def measure(directory: str | Path, *, max_attempts: int = 2, max_programs: int =
         'arc_revision': ARC_REVISION,
         'candidate_runtime_commit': CANDIDATE_RUNTIME_COMMIT,
         'candidate_lock_commit': CANDIDATE_LOCK_COMMIT,
+        'candidate_lock_amendment_commit': CANDIDATE_LOCK_AMENDMENT_COMMIT,
         'partition': 'internal_heldout',
         'development_paths_not_loaded': True,
         'development_case_count_from_filenames_only': development_count,
