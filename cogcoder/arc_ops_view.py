@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from .arc_ops import Program, Step, apply_program as apply_base_program, apply_step as apply_base_step
 from .grid_fold import combine_with_view
+from .grid_span import span_aligned
 from .local_grid_v2 import rewrite_sparse as rewrite_sparse_v2
 from .object_grid import rewrite_objects
 from .region_grid import project_internal
@@ -19,6 +20,8 @@ def apply_step(step: Step, grid):
         return rewrite_objects(grid,str(step.args[0]),step.args[1])
     if step.op=='region_project':
         return project_internal(grid,int(step.args[0]))
+    if step.op=='span':
+        return span_aligned(grid,int(step.args[0]))
     return apply_base_step(step,grid)
 
 
