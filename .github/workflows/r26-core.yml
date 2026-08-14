@@ -27,3 +27,5 @@ jobs:
         run: python tests/test_r26_meta.py
       - name: R2.6 canonical color-role contract
         run: python tests/test_r26_canonical.py
+      - name: R2.6 generalization firewall contract
+        run: python tests/test_r26_firewall.py
