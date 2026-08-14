@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
-from .arc_grid import Grid, components, infer_background
+from .arc_grid import Grid, components
 
 Pair = tuple[Grid, Grid]
 
@@ -22,6 +22,13 @@ def _corner_count(grid: Grid, color: int) -> int:
 
 
 def color_role_signatures(pairs: tuple[Pair, ...] | list[Pair]) -> dict[int, tuple[int, ...]]:
+    """Describe visible color roles without using raw color IDs as semantic evidence.
+
+    A background-like vote is awarded to every color tied for maximum frequency
+    in a grid. This deliberately avoids the raw-ID tie-break used by the legacy
+    runtime background prior, which would make role signatures change under a
+    pure color renaming.
+    """
     pairs = tuple(pairs)
     colors = sorted({v for a, b in pairs for grid in (a, b) for v in grid.colors})
     signatures: dict[int, tuple[int, ...]] = {}
@@ -41,6 +48,7 @@ def color_role_signatures(pairs: tuple[Pair, ...] | list[Pair]) -> dict[int, tup
             for is_input, grid in ((True, inp), (False, out)):
                 hist = grid.histogram()
                 count = int(hist.get(color, 0))
+                top_count = max(hist.values(), default=0)
                 total_count += count
                 if count:
                     if is_input:
@@ -54,7 +62,7 @@ def color_role_signatures(pairs: tuple[Pair, ...] | list[Pair]) -> dict[int, tup
                     max_component_area = max(max_component_area, max(areas, default=0))
                     border_cells += _border_count(grid, color)
                     corner_cells += _corner_count(grid, color)
-                background_votes += int(infer_background(grid) == color)
+                background_votes += int(count > 0 and count == top_count)
             if inp.shape == out.shape:
                 for r in range(inp.h):
                     for c in range(inp.w):
