@@ -31,3 +31,5 @@ jobs:
         run: python tests/test_r26_firewall.py
       - name: R2.6 evidence-ranking budget contract
         run: python tests/test_r26_score.py
+      - name: R2.6 structural extraction contract
+        run: python tests/test_r26_structural.py
