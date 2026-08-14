@@ -36,7 +36,7 @@ def test_separator_repack() -> None:
     target = g([
         [1,1,2,2],
         [1,0,0,2],
-        [3,0,4,0],
+        [3,0,0,4],
         [3,3,4,4],
     ])
     fitted = programs(((inp, target),))
