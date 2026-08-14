@@ -41,3 +41,5 @@ jobs:
         run: python tests/test_r26_legend.py
       - name: R2.6 border-marker motif repetition contract
         run: python tests/test_r26_marker_repeat.py
+      - name: R2.6 gate-to-marker path trimming contract
+        run: python tests/test_r26_path_trim.py
