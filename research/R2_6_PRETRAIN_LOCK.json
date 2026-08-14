@@ -1,0 +1,45 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "pretrain-protocol-locked",
+  "date": "2026-08-14",
+  "accepted_parent": "R2.4 Long-Horizon Replanning",
+  "neural_effective_parameters": 78779253,
+  "new_neural_parameters": 0,
+  "accepted_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "source_split_commit": "61c99ad61ec81add751261f1c945638f21fabaf2",
+  "split": {
+    "input": "task filename basename UTF-8 only",
+    "hash": "sha256",
+    "value": "int(first_8_hex_digits, 16) % 5",
+    "development_buckets": [0, 1, 2, 3],
+    "internal_heldout_buckets": [4],
+    "content_independent": true
+  },
+  "inference_budget": {
+    "max_attempts_per_test_input": 2,
+    "max_programs_per_task": 64
+  },
+  "heldout_policy": {
+    "baseline_open": "frozen R2.5 candidate only",
+    "next_open": "only after R2.6 candidate source lock",
+    "output": "aggregate metrics only",
+    "task_ids_in_output": false,
+    "task_content_diagnostics": false,
+    "post_gate_threshold_tuning": false,
+    "protocol_change_requires": "R2.6b"
+  },
+  "phase_a_gate": {
+    "heldout_improvement": "strictly exceed frozen R2.5 baseline by min(max(1 task, 20% relative rounded up), 2 tasks)",
+    "development_floor": "not worse than 75% of frozen R2.5 development solved count",
+    "r26_candidates_require_applicable_firewall": true,
+    "metamorphic_unit_failures_allowed": 0,
+    "development_runtime_max_multiple_of_baseline": 2.0
+  },
+  "forbidden_feedback": {
+    "r2_5_public_120_score_for_tuning": true,
+    "r2_5_public_task_outputs_for_tuning": true,
+    "r2_5_public_task_ids_for_tuning": true
+  },
+  "claim_boundary": "Phase-A success is training-only heldout transfer evidence, not ARC public performance, AGI evidence, or large-model superiority."
+}
