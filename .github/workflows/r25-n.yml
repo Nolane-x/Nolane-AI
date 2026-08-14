@@ -2,11 +2,10 @@ name: R2.5 N
 on:
   push:
     paths:
-      - 'cogcoder/r25_n.py'
-      - 'cogcoder/arc_candidate_next.py'
-      - 'cogcoder/component_fit.py'
-      - 'cogcoder/object_grid.py'
-      - 'cogcoder/arc_ops_view.py'
+      - 'cogcoder/r25_n_region.py'
+      - 'cogcoder/arc_candidate_region.py'
+      - 'cogcoder/region_grid.py'
+      - 'tests/test_r25_region.py'
       - '.github/workflows/r25-n.yml'
 permissions:
   contents: read
@@ -22,8 +21,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: python tests/test_r25_object_rewrite.py
-      - run: python -c "import json; from cogcoder.r25_n import run; print(json.dumps(run('external/ARC-AGI-2/data/training',2,64),indent=2,sort_keys=True))" | tee r25_n.json
+      - run: python tests/test_r25_region.py
+      - run: python -c "import json; from cogcoder.r25_n_region import run; print(json.dumps(run('external/ARC-AGI-2/data/training',2,64),indent=2,sort_keys=True))" | tee r25_n.json
       - uses: actions/upload-artifact@v4
         with:
           name: r25-n
