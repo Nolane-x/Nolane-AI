@@ -1,0 +1,41 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "candidate-lock-metadata-amendment-before-heldout-scoring",
+  "date": "2026-08-14",
+  "original_lock_commit": "e51bcbed97ec0d90cd5264b38f72a2fc9229b1a5",
+  "candidate_runtime_commit": "059ba04f134954880e19c1e6ec89d2ff5d0cdc1d",
+  "failed_verifier_run_id": 31767947907,
+  "failed_verifier_job_id": 94667612193,
+  "heldout_scoring_step_executed": false,
+  "heldout_task_json_parsed": false,
+  "heldout_result_artifact_created": false,
+  "runtime_git_diff_from_candidate_commit": "clean",
+  "reason": "The original lock transcribed several Git blob SHA-1 values from stale intermediate metadata. The first gate attempt failed on byte-identity verification before corpus split verification, tests, or heldout scoring. Runtime source, split, thresholds, and budgets are unchanged. This amendment replaces only the blob metadata with values fetched directly from the exact frozen candidate runtime commit.",
+  "corrected_runtime_git_blob_sha1": {
+    "cogcoder/r26_candidate.py": "3dbce4459660a6302ab9d231fa7c1d86f87c9073",
+    "cogcoder/r26_canonical.py": "3f5dd7e47e1072913385f8e9791a3bfa960604b5",
+    "cogcoder/r26_firewall.py": "9288bd03654b2e434cdbdcbcff168b8406d2fbd9",
+    "cogcoder/r26_legend.py": "eb2ea7c12a0b0ad480d7a8f0917aaaa0cc556b71",
+    "cogcoder/r26_marker_repeat.py": "66f1ac09bd9e209fd833326e58db9ea49de3e45a",
+    "cogcoder/r26_meta.py": "488162d481aa607653809d376082807e9694bdf3",
+    "cogcoder/r26_ops.py": "9fbe9a5eb567267c7bfd024c3a60b10a87571216",
+    "cogcoder/r26_path_trim.py": "d6f5d93b548537355ec28f49ecd46692fdb5ecf6",
+    "cogcoder/r26_score.py": "a5ce25c1c8f3c73df6dc3be8616b2cadb527cc51",
+    "cogcoder/r26_split.py": "76caaf73aace3d187446dfd7bab196678e22322e",
+    "cogcoder/r26_structural.py": "3b179d9eeab0350cfdd0beaffda72374e6540517"
+  },
+  "unchanged_protocol": {
+    "development_solved": 63,
+    "development_cases": 801,
+    "internal_heldout_baseline_solved": 21,
+    "internal_heldout_cases": 199,
+    "internal_heldout_min_solved": 23,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "capability_changes": false,
+    "split_changes": false,
+    "threshold_changes": false,
+    "budget_changes": false
+  },
+  "gate_consumption": "The failed verifier run does not count as the one-shot INTERNAL_HELDOUT scoring run because scoring never started and no heldout task JSON was parsed. The next successful verifier pass is the first and only scoring exposure for this frozen protocol."
+}
