@@ -39,3 +39,5 @@ jobs:
         run: python tests/test_r26_unique_panel.py
       - name: R2.6 legend-driven color swap contract
         run: python tests/test_r26_legend.py
+      - name: R2.6 border-marker motif repetition contract
+        run: python tests/test_r26_marker_repeat.py
