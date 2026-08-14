@@ -1,0 +1,55 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "development-rerank-negative",
+  "date": "2026-08-14",
+  "baseline": {
+    "development_cases": 801,
+    "solved": 55,
+    "solve_rate": 0.0686641697877653
+  },
+  "measurement_a": {
+    "source_commit": "5d163618ed98c661ade8ea571e03e8562462c1d7",
+    "github_actions_run_id": 31765794094,
+    "artifact_id": 9206289479,
+    "artifact_sha256": "aad11f422cdef67cb402cd8d18a13111048bda2d467ff93f8c51ee85568bcd0f",
+    "solved": 55,
+    "solve_rate": 0.0686641697877653,
+    "errors": 0,
+    "robust_tasks": 28,
+    "robust_candidates": 76,
+    "robust_family_counts": {
+      "component": 15,
+      "local": 56,
+      "pair": 1,
+      "region": 2,
+      "span": 2
+    },
+    "measure_seconds_approx": 134
+  },
+  "measurement_b_semantics_preserving_optimization": {
+    "source_commit": "ad2912de4b9f37188a654997c31fd71a954b4286",
+    "github_actions_run_id": 31765925838,
+    "artifact_id": 9206325145,
+    "artifact_sha256": "c7b37040fdd24d3db3b6eba7a103926af03ad72af07699379c34f26066b7a3cd",
+    "solved": 55,
+    "solve_rate": 0.0686641697877653,
+    "errors": 0,
+    "robust_tasks": 28,
+    "robust_candidates": 76,
+    "robust_family_counts": {
+      "component": 15,
+      "local": 56,
+      "pair": 1,
+      "region": 2,
+      "span": 2
+    },
+    "measure_seconds_approx": 92,
+    "runtime_reduction_approx_fraction": 0.3134
+  },
+  "core_regression_run_id": 31765925828,
+  "core_regression": "success",
+  "development_gain_tasks": 0,
+  "conclusion": "Full-applicable LOEO/metamorphic robustness re-ranking identifies stable legacy programs but does not increase DEVELOPMENT solved count. R2.6 requires new abstraction families that themselves pass the firewall; ranking alone is insufficient.",
+  "internal_heldout_opened": false,
+  "next_step": "Profile DEVELOPMENT failures deterministically and design a repeated abstraction family; keep INTERNAL_HELDOUT closed."
+}
