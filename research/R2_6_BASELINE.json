@@ -1,0 +1,43 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "baseline-frozen",
+  "date": "2026-08-14",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "frozen_r25_commit": "bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4",
+  "frozen_r25_entrypoint": "cogcoder.r25_n2._program_set",
+  "baseline_workflow_source_commit": "7efaa13afce7acaf5c8362e110a9a9083af4205b",
+  "github_actions_run_id": 31765028554,
+  "artifact_id": 9205999898,
+  "artifact_sha256": "980634edfe09ce31aa7e6df44960eb56024987ff6bc48aef5351d55203d52d28",
+  "split": {
+    "development_cases": 801,
+    "internal_heldout_cases": 199
+  },
+  "development": {
+    "solved": 55,
+    "solve_rate": 0.0686641697877653,
+    "errors": 0,
+    "mean_candidate_programs": 0.36704119850187267,
+    "mean_attempts_emitted": 0.10861423220973783,
+    "approx_measure_seconds": 138
+  },
+  "internal_heldout": {
+    "solved": 21,
+    "solve_rate": 0.10552763819095477,
+    "errors": 0,
+    "mean_candidate_programs": 0.41708542713567837,
+    "mean_attempts_emitted": 0.16080402010050251
+  },
+  "phase_a_gate_materialized": {
+    "internal_heldout_min_solved": 23,
+    "development_min_solved": 42,
+    "max_attempts": 2,
+    "max_programs": 64,
+    "metamorphic_unit_failures_allowed": 0,
+    "development_runtime_max_seconds_approx": 276
+  },
+  "heldout_state_after_baseline": "closed-until-r2.6-candidate-lock",
+  "aggregate_only": true,
+  "invalid_prior_baseline_run": 31764791045,
+  "invalid_prior_baseline_gate_use": false
+}
