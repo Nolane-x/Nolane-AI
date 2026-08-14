@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from .arc_ops_view import Program, Step, apply_step as apply_legacy_step
-from .r26_structural import frame_inner, separator_map, separator_repack
+from .r26_structural import frame_inner, separator_map, separator_repack, unique_foreground_panel
 
 
 def apply_step(step: Step, grid):
@@ -11,6 +11,8 @@ def apply_step(step: Step, grid):
         return separator_repack(grid)
     if step.op == 'frame_inner':
         return frame_inner(grid)
+    if step.op == 'unique_foreground_panel':
+        return unique_foreground_panel(grid)
     return apply_legacy_step(step, grid)
 
 
