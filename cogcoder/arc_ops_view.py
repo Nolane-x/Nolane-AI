@@ -4,6 +4,7 @@ from .arc_ops import Program, Step, apply_program as apply_base_program, apply_s
 from .grid_fold import combine_with_view
 from .local_grid_v2 import rewrite_sparse as rewrite_sparse_v2
 from .object_grid import rewrite_objects
+from .region_grid import project_internal
 
 
 _V2_LOCAL_KINDS=('orth_tuple','neighbor_tuple','axis_set','axis_counts')
@@ -16,6 +17,8 @@ def apply_step(step: Step, grid):
         return rewrite_sparse_v2(grid,str(step.args[0]),step.args[1])
     if step.op=='object_rewrite':
         return rewrite_objects(grid,str(step.args[0]),step.args[1])
+    if step.op=='region_project':
+        return project_internal(grid,int(step.args[0]))
     return apply_base_step(step,grid)
 
 
