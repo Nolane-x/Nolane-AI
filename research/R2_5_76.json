@@ -1,0 +1,17 @@
+{
+  "milestone": "R2.5",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "split": "data/training",
+  "reference_solved": 72,
+  "candidate_solved": 76,
+  "cases": 1000,
+  "candidate_rate": 0.076,
+  "gain_tasks": 4,
+  "mean_candidate_programs": 0.377,
+  "mean_attempts_emitted": 0.119,
+  "max_attempts": 2,
+  "max_programs": 64,
+  "github_actions_run_id": 31756372523,
+  "source_commit": "bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4",
+  "public_evaluation_used_for_feedback": false
+}
