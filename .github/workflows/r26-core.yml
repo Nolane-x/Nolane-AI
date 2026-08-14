@@ -33,3 +33,5 @@ jobs:
         run: python tests/test_r26_score.py
       - name: R2.6 structural extraction contract
         run: python tests/test_r26_structural.py
+      - name: R2.6 new-candidate admission contract
+        run: python tests/test_r26_new_candidate.py
