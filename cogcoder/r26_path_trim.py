@@ -1,10 +1,19 @@
 from __future__ import annotations
 
-from .arc_grid import Grid, components, infer_background
+from .arc_grid import Grid, components
 from .arc_ops_view import Program, Step
 
 Pair = tuple[Grid, Grid]
 _NEIGHBORS = ((-1,0),(1,0),(0,-1),(0,1))
+
+
+def _background(grid: Grid) -> int:
+    hist = grid.histogram()
+    top = max(hist.values())
+    colors = [int(color) for color, count in hist.items() if count == top]
+    if len(colors) != 1:
+        raise ValueError('background role is ambiguous')
+    return colors[0]
 
 
 def _inside(grid: Grid, r: int, c: int) -> bool:
@@ -32,7 +41,6 @@ def _gate(grid: Grid, start: tuple[int,int], neighbor: tuple[int,int], path_colo
     dr, dc = nr - sr, nc - sc
     if (dr, dc) not in _NEIGHBORS:
         return None
-    # Gate lies perpendicular to the first path edge.
     if dr:
         positions = ((sr, sc-1), (sr, sc+1))
     else:
@@ -68,7 +76,7 @@ def _far_marker(
 
 
 def gate_path_trim(grid: Grid) -> Grid:
-    background = infer_background(grid)
+    background = _background(grid)
     edits: dict[tuple[int,int], int] = {}
     found = 0
 
