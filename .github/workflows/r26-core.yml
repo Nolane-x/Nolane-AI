@@ -35,3 +35,5 @@ jobs:
         run: python tests/test_r26_structural.py
       - name: R2.6 new-candidate admission contract
         run: python tests/test_r26_new_candidate.py
+      - name: R2.6 unique foreground panel contract
+        run: python tests/test_r26_unique_panel.py
