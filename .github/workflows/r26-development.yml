@@ -1,0 +1,53 @@
+name: R2.6 Development
+on:
+  push:
+    paths:
+      - 'cogcoder/r26_*.py'
+      - 'scripts/measure_r26_development.py'
+      - '.github/workflows/r26-development.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  development:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned corpus and split count
+        run: |
+          test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+          test "$(git -C external/ARC-AGI-2 rev-parse HEAD)" = "f3283f727488ad98fe575ea6a5ac981e4a188e49"
+          python - <<'PY'
+          from pathlib import Path
+          from cogcoder.r26_split import partition_paths
+          dev, held = partition_paths(Path('external/ARC-AGI-2/data/training').glob('*.json'))
+          assert len(dev) == 801
+          assert len(held) == 199
+          PY
+      - name: Measure DEVELOPMENT only
+        run: python scripts/measure_r26_development.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r26_development.json
+      - name: Verify no heldout scoring
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('r26_development.json'))
+          assert x['partition'] == 'development'
+          assert x['cases'] == 801
+          assert x['internal_heldout_loaded'] is False
+          assert x['max_attempts'] == 2
+          assert x['max_programs'] == 64
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r26-development
+          path: r26_development.json
