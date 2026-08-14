@@ -1,0 +1,66 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "phase-a-rejected",
+  "date": "2026-08-14",
+  "accepted_parent_remains": "R2.4 Long-Horizon Replanning",
+  "candidate_runtime_commit": "059ba04f134954880e19c1e6ec89d2ff5d0cdc1d",
+  "candidate_lock_commit": "e51bcbed97ec0d90cd5264b38f72a2fc9229b1a5",
+  "candidate_lock_amendment_commit": "5ae2391472138eecbdebf9073eb1d6413a12b7af",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "inference_budget": {
+    "max_attempts": 2,
+    "max_programs": 64
+  },
+  "development": {
+    "baseline_cases": 801,
+    "baseline_solved": 55,
+    "candidate_solved": 63,
+    "gain_tasks": 8,
+    "relative_gain": 0.14545454545454545,
+    "development_floor": 42,
+    "development_floor_pass": true
+  },
+  "internal_heldout_baseline": {
+    "cases": 199,
+    "solved": 21,
+    "solve_rate": 0.10552763819095477
+  },
+  "internal_heldout_candidate": {
+    "github_actions_run_id": 31768067019,
+    "github_actions_job_id": 94667964225,
+    "artifact_id": 9207061852,
+    "artifact_zip_sha256": "ac849c3532bef8a9f364b0d023836bb44373eb7b93b75760491d323406b7b095",
+    "cases": 199,
+    "scored": 199,
+    "solved": 21,
+    "solve_rate": 0.10552763819095477,
+    "errors": 0,
+    "mean_candidate_programs": 0.41708542713567837,
+    "mean_attempts_emitted": 0.16080402010050251,
+    "development_paths_not_loaded": true,
+    "aggregate_only": true
+  },
+  "phase_a_gate": {
+    "min_internal_heldout_solved": 23,
+    "actual_internal_heldout_solved": 21,
+    "gate_pass": false,
+    "shortfall_tasks": 2
+  },
+  "one_shot_policy": {
+    "heldout_scoring_exposures": 1,
+    "post_gate_tuning_under_r2_6_protocol_allowed": false,
+    "future_tuning_requires_new_protocol": "R2.6b or later",
+    "task_ids_emitted": false,
+    "predictions_emitted": false,
+    "task_level_diagnostics_emitted": false
+  },
+  "pre_scoring_verifier_failure": {
+    "run_id": 31767947907,
+    "reason": "stale/transcribed Git blob metadata in original lock",
+    "heldout_scoring_executed": false,
+    "heldout_json_parsed": false,
+    "result_artifact_created": false,
+    "counted_as_heldout_exposure": false
+  },
+  "conclusion": "R2.6 produced a +8 task DEVELOPMENT gain but no improvement at all over the frozen R2.5 baseline on the preregistered 199-task INTERNAL_HELDOUT partition. The phase-A transfer hypothesis is rejected. R2.6 is retained as negative and architectural evidence only; R2.4 remains the accepted Nolane system."
+}
