@@ -1,0 +1,26 @@
+name: R2.5 Z
+on:
+  push:
+    paths:
+      - 'cogcoder/r25_n2.py'
+      - '.github/workflows/r25-z.yml'
+permissions:
+  contents: read
+env:
+  PYTHONPATH: .
+jobs:
+  z:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python tests/test_r25_segment.py
+      - run: python -c "import json; from cogcoder.r25_n2 import run; print(json.dumps(run('external/ARC-AGI-2/data/training',2,64),indent=2,sort_keys=True))" | tee r25z.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25z
+          path: r25z.json
