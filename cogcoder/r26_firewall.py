@@ -4,9 +4,10 @@ from dataclasses import dataclass
 from typing import Callable, Iterable
 
 from .arc_grid import Grid
-from .arc_ops_view import Program, apply_program
+from .arc_ops_view import Program
 from .r26_canonical import canonical_color_roles, color_role_signatures
 from .r26_meta import permute_colors, transform_pair
+from .r26_ops import apply_program
 
 Pair = tuple[Grid, Grid]
 Infer = Callable[[tuple[Pair, ...]], tuple[Program, ...]]
@@ -59,11 +60,6 @@ def _loeo(infer: Infer, pairs: tuple[Pair, ...]) -> tuple[int, int]:
 
 
 def _color_permutation(pairs: tuple[Pair, ...]) -> tuple[tuple[Pair, ...], ...]:
-    """Return one deterministic role-based non-background color permutation.
-
-    If background-like structure or role identity is ambiguous, the metamorphism
-    is not applicable rather than being forced through an arbitrary raw-ID tie.
-    """
     role_pairs, ambiguous = canonical_color_roles(pairs)
     if ambiguous:
         return ()
