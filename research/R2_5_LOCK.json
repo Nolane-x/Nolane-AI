@@ -1,0 +1,23 @@
+{
+  "milestone": "R2.5",
+  "state": "frozen",
+  "source_commit": "bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4",
+  "source_tree": "c9fd98071437742482440b973caef3e6e16f0907",
+  "source_blobs": {
+    "cogcoder/r25_n2.py": "255f73d00ba18fa8055e6909c36d634d1b386eaf",
+    "cogcoder/r25_n.py": "8f6ce698f1ec5d294bda0e7b49112561b2d489c5",
+    "cogcoder/arc_candidate_region.py": "375dbf24c4bcebe250156e7baa7f86c18a545165",
+    "cogcoder/span_fit.py": "838d4d1a88125db3e9231c97b93fab61b6898bdf"
+  },
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "training_cases": 1000,
+  "training_solved": 76,
+  "training_rate": 0.076,
+  "training_run": 31756372523,
+  "next_phase_cases": 120,
+  "max_attempts": 2,
+  "max_programs": 64,
+  "neural_parameters": 78779253,
+  "r25_new_neural_parameters": 0,
+  "candidate_changes_after_lock": false
+}
