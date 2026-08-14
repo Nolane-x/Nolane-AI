@@ -1,0 +1,45 @@
+name: R2.6 Baseline
+on:
+  push:
+    paths:
+      - 'scripts/measure_r26_baseline.py'
+      - '.github/workflows/r26-baseline.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned corpus
+        run: |
+          test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+          test "$(git -C external/ARC-AGI-2 rev-parse HEAD)" = "f3283f727488ad98fe575ea6a5ac981e4a188e49"
+      - name: Measure aggregate-only frozen baseline
+        run: python scripts/measure_r26_baseline.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r26_baseline.json
+      - name: Verify aggregate-only schema
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('r26_baseline.json'))
+          assert x['aggregate_only'] is True
+          assert set(x) == {'aggregate_only','arc_revision','development','internal_heldout','max_attempts','max_programs'}
+          allowed={'cases','scored','solved','solve_rate','errors','mean_candidate_programs','mean_attempts_emitted'}
+          assert set(x['development']) == allowed
+          assert set(x['internal_heldout']) == allowed
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r26-baseline
+          path: r26_baseline.json
