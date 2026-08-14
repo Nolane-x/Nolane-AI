@@ -25,3 +25,5 @@ jobs:
         run: python tests/test_r26_split.py
       - name: R2.6 metamorphic contract
         run: python tests/test_r26_meta.py
+      - name: R2.6 canonical color-role contract
+        run: python tests/test_r26_canonical.py
