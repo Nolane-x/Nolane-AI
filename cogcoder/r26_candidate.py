@@ -57,12 +57,12 @@ def _span(pairs: tuple[Pair, ...]) -> tuple[Program, ...]:
     return tuple(span_programs(pairs))
 
 
-_FAMILIES: tuple[tuple[str, Infer], ...] = (
-    ('local', _local),
-    ('pair', _pair),
-    ('component', _component),
-    ('region', _region),
-    ('span', _span),
+_FAMILIES: tuple[tuple[str, str, Infer], ...] = (
+    ('local', 'local_rewrite', _local),
+    ('pair', 'view_combine', _pair),
+    ('component', 'object_rewrite', _component),
+    ('region', 'region_project', _region),
+    ('span', 'span', _span),
 )
 
 
@@ -114,17 +114,29 @@ def rank_candidates(candidates, *, limit: int = 64) -> tuple[Candidate, ...]:
 
 def program_set(pairs, limit: int = 64) -> tuple[Candidate, ...]:
     pairs = tuple(pairs)
-    if not pairs or limit < 1 or limit > 64:
-        return () if not pairs else (_ for _ in ()).throw(ValueError('R2.6 limit must be in 1..64'))
+    if not pairs:
+        return ()
+    if limit < 1 or limit > 64:
+        raise ValueError('R2.6 limit must be in 1..64')
 
     frozen = tuple(frozen_program_set(pairs, limit=limit))
     frozen_signatures = {program.signature for program in frozen}
+    present_ops = {
+        program.steps[0].op
+        for program in frozen
+        if program.steps
+    }
     pool: list[Candidate] = [
         Candidate(program, Evidence(0, 0, 0, 0), True, 'legacy-r2.5')
         for program in frozen
     ]
 
-    for family, infer in _FAMILIES:
+    # Semantic no-op optimization: an additive family cannot promote a program
+    # unless a program with its distinguishing op already survived the frozen
+    # R2.5 64-program pool. Skip re-inference/firewall for absent families.
+    for family, op, infer in _FAMILIES:
+        if op not in present_ops:
+            continue
         programs = tuple(infer(pairs))
         if not programs:
             continue
