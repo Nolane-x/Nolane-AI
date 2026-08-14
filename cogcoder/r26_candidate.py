@@ -10,6 +10,7 @@ from .arc_pair_v2 import fit_pair_programs
 from .component_fit import programs as component_programs
 from .r25_n2 import _program_set as frozen_program_set
 from .r26_firewall import Evidence, validate_family
+from .r26_legend import programs as legend_programs
 from .r26_ops import apply_program
 from .r26_structural import programs as structural_programs
 from .span_fit import programs as span_programs
@@ -69,6 +70,7 @@ _LEGACY_FAMILIES: tuple[tuple[str, str, Infer], ...] = (
 
 _NEW_FAMILIES: tuple[tuple[str, Infer], ...] = (
     ('structural', structural_programs),
+    ('legend', legend_programs),
 )
 
 
@@ -137,9 +139,6 @@ def program_set(pairs, limit: int = 64) -> tuple[Candidate, ...]:
         for program in frozen
     ]
 
-    # Legacy families may only relabel/re-rank signatures that already survived
-    # the frozen R2.5 pool. This preserves the semantics of the earlier negative
-    # robustness-ranking experiment.
     for family, op, infer in _LEGACY_FAMILIES:
         if op not in present_ops:
             continue
@@ -153,9 +152,6 @@ def program_set(pairs, limit: int = 64) -> tuple[Candidate, ...]:
             if program.signature in frozen_signatures:
                 pool.append(Candidate(program, evidence, False, family))
 
-    # New R2.6 abstraction families are allowed to introduce a new signature,
-    # but only after exact demonstration fit inside the family inducer and a
-    # full pass over every applicable LOEO/metamorphic firewall check.
     for family, infer in _NEW_FAMILIES:
         programs = tuple(infer(pairs))
         if not programs:
