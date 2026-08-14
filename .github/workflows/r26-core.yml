@@ -1,0 +1,25 @@
+name: R2.6 Core
+on:
+  push:
+    paths:
+      - 'cogcoder/r26_*.py'
+      - 'tests/test_r26_*.py'
+      - '.github/workflows/r26-core.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  core:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: R2.6 split contract
+        run: python tests/test_r26_split.py
