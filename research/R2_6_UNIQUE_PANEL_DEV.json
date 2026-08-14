@@ -1,0 +1,33 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "unique-panel-development-positive",
+  "date": "2026-08-14",
+  "source_commit": "bc0f9a71e11091f02d6115610d63b984f32a4686",
+  "github_actions_run_id": 31766898161,
+  "artifact_id": 9206678578,
+  "artifact_sha256": "bed091c7f7f2e6066956c53a03824292996dd4d8d53dfd445f1fc8522dc24ebd",
+  "partition": "development",
+  "cases": 801,
+  "previous_structural_solved": 59,
+  "candidate_solved": 60,
+  "incremental_gain_tasks": 1,
+  "solve_rate": 0.0749063670411985,
+  "errors": 0,
+  "robust_tasks": 33,
+  "robust_candidates": 81,
+  "robust_family_counts": {
+    "component": 15,
+    "local": 56,
+    "pair": 1,
+    "region": 2,
+    "span": 2,
+    "structural": 5
+  },
+  "incremental_structural_candidates": 1,
+  "incremental_structural_solve_gain": 1,
+  "measure_seconds_approx": 118,
+  "max_attempts": 2,
+  "max_programs": 64,
+  "internal_heldout_loaded": false,
+  "conclusion": "The color- and position-independent unique_foreground_panel rule added exactly one robust candidate and one DEVELOPMENT solve under the unchanged firewall and inference budget."
+}
