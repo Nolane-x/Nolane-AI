@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from .arc_ops_view import Program, Step, apply_step as apply_legacy_step
+from .r26_legend import legend_swap
 from .r26_structural import frame_inner, separator_map, separator_repack, unique_foreground_panel
 
 
@@ -13,6 +14,8 @@ def apply_step(step: Step, grid):
         return frame_inner(grid)
     if step.op == 'unique_foreground_panel':
         return unique_foreground_panel(grid)
+    if step.op == 'legend_swap':
+        return legend_swap(grid, str(step.args[0]))
     return apply_legacy_step(step, grid)
 
 
