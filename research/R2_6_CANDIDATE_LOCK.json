@@ -1,0 +1,73 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "candidate-frozen-before-internal-heldout",
+  "date": "2026-08-14",
+  "accepted_parent": "R2.4 Long-Horizon Replanning",
+  "candidate_runtime_commit": "059ba04f134954880e19c1e6ec89d2ff5d0cdc1d",
+  "arc_revision": "f3283f727488ad98fe575ea6a5ac981e4a188e49",
+  "neural_effective_parameters": 78779253,
+  "new_neural_parameters": 0,
+  "accepted_weight_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "runtime_git_blob_sha1": {
+    "cogcoder/r26_candidate.py": "3bebf7c6bc6a72d9838dcef3c2f12aa1776e1ab2",
+    "cogcoder/r26_canonical.py": "4c25fd070142067134220515a30d2061c79e50c3",
+    "cogcoder/r26_firewall.py": "31d04be454c77278664960d2714bbc55a9b074c5",
+    "cogcoder/r26_legend.py": "3f85a9e79a282346649568511b8336508d31e3db",
+    "cogcoder/r26_marker_repeat.py": "64d6c4cd6b1d487fb3c43b0b91d13922d6a0713f",
+    "cogcoder/r26_meta.py": "488162d481aa607653809d376082807e9694bdf3",
+    "cogcoder/r26_ops.py": "9fbe9a5eb567267c7bfd024c3a60b10a87571216",
+    "cogcoder/r26_path_trim.py": "d6f5d93b548537355ec28f49ecd46692fdb5ecf6",
+    "cogcoder/r26_score.py": "a5ce25c1c8f3c73df6dc3be8616b2cadb527cc51",
+    "cogcoder/r26_split.py": "76caaf73aace3d187446dfd7bab196678e22322e",
+    "cogcoder/r26_structural.py": "3b179d9eeab0350cfdd0beaffda72374e6540517"
+  },
+  "baseline": {
+    "frozen_r25_commit": "bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4",
+    "development_cases": 801,
+    "development_solved": 55,
+    "internal_heldout_cases": 199,
+    "internal_heldout_solved": 21,
+    "baseline_result_file": "research/R2_6_BASELINE.json"
+  },
+  "candidate_development": {
+    "github_actions_run_id": 31767635344,
+    "core_green_run_id": 31767635475,
+    "cases": 801,
+    "solved": 63,
+    "solve_rate": 0.07865168539325842,
+    "gain_tasks_vs_baseline": 8,
+    "relative_gain_vs_baseline": 0.14545454545454545,
+    "errors": 0,
+    "runtime_seconds_approx": 92,
+    "internal_heldout_loaded": false
+  },
+  "inference_budget": {
+    "max_attempts_per_test_input": 2,
+    "max_programs_per_task": 64
+  },
+  "phase_a_gate": {
+    "internal_heldout_min_solved": 23,
+    "development_min_solved": 42,
+    "metamorphic_unit_failures_allowed": 0,
+    "errors_allowed": 0
+  },
+  "split": {
+    "formula": "int(sha256(task_filename_utf8)[:8], 16) % 5",
+    "development_buckets": [0, 1, 2, 3],
+    "internal_heldout_buckets": [4],
+    "development_cases": 801,
+    "internal_heldout_cases": 199
+  },
+  "freeze_rules": {
+    "capability_changes_after_lock_before_gate": false,
+    "threshold_changes_after_lock": false,
+    "budget_changes_after_lock": false,
+    "internal_heldout_runs_for_this_protocol": 1,
+    "heldout_output": "aggregate-only",
+    "task_ids_forbidden": true,
+    "predictions_forbidden": true,
+    "task_diagnostics_forbidden": true,
+    "failure_requires_new_protocol_for_tuning": "R2.6b"
+  },
+  "claim_boundary": "Passing this gate is preregistered held-out transfer evidence inside ARC-AGI-2 training data only. It is not ARC public performance and does not promote R2.6 over the accepted R2.4 system without a separate external-evidence protocol."
+}
