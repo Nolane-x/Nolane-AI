@@ -1,0 +1,107 @@
+name: R2.6 Heldout Gate
+on:
+  push:
+    paths:
+      - '.github/workflows/r26-heldout-gate.yml'
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  heldout-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify frozen runtime byte identity
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          lock=json.load(open('research/R2_6_CANDIDATE_LOCK.json'))
+          runtime=lock['candidate_runtime_commit']
+          subprocess.run(['git','merge-base','--is-ancestor',runtime,'HEAD'],check=True)
+          subprocess.run(['git','diff','--quiet',runtime,'--','cogcoder/r26_*.py'],check=True)
+          for path, expected in sorted(lock['runtime_git_blob_sha1'].items()):
+              actual=subprocess.check_output(['git','rev-parse',f'HEAD:{path}'],text=True).strip()
+              assert actual == expected, (path, expected, actual)
+          assert lock['phase_a_gate']['internal_heldout_min_solved'] == 23
+          assert lock['inference_budget']['max_attempts_per_test_input'] == 2
+          assert lock['inference_budget']['max_programs_per_task'] == 64
+          print('R2.6 frozen runtime identity PASS')
+          PY
+
+      - name: Verify pinned corpus and preregistered split
+        run: |
+          test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+          test "$(git -C external/ARC-AGI-2 rev-parse HEAD)" = "f3283f727488ad98fe575ea6a5ac981e4a188e49"
+          python - <<'PY'
+          from pathlib import Path
+          from cogcoder.r26_split import partition_paths
+          dev, held = partition_paths(Path('external/ARC-AGI-2/data/training').glob('*.json'))
+          assert len(dev) == 801
+          assert len(held) == 199
+          print('R2.6 split 801/199 PASS')
+          PY
+
+      - name: Run frozen R2.6 core regression suite
+        run: |
+          for f in tests/test_r26_*.py; do
+            echo "==> $f"
+            python "$f"
+          done
+
+      - name: Score INTERNAL_HELDOUT aggregate only
+        run: |
+          python scripts/measure_r26_heldout.py external/ARC-AGI-2/data/training --max-attempts 2 --max-programs 64 | tee r26_heldout.json
+
+      - name: Verify aggregate-only artifact schema
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('r26_heldout.json'))
+          allowed={
+            'aggregate_only','arc_revision','candidate_runtime_commit','candidate_lock_commit',
+            'partition','development_paths_not_loaded','development_case_count_from_filenames_only',
+            'cases','scored','solved','solve_rate','errors','mean_candidate_programs',
+            'mean_attempts_emitted','max_attempts','max_programs','gate_min_solved','gate_pass'
+          }
+          assert set(x) == allowed
+          assert x['aggregate_only'] is True
+          assert x['partition'] == 'internal_heldout'
+          assert x['development_paths_not_loaded'] is True
+          assert x['development_case_count_from_filenames_only'] == 801
+          assert x['cases'] == 199
+          assert x['max_attempts'] == 2
+          assert x['max_programs'] == 64
+          assert x['gate_min_solved'] == 23
+          PY
+
+      - name: Upload immutable aggregate result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: r26-heldout-gate
+          path: r26_heldout.json
+          if-no-files-found: error
+
+      - name: Apply preregistered gate
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('r26_heldout.json'))
+          assert x['errors'] == 0, x
+          assert x['cases'] == 199, x
+          assert x['solved'] >= 23, x
+          assert x['gate_pass'] is True, x
+          print(f"R2.6 INTERNAL_HELDOUT GATE PASS: {x['solved']}/199")
+          PY
