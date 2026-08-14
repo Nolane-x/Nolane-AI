@@ -23,3 +23,5 @@ jobs:
           python-version: '3.12'
       - name: R2.6 split contract
         run: python tests/test_r26_split.py
+      - name: R2.6 metamorphic contract
+        run: python tests/test_r26_meta.py
