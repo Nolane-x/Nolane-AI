@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 from .arc_eval import ParsedTask, TaskScore
-from .arc_ops_view import apply_program
 from .r26_candidate import Candidate, program_set, rank_candidates
+from .r26_ops import apply_program
 
 
 def score_with_candidates(
