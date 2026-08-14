@@ -13,6 +13,7 @@ from .r26_firewall import Evidence, validate_family
 from .r26_legend import programs as legend_programs
 from .r26_marker_repeat import programs as marker_repeat_programs
 from .r26_ops import apply_program
+from .r26_path_trim import programs as path_trim_programs
 from .r26_structural import programs as structural_programs
 from .span_fit import programs as span_programs
 
@@ -73,6 +74,7 @@ _NEW_FAMILIES: tuple[tuple[str, Infer], ...] = (
     ('structural', structural_programs),
     ('legend', legend_programs),
     ('marker_repeat', marker_repeat_programs),
+    ('path_trim', path_trim_programs),
 )
 
 
