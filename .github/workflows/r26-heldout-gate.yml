@@ -28,10 +28,17 @@ jobs:
           python - <<'PY'
           import json, subprocess
           lock=json.load(open('research/R2_6_CANDIDATE_LOCK.json'))
+          amendment=json.load(open('research/R2_6_CANDIDATE_LOCK_AMENDMENT.json'))
           runtime=lock['candidate_runtime_commit']
+          assert runtime == amendment['candidate_runtime_commit']
+          assert amendment['original_lock_commit'] == 'e51bcbed97ec0d90cd5264b38f72a2fc9229b1a5'
+          assert amendment['heldout_scoring_step_executed'] is False
+          assert amendment['heldout_task_json_parsed'] is False
           subprocess.run(['git','merge-base','--is-ancestor',runtime,'HEAD'],check=True)
           subprocess.run(['git','diff','--quiet',runtime,'--','cogcoder/r26_*.py'],check=True)
-          for path, expected in sorted(lock['runtime_git_blob_sha1'].items()):
+          expected_map=amendment['corrected_runtime_git_blob_sha1']
+          assert len(expected_map) == 11
+          for path, expected in sorted(expected_map.items()):
               actual=subprocess.check_output(['git','rev-parse',f'HEAD:{path}'],text=True).strip()
               assert actual == expected, (path, expected, actual)
           assert lock['phase_a_gate']['internal_heldout_min_solved'] == 23
@@ -71,12 +78,16 @@ jobs:
           x=json.load(open('r26_heldout.json'))
           allowed={
             'aggregate_only','arc_revision','candidate_runtime_commit','candidate_lock_commit',
-            'partition','development_paths_not_loaded','development_case_count_from_filenames_only',
-            'cases','scored','solved','solve_rate','errors','mean_candidate_programs',
-            'mean_attempts_emitted','max_attempts','max_programs','gate_min_solved','gate_pass'
+            'candidate_lock_amendment_commit','partition','development_paths_not_loaded',
+            'development_case_count_from_filenames_only','cases','scored','solved','solve_rate',
+            'errors','mean_candidate_programs','mean_attempts_emitted','max_attempts',
+            'max_programs','gate_min_solved','gate_pass'
           }
           assert set(x) == allowed
           assert x['aggregate_only'] is True
+          assert x['candidate_runtime_commit'] == '059ba04f134954880e19c1e6ec89d2ff5d0cdc1d'
+          assert x['candidate_lock_commit'] == 'e51bcbed97ec0d90cd5264b38f72a2fc9229b1a5'
+          assert x['candidate_lock_amendment_commit'] == '5ae2391472138eecbdebf9073eb1d6413a12b7af'
           assert x['partition'] == 'internal_heldout'
           assert x['development_paths_not_loaded'] is True
           assert x['development_case_count_from_filenames_only'] == 801
@@ -87,7 +98,7 @@ jobs:
           PY
 
       - name: Upload immutable aggregate result
-        if: always()
+        if: ${{ hashFiles('r26_heldout.json') != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: r26-heldout-gate
