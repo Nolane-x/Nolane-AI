@@ -1,0 +1,19 @@
+{
+  "milestone": "R2.6 Invariant Program Induction",
+  "status": "baseline-measurement-amendment",
+  "date": "2026-08-14",
+  "invalid_run_id": 31764791045,
+  "invalid_source_commit": "c75dfdc9837e16395c8c91f3d45c7042848970c8",
+  "reason": "The first aggregate-only baseline measurer used arc_candidate_region.program_set, which is the 72/1000 R2.5 reference lineage, not the final frozen 76/1000 R2.5 entrypoint. The final frozen R2.5 entrypoint is cogcoder/r25_n2.py, which adds span_fit.programs to arc_candidate_region.",
+  "invalid_measurement": {
+    "development": {"cases": 801, "solved": 53},
+    "internal_heldout": {"cases": 199, "solved": 19},
+    "total_solved": 72
+  },
+  "task_ids_emitted": false,
+  "task_content_diagnostics_emitted": false,
+  "capability_changes_before_correction": false,
+  "gate_use": "forbidden",
+  "tuning_use": "forbidden",
+  "correction": "Rerun the same preregistered split and budgets with the exact frozen r25_n2._program_set entrypoint before any R2.6 capability implementation."
+}
