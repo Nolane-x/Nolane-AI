@@ -1,0 +1,30 @@
+name: R2.5 Bundle
+on:
+  push:
+    paths:
+      - '.github/workflows/r25-bundle.yml'
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r25-bundle
+          include-hidden-files: true
+          path: |
+            cogcoder
+            scripts
+            tests
+            docs
+            research
+            .github/workflows
+            .gitmodules
+            .gitattributes
+            README.md
+            CHECKPOINT_MANIFEST.json
+            CURRENT_ONE_WEIGHT_R2_0I.json
+            RELEASE_MANIFEST_R2_0I.json
+            R2_4_DELIVERY.md
