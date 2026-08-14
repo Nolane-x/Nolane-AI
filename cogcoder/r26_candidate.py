@@ -11,6 +11,7 @@ from .component_fit import programs as component_programs
 from .r25_n2 import _program_set as frozen_program_set
 from .r26_firewall import Evidence, validate_family
 from .r26_legend import programs as legend_programs
+from .r26_marker_repeat import programs as marker_repeat_programs
 from .r26_ops import apply_program
 from .r26_structural import programs as structural_programs
 from .span_fit import programs as span_programs
@@ -71,6 +72,7 @@ _LEGACY_FAMILIES: tuple[tuple[str, str, Infer], ...] = (
 _NEW_FAMILIES: tuple[tuple[str, Infer], ...] = (
     ('structural', structural_programs),
     ('legend', legend_programs),
+    ('marker_repeat', marker_repeat_programs),
 )
 
 
