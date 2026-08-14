@@ -5,11 +5,12 @@ import json
 from pathlib import Path
 
 from cogcoder import r25_n as base
-from cogcoder.arc_candidate_region import program_set as frozen_program_set
+from cogcoder.r25_n2 import _program_set as frozen_program_set
 from cogcoder.arc_eval import load_task
 from cogcoder.r26_split import partition_paths
 
 ARC_REVISION = 'f3283f727488ad98fe575ea6a5ac981e4a188e49'
+FROZEN_R25_COMMIT = 'bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4'
 
 
 def _measure(paths: tuple[Path, ...], max_attempts: int, max_programs: int) -> dict:
@@ -49,12 +50,14 @@ def measure(directory: str | Path, max_attempts: int = 2, max_programs: int = 64
     paths = tuple(sorted(Path(directory).glob('*.json'), key=lambda p: p.name))
     development, heldout = partition_paths(paths)
     return {
+        'aggregate_only': True,
         'arc_revision': ARC_REVISION,
+        'frozen_r25_commit': FROZEN_R25_COMMIT,
+        'frozen_r25_entrypoint': 'cogcoder.r25_n2._program_set',
         'max_attempts': max_attempts,
         'max_programs': max_programs,
         'development': _measure(development, max_attempts, max_programs),
         'internal_heldout': _measure(heldout, max_attempts, max_programs),
-        'aggregate_only': True,
     }
 
 
