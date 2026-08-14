@@ -34,10 +34,13 @@ jobs:
           import json
           x=json.load(open('r26_baseline.json'))
           assert x['aggregate_only'] is True
-          assert set(x) == {'aggregate_only','arc_revision','development','internal_heldout','max_attempts','max_programs'}
+          assert x['frozen_r25_commit'] == 'bc390a9f6659493ecf1741aeda7bcb3d04ecd4d4'
+          assert x['frozen_r25_entrypoint'] == 'cogcoder.r25_n2._program_set'
+          assert set(x) == {'aggregate_only','arc_revision','frozen_r25_commit','frozen_r25_entrypoint','development','internal_heldout','max_attempts','max_programs'}
           allowed={'cases','scored','solved','solve_rate','errors','mean_candidate_programs','mean_attempts_emitted'}
           assert set(x['development']) == allowed
           assert set(x['internal_heldout']) == allowed
+          assert x['development']['solved'] + x['internal_heldout']['solved'] == 76
           PY
       - uses: actions/upload-artifact@v4
         with:
