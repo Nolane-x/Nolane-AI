@@ -1,0 +1,44 @@
+name: R2.6 Profile
+on:
+  push:
+    paths:
+      - 'scripts/profile_r26_development.py'
+      - '.github/workflows/r26-profile.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONPATH: .
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Verify pinned corpus
+        run: |
+          test "$(find external/ARC-AGI-2/data/training -maxdepth 1 -name '*.json' | wc -l)" -eq 1000
+          test "$(git -C external/ARC-AGI-2 rev-parse HEAD)" = "f3283f727488ad98fe575ea6a5ac981e4a188e49"
+      - name: Profile DEVELOPMENT failures only
+        run: python scripts/profile_r26_development.py external/ARC-AGI-2/data/training --examples 5 --top 30 | tee r26_profile.json
+      - name: Verify heldout isolation
+        run: |
+          python - <<'PY'
+          import json
+          x=json.load(open('r26_profile.json'))
+          assert x['partition'] == 'development'
+          assert x['cases'] == 801
+          assert x['baseline_solved'] == 55
+          assert x['internal_heldout_loaded'] is False
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r26-profile
+          path: r26_profile.json
