@@ -37,3 +37,5 @@ jobs:
         run: python tests/test_r26_new_candidate.py
       - name: R2.6 unique foreground panel contract
         run: python tests/test_r26_unique_panel.py
+      - name: R2.6 legend-driven color swap contract
+        run: python tests/test_r26_legend.py
