@@ -85,7 +85,7 @@ def separator_repack(grid: Grid) -> Grid:
     shapes = {panel.shape for row in panels for panel in row}
     if len(shapes) != 1:
         raise ValueError('cropped panel shapes differ')
-    ph, pw = next(iter(shapes))
+    ph, _ = next(iter(shapes))
     rows = []
     for panel_row in panels:
         for r in range(ph):
@@ -95,7 +95,10 @@ def separator_repack(grid: Grid) -> Grid:
 
 def _perfect_frame_boxes(grid: Grid) -> tuple[tuple[int, int, int, int], ...]:
     boxes: set[tuple[int, int, int, int]] = set()
+    background = infer_background(grid)
     for color in sorted(grid.colors):
+        if color == background:
+            continue
         for cells in components(grid, color=color, connectivity=4):
             r0, c0, r1, c1 = bbox(cells)
             if r1 - r0 < 2 or c1 - c0 < 2:
