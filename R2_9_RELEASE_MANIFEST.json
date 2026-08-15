@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.9 Verifier-Guided Patch Search",
+  "status": "phase_a_internal_executable_gate_passed_external_gates_pending",
+  "parent_source_commit": "beb9c579e27ee852527fa685024b39789f540ddd",
+  "parent_effective_parameters": 79401400,
+  "new_r29_neural_parameters": 0,
+  "candidate_effective_parameters": 79401400,
+  "parent_weight": "Nolane-R2.7-CodeWorld-Generalist-Phase-A-ONE-WEIGHT.pt",
+  "parent_weight_sha256": "16552d8565ba696dce3c2b853c27097f74e727bbfb8e2d6ff35064af308adcf5",
+  "phase_a_lock": "research/R2_9_PRE_DEV_LOCK.json",
+  "phase_a_lock_sha256": "73e9628df2fc0078ce663b8faff66cf7ad166995d0681c070e23ed23abfa9103",
+  "phase_a_result": "research/R2_9_PHASE_A_RESULT.json",
+  "phase_a_result_sha256": "1a99aa59e391988520c87baa82a5bb1e5e1aab5b8b5b299cf1a54073d756d2dd",
+  "external_coding_claim_allowed": false,
+  "agi_claim_allowed": false
+}

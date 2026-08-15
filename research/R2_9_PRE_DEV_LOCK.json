@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "milestone": "R2.9 Verifier-Guided Patch Search",
+  "phase": "A",
+  "locked_before_measurement": true,
+  "parent_source_commit": "beb9c579e27ee852527fa685024b39789f540ddd",
+  "parent_effective_parameters": 79401400,
+  "candidate_parameter_ceiling": 79401400,
+  "new_neural_parameters_allowed": 0,
+  "protocol": {
+    "case_count": 4,
+    "languages": ["python", "javascript"],
+    "max_evaluator_calls_per_case": 8,
+    "candidate_id_rename_invariance_required": true,
+    "canonical_patch_deduplication_required": true,
+    "terminal_success_requires_evaluator_success": true
+  },
+  "acceptance": {
+    "verified_solves_min": 4,
+    "verified_solves_total": 4,
+    "false_terminal_accepts_max": 0,
+    "duplicate_evaluator_calls_max": 0,
+    "rename_invariant_cases_min": 4,
+    "max_evaluator_calls_observed_max": 8,
+    "new_neural_parameters_max": 0,
+    "external_coding_claim_allowed": false,
+    "agi_claim_allowed": false
+  },
+  "claim_boundary": "Internal executable patch-search architecture gate only; not arbitrary code generation, fresh-repository issue resolution, AGI, or frontier-model parity."
+}

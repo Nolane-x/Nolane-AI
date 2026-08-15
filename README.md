@@ -8,8 +8,9 @@ The repository now contains an experimental coding-generalization track beyond t
 
 - **R2.7 CodeWorld Phase A:** adds a 622,147-parameter coding-loop controller, producing **79,401,400** effective neural parameters. Its internal language×task-pair curriculum is a workflow-policy gate only, not evidence of general repository coding performance.
 - **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
+- **R2.9 Verifier-Guided Patch Search Phase A:** adds **0 neural parameters**. It performs canonicalized, hard-budget patch search with executable verification, R2.8 blast-radius risk, failure-memory refinement, and candidate-id-invariant traces. Its locked executable Python/JavaScript micro-repository gate resolves **4/4** cases with **0 false terminal accepts**, **0 duplicate evaluator calls**, and at most **2** evaluator calls per case.
 
-External coding claims remain disabled. R2.7/R2.8 have not yet established arbitrary patch generation, fresh-repository issue resolution, AGI, or frontier-model parity. Those claims require executable external evaluation on fresh and broad repository tasks.
+External coding claims remain disabled. R2.7/R2.8/R2.9 have not yet established arbitrary patch generation or fresh-repository issue-resolution performance; R2.9 searches/refines supplied candidates but is not yet a general source-code decoder. Those claims require a source-aware proposer plus executable external evaluation on fresh and broad repository tasks.
 
 ## Current accepted system
 
@@ -68,12 +69,14 @@ Successful GitHub Actions runs:
 - `.github/workflows/r24-integrity.yml` — exact Git blob and aggregate gate.
 - `research/R2_8_PRE_DEV_LOCK.json` — R2.8 zero-parameter architecture gate.
 - `research/R2_8_PHASE_A_RESULT.json` — R2.8 internal routing result and claim boundary.
+- `research/R2_9_PRE_DEV_LOCK.json` — preregistered R2.9 executable patch-search thresholds.
+- `research/R2_9_PHASE_A_RESULT.json` — R2.9 measured result and claim boundary.
 
 The R2.4 internal readiness rubric was **18.2/100**. The newer coding research track does not automatically increase that broad AGI/readiness score; broad reasoning, language/coding/math competence, multimodality and independent frontier-benchmark evidence remain insufficient.
 
 ## Scientific boundary
 
-KFIGG evidence is synthetic and R2.8 Phase A is a small adversarial architecture gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
+KFIGG evidence is synthetic; R2.8 Phase A is a small adversarial routing gate; and R2.9 Phase A is a small executable micro-repository patch-search gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
 
 ## GitHub binary boundary
 

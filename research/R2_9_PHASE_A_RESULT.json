@@ -1,0 +1,73 @@
+{
+  "agi_claim_allowed": false,
+  "candidate_effective_parameters": 79401400,
+  "cases": 4,
+  "claim_boundary": "Internal executable patch-search architecture gate only; not arbitrary code generation, fresh-repository issue resolution, AGI, or frontier-model parity.",
+  "duplicate_evaluator_calls": 0,
+  "external_coding_claim_allowed": false,
+  "false_terminal_accepts": 0,
+  "max_evaluator_calls_observed": 2,
+  "milestone": "R2.9 Verifier-Guided Patch Search",
+  "new_r29_neural_parameters": 0,
+  "parent_effective_parameters": 79401400,
+  "phase": "A",
+  "phase_a_gate_pass": true,
+  "rename_invariant_cases": 4,
+  "rows": [
+    {
+      "case": "python-execution-refinement",
+      "duplicate_candidates_filtered": 0,
+      "evaluations": 2,
+      "expected_fingerprint": "e5edb77e8460b4156c136bdeadfccf739b9f56e2f112ab883fc570c97a67fc44",
+      "language": "python",
+      "rename_invariant": true,
+      "selected_fingerprint": "e5edb77e8460b4156c136bdeadfccf739b9f56e2f112ab883fc570c97a67fc44",
+      "success": true,
+      "trace_fingerprints": [
+        "f591b10cdcefb36bde0eae79b04eadb2431cf3605b2e9e0c74dd74c7bc6524d7",
+        "e5edb77e8460b4156c136bdeadfccf739b9f56e2f112ab883fc570c97a67fc44"
+      ]
+    },
+    {
+      "case": "javascript-low-blast-radius",
+      "duplicate_candidates_filtered": 0,
+      "evaluations": 1,
+      "expected_fingerprint": "c0387978d592509ffcd8a663a1381f9fbfad4005d6fbc1da8f43d03197bb2e3b",
+      "language": "javascript",
+      "rename_invariant": true,
+      "selected_fingerprint": "c0387978d592509ffcd8a663a1381f9fbfad4005d6fbc1da8f43d03197bb2e3b",
+      "success": true,
+      "trace_fingerprints": [
+        "c0387978d592509ffcd8a663a1381f9fbfad4005d6fbc1da8f43d03197bb2e3b"
+      ]
+    },
+    {
+      "case": "python-canonical-deduplication",
+      "duplicate_candidates_filtered": 1,
+      "evaluations": 1,
+      "expected_fingerprint": "4a5980872534bef685b6ce4c79d06eb9c58a0b2ec4dee5a17f2db7e09b784da5",
+      "language": "python",
+      "rename_invariant": true,
+      "selected_fingerprint": "4a5980872534bef685b6ce4c79d06eb9c58a0b2ec4dee5a17f2db7e09b784da5",
+      "success": true,
+      "trace_fingerprints": [
+        "4a5980872534bef685b6ce4c79d06eb9c58a0b2ec4dee5a17f2db7e09b784da5"
+      ]
+    },
+    {
+      "case": "javascript-regression-blocks-false-terminal",
+      "duplicate_candidates_filtered": 0,
+      "evaluations": 2,
+      "expected_fingerprint": "8d2d94b10ded8dc26326d228cb3670593e4cda099cd3af8ac1ed5542c7b94278",
+      "language": "javascript",
+      "rename_invariant": true,
+      "selected_fingerprint": "8d2d94b10ded8dc26326d228cb3670593e4cda099cd3af8ac1ed5542c7b94278",
+      "success": true,
+      "trace_fingerprints": [
+        "2d2b6c57f37bab51e364b1cb704439698fb49b303ff73223af7acad22e58e036",
+        "8d2d94b10ded8dc26326d228cb3670593e4cda099cd3af8ac1ed5542c7b94278"
+      ]
+    }
+  ],
+  "verified_solves": 4
+}
