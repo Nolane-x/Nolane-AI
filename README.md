@@ -2,9 +2,18 @@
 
 Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, retrieval, epistemic verification, reusable skills, active experimentation and public-feedback replanning. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
+## Active coding research track — not externally promoted
+
+The repository now contains an experimental coding-generalization track beyond the currently accepted R2.4 system:
+
+- **R2.7 CodeWorld Phase A:** adds a 622,147-parameter coding-loop controller, producing **79,401,400** effective neural parameters. Its internal language×task-pair curriculum is a workflow-policy gate only, not evidence of general repository coding performance.
+- **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
+
+External coding claims remain disabled. R2.7/R2.8 have not yet established arbitrary patch generation, fresh-repository issue resolution, AGI, or frontier-model parity. Those claims require executable external evaluation on fresh and broad repository tasks.
+
 ## Current accepted system
 
-The neural stack remains **78,779,253 effective parameters**:
+The broadly accepted pre-coding-research system remains R2.4. Its neural stack is **78,779,253 effective parameters**:
 
 - R1.9 FrontierRollout parent: **78,214,173**
 - R2.0e EvidenceEffect executive: **+565,080**
@@ -16,7 +25,7 @@ The neural stack remains **78,779,253 effective parameters**:
 
 R2.4 keeps the same single neural weight. It refreshes a public goal/dependency view after each transition instead of executing one initial snapshot plan unchanged.
 
-## One deployment weight
+## One accepted R2.4 deployment weight
 
 `Nolane-R2.0i-78.8M-STRONGEST-ONE-WEIGHT.pt`
 
@@ -57,16 +66,18 @@ Successful GitHub Actions runs:
 - `research/R2_4_PRE_DEV_LOCK.md` — protocol/source lock before stage 2.
 - `research/R2_4_STAGE3_FREEZE.md` — source freeze before stage 3.
 - `.github/workflows/r24-integrity.yml` — exact Git blob and aggregate gate.
+- `research/R2_8_PRE_DEV_LOCK.json` — R2.8 zero-parameter architecture gate.
+- `research/R2_8_PHASE_A_RESULT.json` — R2.8 internal routing result and claim boundary.
 
-The internal readiness rubric moves only modestly, from 17.0 to **18.2/100**. R2.4 improves evidence for long-range replanning, but broad reasoning, language/coding/math competence, multimodality and independent frontier-benchmark evidence remain weak.
+The R2.4 internal readiness rubric was **18.2/100**. The newer coding research track does not automatically increase that broad AGI/readiness score; broad reasoning, language/coding/math competence, multimodality and independent frontier-benchmark evidence remain insufficient.
 
 ## Scientific boundary
 
-KFIGG-24 is synthetic and exposes goals, dependencies, actions and feedback. Its high score does not establish unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
+KFIGG evidence is synthetic and R2.8 Phase A is a small adversarial architecture gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
 
 ## GitHub binary boundary
 
-GitHub `main` contains source, locks, results, manifests and CI. The current conversational GitHub connector still does not expose a practical local-binary/LFS/release-asset stream for the ~59.8MB `.pt`; therefore the repository records the exact weight SHA instead of pretending its bytes are stored in GitHub. Complete milestone artifacts are persisted to ChatGPT Library.
+GitHub `main` contains source, locks, results, manifests and CI. Large neural checkpoints are recorded by exact SHA and persisted with complete milestone artifacts outside normal Git source when required.
 
 ## License
 

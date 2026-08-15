@@ -1,0 +1,16 @@
+{
+  "agi_claim_allowed": false,
+  "candidate_effective_parameters": 79401400,
+  "date": "2026-08-15",
+  "external_coding_claim_allowed": false,
+  "milestone": "R2.8 Repository World Model + Epistemic Active Debugging",
+  "new_r28_neural_parameters": 0,
+  "parent_effective_parameters": 79401400,
+  "parent_source_commit": "f5d6d3413c5a5f28590d7aeb7a3e69400696497b",
+  "parent_weight": "Nolane-R2.7-CodeWorld-Generalist-Phase-A-ONE-WEIGHT.pt",
+  "parent_weight_sha256": "16552d8565ba696dce3c2b853c27097f74e727bbfb8e2d6ff35064af308adcf5",
+  "phase_a_result": "research/R2_8_PHASE_A_RESULT.json",
+  "phase_a_result_sha256": "c4f8e2045c7d63102e9245966428165f4f373f673b9f874eb0daea7f8db6db09",
+  "status": "phase_a_internal_gate_passed_external_gates_pending",
+  "version": 1
+}
