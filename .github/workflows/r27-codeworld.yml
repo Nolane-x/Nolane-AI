@@ -1,0 +1,43 @@
+name: R2.7 CodeWorld Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r27_codeworld_*.py'
+      - 'scripts/*r27_codeworld*.py'
+      - 'tests/test_r27_*.py'
+      - 'research/R2_7_*'
+      - 'benchmarks/codeworld/**'
+      - 'R2_7_*'
+      - '.github/workflows/r27-codeworld.yml'
+  workflow_dispatch:
+
+jobs:
+  phase-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: pip install 'torch>=2.2,<3' pytest
+      - name: Run R2.7 tests
+        run: PYTHONPATH=. pytest -q tests/test_r27_codeworld_controller.py tests/test_r27_codeworld_runtime.py tests/test_r27_codeworld_curriculum.py tests/test_r27_training.py tests/test_r27_measure.py
+      - name: Verify Phase-A lock
+        run: python - <<'PY'
+          import json
+          p=json.load(open('research/R2_7_PRE_DEV_LOCK.json'))
+          assert p['phase_a_parameter_ceiling'] == 80000000
+          assert p['acceptance']['external_coding_claim_allowed'] is False
+          PY
+      - name: Build complete source snapshot
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output=dist/Nolane-AI-R2.7-CodeWorld-Phase-A-SOURCE.zip HEAD
+          sha256sum dist/Nolane-AI-R2.7-CodeWorld-Phase-A-SOURCE.zip > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r27-codeworld-phase-a-source
+          path: dist/

@@ -1,0 +1,15 @@
+{
+  "version": "R2.7-CodeWorld-Generalist-Phase-A",
+  "date": "2026-08-15",
+  "status": "PHASE_A_INTERNAL_ACCEPTED_EXTERNAL_PENDING",
+  "parent_effective_parameters": 78779253,
+  "controller_parameters": 622147,
+  "effective_parameters": 79401400,
+  "parameter_growth_percent": 0.789735,
+  "train_accuracy": 1.0,
+  "heldout_pair_accuracy": 1.0,
+  "parent_sha256": "b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "weight_sha256": "16552d8565ba696dce3c2b853c27097f74e727bbfb8e2d6ff35064af308adcf5",
+  "weight_bytes": 62280335,
+  "claim_boundary": "Internal language-task control-policy transfer only; external coding benchmarks not yet run."
+}

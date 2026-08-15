@@ -1,0 +1,11 @@
+{
+  "controller_parameters": 622147,
+  "effective_parameters": 79401400,
+  "format": "nolane-r2.7-hybrid-standalone-bundle-v1",
+  "heldout_pair_accuracy": 1.0,
+  "heldout_rows": 576,
+  "parameter_increase_fraction": 0.00789734576437276,
+  "train_accuracy": 1.0,
+  "train_rows": 2496,
+  "version": "R2.7-CodeWorld-Generalist-Phase-A"
+}

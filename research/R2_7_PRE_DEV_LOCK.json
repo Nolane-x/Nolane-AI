@@ -1,0 +1,35 @@
+{
+  "version": "R2.7-CodeWorld-Generalist-Phase-A",
+  "date": "2026-08-15",
+  "parent_effective_parameters": 78779253,
+  "phase_a_parameter_ceiling": 80000000,
+  "target": "general coding intelligence across repository lifecycle",
+  "arc_status": "secondary abstraction probe only",
+  "controller_contract": {
+    "state_dim": 32,
+    "action_feature_dim": 24,
+    "history_feature_dim": 16,
+    "hidden_dim": 192,
+    "language_count": 12,
+    "task_type_count": 8,
+    "split": "disjoint language-task pairs"
+  },
+  "acceptance": {
+    "controller_parameters_lt": 1000000,
+    "effective_parameters_lt": 80000000,
+    "train_accuracy_gte": 0.90,
+    "heldout_pair_accuracy_gte": 0.80,
+    "parent_sha_required": true,
+    "external_coding_claim_allowed": false
+  },
+  "external_phase_b_axes": [
+    "issue_resolution",
+    "feature_implementation",
+    "refactoring",
+    "terminal_tool_use",
+    "multilingual_transfer",
+    "multi_turn_repository_evolution",
+    "code_generation_and_repair",
+    "ml_engineering"
+  ]
+}
