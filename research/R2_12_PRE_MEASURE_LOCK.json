@@ -18,18 +18,23 @@
     "symbol_or_line_localization_claim_allowed": false
   },
   "dataset": {
-    "commit": "dd8b58f385783b189a96dd09c22153c843b0e2f9",
+    "config": "default",
+    "expected_language_classes": 8,
     "expected_tasks": 20,
-    "git_blob_sha1": "a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1",
-    "path": "sample.json",
-    "provenance": "real GitHub repository tasks from public SWE-rebench V2 sample",
-    "repository": "SWE-rebench/SWE-rebench-V2"
+    "loader": "datasets==5.0.0",
+    "provenance": "official 20-task SWE-rebench V2 sample referenced by SWE-rebench/SWE-rebench-V2 README",
+    "provider": "huggingface",
+    "repository": "ibragim-bad/SWE-rebench-V2-sample",
+    "revision": "9a7cd16b2431fc9f0abaf4c359e21fd3fae12ae3",
+    "split": "train"
   },
   "date": "2026-08-15",
   "gold_target": "files changed by patch only; test_patch excluded",
   "lock_history": {
-    "reason": "pre-measurement integration refactor only; no external prediction or score had run; acceptance thresholds unchanged",
-    "supersedes_sha256": "9243e0b51459f71673a164ac3525ff96f228c8faa220c8b010687c6196b3bc4b"
+    "prior_failed_run_id": 31862050419,
+    "prior_failed_stage": "prepare-public",
+    "reason": "pre-prediction acquisition correction: GitHub sample.json was not the intended 20-row panel; predictor and scorer never ran; acceptance thresholds and frozen ranking source unchanged",
+    "supersedes_sha256": "c95ce8cfcc9b0d2ae705975324be33e242599173b58b9303028520a2681d1c06"
   },
   "milestone": "R2.12 Fresh Real-Repository Localization Phase A",
   "parent_commit": "7c1402a1cfd81576f19a9e0aacb6d79c0bafebf5",
