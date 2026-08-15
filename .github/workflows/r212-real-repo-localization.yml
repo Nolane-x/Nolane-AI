@@ -16,21 +16,42 @@ on:
 permissions:
   contents: read
 
+env:
+  R212_HF_DATASET: ibragim-bad/SWE-rebench-V2-sample
+  R212_HF_REVISION: 9a7cd16b2431fc9f0abaf4c359e21fd3fae12ae3
+  R212_HF_CONFIG: default
+  R212_HF_SPLIT: train
+  R212_DATASETS_VERSION: 5.0.0
+
 jobs:
   prepare-public:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Fetch immutable SWE-rebench V2 sample
+      - name: Install pinned dataset loader
+        run: pip install "datasets==${R212_DATASETS_VERSION}"
+      - name: Materialize immutable 20-task SWE-rebench V2 panel
         run: |
-          curl --fail --location --retry 3 \
-            'https://raw.githubusercontent.com/SWE-rebench/SWE-rebench-V2/dd8b58f385783b189a96dd09c22153c843b0e2f9/sample.json' \
-            --output /tmp/swe-rebench-v2-sample.json
-          test "$(git hash-object /tmp/swe-rebench-v2-sample.json)" = 'a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1'
+          python - <<'PYDATA'
+          import json, os
+          from datasets import load_dataset
+          ds = load_dataset(
+              os.environ['R212_HF_DATASET'],
+              os.environ['R212_HF_CONFIG'],
+              split=os.environ['R212_HF_SPLIT'],
+              revision=os.environ['R212_HF_REVISION'],
+          )
+          rows=[dict(row) for row in ds]
+          assert len(rows) == 20, f'expected 20 tasks, got {len(rows)}'
+          assert len({str(row.get('language')) for row in rows}) == 8
+          with open('/tmp/swe-rebench-v2-sample.json','w',encoding='utf-8') as f:
+              json.dump(rows, f, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+              f.write('\n')
+          PYDATA
       - name: Build leak-safe public manifest
         run: |
           PYTHONPATH=. python scripts/r212_prepare_public_manifest.py \
@@ -86,7 +107,7 @@ jobs:
   score:
     needs: predict
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -96,13 +117,28 @@ jobs:
         with:
           name: r212-sealed-predictions
           path: /tmp/pred
-      - name: Fetch gold only after predictions are sealed
+      - name: Verify sealed predictions
+        run: (cd /tmp/pred && sha256sum -c PREDICTIONS_SHA256.txt)
+      - name: Install pinned dataset loader after predictions are sealed
+        run: pip install "datasets==${R212_DATASETS_VERSION}"
+      - name: Materialize gold only after predictions are sealed
         run: |
-          (cd /tmp/pred && sha256sum -c PREDICTIONS_SHA256.txt)
-          curl --fail --location --retry 3 \
-            'https://raw.githubusercontent.com/SWE-rebench/SWE-rebench-V2/dd8b58f385783b189a96dd09c22153c843b0e2f9/sample.json' \
-            --output /tmp/swe-rebench-v2-sample.json
-          test "$(git hash-object /tmp/swe-rebench-v2-sample.json)" = 'a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1'
+          python - <<'PYDATA'
+          import json, os
+          from datasets import load_dataset
+          ds = load_dataset(
+              os.environ['R212_HF_DATASET'],
+              os.environ['R212_HF_CONFIG'],
+              split=os.environ['R212_HF_SPLIT'],
+              revision=os.environ['R212_HF_REVISION'],
+          )
+          rows=[dict(row) for row in ds]
+          assert len(rows) == 20, f'expected 20 tasks, got {len(rows)}'
+          assert len({str(row.get('language')) for row in rows}) == 8
+          with open('/tmp/swe-rebench-v2-sample.json','w',encoding='utf-8') as f:
+              json.dump(rows, f, ensure_ascii=False, sort_keys=True, separators=(',', ':'))
+              f.write('\n')
+          PYDATA
       - name: Score frozen external panel
         run: |
           PYTHONPATH=. python scripts/r212_score_predictions.py \
