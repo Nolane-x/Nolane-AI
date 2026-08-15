@@ -28,7 +28,9 @@ jobs:
         with:
           node-version: '22'
       - name: Install locked test dependencies
-        run: pip install 'torch==2.10.0' pytest
+        run: |
+          pip install 'torch==2.10.0' --index-url https://download.pytorch.org/whl/cpu
+          pip install pytest
       - name: Verify R2.9 parent and R2.10 tests
         run: >-
           PYTHONPATH=. pytest -q
