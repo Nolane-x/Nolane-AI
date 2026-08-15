@@ -1,0 +1,91 @@
+name: R2.11 Differential Multi-File Localization Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r211_*.py'
+      - 'benchmarks/codeworld/r211_*.py'
+      - 'scripts/*r211*.py'
+      - 'tests/test_r211_*.py'
+      - 'research/R2_11_*'
+      - 'R2_11_*'
+      - 'docs/superpowers/specs/2026-08-15-r211-*'
+      - 'docs/superpowers/plans/2026-08-15-r211-*'
+      - '.github/workflows/r211-multifile-localization.yml'
+      - 'README.md'
+  workflow_dispatch:
+
+jobs:
+  phase-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install CPU test dependencies
+        run: |
+          pip install 'torch==2.10.0' --index-url https://download.pytorch.org/whl/cpu
+          pip install pytest
+      - name: Verify R2.11 unit and locked-result contracts
+        run: >-
+          PYTHONPATH=. pytest -q
+          tests/test_r211_counterfactual_localizer.py
+          tests/test_r211_multifile_cases.py
+          tests/test_r211_multifile_runtime.py
+          tests/test_r211_result_contract.py
+      - name: Retrain frozen R2.10 parent proposer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib
+          from pathlib import Path
+          from scripts.train_r210_copy_edit_proposer import train_copy_edit_proposer, save_r210_delta
+          lock = Path('research/R2_10_PRETRAIN_LOCK.json')
+          result = train_copy_edit_proposer(seed=210, epochs=28, rows_per_family=192, batch_size=64)
+          save_r210_delta(Path('/tmp/r210_delta.pt'), result, lock_sha256=hashlib.sha256(lock.read_bytes()).hexdigest())
+          PY
+      - name: Verify end-to-end R2.11 runtime on regenerated proposer
+        env:
+          R210_CHECKPOINT: /tmp/r210_delta.pt
+        run: PYTHONPATH=. pytest -q tests/test_r211_multifile_runtime.py
+      - name: Reproduce frozen R2.11 heldout
+        run: PYTHONPATH=. python scripts/measure_r211_multifile.py --checkpoint /tmp/r210_delta.pt > /tmp/r211_measure.json
+      - name: Verify frozen R2.11 gate
+        run: |
+          python - <<'PY'
+          import json
+          lock=json.load(open('research/R2_11_PRE_MEASURE_LOCK.json'))
+          result=json.load(open('/tmp/r211_measure.json'))
+          a=lock['acceptance']
+          assert result['cases']==64
+          assert result['localization_hit1'] >= a['localization_hit1_min']
+          assert result['localization_mrr'] >= a['localization_mrr_min']
+          assert result['localization_hit3'] >= a['localization_hit3_min']
+          assert result['hit1_improvement_over_spectrum_pp'] >= a['hit1_improvement_over_spectrum_pp_min']
+          assert result['integrated_verified_solve_rate'] >= a['integrated_verified_solve_rate_min']
+          assert result['solve_improvement_over_spectrum_pp'] >= a['solve_improvement_over_spectrum_pp_min']
+          assert result['identity_permutation_invariance'] >= a['identity_permutation_invariance_min']
+          assert result['false_terminal_accepts'] == 0
+          assert result['max_patch_evaluations_observed'] <= 2
+          assert result['new_r211_neural_parameters'] == 0
+          assert result['candidate_effective_parameters'] == 79450489
+          assert result['external_coding_claim_allowed'] is False
+          assert result['agi_claim_allowed'] is False
+          assert result['phase_a_gate_pass'] is True
+          PY
+      - name: Compile source
+        run: python -m compileall -q cogcoder benchmarks/codeworld scripts
+      - name: Build source and reproduction artifact
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output=dist/Nolane-AI-R2.11-Differential-Multi-File-Localization-Phase-A-SOURCE.zip HEAD
+          cp /tmp/r211_measure.json dist/
+          sha256sum dist/Nolane-AI-R2.11-Differential-Multi-File-Localization-Phase-A-SOURCE.zip > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r211-differential-multifile-localization-phase-a-source-and-reproduction
+          path: dist/

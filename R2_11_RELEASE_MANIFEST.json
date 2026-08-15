@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.11 Differential Multi-File Localization",
+  "status": "phase_a_internal_multifile_gate_accepted_external_repository_gates_pending",
+  "parent_source_commit": "c8d4f185c14ac3ada5ead3541eecad489643a08c",
+  "parent_effective_parameters": 79450489,
+  "new_r211_neural_parameters": 0,
+  "candidate_effective_parameters": 79450489,
+  "pre_measure_lock": "research/R2_11_PRE_MEASURE_LOCK.json",
+  "pre_measure_lock_sha256": "9ab8a23c11e188481cc2416603d864bea27f11556d14eeef1237b4b9caa2df91",
+  "phase_a_result": "research/R2_11_PHASE_A_RESULT.json",
+  "phase_a_result_sha256": "9374cada7b20334925c3b22478f8a19df8b0e1440b48571a893265a87e23e020",
+  "detailed_result_sha256": "d3073e4e679295878cf829e650d65b3c19f53c15099d59bfa10a3e33f7312eda",
+  "accepted_parent_weight": "Nolane-R2.10-Compact-Copy-Edit-Proposer-Phase-A-ONE-WEIGHT.pt",
+  "accepted_parent_weight_sha256": "508b4242dfa5103d1f444025d40419d1db7fa415172d81289f772b34de98c35d",
+  "external_coding_claim_allowed": false,
+  "agi_claim_allowed": false
+}

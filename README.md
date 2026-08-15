@@ -10,8 +10,9 @@ The repository now contains an experimental coding-generalization track beyond t
 - **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
 - **R2.9 Verifier-Guided Patch Search Phase A:** adds **0 neural parameters**. It performs canonicalized, hard-budget patch search with executable verification, R2.8 blast-radius risk, failure-memory refinement, and candidate-id-invariant traces. Its locked executable Python/JavaScript micro-repository gate resolves **4/4** cases with **0 false terminal accepts**, **0 duplicate evaluator calls**, and at most **2** evaluator calls per case.
 - **R2.10 Compact Copy-Edit Proposer Phase A:** adds **49,089 neural parameters**, producing **79,450,489** effective parameters. Training uses Python surfaces only; the frozen 48-case JavaScript heldout gate reaches **91.67% top-1 candidate accuracy** and **93.75% verified solve rate** at budget 2 versus **50.00%** for the same-candidate unranked baseline (**+43.75 pp**), with **100% identifier/candidate rename invariance** and **0 false terminal accepts**. It ranks constrained minimal edits; it is not a general source-code decoder.
+- **R2.11 Differential Multi-File Localization Phase A:** adds **0 neural parameters**, keeping **79,450,489** effective parameters. A frozen 64-repository JavaScript gate with randomized identities and an intentionally spectrum-indistinguishable healthy shadow reaches **95.31% localization Hit@1**, **97.66% MRR**, and **92.19% end-to-end verified solve**, versus **62.5% Hit@1 / 59.38% solve** for spectrum-only localization (**+32.81 pp**), with **100% identity permutation invariance** and **0 false terminal accepts**.
 
-External coding claims remain disabled. R2.7/R2.8/R2.9/R2.10 have not yet established arbitrary patch generation or fresh-repository issue-resolution performance; R2.10 improves constrained source-aware proposal ordering but is not a general source-code decoder. Those claims require fresh multi-file localization/proposal plus executable external evaluation on broad repository tasks.
+External coding claims remain disabled. R2.7/R2.8/R2.9/R2.10/R2.11 have not yet established arbitrary patch generation or fresh-repository issue-resolution performance; R2.10 improves constrained source-aware proposal ordering but is not a general source-code decoder. Those claims require fresh multi-file localization/proposal plus executable external evaluation on broad repository tasks.
 
 ## Current accepted system
 
@@ -74,12 +75,14 @@ Successful GitHub Actions runs:
 - `research/R2_9_PHASE_A_RESULT.json` — R2.9 measured result and claim boundary.
 - `research/R2_10_PRETRAIN_LOCK.json` — frozen Python→JavaScript constrained copy-edit gate.
 - `research/R2_10_PHASE_A_RESULT.json` — R2.10 measured result and claim boundary.
+- `research/R2_11_PRE_MEASURE_LOCK.json` — frozen R2.11 multi-file localization source/protocol/thresholds.
+- `research/R2_11_PHASE_A_RESULT.json` — R2.11 localization + repair result and claim boundary.
 
 The R2.4 internal readiness rubric was **18.2/100**. The newer coding research track does not automatically increase that broad AGI/readiness score; broad reasoning, language/coding/math competence, multimodality and independent frontier-benchmark evidence remain insufficient.
 
 ## Scientific boundary
 
-KFIGG evidence is synthetic; R2.8 Phase A is a small adversarial routing gate; R2.9 Phase A is a small executable micro-repository patch-search gate; and R2.10 Phase A is a constrained Python→JavaScript copy-edit proposal gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
+KFIGG evidence is synthetic; R2.8 Phase A is a small adversarial routing gate; R2.9 Phase A is a small executable micro-repository patch-search gate; R2.10 Phase A is a constrained Python→JavaScript copy-edit proposal gate; and R2.11 Phase A is an internal differential multi-file localization gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
 
 ## GitHub binary boundary
 

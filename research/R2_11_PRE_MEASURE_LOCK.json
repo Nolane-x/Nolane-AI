@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.11 Differential Multi-File Localization",
+  "parent_source_commit": "c8d4f185c14ac3ada5ead3541eecad489643a08c",
+  "parent_effective_parameters": 79450489,
+  "new_r211_neural_parameter_ceiling": 0,
+  "candidate_total_parameter_ceiling": 80000000,
+  "source_freeze": {
+    "cogcoder/r211_counterfactual_localizer.py": "bdee3b6416ba0fd8fcd25ceff6aa3d617a0e04452fe78d21af42e3edeecc010b",
+    "benchmarks/codeworld/r211_multifile_cases.py": "e1980fe8e575017bdaf9b8f4174ac9b173dbf52c0b692abc42e09003d668e42d",
+    "cogcoder/r211_multifile_runtime.py": "be8ea31001944115836ae5e43a4ac8592ad71ce094aa6205347749abaf27d422"
+  },
+  "protocol": {
+    "language": "javascript",
+    "heldout_seed": 41100,
+    "cases": 64,
+    "providers_per_repo": 8,
+    "offpath_symbols": 2,
+    "coverage_tests": 8,
+    "shadow_provider_with_identical_spectrum": true,
+    "patch_evaluation_budget": 2,
+    "identity_permutation_required": true,
+    "behavior_weight": 0.5,
+    "edit_gain_weight": 0.0
+  },
+  "acceptance": {
+    "localization_hit1_min": 0.88,
+    "localization_mrr_min": 0.94,
+    "localization_hit3_min": 1.0,
+    "hit1_improvement_over_spectrum_pp_min": 25.0,
+    "integrated_verified_solve_rate_min": 0.80,
+    "solve_improvement_over_spectrum_pp_min": 20.0,
+    "identity_permutation_invariance_min": 0.95,
+    "false_terminal_accepts_max": 0,
+    "max_patch_evaluations_per_case": 2,
+    "external_coding_claim_allowed": false,
+    "agi_claim_allowed": false
+  },
+  "claim_boundary": "Internal differential multi-file localization + constrained repair gate only; not fresh real-repository issue resolution, unrestricted code generation, AGI, or frontier parity."
+}

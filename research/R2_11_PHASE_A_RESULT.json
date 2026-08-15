@@ -1,0 +1,23 @@
+{
+  "agi_claim_allowed": false,
+  "candidate_effective_parameters": 79450489,
+  "cases": 64,
+  "detailed_result_artifact": "R2_11_PHASE_A_RESULT_DETAILED.json",
+  "detailed_result_sha256": "d3073e4e679295878cf829e650d65b3c19f53c15099d59bfa10a3e33f7312eda",
+  "external_coding_claim_allowed": false,
+  "false_terminal_accepts": 0,
+  "hit1_improvement_over_spectrum_pp": 32.8125,
+  "identity_permutation_invariance": 1.0,
+  "integrated_verified_solve_rate": 0.921875,
+  "localization_hit1": 0.953125,
+  "localization_hit3": 1.0,
+  "localization_mrr": 0.9765625,
+  "max_patch_evaluations_observed": 2,
+  "milestone": "R2.11 Differential Multi-File Localization",
+  "new_r211_neural_parameters": 0,
+  "phase": "A",
+  "phase_a_gate_pass": true,
+  "solve_improvement_over_spectrum_pp": 32.8125,
+  "spectrum_baseline_hit1": 0.625,
+  "spectrum_baseline_verified_solve_rate": 0.59375
+}
