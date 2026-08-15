@@ -1,0 +1,160 @@
+name: R2.12 Fresh Real-Repository Localization Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r212_*.py'
+      - 'scripts/r212_*.py'
+      - 'tests/test_r212_*.py'
+      - 'research/R2_12_PRE_MEASURE_LOCK.json'
+      - 'docs/superpowers/specs/2026-08-15-r212-*'
+      - 'docs/superpowers/plans/2026-08-15-r212-*'
+      - '.github/workflows/r212-real-repo-localization.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  prepare-public:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch immutable SWE-rebench V2 sample
+        run: |
+          curl --fail --location --retry 3 \
+            'https://raw.githubusercontent.com/SWE-rebench/SWE-rebench-V2/dd8b58f385783b189a96dd09c22153c843b0e2f9/sample.json' \
+            --output /tmp/swe-rebench-v2-sample.json
+          test "$(git hash-object /tmp/swe-rebench-v2-sample.json)" = 'a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1'
+      - name: Build leak-safe public manifest
+        run: |
+          PYTHONPATH=. python scripts/r212_prepare_public_manifest.py \
+            --input /tmp/swe-rebench-v2-sample.json \
+            --output /tmp/r212-public.json
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from cogcoder.r212_real_repo_protocol import PUBLIC_PREDICTOR_FIELDS
+          data=json.load(open('/tmp/r212-public.json'))
+          assert len(data['tasks']) == 20
+          assert all(set(row) == set(PUBLIC_PREDICTOR_FIELDS) for row in data['tasks'])
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r212-public-panel
+          path: /tmp/r212-public.json
+
+  predict:
+    needs: prepare-public
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest
+      - uses: actions/download-artifact@v4
+        with:
+          name: r212-public-panel
+          path: /tmp/public
+      - name: Verify frozen R2.12 source and contracts
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r212_real_repo_protocol.py \
+            tests/test_r212_real_repo_localizer.py \
+            tests/test_r212_pipeline_contract.py \
+            tests/test_r212_lock_contract.py
+      - name: Predict without gold data
+        run: |
+          PYTHONPATH=. python scripts/r212_predict_real_repo.py \
+            --manifest /tmp/public/r212-public.json \
+            --output /tmp/r212-predictions.json \
+            --timeout-seconds 240
+          (cd /tmp && sha256sum r212-predictions.json > PREDICTIONS_SHA256.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: r212-sealed-predictions
+          path: |
+            /tmp/r212-predictions.json
+            /tmp/PREDICTIONS_SHA256.txt
+
+  score:
+    needs: predict
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/download-artifact@v4
+        with:
+          name: r212-sealed-predictions
+          path: /tmp/pred
+      - name: Fetch gold only after predictions are sealed
+        run: |
+          (cd /tmp/pred && sha256sum -c PREDICTIONS_SHA256.txt)
+          curl --fail --location --retry 3 \
+            'https://raw.githubusercontent.com/SWE-rebench/SWE-rebench-V2/dd8b58f385783b189a96dd09c22153c843b0e2f9/sample.json' \
+            --output /tmp/swe-rebench-v2-sample.json
+          test "$(git hash-object /tmp/swe-rebench-v2-sample.json)" = 'a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1'
+      - name: Score frozen external panel
+        run: |
+          PYTHONPATH=. python scripts/r212_score_predictions.py \
+            --predictions /tmp/pred/r212-predictions.json \
+            --gold /tmp/swe-rebench-v2-sample.json \
+            --output /tmp/r212-result-detailed.json
+      - name: Summarize preregistered Phase-A gate
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.load(open('research/R2_12_PRE_MEASURE_LOCK.json'))
+          r=json.load(open('/tmp/r212-result-detailed.json'))
+          a=lock['acceptance']
+          checks={
+            'tasks_exact': r['tasks'] == lock['dataset']['expected_tasks'],
+            'materialized_tasks_exact': r['materialized_tasks'] == a['materialized_tasks_exact'],
+            'hybrid_hit5': r['hybrid']['hit5'] >= a['hybrid_hit5_min'],
+            'hybrid_mrr': r['hybrid']['mrr'] >= a['hybrid_mrr_min'],
+            'hit5_improvement': r['hit5_improvement_over_path_pp'] >= a['hit5_improvement_over_path_pp_min'],
+            'mrr_improvement': r['mrr_improvement_over_path'] >= a['mrr_improvement_over_path_min'],
+            'recall5_non_regression': r['recall5_improvement_over_path'] >= a['recall5_improvement_over_path_min'],
+            'prediction_determinism': r['prediction_determinism'] >= a['prediction_determinism_min'],
+            'new_neural_parameters': r['new_r212_neural_parameters'] == a['new_r212_neural_parameters_exact'],
+            'effective_parameters': r['candidate_effective_parameters'] == a['candidate_effective_parameters_exact'],
+            'claim_boundary_issue_resolution': r['external_issue_resolution_claim_allowed'] is False,
+            'claim_boundary_agi': r['agi_claim_allowed'] is False,
+          }
+          aggregate={k:v for k,v in r.items() if k != 'rows'}
+          aggregate['gate_checks']=checks
+          aggregate['phase_a_gate_pass']=all(checks.values())
+          aggregate['failed_gate_checks']=[name for name, ok in checks.items() if not ok]
+          Path('/tmp/R2_12_PHASE_A_RESULT.json').write_text(json.dumps(aggregate, indent=2, sort_keys=True)+'\n')
+          PY
+      - name: Build reproduction artifact
+        if: always()
+        run: |
+          mkdir -p /tmp/r212-artifact
+          test -f /tmp/pred/r212-predictions.json && cp /tmp/pred/r212-predictions.json /tmp/r212-artifact/ || true
+          test -f /tmp/r212-result-detailed.json && cp /tmp/r212-result-detailed.json /tmp/r212-artifact/R2_12_PHASE_A_RESULT_DETAILED.json || true
+          test -f /tmp/R2_12_PHASE_A_RESULT.json && cp /tmp/R2_12_PHASE_A_RESULT.json /tmp/r212-artifact/ || true
+          git archive --format=zip --output=/tmp/r212-artifact/Nolane-AI-R2.12-SOURCE.zip HEAD
+          (cd /tmp/r212-artifact && sha256sum * > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nolane-r212-real-repo-localization-phase-a-reproduction
+          path: /tmp/r212-artifact/
+      - name: Enforce preregistered Phase-A gate
+        run: |
+          python - <<'PY'
+          import json
+          r=json.load(open('/tmp/R2_12_PHASE_A_RESULT.json'))
+          assert r['phase_a_gate_pass'], 'failed frozen gate checks: ' + ', '.join(r['failed_gate_checks'])
+          PY

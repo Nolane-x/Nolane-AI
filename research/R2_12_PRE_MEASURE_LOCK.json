@@ -1,0 +1,57 @@
+{
+  "acceptance": {
+    "candidate_effective_parameters_exact": 79450489,
+    "hit5_improvement_over_path_pp_min": 10.0,
+    "hybrid_hit5_min": 0.55,
+    "hybrid_mrr_min": 0.3,
+    "materialized_tasks_exact": 20,
+    "mrr_improvement_over_path_min": 0.05,
+    "new_r212_neural_parameters_exact": 0,
+    "prediction_determinism_min": 1.0,
+    "recall5_improvement_over_path_min": 0.0
+  },
+  "claim_boundary": {
+    "agi_claim_allowed": false,
+    "external_file_localization_claim_allowed_only_if_gate_passes": true,
+    "external_issue_resolution_claim_allowed": false,
+    "frontier_parity_claim_allowed": false,
+    "symbol_or_line_localization_claim_allowed": false
+  },
+  "dataset": {
+    "commit": "dd8b58f385783b189a96dd09c22153c843b0e2f9",
+    "expected_tasks": 20,
+    "git_blob_sha1": "a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1",
+    "path": "sample.json",
+    "provenance": "real GitHub repository tasks from public SWE-rebench V2 sample",
+    "repository": "SWE-rebench/SWE-rebench-V2"
+  },
+  "date": "2026-08-15",
+  "gold_target": "files changed by patch only; test_patch excluded",
+  "lock_history": {
+    "reason": "pre-measurement integration refactor only; no external prediction or score had run; acceptance thresholds unchanged",
+    "supersedes_sha256": "9243e0b51459f71673a164ac3525ff96f228c8faa220c8b010687c6196b3bc4b"
+  },
+  "milestone": "R2.12 Fresh Real-Repository Localization Phase A",
+  "parent_commit": "7c1402a1cfd81576f19a9e0aacb6d79c0bafebf5",
+  "parent_effective_parameters": 79450489,
+  "predictor_allowed_fields": [
+    "instance_id",
+    "repo",
+    "base_commit",
+    "problem_statement"
+  ],
+  "ranking_modes": [
+    "path",
+    "hybrid"
+  ],
+  "source_sha256": {
+    "cogcoder/r212_real_repo_localizer.py": "cf67ff0be8ccf0adf0d5472d96884ac2569aac2f201d537f9a6424fa9f85cb33",
+    "cogcoder/r212_real_repo_protocol.py": "330308fe3142edd6a7cae9c3a7ed7b25411868272f0d8e4ac3edb6ea114d23e0",
+    "scripts/r212_predict_real_repo.py": "4f90cb4e4b056b5a0534c177a741aabbf7d33babcad5c1d1d4e02fd8bd7da972",
+    "scripts/r212_prepare_public_manifest.py": "52ec4cbdc93b73d20f3a161e3053385f8aa996c5fe96cc66f892d357c295b2ce",
+    "scripts/r212_score_predictions.py": "f67d5e1b9409af2f9ca42a69a0dcd6d519daf2130f5160547379510f3b98ec81"
+  },
+  "status": "locked_before_external_measurement",
+  "top_k": 20,
+  "version": 1
+}
