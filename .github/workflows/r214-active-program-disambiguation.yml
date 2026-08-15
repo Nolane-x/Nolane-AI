@@ -1,0 +1,78 @@
+name: R2.14 Active Program Disambiguation Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r214_active_synthesis.py'
+      - 'benchmarks/kfigg/r214_program_identification.py'
+      - 'scripts/run_r214_program_identification.py'
+      - 'tests/test_r214_*.py'
+      - 'research/R2_14_*.json'
+      - 'R2_14_*'
+      - '.github/workflows/r214-active-program-disambiguation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-r214:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest
+      - name: Verify frozen source and result contracts
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r214_version_space.py \
+            tests/test_r214_protocol.py \
+            tests/test_r214_lock.py \
+            tests/test_r214_result.py
+      - name: Verify frozen source SHA-256
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          lock=json.loads(Path('research/R2_14_PRE_HELDOUT_LOCK.json').read_text())
+          for rel, expected in lock['frozen_source_sha256'].items():
+              actual=hashlib.sha256(Path(rel).read_bytes()).hexdigest()
+              assert actual == expected, (rel, expected, actual)
+          PY
+      - name: Reproduce frozen heldout
+        run: |
+          PYTHONPATH=. python scripts/run_r214_program_identification.py \
+            --seeds 32001 \
+            --cases-per-family 40 \
+            --depth3-cases-per-family 16 \
+            --old-count 64 \
+            --out-of-class-count 40 \
+            --output /tmp/r214-ci-heldout.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          expected=json.loads(Path('research/R2_14_HELDOUT_RAW.json').read_text())
+          actual=json.loads(Path('/tmp/r214-ci-heldout.json').read_text())
+          assert actual == expected
+          PY
+      - name: Compile active source
+        run: python -m compileall -q cogcoder benchmarks/kfigg scripts tests
+      - name: Build reproduction artifact
+        if: always()
+        run: |
+          mkdir -p /tmp/r214-artifact
+          cp research/R2_14_PRE_HELDOUT_LOCK.json /tmp/r214-artifact/
+          cp research/R2_14_DEV_RESULT.json /tmp/r214-artifact/
+          cp research/R2_14_HELDOUT_RAW.json /tmp/r214-artifact/
+          cp research/R2_14_PHASE_A_RESULT.json /tmp/r214-artifact/
+          test -f /tmp/r214-ci-heldout.json && cp /tmp/r214-ci-heldout.json /tmp/r214-artifact/ || true
+          (cd /tmp/r214-artifact && sha256sum * > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nolane-r214-active-program-disambiguation-phase-a-reproduction
+          path: /tmp/r214-artifact/

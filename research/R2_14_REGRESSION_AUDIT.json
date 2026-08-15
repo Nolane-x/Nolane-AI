@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.14 Active Program Disambiguation",
+  "focused_verification": {
+    "command": "PYTHONPATH=. pytest -q tests/test_r214_version_space.py tests/test_r214_protocol.py tests/test_r214_lock.py tests/test_r214_result.py tests/test_r23_skill_synthesis.py",
+    "passed": 27,
+    "failed": 0,
+    "compileall": "pass",
+    "frozen_source_sha256_matches": 7,
+    "frozen_source_sha256_total": 7,
+    "result_artifact_sha256_matches": 4,
+    "result_artifact_sha256_total": 4
+  },
+  "broad_root_suite": {
+    "status": "not_globally_clean_due_preexisting_lineage_debt",
+    "first_packaging_failure": {
+      "test": "tests/test_r21_r20i_integration.py::test_no_source_runtime_is_exact_r20i_fallback",
+      "error": "ModuleNotFoundError: cogcoder.r18_benchmark",
+      "diagnosis": "Root package does not expose historical R1.8/R2.0 compatibility modules required by legacy integration tests. R2.14 tests pass before this failure."
+    },
+    "next_preexisting_failure_after_excluding_legacy_import_group": {
+      "test": "tests/test_r25_arc_pair.py::test_learns_d4_union_without_color_memorization",
+      "observed": "fit_pair_programs(pairs) returned an empty tuple",
+      "diagnosis": "Preexisting rejected/negative R2.5 ARC track behavior, outside R2.14 decision-relevant source."
+    },
+    "r214_implicated": false,
+    "policy": "Do not bundle unrelated historical packaging or rejected R2.5 repairs into an accepted R2.14 research milestone. Preserve the debt explicitly and gate R2.14 on focused frozen-source reproduction."
+  },
+  "claim_boundary": {
+    "full_repository_regression_clean": false,
+    "r214_focused_gate_clean": true,
+    "agi_claim_allowed": false,
+    "external_generalization_claim_allowed": false
+  }
+}

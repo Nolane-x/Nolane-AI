@@ -1,0 +1,169 @@
+{
+  "false_resolved_accepts_all_active": 0,
+  "max_active_oracle_calls": 3,
+  "max_main_active_accuracy": 1.0,
+  "min_depth3_active_accuracy": 0.96875,
+  "min_identity_permutation_invariance": 1.0,
+  "min_main_active_accuracy": 1.0,
+  "min_out_of_class_abstention": 1.0,
+  "min_retention_accuracy": 1.0,
+  "per_seed": [
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.16666666666666666,
+        "2": 0.90625,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.375,
+        "random_budgeted": 0.71875
+      },
+      "depth3_cases": 32,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.15625,
+        "random_budgeted": 0.6875,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 96,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 40,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 24,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 22001
+    },
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.15625,
+        "2": 0.9270833333333334,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.4375,
+        "random_budgeted": 0.625
+      },
+      "depth3_cases": 32,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.125,
+        "random_budgeted": 0.6041666666666666,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 96,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 40,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 24,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 22002
+    },
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.21875,
+        "2": 0.9479166666666666,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.34375,
+        "random_budgeted": 0.53125
+      },
+      "depth3_cases": 32,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.13541666666666666,
+        "random_budgeted": 0.7916666666666666,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 96,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 40,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 24,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 22003
+    },
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.17708333333333334,
+        "2": 0.96875,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.34375,
+        "random_budgeted": 0.59375
+      },
+      "depth3_cases": 32,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.22916666666666666,
+        "random_budgeted": 0.7604166666666666,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 96,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 40,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 24,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 22004
+    },
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.25,
+        "2": 0.90625,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 0.96875,
+        "passive_fixed": 0.4375,
+        "random_budgeted": 0.46875
+      },
+      "depth3_cases": 32,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.17708333333333334,
+        "random_budgeted": 0.7916666666666666,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 96,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 40,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 24,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 22005
+    }
+  ],
+  "seeds": [
+    22001,
+    22002,
+    22003,
+    22004,
+    22005
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "false_resolved_accepts_all_active": 0,
+  "max_active_oracle_calls": 3,
+  "max_main_active_accuracy": 1.0,
+  "min_depth3_active_accuracy": 0.9375,
+  "min_identity_permutation_invariance": 1.0,
+  "min_main_active_accuracy": 1.0,
+  "min_out_of_class_abstention": 1.0,
+  "min_retention_accuracy": 1.0,
+  "per_seed": [
+    {
+      "budget_curve": {
+        "0": 0.0,
+        "1": 0.175,
+        "2": 0.9125,
+        "3": 1.0
+      },
+      "depth3_accuracy": {
+        "active": 0.9375,
+        "passive_fixed": 0.390625,
+        "random_budgeted": 0.5625
+      },
+      "depth3_cases": 64,
+      "false_resolved_accepts_all_active": 0,
+      "identity_permutation_invariance": 1.0,
+      "main_accuracy": {
+        "active": 1.0,
+        "passive_fixed": 0.2125,
+        "random_budgeted": 0.71875,
+        "shortest_consistent": 0.0
+      },
+      "main_cases": 160,
+      "max_active_oracle_calls": 3,
+      "old_regime_cases": 64,
+      "out_of_class_abstention": 1.0,
+      "out_of_class_cases": 40,
+      "out_of_class_false_resolved_accepts": 0,
+      "retention_accuracy": 1.0,
+      "seed": 32001
+    }
+  ],
+  "seeds": [
+    32001
+  ]
+}

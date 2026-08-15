@@ -1,0 +1,53 @@
+{
+  "accepted": true,
+  "agi_claim": false,
+  "agi_engineering_readiness_after": 20.0,
+  "agi_engineering_readiness_before": 19.2,
+  "agi_readiness_delta": 0.8,
+  "agi_score_rationale": "Accepted internal evidence improves active hypothesis disambiguation, continual skill reliability, abstention, and calibration under bounded finite domains; increase is deliberately small because evidence is synthetic/internal and does not establish broad language, world knowledge, multimodality, unrestricted synthesis, or external real-repository generalization.",
+  "claim_boundary": "Internal finite-domain active program-identification result. The benchmark intentionally creates sparse aliasing ambiguity and exposes a known finite probe domain. It is not evidence of unrestricted program synthesis or AGI.",
+  "decision": "accepted",
+  "effective_neural_parameters": 79450489,
+  "external_coding_claim": false,
+  "gate_checks": {
+    "depth3_accuracy": true,
+    "false_accepts": true,
+    "gain_over_passive": true,
+    "gain_over_random": true,
+    "gain_over_shortest": true,
+    "main_active_accuracy": true,
+    "oracle_budget": true,
+    "out_of_class_abstention": true,
+    "permutation_invariance": true,
+    "retention": true
+  },
+  "heldout_raw_sha256": "65fabbf32c55c897d1cb2b4e2ee5ddcf14ca73fc8d48d0f2154d2c019fbfb2af",
+  "lock_sha256": "f1760126547b4ec88f524d7cc105df5e4efbb0051739c978504ee7b6225cc001",
+  "metrics": {
+    "budget_curve": {
+      "0": 0.0,
+      "1": 0.175,
+      "2": 0.9125,
+      "3": 1.0
+    },
+    "depth3_active_accuracy": 0.9375,
+    "depth3_passive_fixed_accuracy": 0.390625,
+    "depth3_random_budgeted_accuracy": 0.5625,
+    "false_resolved_accepts": 0,
+    "gain_over_passive_fixed": 0.7875,
+    "gain_over_random_budgeted": 0.28125,
+    "gain_over_shortest_consistent": 1.0,
+    "identity_permutation_invariance": 1.0,
+    "main_active_accuracy": 1.0,
+    "main_passive_fixed_accuracy": 0.2125,
+    "main_random_budgeted_accuracy": 0.71875,
+    "main_shortest_consistent_accuracy": 0.0,
+    "max_active_oracle_calls": 3,
+    "out_of_class_abstention": 1.0,
+    "retention_accuracy": 1.0
+  },
+  "milestone": "R2.14",
+  "name": "Active Program Disambiguation",
+  "new_neural_parameters": 0,
+  "seed": 32001
+}
