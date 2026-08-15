@@ -1,0 +1,42 @@
+name: R2.8 Repository World Model Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r28_*.py'
+      - 'benchmarks/codeworld/r28_*.py'
+      - 'scripts/*r28*.py'
+      - 'tests/test_r28_*.py'
+      - 'research/R2_8_*'
+      - 'R2_8_*'
+      - 'docs/superpowers/specs/2026-08-15-r28-*'
+      - 'docs/superpowers/plans/2026-08-15-r28-*'
+      - '.github/workflows/r28-world-model.yml'
+  workflow_dispatch:
+
+jobs:
+  phase-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: pip install 'torch>=2.2,<3' pytest
+      - name: Run R2.8 focused tests
+        run: PYTHONPATH=. pytest -q tests/test_r28_repo_world.py tests/test_r28_epistemic_debugger.py tests/test_r28_runtime.py tests/test_r28_protocol.py
+      - name: Measure locked R2.8 Phase-A routing gate
+        run: PYTHONPATH=. python scripts/measure_r28_epistemic_routing.py
+      - name: Verify zero neural parameter growth
+        run: PYTHONPATH=. python -c "import json; p=json.load(open('research/R2_8_PHASE_A_RESULT.json')); assert p['new_r28_neural_parameters']==0 and p['candidate_effective_parameters']==79401400 and p['phase_a_gate_pass'] is True"
+      - name: Build source snapshot
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output=dist/Nolane-AI-R2.8-Repository-World-Model-Phase-A-SOURCE.zip HEAD
+          sha256sum dist/Nolane-AI-R2.8-Repository-World-Model-Phase-A-SOURCE.zip > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r28-repository-world-model-phase-a-source
+          path: dist/
