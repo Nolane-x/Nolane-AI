@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.10 Compact Copy-Edit Proposer",
+  "status": "phase_a_internal_cross_language_gate_accepted_external_gates_pending",
+  "parent_source_commit": "d278a35d7569a15b11b4883a1f70b44c0da885b5",
+  "parent_effective_parameters": 79401400,
+  "new_r210_neural_parameters": 49089,
+  "candidate_effective_parameters": 79450489,
+  "candidate_parameter_ceiling": 80000000,
+  "parent_weight": "Nolane-R2.7-CodeWorld-Generalist-Phase-A-ONE-WEIGHT.pt",
+  "parent_weight_sha256": "16552d8565ba696dce3c2b853c27097f74e727bbfb8e2d6ff35064af308adcf5",
+  "accepted_weight": "Nolane-R2.10-Compact-Copy-Edit-Proposer-Phase-A-ONE-WEIGHT.pt",
+  "accepted_weight_sha256": "508b4242dfa5103d1f444025d40419d1db7fa415172d81289f772b34de98c35d",
+  "recovery_delta": "R2_10_COPY_EDIT_DELTA.pt",
+  "recovery_delta_sha256": "6373605fddb5f1cfe6e31d52958c0155443b2552dd1e4f3fdb8628d7ffab7e7f",
+  "pretrain_lock": "research/R2_10_PRETRAIN_LOCK.json",
+  "pretrain_lock_sha256": "4930b327399ce6e205db648c20e4dd3d77a8afcca0f743bcfc7a116a3e664c3a",
+  "phase_a_result": "research/R2_10_PHASE_A_RESULT.json",
+  "phase_a_result_sha256": "16f32e05a123b282dcc3f5fd034e6750a3edf5b34f2286561810be058ce7a7b2",
+  "external_coding_claim_allowed": false,
+  "agi_claim_allowed": false
+}

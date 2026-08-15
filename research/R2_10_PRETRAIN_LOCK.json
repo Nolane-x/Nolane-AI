@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.10 Compact Copy-Edit Proposer",
+  "parent_source_commit": "d278a35d7569a15b11b4883a1f70b44c0da885b5",
+  "parent_effective_parameters": 79401400,
+  "candidate_total_parameter_ceiling": 80000000,
+  "new_r210_parameter_ceiling": 300000,
+  "protocol": {
+    "training_language": "python",
+    "heldout_language": "javascript",
+    "training_rows_per_family": 192,
+    "heldout_cases": 48,
+    "heldout_cases_per_family": 24,
+    "execution_budget_per_case": 2,
+    "heldout_seed": 9210,
+    "training_seed": 210,
+    "identifier_and_candidate_id_invariance_required": true,
+    "language_id_input_allowed": false,
+    "task_type_id_input_allowed": false
+  },
+  "acceptance": {
+    "top1_gold_candidate_accuracy_min": 0.75,
+    "integrated_verified_solve_rate_min": 0.85,
+    "improvement_over_unranked_baseline_pp_min": 25.0,
+    "rename_invariance_min": 0.95,
+    "false_terminal_accepts_max": 0,
+    "external_coding_claim_allowed": false,
+    "agi_claim_allowed": false
+  },
+  "claim_boundary": "Constrained Python-to-JavaScript copy-edit proposal gate only; not arbitrary source generation, fresh-repository repair, AGI, or frontier parity."
+}

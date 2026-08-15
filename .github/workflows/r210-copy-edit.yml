@@ -1,0 +1,90 @@
+name: R2.10 Compact Copy-Edit Proposer Phase A
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r210_*.py'
+      - 'benchmarks/codeworld/r210_*.py'
+      - 'scripts/*r210*.py'
+      - 'tests/test_r210_*.py'
+      - 'research/R2_10_*'
+      - 'R2_10_*'
+      - 'docs/superpowers/specs/2026-08-15-r210-*'
+      - 'docs/superpowers/plans/2026-08-15-r210-*'
+      - '.github/workflows/r210-copy-edit.yml'
+      - 'README.md'
+  workflow_dispatch:
+
+jobs:
+  phase-a:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install locked test dependencies
+        run: pip install 'torch==2.10.0' pytest
+      - name: Verify R2.9 parent and R2.10 tests
+        run: >-
+          PYTHONPATH=. pytest -q
+          tests/test_r29_patch_model.py
+          tests/test_r29_patch_search.py
+          tests/test_r29_protocol.py
+          tests/test_r210_copy_edit_features.py
+          tests/test_r210_copy_edit_model.py
+          tests/test_r210_curriculum.py
+          tests/test_r210_training.py
+          tests/test_r210_measure.py
+          tests/test_r210_result_contract.py
+      - name: Retrain R2.10 proposer from frozen source
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          from scripts.train_r210_copy_edit_proposer import train_copy_edit_proposer, save_r210_delta
+          lock = Path('research/R2_10_PRETRAIN_LOCK.json')
+          lock_sha = hashlib.sha256(lock.read_bytes()).hexdigest()
+          result = train_copy_edit_proposer(seed=210, epochs=28, rows_per_family=192, batch_size=64)
+          meta = save_r210_delta(Path('/tmp/r210_delta.pt'), result, lock_sha256=lock_sha)
+          Path('/tmp/r210_train_meta.json').write_text(json.dumps(meta, indent=2, sort_keys=True))
+          PY
+      - name: Run frozen JavaScript heldout gate
+        run: PYTHONPATH=. python scripts/measure_r210_copy_edit.py --checkpoint /tmp/r210_delta.pt > /tmp/r210_measure.json
+      - name: Verify frozen acceptance thresholds
+        run: |
+          python - <<'PY'
+          import json
+          lock=json.load(open('research/R2_10_PRETRAIN_LOCK.json'))
+          result=json.load(open('/tmp/r210_measure.json'))
+          acc=lock['acceptance']
+          assert result['cases']==48
+          assert result['top1_gold_candidate_accuracy'] >= acc['top1_gold_candidate_accuracy_min']
+          assert result['integrated_verified_solve_rate'] >= acc['integrated_verified_solve_rate_min']
+          assert result['improvement_over_unranked_baseline_pp'] >= acc['improvement_over_unranked_baseline_pp_min']
+          assert result['rename_invariance'] >= acc['rename_invariance_min']
+          assert result['false_terminal_accepts'] <= acc['false_terminal_accepts_max']
+          assert result['new_r210_neural_parameters']==49089
+          assert result['candidate_effective_parameters']==79450489
+          assert result['candidate_effective_parameters'] < 80000000
+          assert result['external_coding_claim_allowed'] is False
+          assert result['agi_claim_allowed'] is False
+          assert result['phase_a_gate_pass'] is True
+          PY
+      - name: Compile source
+        run: python -m compileall -q cogcoder benchmarks/codeworld scripts
+      - name: Build full source snapshot
+        run: |
+          mkdir -p dist
+          git archive --format=zip --output=dist/Nolane-AI-R2.10-Compact-Copy-Edit-Proposer-Phase-A-SOURCE.zip HEAD
+          cp /tmp/r210_train_meta.json dist/
+          cp /tmp/r210_measure.json dist/
+          sha256sum dist/Nolane-AI-R2.10-Compact-Copy-Edit-Proposer-Phase-A-SOURCE.zip > dist/SHA256SUMS.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r210-compact-copy-edit-proposer-phase-a-source-and-reproduction
+          path: dist/

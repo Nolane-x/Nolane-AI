@@ -1,0 +1,18 @@
+{
+  "agi_claim_allowed": false,
+  "candidate_effective_parameters": 79450489,
+  "cases": 48,
+  "detailed_result_artifact": "R2_10_PHASE_A_RESULT_DETAILED.json",
+  "detailed_result_sha256": "1646efbcfe469d5f522f5bdc5ea28eead440bd8a30bdcaf8d29ef13b2d4aed81",
+  "external_coding_claim_allowed": false,
+  "false_terminal_accepts": 0,
+  "improvement_over_unranked_baseline_pp": 43.75,
+  "integrated_verified_solve_rate": 0.9375,
+  "milestone": "R2.10 Compact Copy-Edit Proposer",
+  "new_r210_neural_parameters": 49089,
+  "phase": "A",
+  "phase_a_gate_pass": true,
+  "rename_invariance": 1.0,
+  "top1_gold_candidate_accuracy": 0.9166666666666666,
+  "unranked_baseline_solve_rate": 0.5
+}
