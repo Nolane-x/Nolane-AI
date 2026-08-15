@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.15 Calibrated Active Hypothesis Testing under Noisy/Partial Evidence + Distribution Shift",
+  "status": "accepted_bundle_seal",
+  "parent_commit": "8e997aa600a9433f52dd0e156720e3c0d44b48c1",
+  "bundle_path": "research/bundles/R2_15-Calibrated-Noisy-Active-Hypothesis-Testing-source-and-evidence.tar.gz",
+  "bundle_sha256": "2a0165544741069ec11f0118e297c805cd1126845ab53a7894bbf5f95529bb02",
+  "bundle_git_blob_sha": "8b17edf919806e49d4ca576c2788b3a5fad548a9",
+  "bundle_contains_exact_files": 20,
+  "lock_sha256": "24eb894ce19bb0dac2d2f948c4fc288469a78c2f46cc490b436e83f93fcab671",
+  "heldout_raw_sha256": "4d3f916236824fcce5f64a4bf41606218fc9e45e7bb53576325a752c03fdf3cc",
+  "phase_a_result_sha256": "79343eda7ce0bebbc9ebde1cf28f2ac1fd279704745f04ddf0020a1cc71e89e0",
+  "new_neural_parameters": 0,
+  "effective_neural_parameters": 79450489,
+  "agi_engineering_readiness_before": 20.0,
+  "agi_engineering_readiness_after": 20.6,
+  "external_coding_claim": false,
+  "agi_claim": false,
+  "note": "Emergency content-addressed bundle seal used because the previous native-git push claim could not be reproduced by the GitHub connector. The bundle preserves the exact 20-file milestone source/evidence set byte-for-byte; it is not a claim that those files were expanded into their ordinary repository paths in this commit. COMPLETE package and Library copy preserve the full project tree plus these files."
+}
