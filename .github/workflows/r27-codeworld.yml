@@ -26,12 +26,7 @@ jobs:
       - name: Run R2.7 tests
         run: PYTHONPATH=. pytest -q tests/test_r27_codeworld_controller.py tests/test_r27_codeworld_runtime.py tests/test_r27_codeworld_curriculum.py tests/test_r27_training.py tests/test_r27_measure.py
       - name: Verify Phase-A lock
-        run: python - <<'PY'
-          import json
-          p=json.load(open('research/R2_7_PRE_DEV_LOCK.json'))
-          assert p['phase_a_parameter_ceiling'] == 80000000
-          assert p['acceptance']['external_coding_claim_allowed'] is False
-          PY
+        run: python scripts/verify_r27_codeworld_phase_a_lock.py
       - name: Build complete source snapshot
         run: |
           mkdir -p dist
