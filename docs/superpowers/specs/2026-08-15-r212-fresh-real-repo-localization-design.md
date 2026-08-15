@@ -9,7 +9,7 @@ R2.12 tests whether the compact Nolane coding stack can localize faults in **rea
 
 ## External panel
 
-The Phase-A panel is the public 20-task `sample.json` from `SWE-rebench/SWE-rebench-V2` at immutable Git commit `dd8b58f385783b189a96dd09c22153c843b0e2f9` (the Hugging Face mirror exposes the same 20-row sample). Each row supplies a real repository, an exact `base_commit`, a problem statement, and a gold patch. The panel spans eight language labels.
+The Phase-A panel is the public 20-task `ibragim-bad/SWE-rebench-V2-sample` dataset referenced by the official `SWE-rebench/SWE-rebench-V2` README. It is pinned to immutable Hugging Face revision `9a7cd16b2431fc9f0abaf4c359e21fd3fae12ae3`, config `default`, split `train`, and loaded with `datasets==5.0.0`. Each row supplies a real repository, an exact `base_commit`, a problem statement, and a gold patch. The panel contains exactly 20 tasks across eight language labels.
 
 The predictor is allowed to receive only:
 
@@ -84,3 +84,7 @@ A pass establishes only external file-localization evidence on the frozen 20-tas
 
 - **If accepted:** move to R2.13 real-repository symbol localization and then bounded repair on a subset whose required edits fit the R2.10 copy-edit algebra.
 - **If rejected:** retain the negative result and diagnose whether the limiting factor is issue semantics, repository-scale retrieval, graph construction, or non-neural ranking; add neural capacity only if the measured failure justifies it.
+
+## Acquisition correction before prediction
+
+The first CI attempt (`31862050419`) pinned the builder repository's small `sample.json`, assuming it was identical to the documented 20-task Hugging Face sample. `prepare-public` rejected that assumption at the 20-row assertion. No prediction job and no gold scoring job ran. The acquisition source was therefore corrected and re-locked before any external model/ranker score existed; all acceptance thresholds and frozen ranking-source hashes remain unchanged.
