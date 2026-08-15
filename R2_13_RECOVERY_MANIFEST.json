@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "date": "2026-08-15",
+  "milestone": "R2.13 Evidence-Preserving Skill Consolidation",
+  "status": "rejected_negative_result_recovery",
+  "parent_github_main_at_recovery": "47ade3354f16e0660b74b167a38b5d06a8a9849d",
+  "original_lock_sha256": "7b00877cb7d7058ff2a548f5721dac2382b67d8f5d8e90f6958728840283888c",
+  "recovery_record": "research/R2_13_NEGATIVE_RESULT_RECOVERY.json",
+  "delivery": "R2_13_DELIVERY.md",
+  "source_recovery_exact": false,
+  "reason": "The original R2.13 decision-relevant source snapshot was not persisted as a sealed complete artifact before the subsequent R2.14 work. The measured outcome is preserved without fabricating missing source bytes.",
+  "new_neural_parameters": 0,
+  "effective_neural_parameters": 79450489,
+  "promotion_allowed": false,
+  "agi_claim_allowed": false
+}

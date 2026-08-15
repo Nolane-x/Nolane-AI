@@ -1,0 +1,41 @@
+{
+  "version": 1,
+  "milestone": "R2.13",
+  "name": "Evidence-Preserving Skill Consolidation",
+  "status": "rejected_negative_result_recovery_record",
+  "date": "2026-08-15",
+  "source_snapshot_recovery_status": "original_decision_relevant_source_not_preserved_as_a_complete_sealed_snapshot",
+  "scientific_integrity_note": "This file preserves the measured frozen-gate outcome and known lock digest. It does not reconstruct or claim byte-identical original R2.13 decision source. Missing source bytes must not be inferred from this record.",
+  "original_pre_heldout_lock_sha256": "7b00877cb7d7058ff2a548f5721dac2382b67d8f5d8e90f6958728840283888c",
+  "frozen_gate": {
+    "contextual_accuracy_min": 0.875,
+    "gain_over_latest_version_pp_min": 25.0,
+    "old_regime_retention_min": 0.875,
+    "ambiguous_context_abstention_min": 1.0,
+    "evidence_integrity_min": 1.0,
+    "new_neural_parameters_exact": 0
+  },
+  "heldout": {
+    "r213_contextual_accuracy": 0.75,
+    "r23_latest_version_accuracy": 0.375,
+    "no_memory_accuracy": 0.0625,
+    "gain_over_latest_version_pp": 37.5,
+    "old_regime_retention": 0.75,
+    "ambiguous_context_abstention": 1.0,
+    "evidence_integrity": 1.0,
+    "new_neural_parameters": 0,
+    "effective_neural_parameters": 79450489
+  },
+  "failed_gate_checks": [
+    "contextual_accuracy",
+    "old_regime_retention"
+  ],
+  "decision": "rejected",
+  "promotion_allowed": false,
+  "root_cause": "The contextual router selected the intended skill candidate, but the inherited bounded symbolic synthesizer could select the first shortest program consistent with sparse demonstrations even when that program was not semantically equivalent on unseen inputs. The observed failures concentrated in an XOR transformation family, indicating program underdetermination rather than evidence-routing failure.",
+  "next_axis": "R2.14 Active Program Disambiguation",
+  "agi_engineering_readiness_before": 19.2,
+  "agi_engineering_readiness_after": 19.2,
+  "agi_claim_allowed": false,
+  "external_coding_claim_allowed": false
+}
