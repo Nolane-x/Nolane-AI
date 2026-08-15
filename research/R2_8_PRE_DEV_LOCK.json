@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "milestone": "R2.8 Repository World Model + Epistemic Active Debugging",
+  "phase": "A",
+  "lock_date": "2026-08-15",
+  "parent_source_commit": "f5d6d3413c5a5f28590d7aeb7a3e69400696497b",
+  "parent_weight": "Nolane-R2.7-CodeWorld-Generalist-Phase-A-ONE-WEIGHT.pt",
+  "parent_weight_sha256": "16552d8565ba696dce3c2b853c27097f74e727bbfb8e2d6ff35064af308adcf5",
+  "parent_effective_parameters": 79401400,
+  "new_r28_neural_parameters": 0,
+  "candidate_effective_parameters": 79401400,
+  "protocol": {
+    "case_source": "benchmarks/codeworld/r28_epistemic_cases.py",
+    "required_minimum_cases": 4,
+    "same_state_counterexamples_required": true,
+    "node_and_hypothesis_rename_invariance_required": true,
+    "language_id_allowed": false,
+    "task_type_id_allowed": false,
+    "public_evidence_only": true
+  },
+  "acceptance": {
+    "minimum_exact_action_accuracy": 1.0,
+    "minimum_rename_invariance": 1.0,
+    "external_coding_claim_allowed": false,
+    "agi_claim_allowed": false,
+    "fresh_repository_external_gate_required": true
+  }
+}
