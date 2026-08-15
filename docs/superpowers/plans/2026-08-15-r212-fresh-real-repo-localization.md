@@ -6,11 +6,11 @@
 
 **Architecture:** A deterministic issue-to-repository ranker extracts issue anchors, scores paths/content/symbols, and performs bounded dependency propagation. GitHub Actions separates prediction from gold scoring: the predictor sees only issue/repo/base-commit fields; the evaluator downloads the full immutable dataset only after predictions have been written.
 
-**Tech Stack:** Python 3.11 standard library, git CLI, pytest, HTTPS + git CLI only in CI acquisition, GitHub Actions.
+**Tech Stack:** Python 3.11 standard library, git CLI, pytest, Hugging Face `datasets==5.0.0` only in acquisition/scoring jobs, GitHub Actions.
 
 ## Global Constraints
 
-- Dataset: `SWE-rebench/SWE-rebench-V2/sample.json` at immutable Git commit `dd8b58f385783b189a96dd09c22153c843b0e2f9` (20 rows).
+- Dataset: `ibragim-bad/SWE-rebench-V2-sample`, immutable revision `9a7cd16b2431fc9f0abaf4c359e21fd3fae12ae3`, config `default`, split `train` (20 rows, 8 language classes).
 - Exactly 20 external tasks are required for an accepted result.
 - Predictor must never receive `patch`, `test_patch`, `FAIL_TO_PASS`, `PASS_TO_PASS`, PR description, interfaces, or gold-derived metadata.
 - R2.12 adds exactly 0 neural parameters; effective neural parameter count remains 79,450,489.

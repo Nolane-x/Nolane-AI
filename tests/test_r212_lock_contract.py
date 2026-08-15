@@ -7,11 +7,15 @@ LOCK = Path('research/R2_12_PRE_MEASURE_LOCK.json')
 
 def test_r212_lock_freezes_external_panel_thresholds_and_source_hashes():
     lock = json.loads(LOCK.read_text())
-    assert lock['dataset']['repository'] == 'SWE-rebench/SWE-rebench-V2'
-    assert lock['dataset']['path'] == 'sample.json'
-    assert lock['dataset']['commit'] == 'dd8b58f385783b189a96dd09c22153c843b0e2f9'
-    assert lock['dataset']['git_blob_sha1'] == 'a44529e3f7510353a0de8f90ae22c0e9bc7c6fc1'
-    assert lock['dataset']['expected_tasks'] == 20
+    dataset=lock['dataset']
+    assert dataset['provider'] == 'huggingface'
+    assert dataset['repository'] == 'ibragim-bad/SWE-rebench-V2-sample'
+    assert dataset['revision'] == '9a7cd16b2431fc9f0abaf4c359e21fd3fae12ae3'
+    assert dataset['config'] == 'default'
+    assert dataset['split'] == 'train'
+    assert dataset['loader'] == 'datasets==5.0.0'
+    assert dataset['expected_tasks'] == 20
+    assert dataset['expected_language_classes'] == 8
     assert lock['acceptance'] == {
         'materialized_tasks_exact': 20,
         'hybrid_hit5_min': 0.55,
