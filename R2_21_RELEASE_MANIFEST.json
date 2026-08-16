@@ -1,0 +1,20 @@
+{
+  "artifact_boundary": "GitHub will carry executable R2.20 foundation + R2.21 adaptive core/tests and critical evidence metadata. Full source/evidence and complete project ZIP are persisted in ChatGPT Library.",
+  "decision": "ACCEPTED",
+  "heldout_sha256": "3df802fb64a36a68276ed3ddb0e8a05c6eb7b556781a751f742c1a2da552d607",
+  "lock_sha256": "47b82740f1ad2fdab437ed7947663ace41aed417a58365d0ecd23e96a8b10c5d",
+  "milestone": "R2.21",
+  "parent_main_before_integration": "db2e005b6782ee5c38dd6b1feca154e863e6e17f",
+  "r220_rejected_preserved": true,
+  "readiness_after": 23.4,
+  "schema_version": 1,
+  "source_evidence_bundle": {
+    "blank_reproduction": "19/19 R2.21 tests PASS + compileall PASS from R2.19 base + bundle overlay",
+    "file_count": 111,
+    "path": "research/bundles/R2_21-source-and-evidence.tar.gz",
+    "sha256": "92d6d999849da7dbad78eb2b60c61838b9628333aa3c51f4b4e6bd5dea7ff77c",
+    "size_bytes": 66422
+  },
+  "verifier_sha256": "c9c3e19d82bdfa6b14597c2b55beaaed5f1bdebe811b60d8ef264765ac6b6713",
+  "world_final_sha256": "7a571bdfee76feafbd11e0d37c1df28df8559072e29b59b1e15f96da35d1bda6"
+}
