@@ -1,0 +1,85 @@
+{
+  "agi_claim": false,
+  "agi_engineering_readiness_after": 21.7,
+  "agi_engineering_readiness_before": 21.1,
+  "authoritative_source_evidence_tar": {
+    "bytes": 87318,
+    "path": "artifacts/r217/r217-source-evidence.tar.gz",
+    "sha256": "605bd376b106c0c9d45baabe19fb0dc0107c75df3dc1b4b018d9ec96e0e7793a"
+  },
+  "claim_boundary": "Internal finite-domain exact-oracle program-learning evidence only; not unrestricted program synthesis, external software engineering, broad language/world generality, frontier parity, or AGI.",
+  "date": "2026-08-16",
+  "decision": "accepted_after_integrity_recovery_and_fresh_reproduction",
+  "effective_neural_parameters": 79450489,
+  "fresh_verification": {
+    "compileall": "PASS",
+    "core_frozen_contracts": "29/29 PASS",
+    "frozen_source_hashes": "15/15",
+    "gate_checks": "24/24",
+    "negative_transfer_worker": {
+      "cases": 4,
+      "clean_all_correct": true,
+      "false_accepts": 0,
+      "polluted_all_correct": true,
+      "quarantined": true,
+      "reason": "deployment_cost_regression",
+      "relative_cost_regression": 0.10606269852230354,
+      "threshold": 0.1
+    },
+    "protocol_light_and_cohort_contracts": "9 protocol assertions verified; frozen inline negative-transfer workload verified through production phase worker due subprocess-descendant pytest hang"
+  },
+  "heldout_reproduction": {
+    "exact_per_seed_matches": 3,
+    "frozen_raw_sha256": "8d6a1b01916d786fb49ba8092a6b1c33dff1fdc7d9b07f1e413fd5b561360f59",
+    "per_seed": [
+      {
+        "canonical_sha256": "af404fffa273280716d250ec7785f7262d8c2fc62c3dfc9d0d6d4525116c9a3c",
+        "exact_semantic_match": true,
+        "frozen_canonical_sha256": "af404fffa273280716d250ec7785f7262d8c2fc62c3dfc9d0d6d4525116c9a3c",
+        "reproduced_path": "research/R2_17_REPRODUCED_SEED_31762.json",
+        "reproduced_sha256": "1f7521746246df30ef681c9258632e0edb22d0f4c759451e78fef530f333804a",
+        "seed": 31762
+      },
+      {
+        "canonical_sha256": "e0ef1cd3acfa302716edbedcc21ab177c116d5106e613f626ad22a7e73f0c53f",
+        "exact_semantic_match": true,
+        "frozen_canonical_sha256": "e0ef1cd3acfa302716edbedcc21ab177c116d5106e613f626ad22a7e73f0c53f",
+        "reproduced_path": "research/R2_17_REPRODUCED_SEED_31941.json",
+        "reproduced_sha256": "29d34b4a992b278efcd329d0ef1ac13bc29e4e2ebac31a60ce3841c788365721",
+        "seed": 31941
+      },
+      {
+        "canonical_sha256": "d1dee23e6e5273cef25479b31d8f33d13c9c9bbbd5e6711341a413b709ed7fa5",
+        "exact_semantic_match": true,
+        "frozen_canonical_sha256": "d1dee23e6e5273cef25479b31d8f33d13c9c9bbbd5e6711341a413b709ed7fa5",
+        "reproduced_path": "research/R2_17_REPRODUCED_SEED_32189.json",
+        "reproduced_sha256": "9f21245ea5e80aedb88e3b61eae18e819bfc5c2d82e9bad7575d2a6dfd18eaee",
+        "seed": 32189
+      }
+    ],
+    "seeds": [
+      31762,
+      31941,
+      32189
+    ]
+  },
+  "milestone": "R2.17 Hierarchical Library-Growing CEGIS",
+  "new_neural_parameters": 0,
+  "runner_limitation": {
+    "decision_source_changed": false,
+    "frozen_outer_runner_concurrent_orchestration_can_hang_in_current_harness": true,
+    "heldout_seed_changed": false,
+    "metrics_changed": false,
+    "observed_behavior": "ThreadPool/subprocess capture path can retain descendant pipes; seed workers themselves complete and reproduce exact payloads when invoked under explicit OS process boundaries.",
+    "threshold_changed": false
+  },
+  "version": 1,
+  "workspace_integrity_recovery": {
+    "drifted_paths_count": 1,
+    "frozen_sha256": "0f885d2d5a80b45f3901b5d2a5f80442258416bb871af2a7c2aafcc4f8b14b48",
+    "lock_modified": false,
+    "observed_drift_sha256": "87b8f9798fda2f00c8c1cfdb669a6d5784a7417867268904b958fc2e0511caf0",
+    "path": "tests/test_r217_protocol.py",
+    "recovery_source": "authoritative source/evidence tar created from the frozen R2.17 snapshot"
+  }
+}

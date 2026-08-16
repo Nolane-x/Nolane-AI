@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "date": "2026-08-16",
+  "milestone": "R2.17 Hierarchical Library-Growing CEGIS",
+  "status": "accepted_metadata_seal_full_artifact_in_complete_zip_and_library",
+  "parent_github_main": "3d65c450293875b42e09e40d9c1b056319db01f3",
+  "new_neural_parameters": 0,
+  "effective_neural_parameters": 79450489,
+  "agi_engineering_readiness_before": 21.1,
+  "agi_engineering_readiness_after": 21.7,
+  "agi_claim": false,
+  "external_coding_claim": false,
+  "pre_heldout_lock_sha256": "6d27190dee34d56c84c8ad4205ece937b040a8a265b81a3169fee61e42ba51a4",
+  "dev_result_sha256": "c2167a1d7d3f8768b81dfba588cb3bbe434ce9cfd94c13a8de0615efaba33253",
+  "heldout_raw_sha256": "8d6a1b01916d786fb49ba8092a6b1c33dff1fdc7d9b07f1e413fd5b561360f59",
+  "phase_a_result_sha256": "7fef8374d2541c991be3904371d761b5f2a886f9c6f7c47d965572e8bc7c873d",
+  "gate_checks_sha256": "29457addfde5383a2bcdacf5f300ac00dee45a1d0c04e45adebed069f2faa8ce",
+  "authoritative_source_evidence_tar_sha256": "605bd376b106c0c9d45baabe19fb0dc0107c75df3dc1b4b018d9ec96e0e7793a",
+  "post_delivery_verification_sha256": "167c2c6f5fbb8cf0bc57b8469717d86921cbefa497cfd4f2ebbe439aa0ec9a5c",
+  "fresh_verification": {
+    "frozen_source_hashes": "15/15",
+    "gate_checks": "24/24",
+    "heldout_exact_per_seed_matches": "3/3",
+    "candidate_false_accepts": 0,
+    "candidate_wall_clock_timeouts_in_recorded_heldout": 0
+  },
+  "delivery_note": "The connector could not losslessly materialize the full binary/text chunk bundle into GitHub during this session. This commit is therefore a metadata-only cryptographic seal. The full source, tests, frozen evidence, accepted R2.10 weight/delta, exact R2.17 source/evidence tar, and post-delivery reproduction records are delivered in the COMPLETE ZIP and persisted to ChatGPT Library.",
+  "runner_note": "The frozen outer ThreadPool/subprocess orchestration can hang in this harness because descendant processes may retain captured pipes. Decision/search source was not changed. All three frozen heldout seeds reproduced exact per-seed payloads using the same frozen phase workers under explicit OS process boundaries.",
+  "claim_boundary": "Internal finite-domain exact-oracle program-learning evidence only; not unrestricted program synthesis, external software engineering, broad language/world generality, frontier-model parity, or AGI."
+}
