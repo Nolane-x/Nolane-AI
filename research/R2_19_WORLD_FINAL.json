@@ -1,0 +1,34 @@
+{
+  "audit": {"events": 56, "head": "6088feb64f9e1bca1f7c7cfd48678d0c03a9d0598b9d36ebcd92aec8994a7a7d", "valid": true},
+  "challenger_independence": {"co_design": 0.0, "code_overlap": 0.0, "independence": 1.0, "shared_state": 0.0},
+  "challengers_survived": 1,
+  "completed_slots": ["represent-task", "generate-hypotheses", "adversarial-challenge", "select-evidence", "search-counterexamples", "causal-audit", "robustness-analysis", "transfer-analysis", "uncertainty-audit", "simplify-compress", "independent-verification", "recursive-critique", "synthesis-decision"],
+  "critical_unknowns": 1,
+  "experiment_accept_seq": 26,
+  "final_gate": {
+    "blockers": ["trusted active residency insufficient", "independent attested compute insufficient", "critical unknowns unresolved by trusted evidence", "trusted assessment says material value-of-thought remains"],
+    "hard_pass": false,
+    "slots_completed": 13
+  },
+  "fresh_verifications": 2,
+  "frozen_finalizer_failed": true,
+  "frozen_finalizer_failure_audit": {
+    "compatibility_shim": "challenger->model only for recovery execution attempt; frozen source unchanged",
+    "decision_source_changed": false,
+    "failure_signatures": ["ValueError: unknown role: challenger", "ValueError: trusted evidence_ref required for subject"],
+    "failure_transcript": "research/R2_19_WORLD_FINALIZER_FAILURE.txt",
+    "frozen_script": "scripts/finalize_r219_world.py",
+    "frozen_script_sha256": "b36345346fc107f6057f0ab15c76b223de40207129a09797694e3b381b015f48",
+    "recovery_script": "scripts/recover_r219_world_finalizer.py",
+    "recovery_script_sha256": "57fbf95ecc5e0408be4991c4aa6c9c9be1ab1581b6d1bad60b6432bfca91fbf5"
+  },
+  "hard_state_summary": {"active_resident": false, "challengers_survived": 1, "critical_unknowns": 1, "evidence_artifacts": 10, "fresh_verifications": 2, "information_gain": 8.8, "independent_verifications": 0, "representations_verified": 4, "reproducibility_runs": 6, "robust_worlds": 6, "vm_completed": 13},
+  "notes": ["The frozen finalizer remains in the pre-heldout lock and is not edited after heldout.", "Recovery uses the already-established R2.18 World API pattern: registered model role for challenger, typed Artifact/evidence subjects, fresh verifier event_ids, and a full independent-verification payload.", "Global World convergence is intentionally not claimed."],
+  "prediction_event_seqs": {"r219-p1-representation-discovery": 8, "r219-p2-non-identity-heldout": 11, "r219-p3-active-query": 14, "r219-p4-noisy-verifier": 17, "r219-p5-abstention-counterexample": 20},
+  "representations_verified": 4,
+  "robust_worlds": 6,
+  "schema_version": 1,
+  "vm_completed": 13,
+  "world_converged": false,
+  "world_id": "world5_6c34fa26073cef30f96c"
+}
