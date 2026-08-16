@@ -1,0 +1,27 @@
+{
+  "agi_claim": false,
+  "broad_generalization_claim": false,
+  "bundle_contains_exact_files": 12,
+  "bundle_format": "concatenated base64 chunks -> gzip tar",
+  "bundle_sha256": "8682f727195363679780d23667ff971b66145d9121daaea74b1af774d2b3ad56",
+  "chunks": [
+    {"bytes":3000,"index":0,"path":"research/bundles/R2_17-source-and-evidence.part-00.b64","sha256":"8d85869622830c3a06ea082c8e62657c9915cdcd9bfd5b3517bc7debafaff1cf"},
+    {"bytes":3000,"index":1,"path":"research/bundles/R2_17-source-and-evidence.part-01.b64","sha256":"dc2cada32677a3be3e3477cbea62a57ffcb17688278ff0708b5124ecb772de05"},
+    {"bytes":3000,"index":2,"path":"research/bundles/R2_17-source-and-evidence.part-02.b64","sha256":"df55174436f92453af3a0efdc46b6d0f392b1c56041061a704e5e10fe46ab30b"},
+    {"bytes":3000,"index":3,"path":"research/bundles/R2_17-source-and-evidence.part-03.b64","sha256":"12acbdb911c98cfa47634b7a3780601e4b9a65e53539b37ce8c142d86028d66d"},
+    {"bytes":3000,"index":4,"path":"research/bundles/R2_17-source-and-evidence.part-04.b64","sha256":"e2b585b18b692817aeb79a94ee84ca66e992c21fd46d5acc198af30de6ca7bec"},
+    {"bytes":2780,"index":5,"path":"research/bundles/R2_17-source-and-evidence.part-05.b64","sha256":"84e8531cbf504608e2c1c7de1f05b4b2bd4c5dae141deedfc5aedcb3e455f614"}
+  ],
+  "core_ablation_false_survivor_count": 4,
+  "full_filter_survivors": ["target_nist_fips197"],
+  "local_unit_tests": "6/6 PASS",
+  "local_verifier": "PASS",
+  "milestone": "R2.17 AES-128 Cross-Domain Invariant Transfer",
+  "nist_oracle_match": true,
+  "parent_commit": "3d65c450293875b42e09e40d9c1b056319db01f3",
+  "schema_version": 1,
+  "status": "locally_verified_bundle_seal",
+  "world_converged": false,
+  "world_post_execution_experiment_status": "REJECTED: constitution prediction-before-test",
+  "world_research_artifacts_accepted": 6
+}
