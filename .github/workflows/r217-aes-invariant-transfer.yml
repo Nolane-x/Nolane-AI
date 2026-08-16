@@ -1,0 +1,56 @@
+name: R2.17 AES Invariant Transfer Reproduction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'research/bundles/R2_17-source-and-evidence.part-*.b64'
+      - 'research/R2_17_GITHUB_SEAL.json'
+      - '.github/workflows/r217-aes-invariant-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-r217:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruct exact R2.17 source/evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat research/bundles/R2_17-source-and-evidence.part-*.b64 > /tmp/r217.b64
+          base64 -d /tmp/r217.b64 > /tmp/r217.tar.gz
+          echo '8682f727195363679780d23667ff971b66145d9121daaea74b1af774d2b3ad56  /tmp/r217.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/r217.tar.gz -C .
+      - name: Unit tests
+        run: python -m unittest -v tests/test_r217_aes_invariant_transfer.py
+      - name: Recompute frozen benchmark
+        run: |
+          python scripts/run_r217_aes_invariant_transfer.py --output /tmp/r217-result.json
+          python - <<'PY'
+          import json
+          actual=json.load(open('/tmp/r217-result.json'))
+          frozen=json.load(open('research/R2_17_AES_INVARIANT_RESULT.json'))
+          assert actual == frozen
+          PY
+      - name: Verify integrity and replay
+        run: python scripts/verify_r217_aes_invariant_transfer.py --output /tmp/r217-verify.json
+      - name: Compile milestone source
+        run: python -m compileall -q scripts/run_r217_aes_invariant_transfer.py scripts/verify_r217_aes_invariant_transfer.py tests/test_r217_aes_invariant_transfer.py
+      - name: Upload reproduction proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r217-aes-invariant-transfer-reproduction
+          path: |
+            /tmp/r217.tar.gz
+            /tmp/r217-result.json
+            /tmp/r217-verify.json
+            research/R2_17_GITHUB_SEAL.json
