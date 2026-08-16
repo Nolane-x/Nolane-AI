@@ -1,0 +1,67 @@
+name: R2.18 Cross-Domain Transfer Governance Reproduction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r218_*.py'
+      - 'benchmarks/kfigg/r218_cross_domain_transfer.py'
+      - 'tests/test_r218_*.py'
+      - 'research/R2_18_*.json'
+      - 'research/bundles/R2_18-source-and-evidence.part-*.b64'
+      - '.github/workflows/r218-cross-domain-governance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reproduce-r218:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: pip install pytest
+      - name: Reconstruct exact R2.18 source/evidence bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat research/bundles/R2_18-source-and-evidence.part-*.b64 > /tmp/r218.b64
+          base64 -d /tmp/r218.b64 > /tmp/r218.tar.gz
+          echo 'a29e8482d855d5cd6ca4f6a0d587662aaad494e4fe4b6a5db10f9779743975d7  /tmp/r218.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/r218.tar.gz -C .
+      - name: Verify R2.18 focused contracts
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. pytest -q \
+            tests/test_r218_transfer_types.py \
+            tests/test_r218_library_governor.py \
+            tests/test_r218_periodic_invariant.py \
+            tests/test_r218_cross_domain_transfer.py
+      - name: Verify frozen R2.17 focused regression
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. pytest -q \
+            tests/test_r217_macro_library.py \
+            tests/test_r217_hierarchical_safety.py \
+            tests/test_r217_lock.py \
+            tests/test_r217_result.py \
+            tests/test_r217_runner_contract.py
+      - name: Independent R2.18 exact replay verifier
+        run: PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. python scripts/verify_r218_cross_domain_transfer.py
+      - name: Compile active Python source
+        run: PYTHONPYCACHEPREFIX=/tmp/r218-pycache python -m compileall -q cogcoder benchmarks/kfigg scripts tests
+      - name: Upload reproduction proof
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nolane-r218-cross-domain-governance-reproduction
+          path: |
+            /tmp/r218.tar.gz
+            research/R2_18_PRE_HELDOUT_LOCK.json
+            research/R2_18_HELDOUT_RAW.json
+            research/R2_18_VERIFY_RESULT.json
+            research/R2_18_PHASE_A_RESULT.json
+            research/R2_18_GITHUB_SEAL.json
