@@ -1,0 +1,34 @@
+{
+  "accepted": false,
+  "decision": "REJECTED",
+  "exact_replays": 3,
+  "failed_checks": [
+    "heldout_all_accepted",
+    "all_gates:73459",
+    "readiness_locked"
+  ],
+  "failed_gate": "partial_noisy_verifier_calibrated",
+  "failed_seed": 73459,
+  "heldout_all_accepted": false,
+  "heldout_payload_sha256": "9daa81233fa43c6ffdf6fb120b7dace5c7bb917ba32ec13fc20fa42e3b412ea5",
+  "heldout_seeds": [
+    72011,
+    72701,
+    73459
+  ],
+  "integrity_note": "R2.20 frozen files remain byte-identical to the pre-heldout lock. R2.21 is additive and uses fresh held-out seeds.",
+  "locked_candidate_if_accepted": 23.5,
+  "milestone": "R2.20",
+  "next_milestone": "R2.21 Confidence-Adaptive Evidence Acquisition",
+  "readiness_after": 22.8,
+  "readiness_before": 22.8,
+  "readiness_increment": 0.0,
+  "reason": "One of three frozen held-out seeds failed the partial/noisy verifier calibration gate; frozen source was not tuned after held-out.",
+  "title": "Autonomous Representation-Language Synthesis \u2014 Phase A",
+  "verifier_check_count": 28,
+  "verifier_checks_passed": 25,
+  "verifier_decision": "rejected",
+  "world_audit_valid": true,
+  "world_events": 27,
+  "world_negative_experiment_accepted": true
+}

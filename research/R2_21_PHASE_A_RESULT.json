@@ -1,0 +1,72 @@
+{
+  "accepted": true,
+  "capability": {
+    "always_max_query_cost": 24,
+    "base_budget": 12,
+    "diagnostic_queries": 17,
+    "diagnostic_seed": 73459,
+    "fresh_heldout_all_accepted": true,
+    "fresh_heldout_query_costs": [11, 17, 14],
+    "fresh_heldout_seeds": [82013, 82717, 83431],
+    "known_diagnostic_recovered": true,
+    "max_budget": 24
+  },
+  "claims": {
+    "agi_claim": false,
+    "boundary": "Bounded confidence-adaptive evidence acquisition over the R2.20 finite-state operator-language family; acquisition thresholds remain human-specified.",
+    "broad_generalization_claim": false
+  },
+  "decision": "ACCEPTED",
+  "final_focused_tests": "19/19 PASS",
+  "heldout_payload_sha256": "3df802fb64a36a68276ed3ddb0e8a05c6eb7b556781a751f742c1a2da552d607",
+  "lock_sha256": "47b82740f1ad2fdab437ed7947663ace41aed417a58365d0ecd23e96a8b10c5d",
+  "metric": "AGI engineering-readiness project rubric; not a scientific AGI probability",
+  "milestone": "R2.21 Confidence-Adaptive Evidence Acquisition \u2014 Phase A",
+  "next_falsifiable_target": "R2.22 Learned/Transferable Value-of-Information Policy across heterogeneous verifier noise and evidence-cost regimes.",
+  "parent_integrity_final": {
+    "parent_tracked_edits_since_r221_start": [],
+    "r220_bad": [],
+    "r220_frozen_passed": 16,
+    "r220_frozen_total": 16
+  },
+  "parent_prelock_regression": "R2.18/R2.19/R2.20 per-file focused regression passed before lock; outer batch pipe-lifetime timeout is preserved as harness limitation rather than counted as a pass.",
+  "parent_r220": {
+    "credit": 0.0,
+    "decision": "REJECTED",
+    "failed_gate": "partial_noisy_verifier_calibrated",
+    "failed_seed": 73459,
+    "readiness_after": 22.8
+  },
+  "readiness_after": 23.4,
+  "readiness_before": 22.8,
+  "readiness_increment": 0.6,
+  "schema_version": 1,
+  "verifier": {
+    "canonical_reproduced_sha256": "3df802fb64a36a68276ed3ddb0e8a05c6eb7b556781a751f742c1a2da552d607",
+    "check_count": 47,
+    "checks_passed": 47,
+    "decision": "accepted",
+    "exact_replays": 3
+  },
+  "world": {
+    "audit_valid": true,
+    "blockers": [
+      "trusted active residency insufficient",
+      "independent attested compute insufficient",
+      "critical unknowns unresolved by trusted evidence",
+      "validated information gain insufficient",
+      "trusted assessment says material value-of-thought remains"
+    ],
+    "challengers_survived": 1,
+    "critical_unknowns": 1,
+    "events": 57,
+    "fresh_verifications": 2,
+    "information_gain": 8.084962500721156,
+    "remaining_vot": 1.0,
+    "robust_worlds": 6,
+    "verified_representations": 5,
+    "vm_completed": 13,
+    "world_converged": false,
+    "world_id": "world5_101f5502103a2e6ef7ac"
+  }
+}

@@ -1,0 +1,246 @@
+{
+  "agi_engineering_readiness": 23.4,
+  "canonical_reproduced_sha256": "3df802fb64a36a68276ed3ddb0e8a05c6eb7b556781a751f742c1a2da552d607",
+  "check_count": 47,
+  "checks": [
+    {
+      "detail": "7379cfcaf03ee616c0afee53780c69184a5130d5b4731f9ddd99ab20d830bc28",
+      "name": "frozen:benchmarks/kfigg/r221_adaptive_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "696140b0b70f93d47c845b70386b5842fb8506e40726755085d038b16053e875",
+      "name": "frozen:cogcoder/r221_adaptive_evidence.py",
+      "passed": true
+    },
+    {
+      "detail": "2f2f0597382c2315efb911423159da3fd9222b3ca2d1ad5574d94672a6afceca",
+      "name": "frozen:docs/superpowers/plans/2026-08-16-r221-confidence-adaptive-evidence.md",
+      "passed": true
+    },
+    {
+      "detail": "1158ed0d344181e84222f0520848736f3956dfee3116308baef3894bb6e1695d",
+      "name": "frozen:docs/superpowers/specs/2026-08-16-r221-confidence-adaptive-evidence-design.md",
+      "passed": true
+    },
+    {
+      "detail": "fa2eaa4e6ec2905715cbb752a03e90f91fcdf13a3224d133fcb837b14cf61728",
+      "name": "frozen:research/R2_20_PHASE_A_RESULT.json",
+      "passed": true
+    },
+    {
+      "detail": "ce379bfb9d261f3acb08c37cca5d89d4e28d69b8e1999f77797febb4139122eb",
+      "name": "frozen:research/R2_20_PRE_HELDOUT_LOCK.json",
+      "passed": true
+    },
+    {
+      "detail": "c46a68ad940b172f394d1116bd4ab6ec03de2cab41edb31d75e76369f10a1eeb",
+      "name": "frozen:research/R2_20_WORLD_POST_EXECUTION.json",
+      "passed": true
+    },
+    {
+      "detail": "7951211d492c6cc957d583a8500c9f7235b82a799e7d749448a91d0f34163689",
+      "name": "frozen:research/R2_21_WORLD_PREREGISTRATION.json",
+      "passed": true
+    },
+    {
+      "detail": "f134f264a31a4fd2b510feb353d022c3f94bb24f620fee9009fbd070fb908980",
+      "name": "frozen:scripts/create_r221_preheldout_lock.py",
+      "passed": true
+    },
+    {
+      "detail": "d8bf7aa2eee461698751a42630cac197c3f511f8a4279a0f37aa474fe59badfd",
+      "name": "frozen:scripts/preregister_r221_world.py",
+      "passed": true
+    },
+    {
+      "detail": "f93ee68a258eb3964c0084d4b2159f67f557eda9c02db8c99a351b1a9acea491",
+      "name": "frozen:scripts/run_r221_adaptive_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "c69e4c44da505c91c3e95bd0d0ce6026bad80f4d4f3e5f1b1c1caef1cebd13d2",
+      "name": "frozen:scripts/verify_r221_adaptive_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "ff58d1753991b1a025ec88eee522126ea9c08d784d14710dde2e7523129ef37f",
+      "name": "frozen:tests/test_r221_adaptive_evidence.py",
+      "passed": true
+    },
+    {
+      "detail": "0641bb8d6abbf971e5a2d697788bec38e1504db9583c5cf6088b0cbb363daa12",
+      "name": "frozen:tests/test_r221_adaptive_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "7ef7cd45603d90dca6d12f39973d16daa2f264d87b43163d33425dbbc14699f4",
+      "name": "frozen:tests/test_r221_preheldout_lock_contract.py",
+      "passed": true
+    },
+    {
+      "detail": "a028e84b9ef1e86d1dbd2ea3a19746acee889196f2cad30e2a157fa0c94afb4f",
+      "name": "frozen:tests/test_r221_verifier_contract.py",
+      "passed": true
+    },
+    {
+      "detail": "0279d5ef3985a72795a86f7410227bd79f5e9805680ccd2937306f8282961460",
+      "name": "frozen:tests/test_r221_world_prereg.py",
+      "passed": true
+    },
+    {
+      "detail": "b186028ecf26bbeee277e99290b8006d2901601790756d7d38e3dab09451fab7",
+      "name": "r220_frozen:benchmarks/kfigg/r220_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "f32305dc9917a9ca1640146df3a8e10313f58cd07d41d7d90bb62c252895982f",
+      "name": "r220_frozen:cogcoder/r220_language_governor_bridge.py",
+      "passed": true
+    },
+    {
+      "detail": "3f1ef2a74850444402a59d3219fb307e1a97a1317af6f0a3313e801d116ad781",
+      "name": "r220_frozen:cogcoder/r220_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "07b2a5d351bd13f89b77219e247d9781b45edd91b02b3324175b988963e5d414",
+      "name": "r220_frozen:cogcoder/r220_operator_discovery.py",
+      "passed": true
+    },
+    {
+      "detail": "c4dac0ba2936e88eab92e370ba626f2c5fdb8fe58fd2aab2cfb721d7b65f7199",
+      "name": "r220_frozen:cogcoder/r220_operator_language.py",
+      "passed": true
+    },
+    {
+      "detail": "07ced8d332d2906ab1fe3aa968ea6b97d4b2679bdd15a059acf21779e8f34ea9",
+      "name": "r220_frozen:research/R2_20_WORLD_PREREGISTRATION.json",
+      "passed": true
+    },
+    {
+      "detail": "fc2ca28281067a572e9e3311523f233d6903f5252b13f561c48a98053313795d",
+      "name": "r220_frozen:scripts/preregister_r220_world.py",
+      "passed": true
+    },
+    {
+      "detail": "f8021f4796870abc7cd28be740a69b1878151dab5116608e6fc4be438f5db840",
+      "name": "r220_frozen:scripts/run_r220_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "a7e8da6af00f0b65d75434ce680ed461cf4e934707960878b95513efdf013f6c",
+      "name": "r220_frozen:scripts/verify_r220_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "bd708f668a591d3953edfbab5f5ee690f08e48ffec6e5fd784cd91ace30ab3ce",
+      "name": "r220_frozen:tests/test_r220_language_governor_bridge.py",
+      "passed": true
+    },
+    {
+      "detail": "3e5fc7340ea58cee1dfa6d02db234efb2f0f207cd273a33ec7d4fe9c95ba3b04",
+      "name": "r220_frozen:tests/test_r220_language_synthesis.py",
+      "passed": true
+    },
+    {
+      "detail": "3e7fcc64b720dafbdbb5c62eca4d7f6157cbb36b7c9ecf92cc0bce8eed8df052",
+      "name": "r220_frozen:tests/test_r220_language_synthesis_benchmark.py",
+      "passed": true
+    },
+    {
+      "detail": "dfd48e64994b7424ceffe2fc5818f01cdb61ab3ea9e6ec56791e84d9663f0cab",
+      "name": "r220_frozen:tests/test_r220_operator_discovery.py",
+      "passed": true
+    },
+    {
+      "detail": "bbe3ee345b1d5085e610ab9eed2bfc6605283dfa2d8691b3f1b87f933c30b73b",
+      "name": "r220_frozen:tests/test_r220_operator_language.py",
+      "passed": true
+    },
+    {
+      "detail": "1d90f68045c412fbda9b793ab5659fd77e77585f8ec7c2bf1c561ddb7184db55",
+      "name": "r220_frozen:tests/test_r220_verifier_contract.py",
+      "passed": true
+    },
+    {
+      "detail": "7f91a6283e3d20d28902971c6c8a1ab9779b146f819801ed10952c217b685e1e",
+      "name": "r220_frozen:tests/test_r220_world_prereg.py",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "r220_still_rejected",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "heldout_seed_match",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "fresh_seed_disjoint_from_r220",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "heldout_all_accepted",
+      "passed": true
+    },
+    {
+      "detail": "e106550a633c5fb6eff03dea005fb4cd78a5d0b349b1a5dc9f7a67b9b59dfaf5",
+      "name": "exact_replay:82013",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "all_gates:82013",
+      "passed": true
+    },
+    {
+      "detail": "ace89f3e7e20732cf231c31c5db25b472bd54dd16fb82b11fb1b71f45167dfa2",
+      "name": "exact_replay:82717",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "all_gates:82717",
+      "passed": true
+    },
+    {
+      "detail": "425f9d5617cdd518a8c2119b9bd3cfa3a35fd0a1f79d3a59c897be366c95bf3c",
+      "name": "exact_replay:83431",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "all_gates:83431",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "world_prediction_set",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "world_prereg_audit",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "world_preheldout_flag",
+      "passed": true
+    },
+    {
+      "detail": "",
+      "name": "readiness_locked",
+      "passed": true
+    }
+  ],
+  "checks_passed": 47,
+  "decision": "accepted",
+  "exact_replays": 3,
+  "schema_version": 1
+}
