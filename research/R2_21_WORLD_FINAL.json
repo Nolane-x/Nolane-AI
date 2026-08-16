@@ -1,0 +1,185 @@
+{
+  "audit": {
+    "events": 57,
+    "head": "ae82999c070b2df1f9822df1b8afcdc9d6c9cabeb9688d3ff92b5893042036b0",
+    "valid": true
+  },
+  "challenger_verdict": {
+    "challengers_survived": 1,
+    "independence": 1
+  },
+  "final_gate": {
+    "audit": {
+      "events": 57,
+      "head": "ae82999c070b2df1f9822df1b8afcdc9d6c9cabeb9688d3ff92b5893042036b0",
+      "valid": true
+    },
+    "blockers": [
+      "trusted active residency insufficient",
+      "independent attested compute insufficient",
+      "critical unknowns unresolved by trusted evidence",
+      "validated information gain insufficient",
+      "trusted assessment says material value-of-thought remains"
+    ],
+    "passed": false,
+    "score": 0.6428571428571428
+  },
+  "gate_before_convergence_review": {
+    "audit": {
+      "events": 54,
+      "head": "d213dd604bfc20b3fc07d48ef28e8911ea72a9367c5ab2a37f8072091d1981b3",
+      "valid": true
+    },
+    "blockers": [
+      "trusted active residency insufficient",
+      "independent attested compute insufficient",
+      "critical unknowns unresolved by trusted evidence",
+      "validated information gain insufficient",
+      "trusted assessment says material value-of-thought remains",
+      "proof obligations remain open"
+    ],
+    "passed": false,
+    "score": 0.5714285714285714
+  },
+  "hard_state_summary": {
+    "active_seconds": 0.0,
+    "attested_compute_seconds": 0.0,
+    "challengers_survived": 1,
+    "critical_unknowns": 1,
+    "fresh_verifications": 2,
+    "information_gain": 8.084962500721156,
+    "quality": {
+      "correctness": 0.97,
+      "evidence": 0.96,
+      "robustness": 0.92,
+      "verification": 0.97
+    },
+    "remaining_vot": 1.0,
+    "robust_worlds": 6,
+    "verified_representations": 5,
+    "vm_completed": 13
+  },
+  "original_finalizer_failure_preserved": "verification context requires registered independent evidence lineages",
+  "recovery_finalizer": true,
+  "registered_parent_lineage_used": "nolane-ai:R2.20:heldout-frozen-negative",
+  "research_boundary": "R2.21 is bounded adaptive evidence acquisition over a finite operator language; World convergence remains governed by independent hard-state requirements.",
+  "schema_version": 1,
+  "submissions": [
+    {
+      "engine": "robustness-lab",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_dec4d65c2ae89fb8",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 8,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_97040d71bcc8d406"
+    },
+    {
+      "engine": "adversarial-falsification",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_d3f251716a333888",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 9,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_59254d6253055a92"
+    },
+    {
+      "engine": "challenger-reconstruction",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_951fb660f245b299",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 10,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_c38f89b057a704e9"
+    },
+    {
+      "engine": "synthesis",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_d59a1eb11a5d0a0b",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 11,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_aa78925b37ff3bea"
+    },
+    {
+      "engine": "independent-verification",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_341c82da60c3faf6",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 12,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_ec8cefab21375c60"
+    },
+    {
+      "engine": "convergence-review",
+      "result": {
+        "accepted": true,
+        "active_seconds_credited": 0.0,
+        "artifact_id": "art_56916774d939e572",
+        "credit": 1.0,
+        "elapsed_seconds": 0.0,
+        "epoch": 13,
+        "exploration_novelty": 1.0
+      },
+      "task_id": "task_e14312ed9c13dd0f"
+    }
+  ],
+  "verification_results": [
+    {
+      "attestation": {
+        "claim_type": "quality.assessment",
+        "issued_at": 1531.10705573,
+        "nonce": "ccb0208bdd1fbefd592e2a37b434bee8",
+        "payload_digest": "a2c6b63901092fe842de7bbaed8cb09fc5f1cf991735eb50d10ca41aafd9be39",
+        "signature": "af8976c091c3d8a311f8071cb9a5073e37bf3ce07c66c7a2652cbd331ba10d75",
+        "signer_id": "verifier_340689ec790fa1f0"
+      },
+      "fresh_counted": false,
+      "quality": {
+        "correctness": 0.97,
+        "evidence": 0.96,
+        "robustness": 0.93,
+        "verification": 0.97
+      }
+    },
+    {
+      "attestation": {
+        "claim_type": "quality.assessment",
+        "issued_at": 1531.112377661,
+        "nonce": "12a55a92b33d6643f893ad54c712c4d8",
+        "payload_digest": "ac01b3a9a5f66f58d2263e3fcfd128987f3ca9a112b885d1f5d3f304bd0c476f",
+        "signature": "7e8d2b0f45704f29b6a64d0957ee519afcc36108a3a3a1dd45a6fcb465b0149a",
+        "signer_id": "verifier_1375cebd087a58b2"
+      },
+      "fresh_counted": true,
+      "quality": {
+        "correctness": 0.96,
+        "evidence": 0.95,
+        "robustness": 0.92,
+        "verification": 0.96
+      }
+    }
+  ],
+  "world_converged": false,
+  "world_id": "world5_101f5502103a2e6ef7ac"
+}
