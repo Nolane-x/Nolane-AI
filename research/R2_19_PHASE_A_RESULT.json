@@ -1,0 +1,68 @@
+{
+  "agi_claim": false,
+  "agi_engineering_readiness_after": 22.8,
+  "agi_engineering_readiness_before": 22.2,
+  "agi_engineering_readiness_increment": 0.6000000000000001,
+  "broad_generalization_claim": false,
+  "canonical_payload_sha256": "2a466b9ca95e1b5999b485832878f884bca2d843c559b4bca461fc0ca57796c1",
+  "capability_gain": [
+    "Searches a frozen compositional representation grammar from raw transition observations without receiving the hidden target transform.",
+    "Uses reliability-weighted partial/noisy verifier evidence instead of treating every response as infallible.",
+    "Chooses disagreement-heavy evidence actively under a fixed query budget.",
+    "Abstains on non-identifiable cases rather than forcing a library mutation.",
+    "Uses independent counterexamples to reject coherent common-mode verifier corruption.",
+    "Bridges accepted representations into R2.18 reuse/create/split/abstain governance without modifying the sealed governor."
+  ],
+  "claim_boundary": "Bounded generated 3-bit transition systems inside a frozen permutation/complement/direction grammar. The result does not establish autonomous invention of new representation operators, unrestricted representation learning, frontier-model parity, or AGI.",
+  "date": "2026-08-16",
+  "decision": "accepted_after_transparent_verifier_serialization_recovery",
+  "effective_neural_parameters": 79450489,
+  "heldout": {
+    "all_accepted": true,
+    "all_gates_pass": true,
+    "canonical_payload_sha256": "fa362ea075abfc41f3be4063367e676a32b2b69ed1b2ea1bbcfc390bf03547b0",
+    "per_seed_sha256": [
+      {"seed": 52109, "sha256": "c092d365077662c936c006c9fcf9c6079f53fdf5b0628085bc6c29a804483865"},
+      {"seed": 52733, "sha256": "d2083b2d11f6911ed13d66db1f4b35a91e67ef367d02c6c0643ed7c7b75070d7"},
+      {"seed": 53419, "sha256": "3807da2a17712066301122de7d61d4ddb11153c219079d02a8ee83bb600edb15"}
+    ]
+  },
+  "locked_protocol": {
+    "frozen_file_count": 27,
+    "frozen_hashes_match": true,
+    "heldout_seeds": [52109, 52733, 53419],
+    "lock_sha256": "f97b85d81e3204560fdb5a8007156427fdcb6cfe882c2f5399863e8ca3099bd2",
+    "source_commit_before_lock": "a13454278c432fcb0c680d05046a9e58ce0beaf4",
+    "thresholds": {"accept_margin": 0.7, "accept_probability": 0.88, "query_budget": 12}
+  },
+  "milestone": "R2.19 Autonomous Representation Discovery under Partial/Noisy Verification",
+  "new_neural_parameters": 0,
+  "next_falsifiable_milestone": "R2.20 Autonomous Representation-Language Synthesis: infer or synthesize new representation operators for out-of-grammar tasks under the same noisy-verifier, abstention, library-capacity and heldout discipline.",
+  "parent_github_main": "1ed7daa2693fde9807b348e0ab59112fb060be29",
+  "schema_version": 1,
+  "tests": {
+    "combined_final": "84/84 PASS",
+    "compileall": "PASS",
+    "known_runner_boundary": "A second batched parent replay can keep descendant pipes alive after pytest output; it is not counted as a PASS. Per-file OS-bounded outputs and the combined 84-test run are preserved.",
+    "parent_per_file": "46/46 PASS"
+  },
+  "verification": {
+    "original_frozen_verifier": {"checks": "29/30", "decision": "rejected", "sole_failed_check": ["exact_heldout_replay"]},
+    "root_cause_artifact": "research/R2_19_VERIFIER_SERIALIZATION_ROOT_CAUSE.json",
+    "serialization_recovery": {"checks": "41/41", "decision": "accepted", "exact_replays_from_original_canonical_hashes": 3, "mode": "serialization_false_negative_recovery_from_frozen_verifier_hashes"}
+  },
+  "world_v5": {
+    "blockers": ["trusted active residency insufficient", "independent attested compute insufficient", "critical unknowns unresolved by trusted evidence", "trusted assessment says material value-of-thought remains"],
+    "challengers_survived": 1,
+    "experiment_accept_seq": 26,
+    "experiment_prediction_seq": 11,
+    "final_audit": {"events": 56, "head": "6088feb64f9e1bca1f7c7cfd48678d0c03a9d0598b9d36ebcd92aec8994a7a7d", "valid": true},
+    "fresh_verifications": 2,
+    "prediction_precedes_experiment": true,
+    "robust_worlds": 6,
+    "verified_representations": 4,
+    "vm_completed": 13,
+    "world_converged": false,
+    "world_id": "world5_6c34fa26073cef30f96c"
+  }
+}

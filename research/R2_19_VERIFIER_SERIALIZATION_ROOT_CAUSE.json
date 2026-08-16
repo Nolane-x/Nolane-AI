@@ -1,0 +1,19 @@
+{
+  "all_original_replay_canonical_hashes_match": true,
+  "classification": "verifier_false_negative_serialization_type_mismatch",
+  "decision_source_changed": false,
+  "failed_checks": ["exact_heldout_replay"],
+  "heldout_payload_changed": false,
+  "heldout_seeds_rerun_for_tuning": false,
+  "original_check_count": 30,
+  "original_checks_passed": 29,
+  "original_decision": "rejected",
+  "per_seed": [
+    {"canonical_hash_match": true, "exact_match_python_object": false, "seed": 52109, "sha256": "c092d365077662c936c006c9fcf9c6079f53fdf5b0628085bc6c29a804483865"},
+    {"canonical_hash_match": true, "exact_match_python_object": false, "seed": 52733, "sha256": "d2083b2d11f6911ed13d66db1f4b35a91e67ef367d02c6c0643ed7c7b75070d7"},
+    {"canonical_hash_match": true, "exact_match_python_object": false, "seed": 53419, "sha256": "3807da2a17712066301122de7d61d4ddb11153c219079d02a8ee83bb600edb15"}
+  ],
+  "recovery_rule": "A recovery may succeed only if exact_heldout_replay is the sole failed original check, all other original checks are true, all frozen/reproduced canonical hashes from the original verifier match, frozen_mismatches is empty, and the locked rubric is unchanged.",
+  "root_cause": "Frozen verifier compared the in-memory replay result containing tuple-valued query traces directly to JSON-loaded frozen evidence where those tuples are lists. Canonical JSON serialization normalizes both to the same persisted representation; the frozen verifier itself already computed identical canonical hashes for all three seeds.",
+  "schema_version": 1
+}

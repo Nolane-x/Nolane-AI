@@ -1,0 +1,25 @@
+{
+  "schema_version": 2,
+  "milestone": "R2.19 Autonomous Representation Discovery under Partial/Noisy Verification",
+  "decision": "accepted_after_transparent_verifier_serialization_recovery",
+  "parent_github_main": "1ed7daa2693fde9807b348e0ab59112fb060be29",
+  "effective_neural_parameters": 79450489,
+  "new_neural_parameters": 0,
+  "agi_engineering_readiness": {"before": 22.2, "after": 22.8, "increment": 0.6, "literal_agi_probability_claim": false},
+  "complete_artifact": {
+    "library_path": "/Nolane-AI/R2.19-Autonomous-Representation-Discovery-Phase-A/Nolane-AI-R2.19-Autonomous-Representation-Discovery-Phase-A-COMPLETE.zip",
+    "bytes": 58176741,
+    "sha256": "0434d0a3b8dab4aa522e287c0a63343adf724bee82ea93295644b7d71e04557e"
+  },
+  "source_evidence_bundle": {"files": 77, "bytes": 61159, "sha256": "a224cc9dcca1beae59068860f071a8ae1f88451266a8bcc9a5b930b5740477f6", "location": "inside COMPLETE ZIP / Library authoritative copy"},
+  "github_projection": {
+    "intent": "runtime core + core TDD + critical evidence boundary",
+    "full_raw_heldout_mirrored": false,
+    "reason": "GitHub connector transport was not byte-stable for large encoded archive payloads; large transport attempts were left orphaned and unreferenced rather than merged.",
+    "runtime_files": ["cogcoder/r219_representation_types.py", "cogcoder/r219_representation_grammar.py", "cogcoder/r219_discovery.py", "cogcoder/r219_library_bridge.py"],
+    "core_test_files": ["tests/test_r219_representation_types.py", "tests/test_r219_representation_grammar.py", "tests/test_r219_discovery.py", "tests/test_r219_library_bridge.py"],
+    "evidence_files": ["research/R2_19_PHASE_A_RESULT.json", "research/R2_19_VERIFIER_SERIALIZATION_ROOT_CAUSE.json", "research/R2_19_VERIFY_RESULT.json", "research/R2_19_WORLD_FINAL.json"]
+  },
+  "verification": {"combined_local": "84/84 PASS", "parent_per_file": "46/46 PASS", "frozen_hashes": "27/27 match", "original_verifier": "29/30 REJECT preserved", "recovery_verifier": "41/41 ACCEPT", "heldout": "3/3 accepted", "compileall": "PASS", "world": "13/13 VM; audit valid; deliberately non-converged"},
+  "claim_boundary": "Bounded autonomous representation search inside a supplied permutation/complement/direction grammar; not unrestricted representation invention, frontier parity, or AGI."
+}

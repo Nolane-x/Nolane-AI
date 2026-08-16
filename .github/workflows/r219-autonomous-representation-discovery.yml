@@ -1,0 +1,69 @@
+name: R2.19 Autonomous Representation Discovery Core
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'cogcoder/r219_*.py'
+      - 'tests/test_r219_representation_*.py'
+      - 'tests/test_r219_discovery.py'
+      - 'tests/test_r219_library_bridge.py'
+      - 'research/R2_19_*.json'
+      - 'R2_19_DELIVERY.md'
+      - 'R2_19_RELEASE_MANIFEST.json'
+      - '.github/workflows/r219-autonomous-representation-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-r219-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pytest
+      - name: R2.19 core TDD contracts
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. pytest -q \
+            tests/test_r219_representation_types.py \
+            tests/test_r219_representation_grammar.py \
+            tests/test_r219_discovery.py \
+            tests/test_r219_library_bridge.py
+      - name: Frozen parent focused regression
+        run: |
+          PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=. pytest -q \
+            tests/test_r218_transfer_types.py \
+            tests/test_r218_library_governor.py \
+            tests/test_r218_periodic_invariant.py \
+            tests/test_r218_cross_domain_transfer.py \
+            tests/test_r217_macro_library.py \
+            tests/test_r217_hierarchical_safety.py \
+            tests/test_r217_lock.py \
+            tests/test_r217_result.py \
+            tests/test_r217_runner_contract.py
+      - name: Evidence boundary checks
+        run: |
+          python - <<'PY'
+          import json
+          phase=json.load(open('research/R2_19_PHASE_A_RESULT.json'))
+          root=json.load(open('research/R2_19_VERIFIER_SERIALIZATION_ROOT_CAUSE.json'))
+          verify=json.load(open('research/R2_19_VERIFY_RESULT.json'))
+          world=json.load(open('research/R2_19_WORLD_FINAL.json'))
+          assert phase['decision']=='accepted_after_transparent_verifier_serialization_recovery'
+          assert phase['agi_engineering_readiness_after']==22.8
+          assert phase['locked_protocol']['frozen_hashes_match'] is True
+          assert root['original_decision']=='rejected'
+          assert root['failed_checks']==['exact_heldout_replay']
+          assert root['all_original_replay_canonical_hashes_match'] is True
+          assert verify['decision']=='accepted'
+          assert verify['checks_passed']==verify['check_count']==41
+          assert world['audit']['valid'] is True
+          assert world['world_converged'] is False
+          PY
+      - name: Compile active R2.19 source
+        run: PYTHONPYCACHEPREFIX=/tmp/r219-pycache python -m compileall -q cogcoder/r219_*.py
