@@ -1,0 +1,21 @@
+R2.18 blank-directory reproduction audit — 2026-08-16
+
+Bundle SHA-256:
+a29e8482d855d5cd6ca4f6a0d587662aaad494e4fe4b6a5db10f9779743975d7
+
+Procedure:
+1. Concatenate research/bundles/R2_18-source-and-evidence.part-*.b64 in lexical/numeric order.
+2. Base64-decode to /tmp/r218-reconstructed.tar.gz.
+3. Verify exact SHA-256 above.
+4. Extract into an empty directory.
+5. Run R2.18 focused tests with PYTHONPATH=.
+6. Run scripts/verify_r218_cross_domain_transfer.py.
+
+Observed:
+- sha256sum: OK
+- R2.18 focused tests: 17 passed in 0.07s
+- independent verifier: accepted, 25/25 checks
+- exact replay: seeds 42831, 43117, 43991 all matched their frozen canonical SHA-256
+- readiness replay: 21.7 -> 22.2 (+0.5) under the pre-heldout locked engineering-readiness rubric
+
+This reproduction does not assert World W4 convergence. R2.18_WORLD_FINAL.json intentionally records remaining hard World blockers.
