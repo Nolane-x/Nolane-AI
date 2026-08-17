@@ -1,0 +1,64 @@
+{
+  "accepted": true,
+  "agi_engineering_readiness": 25.6,
+  "claims": {
+    "agi_claim": false,
+    "boundary": "Bounded binary compositional verifier-query programs transferred from width-3 nonlinear-local development to frozen width-4 global-asym finite-state worlds; not unrestricted experiment-language synthesis or AGI.",
+    "broad_generalization_claim": false
+  },
+  "decision": "ACCEPTED",
+  "exact_replays": 6,
+  "heldout_canonical_sha256": "e895db89ac631f1384503ddf54026ffe436c3661d324c93785c56ed451cd62eb",
+  "heldout_consumed": true,
+  "heldout_summary": {
+    "all_gates_pass": true,
+    "atomic_only_correct": 6,
+    "atomic_only_mean_queries": 20.166666666666668,
+    "composite_probe_count": 48,
+    "compositional_correct": 6,
+    "compositional_mean_queries": 20.0,
+    "episodes": 6,
+    "gates": {
+      "beats_atomic_correctness_or_efficiency": true,
+      "composite_language_exercised": true,
+      "compositional_all_correct": true,
+      "global_asym_transfer": true,
+      "same_total_budget": true,
+      "strictly_beats_pool_only": true,
+      "zero_false_accepts": true
+    },
+    "pool_only_correct": 0,
+    "pool_only_mean_queries": 12.0
+  },
+  "lock_sha256": "81b5ba004c98337d2999000178d6be2ca655597c8b1b57a5bf46a7a96097f6fa",
+  "milestone": "R2.38 Compositional Probe-Language Synthesis",
+  "readiness_before": 24.6,
+  "readiness_increment": 1.0,
+  "schema_version": 1,
+  "verifier_checks": "8/8",
+  "world": {
+    "audit": {
+      "events": 70,
+      "head": "b8c749c1303b44a4f17267f2a8ccee955af02e29d847b8abe56c016b18adfe13",
+      "valid": true
+    },
+    "hard_state_summary": {
+      "challengers_survived": 1,
+      "critical_unknowns": 1,
+      "fresh_verifications": 2,
+      "information_gain": 11.406890595608518,
+      "quality": {
+        "correctness": 0.985,
+        "evidence": 0.975,
+        "robustness": 0.965,
+        "verification": 0.985
+      },
+      "remaining_vot": 1.0,
+      "robust_worlds": 12,
+      "verified_representations": 13,
+      "vm_completed": 13
+    },
+    "world_converged": false,
+    "world_id": "world5_ef8231758e3bcfe50494"
+  }
+}
