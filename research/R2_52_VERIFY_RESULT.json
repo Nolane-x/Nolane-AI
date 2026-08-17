@@ -105,11 +105,16 @@
     "world_id": "world5_bb72de0587d0c24f6282"
   },
   "readiness": {
-    "current": 56.0,
-    "delta": 8.0,
+    "current": 44.5,
+    "delta": 2.0,
+    "delta_original_recorded": 8.0,
     "interpretation": "internal coding-AGI engineering-readiness rubric; not AGI probability",
-    "previous_accepted": 48.0,
-    "rationale": "Adds import-aware multi-file localization and exact three-file transactions with independent hosted and baseline evidence, while major Python semantics, scale, noise, and real filesystem transaction frontiers remain."
+    "note": "R2.52 mechanism evidence did not justify +8 points; corrected after rubric audit.",
+    "original_recorded": 56.0,
+    "previous_accepted": 42.5,
+    "previous_accepted_original_recorded": 48.0,
+    "rationale": "Recalibrated: multi-file import-aware repair is a real scope expansion over R2.51, but evidence remains a controlled generated family and therefore supports only a small provisional movement.",
+    "recalibrated": true
   },
   "schema_version": 1
 }
