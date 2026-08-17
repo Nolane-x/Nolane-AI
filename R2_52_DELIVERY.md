@@ -22,4 +22,4 @@ The unresolved frontier is substantial: architect-provided `FLOW*`; only acyclic
 
 ## Coding-AGI engineering-readiness
 
-Internal rubric: **56.0/100**, up from 48.0/100 at R2.51. The increase reflects a real representation jump from single-module interprocedural repair to import-aware multi-file causal localization and exact three-file transactions, with independent clean-runner and causal baseline evidence. This is an engineering-readiness heuristic for general coding intelligence, **not a probability that the system is AGI**.
+Recalibrated internal rubric: **44.5/100**. The original R2.52 release recorded 56.0/100, but that value was later rejected as score inflation because the evidence was still a controlled generated repository family and mainly expanded an existing interprocedural mechanism across file boundaries. The corrected comparison also treats the historical R2.51 48.0 figure as an overestimate. See `R2_READINESS_RECALIBRATION.md`. This remains an engineering-readiness heuristic for general coding intelligence, **not a probability that the system is AGI**.

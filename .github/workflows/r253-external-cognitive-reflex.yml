@@ -1,0 +1,143 @@
+name: R2.53 External Cognitive Reflex Runtime
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r253_*.py"
+      - "cogcoder/retrieval_microcycle.py"
+      - "cogcoder/generation_retrieval.py"
+      - "cogcoder/knowledge_*.py"
+      - "benchmarks/kfigg/r253_*.py"
+      - "tests/test_r253_*.py"
+      - "tests/test_r21_retrieval_microcycle.py"
+      - "tests/test_r21_generation_retrieval.py"
+      - "docs/superpowers/specs/2026-08-17-r253-*.md"
+      - "docs/superpowers/plans/2026-08-17-r253-*.md"
+      - "research/R2_53_PHASE_A_RESULT.json"
+      - "R2_READINESS_RECALIBRATION.md"
+      - "R2_52_DELIVERY.md"
+      - "R2_52_RELEASE_MANIFEST.json"
+      - "research/R2_52_VERIFY_RESULT.json"
+      - ".github/workflows/r252-release-bundle.yml"
+      - ".github/workflows/r253-external-cognitive-reflex.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r253_*.py"
+      - "cogcoder/retrieval_microcycle.py"
+      - "cogcoder/generation_retrieval.py"
+      - "cogcoder/knowledge_*.py"
+      - "benchmarks/kfigg/r253_*.py"
+      - "tests/test_r253_*.py"
+      - "tests/test_r21_retrieval_microcycle.py"
+      - "tests/test_r21_generation_retrieval.py"
+      - ".github/workflows/r253-external-cognitive-reflex.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r253-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.53 cognitive reflex and R2.1 retrieval bridge tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r253_operator_catalog.py \
+            tests/test_r253_external_cognition.py \
+            tests/test_r253_external_cognitive_reflex_benchmark.py \
+            tests/test_r21_retrieval_microcycle.py \
+            tests/test_r21_generation_retrieval.py
+      - name: Run R2.52 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py
+      - name: Run R2.51 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r251_interprocedural_query.py \
+            tests/test_r251_interprocedural_query_benchmark.py
+      - name: Run R2.50 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r250_relational_query.py \
+            tests/test_r250_self_induced_query_benchmark.py
+      - name: Run R2.49 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r249_relational_context.py \
+            tests/test_r249_relational_benchmark.py
+      - name: Run R2.48 and R2.47 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r248_contextual_patch.py \
+            tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py \
+            tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r246_sparse_feedback.py \
+            tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py \
+            tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.53 evidence and catalog breadth
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r253_external_cognitive_reflex import run_frozen_heldout
+          from cogcoder.r253_operator_catalog import build_default_externalization_catalog
+          result=run_frozen_heldout(); s=result['summary']; catalog=build_default_externalization_catalog()
+          assert result['all_gates_pass'] is True
+          assert s['episodes']==16 and s['exact']==16 and s['false_accepts']==0
+          assert s['no_reflex_exact']==0 and s['self_confidence_only_exact']==0 and s['retrieve_once_exact']==0
+          assert s['high_confidence_objective_deficits']==16
+          assert s['episodes_with_new_midtrajectory_deficit']==16
+          assert s['distinct_deficit_kinds']>=10
+          assert s['counterexample_repeats_avoided']>=2
+          assert s['unsafe_procedure_executions']==0 and s['provenance_failures']==0
+          assert len(catalog)>=38
+          assert sum(len(f.suboperators) for f in catalog)>=300
+          print(json.dumps(s, sort_keys=True))
+          PY
+
+  cross-python-r253:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install --upgrade pytest
+      - name: Verify R2.53 focused behavior across Python runtimes
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r253_operator_catalog.py \
+            tests/test_r253_external_cognition.py \
+            tests/test_r253_external_cognitive_reflex_benchmark.py \
+            tests/test_r21_retrieval_microcycle.py

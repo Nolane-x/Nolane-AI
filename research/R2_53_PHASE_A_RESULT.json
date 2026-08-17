@@ -1,0 +1,511 @@
+{
+  "all_gates_pass": true,
+  "catalog": {
+    "families": 38,
+    "statuses": [
+      "experimental",
+      "host_required",
+      "implemented",
+      "knowledge_only"
+    ],
+    "suboperators": 312
+  },
+  "decision": "phase_a_candidate",
+  "episodes": [
+    {
+      "candidate": 21,
+      "deficits": [
+        "knowledge_gap",
+        "temporal_conflict",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 21,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "knowledge_temporal",
+      "procedure_ids": [
+        "proc.knowledge.retrieve",
+        "proc.temporal.resolve",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "ax17",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 30,
+      "deficits": [
+        "knowledge_gap",
+        "temporal_conflict",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 30,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "knowledge_temporal",
+      "procedure_ids": [
+        "proc.knowledge.retrieve",
+        "proc.temporal.resolve",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "by29",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 17,
+      "deficits": [
+        "search_stagnation",
+        "search_stagnation",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 17,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "search_stagnation",
+      "procedure_ids": [
+        "proc.search.bad",
+        "proc.search.good",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 1,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "failed",
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "cz31",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 19,
+      "deficits": [
+        "search_stagnation",
+        "search_stagnation",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 19,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "search_stagnation",
+      "procedure_ids": [
+        "proc.search.bad",
+        "proc.search.good",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 1,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "failed",
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "du43",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": "d",
+      "deficits": [
+        "representation_mismatch",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": "d",
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "representation",
+      "procedure_ids": [
+        "proc.representation.graph",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "ev59",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": "v",
+      "deficits": [
+        "representation_mismatch",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": "v",
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "representation",
+      "procedure_ids": [
+        "proc.representation.graph",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "fw61",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 29,
+      "deficits": [
+        "tool_gap",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 29,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "tool",
+      "procedure_ids": [
+        "proc.tool.acquire",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "gx73",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 34,
+      "deficits": [
+        "tool_gap",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 34,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "tool",
+      "procedure_ids": [
+        "proc.tool.acquire",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "hy83",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 12,
+      "deficits": [
+        "planning_gap",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 12,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "planning",
+      "procedure_ids": [
+        "proc.plan.repair",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "iz97",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 19,
+      "deficits": [
+        "planning_gap",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 19,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "planning",
+      "procedure_ids": [
+        "proc.plan.repair",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "ja101",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 18,
+      "deficits": [
+        "working_memory_pressure",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 18,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "working_memory",
+      "procedure_ids": [
+        "proc.memory.compact",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "kb109",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 30,
+      "deficits": [
+        "working_memory_pressure",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 30,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "working_memory",
+      "procedure_ids": [
+        "proc.memory.compact",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "lc127",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 3,
+      "deficits": [
+        "contradiction",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 3,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "contradiction",
+      "procedure_ids": [
+        "proc.evidence.resolve",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "md131",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": 6,
+      "deficits": [
+        "contradiction",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": 6,
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "contradiction",
+      "procedure_ids": [
+        "proc.evidence.resolve",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "ne149",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": "c",
+      "deficits": [
+        "resource_pressure",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": "c",
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "resource",
+      "procedure_ids": [
+        "proc.resource.recover",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "of157",
+      "unsafe_executed": 0
+    },
+    {
+      "candidate": "c",
+      "deficits": [
+        "resource_pressure",
+        "verification_gap"
+      ],
+      "exact": true,
+      "expected": "c",
+      "false_accept": false,
+      "high_confidence_objective": true,
+      "max_procedure_steps": 3,
+      "mode": "resource",
+      "procedure_ids": [
+        "proc.resource.recover",
+        "proc.verify.final"
+      ],
+      "repeat_avoided": 0,
+      "retrieve_once_exact": false,
+      "self_confidence_only_exact": false,
+      "statuses": [
+        "executed",
+        "executed"
+      ],
+      "tampered_executed": 0,
+      "task_id": "pg173",
+      "unsafe_executed": 0
+    }
+  ],
+  "local_regression": {
+    "python": "3.13.5",
+    "r243_r241": "31/31",
+    "r245_r244": "15/15",
+    "r246": "5/5",
+    "r248_r247": "13/13",
+    "r249": "5/5",
+    "r250": "8/8",
+    "r251": "4/4",
+    "r253_plus_r252": "20/20",
+    "total": "101/101"
+  },
+  "readiness": {
+    "automatic_delta_from_synthetic_mechanism_test": 0.0,
+    "corrected_r252_baseline": 44.5,
+    "note": "No increase is awarded until independent external transfer evidence exists.",
+    "r253_current_provisional": 44.5
+  },
+  "release": "R2.53",
+  "reuse": {
+    "private_chain_of_thought_persisted": false,
+    "r21_cognition_time_retriever_bridge": true,
+    "retrieved_arbitrary_code_execution_allowed": false
+  },
+  "source_sha256": {
+    "benchmarks/kfigg/r253_external_cognitive_reflex.py": "56d7623908e26a454d002c15570717f4492fa4b835048b94dd387aa43350c3ee",
+    "cogcoder/r253_external_cognition.py": "09fe73465b74a21128c1dda15e349d7b8ce99e5b82fb065803377f1f1635c790",
+    "cogcoder/r253_operator_catalog.py": "4cb374e555482cb285e68f19e1c773afeea04137ac80b41ee03a51c28482266d",
+    "docs/superpowers/plans/2026-08-17-r253-external-cognitive-reflex-runtime.md": "fa659dc623374050e8930fdcc80d819e3034e0d96ef87575aeb5a5c169ddd231",
+    "docs/superpowers/specs/2026-08-17-r253-external-cognitive-reflex-runtime-design.md": "809439e56b60ae5e33557a2d43ebadb3e5c51b34d7d9153635c7b3e1141f305b",
+    "tests/test_r253_external_cognition.py": "c01a5aa0d7d5776e30dd5755bf1ada320564f509485dc5e606a55e77efd4fe7d",
+    "tests/test_r253_external_cognitive_reflex_benchmark.py": "d63a394cc70e59d6aea3273d61d946aa71df18682c5aa8d64278c4be2441aa12",
+    "tests/test_r253_operator_catalog.py": "54d48aaf93914d647eaba92d96b88e17effb5f93969e0f04f43bf3e44b3f249f"
+  },
+  "summary": {
+    "counterexample_repeats_avoided": 2,
+    "distinct_deficit_kinds": 10,
+    "episodes": 16,
+    "episodes_with_new_midtrajectory_deficit": 16,
+    "exact": 16,
+    "execution_mode": "objective deficit monitoring + cognition-time procedural retrieval + safe primitive composition + verifier/counterexample credit loop",
+    "false_accepts": 0,
+    "high_confidence_objective_deficits": 16,
+    "interleaved_procedure_retrievals": 36,
+    "max_procedure_steps": 3,
+    "no_reflex_exact": 0,
+    "provenance_failures": 0,
+    "retrieve_once_exact": 0,
+    "self_confidence_only_exact": 0,
+    "unsafe_procedure_executions": 0
+  }
+}

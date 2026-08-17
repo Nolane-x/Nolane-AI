@@ -40,7 +40,7 @@ jobs:
           assert v['nolane_world']['audit_valid'] is True
           assert v['nolane_world']['gate_passed'] is False
           assert w['decision']=='NON_CONVERGED_BOUNDED_ACCEPTANCE_CANDIDATE'
-          assert v['readiness']['current']==56.0
+          assert v['readiness']['current']==44.5
           assert m['world_w5_gate_passed'] is False
           PY
       - name: Create complete repository snapshot
