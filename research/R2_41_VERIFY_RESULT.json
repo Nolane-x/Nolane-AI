@@ -1,0 +1,62 @@
+{
+  "aggregate": {
+    "all_gates_pass": true,
+    "competitive_calibrated_correct": 6,
+    "competitive_calibrated_mean_probe_cost": 8.166666666666666,
+    "competitive_macro_ids": [
+      "pm:156534f26828c6e6371d80e1",
+      "pm:4209b50495b1fad92239cafa",
+      "pm:44db0e9ba9cdbd622e022ba1",
+      "pm:474e2cae78ba29b1cbbe5f92",
+      "pm:c5d1ffb2a67c6cacf246fb4e",
+      "pm:c9c0ba63b797498a72826509"
+    ],
+    "competitive_raw_route_count": 2,
+    "episodes": 6,
+    "false_accepts": 0,
+    "gates": {
+      "competitive_all_correct": true,
+      "high_reliability_semantic_shift": true,
+      "multi_macro_and_raw_exercised": true,
+      "non_bit_family_transfer": true,
+      "not_worse_than_no_macro": true,
+      "same_query_and_cost_ceiling": true,
+      "selective_demotion_peer_preserved": true,
+      "strict_gain_over_unconditional": true,
+      "zero_false_accepts": true
+    },
+    "no_macro_correct": 6,
+    "no_macro_mean_probe_cost": 5.833333333333333,
+    "peer_preservation_episodes": 1,
+    "r238_binary_correct": 6,
+    "r238_binary_mean_probe_cost": 5.833333333333333,
+    "selective_demotion_episodes": 1,
+    "shift_flip_count": 1,
+    "shift_min_reported_reliability": 0.965,
+    "single_best_macro_correct": 6,
+    "single_best_macro_mean_probe_cost": 6.6000000000000005,
+    "unconditional_multi_macro_correct": 5,
+    "unconditional_multi_macro_mean_probe_cost": 7.7
+  },
+  "agi_engineering_readiness": 27.9,
+  "check_count": 8,
+  "checks": {
+    "aggregate_replay": true,
+    "atomic_episode_count": true,
+    "exact_replay": true,
+    "frozen_hashes": true,
+    "heldout_gate_contract": true,
+    "lock_preheldout": true,
+    "readiness_lock": true,
+    "world_preregistration": true
+  },
+  "checks_passed": 8,
+  "decision": "accepted",
+  "exact_replays": 6,
+  "failed_checks": [],
+  "frozen_hash_errors": {},
+  "milestone": "R2.41 Multi-Macro Competition + Semantic Shift Detection",
+  "readiness_before": 26.7,
+  "readiness_if_accepted": 27.9,
+  "schema_version": 1
+}
