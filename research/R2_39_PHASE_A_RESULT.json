@@ -1,0 +1,19 @@
+{
+  "accepted": false,
+  "agi_engineering_readiness": 25.6,
+  "claims": {
+    "agi_claim": false,
+    "bounded_negative_result": "Recursive typed DSL and development-mined predicate macro overgeneralized under frozen noisy non-bit heldout; no readiness credit.",
+    "broad_generalization_claim": false
+  },
+  "decision": "REJECTED_HELDOUT",
+  "exact_replays": 6,
+  "failed_checks": ["heldout_gate_contract"],
+  "milestone": "R2.39 Recursive Typed Probe DSL + Learned Intermediate Predicates",
+  "next_falsifier": "Uncertainty-aware macro applicability and trust calibration: infer when a learned predicate macro should be trusted, down-weighted, or bypassed under shifted verifier noise without using seed/domain/truth fields.",
+  "readiness_before": 25.6,
+  "readiness_if_accepted": 26.8,
+  "schema_version": 1,
+  "verifier_checks": "7/8",
+  "world_converged": false
+}

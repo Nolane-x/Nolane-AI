@@ -1,0 +1,47 @@
+{
+  "aggregate": {
+    "all_gates_pass": true,
+    "calibrated_correct": 6,
+    "calibrated_mean_probe_cost": 6.566666666666666,
+    "defer_route_count": 8,
+    "episodes": 6,
+    "false_accepts": 0,
+    "gates": {
+      "calibrated_all_correct": true,
+      "macro_and_deferral_exercised": true,
+      "non_bit_family_transfer": true,
+      "not_worse_than_no_macro": true,
+      "same_query_and_cost_ceiling": true,
+      "strict_gain_over_unconditional_macro": true,
+      "zero_false_accepts": true
+    },
+    "macro_route_count": 11,
+    "no_macro_correct": 5,
+    "no_macro_mean_probe_cost": 6.133333333333333,
+    "r238_binary_correct": 5,
+    "r238_binary_mean_probe_cost": 6.066666666666666,
+    "unconditional_macro_correct": 6,
+    "unconditional_macro_mean_probe_cost": 7.3999999999999995
+  },
+  "agi_engineering_readiness": 26.7,
+  "check_count": 8,
+  "checks": {
+    "aggregate_replay": true,
+    "atomic_episode_count": true,
+    "exact_replay": true,
+    "frozen_hashes": true,
+    "heldout_gate_contract": true,
+    "lock_preheldout": true,
+    "readiness_lock": true,
+    "world_preregistration": true
+  },
+  "checks_passed": 8,
+  "decision": "accepted",
+  "exact_replays": 6,
+  "failed_checks": [],
+  "frozen_hash_errors": {},
+  "milestone": "R2.40 Uncertainty-Aware Macro Applicability Calibration",
+  "readiness_before": 25.6,
+  "readiness_if_accepted": 26.7,
+  "schema_version": 1
+}
