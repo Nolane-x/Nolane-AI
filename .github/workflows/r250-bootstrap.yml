@@ -1,10 +1,10 @@
-name: R2.50 Bootstrap Payload
+name: R2.51 Bootstrap Payload
 
 on:
   push:
     branches: [ r250-self-induced-query ]
     paths:
-      - ".r250_fix/**"
+      - ".r251_payload/**"
       - ".github/workflows/r250-bootstrap.yml"
 
 permissions:
@@ -19,16 +19,22 @@ jobs:
         with:
           ref: r250-self-induced-query
           fetch-depth: 0
-      - name: Reconstruct exact R2.41 determinism fix
+      - name: Reconstruct exact R2.51 source payload
         run: |
-          cat .r250_fix/part* | tr -d '\n' | base64 -d > /tmp/r239_min_fix.tgz
-          echo "ee65d6cae4bd2e7298a3ffdc1823e9976f9d1748117c458c8dadaa2b50c015a4  /tmp/r239_min_fix.tgz" | sha256sum -c -
-          tar -xzf /tmp/r239_min_fix.tgz
-          test "$(git hash-object cogcoder/r239_recursive_probe_synthesis.py)" = "bc123d9dd2856a8536ea50d32eeac9e7f2dfd22d"
-      - name: Commit exact source fix
+          cat .r251_payload/part* | tr -d '\n' | base64 -d > /tmp/r251_payload.tgz
+          echo "34262ec88f47bd6df5d78d3496785e6a1dea7b09096dbd8527f835e8faf4c76b  /tmp/r251_payload.tgz" | sha256sum -c -
+          tar -xzf /tmp/r251_payload.tgz
+          test "$(git hash-object cogcoder/r251_interprocedural_query.py)" = "33c503e11be9e87ffcf69e4184241500f26f9f77"
+          test "$(git hash-object benchmarks/kfigg/r251_interprocedural_query_transfer.py)" = "306b74a389ded3188a07a330941f6fca81c46d48"
+          test "$(git hash-object tests/test_r251_interprocedural_query.py)" = "66412143270b2c67670d2fa3b80a33343af1dd61"
+          test "$(git hash-object tests/test_r251_interprocedural_query_benchmark.py)" = "3403ef64a8c8101ad4b91e4fbd8e55f20555e24b"
+          test "$(git hash-object docs/superpowers/specs/2026-08-17-r251-interprocedural-query-induction-design.md)" = "a1f656605adbad04e36d190b6568980e83dfd4f8"
+          test "$(git hash-object docs/superpowers/plans/2026-08-17-r251-interprocedural-query-induction.md)" = "48247c2a7f63b2046b4836a6beab8917463fd2fe"
+          rm -rf .r251_payload
+      - name: Commit exact R2.51 source objects
         run: |
-          git config user.name "Nolane R2.50 Bootstrap"
+          git config user.name "Nolane R2.51 Bootstrap"
           git config user.email "actions@users.noreply.github.com"
-          git add cogcoder/r239_recursive_probe_synthesis.py
-          git commit -m "fix: stabilize recursive posterior accumulation across Python runtimes"
+          git add -A
+          git commit -m "research: stage exact R2.51 interprocedural source objects"
           git push origin HEAD:r250-self-induced-query
