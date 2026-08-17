@@ -1,0 +1,52 @@
+name: R2.49 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "R2_49_DELIVERY.md"
+      - "R2_49_RELEASE_MANIFEST.json"
+      - "R2_43_TO_R2_49_EVOLUTION.md"
+      - "research/R2_49_*.json"
+      - ".github/workflows/r249-release-bundle.yml"
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify frozen release boundary
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          phase=json.loads(Path('research/R2_49_PHASE_A_RESULT.json').read_text())
+          verify=json.loads(Path('research/R2_49_VERIFY_RESULT.json').read_text())
+          manifest=json.loads(Path('R2_49_RELEASE_MANIFEST.json').read_text())
+          assert phase['accepted'] is True
+          assert phase['decision']=='ACCEPTED_BOUNDED_CAPABILITY'
+          assert phase['engineering_readiness']==39.0
+          assert verify['all_required_steps_success'] is True
+          assert verify['nolane_world']['gate_passed'] is False
+          assert manifest['status']=='accepted_bounded_capability'
+          print('R2.49 frozen release boundary PASS')
+          PY
+      - name: Create complete repository snapshot
+        run: |
+          printf '%s\n' "$GITHUB_SHA" > R2_49_RELEASE_COMMIT.txt
+          zip -q -r Nolane-AI-R2.49-COMPLETE.zip . -x '.git/*' 'Nolane-AI-R2.49-COMPLETE.zip'
+          sha256sum Nolane-AI-R2.49-COMPLETE.zip > Nolane-AI-R2.49-COMPLETE.zip.sha256
+          unzip -tq Nolane-AI-R2.49-COMPLETE.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.49-COMPLETE
+          path: |
+            Nolane-AI-R2.49-COMPLETE.zip
+            Nolane-AI-R2.49-COMPLETE.zip.sha256
+          if-no-files-found: error
+          retention-days: 90

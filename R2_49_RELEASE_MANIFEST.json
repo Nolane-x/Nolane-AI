@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.49",
+  "status": "accepted_bounded_capability",
+  "capability_commit": "9d697fb982aa1494ecde2923a51765097a6b4191",
+  "ci_run": 32012290015,
+  "ci_job": 95334272626,
+  "engineering_readiness": 39.0,
+  "world_id": "world4_37499dae40b046bd",
+  "world_audit_digest": "8c23d1dcd35e62143cd1ee162286c9926407722f5e7c9e38769356852525399f",
+  "world_w5_passed": false,
+  "release_artifact_policy": "GitHub Actions creates a complete repository snapshot ZIP excluding only .git internals; evidence and restore metadata are included in the repository snapshot.",
+  "files": [
+    "R2_49_DELIVERY.md",
+    "R2_49_RELEASE_MANIFEST.json",
+    "R2_43_TO_R2_49_EVOLUTION.md",
+    "research/R2_49_PHASE_A_RESULT.json",
+    "research/R2_49_VERIFY_RESULT.json"
+  ]
+}

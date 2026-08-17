@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.49",
+  "decision": "accepted_bounded_capability",
+  "github_commit": "9d697fb982aa1494ecde2923a51765097a6b4191",
+  "github_actions_run": 32012290015,
+  "github_actions_job": 95334272626,
+  "all_required_steps_success": true,
+  "integrity_workflows_success": true,
+  "checks": {
+    "r249_clean_runner": true,
+    "r248_r247_parent_compatibility": true,
+    "r246_parent_compatibility": true,
+    "r245_r244_parent_compatibility": true,
+    "r243_r241_parent_compatibility": true,
+    "frozen_recompute": true,
+    "zero_false_accepts": true,
+    "fixed_context_causal_baseline_fails": true,
+    "opaque_identifiers": true,
+    "sparse_feedback": true,
+    "exhaustive_final_execution": true
+  },
+  "nolane_world": {
+    "runtime": "Nolane World 0.5.0",
+    "world_id": "world4_37499dae40b046bd",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "8c23d1dcd35e62143cd1ee162286c9926407722f5e7c9e38769356852525399f",
+    "gate_passed": false,
+    "gate_score": 0,
+    "critical_unknowns": [
+      "hand-designed relational feature vocabulary",
+      "interprocedural/call-graph transfer",
+      "multi-file repository patch transactionality",
+      "incomplete/noisy/flaky tests",
+      "bounded edit-language openness",
+      "generated-family distribution breadth"
+    ]
+  },
+  "readiness": {
+    "previous_accepted": 27.9,
+    "current": 39.0,
+    "delta": 11.1,
+    "interpretation": "internal coding-AGI engineering-readiness rubric; not AGI probability"
+  }
+}

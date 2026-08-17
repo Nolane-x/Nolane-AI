@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.49",
+  "title": "Relational Context Predicate Induction",
+  "decision": "ACCEPTED_BOUNDED_CAPABILITY",
+  "accepted": true,
+  "accepted_commit": "9d697fb982aa1494ecde2923a51765097a6b4191",
+  "baseline_accepted_engineering_readiness": 27.9,
+  "engineering_readiness": 39.0,
+  "engineering_readiness_is_probability_of_agi": false,
+  "clean_ci": {
+    "workflow_run_id": 32012290015,
+    "job_id": 95334272626,
+    "runner": "Ubuntu 24.04 / Python 3.11.15",
+    "conclusion": "success",
+    "r249_tests": "5/5",
+    "r248_r247_tests": "13/13",
+    "r246_tests": "5/5",
+    "r245_r244_tests": "15/15",
+    "r243_r241_tests": "31/31"
+  },
+  "frozen_heldout": {
+    "episodes": 6,
+    "exact": 6,
+    "false_accepts": 0,
+    "learned_macros": 10,
+    "initial_candidates": 75,
+    "selected_exact_macro_set": 6,
+    "r248_fixed_context_baseline_exact": 0,
+    "initial_tests_per_episode": 4,
+    "max_counterexamples_revealed": 1,
+    "max_observed_tests": 5,
+    "max_feedback_fraction": 0.0020824656393169513,
+    "mean_feedback_fraction": 0.0018742190753852563,
+    "exhaustive_tests_per_episode": 2401,
+    "test_suite_size": 2401,
+    "opaque_identifiers": true,
+    "learned_predicate_features": ["guard_body:returns_lineage"],
+    "execution_mode": "learned relational program-graph context predicates + compiled Python patches + executable tests"
+  },
+  "bounded_causal_claim": "On the frozen generated Python family, a relational context predicate induced from changed and unchanged AST sites transfers across nested/deep alias reshaping where the fixed R2.48 context baseline fails 0/6, while R2.49 succeeds 6/6 with sparse counterexample feedback and exhaustive executable certification.",
+  "non_claims": [
+    "This is not a probability that Nolane-AI is AGI.",
+    "This does not establish W5 or general coding-AGI convergence.",
+    "This does not establish interprocedural, multi-file, repository-scale, noisy-test, or open-ended edit-language transfer."
+  ]
+}
