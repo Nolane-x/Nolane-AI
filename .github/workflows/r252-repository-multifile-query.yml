@@ -1,0 +1,136 @@
+name: R2.52 Repository Multi-File Query Induction
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r239_recursive_probe_synthesis.py"
+      - "cogcoder/r247_*.py"
+      - "cogcoder/r250_*.py"
+      - "cogcoder/r251_*.py"
+      - "cogcoder/r252_*.py"
+      - "benchmarks/kfigg/r247_*.py"
+      - "benchmarks/kfigg/r250_*.py"
+      - "benchmarks/kfigg/r251_*.py"
+      - "benchmarks/kfigg/r252_*.py"
+      - "tests/test_r247_*.py"
+      - "tests/test_r250_*.py"
+      - "tests/test_r251_*.py"
+      - "tests/test_r252_*.py"
+      - "docs/superpowers/specs/2026-08-17-r252-*.md"
+      - "docs/superpowers/plans/2026-08-17-r252-*.md"
+      - ".github/workflows/r252-repository-multifile-query.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r239_recursive_probe_synthesis.py"
+      - "cogcoder/r247_*.py"
+      - "cogcoder/r250_*.py"
+      - "cogcoder/r251_*.py"
+      - "cogcoder/r252_*.py"
+      - "benchmarks/kfigg/r247_*.py"
+      - "benchmarks/kfigg/r250_*.py"
+      - "benchmarks/kfigg/r251_*.py"
+      - "benchmarks/kfigg/r252_*.py"
+      - "tests/test_r247_*.py"
+      - "tests/test_r250_*.py"
+      - "tests/test_r251_*.py"
+      - "tests/test_r252_*.py"
+      - ".github/workflows/r252-repository-multifile-query.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r252-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.52 repository tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py
+      - name: Run R2.51 through R2.47 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r251_interprocedural_query.py \
+            tests/test_r251_interprocedural_query_benchmark.py \
+            tests/test_r250_relational_query.py \
+            tests/test_r250_self_induced_query_benchmark.py \
+            tests/test_r249_relational_context.py \
+            tests/test_r249_relational_benchmark.py \
+            tests/test_r248_contextual_patch.py \
+            tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py \
+            tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r246_sparse_feedback.py \
+            tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py \
+            tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.52 evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r252_repository_multifile_transfer import run_frozen_heldout
+          result = run_frozen_heldout(); s = result['summary']
+          assert result['all_gates_pass'] is True
+          assert s['exact'] == 6 and s['false_accepts'] == 0
+          assert s['learned_macros'] == 10
+          assert s['selected_exact_macro_set'] == 6
+          assert s['selected_three_file_transaction'] == 6
+          assert s['r251_independent_baseline_exact'] == 0
+          assert s['global_apply_baseline_exact'] == 0
+          assert s['direct_essential_patch_exact'] == 6
+          assert s['direct_target_three_files'] == 6
+          assert s['initial_candidates'] == 75
+          assert s['initial_tests_per_episode'] == 4
+          assert s['max_counterexamples_revealed'] <= 2
+          assert s['max_observed_tests'] <= 6
+          assert s['max_feedback_fraction'] <= 0.003
+          assert s['exhaustive_tests_per_episode'] == 2401
+          assert s['opaque_identifiers'] is True
+          assert s['min_file_count'] == 5 and s['max_file_count'] == 6
+          assert s['min_call_depth'] == 4 and s['max_call_depth'] == 5
+          assert s['learned_query_patterns'] >= 1
+          print(json.dumps(s, sort_keys=True))
+          PY
+
+  cross-python-r252:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install --upgrade pytest
+      - name: Verify R2.52 focused behavior across Python runtimes
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py
