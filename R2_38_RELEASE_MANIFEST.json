@@ -1,0 +1,18 @@
+{
+  "artifact_boundary": "COMPLETE ZIP contains the tracked project tree at the accepted R2.38 release plus release metadata; transient __pycache__ files are excluded.",
+  "decision": "ACCEPTED",
+  "exact_replays": 6,
+  "heldout_canonical_sha256": "e895db89ac631f1384503ddf54026ffe436c3661d324c93785c56ed451cd62eb",
+  "lock_sha256": "81b5ba004c98337d2999000178d6be2ca655597c8b1b57a5bf46a7a96097f6fa",
+  "milestone": "R2.38 Compositional Probe-Language Synthesis",
+  "readiness": 25.6,
+  "schema_version": 1,
+  "source_git_commit_before_manifest": "0d6c7479d6192e382994d565ff30cc33866ea9ea",
+  "verifier_checks": "8/8",
+  "world_audit": {
+    "events": 70,
+    "head": "b8c749c1303b44a4f17267f2a8ccee955af02e29d847b8abe56c016b18adfe13",
+    "valid": true
+  },
+  "world_converged": false
+}
