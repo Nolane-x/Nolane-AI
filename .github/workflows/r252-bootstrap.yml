@@ -1,0 +1,49 @@
+name: R2.52 Bootstrap Payload
+
+on:
+  push:
+    branches: [ r252-repository-multifile ]
+    paths:
+      - ".r252_payload/**"
+      - ".github/workflows/r252-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r252-repository-multifile
+          fetch-depth: 0
+      - name: Reconstruct exact R2.52 source payload
+        run: |
+          cat .r252_payload/part* | tr -d '\n' | base64 -d > /tmp/r252_payload.tgz
+          echo "7a8b167ac6ae1d383d06a5fad1bce0b6d1136e8cfc251aa9f39dfef769e02131  /tmp/r252_payload.tgz" | sha256sum -c -
+          tar -xzf /tmp/r252_payload.tgz
+          test "$(git hash-object cogcoder/r252_repository_query.py)" = "f9ca20b20e4a82b64f161f4cea907bb43f30b615"
+          test "$(git hash-object benchmarks/kfigg/r252_repository_multifile_transfer.py)" = "51c4b01df2568f28a8574f41a92f5b9584abfdda"
+          test "$(git hash-object tests/test_r252_repository_query.py)" = "4286dd89522f0fc84c2b84dbe240e8d1e49b4150"
+          test "$(git hash-object tests/test_r252_repository_query_benchmark.py)" = "6c85966074357c6bf9fdbe785e52314c4f6f93ee"
+          test "$(git hash-object docs/superpowers/specs/2026-08-17-r252-repository-multifile-query-induction-design.md)" = "1748aab6862e0ad375c384ca9d1caab162ba2e04"
+          test "$(git hash-object docs/superpowers/plans/2026-08-17-r252-repository-multifile-query-induction.md)" = "03691fde036b3e9ff2eceb15bf9af001ba11e29c"
+          test "$(git hash-object research/R2_52_PHASE_A_RESULT.json)" = "91782ce6ee2258d09b5bca5d2a3a7c22ec776f94"
+          test "$(git hash-object .github/workflows/r252-repository-multifile-query.yml)" = "d236a6bc14c6574ee69e2ec5125b3e35f6282726"
+      - name: Commit exact R2.52 source objects
+        run: |
+          git config user.name "Nolane R2.52 Bootstrap"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            cogcoder/r252_repository_query.py \
+            benchmarks/kfigg/r252_repository_multifile_transfer.py \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py \
+            docs/superpowers/specs/2026-08-17-r252-repository-multifile-query-induction-design.md \
+            docs/superpowers/plans/2026-08-17-r252-repository-multifile-query-induction.md \
+            research/R2_52_PHASE_A_RESULT.json \
+            .github/workflows/r252-repository-multifile-query.yml
+          git commit -m "research: stage exact R2.52 repository multi-file query induction"
+          git push origin HEAD:r252-repository-multifile
