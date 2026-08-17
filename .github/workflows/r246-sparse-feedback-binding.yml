@@ -1,0 +1,66 @@
+name: R2.46 Sparse-Feedback Active Counterexample Binding
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r246_*.py"
+      - "benchmarks/kfigg/r246_*.py"
+      - "tests/test_r246_*.py"
+      - ".github/workflows/r246-sparse-feedback-binding.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r246_*.py"
+      - "benchmarks/kfigg/r246_*.py"
+      - "tests/test_r246_*.py"
+      - ".github/workflows/r246-sparse-feedback-binding.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r246-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.46 sparse-feedback tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r246_sparse_feedback.py \
+            tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parent gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py \
+            tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.46 evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r246_sparse_feedback_binding import run_frozen_heldout
+          result = run_frozen_heldout()
+          s = result['summary']
+          assert result['all_gates_pass'] is True
+          assert s['exact'] == 6
+          assert s['false_accepts'] == 0
+          assert s['initial_tests_per_episode'] == 8
+          assert s['max_feedback_fraction'] <= 0.25
+          assert s['max_observed_tests'] <= 64
+          assert s['final_exhaustive_rows_per_episode'] == 256
+          assert s['privileged_role_scopes_used'] is False
+          print(json.dumps(s, sort_keys=True))
+          PY
