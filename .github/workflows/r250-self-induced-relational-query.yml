@@ -4,6 +4,7 @@ on:
   push:
     branches: [ main ]
     paths:
+      - "cogcoder/r239_recursive_probe_synthesis.py"
       - "cogcoder/r250_*.py"
       - "benchmarks/kfigg/r250_*.py"
       - "tests/test_r250_*.py"
@@ -12,6 +13,7 @@ on:
       - ".github/workflows/r250-self-induced-relational-query.yml"
   pull_request:
     paths:
+      - "cogcoder/r239_recursive_probe_synthesis.py"
       - "cogcoder/r250_*.py"
       - "benchmarks/kfigg/r250_*.py"
       - "tests/test_r250_*.py"
@@ -104,14 +106,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest
         run: python -m pip install --upgrade pytest
-      - name: Verify R2.41 unexposed semantic-shift determinism
+      - name: Verify R2.41 cross-runtime semantic-shift behavior
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
           import benchmarks.kfigg.r241_multi_macro_competition as b
-          row = b.run_dev_episode(857, 'semantic_shift', 'competitive_calibrated')
-          print(json.dumps(row, sort_keys=True))
-          assert row['correct'] is True
-          assert row['semantic_shift_flip_count'] == 0
-          assert row['quarantined_macro_ids'] == []
+          clean = b.run_dev_episode(857, 'semantic_shift', 'competitive_calibrated')
+          shifted = b.run_dev_episode(859, 'semantic_shift', 'competitive_calibrated')
+          print(json.dumps({'clean': clean, 'shifted': shifted}, sort_keys=True))
+          assert clean['correct'] is True
+          assert clean['semantic_shift_flip_count'] == 0
+          assert clean['quarantined_macro_ids'] == []
+          assert shifted['correct'] is True
+          assert shifted['semantic_shift_flip_count'] >= 1
+          assert 'pm:474e2cae78ba29b1cbbe5f92' in shifted['quarantined_macro_ids']
           PY
