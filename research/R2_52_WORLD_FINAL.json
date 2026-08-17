@@ -1,0 +1,171 @@
+{
+  "adversarial_findings": [
+    "Relation vocabulary including FLOW* remains architect-provided rather than learned from raw repository behavior.",
+    "Static semantics are limited to acyclic direct absolute from-imports of top-level synchronous functions.",
+    "No classes, methods, closures, recursion, relative imports, package initialization side effects, higher-order functions, dynamic dispatch, reflection, async, or external dependencies.",
+    "In-memory compiler strips imports and injects function objects; it is not full CPython import semantics.",
+    "Atomicity is immutable RepositorySnapshot replacement, not a filesystem or VCS multi-file transaction with rollback under partial I/O failure.",
+    "Heldout scale is 5-6 files and call depth 4-5; repository-scale asymptotics beyond this are not established.",
+    "Benchmark is generated from a bounded family with deterministic exhaustive tests; noisy/flaky tests and broad public coding benchmarks remain untested.",
+    "Patch/query language remains bounded to ten edit families and conjunctions over a fixed relation vocabulary."
+  ],
+  "candidate_commit": "e5d4985263d736a5cc9a01a30b1892c0b229e23a",
+  "decision": "NON_CONVERGED_BOUNDED_ACCEPTANCE_CANDIDATE",
+  "depth_proof": {
+    "audit": {
+      "events": 7,
+      "head": "55da0b87353cdfceeab935c1c274b70cc7f17d4b173004d5d97bb3b2fcb64a84",
+      "valid": true
+    },
+    "depth": "W5",
+    "digests": {
+      "blackboard": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "program": "8df9cbd8e79fcc0ee84591ef",
+      "world_state": "f2a2ce818ac623122d18a78d68cd884f5e08991db6ffb5e7f92d39d02af17e4a"
+    },
+    "domain": "software-engineering",
+    "gate": {
+      "blockers": [
+        "trusted active residency insufficient",
+        "independent attested compute insufficient",
+        "cognitive VM program insufficiently executed",
+        "critical unknowns unresolved by trusted evidence",
+        "independent fresh verification insufficient",
+        "independent challenger evidence insufficient",
+        "verified robust/counterfactual worlds insufficient",
+        "verified material representation diversity insufficient",
+        "validated information gain insufficient",
+        "trusted assessment says material value-of-thought remains",
+        "proof obligations remain open",
+        "trusted quality floor robustness"
+      ],
+      "passed": false,
+      "score": 0.1428571428571429
+    },
+    "metrics": {
+      "active_seconds": 0.0,
+      "attested_compute_seconds": 0.0,
+      "challengers_survived": 0,
+      "cognitive_state": {
+        "actions": 0,
+        "active_learning_rules": 0,
+        "advisory_unknowns": 0,
+        "assumptions": 0,
+        "failures": 0,
+        "hypotheses": 0,
+        "hypothesis_entropy": 0.0,
+        "open_hypotheses": 0,
+        "stagnating": false,
+        "strategy_switches": 0
+      },
+      "critical_unknowns": 1,
+      "exploration_novelty": 0.0,
+      "fresh_verifications": 1,
+      "information_gain": 9.0,
+      "open_proof_obligations": 3,
+      "passed_proofs": 0,
+      "quality": {
+        "correctness": 0.94,
+        "evidence": 0.91,
+        "robustness": 0.78,
+        "verification": 0.93
+      },
+      "quality_assessors": 1,
+      "remaining_vot": 0.35,
+      "robust_worlds": 0,
+      "trusted_evidence": 3,
+      "verified_representations": 1,
+      "vm_completed": 0
+    },
+    "program_signature": "8df9cbd8e79fcc0ee84591ef",
+    "world_id": "world5_bb72de0587d0c24f6282"
+  },
+  "github_run_id": 32030459417,
+  "quality_verification": {
+    "attestation": {
+      "claim_type": "quality.assessment",
+      "issued_at": 1440.980502116,
+      "nonce": "7c4392aaedf010b6be5c75bc9d8e6d92",
+      "payload_digest": "c968a22af6732fdaf4ced5a8ff01c6b8fe4d47dd5b98d29efeeeb65e5c7b5533",
+      "signature": "51d885f4888f2e5c2e989c8c5c3b5ba2ba54c4d48fa033707f286cde519fcc47",
+      "signer_id": "verifier_6d7acb376c1b0698"
+    },
+    "fresh_counted": true,
+    "quality": {
+      "correctness": 0.94,
+      "evidence": 0.91,
+      "robustness": 0.78,
+      "verification": 0.93
+    }
+  },
+  "runtime_version": "0.5.0",
+  "trusted_evidence": [
+    {
+      "attestation": {
+        "claim_type": "evidence.record",
+        "issued_at": 1440.96249625,
+        "nonce": "1c9d9e410fd0acc983e3c9029b2ed5e1",
+        "payload_digest": "9ad9cccb6d2ff133df72bc715e227d4e6af4ac0f06cb319e8a2dd20fa5d2b957",
+        "signature": "84f9e830b6b5f09e3a6a7ab49d64565d0dfe06ee0e548fdb6dfebf2a672a3cf7",
+        "signer_id": "tool_14ef9c0eaffea222"
+      },
+      "content_digest": "06db62fe3abeb0e36cc8058928a391e2e49484932c042ed52e5c1505ca93c10c",
+      "evidence_id": "r252-local-87",
+      "information_gain": 3.0,
+      "lineage": "local-tdd-cpython313",
+      "principal_id": "tool_14ef9c0eaffea222",
+      "role": "tool",
+      "subjects": [
+        "r252:correctness",
+        "r252:regression"
+      ]
+    },
+    {
+      "attestation": {
+        "claim_type": "evidence.record",
+        "issued_at": 1440.9657293,
+        "nonce": "f387e093780c96a0eb2ced7eeca34fbb",
+        "payload_digest": "9ae4d9f4a68e2dd68bfb4fcbae1653275f319feff9c3dcb6cf2145a8ccbc2876",
+        "signature": "d037103df871efd1df6b874c0aa7022142f4e9835b6857694ff2cdbc42adb66e",
+        "signer_id": "tool_7c0230bfdee10089"
+      },
+      "content_digest": "e4ca7031c11071827372213a8e1bfcd7cbf227b42e0441949af39c90c92b63f9",
+      "evidence_id": "r252-github-clean",
+      "information_gain": 4.0,
+      "lineage": "github-hosted-clean-runner",
+      "principal_id": "tool_7c0230bfdee10089",
+      "role": "tool",
+      "subjects": [
+        "r252:correctness",
+        "r252:cross-python",
+        "r252:verification"
+      ]
+    },
+    {
+      "attestation": {
+        "claim_type": "evidence.record",
+        "issued_at": 1440.975639643,
+        "nonce": "636d6f011f80e3287552a0ce61a0d5e6",
+        "payload_digest": "c01b71d428ca89851b2a9b82df073e9b6864fab028acb7bc9cfe9f9094db63bc",
+        "signature": "7c6b8575106097a55f8752f9ca0b63da875291143a8223d5cc516b937dc14ff7",
+        "signer_id": "tool_058db280a01d2e2f"
+      },
+      "content_digest": "c129a365b67deb6c9316cdf698a83c837bb0b10f5f8a7af91e62bdb2ffa251d4",
+      "evidence_id": "r252-frontier-review",
+      "information_gain": 2.0,
+      "lineage": "adversarial-static-review",
+      "principal_id": "tool_058db280a01d2e2f",
+      "role": "tool",
+      "subjects": [
+        "r252:limitations",
+        "vot"
+      ]
+    }
+  ],
+  "value_of_thought": {
+    "rationale": "Major semantic and scale frontiers remain despite clean bounded evidence.",
+    "remaining_vot": 0.35
+  },
+  "world_depth": "W5",
+  "world_id": "world5_bb72de0587d0c24f6282"
+}

@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "release": "R2.52",
+  "title": "Repository Multi-File Query Induction",
+  "decision": "ACCEPTED_BOUNDED_CAPABILITY",
+  "capability_commit": "e5d4985263d736a5cc9a01a30b1892c0b229e23a",
+  "github_actions_run": 32030459417,
+  "world_id": "world5_bb72de0587d0c24f6282",
+  "world_audit_digest": "55da0b87353cdfceeab935c1c274b70cc7f17d4b173004d5d97bb3b2fcb64a84",
+  "world_w5_gate_passed": false,
+  "coding_agi_engineering_readiness": 56.0,
+  "release_boundary": "bounded acyclic direct-import multi-file Python repair; snapshot-atomic only; no general AGI claim"
+}
