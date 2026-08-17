@@ -1,0 +1,200 @@
+{
+  "accepted": false,
+  "baseline_accepted_commit": "75590cb65b714a68bbaae0707f5406fcbcf58676",
+  "baseline_engineering_readiness": 27.9,
+  "candidate_commit": "1a5786edaff0670baad3aa738d66efe7795b6f62",
+  "candidate_engineering_readiness_if_external_gate_clears": 29.2,
+  "causal_claim": "Reuse of two independently learned predicate abstractions contracts this frozen bounded synthesis protocol from 484 raw semantic recombination candidates to 4 composition candidates while preserving exhaustive held-out truth-table correctness. It does not prove raw reasoning cannot solve the task or establish general AGI.",
+  "decision": "CANDIDATE_ONLY",
+  "dev_seeds": [
+    1201,
+    1213,
+    1223,
+    1231,
+    1249,
+    1259,
+    1277,
+    1283
+  ],
+  "external_ci": {
+    "blocker": "The job was not started because recent account payments have failed or the spending limit needs to be increased.",
+    "classification": "INFRASTRUCTURE_BILLING_BLOCKER_NOT_CAPABILITY_FAILURE",
+    "conclusion": "failure",
+    "job_id": 95316868377,
+    "run_id": 32006471396,
+    "runner_id": 0,
+    "steps": [],
+    "tests_executed": false,
+    "workflow": "R2.43 Counterexample-Guided Cross-Family Composition"
+  },
+  "heldout_rows": [
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.9043814577244937,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9927744539878083,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1301,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.08839299626331454
+    },
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.8812908992306926,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9858150371789198,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1303,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.10452413794822724
+    },
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.8931734583778567,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9895875212220556,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1307,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.09641406284419896
+    },
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.8687212463394044,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9814538950336534,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1319,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.11273264869424904
+    },
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.9043814577244937,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9927744539878083,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1321,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.08839299626331454
+    },
+    {
+      "accepted": true,
+      "best_parent_information_gain": 0.8931734583778567,
+      "composition_candidates_evaluated": 4,
+      "connective": "and",
+      "counterexamples_checked": 1,
+      "exact_truth_table": true,
+      "false_accept": false,
+      "information_gain": 0.9895875212220556,
+      "left_parent_exact": false,
+      "raw_semantic_space_size": 484,
+      "right_parent_exact": false,
+      "seed": 1327,
+      "selected_macro_ids": [
+        "pm:source-left-and",
+        "pm:source-right-or"
+      ],
+      "synergy": 0.09641406284419896
+    }
+  ],
+  "heldout_seeds": [
+    1301,
+    1303,
+    1307,
+    1319,
+    1321,
+    1327
+  ],
+  "metrics": {
+    "composition_candidates_evaluated": [
+      4
+    ],
+    "false_accepts": 0,
+    "heldout_episodes": 6,
+    "heldout_exact": 6,
+    "parents_exact_any": false,
+    "raw_semantic_space_size": [
+      484
+    ],
+    "synergy_bits_max": 0.11273264869424904,
+    "synergy_bits_min": 0.08839299626331454
+  },
+  "milestone": "R2.43",
+  "next_acceptance_boundary": [
+    "GitHub Actions or equivalent independent clean-environment runner executes R2.43 focused + R2.41 parent compatibility gates",
+    "Nolane World W5 external-CI attack resolved",
+    "No regression in frozen heldout evidence"
+  ],
+  "nolane_world_v5": {
+    "candidate_margin": 0.12,
+    "candidate_quality": 0.82,
+    "estimated_material_improvement": 1.3,
+    "pass_gate": false,
+    "reason_codes": [
+      "MIN_RESIDENCY_NOT_MET",
+      "FRAME_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_GENERATIONS_NOT_MET",
+      "ADVERSARIAL_COVERAGE_NOT_MET",
+      "COUNTERFACTUAL_COVERAGE_NOT_MET",
+      "UNKNOWN_HUNTS_NOT_MET",
+      "REPRESENTATION_SHIFTS_NOT_MET",
+      "ROBUSTNESS_WORLDS_NOT_MET",
+      "FAILURE_ANALYSIS_NOT_MET",
+      "MATERIAL_IMPROVEMENT_STILL_LIKELY",
+      "CANDIDATE_QUALITY_BELOW_THRESHOLD"
+    ],
+    "session_id": "world_034289cf75d1",
+    "unresolved_attack": "external-ci-verification"
+  },
+  "score_semantics": "Internal coding-AGI engineering-readiness rubric; not a scientific probability of AGI.",
+  "status": "LOCALLY_VERIFIED_EXTERNAL_CI_BLOCKED",
+  "timestamp_utc": "2026-08-17T07:39:10Z",
+  "title": "Counterexample-Guided Cross-Family Macro Composition"
+}

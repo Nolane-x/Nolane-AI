@@ -1,0 +1,55 @@
+{
+  "accepted": false,
+  "base_commit": "75590cb65b714a68bbaae0707f5406fcbcf58676",
+  "candidate_commit": "1a5786edaff0670baad3aa738d66efe7795b6f62",
+  "files": [
+    {
+      "bytes": 12024,
+      "path": "cogcoder/r243_macro_composition.py",
+      "sha256": "48484c4041e48955627cddaa4e246f59fb1d80d9640eb5af46f0ab275b68cc44"
+    },
+    {
+      "bytes": 5773,
+      "path": "benchmarks/kfigg/r243_cross_family_macro_composition.py",
+      "sha256": "d072447dd07b5b23f8d5459a7d98fb80f3b1e353ccd26e7067a770a163e42617"
+    },
+    {
+      "bytes": 6141,
+      "path": "tests/test_r243_macro_composition.py",
+      "sha256": "9eb54d58b9620455fbde4e2d90676b8502ed7016388da56f9b5bbb18011391d8"
+    },
+    {
+      "bytes": 1740,
+      "path": "tests/test_r243_cross_family_benchmark.py",
+      "sha256": "6906278a1e21ab6959b6da641b66bd2349adb7fc762dfb7c3e2c86fca2ff1557"
+    },
+    {
+      "bytes": 2481,
+      "path": ".github/workflows/r243-cross-family-composition.yml",
+      "sha256": "aa6ded61ddc77fd79a467b5abf7423ff68618e41a953fac5e5ff29cefb4ead9d"
+    },
+    {
+      "bytes": 2297,
+      "path": "docs/superpowers/plans/2026-08-17-r243-cross-family-composition.md",
+      "sha256": "e8087cd9a90ed54d8b5a30985e7c806bda075e86e41d040b67b920d8027f3ffd"
+    },
+    {
+      "bytes": 6360,
+      "path": "research/R2_43_PHASE_A_RESULT.json",
+      "sha256": "16347ae2166644bdbee043a856f8d85658c6e333163954eadb343b7362a68a9a"
+    },
+    {
+      "bytes": 2145,
+      "path": "research/R2_43_VERIFY_RESULT.json",
+      "sha256": "acba6305ea7d41b7f9d28faee19f33b659b8598277764dfe4146d44cb9fdf0c6"
+    },
+    {
+      "bytes": 3306,
+      "path": "R2_43_DELIVERY.md",
+      "sha256": "2b65fb07032eb553d2db9822709ee80a893cdadd43062d766b5e1909a1aefe7c"
+    }
+  ],
+  "milestone": "R2.43",
+  "note": "This manifest covers R2.43 milestone files/evidence. It is not a claim that this local workspace is a complete repository mirror.",
+  "status": "candidate_verified_local_external_ci_blocked"
+}
