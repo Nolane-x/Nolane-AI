@@ -1,0 +1,60 @@
+name: R2.44 Recursive Abstraction Ladder
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r244_*.py"
+      - "benchmarks/kfigg/r244_*.py"
+      - "tests/test_r244_*.py"
+      - ".github/workflows/r244-recursive-abstraction-ladder.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r244_*.py"
+      - "benchmarks/kfigg/r244_*.py"
+      - "tests/test_r244_*.py"
+      - ".github/workflows/r244-recursive-abstraction-ladder.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r244-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.44 recursive abstraction tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 parent compatibility gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.44 heldout evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r244_recursive_abstraction_ladder import run_frozen_heldout
+          result = run_frozen_heldout()
+          s = result['summary']
+          assert result['all_gates_pass'] is True
+          assert s['exact'] == 6
+          assert s['false_accepts'] == 0
+          assert s['generation'] >= 2
+          assert s['arity'] >= 8
+          assert s['flat_unique_bindings'] == 40320
+          assert s['max_recursive_candidates'] <= 11
+          assert s['min_binding_contraction'] >= 1000.0
+          assert s['exhaustive_truth_table_rows_per_episode'] == 256
+          print(json.dumps(s, sort_keys=True))
+          PY
