@@ -1,0 +1,117 @@
+name: R2.50 Self-Induced Relational Query Grammar
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r250_*.py"
+      - "benchmarks/kfigg/r250_*.py"
+      - "tests/test_r250_*.py"
+      - "docs/superpowers/specs/2026-08-17-r250-*.md"
+      - "docs/superpowers/plans/2026-08-17-r250-*.md"
+      - ".github/workflows/r250-self-induced-relational-query.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r250_*.py"
+      - "benchmarks/kfigg/r250_*.py"
+      - "tests/test_r250_*.py"
+      - ".github/workflows/r250-self-induced-relational-query.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r250-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.50 self-induced relational query tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r250_relational_query.py \
+            tests/test_r250_self_induced_query_benchmark.py
+      - name: Run R2.49 through R2.47 executable localization parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r249_relational_context.py \
+            tests/test_r249_relational_benchmark.py \
+            tests/test_r248_contextual_patch.py \
+            tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py \
+            tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parent gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r246_sparse_feedback.py \
+            tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parent gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py \
+            tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.50 evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r250_self_induced_query_transfer import run_frozen_heldout
+          result = run_frozen_heldout(); s = result['summary']
+          assert result['all_gates_pass'] is True
+          assert s['exact'] == 6 and s['false_accepts'] == 0
+          assert s['learned_macros'] == 10
+          assert s['selected_exact_macro_set'] == 6
+          assert s['r249_training_inseparable'] is True
+          assert s['r249_feature_collision_episodes'] == 6
+          assert s['r249_baseline_exact'] == 0
+          assert s['global_apply_baseline_exact'] == 0
+          assert s['direct_essential_patch_exact'] == 6
+          assert s['initial_candidates'] == 75
+          assert s['initial_tests_per_episode'] == 4
+          assert s['max_counterexamples_revealed'] <= 2
+          assert s['max_observed_tests'] <= 6
+          assert s['max_feedback_fraction'] <= 0.003
+          assert s['exhaustive_tests_per_episode'] == 2401
+          assert s['opaque_identifiers'] is True
+          assert s['raw_identifier_leaks'] == 0
+          assert s['learned_query_patterns'] >= 4
+          print(json.dumps(s, sort_keys=True))
+          PY
+
+  r241-cross-python-determinism:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install --upgrade pytest
+      - name: Verify R2.41 unexposed semantic-shift determinism
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          import benchmarks.kfigg.r241_multi_macro_competition as b
+          row = b.run_dev_episode(857, 'semantic_shift', 'competitive_calibrated')
+          print(json.dumps(row, sort_keys=True))
+          assert row['correct'] is True
+          assert row['semantic_shift_flip_count'] == 0
+          assert row['quarantined_macro_ids'] == []
+          PY
