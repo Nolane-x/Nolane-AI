@@ -1,0 +1,54 @@
+{
+  "canonical_payload_sha256": "b09ba61592095a4927138247936f8460ba64257853762d7a311fc0374ba739cf",
+  "episode_count": 6,
+  "episode_receipt_sha256": [
+    "02a37f4f46e1b31fc53359babbfd5a35af0f4a7b7302930edce3f43bf65b8954",
+    "e81edd33291e9a83a23970c68576e46ff2b9de62c3430b0e95ff24817b94ac39",
+    "92f6e7b3f74ed1558301b6721f36031d40e00ec900a6914a65f5dea0be2e7009",
+    "73be833fcc897fdb4ad2d6ef3dcb28ba4ad08ce0d81fb553e0aa077c60062fe5",
+    "ee273a18ba7a88e7dfaa13e41a44319fb0ade35ae67d6c9296dde270e59f5b2f",
+    "b6473fe7f5ac5d048e1d7a20d05ecc6c7de6d780c86ea70409ab0c6dc52d3e99"
+  ],
+  "lock_sha256": "7ceb41d9ae7f7b8693fb7cce4e3a53e2ef0f0a5079d77261c495d9d0d26ee606",
+  "milestone": "R2.41 Multi-Macro Competition + Semantic Shift Detection",
+  "schema_version": 1,
+  "summary": {
+    "all_gates_pass": true,
+    "competitive_calibrated_correct": 6,
+    "competitive_calibrated_mean_probe_cost": 8.166666666666666,
+    "competitive_macro_ids": [
+      "pm:156534f26828c6e6371d80e1",
+      "pm:4209b50495b1fad92239cafa",
+      "pm:44db0e9ba9cdbd622e022ba1",
+      "pm:474e2cae78ba29b1cbbe5f92",
+      "pm:c5d1ffb2a67c6cacf246fb4e",
+      "pm:c9c0ba63b797498a72826509"
+    ],
+    "competitive_raw_route_count": 2,
+    "episodes": 6,
+    "false_accepts": 0,
+    "gates": {
+      "competitive_all_correct": true,
+      "high_reliability_semantic_shift": true,
+      "multi_macro_and_raw_exercised": true,
+      "non_bit_family_transfer": true,
+      "not_worse_than_no_macro": true,
+      "same_query_and_cost_ceiling": true,
+      "selective_demotion_peer_preserved": true,
+      "strict_gain_over_unconditional": true,
+      "zero_false_accepts": true
+    },
+    "no_macro_correct": 6,
+    "no_macro_mean_probe_cost": 5.833333333333333,
+    "peer_preservation_episodes": 1,
+    "r238_binary_correct": 6,
+    "r238_binary_mean_probe_cost": 5.833333333333333,
+    "selective_demotion_episodes": 1,
+    "shift_flip_count": 1,
+    "shift_min_reported_reliability": 0.965,
+    "single_best_macro_correct": 6,
+    "single_best_macro_mean_probe_cost": 6.6000000000000005,
+    "unconditional_multi_macro_correct": 5,
+    "unconditional_multi_macro_mean_probe_cost": 7.7
+  }
+}
