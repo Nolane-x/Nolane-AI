@@ -6,9 +6,10 @@ from dataclasses import dataclass, replace
 
 def _unit(value: float, *, field: str) -> float:
     out = float(value)
-    if not 0.0 <= out <= 1.0:
+    tolerance = 16.0 * math.ulp(1.0)
+    if out < -tolerance or out > 1.0 + tolerance:
         raise ValueError(f"{field} must be in [0,1]")
-    return out
+    return min(1.0, max(0.0, out))
 
 
 @dataclass(frozen=True)
@@ -110,7 +111,6 @@ def assess_competing_macro(
 ) -> MacroCompetitionAssessment:
     threshold = _unit(threshold, field="threshold")
     quality = _evidence_quality(evidence)
-    # Assessment uses one bounded pseudo-observation but does not mutate state.
     alpha = state.alpha + 2.0 * quality
     beta = state.beta + 2.0 * (1.0 - quality)
     mean, lcb = _beta_lcb(alpha, beta)
@@ -134,8 +134,6 @@ def update_macro_competition_state(
     immediate_shock = low_reliability_shock or counterexample_shock
     quarantine = state.quarantined or immediate_shock or conflicts >= 2
     shocks = state.shock_count + int(immediate_shock or (semantic_conflict and conflicts >= 2))
-    # Exponential trajectory-local semantic alignment; this state is intentionally
-    # per macro so a conflict cannot contaminate peer abstractions.
     semantic_alignment = 0.7 * state.semantic_alignment + 0.3 * evidence.semantic_alignment
     return replace(
         state,

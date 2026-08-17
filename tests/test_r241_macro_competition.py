@@ -37,6 +37,17 @@ def test_competition_evidence_validates_observable_ranges():
         supportive_evidence(relative_cost=-0.01)
 
 
+def test_machine_epsilon_boundary_noise_is_clamped_but_material_violation_rejected():
+    low = supportive_evidence(information_gain=-4.440892098500627e-16)
+    high = supportive_evidence(prediction_stability=1.0000000000000002)
+    assert low.information_gain == 0.0
+    assert high.prediction_stability == 1.0
+    with pytest.raises(ValueError):
+        supportive_evidence(information_gain=-1e-8)
+    with pytest.raises(ValueError):
+        supportive_evidence(prediction_stability=1.0 + 1e-8)
+
+
 def test_information_boundary_excludes_hidden_identity_and_oracle_fields():
     names = {f.name.lower() for f in fields(MacroCompetitionEvidence)} | {
         f.name.lower() for f in fields(MacroCompetitionState)
