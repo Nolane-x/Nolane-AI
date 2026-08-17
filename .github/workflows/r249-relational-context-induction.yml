@@ -1,0 +1,82 @@
+name: R2.49 Relational Context Predicate Induction
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r249_*.py"
+      - "benchmarks/kfigg/r249_*.py"
+      - "tests/test_r249_*.py"
+      - ".github/workflows/r249-relational-context-induction.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r249_*.py"
+      - "benchmarks/kfigg/r249_*.py"
+      - "tests/test_r249_*.py"
+      - ".github/workflows/r249-relational-context-induction.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r249-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.49 relational context tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r249_relational_context.py \
+            tests/test_r249_relational_benchmark.py
+      - name: Run R2.48 and R2.47 executable localization gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r248_contextual_patch.py \
+            tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py \
+            tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parent gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r246_sparse_feedback.py \
+            tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parent gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py \
+            tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py \
+            tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility gates
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py \
+            tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py \
+            tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.49 relational evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r249_relational_context_transfer import run_frozen_heldout
+          result=run_frozen_heldout(); s=result['summary']
+          assert result['all_gates_pass'] is True
+          assert s['exact']==6 and s['false_accepts']==0
+          assert s['learned_macros']==10
+          assert s['selected_exact_macro_set']==6
+          assert s['r248_fixed_context_baseline_exact']==0
+          assert s['initial_candidates']==75
+          assert s['initial_tests_per_episode']==4
+          assert s['max_counterexamples_revealed']<=1
+          assert s['max_observed_tests']<=5
+          assert s['max_feedback_fraction']<=0.003
+          assert s['exhaustive_tests_per_episode']==2401
+          assert s['opaque_identifiers'] is True
+          assert len(s['learned_predicate_features'])>=1
+          print(json.dumps(s,sort_keys=True))
+          PY
