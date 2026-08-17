@@ -1,0 +1,64 @@
+name: R2.53 Bootstrap Payload
+
+on:
+  push:
+    branches: [r253-external-cognitive-reflex]
+    paths:
+      - '.r253_payload/**'
+      - '.github/workflows/r253-bootstrap.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r253-external-cognitive-reflex
+          fetch-depth: 0
+      - name: Reconstruct exact R2.53 source payload
+        shell: bash
+        run: |
+          cat \
+            .r253_payload/part00 .r253_payload/part01 .r253_payload/part02 \
+            .r253_payload/part03 .r253_payload/part04 .r253_payload/part05 \
+            .r253_payload/rem00 .r253_payload/rem01 .r253_payload/rem02 .r253_payload/rem03 \
+            | tr -d '\n' | base64 -d > /tmp/r253_payload.tgz
+          echo "556d01c2166c6b79d43d620d0726ab1a86231c5913140bc1be544df41f243a19  /tmp/r253_payload.tgz" | sha256sum -c -
+          tar -xzf /tmp/r253_payload.tgz
+          test "$(git hash-object cogcoder/r253_operator_catalog.py)" = "f0a0507826db0b45c22784efe2a76782e1539eda"
+          test "$(git hash-object cogcoder/r253_external_cognition.py)" = "57b3b3555972bbf481d337b3885af61c80bcc482"
+          test "$(git hash-object benchmarks/kfigg/r253_external_cognitive_reflex.py)" = "bf050ac3db7fc8d3be63c54fc72e2d41fc639b6b"
+          test "$(git hash-object tests/test_r253_operator_catalog.py)" = "f3989129152abdbd9f488e013ec6f65c1162d61a"
+          test "$(git hash-object tests/test_r253_external_cognition.py)" = "9f4f137cd91079e75c022e89112540591a4839f8"
+          test "$(git hash-object tests/test_r253_external_cognitive_reflex_benchmark.py)" = "91b4d9033695ead02ecf28cc273ba284219045bb"
+          test "$(git hash-object docs/superpowers/specs/2026-08-17-r253-external-cognitive-reflex-runtime-design.md)" = "99500882a9f5be1ec4baf5446da0145e9ff9382c"
+          test "$(git hash-object docs/superpowers/plans/2026-08-17-r253-external-cognitive-reflex-runtime.md)" = "eb1377aa13ad63094e0ab45e4e86e053782e1d80"
+          test "$(git hash-object research/R2_53_PHASE_A_RESULT.json)" = "49e0bf2e1a6568a247532a7b1184adb03427c7d7"
+          test "$(git hash-object R2_READINESS_RECALIBRATION.md)" = "0082c18647d9405e345b27b61265615852161b02"
+          test "$(git hash-object R2_52_DELIVERY.md)" = "0ca979a8dd951b14800f111aa2a1982b1322f353"
+          test "$(git hash-object R2_52_RELEASE_MANIFEST.json)" = "a1412455566233977ad6be5fee9da9bb0355e47b"
+          test "$(git hash-object research/R2_52_VERIFY_RESULT.json)" = "437c60321455a235f99b7c1598a6a5949f7252a2"
+      - name: Commit exact R2.53 source objects
+        shell: bash
+        run: |
+          git config user.name "Nolane R2.53 Bootstrap"
+          git config user.email "actions@users.noreply.github.com"
+          git add \
+            cogcoder/r253_operator_catalog.py \
+            cogcoder/r253_external_cognition.py \
+            benchmarks/kfigg/r253_external_cognitive_reflex.py \
+            tests/test_r253_operator_catalog.py \
+            tests/test_r253_external_cognition.py \
+            tests/test_r253_external_cognitive_reflex_benchmark.py \
+            docs/superpowers/specs/2026-08-17-r253-external-cognitive-reflex-runtime-design.md \
+            docs/superpowers/plans/2026-08-17-r253-external-cognitive-reflex-runtime.md \
+            research/R2_53_PHASE_A_RESULT.json \
+            R2_READINESS_RECALIBRATION.md \
+            R2_52_DELIVERY.md \
+            R2_52_RELEASE_MANIFEST.json \
+            research/R2_52_VERIFY_RESULT.json
+          git commit -m "research: stage exact R2.53 external cognitive reflex source"
+          git push origin HEAD:r253-external-cognitive-reflex
