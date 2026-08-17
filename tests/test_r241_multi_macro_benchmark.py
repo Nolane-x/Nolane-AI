@@ -51,5 +51,5 @@ def test_high_reliability_peer_witness_blames_prior_shifted_macro_not_peer():
         for child in (m.template.left, m.template.right)
     ))
     assert row['correct']
-    assert shifted in row['quarantined_macro_ids']
-    assert set(row['selected_macro_ids']) - {shifted}
+    assert shifted in row['quarantined_macro_ids'], row
+    assert set(row['selected_macro_ids']) - {shifted}, row
