@@ -1,0 +1,93 @@
+{
+  "all_required_steps_success": true,
+  "capability_commit": "06665c4804f92ac22378974436a2328a8dd15d87",
+  "catalog": {
+    "families": 38,
+    "statuses": [
+      "experimental",
+      "host_required",
+      "implemented",
+      "knowledge_only"
+    ],
+    "suboperators": 312
+  },
+  "decision": "accepted_bounded_capability",
+  "frozen_summary": {
+    "counterexample_repeats_avoided": 2,
+    "distinct_deficit_kinds": 10,
+    "episodes": 16,
+    "episodes_with_new_midtrajectory_deficit": 16,
+    "exact": 16,
+    "execution_mode": "objective deficit monitoring + cognition-time procedural retrieval + safe primitive composition + verifier/counterexample credit loop",
+    "false_accepts": 0,
+    "high_confidence_objective_deficits": 16,
+    "interleaved_procedure_retrievals": 36,
+    "max_procedure_steps": 3,
+    "no_reflex_exact": 0,
+    "provenance_failures": 0,
+    "retrieve_once_exact": 0,
+    "self_confidence_only_exact": 0,
+    "unsafe_procedure_executions": 0
+  },
+  "github": {
+    "cross_python_311_success": true,
+    "cross_python_313_success": true,
+    "integrity_workflows_success": true,
+    "main_job_id": 95417905509,
+    "main_job_success": true,
+    "r19_integrity_run": 32040153985,
+    "r20i_integrity_run": 32040154008,
+    "r22_integrity_run": 32040153983,
+    "r252_recalibrated_release_bundle_run": 32040154006,
+    "r252_recalibrated_release_bundle_success": true,
+    "run_id": 32040153999,
+    "workflow": "R2.53 External Cognitive Reflex Runtime"
+  },
+  "local_regression": {
+    "python": "3.13.5",
+    "r243_r241": "31/31",
+    "r245_r244": "15/15",
+    "r246": "5/5",
+    "r248_r247": "13/13",
+    "r249": "5/5",
+    "r250": "8/8",
+    "r251": "4/4",
+    "r253_plus_r252": "20/20",
+    "total": "101/101"
+  },
+  "nolane_world": {
+    "audit_digest": "2f53a8bd8b43da911db17c7f33868942b92293bb3d8f81f96dcb03532b5d808d",
+    "audit_valid": true,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "depth": "W5",
+    "events": 17,
+    "gate_passed": false,
+    "gate_score": 0,
+    "world_id": "world4_64de1990784545e4"
+  },
+  "readiness": {
+    "current": 44.5,
+    "delta": 0.0,
+    "previous_corrected": 44.5,
+    "reason": "No AGI-readiness increase is awarded for a self-designed synthetic mechanism benchmark; independent external transfer is still missing."
+  },
+  "release": "R2.53",
+  "reuse": {
+    "private_chain_of_thought_persisted": false,
+    "r21_cognition_time_retriever_bridge": true,
+    "retrieved_arbitrary_code_execution_allowed": false
+  }
+}

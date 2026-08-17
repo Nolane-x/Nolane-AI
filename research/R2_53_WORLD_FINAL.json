@@ -1,0 +1,47 @@
+{
+  "active_seconds_fabricated": false,
+  "audit": {
+    "digest": "2f53a8bd8b43da911db17c7f33868942b92293bb3d8f81f96dcb03532b5d808d",
+    "events": 17,
+    "valid": true,
+    "world_id": "world4_64de1990784545e4"
+  },
+  "critical_unknowns": [
+    "deficit thresholds and telemetry schema remain host-designed",
+    "procedure cards and retrieval tags are hand-authored",
+    "trusted primitive executor set is fixed by the host",
+    "acquire_behavioral_knowledge does not yet synthesize and validate a new procedure from raw evidence",
+    "capability boundaries are not autonomously learned",
+    "frozen benchmark is synthetic and authored within the same research program",
+    "procedure language is bounded and does not yet support arbitrary safe branching/looping plans",
+    "no real multi-agent/tool-connector failure integration in the frozen benchmark",
+    "no real filesystem/VCS transactional rollback integration",
+    "runtime assumes objective telemetry is available and sufficiently trustworthy",
+    "robustness under noisy or contradictory telemetry is not established",
+    "catalog breadth does not imply all 312 suboperators are executable"
+  ],
+  "decision": "NON_CONVERGED_BOUNDED_ACCEPTANCE_CANDIDATE",
+  "depth": "W5",
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "next_high_value_frontier": "autonomous behavioral procedure acquisition/induction from raw docs, failure traces and examples with sandbox verification, challenger tests, promotion, quarantine and rollback",
+  "private_chain_of_thought_persisted": false,
+  "release": "R2.53",
+  "world_id": "world4_64de1990784545e4"
+}
