@@ -1,7 +1,7 @@
 {
   "release": "R2.54",
   "phase": "A",
-  "decision": "LOCAL_BOUNDED_CAPABILITY_CANDIDATE",
+  "decision": "ACCEPTED_BOUNDED_CAPABILITY",
   "all_gates_pass": true,
   "focused_tests": "24/24",
   "protected_lineage": "125/125 split across process groups",
@@ -30,7 +30,11 @@
     "association_credit_snapshot_restore": true,
     "retrieved_manifest_requires_r253_compiler": true,
     "arbitrary_external_step_cannot_gain_execution_authority": true,
-    "python_code_indexer_relations": ["calls", "references", "imports"]
+    "python_code_indexer_relations": [
+      "calls",
+      "references",
+      "imports"
+    ]
   },
   "external_transfer_preview": {
     "repository": "more-itertools/more-itertools",
@@ -41,13 +45,26 @@
     },
     "initial_result": "1/2; chunked->take failed because function references passed as values were absent from the graph",
     "post_fix_result": "2/2 on exact externally sourced code patterns; hosted full-file replay required before acceptance",
-    "cases": ["chunked->take", "nth_or_last->last"]
+    "cases": [
+      "chunked->take",
+      "nth_or_last->last"
+    ]
   },
   "readiness": {
     "baseline": 44.5,
-    "candidate": 44.5,
-    "delta": 0.0,
-    "policy": "no score increase until clean hosted R2.54 CI and full-file independently sourced external transfer both pass"
+    "current": 45.5,
+    "delta": 1.0,
+    "policy": "A modest +1.0 is awarded only after clean hosted full-file independently sourced structural transfer passed; breadth remains far below general repository repair."
   },
-  "private_chain_of_thought_persisted": false
+  "private_chain_of_thought_persisted": false,
+  "hosted_verification": {
+    "workflow": "R2.54 Federated Cognitive Retrieval Fabric",
+    "run_id": 32044278188,
+    "main_job_id": 95428845511,
+    "head_sha": "9c0ebfb1899219c6ea24f944cb040758e245c8fa",
+    "success": true,
+    "cross_python_311_success": true,
+    "cross_python_313_success": true,
+    "external_full_file_transfer": "2/2 pass"
+  }
 }

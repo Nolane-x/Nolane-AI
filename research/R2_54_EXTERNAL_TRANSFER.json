@@ -1,0 +1,46 @@
+{
+  "milestone": "R2.54",
+  "validation": "independently-sourced-real-repository-structural-retrieval",
+  "repository": "more-itertools/more-itertools",
+  "commit": "2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10",
+  "github_actions_run": 32044278188,
+  "github_actions_job": 95428845511,
+  "source_file_count": 2,
+  "source_sha256": {
+    "more_itertools/more.py": "3f1dd57de2dfa2fe1fcdf9311ae42571a02eb9b869dd67f04cfed80239011888",
+    "more_itertools/recipes.py": "2ea5bb0671811ac8d1a419b05a8086354d334e46a2f9779d24e728ffcba67fc9"
+  },
+  "cases": [
+    {
+      "symbol": "chunked",
+      "expected_callee": "take",
+      "graph_hops_used": 2,
+      "policy_mode": "structural",
+      "policy_seed_k": 2,
+      "passed": true,
+      "source_failures": [],
+      "graph_callee_attachment_ids": [
+        "code:more_itertools/recipes.py:take"
+      ]
+    },
+    {
+      "symbol": "nth_or_last",
+      "expected_callee": "last",
+      "graph_hops_used": 1,
+      "policy_mode": "structural",
+      "policy_seed_k": 2,
+      "passed": true,
+      "source_failures": [],
+      "graph_callee_attachment_ids": [
+        "code:more_itertools/more.py:last"
+      ]
+    }
+  ],
+  "passed": true,
+  "passed_cases": 2,
+  "total_cases": 2,
+  "trainable_parameter_count": 0,
+  "network_observation": "GitHub raw endpoint transiently returned HTTP 429 during hosted replay; bounded curl retry recovered and the structural transfer completed.",
+  "pre_fix_failure": "Initial external preview was 1/2: chunked->take failed because function references passed as values were absent from the graph.",
+  "architecture_change_caused_by_external_failure": "Python repository indexing gained references edges; the exact external cases then reached 2/2."
+}

@@ -1,0 +1,64 @@
+{
+  "release": "R2.54",
+  "world_id": "world4_814b0f4a8ddc44e0",
+  "depth": "W5",
+  "decision": "NON_CONVERGED_BOUNDED_ACCEPTANCE",
+  "active_seconds_fabricated": false,
+  "state": {
+    "epoch": 3,
+    "active_seconds": 0.0,
+    "fresh_verifications": 1,
+    "critical_unknowns": 1,
+    "information_gain": 2.6931818181818183,
+    "material_representations": 1,
+    "robust_worlds": 0,
+    "challengers_survived": 0,
+    "quality": {
+      "correctness": 0.8,
+      "evidence": 0.82,
+      "robustness": 0.55,
+      "verification": 0.9
+    },
+    "remaining_vot": 1.0
+  },
+  "audit": {
+    "valid": true,
+    "digest": "1b5a3d5ad38e0b256866ac74745dded0bf70e28be4a5b021ba274be0d2f7e43a",
+    "events": 24,
+    "world_id": "world4_814b0f4a8ddc44e0"
+  },
+  "gate": {
+    "passed": false,
+    "score": 0.16666666666666663,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor robustness"
+    ]
+  },
+  "critical_unknowns": [
+    "source trust, retrieval tags, and policy thresholds remain partly host-designed",
+    "association-credit memory can still lock in bad or poisoned retrievals under distribution shift",
+    "trusted primitive vocabulary remains host-fixed; retrieved evidence cannot invent new execution authority",
+    "the frozen cognitive benchmark is authored within the same research program",
+    "external transfer covers two structural retrieval cases, not a broad real-repository bug-repair distribution",
+    "robustness to noisy, poisoned, contradictory, or strategically adversarial external sources is incomplete",
+    "autonomous synthesis, verification, promotion, quarantine, and rollback of genuinely new reasoning primitives is not established"
+  ],
+  "fresh_hosted_evidence": {
+    "github_run": 32044278188,
+    "main_job": 95428845511,
+    "external_repository": "more-itertools/more-itertools",
+    "external_commit": "2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10",
+    "external_cases": "2/2"
+  },
+  "next_high_value_frontier": "R2.55 should attack retrieval trust/poisoning and autonomous evidence-to-procedure induction on a broader independently sourced repository bug distribution, with counterfactual source corruption and rollback.",
+  "private_chain_of_thought_persisted": false
+}

@@ -1,0 +1,144 @@
+{
+  "release": "R2.54",
+  "decision": "accepted_bounded_capability",
+  "all_required_steps_success": true,
+  "capability_commit": "5c33443000ba5d1b4dd968bd47f32660b5535dc5",
+  "workflow_commit": "9c0ebfb1899219c6ea24f944cb040758e245c8fa",
+  "frozen_summary": {
+    "episodes": 10,
+    "exact": 10,
+    "false_accepts": 0,
+    "single_shot_lexical_exact": 0,
+    "fixed_topk_federated_exact": 0,
+    "episodes_with_two_hop_graph": 10,
+    "episodes_with_mid_reasoning_new_gap": 10,
+    "episodes_with_stale_supersession": 10,
+    "episodes_with_preserved_conflict": 10,
+    "episodes_with_procedure_retrieval": 10,
+    "episodes_with_executable_retrieved_procedure": 10,
+    "malicious_procedure_manifest_rejections": 10,
+    "unsafe_retrieved_content_executions": 0,
+    "association_recall_episodes": 9,
+    "max_external_provider_roundtrips": 13,
+    "max_attachment_chars": 985,
+    "trainable_parameter_count": 0
+  },
+  "hardening": {
+    "same_provenance_branch_repetition_is_not_independent_support": true,
+    "external_provider_timeout_isolated_and_receipted": true,
+    "association_credit_snapshot_restore": true,
+    "retrieved_manifest_requires_r253_compiler": true,
+    "arbitrary_external_step_cannot_gain_execution_authority": true,
+    "python_code_indexer_relations": [
+      "calls",
+      "references",
+      "imports"
+    ]
+  },
+  "external_transfer": {
+    "milestone": "R2.54",
+    "validation": "independently-sourced-real-repository-structural-retrieval",
+    "repository": "more-itertools/more-itertools",
+    "commit": "2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10",
+    "github_actions_run": 32044278188,
+    "github_actions_job": 95428845511,
+    "source_file_count": 2,
+    "source_sha256": {
+      "more_itertools/more.py": "3f1dd57de2dfa2fe1fcdf9311ae42571a02eb9b869dd67f04cfed80239011888",
+      "more_itertools/recipes.py": "2ea5bb0671811ac8d1a419b05a8086354d334e46a2f9779d24e728ffcba67fc9"
+    },
+    "cases": [
+      {
+        "symbol": "chunked",
+        "expected_callee": "take",
+        "graph_hops_used": 2,
+        "policy_mode": "structural",
+        "policy_seed_k": 2,
+        "passed": true,
+        "source_failures": [],
+        "graph_callee_attachment_ids": [
+          "code:more_itertools/recipes.py:take"
+        ]
+      },
+      {
+        "symbol": "nth_or_last",
+        "expected_callee": "last",
+        "graph_hops_used": 1,
+        "policy_mode": "structural",
+        "policy_seed_k": 2,
+        "passed": true,
+        "source_failures": [],
+        "graph_callee_attachment_ids": [
+          "code:more_itertools/more.py:last"
+        ]
+      }
+    ],
+    "passed": true,
+    "passed_cases": 2,
+    "total_cases": 2,
+    "trainable_parameter_count": 0,
+    "network_observation": "GitHub raw endpoint transiently returned HTTP 429 during hosted replay; bounded curl retry recovered and the structural transfer completed.",
+    "pre_fix_failure": "Initial external preview was 1/2: chunked->take failed because function references passed as values were absent from the graph.",
+    "architecture_change_caused_by_external_failure": "Python repository indexing gained references edges; the exact external cases then reached 2/2."
+  },
+  "github": {
+    "workflow": "R2.54 Federated Cognitive Retrieval Fabric",
+    "run_id": 32044278188,
+    "main_job_id": 95428845511,
+    "main_job_success": true,
+    "cross_python_311_success": true,
+    "cross_python_313_success": true,
+    "integrity_workflows_success": true,
+    "r19_integrity_run": 32044278226,
+    "r20i_integrity_run": 32044278126,
+    "r22_integrity_run": 32044278270,
+    "head_sha": "9c0ebfb1899219c6ea24f944cb040758e245c8fa"
+  },
+  "local_regression": {
+    "r254_r253_r252": "44/44",
+    "r251": "4/4",
+    "r250": "8/8",
+    "r249": "5/5",
+    "r248_r247": "13/13",
+    "r246": "5/5",
+    "r245_r244": "15/15",
+    "r243_r241": "31/31",
+    "total": "125/125 split across process groups"
+  },
+  "nolane_world": {
+    "world_id": "world4_814b0f4a8ddc44e0",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "1b5a3d5ad38e0b256866ac74745dded0bf70e28be4a5b021ba274be0d2f7e43a",
+    "events": 24,
+    "fresh_verifications": 1,
+    "gate_passed": false,
+    "gate_score": 0.16666666666666663,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor robustness"
+    ]
+  },
+  "readiness": {
+    "previous": 44.5,
+    "current": 45.5,
+    "delta": 1.0,
+    "reason": "Only a modest increase is awarded because a clean hosted runner reproduced independently sourced full-file repository structural transfer that had previously exposed and driven a real representation fix; evidence breadth is still only two structural cases and not general bug repair."
+  },
+  "claim_boundary": {
+    "agi_claimed": false,
+    "knowledge_put_into_neural_weights": false,
+    "broad_repository_bug_repair_proven": false,
+    "retrieved_arbitrary_code_execution_allowed": false,
+    "trainable_parameters_added": 0
+  },
+  "private_chain_of_thought_persisted": false
+}
