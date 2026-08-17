@@ -1,0 +1,34 @@
+name: R2.50 Bootstrap Payload
+
+on:
+  push:
+    branches: [ r250-self-induced-query ]
+    paths:
+      - ".r250_fix/**"
+      - ".github/workflows/r250-bootstrap.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r250-self-induced-query
+          fetch-depth: 0
+      - name: Reconstruct exact R2.41 determinism fix
+        run: |
+          cat .r250_fix/part* | tr -d '\n' | base64 -d > /tmp/r239_min_fix.tgz
+          echo "ee65d6cae4bd2e7298a3ffdc1823e9976f9d1748117c458c8dadaa2b50c015a4  /tmp/r239_min_fix.tgz" | sha256sum -c -
+          tar -xzf /tmp/r239_min_fix.tgz
+          test "$(git hash-object cogcoder/r239_recursive_probe_synthesis.py)" = "bc123d9dd2856a8536ea50d32eeac9e7f2dfd22d"
+      - name: Commit exact source fix
+        run: |
+          git config user.name "Nolane R2.50 Bootstrap"
+          git config user.email "actions@users.noreply.github.com"
+          git add cogcoder/r239_recursive_probe_synthesis.py
+          git commit -m "fix: stabilize recursive posterior accumulation across Python runtimes"
+          git push origin HEAD:r250-self-induced-query
