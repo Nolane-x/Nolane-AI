@@ -1,0 +1,43 @@
+{
+  "aggregate": {
+    "all_gates_pass": true,
+    "atomic_only_correct": 6,
+    "atomic_only_mean_queries": 20.166666666666668,
+    "composite_probe_count": 48,
+    "compositional_correct": 6,
+    "compositional_mean_queries": 20.0,
+    "episodes": 6,
+    "gates": {
+      "beats_atomic_correctness_or_efficiency": true,
+      "composite_language_exercised": true,
+      "compositional_all_correct": true,
+      "global_asym_transfer": true,
+      "same_total_budget": true,
+      "strictly_beats_pool_only": true,
+      "zero_false_accepts": true
+    },
+    "pool_only_correct": 0,
+    "pool_only_mean_queries": 12.0
+  },
+  "agi_engineering_readiness": 25.6,
+  "check_count": 8,
+  "checks": {
+    "aggregate_replay": true,
+    "atomic_episode_count": true,
+    "exact_replay": true,
+    "frozen_hashes": true,
+    "heldout_gate_contract": true,
+    "lock_preheldout": true,
+    "readiness_lock": true,
+    "world_preregistration": true
+  },
+  "checks_passed": 8,
+  "decision": "accepted",
+  "exact_replays": 6,
+  "failed_checks": [],
+  "frozen_hash_errors": {},
+  "milestone": "R2.38 Compositional Probe-Language Synthesis",
+  "readiness_before": 24.6,
+  "readiness_if_accepted": 25.6,
+  "schema_version": 1
+}
