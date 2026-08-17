@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "release": "R2.51",
+  "title": "Interprocedural Call-Flow Query Induction",
+  "decision": "ACCEPTED_BOUNDED_CAPABILITY",
+  "capability_commit": "22109477052e915d5d72ec1e219a5709ea03364f",
+  "github_actions_run": 32020651161,
+  "world_id": "world4_efb3158d7f354308",
+  "world_audit_digest": "b0f471b079fabf74a9822b3355201153459091effcbbbf32bb9272186a00fe4d",
+  "world_w5_gate_passed": false,
+  "coding_agi_engineering_readiness": 48.0,
+  "release_boundary": "bounded interprocedural static same-module Python repair; no general AGI claim"
+}

@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.51",
+  "decision": "accepted_bounded_capability",
+  "github_commit": "22109477052e915d5d72ec1e219a5709ea03364f",
+  "github_actions_run": 32020651161,
+  "github_actions_job": 95359439683,
+  "all_required_steps_success": true,
+  "cross_python_311_success": true,
+  "cross_python_313_success": true,
+  "integrity_workflows_success": true,
+  "checks": {
+    "r251_clean_runner": true,
+    "r250_r247_parent_compatibility": true,
+    "r246_parent_compatibility": true,
+    "r245_r244_parent_compatibility": true,
+    "r243_r241_parent_compatibility": true,
+    "frozen_recompute": true,
+    "zero_false_accepts": true,
+    "exact_macro_set": true,
+    "r250_scope_causal_baseline": true,
+    "global_apply_causal_baseline": true,
+    "opaque_identifiers": true,
+    "unseen_call_depth": true,
+    "sparse_feedback": true,
+    "exhaustive_final_execution": true
+  },
+  "nolane_world": {
+    "runtime": "Nolane World 0.5.0",
+    "world_id": "world4_efb3158d7f354308",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "b0f471b079fabf74a9822b3355201153459091effcbbbf32bb9272186a00fe4d",
+    "gate_passed": false,
+    "gate_score": 0.5,
+    "critical_unknowns": [
+      "architect-provided FLOW-star reachability primitive",
+      "direct same-module calls only; no methods/dynamic dispatch/recursion/higher-order calls",
+      "multi-file import-aware repository transactionality",
+      "repository-scale graph and closure complexity",
+      "incomplete/noisy/flaky tests",
+      "bounded edit/query language and generated-family breadth"
+    ]
+  },
+  "readiness": {
+    "previous_accepted": 39.0,
+    "current": 48.0,
+    "delta": 9.0,
+    "interpretation": "internal coding-AGI engineering-readiness rubric; not AGI probability"
+  }
+}

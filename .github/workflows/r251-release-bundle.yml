@@ -1,0 +1,50 @@
+name: R2.51 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "R2_51_DELIVERY.md"
+      - "R2_51_RELEASE_MANIFEST.json"
+      - "R2_50_TO_R2_51_EVOLUTION.md"
+      - "research/R2_51_*.json"
+      - ".github/workflows/r251-release-bundle.yml"
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify frozen release boundary
+        run: |
+          python - <<'PY'
+          import json
+          v=json.load(open('research/R2_51_VERIFY_RESULT.json'))
+          m=json.load(open('R2_51_RELEASE_MANIFEST.json'))
+          assert v['decision']=='accepted_bounded_capability'
+          assert v['all_required_steps_success'] is True
+          assert v['integrity_workflows_success'] is True
+          assert v['cross_python_311_success'] is True and v['cross_python_313_success'] is True
+          assert v['nolane_world']['audit_valid'] is True
+          assert v['nolane_world']['gate_passed'] is False
+          assert v['readiness']['current']==48.0
+          assert m['world_w5_gate_passed'] is False
+          PY
+      - name: Create complete repository snapshot
+        run: |
+          mkdir -p release
+          git archive --format=zip --output=release/Nolane-AI-R2.51-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.51-COMPLETE.zip | tee release/Nolane-AI-R2.51-COMPLETE.zip.sha256
+          unzip -t release/Nolane-AI-R2.51-COMPLETE.zip >/tmp/unzip-r251.log
+          tail -1 /tmp/unzip-r251.log
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.51-COMPLETE
+          path: release/*
+          if-no-files-found: error
+          retention-days: 90

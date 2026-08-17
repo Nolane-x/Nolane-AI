@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.51 Interprocedural Call-Flow Query Induction",
+  "decision": "accepted_bounded_capability",
+  "capability_commit": "22109477052e915d5d72ec1e219a5709ea03364f",
+  "frozen_summary": {
+    "episodes": 6,
+    "exact": 6,
+    "false_accepts": 0,
+    "learned_macros": 10,
+    "learned_query_patterns": 2,
+    "selected_exact_macro_set": 6,
+    "r250_scope_rejected_episodes": 6,
+    "global_apply_baseline_exact": 0,
+    "direct_essential_patch_exact": 6,
+    "initial_candidates": 75,
+    "initial_tests_per_episode": 4,
+    "max_counterexamples_revealed": 2,
+    "max_observed_tests": 6,
+    "max_feedback_fraction": 0.0024989587671803417,
+    "mean_feedback_fraction": 0.0020130501180063865,
+    "exhaustive_tests_per_episode": 2401,
+    "min_call_depth": 4,
+    "max_call_depth": 5,
+    "opaque_identifiers": true
+  },
+  "causal_contrasts": {
+    "r250_single_function_scope": "rejected_6_of_6",
+    "global_syntax_apply": "0_of_6",
+    "direct_essential_patch": "6_of_6"
+  }
+}
