@@ -1,0 +1,63 @@
+{
+  "accepted": true,
+  "agi_engineering_readiness": 27.9,
+  "claims": {
+    "agi_claim": false,
+    "bounded_claim": "Macro-local competition and leave-one-macro-out causal attribution preserved 6/6 fresh non-bit heldout correctness while the same-router unconditional multi-macro ablation fell to 5/6 under a high-reliability semantic shift.",
+    "broad_generalization_claim": false
+  },
+  "decision": "ACCEPTED",
+  "exact_replays": 6,
+  "failed_checks": [],
+  "heldout_summary": {
+    "all_gates_pass": true,
+    "competitive_calibrated_correct": 6,
+    "competitive_calibrated_mean_probe_cost": 8.166666666666666,
+    "competitive_macro_ids": [
+      "pm:156534f26828c6e6371d80e1",
+      "pm:4209b50495b1fad92239cafa",
+      "pm:44db0e9ba9cdbd622e022ba1",
+      "pm:474e2cae78ba29b1cbbe5f92",
+      "pm:c5d1ffb2a67c6cacf246fb4e",
+      "pm:c9c0ba63b797498a72826509"
+    ],
+    "competitive_raw_route_count": 2,
+    "episodes": 6,
+    "false_accepts": 0,
+    "gates": {
+      "competitive_all_correct": true,
+      "high_reliability_semantic_shift": true,
+      "multi_macro_and_raw_exercised": true,
+      "non_bit_family_transfer": true,
+      "not_worse_than_no_macro": true,
+      "same_query_and_cost_ceiling": true,
+      "selective_demotion_peer_preserved": true,
+      "strict_gain_over_unconditional": true,
+      "zero_false_accepts": true
+    },
+    "no_macro_correct": 6,
+    "no_macro_mean_probe_cost": 5.833333333333333,
+    "peer_preservation_episodes": 1,
+    "r238_binary_correct": 6,
+    "r238_binary_mean_probe_cost": 5.833333333333333,
+    "selective_demotion_episodes": 1,
+    "shift_flip_count": 1,
+    "shift_min_reported_reliability": 0.965,
+    "single_best_macro_correct": 6,
+    "single_best_macro_mean_probe_cost": 6.6000000000000005,
+    "unconditional_multi_macro_correct": 5,
+    "unconditional_multi_macro_mean_probe_cost": 7.7
+  },
+  "milestone": "R2.41 Multi-Macro Competition + Semantic Shift Detection",
+  "next_falsifier": "Cross-family macro composition: transfer multiple learned abstractions into a structurally non-isomorphic state family where useful queries require composing macros rather than choosing one macro or raw reasoning.",
+  "readiness_before": 26.7,
+  "readiness_increment": 1.2,
+  "schema_version": 1,
+  "verifier_checks": "8/8",
+  "world_audit": {
+    "events": 54,
+    "head": "21fcdd8a4120db5d66e2a3091ba85facb7467086341d8c60af8306d45b18868c",
+    "valid": true
+  },
+  "world_converged": false
+}
