@@ -1,0 +1,39 @@
+name: R2.40 Macro Applicability Calibration
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r239_*.py"
+      - "cogcoder/r240_*.py"
+      - "benchmarks/kfigg/r239_*.py"
+      - "benchmarks/kfigg/r240_*.py"
+      - "tests/test_r240_*.py"
+      - "research/R2_40_*.json"
+      - "R2_40_*.md"
+      - ".github/workflows/r240-macro-applicability.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r240-core:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pytest z3-solver
+      - name: R2.40 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r240_macro_applicability.py tests/test_r240_calibrated_discovery.py tests/test_r240_macro_applicability_benchmark.py
+      - name: Boundary evidence
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('research/R2_40_PHASE_A_RESULT.json').read_text())
+          assert p['decision']=='ACCEPTED'
+          assert p['agi_engineering_readiness']==26.7
+          assert p['exact_replays']==6 and p['verifier_checks']=='8/8'
+          print('R2.40 accepted boundary PASS')
+          PY
