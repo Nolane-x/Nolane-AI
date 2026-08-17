@@ -25,10 +25,11 @@ jobs:
           echo "be109e3a33a9089abd0064d7a094be19cffe47052079feaceef257eca4da0157  /tmp/r250_payload.tgz" | sha256sum -c -
           tar -xzf /tmp/r250_payload.tgz
           rm -rf .r250_payload .github/workflows/r250-bootstrap.yml
-      - name: Commit reconstructed R2.50 candidate
+          rm -f .github/workflows/r250-self-induced-relational-query.yml
+      - name: Commit reconstructed R2.50 source
         run: |
           git config user.name "Nolane R2.50 Bootstrap"
           git config user.email "actions@users.noreply.github.com"
           git add -A
-          git commit -m "research: stage exact R2.50 self-induced relational query candidate"
+          git commit -m "research: stage exact R2.50 self-induced relational query source"
           git push origin HEAD:r250-self-induced-query
