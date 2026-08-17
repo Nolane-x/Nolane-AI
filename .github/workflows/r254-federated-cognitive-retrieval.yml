@@ -1,0 +1,141 @@
+name: R2.54 Federated Cognitive Retrieval Fabric
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r254_*.py"
+      - "benchmarks/kfigg/r254_*.py"
+      - "tests/test_r254_*.py"
+      - "research/r254_external_transfer.py"
+      - "research/R2_54_PHASE_A_RESULT.json"
+      - "R2_53_TO_R2_54_EVOLUTION.md"
+      - "docs/superpowers/specs/2026-08-17-r254-*.md"
+      - "docs/superpowers/plans/2026-08-17-r254-*.md"
+      - ".github/workflows/r254-federated-cognitive-retrieval.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r254_*.py"
+      - "benchmarks/kfigg/r254_*.py"
+      - "tests/test_r254_*.py"
+      - "research/r254_external_transfer.py"
+      - ".github/workflows/r254-federated-cognitive-retrieval.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r254-and-parents:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 80
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.54 focused cognitive retrieval tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r254_cognitive_retrieval.py \
+            tests/test_r254_code_knowledge.py \
+            tests/test_r254_behavioral_retrieval.py \
+            tests/test_r254_cognitive_retrieval_benchmark.py
+      - name: Run independently sourced more-itertools full-file structural transfer
+        env:
+          EXT_COMMIT: 2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10
+        run: |
+          mkdir -p /tmp/r254-external/more_itertools
+          curl --fail --location --silent --show-error --retry 4 \
+            "https://raw.githubusercontent.com/more-itertools/more-itertools/${EXT_COMMIT}/more_itertools/more.py" \
+            --output /tmp/r254-external/more_itertools/more.py
+          curl --fail --location --silent --show-error --retry 4 \
+            "https://raw.githubusercontent.com/more-itertools/more-itertools/${EXT_COMMIT}/more_itertools/recipes.py" \
+            --output /tmp/r254-external/more_itertools/recipes.py
+          PYTHONPATH=. python research/r254_external_transfer.py \
+            --source-dir /tmp/r254-external \
+            --repository more-itertools/more-itertools \
+            --commit "${EXT_COMMIT}" \
+            --output /tmp/R2_54_EXTERNAL_TRANSFER.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/R2_54_EXTERNAL_TRANSFER.json'))
+          assert d['passed'] is True
+          assert d['passed_cases']==2 and d['total_cases']==2
+          assert all(c['graph_hops_used'] >= 1 for c in d['cases'])
+          assert all(not c['source_failures'] for c in d['cases'])
+          print(json.dumps(d, sort_keys=True))
+          PY
+      - name: Run R2.53 and R2.52 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r253_external_cognition.py \
+            tests/test_r253_operator_catalog.py \
+            tests/test_r253_external_cognitive_reflex_benchmark.py \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py
+      - name: Run R2.51 parent
+        run: PYTHONPATH=. pytest -q tests/test_r251_interprocedural_query.py tests/test_r251_interprocedural_query_benchmark.py
+      - name: Run R2.50 parent
+        run: PYTHONPATH=. pytest -q tests/test_r250_relational_query.py tests/test_r250_self_induced_query_benchmark.py
+      - name: Run R2.49 parent
+        run: PYTHONPATH=. pytest -q tests/test_r249_relational_context.py tests/test_r249_relational_benchmark.py
+      - name: Run R2.48 and R2.47 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r248_contextual_patch.py tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parent
+        run: PYTHONPATH=. pytest -q tests/test_r246_sparse_feedback.py tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.54 evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r254_federated_cognitive_retrieval import run_benchmark
+          d=run_benchmark()
+          assert d['episodes']==10 and d['exact']==10 and d['false_accepts']==0
+          assert d['single_shot_lexical_exact']==0 and d['fixed_topk_federated_exact']==0
+          assert d['episodes_with_two_hop_graph']==10
+          assert d['episodes_with_mid_reasoning_new_gap']==10
+          assert d['episodes_with_stale_supersession']==10
+          assert d['episodes_with_preserved_conflict']==10
+          assert d['episodes_with_procedure_retrieval']==10
+          assert d['episodes_with_executable_retrieved_procedure']==10
+          assert d['malicious_procedure_manifest_rejections']==10
+          assert d['unsafe_retrieved_content_executions']==0
+          assert d['association_recall_episodes']>=8
+          assert d['trainable_parameter_count']==0
+          print(json.dumps({k:v for k,v in d.items() if k!='episode_receipts'}, sort_keys=True))
+          PY
+
+  cross-python-r254:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install --upgrade pytest
+      - name: Verify R2.54 focused behavior across Python runtimes
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r254_cognitive_retrieval.py \
+            tests/test_r254_code_knowledge.py \
+            tests/test_r254_behavioral_retrieval.py \
+            tests/test_r254_cognitive_retrieval_benchmark.py
