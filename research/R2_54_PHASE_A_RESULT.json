@@ -1,0 +1,53 @@
+{
+  "release": "R2.54",
+  "phase": "A",
+  "decision": "LOCAL_BOUNDED_CAPABILITY_CANDIDATE",
+  "all_gates_pass": true,
+  "focused_tests": "24/24",
+  "protected_lineage": "125/125 split across process groups",
+  "summary": {
+    "episodes": 10,
+    "exact": 10,
+    "false_accepts": 0,
+    "single_shot_lexical_exact": 0,
+    "fixed_topk_federated_exact": 0,
+    "episodes_with_two_hop_graph": 10,
+    "episodes_with_mid_reasoning_new_gap": 10,
+    "episodes_with_stale_supersession": 10,
+    "episodes_with_preserved_conflict": 10,
+    "episodes_with_procedure_retrieval": 10,
+    "episodes_with_executable_retrieved_procedure": 10,
+    "malicious_procedure_manifest_rejections": 10,
+    "unsafe_retrieved_content_executions": 0,
+    "association_recall_episodes": 9,
+    "max_external_provider_roundtrips": 13,
+    "max_attachment_chars": 985,
+    "trainable_parameter_count": 0
+  },
+  "hardening": {
+    "same_provenance_branch_repetition_is_not_independent_support": true,
+    "external_provider_timeout_isolated_and_receipted": true,
+    "association_credit_snapshot_restore": true,
+    "retrieved_manifest_requires_r253_compiler": true,
+    "arbitrary_external_step_cannot_gain_execution_authority": true,
+    "python_code_indexer_relations": ["calls", "references", "imports"]
+  },
+  "external_transfer_preview": {
+    "repository": "more-itertools/more-itertools",
+    "commit": "2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10",
+    "source_blob_sha": {
+      "more_itertools/more.py": "f2dbe57d875e8377c897efe21fdfee94c66c006b",
+      "more_itertools/recipes.py": "1b5a625c6f724df3cea5da3a99ff47e1459a5966"
+    },
+    "initial_result": "1/2; chunked->take failed because function references passed as values were absent from the graph",
+    "post_fix_result": "2/2 on exact externally sourced code patterns; hosted full-file replay required before acceptance",
+    "cases": ["chunked->take", "nth_or_last->last"]
+  },
+  "readiness": {
+    "baseline": 44.5,
+    "candidate": 44.5,
+    "delta": 0.0,
+    "policy": "no score increase until clean hosted R2.54 CI and full-file independently sourced external transfer both pass"
+  },
+  "private_chain_of_thought_persisted": false
+}
