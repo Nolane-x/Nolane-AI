@@ -35,9 +35,16 @@ class RecursiveSynthesisReceipt:
     best_recursive_utility: float
 
 
+def _stable_sum(values):
+    total = 0.0
+    for value in values:
+        total += float(value)
+    return total
+
+
 def _posterior(supports) -> dict[str, float]:
     rows = {str(s.operator_id): float(s.posterior) for s in supports}
-    total = sum(rows.values())
+    total = _stable_sum(rows.values())
     if not rows or total <= 0:
         raise ValueError('supports must contain positive posterior mass')
     return {k: rows[k] / total for k in sorted(rows)}
@@ -56,7 +63,7 @@ def _categorical_disagreement(atom_id: str, posterior: Mapping[str, float], valu
 def _bool_disagreement(row: Mapping[str, bool], posterior: Mapping[str, float]) -> float:
     if set(row) != set(posterior):
         raise ValueError('prediction coverage mismatch')
-    p_true = sum(posterior[hid] for hid, label in row.items() if bool(label))
+    p_true = _stable_sum(posterior[hid] for hid, label in row.items() if bool(label))
     return 2.0 * p_true * (1.0 - p_true)
 
 
