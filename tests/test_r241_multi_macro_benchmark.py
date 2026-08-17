@@ -50,6 +50,17 @@ def test_high_reliability_peer_witness_blames_prior_shifted_macro_not_peer():
         child is not None and child.op == 'const3' and int(child.const_value) == 1
         for child in (m.template.left, m.template.right)
     ))
-    assert row['correct']
-    assert shifted in row['quarantined_macro_ids'], row
-    assert set(row['selected_macro_ids']) - {shifted}, row
+    trace = {
+        'shifted': shifted,
+        'selected': row['selected_macro_ids'],
+        'routes': row['route_history'],
+        'quarantined': row['quarantined_macro_ids'],
+        'flips': row['semantic_shift_flip_count'],
+        'reliabilities': row['reported_reliabilities'],
+        'queries_used': row['queries_used'],
+        'status': row['status'],
+        'correct': row['correct'],
+    }
+    assert row['correct'], trace
+    assert shifted in row['quarantined_macro_ids'], trace
+    assert set(row['selected_macro_ids']) - {shifted}, trace
