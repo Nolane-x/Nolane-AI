@@ -1,0 +1,18 @@
+{
+  "artifact_boundary": "COMPLETE ZIP contains the tracked R2.41 project tree plus frozen development, World, heldout episode/replay, verifier and release evidence; transient __pycache__ files are excluded.",
+  "decision": "ACCEPTED",
+  "exact_replays": 6,
+  "heldout_canonical_sha256": "b09ba61592095a4927138247936f8460ba64257853762d7a311fc0374ba739cf",
+  "lock_sha256": "7ceb41d9ae7f7b8693fb7cce4e3a53e2ef0f0a5079d77261c495d9d0d26ee606",
+  "milestone": "R2.41 Multi-Macro Competition + Semantic Shift Detection",
+  "readiness": 27.9,
+  "schema_version": 1,
+  "source_git_commit_before_manifest": "4bdf05d62017cc0d64b8223e4f067456f805bc03",
+  "verifier_checks": "8/8",
+  "world_audit": {
+    "events": 54,
+    "head": "21fcdd8a4120db5d66e2a3091ba85facb7467086341d8c60af8306d45b18868c",
+    "valid": true
+  },
+  "world_converged": false
+}
