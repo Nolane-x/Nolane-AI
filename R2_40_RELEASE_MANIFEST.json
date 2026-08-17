@@ -1,0 +1,19 @@
+{
+  "artifact_boundary": "COMPLETE ZIP contains the tracked project tree at the accepted R2.40 release plus frozen heldout/replay/World/release evidence; transient __pycache__ files are excluded.",
+  "decision": "ACCEPTED",
+  "exact_replays": 6,
+  "heldout_canonical_sha256": "6d6666ed628f3341f5c0508a1521ea53d3609ec941da877662719a536538cac0",
+  "lock_sha256": "2e0cfdf6b1e1cdbd7ec6990c3b154b96c84a86dad6d01846492c764c0f6ef728",
+  "milestone": "R2.40 Uncertainty-Aware Macro Applicability Calibration",
+  "readiness": 26.7,
+  "schema_version": 1,
+  "source_git_commit_before_manifest": "e265f04b1137b87ddef138623c3dacf40c71eea7",
+  "verifier_checks": "8/8",
+  "world_audit": {
+    "events": 54,
+    "head": "9311d8bc97b247c9c28e70cfefa9357714162ec1ec728a4913933e86d1bef8a2",
+    "valid": true
+  },
+  "world_converged": false,
+  "world_vm_completed": 12
+}
