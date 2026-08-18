@@ -1,0 +1,38 @@
+{
+  "argument_permutation_tracks_roles": true,
+  "capability": "autonomous-bounded-intervention-discovery",
+  "claim_boundary": "Bounded pure-input intervention search with causal downstream utility; not open-ended experiment or representation invention.",
+  "configurations": 3,
+  "discovered": 3,
+  "full_search_configurations": 2,
+  "milestone": "R2.58",
+  "no_seed_failures": 3,
+  "noncausal_candidates_rejected": 6,
+  "oracle_calls": 394,
+  "position_rename_invariant": true,
+  "probe_validation_cases": 12,
+  "probe_validation_exact": 12,
+  "rename_replay_configurations": 1,
+  "seeded_successes": 3,
+  "selected_intervention_ids": [
+    "intv.0da50689004f04a3f4963619337a749e73828a3ac924a54330c9c4b74a386fa7",
+    "intv.0da50689004f04a3f4963619337a749e73828a3ac924a54330c9c4b74a386fa7",
+    "intv.1840da1de7727007c209a6120e68ae8643edf9c7a584bdf3531db7aab255038e"
+  ],
+  "selected_position_sets": [
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      0,
+      2
+    ]
+  ],
+  "trainable_parameter_count": 0,
+  "wrong_role_false_accepts": 0
+}
