@@ -1,0 +1,33 @@
+{
+  "active_seconds_credited": 0.0,
+  "artifacts_accepted": 4,
+  "audit": {
+    "digest": "b6ec9a6c284ce8c9b957b81200a763a1f5796faa3eb68d25f8bda70dab203f9e",
+    "events": 10,
+    "valid": true
+  },
+  "claim_boundary": "World W5 non-convergence is preserved; the R2.58 bounded capability is not evidence of AGI or open-ended scientific autonomy.",
+  "critical_unknowns": 1,
+  "epoch": 4,
+  "fresh_verifications": 0,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "milestone": "R2.58",
+  "world_id": "world4_2513f45435574d2d"
+}
