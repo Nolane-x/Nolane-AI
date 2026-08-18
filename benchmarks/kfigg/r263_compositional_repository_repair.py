@@ -43,7 +43,9 @@ def _repository(seed: int, *, left_relays: int, right_relays: int, left_op: str,
         function = f'right_relay_{index}'
         files[f'{module}.py'] = _relay_module(module, right_module, function, right_function)
         right_module, right_function = module, function
-    bias = seed % 3
+    # A seed-specific inert bias keeps each heldout repository content-distinct while
+    # preserving the same two-edit repair mechanism and counterexample structure.
+    bias = seed % 97
     files['main.py'] = (
         f'from {left_module} import {left_function}\n'
         f'from {right_module} import {right_function}\n\n'
@@ -62,7 +64,7 @@ def _macro() -> PatchMacro:
 
 
 def _oracle(seed: int):
-    bias = seed % 3
+    bias = seed % 97
     return lambda x, y, a, b: x % y + a % b + bias
 
 
