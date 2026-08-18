@@ -1,0 +1,22 @@
+{
+  "capability_commit": "a5835c7e9e20ab268870f3e2cbe56f10536aef44",
+  "external_artifact_id": 9310793038,
+  "hosted_run_id": 32098662916,
+  "milestone": "R2.57",
+  "readiness": 47.5,
+  "release_files": [
+    "R2_57_DELIVERY.md",
+    "R2_56_TO_R2_57_EVOLUTION.md",
+    "R2_57_PHASE_A_RESULT.json",
+    "R2_57_EXTERNAL_TRANSFER.json",
+    "R2_57_VERIFY_RESULT.json",
+    "R2_57_WORLD_FINAL.json",
+    "R2_READINESS_RECALIBRATION.md"
+  ],
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "title": "Verified Cognitive Vocabulary Growth",
+  "trainable_parameter_count": 0,
+  "world_audit_digest": "3ae5182269c9edd6750cb7b5549dd674b9cbb753b99b5915537800222347d664",
+  "world_id": "world4_bd574d91fb284e3a",
+  "world_w5_passed": false
+}
