@@ -1,0 +1,45 @@
+name: R2.65 Finalize Readiness
+
+on:
+  push:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths: ['.github/workflows/r265-finalize-readiness.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r265-verified-patch-language-induction-gpt56sol
+          fetch-depth: 0
+      - name: Append conservative R2.65 readiness entry once
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('R2_READINESS_RECALIBRATION.md')
+          text = path.read_text()
+          heading = '## R2.65 — 49.7 / 100'
+          if heading not in text:
+              text = text.rstrip() + '''\n\n## R2.65 — 49.7 / 100\n\nR2.65 earns **+0.3** over R2.64/R2.64.1 (49.4). It removes a specific host-supplied capability channel: the exact target-specific repository `PatchMacro` no longer has to be provided. From structurally observed source operators, a finite host-authorized binop-replacement grammar, public diagnostic counterexamples and independent challenges, the runtime can derive a missing primitive, keep generation target-output-free, and promote only a uniquely surviving primitive that passes disjoint terminal verification. Frozen authored evidence reaches 6/6 exact repairs where the accepted R2.64.1 parent abstains 6/6 without the exact macro; eight negative cases abstain and false terminal accepts are zero.\n\nThe pinned external transfer uses NumPy 2.4.6 `numpy.multiply` through callable I/O only. The exact target repository and exact Add→Mult macro are withheld; R2.65 derives Add→Mult, passes 8/8 independent challenges and 225/225 disjoint terminal cases. Before release, concurrent Council challengers and Nolane World exposed and forced fixes for hypothesis-budget starvation, true global generation-cap accounting, initial/unanimous/post-selection version-space misspecification, caller-order-dependent diagnostics, and zero-challenge promotion. Final source lock schema 8 binds those regressions. Fresh canonical hosted run 32139543942 recomputes exact evidence, passes 20/20 R2.65 tests plus 247/247 protected R2.64→R2.41 parent tests, and is green on Python 3.11/3.13.\n\nThe movement remains deliberately small. The rewrite grammar is still finite and host authorized; the repository wrappers are synthetic; external breadth is one researcher-selected NumPy family; open-ended patch-language growth, blind real-repository issue repair, stateful/effectful experimentation and large-space scaling remain unproven. Nolane World 0.8.0 audit is valid but W5 remains false. The **49.7/100** value is an internal engineering heuristic, not an AGI probability.\n'''
+              path.write_text(text)
+              print('R265_READINESS_APPENDED')
+          else:
+              print('R265_READINESS_ALREADY_PRESENT')
+          PY
+      - name: Commit readiness if changed
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_READINESS_RECALIBRATION.md
+          if git diff --cached --quiet; then
+            echo R265_READINESS_UNCHANGED
+          else
+            git commit -m 'release: calibrate bounded R2.65 readiness'
+            git push origin HEAD:r265-verified-patch-language-induction-gpt56sol
+          fi
