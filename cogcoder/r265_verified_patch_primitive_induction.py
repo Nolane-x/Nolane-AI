@@ -24,6 +24,27 @@ from cogcoder.r264_unified_adaptive_repository_search_base import _canonical_can
 _SUPPORTED_BINOPS = frozenset({'Add', 'Sub', 'Mult', 'Div', 'FloorDiv', 'Mod'})
 
 
+class PatchPrimitiveMacro(PatchMacro):
+    """R2.65 semantic view over the inherited verified PatchMacro contract.
+
+    Runtime authority remains the inherited fields ``slot/kind/src/dst/support``.
+    Read-only aliases expose the R2.65 induction vocabulary without modifying the
+    accepted parent class or widening the patch language.
+    """
+
+    @property
+    def operation(self) -> str:
+        return self.kind
+
+    @property
+    def source_value(self) -> str | None:
+        return self.src
+
+    @property
+    def target_value(self) -> str | None:
+        return self.dst
+
+
 @dataclass(frozen=True, slots=True)
 class PatchPrimitiveGrammar:
     allowed_slots: tuple[str, ...] = ('binop',)
@@ -34,7 +55,7 @@ class PatchPrimitiveGrammar:
 
 @dataclass(frozen=True, slots=True)
 class PrimitiveCandidate:
-    macro: PatchMacro
+    macro: PatchPrimitiveMacro
     candidate: RepositoryPatchCandidate
     content_digest: str
 
@@ -44,7 +65,7 @@ class PatchPrimitiveInductionReceipt:
     status: str
     candidate: RepositoryPatchCandidate | None
     exact: bool
-    learned_macro: PatchMacro | None
+    learned_macro: PatchPrimitiveMacro | None
     primitive_promoted: bool
     initial_unique_candidates: int
     initial_survivors: int
@@ -110,33 +131,32 @@ def _observed_binop_types(seeds: Sequence[RepositoryPatchCandidate]) -> tuple[st
 def enumerate_patch_macro_hypotheses(
     seeds: Sequence[RepositoryPatchCandidate],
     grammar: PatchPrimitiveGrammar,
-) -> tuple[PatchMacro, ...]:
-    """Enumerate closed-grammar patch primitives without oracle or target outputs."""
+) -> tuple[PatchPrimitiveMacro, ...]:
+    """Enumerate a closed, target-output-free primitive hypothesis language."""
     _validate_grammar(grammar)
     limit = int(grammar.max_hypotheses)
     if limit == 0:
         return ()
     observed = _observed_binop_types(tuple(seeds))
     targets = tuple(sorted(set(str(value) for value in grammar.allowed_target_values)))
-    rows: list[PatchMacro] = []
+    rows: list[PatchPrimitiveMacro] = []
     for source_value in observed:
         for target_value in targets:
             if source_value == target_value:
                 continue
-            rows.append(PatchMacro(
+            rows.append(PatchPrimitiveMacro(
                 _hash_macro('binop', 'replace', source_value, target_value),
                 'binop',
                 'replace',
                 source_value,
                 target_value,
-                # PatchMacro's long-standing contract requires positive support.
-                # One unit here means only "this source operator was structurally
-                # observed in the authorized seed repository"; it is not behavioral
-                # evidence and does not influence hypothesis identity.
+                # PatchMacro requires positive support.  Here support=1 means only
+                # that the source operator was structurally observed in an
+                # authorized seed; it is not behavioral/oracle evidence.
                 support=1,
             ))
     rows.sort(key=lambda row: (
-        row.slot, row.operation, row.source_value, row.target_value, row.macro_id,
+        row.slot, row.kind, row.src or '', row.dst or '', row.macro_id,
     ))
     return tuple(rows[:limit])
 
@@ -153,6 +173,60 @@ def _test_probe_ids(tests: Sequence[PatchTest]) -> set[str]:
         except (TypeError, ValueError):
             continue
     return result
+
+
+def _generate_hypothesis_fair_candidates(
+    seeds: Sequence[RepositoryPatchCandidate],
+    hypotheses: Sequence[PatchPrimitiveMacro],
+    *,
+    max_generated_candidates: int,
+    max_sites_per_hypothesis: int,
+) -> tuple[PrimitiveCandidate, ...]:
+    """Round-robin legal candidates across primitive hypotheses.
+
+    A hypothesis with many mutation sites may not monopolize the global returned
+    candidate budget.  Enumeration remains deterministic and has no oracle,
+    target-output, expected-repository, or learned ranking channel.
+    """
+    budget = int(max_generated_candidates)
+    site_budget = int(max_sites_per_hypothesis)
+    if budget < 0 or site_budget < 0:
+        raise ValueError('generation budgets must be non-negative')
+    if budget == 0 or site_budget == 0 or not seeds or not hypotheses:
+        return ()
+
+    banks: list[tuple[PatchPrimitiveMacro, tuple[object, ...]]] = []
+    for macro in hypotheses:
+        generated = expand_repository_candidates(
+            tuple(seeds),
+            (macro,),
+            max_generated_candidates=budget,
+            max_sites_per_macro=site_budget,
+        )
+        banks.append((macro, tuple(generated)))
+
+    rows: list[PrimitiveCandidate] = []
+    seen_pairs: set[tuple[str, str]] = set()
+    rank = 0
+    while len(rows) < budget:
+        progressed = False
+        for macro, generated in banks:
+            if rank >= len(generated):
+                continue
+            progressed = True
+            row = generated[rank]
+            digest = repository_content_digest(row.candidate)
+            key = (macro.macro_id, digest)
+            if key in seen_pairs:
+                continue
+            seen_pairs.add(key)
+            rows.append(PrimitiveCandidate(macro, row.candidate, digest))
+            if len(rows) >= budget:
+                break
+        if not progressed:
+            break
+        rank += 1
+    return tuple(rows)
 
 
 def solve_repository_patch_with_primitive_induction(
@@ -202,14 +276,17 @@ def solve_repository_patch_with_primitive_induction(
 
     challenge_ids = _probe_ids(challenges)
     final_ids = _probe_ids(final_inputs)
+    diagnostic_ids = _probe_ids(diagnostics)
+    if len(set(diagnostic_ids)) != len(diagnostic_ids):
+        raise ValueError('diagnostic_inputs must be unique')
     if len(set(challenge_ids)) != len(challenge_ids):
         raise ValueError('challenge_inputs must be unique')
     if len(set(final_ids)) != len(final_ids):
         raise ValueError('final verification inputs must be unique')
-    learning_ids = set(_probe_ids(diagnostics)) | set(challenge_ids) | _test_probe_ids(initial_tests)
+    learning_ids = set(diagnostic_ids) | set(challenge_ids) | _test_probe_ids(initial_tests)
     if learning_ids & set(final_ids):
         raise ValueError('final verification inputs must be disjoint from learning evidence')
-    if set(_probe_ids(diagnostics)) & set(challenge_ids):
+    if set(diagnostic_ids) & set(challenge_ids):
         raise ValueError('challenge_inputs must be disjoint from diagnostic evidence')
 
     groups = (diagnostics, challenges, final_inputs)
@@ -242,7 +319,7 @@ def solve_repository_patch_with_primitive_induction(
     def receipt(
         status: str,
         candidate: RepositoryPatchCandidate | None,
-        learned_macro: PatchMacro | None,
+        learned_macro: PatchPrimitiveMacro | None,
         promoted: bool,
         reason: str,
         *,
@@ -313,28 +390,13 @@ def solve_repository_patch_with_primitive_induction(
     if generation_budget == 0 or site_budget == 0:
         return receipt('abstain', None, None, False, 'primitive_generation_budget_exhausted')
 
-    primitive_rows: list[PrimitiveCandidate] = []
-    seen_pairs: set[tuple[str, str]] = set()
-    remaining_budget = generation_budget
-    for macro in hypotheses:
-        if remaining_budget <= 0:
-            break
-        generated = expand_repository_candidates(
-            seeds,
-            (macro,),
-            max_generated_candidates=remaining_budget,
-            max_sites_per_macro=site_budget,
-        )
-        generated_total += len(generated)
-        remaining_budget -= len(generated)
-        for row in generated:
-            digest = repository_content_digest(row.candidate)
-            key = (macro.macro_id, digest)
-            if key in seen_pairs:
-                continue
-            seen_pairs.add(key)
-            primitive_rows.append(PrimitiveCandidate(macro, row.candidate, digest))
-
+    primitive_rows = list(_generate_hypothesis_fair_candidates(
+        seeds,
+        hypotheses,
+        max_generated_candidates=generation_budget,
+        max_sites_per_hypothesis=site_budget,
+    ))
+    generated_total = len(primitive_rows)
     if not primitive_rows:
         return receipt('abstain', None, None, False, 'no_generated_primitive_candidates')
 
@@ -415,6 +477,7 @@ def solve_repository_patch_with_primitive_induction(
 
 
 __all__ = [
+    'PatchPrimitiveMacro',
     'PatchPrimitiveGrammar',
     'PrimitiveCandidate',
     'PatchPrimitiveInductionReceipt',
