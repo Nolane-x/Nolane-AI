@@ -1,5 +1,6 @@
 name: R2.60 Active Diagnostic Repository Probes
 
+# Verification is intentionally rerun from the fully accepted R2.59 release base.
 on:
   push:
     branches: [main, r260-active-repository-probes-gpt56sol]
