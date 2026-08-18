@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.65 Verified Patch Primitive Induction",
+  "runtime": "Nolane World 0.8.0 Learning-to-Learn Cognitive OS",
+  "world_id": "world4_4d42dbc9481047c1",
+  "depth": "W5",
+  "status": "living",
+  "epoch": 6,
+  "active_seconds_credited": 3.0,
+  "audit": {
+    "valid": true,
+    "digest": "ac95f11a0a998946b02c2bb137d81e0d8c1c665f985c4620f22101f8ceecf83b",
+    "events": 13
+  },
+  "gate": {
+    "passed": false,
+    "score": 0,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ]
+  },
+  "convergence_forced": false,
+  "critical_unknowns": 1,
+  "world_findings_materialized_into_release": [
+    "initial singleton repository misspecification requires continued target-independent diagnostics",
+    "post-selection and zero-entropy version spaces must still permit bounded misspecification detection",
+    "fallback diagnostic behavior must be caller-order invariant",
+    "primitive promotion must require at least one independent challenge"
+  ],
+  "canonical_hosted_evidence": {
+    "run_id": 32139543942,
+    "source_lock_schema_version": 8,
+    "r265_tests": 20,
+    "protected_parent_tests": 247,
+    "total_relevant_tests": 267,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "exact_phase_a": true,
+    "exact_external": true
+  },
+  "claim_boundary": "The World audit is valid and materially found multiple release-blocking defects that were converted into hosted RED/GREEN contracts. W5 remains false. This file is evidence of conservative runtime adjudication, not proof of general intelligence or broad coding autonomy."
+}
