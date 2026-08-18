@@ -404,6 +404,9 @@ def solve_repository_patch_with_primitive_induction(
             trainable_parameter_count=0,
         )
 
+    if min_challenges < 1 or challenge_budget < 1:
+        return receipt('abstain', None, None, False, 'independent_challenge_required')
+
     if not survivors:
         return receipt('abstain', None, None, False, 'repository_version_space_empty')
     if not hypotheses:
@@ -447,7 +450,7 @@ def solve_repository_patch_with_primitive_induction(
         # Oracle outputs are recorded only after the candidate outcomes for the
         # probe are computed, and candidate generation still receives no target
         # outputs.
-        for probe in diagnostics:
+        for probe in sorted(diagnostics, key=lambda row: row.probe_id):
             if probe.probe_id in used_diagnostics:
                 continue
             if diagnostic_calls >= selection_budget:
