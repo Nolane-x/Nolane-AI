@@ -39,7 +39,7 @@ jobs:
       - name: Recompute and freeze exact evidence
         run: |
           PYTHONPATH=. python - <<'PY'
-          import json, subprocess
+          import json, os, subprocess
           from pathlib import Path
           import ufunclab
           from benchmarks.kfigg.r266_learned_contextual_composition import run_benchmark
@@ -69,12 +69,15 @@ jobs:
               'tests/test_r266_independent_terminal_contexts.py',
               'tests/test_r266_terminal_evidence_boundary.py',
               'tests/test_r266_pair_budget_semantics.py',
+              'tests/test_r266_intervention_oracle_failclosed.py',
               'docs/superpowers/specs/2026-08-18-r266-learned-contextual-composition-design.md',
               '.github/workflows/r266-learned-contextual-composition.yml',
               '.github/workflows/r266-external-contextual-transfer.yml',
               '.github/workflows/r266-canonical-gate.yml',
               '.github/workflows/r266-freeze-evidence.yml',
               '.github/workflows/r266-release-bundle.yml',
+              '.github/workflows/r266-intervention-oracle-hotfix.yml',
+              '.github/workflows/r266-intervention-oracle-cross-python.yml',
           )
           blobs = {
               path: subprocess.check_output(['git', 'hash-object', path], text=True).strip()
@@ -83,7 +86,7 @@ jobs:
           parent = subprocess.check_output(['git', 'merge-base', 'HEAD', 'origin/main'], text=True).strip()
           assert parent == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1', parent
           lock = {
-              'schema_version': 1,
+              'schema_version': 2,
               'milestone': 'R2.66 Learned Contextual Causal Composition',
               'parent_release_commit': parent,
               'frozen_git_blobs': blobs,
@@ -92,6 +95,7 @@ jobs:
               'production_source_changes_after_lock_forbidden': True,
               'terminal_evidence_disjointness_frozen': True,
               'semantic_pair_budget_invariance_frozen': True,
+              'intervention_oracle_fail_closed_frozen': True,
               'no_intervened_value_smuggling_frozen': True,
               'two_probe_necessity_frozen': True,
               'fixed_r262_operator_falsifier_frozen': True,
@@ -101,20 +105,25 @@ jobs:
               'initial_module_red_run_id': 32143284927,
               'terminal_independence_red_run_id': 32143864154,
               'independent_pair_budget_red_run_id': 32145137532,
-              'independent_pair_budget_green_run_id': 32146061579,
-              'focused_post_fix_run_id': 32146235376,
-              'external_post_fix_run_id': 32146235254,
+              'independent_pair_budget_green_run_id': 32147458027,
+              'intervention_oracle_red_run_id': 32144226317,
+              'intervention_oracle_green_run_id': 32147372531,
+              'intervention_oracle_exact_head_run_id': 32146846570,
+              'intervention_oracle_cross_python_run_id': 32146846639,
+              'oracle_hotfix_merge_commit': '0edec9cddc47542eb7cf902f82f771e026bbb352',
+              'evidence_refreeze_run_id': int(os.environ['GITHUB_RUN_ID']),
               'external_source_commit': 'f1fbe6769850823a1976ccc28d14cd966130b645',
               'note': (
                   'Frozen only after clean R2.65 parent, explicit module RED, terminal-evidence RED, independent '
-                  'pair-budget RED then semantic-first scheduler GREEN on Python 3.11/3.13, exact authored causal '
-                  'recomputation, and fresh pinned ufunclab.step I/O-only transfer. The public R2.66 synthesis API '
-                  'requires a non-empty exact-context-disjoint terminal set. Any later frozen-blob change requires '
-                  'complete remeasurement.'
+                  'pair-budget RED then semantic-first scheduler GREEN on Python 3.11/3.13, intervention-oracle '
+                  'fail-closed RED then independent GREEN on Python 3.11/3.13, exact authored causal recomputation, '
+                  'and fresh pinned ufunclab.step I/O-only transfer. The public R2.66 synthesis API requires a '
+                  'non-empty exact-context-disjoint terminal set. Any later frozen-blob change requires complete '
+                  'remeasurement.'
               ),
           }
           Path('R2_66_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
-          print('R266_FREEZE_READY', parent, len(blobs))
+          print('R266_FREEZE_READY', parent, len(blobs), os.environ['GITHUB_RUN_ID'])
           PY
       - name: Commit exact evidence if changed
         run: |
@@ -125,6 +134,6 @@ jobs:
           if git diff --cached --quiet; then
             echo R266_EVIDENCE_ALREADY_FROZEN
           else
-            git commit -m 'research: freeze exact R2.66 contextual composition evidence'
+            git commit -m 'research: refreeze exact R2.66 evidence after oracle hardening'
             git push origin HEAD:r266-learned-contextual-composition-gpt56sol
           fi
