@@ -4,7 +4,12 @@ from collections.abc import Mapping
 
 import pytest
 
+from cogcoder._r266_contextual_composition_core import (
+    ContextualInterventionProfile,
+    _profile_semantic_id,
+)
 from cogcoder.r256_operator_invention import OperatorInventionNeed
+from cogcoder.r258_intervention_discovery import InterventionSpec
 from cogcoder.r266_learned_contextual_composition import (
     discover_contextual_composition_structure,
     synthesize_contextual_composition_program,
@@ -124,7 +129,6 @@ def test_frozen_terminal_disjointness_includes_intervention_query_inputs() -> No
     alias = dict(rows[0])
     alias['middle'] = 0.0
     assert alias not in rows[:24]
-    # This exact point is queried while profiling the authorized middle:=0 intervention.
     with pytest.raises(ValueError, match='disjoint'):
         _synthesize(_oracle, (alias,))
 
@@ -142,3 +146,20 @@ def test_frozen_public_receipt_accounts_for_all_oracle_calls() -> None:
     assert receipt.passed is True
     assert getattr(receipt, 'oracle_calls_total', None) == calls
     assert calls >= receipt.structure.oracle_calls + 6
+
+
+def test_profile_semantic_identity_normalizes_numeric_equivalence() -> None:
+    spec = InterventionSpec(((0, 0.0),))
+    integerish = ContextualInterventionProfile(
+        spec,
+        (1, 2, 0.0),
+        (3, -0.0),
+    )
+    floatish = ContextualInterventionProfile(
+        spec,
+        (1.0, 2.0, -0.0),
+        (3.0, 0.0),
+    )
+    # R2.66 evaluates these output vectors as numerically equivalent. The semantic
+    # profile identity used for pair scheduling/ranking must therefore agree too.
+    assert _profile_semantic_id(integerish) == _profile_semantic_id(floatish)
