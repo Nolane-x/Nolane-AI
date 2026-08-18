@@ -1,0 +1,86 @@
+# Exact committed-head reverification trigger after oracle source hotfix.
+name: R2.66 Intervention Oracle Hotfix
+
+on:
+  push:
+    branches: [fix-r266-intervention-oracle-failclosed-gpt56sol]
+    paths:
+      - 'cogcoder/_r266_contextual_composition_core.py'
+      - 'tests/test_r266_intervention_oracle_failclosed.py'
+      - '.github/workflows/r266-intervention-oracle-hotfix.yml'
+  pull_request:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - 'cogcoder/_r266_contextual_composition_core.py'
+      - 'tests/test_r266_intervention_oracle_failclosed.py'
+      - '.github/workflows/r266-intervention-oracle-hotfix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  red-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Detect exact pre-hotfix intervention oracle blocks
+        id: detect
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          text = Path('cogcoder/_r266_contextual_composition_core.py').read_text()
+          old = """            except Exception:\n                invalid = True\n                oracle_calls += 1\n                break\n            oracle_calls += 1\n"""
+          count = text.count(old)
+          if count not in (0, 2):
+              raise SystemExit(f'unexpected legacy intervention-oracle block count: {count}')
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+              fh.write(f'needs_patch={str(count == 2).lower()}\n')
+          print('R266_LEGACY_INTERVENTION_ORACLE_BLOCKS', count)
+          PY
+      - name: Verify hosted RED before first mutation
+        if: steps.detect.outputs.needs_patch == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r266_intervention_oracle_failclosed.py
+          RC=$?
+          set -e
+          test "$RC" -ne 0
+          echo R266_INTERVENTION_ORACLE_RED_CONFIRMED
+      - name: Apply fail-closed oracle fix
+        if: steps.detect.outputs.needs_patch == 'true'
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('cogcoder/_r266_contextual_composition_core.py')
+          text = path.read_text()
+          old = """            except Exception:\n                invalid = True\n                oracle_calls += 1\n                break\n            oracle_calls += 1\n"""
+          new = """            except Exception as exc:\n                oracle_calls += 1\n                return ContextualCompositionStructureReceipt(\n                    False, None, 0, len(profiles), invalid_rejected, degenerate_rejected,\n                    len(specs), 0, 0, oracle_calls, 0,\n                    f'oracle_error:{type(exc).__name__}:{exc}', 0,\n                )\n            oracle_calls += 1\n"""
+          if text.count(old) != 2:
+              raise SystemExit(f'expected exactly two intervention-oracle catch blocks, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 2))
+          PY
+      - name: Verify GREEN and accepted parent
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_intervention_oracle_failclosed.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Commit verified hotfix
+        if: steps.detect.outputs.needs_patch == 'true' && github.event_name == 'push'
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r266_contextual_composition_core.py
+          git commit -m 'fix: fail closed on R2.66 intervention oracle errors'
+          git push origin HEAD:fix-r266-intervention-oracle-failclosed-gpt56sol

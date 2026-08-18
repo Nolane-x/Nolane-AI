@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.66 Learned Contextual Causal Composition",
+  "purpose": "Trigger exact-head canonical and release remeasurement after the complete schema-4 evidence-authority freeze without mutating any frozen blob.",
+  "accepted_parent_main_sha": "768e500d6b3e8d1d8ec747e37aae6302ab6747d1",
+  "frozen_lock_schema": 4,
+  "frozen_lock_blob": "9b4cc3546fb0de39f38dbfe79185fecbc883b6d3",
+  "production_core_blob": "292a72cd52bdcc4661948374a33d3a1d854bd91f",
+  "production_public_blob": "c71d1faf1382eb5f3e82b0c6dec5c8c513d9cdd0",
+  "production_source_mutation": false,
+  "claim": "request_only_no_promotion_authority"
+}
