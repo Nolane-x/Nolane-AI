@@ -31,3 +31,8 @@ R2.56 earns **+0.8** over R2.55 (46.0). Unlike a mechanism-only benchmark, it ad
 ## R2.57 — 47.5 / 100
 
 R2.57 earns **+0.7** over R2.56 (46.8). The increase is supported by clean hosted causal transfer where the fixed R2.56 base fails and a learned three-abstraction vocabulary succeeds on pinned `ufunclab.linearstep`, including 8/8 challenge and 24/24 heldout exact results. The movement remains small because the base evaluator is finite and host-designed, the external family is narrow, and the harness chooses an endpoint probe that exposes a useful subgoal. World W5 remains false.
+
+
+## R2.58 — 48.1 / 100
+
+R2.58 earns **+0.6** over R2.57 (47.5). The increase reflects a causal removal of the R2.57 harness-selected endpoint probe: under the pinned external `ufunclab.linearstep` transfer, the harness-free base fails while runtime-owned active discovery succeeds with zero manual probe rows/field hints, 8/8 challenge and 24/24 heldout exact. The movement is smaller than a broad-transfer milestone because the evaluator remains finite/pure, intervention search can scale combinatorially, and external evidence still covers one numeric family. World W5 remains false.

@@ -1,0 +1,49 @@
+{
+  "active_seconds_credited": 0.0,
+  "audit": {
+    "digest": "5da4aee908f94f3af4772817c27fa54f8ed748957eac26e4304faf600b553523",
+    "events": 13,
+    "valid": true,
+    "world_id": "world4_ad17574a483940b0"
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; autonomous bounded probe/subgoal discovery over finite pure R2.56/R2.57 semantics, not open-ended experimentation, effectful invention, general coding autonomy, or AGI.",
+  "critical_unknowns": [
+    "Identity-exposure discovery only works when the learned vocabulary contains a controllable exposure schema; broader representation families are unproven.",
+    "Intervention compilation scales combinatorially with field count, fixed slots and constants; larger probe spaces require stronger information-gain/search control.",
+    "External transfer remains one numeric ufunc family and can share structural regularities with the authored benchmark despite I/O-only source exposure.",
+    "Hostile, stateful or nondeterministic oracles and correlated challenge sets remain insufficiently tested.",
+    "Effectful/tool-family invention, irreversible external-I/O boundaries and safe rollback are not established.",
+    "Independent challengers, robust counterfactual worlds and representation diversity remain insufficient for W5 convergence."
+  ],
+  "epoch": 5,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence": {
+    "commit": "5016ef6067dbf3ec6638c8cae8cdb25857704a4a",
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    },
+    "external_artifact_id": 9315477347,
+    "main_job_id": 95634829185,
+    "run_id": 32112510880
+  },
+  "milestone": "R2.58",
+  "world_id": "world4_ad17574a483940b0"
+}

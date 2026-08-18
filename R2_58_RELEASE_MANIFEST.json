@@ -1,0 +1,22 @@
+{
+  "capability_commit": "5016ef6067dbf3ec6638c8cae8cdb25857704a4a",
+  "external_artifact_id": 9315477347,
+  "hosted_run_id": 32112510880,
+  "milestone": "R2.58",
+  "readiness": 48.1,
+  "release_files": [
+    "R2_58_DELIVERY.md",
+    "R2_57_TO_R2_58_EVOLUTION.md",
+    "R2_58_PHASE_A_RESULT.json",
+    "R2_58_EXTERNAL_TRANSFER.json",
+    "R2_58_VERIFY_RESULT.json",
+    "R2_58_WORLD_FINAL.json",
+    "R2_READINESS_RECALIBRATION.md"
+  ],
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "title": "Active Probe/Subgoal Discovery",
+  "trainable_parameter_count": 0,
+  "world_audit_digest": "5da4aee908f94f3af4772817c27fa54f8ed748957eac26e4304faf600b553523",
+  "world_id": "world4_ad17574a483940b0",
+  "world_w5_passed": false
+}

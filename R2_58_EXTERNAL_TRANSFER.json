@@ -1,0 +1,101 @@
+{
+  "active_probe_passed": true,
+  "active_probe_reason": "verified_causal_probe",
+  "challenge_cases": 8,
+  "challenge_exact": 8,
+  "claim_boundary": "I/O-only transfer with autonomous bounded intervention discovery; not source induction, open-ended experiment design, or general program synthesis.",
+  "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+  "exposure_target_param_index": 0,
+  "fixed_field_profile_ids": [
+    [
+      1,
+      "31a72086ba4893337ddfb355cf39d2c002c280a04ae9436f47a819f1c0b68f10"
+    ],
+    [
+      2,
+      "5114b198e8a476a05160723e5e6dac958e5659713b3d224b6add6578cf24a2a9"
+    ]
+  ],
+  "fixed_values": [
+    0,
+    1
+  ],
+  "harness_free_base_passed": false,
+  "heldout_cases": 24,
+  "heldout_exact": 24,
+  "interventions_considered": 7,
+  "learned_abstraction_digests": [
+    "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a",
+    "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f",
+    "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+  ],
+  "learned_expression": {
+    "args": [
+      {
+        "field": "fa"
+      },
+      {
+        "args": [
+          {
+            "args": [
+              {
+                "field": "a"
+              },
+              {
+                "field": "x"
+              },
+              {
+                "field": "b"
+              }
+            ],
+            "call": "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a"
+          },
+          {
+            "field": "a"
+          },
+          {
+            "field": "b"
+          }
+        ],
+        "call": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+      },
+      {
+        "field": "fb"
+      }
+    ],
+    "call": "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f"
+  },
+  "manual_probe_rows": 0,
+  "oracle_calls_during_discovery": 63,
+  "passed": true,
+  "probe_field_hints": 0,
+  "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+  "source_exposure": "io_only",
+  "source_id": "WarrenWeckesser/ufunclab:ufunclab.linearstep",
+  "subgoal_expression": {
+    "args": [
+      {
+        "args": [
+          {
+            "field": "a"
+          },
+          {
+            "field": "x"
+          },
+          {
+            "field": "b"
+          }
+        ],
+        "call": "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a"
+      },
+      {
+        "field": "a"
+      },
+      {
+        "field": "b"
+      }
+    ],
+    "call": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+  },
+  "trainable_parameter_count": 0
+}
