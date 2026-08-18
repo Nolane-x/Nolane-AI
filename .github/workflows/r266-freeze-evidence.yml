@@ -86,7 +86,7 @@ jobs:
           parent = subprocess.check_output(['git', 'merge-base', 'HEAD', 'origin/main'], text=True).strip()
           assert parent == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1', parent
           lock = {
-              'schema_version': 2,
+              'schema_version': 3,
               'milestone': 'R2.66 Learned Contextual Causal Composition',
               'parent_release_commit': parent,
               'frozen_git_blobs': blobs,
@@ -96,6 +96,7 @@ jobs:
               'terminal_evidence_disjointness_frozen': True,
               'semantic_pair_budget_invariance_frozen': True,
               'intervention_oracle_fail_closed_frozen': True,
+              'release_oracle_contract_frozen': True,
               'no_intervened_value_smuggling_frozen': True,
               'two_probe_necessity_frozen': True,
               'fixed_r262_operator_falsifier_frozen': True,
@@ -117,9 +118,9 @@ jobs:
                   'Frozen only after clean R2.65 parent, explicit module RED, terminal-evidence RED, independent '
                   'pair-budget RED then semantic-first scheduler GREEN on Python 3.11/3.13, intervention-oracle '
                   'fail-closed RED then independent GREEN on Python 3.11/3.13, exact authored causal recomputation, '
-                  'and fresh pinned ufunclab.step I/O-only transfer. The public R2.66 synthesis API requires a '
-                  'non-empty exact-context-disjoint terminal set. Any later frozen-blob change requires complete '
-                  'remeasurement.'
+                  'fresh pinned ufunclab.step I/O-only transfer, and a release contract that requires both post-fix '
+                  'fairness and oracle-hardening evidence. The public R2.66 synthesis API requires a non-empty '
+                  'exact-context-disjoint terminal set. Any later frozen-blob change requires complete remeasurement.'
               ),
           }
           Path('R2_66_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
@@ -134,6 +135,6 @@ jobs:
           if git diff --cached --quiet; then
             echo R266_EVIDENCE_ALREADY_FROZEN
           else
-            git commit -m 'research: refreeze exact R2.66 evidence after oracle hardening'
+            git commit -m 'research: refreeze exact R2.66 release boundary after oracle hardening'
             git push origin HEAD:r266-learned-contextual-composition-gpt56sol
           fi
