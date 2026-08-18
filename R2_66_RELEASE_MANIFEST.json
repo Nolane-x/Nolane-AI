@@ -90,7 +90,7 @@
   },
   "claim_boundary": "Verified bounded learning of a contextual composition over exactly two pure-input interventions using a finite trusted DSL and independently controlled terminal evidence. Not open-ended composition-language invention, 3+ intervention scaling, stateful/effectful experimentation, blind task discovery, broad repository coding autonomy, W5 convergence, or AGI.",
   "release_bundle": {
-    "workflow": ".github/workflows/r266-post-merge-bundle.yml",
+    "workflow": ".github/workflows/r266-post-merge-release-bundle.yml",
     "artifact_name": "Nolane-AI-R2.66-COMPLETE-POST-MERGE",
     "archive_name": "Nolane-AI-R2.66-COMPLETE.zip",
     "pre_integration_verified_run_id": 32152862858,
