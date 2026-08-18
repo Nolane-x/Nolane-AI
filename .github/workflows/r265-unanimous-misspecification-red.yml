@@ -1,0 +1,63 @@
+name: R2.65 Unanimous Misspecification RED
+
+on:
+  push:
+    branches: [validation-r265-unanimous-misspecification-gpt56sol]
+    paths:
+      - 'tests/test_r265_unanimous_misspecification_falsifier.py'
+      - '.github/workflows/r265-unanimous-misspecification-red.yml'
+  pull_request:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'tests/test_r265_unanimous_misspecification_falsifier.py'
+      - '.github/workflows/r265-unanimous-misspecification-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Confirm matching control and unanimous-misspecification RED
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r265_unanimous_misspecification_falsifier.py > r265-unanimous-red.log 2>&1
+          rc=$?
+          cat r265-unanimous-red.log
+          test "$rc" -ne 0
+      - name: Require exact misspecification failure with fail-closed control green
+        shell: bash
+        run: |
+          grep -F 'test_unanimous_wrong_version_space_can_detect_misspecification_and_induce' r265-unanimous-red.log
+          grep -F "AssertionError: assert 'abstain' == 'accept'" r265-unanimous-red.log
+          grep -E '1 failed, 1 passed|1 passed, 1 failed' r265-unanimous-red.log
+      - name: Publish independent RED status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r265/unanimous-misspecification-red',
+            'description':'Independent RED: zero-entropy survivors can all be wrong while diagnostic induction abstains',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
