@@ -1,17 +1,24 @@
 {
   "external_result": "R2_65_EXTERNAL_TRANSFER.json",
   "frozen_git_blobs": {
+    ".github/workflows/r265-canonical-gate.yml": "e394c2878367d6b21b5ef83c257b30c073e02611",
+    ".github/workflows/r265-freeze-evidence.yml": "b000e66b957d764c3e540131e1e73f89b768f1ba",
+    ".github/workflows/r265-verified-patch-primitive-induction.yml": "233e22a0dd6ee1227278fc3e395ef7d0baaa77a2",
     "benchmarks/kfigg/r265_patch_primitive_induction.py": "2789a9781f8a8cf89a9c851e0421f521961584f6",
     "cogcoder/r265_verified_patch_primitive_induction.py": "40ddb0f623bfbcffe7434fd3275d598749fe2c93",
     "research/r265_external_patch_primitive_transfer.py": "1bc8cfff01444ef4cb4da2638c7b65665c9922dc",
     "tests/test_r265_external_patch_primitive_transfer.py": "e4e8d4fe9bb6bc604aaf47fbbb0d5591cf9d2562",
+    "tests/test_r265_hypothesis_budget_fairness.py": "0d8a9b6a5bd114377034556c21a6d27b5a5c7482",
     "tests/test_r265_patch_primitive_benchmark.py": "1a1050c8b2ebd17e574088e02f2812ec549620a4",
+    "tests/test_r265_patchmacro_field_contract.py": "e3133a3c23808f3c2f82fa77ab5aab917d114724",
     "tests/test_r265_verified_patch_primitive_induction.py": "bad7232ee2dcde5f2497cddda94767f1801a2cf7"
   },
+  "hypothesis_budget_fairness_frozen": true,
+  "inherited_patchmacro_contract_frozen": true,
   "milestone": "R2.65 Verified Patch Primitive Induction",
-  "note": "Frozen after focused R2.64 parent + R2.65 tests and exact authored/NumPy multiply evidence. Any later change to a frozen blob requires complete remeasurement.",
+  "note": "Frozen after fixed R2.64.1 parent, focused R2.65 contract/fairness tests, and exact authored/NumPy multiply evidence. Any later change to a frozen blob requires complete remeasurement.",
   "parent_release_commit": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
   "phase_a_result": "R2_65_PHASE_A_RESULT.json",
   "production_source_changes_after_lock_forbidden": true,
-  "schema_version": 1
+  "schema_version": 2
 }
