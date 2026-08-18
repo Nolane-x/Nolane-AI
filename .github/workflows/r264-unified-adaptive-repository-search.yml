@@ -1,0 +1,58 @@
+name: R2.64 Unified Adaptive Repository Search
+
+on:
+  push:
+    branches: [r264-unified-adaptive-repository-search-gpt56sol]
+    paths:
+      - 'cogcoder/r264_*.py'
+      - 'tests/test_r264_*.py'
+      - 'benchmarks/kfigg/r264_*.py'
+      - 'research/r264_*.py'
+      - 'R2_64_*.json'
+      - '.github/workflows/r264-unified-adaptive-repository-search.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r264_*.py'
+      - 'tests/test_r264_*.py'
+      - 'benchmarks/kfigg/r264_*.py'
+      - 'research/r264_*.py'
+      - 'R2_64_*.json'
+      - '.github/workflows/r264-unified-adaptive-repository-search.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest
+      - name: Verify accepted R2.63 parent first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+      - name: Run R2.64 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Run R2.64 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
