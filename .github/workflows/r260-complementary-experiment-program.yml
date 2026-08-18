@@ -1,0 +1,220 @@
+name: R2.60 Complementary Causal Experiment Program
+
+on:
+  push:
+    branches: [main, r260-complementary-experiment-program-gpt56sol]
+    paths:
+      - 'cogcoder/r260_*.py'
+      - 'benchmarks/kfigg/r260_*.py'
+      - 'research/r260_*.py'
+      - 'tests/test_r260_*.py'
+      - 'R2_60_PHASE_A_RESULT.json'
+      - 'R2_60_PRE_HOSTED_LOCK.json'
+      - 'docs/superpowers/specs/2026-08-18-r260-complementary-experiment-program-design.md'
+      - 'docs/superpowers/plans/2026-08-18-r260-complementary-experiment-program.md'
+      - '.github/workflows/r260-complementary-experiment-program.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r260_*.py'
+      - 'benchmarks/kfigg/r260_*.py'
+      - 'research/r260_*.py'
+      - 'tests/test_r260_*.py'
+      - 'R2_60_PHASE_A_RESULT.json'
+      - 'R2_60_PRE_HOSTED_LOCK.json'
+      - '.github/workflows/r260-complementary-experiment-program.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-and-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify frozen R2.60 source hashes before hosted measurement
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          lock=json.loads(Path('R2_60_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_source_sha256'].items():
+              actual=hashlib.sha256(Path(path).read_bytes()).hexdigest()
+              assert actual == expected, (path, actual, expected)
+          phase=Path('R2_60_PHASE_A_RESULT.json').read_bytes()
+          assert hashlib.sha256(phase).hexdigest() == lock['phase_a_sha256']
+          print('R260_PRE_HOSTED_SOURCE_LOCK_OK')
+          PY
+      - name: Run R2.60 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Recompute frozen R2.60 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r260_complementary_experiment_program import run_benchmark
+          expected=json.loads(Path('R2_60_PHASE_A_RESULT.json').read_text())
+          actual=run_benchmark()
+          assert actual == expected, (actual, expected)
+          assert actual['discoveries'] == actual['configurations'] == 3
+          assert actual['flat_baseline_failures'] == 3
+          assert actual['proper_subset_failures'] == 6
+          assert actual['wrong_pair_false_accepts'] == 0
+          assert actual['matched_synthesis_budget_respected'] is True
+          assert actual['trainable_parameter_count'] == 0
+          print(json.dumps(actual, indent=2, sort_keys=True))
+          PY
+      - name: Run protected R2.59 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+      - name: Run protected R2.58 to R2.55 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run protected R2.54 to R2.50 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run protected R2.49 to R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish focused-lineage status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r260/focused-lineage',
+            'description':'R2.60 focused evidence and protected R2.59-R2.41 lineage passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  external-ufunclab-deadzone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Run new-family I/O-only complementary experiment transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r260_external_complementary_transfer import run_external_transfer
+          result=run_external_transfer(
+            ufunclab.deadzone,
+            source_id='WarrenWeckesser/ufunclab:ufunclab.deadzone',
+            source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          print(json.dumps(result, indent=2, sort_keys=True))
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['external_function_family'] == 'deadzone'
+          assert result['researcher_selected_function_family'] is True
+          assert result['blind_external_task_selection'] is False
+          assert result['host_selected_intervention'] is False
+          assert result['derived_anchor_values'] == [-10.0, 10.0]
+          assert result['composition_op'] == 'add'
+          assert result['proper_subset_failures'] == 2
+          assert result['flat_baseline_passed'] is False
+          assert result['flat_baseline_candidates'] == 10000
+          assert result['probe_synthesis_candidates_total'] <= result['flat_baseline_candidates']
+          assert result['matched_synthesis_budget_respected'] is True
+          assert result['validation_exact'] == result['validation_cases'] == 10
+          assert result['challenge_exact'] == result['challenge_cases'] == 8
+          assert result['heldout_exact'] == result['heldout_cases'] == 24
+          assert all(value < result['challenge_cases'] for value in result['singleton_challenge_exact'])
+          assert result['passing_programs'] == 1
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_60_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          PY
+      - name: Upload external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.60-ufunclab-deadzone-complementary-transfer
+          path: R2_60_EXTERNAL_TRANSFER.json
+      - name: Publish external status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r260/external-transfer',
+            'description':'R2.60 pinned ufunclab deadzone complementary transfer passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify R2.60 focused behavior across Python runtimes
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Publish cross-Python status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':f"r260/cross-python-{os.environ['PYVER']}",
+            'description':f"R2.60 focused tests passed on Python {os.environ['PYVER']}",
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY

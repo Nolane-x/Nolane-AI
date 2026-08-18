@@ -1,0 +1,52 @@
+{
+  "acceptance_requires": [
+    "focused_r260_green",
+    "phase_a_exact_recompute",
+    "protected_parent_lineage",
+    "cross_python_3_11_3_13",
+    "pinned_ufunclab_deadzone_external_green",
+    "nolane_world_audit",
+    "strict_claim_boundary"
+  ],
+  "blind_external_task_selection": false,
+  "capability": "complementary-causal-experiment-program",
+  "composition_language": [
+    "add",
+    "sub",
+    "rsub",
+    "mul",
+    "min",
+    "max"
+  ],
+  "external_callable": "ufunclab.deadzone",
+  "external_repository": "WarrenWeckesser/ufunclab",
+  "external_source_blob_sha": "1004d80ce73c5af417b560365e47538854099aba",
+  "external_source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+  "external_source_path": "src/deadzone/deadzone.h",
+  "flat_baseline_candidate_budget": 10000,
+  "frozen_source_sha256": {
+    ".github/workflows/r260-complementary-experiment-program.yml": "0fd09d15a01789ca4e019ad5181d4a5dba3f7b5f30e154287d85ebd630deb611",
+    "benchmarks/kfigg/r260_complementary_experiment_program.py": "1b6acf95bf129123eb66435c262fb7886d89b92090fa3b8d2011efa6ee0e6e92",
+    "cogcoder/r260_complementary_experiment_program.py": "334384782e1ef8eca3fbf31a5e22c452864810867c340e668696c7219f834e93",
+    "docs/superpowers/plans/2026-08-18-r260-complementary-experiment-program.md": "2deb4db00e42f68707f21c15e738a7dcdd26a3f225aa95588992bd3fc97e7a8d",
+    "docs/superpowers/specs/2026-08-18-r260-complementary-experiment-program-design.md": "b39145cef13dddcdbd8f884123292ddb53f926c0dc828a6754ced48e17826268",
+    "research/r260_external_complementary_transfer.py": "58e8cbdc967acc53d034902aab608b5bc49815e1f632cf818930503d3f797045",
+    "tests/test_r260_complementary_benchmark.py": "90e16a0d349284501c9d84d737b923d966d8fb7b7d70ea4b11539fcd79d741f7",
+    "tests/test_r260_complementary_experiment_program.py": "4859371cab1cd1d9361a5847d27ef92ab5da7c9f874e481b9612776a24e3a060",
+    "tests/test_r260_external_complementary_transfer.py": "0bfc97cb3b7dcd6a45ffadf0bc51c2b02cd9e8d947f13b9f0c66c7663322157f"
+  },
+  "host_selected_intervention": false,
+  "intervention_anchors": [
+    -10.0,
+    10.0
+  ],
+  "learner_source_exposure": "io_only",
+  "local_probe_depth": 2,
+  "milestone": "R2.60",
+  "parent_main_sha": "1e59bd13baabba0e1ba71294aa02365d4e661ee0",
+  "per_probe_candidate_budget": 5000,
+  "phase_a_sha256": "0a9acc4a52889c3ebab15282b6ced350c379247866872664326c8df3abbd2a8d",
+  "readiness_before": 47.8,
+  "readiness_change": "evidence-dependent; no automatic increase",
+  "researcher_selected_function_family": true
+}
