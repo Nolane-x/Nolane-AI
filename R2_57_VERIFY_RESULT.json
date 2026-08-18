@@ -1,0 +1,82 @@
+{
+  "capability_commit": "a5835c7e9e20ab268870f3e2cbe56f10536aef44",
+  "claim_boundary": "Verified vocabulary/library growth with one causal external transfer; not open-ended concept-language invention or broad coding autonomy.",
+  "cross_python": {
+    "3.11": "success",
+    "3.13": "success"
+  },
+  "external_transfer": {
+    "base_passed": false,
+    "challenge_cases": 8,
+    "challenge_exact": 8,
+    "claim_boundary": "I/O-only transfer to one independently sourced pure numeric oracle; not source induction or general program synthesis.",
+    "extended_passed": true,
+    "full_candidates_considered": 179,
+    "heldout_cases": 24,
+    "heldout_exact": 24,
+    "learned_abstraction_digests": [
+      "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a",
+      "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f",
+      "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+    ],
+    "learned_expression": {
+      "args": [
+        {"field": "fa"},
+        {
+          "args": [
+            {
+              "args": [
+                {"field": "a"},
+                {"field": "x"},
+                {"field": "b"}
+              ],
+              "call": "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a"
+            },
+            {"field": "a"},
+            {"field": "b"}
+          ],
+          "call": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+        },
+        {"field": "fb"}
+      ],
+      "call": "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f"
+    },
+    "passed": true,
+    "probe_base_passed": false,
+    "probe_candidates_considered": 4760,
+    "probe_extended_passed": true,
+    "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+    "source_exposure": "io_only",
+    "source_id": "WarrenWeckesser/ufunclab:ufunclab.linearstep",
+    "trainable_parameter_count": 0
+  },
+  "focused_r257_tests": 15,
+  "frozen_phase_a_recomputed": "success",
+  "hosted_main_job": "success",
+  "hosted_main_job_id": 95594817850,
+  "hosted_parent_steps": {
+    "r243_r241": "success",
+    "r245_r244": "success",
+    "r246": "success",
+    "r248_r247": "success",
+    "r249": "success",
+    "r250": "success",
+    "r251": "success",
+    "r253_r252": "success",
+    "r254": "success",
+    "r255": "success",
+    "r256": "success"
+  },
+  "hosted_run_id": 32098662916,
+  "milestone": "R2.57",
+  "protected_local_relevant_tests": 175,
+  "readiness_after": 47.5,
+  "readiness_before": 46.8,
+  "readiness_delta": 0.7,
+  "status": "accepted_bounded_capability",
+  "trainable_parameter_count": 0,
+  "world_audit_digest": "3ae5182269c9edd6750cb7b5549dd674b9cbb753b99b5915537800222347d664",
+  "world_audit_valid": true,
+  "world_w5_passed": false,
+  "world_w5_score": 0
+}
