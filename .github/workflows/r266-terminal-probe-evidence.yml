@@ -1,0 +1,30 @@
+name: R2.66 Terminal Probe-Evidence Challenger
+
+on:
+  push:
+    branches: [validation-r266-terminal-probe-evidence-gpt56sol]
+  pull_request:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  challenger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.65 regression
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Terminal probe-evidence contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_terminal_probe_evidence.py
