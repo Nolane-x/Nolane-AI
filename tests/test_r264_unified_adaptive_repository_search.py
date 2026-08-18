@@ -174,3 +174,18 @@ def test_r264_rejects_duplicate_final_verification_inputs() -> None:
         assert 'final verification inputs must be unique' in str(exc)
     else:
         raise AssertionError('duplicate final verification inputs must fail closed')
+
+
+def test_r264_rejects_final_verification_overlap_with_learning_evidence() -> None:
+    source, wrong, diagnostic, refinement, final = _case()
+    overlapping = (refinement[0], *final)
+    try:
+        solve_unified_adaptive_repository_patch(
+            (source, wrong), (), diagnostic, _oracle,
+            refinement_inputs=refinement, final_verification_inputs=overlapping,
+            expansion_seeds=(source,), expansion_macros=(_macro(),),
+        )
+    except ValueError as exc:
+        assert 'final verification inputs must be disjoint' in str(exc)
+    else:
+        raise AssertionError('learning/final overlap must fail closed')
