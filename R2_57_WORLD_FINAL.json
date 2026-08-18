@@ -1,0 +1,50 @@
+{
+  "active_seconds_credited": 0.0,
+  "audit": {
+    "digest": "3ae5182269c9edd6750cb7b5549dd674b9cbb753b99b5915537800222347d664",
+    "events": 13,
+    "valid": true,
+    "world_id": "world4_bd574d91fb284e3a"
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; learned structural vocabulary over the finite pure R2.56 evaluator, not open-ended semantic/operator-language invention or AGI.",
+  "critical_unknowns": [
+    "Base R2.56 opcode/evaluator semantics remain finite and host-designed; R2.57 learns abstractions over them rather than new evaluator semantics.",
+    "The abstraction-learning corpus is authored/synthetic and can encode generator-specific regularities despite MDL/compression gates.",
+    "External transfer covers one numeric ufunc family (linearstep); broad cross-domain or repository-level transfer is not established.",
+    "The active endpoint probe that exposes a normalized progress subgoal is harness-designed, not autonomously discovered from task uncertainty.",
+    "Large learned libraries still need stronger utility-aware eviction, versioning, dependency management, and scaling evidence.",
+    "Effectful/tool-family vocabulary invention and irreversible external-I/O rollback are not proven.",
+    "Independent challengers and counterfactual representation families remain insufficient for W5 convergence."
+  ],
+  "epoch": 8,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence": {
+    "commit": "a5835c7e9e20ab268870f3e2cbe56f10536aef44",
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    },
+    "external_artifact_id": 9310793038,
+    "main_job_id": 95594817850,
+    "run_id": 32098662916
+  },
+  "milestone": "R2.57",
+  "world_id": "world4_bd574d91fb284e3a"
+}
