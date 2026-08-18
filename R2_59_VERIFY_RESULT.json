@@ -52,8 +52,8 @@
     "random_one_probe_exact": 1
   },
   "protected_parent_relevant_tests": 186,
-  "readiness_after": 48.4,
-  "readiness_before": 48.1,
+  "readiness_after": 48.1,
+  "readiness_before": 47.8,
   "readiness_delta": 0.3,
   "status": "accepted_bounded_capability",
   "trainable_parameter_count": 0,
