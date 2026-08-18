@@ -1,0 +1,60 @@
+name: R2.66 Apply Semantic Pair Scheduling Fix
+
+on:
+  push:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - '.github/workflows/r266-apply-semantic-pair-scheduling-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r266-learned-contextual-composition-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply semantic-first scheduling
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('cogcoder/_r266_contextual_composition_core.py')
+          text = path.read_text()
+          old = "profiles.sort(key=lambda row: row.intervention.intervention_id)"
+          new = "profiles.sort(key=lambda row: (_profile_semantic_id(row), row.intervention.intervention_id))"
+          if old in text:
+              assert text.count(old) == 1
+              text = text.replace(old, new, 1)
+          elif new not in text:
+              raise SystemExit('R2.66 profile scheduling surface changed concurrently')
+          path.write_text(text)
+          print('R266_SEMANTIC_PAIR_SCHEDULING_PATCH_APPLIED')
+          PY
+      - name: Run independent pair-budget contract first
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q tests/test_r266_pair_budget_semantics.py
+      - name: Run all R2.66 and accepted R2.65 regressions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Commit verified production fix
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r266_contextual_composition_core.py
+          if git diff --cached --quiet; then
+            echo R266_SEMANTIC_SCHEDULING_ALREADY_PRESENT
+          else
+            git commit -m 'fix: schedule R2.66 composition pairs by semantic evidence'
+            git push origin HEAD:r266-learned-contextual-composition-gpt56sol
+          fi
