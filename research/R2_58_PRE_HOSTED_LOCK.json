@@ -1,0 +1,41 @@
+{
+  "authored_thresholds": {
+    "active_discovery_runs_min": 3,
+    "episodes_min": 6,
+    "false_accepts": 0,
+    "max_interventions_considered_max": 12,
+    "max_oracle_calls_max": 100,
+    "metamorphic_rename_replays_min": 3,
+    "r257_harness_free_exact": 0,
+    "r258_active_exact_min": 6,
+    "renaming_invariance": true
+  },
+  "capability": "active-probe-subgoal-discovery",
+  "claim_boundary": "Bounded autonomous identity-exposure intervention discovery over the finite pure R2.56/R2.57 evaluator with I/O-only oracle access; not open-ended experiment design, effectful tool invention, arbitrary code synthesis, or AGI.",
+  "external_thresholds": {
+    "active_probe_passed": true,
+    "challenge_cases": 8,
+    "challenge_exact": 8,
+    "harness_free_base_passed": false,
+    "heldout_cases": 24,
+    "heldout_exact": 24,
+    "manual_probe_rows": 0,
+    "probe_field_hints": 0,
+    "trainable_parameter_count": 0
+  },
+  "frozen_sha256": {
+    "R2_58_PHASE_A_RESULT.json": "25be18f94bd04a3b828c9386ff6be9947edb298c926c128987cacb974de52187",
+    "benchmarks/kfigg/r258_active_probe_discovery.py": "fd38b7594abb7fbf9df5bb89a2ed64a71688e58017292497bc4fbd52d2941e1f",
+    "cogcoder/r258_active_probe.py": "b3b0ba583b0a0b350f20c846662bce11634507500401a6bc01cdcd88f9d04ade",
+    "research/r258_external_active_probe_transfer.py": "d173b8b4cd61bd0661ffc17fd7680a62955268251a0b449e929ec539db322ed8",
+    "tests/test_r258_active_probe.py": "7baa4646785e184a070af922ff32e6f61d54556fdff10820c923184c104cc760",
+    "tests/test_r258_benchmark.py": "8f9491e25f56767b5d4c2d293020b235bc1b8ee813938166a25a7f747618c0f1"
+  },
+  "manual_probe_rows": 0,
+  "milestone": "R2.58",
+  "parent_commit": "75ea6704c394c54c9515aef009a776a8d68ae781",
+  "probe_field_hints": 0,
+  "source_exposure": "io_only",
+  "status": "PRE_HOSTED_FROZEN",
+  "trainable_parameter_delta": 0
+}

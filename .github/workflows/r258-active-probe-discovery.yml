@@ -1,0 +1,160 @@
+name: R2.58 Active Probe Discovery
+
+on:
+  push:
+    branches: [main, r258-active-probe-discovery]
+    paths:
+      - 'cogcoder/r258_*.py'
+      - 'benchmarks/kfigg/r258_*.py'
+      - 'research/r258_*.py'
+      - 'tests/test_r258_*.py'
+      - 'R2_58_PHASE_A_RESULT.json'
+      - '.github/workflows/r258-active-probe-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify-r258-and-parents:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install verification dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+
+      # Search-heavy groups intentionally run in separate Python processes. This is
+      # an evidence-preserving memory boundary, not a selective test shortcut.
+      - name: Run focused R2.58 active-probe tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r258_active_probe.py
+      - name: Run frozen R2.58 benchmark tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r258_benchmark.py
+
+      - name: Recompute frozen R2.58 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r258_active_probe_discovery import run_benchmark
+          expected = json.loads(Path('R2_58_PHASE_A_RESULT.json').read_text())
+          actual = run_benchmark()
+          assert actual == expected, (actual, expected)
+          lock = json.loads(Path('research/R2_58_PRE_HOSTED_LOCK.json').read_text())
+          t = lock['authored_thresholds']
+          assert actual['episodes'] >= t['episodes_min']
+          assert actual['active_discovery_runs'] >= t['active_discovery_runs_min']
+          assert actual['metamorphic_rename_replays'] >= t['metamorphic_rename_replays_min']
+          assert actual['r257_harness_free_exact'] == t['r257_harness_free_exact']
+          assert actual['r258_active_exact'] >= t['r258_active_exact_min']
+          assert actual['false_accepts'] == t['false_accepts']
+          assert actual['renaming_invariance'] is t['renaming_invariance']
+          assert actual['max_oracle_calls'] <= t['max_oracle_calls_max']
+          assert actual['max_interventions_considered'] <= t['max_interventions_considered_max']
+          print(json.dumps(actual, indent=2, sort_keys=True))
+          PY
+
+      - name: Run independently sourced ufunclab I/O-only transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r258_external_active_probe_transfer import run_external_transfer
+
+          result = run_external_transfer(
+              ufunclab.linearstep,
+              source_id='WarrenWeckesser/ufunclab:ufunclab.linearstep',
+              source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          lock = json.loads(Path('research/R2_58_PRE_HOSTED_LOCK.json').read_text())
+          t = lock['external_thresholds']
+          assert result['passed'] is True
+          for key, expected in t.items():
+              assert result[key] == expected, (key, result[key], expected)
+          assert result['source_exposure'] == 'io_only'
+          Path('R2_58_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+      - name: Upload independent external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.58-ufunclab-active-probe-transfer
+          path: R2_58_EXTERNAL_TRANSFER.json
+
+      - name: Run R2.57 focused parent
+        run: PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+      - name: Run R2.56 through R2.52 protected lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r256_*.py tests/test_r255_*.py tests/test_r254_*.py tests/test_r253_*.py tests/test_r252_*.py
+      - name: Run R2.51 through R2.47 protected lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r251_*.py tests/test_r250_*.py tests/test_r249_*.py tests/test_r248_*.py tests/test_r247_*.py
+      - name: Run R2.46 through R2.41 protected lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r246_*.py tests/test_r245_*.py tests/test_r244_*.py tests/test_r243_*.py tests/test_r241_*.py
+
+      - name: Publish R2.58 hosted-gate commit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r258/hosted-gate',
+              'description': 'R2.58 active discovery + external transfer + protected lineage passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python-r258:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify focused R2.58 behavior across Python runtimes
+        run: PYTHONPATH=. python -m pytest -q tests/test_r258_active_probe.py
+      - name: Publish cross-Python commit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': f"r258/cross-python-{os.environ['PYVER']}",
+              'description': f"R2.58 focused tests passed on Python {os.environ['PYVER']}",
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY

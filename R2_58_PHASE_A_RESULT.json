@@ -1,0 +1,188 @@
+{
+  "active_discovery_runs": 3,
+  "capability": "active-probe-subgoal-discovery",
+  "claim_boundary": "Three bounded active-discovery affine worlds plus three field-renaming metamorphic replays over the finite pure R2.56/R2.57 evaluator; not open-ended experiment design, effectful tool invention, or general program synthesis.",
+  "episode_receipts": [
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "a0",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "31a72086ba4893337ddfb355cf39d2c002c280a04ae9436f47a819f1c0b68f10"
+        ],
+        [
+          2,
+          "5114b198e8a476a05160723e5e6dac958e5659713b3d224b6add6578cf24a2a9"
+        ]
+      ],
+      "fixed_values": [
+        1,
+        0
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 7,
+      "mode": "active_discovery",
+      "oracle_calls": 59,
+      "pair_id": "pair-a",
+      "reason": "verified_causal_probe"
+    },
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "a1",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "31a72086ba4893337ddfb355cf39d2c002c280a04ae9436f47a819f1c0b68f10"
+        ],
+        [
+          2,
+          "5114b198e8a476a05160723e5e6dac958e5659713b3d224b6add6578cf24a2a9"
+        ]
+      ],
+      "fixed_values": [
+        1,
+        0
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 7,
+      "mode": "metamorphic_rename_replay",
+      "oracle_calls": 59,
+      "pair_id": "pair-a",
+      "reason": "metamorphic_rename_exact",
+      "subgoal_intervention_exact": 8
+    },
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "b0",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "281d1d091e55654f0b85a617455feef1a74bf4c38eea4ce42a541bf481dfd5e9"
+        ],
+        [
+          2,
+          "cc4971e8949d38e4476b5d2a54d0fa3baf928163141006c0c5ad05c9d3c3a318"
+        ]
+      ],
+      "fixed_values": [
+        1,
+        0
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 8,
+      "mode": "active_discovery",
+      "oracle_calls": 77,
+      "pair_id": "pair-b",
+      "reason": "verified_causal_probe"
+    },
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "b1",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "281d1d091e55654f0b85a617455feef1a74bf4c38eea4ce42a541bf481dfd5e9"
+        ],
+        [
+          2,
+          "cc4971e8949d38e4476b5d2a54d0fa3baf928163141006c0c5ad05c9d3c3a318"
+        ]
+      ],
+      "fixed_values": [
+        1,
+        0
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 8,
+      "mode": "metamorphic_rename_replay",
+      "oracle_calls": 77,
+      "pair_id": "pair-b",
+      "reason": "metamorphic_rename_exact",
+      "subgoal_intervention_exact": 8
+    },
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "c0",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "a9f3ec5d9d9f8e419d61b80d54e39654ceb7f6f4431da507e1f2ee36a50dc7e1"
+        ],
+        [
+          2,
+          "e7f9ba5a3c0d58e58194e26f9e04c00024d5f1b26dc7fdcf7ac72086e1cb1f1a"
+        ]
+      ],
+      "fixed_values": [
+        0,
+        1
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 7,
+      "mode": "active_discovery",
+      "oracle_calls": 74,
+      "pair_id": "pair-c",
+      "reason": "verified_causal_probe"
+    },
+    {
+      "active_passed": true,
+      "challenge_cases": 8,
+      "challenge_exact": 8,
+      "episode": "c1",
+      "exposure_abstraction_id": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+      "exposure_target_param_index": 0,
+      "fixed_field_profile_ids": [
+        [
+          1,
+          "a9f3ec5d9d9f8e419d61b80d54e39654ceb7f6f4431da507e1f2ee36a50dc7e1"
+        ],
+        [
+          2,
+          "e7f9ba5a3c0d58e58194e26f9e04c00024d5f1b26dc7fdcf7ac72086e1cb1f1a"
+        ]
+      ],
+      "fixed_values": [
+        0,
+        1
+      ],
+      "harness_free_passed": false,
+      "interventions_considered": 7,
+      "mode": "metamorphic_rename_replay",
+      "oracle_calls": 74,
+      "pair_id": "pair-c",
+      "reason": "metamorphic_rename_exact",
+      "subgoal_intervention_exact": 8
+    }
+  ],
+  "episodes": 6,
+  "false_accepts": 0,
+  "max_interventions_considered": 8,
+  "max_oracle_calls": 77,
+  "metamorphic_rename_replays": 3,
+  "milestone": "R2.58",
+  "r257_harness_free_exact": 0,
+  "r258_active_exact": 6,
+  "renaming_invariance": true,
+  "trainable_parameter_count": 0
+}
