@@ -18,7 +18,7 @@
   "milestone": "R2.66",
   "no_smuggling": true,
   "nonfinite_negative_rejected": true,
-  "probe_candidates_considered": 3188,
+  "probe_candidates_considered": 3185,
   "probe_validation_cases": 18,
   "probe_validation_exact": 36,
   "rename_program_id_invariant": true,
