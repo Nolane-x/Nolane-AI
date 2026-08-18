@@ -1,11 +1,15 @@
 name: R2.62 Complementary Causal Program
 
-# Hosted TDD gate for the clean R2.62 namespace port.
 on:
   push:
     branches: [r262-complementary-causal-program-integration]
   pull_request:
     branches: [main]
+
+permissions:
+  contents: read
+  statuses: write
+
 jobs:
   focused:
     runs-on: ubuntu-latest
@@ -16,4 +20,27 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install pytest
-      - run: PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+      - name: Run R2.62 focused contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+      - name: Publish R2.62 RED status
+        if: failure()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'failure','context':'r262/tdd-contract','description':'R2.62 hosted contract is RED as expected before port implementation','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+      - name: Publish R2.62 GREEN status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r262/tdd-contract','description':'R2.62 focused contract passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
