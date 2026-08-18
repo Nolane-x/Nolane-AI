@@ -173,3 +173,17 @@ def test_terminal_selected_interventions_respect_context_validator_before_oracle
         assert 'terminal' in receipt.reason or 'context' in receipt.reason
 
     assert invalid_oracle_calls == 0
+
+
+def test_success_receipt_counts_each_terminal_probe_observation_as_a_case() -> None:
+    rows = _rows()
+    discovery = rows[:18]
+    validation = rows[18:24]
+    terminal = rows[24:30]
+
+    receipt = _run(_band_select, discovery, validation, terminal)
+
+    assert receipt.passed is True
+    assert receipt.terminal_probe_validation_cases == len(terminal) * 2
+    assert receipt.terminal_probe_validation_exact == receipt.terminal_probe_validation_cases
+    assert receipt.oracle_calls_total > receipt.structure.oracle_calls
