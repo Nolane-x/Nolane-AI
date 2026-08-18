@@ -5,6 +5,11 @@ on:
     branches: [r265-verified-patch-language-induction-gpt56sol]
     paths:
       - '.github/workflows/r265-apply-singleton-diagnostic-fix.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/r265-apply-singleton-diagnostic-fix.yml'
+      - 'tests/test_r265_singleton_out_of_space_induction.py'
   workflow_dispatch:
 
 permissions:
@@ -17,6 +22,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: r265-verified-patch-language-induction-gpt56sol
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -59,7 +65,7 @@ jobs:
     if len(survivors) == 1:
         # A singleton version space is not proof that the survivor is correct.
         # Validate it against target-independent diagnostic probes under the same
-        # oracle budget.  A mismatch is a public out-of-space counterexample that
+        # oracle budget. A mismatch is a public out-of-space counterexample that
         # authorizes closed-grammar primitive induction; matching probes do not.
         singleton = survivors[0]
         ordered_diagnostics = tuple(sorted(diagnostics, key=lambda row: row.probe_id))
