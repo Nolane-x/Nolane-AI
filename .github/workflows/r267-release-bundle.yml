@@ -7,6 +7,7 @@ on:
       - 'R2_67_PRE_HOSTED_LOCK.json'
       - 'R2_67_PHASE_A_RESULT.json'
       - 'R2_67_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r267-release-bundle.yml'
   workflow_dispatch:
 
 permissions:
