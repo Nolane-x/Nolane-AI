@@ -121,6 +121,8 @@ jobs:
           assert result['probe_validation_exact'] == result['probe_validation_cases']
           assert result['challenge_exact'] == result['challenge_cases'] == 8
           assert result['heldout_exact'] == result['heldout_cases'] == 24
+          assert result['oracle_calls_total'] > result['oracle_calls_during_discovery']
+          assert result['synthesis_candidates_considered'] > 0
           assert result['trainable_parameter_count'] == 0
           Path('R2_58_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
           PY
