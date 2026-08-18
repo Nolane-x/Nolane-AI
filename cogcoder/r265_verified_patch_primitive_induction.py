@@ -416,7 +416,11 @@ def solve_repository_patch_with_primitive_induction(
         probe, partitions, probe_evals = _best_probe(survivors, diagnostics, used_diagnostics)
         candidate_evaluations += probe_evals
         if probe is None or partitions is None:
-            return receipt('abstain', None, None, False, 'no_informative_diagnostic_probe')
+            # Zero entropy only means no remaining diagnostic splits the
+            # current version space. It does not prove that the oracle lies
+            # inside that space, so continue with bounded misspecification
+            # probing below.
+            break
         oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
         diagnostic_calls += 1
         used_diagnostics.add(probe.probe_id)
@@ -436,8 +440,52 @@ def solve_repository_patch_with_primitive_induction(
         selected_probe = probe
         break
 
+    if selected_probe is None and survivors:
+        # Entropy-based probe selection is for discrimination. Once it cannot
+        # split survivors (including a singleton), unused public diagnostics
+        # still have a second role: falsify the entire surviving version space.
+        # Oracle outputs are recorded only after the candidate outcomes for the
+        # probe are computed, and candidate generation still receives no target
+        # outputs.
+        for probe in diagnostics:
+            if probe.probe_id in used_diagnostics:
+                continue
+            if diagnostic_calls >= selection_budget:
+                return receipt('abstain', None, None, False, 'selection_oracle_budget_exhausted')
+
+            fallback_partitions = {}
+            for compiled_row in survivors:
+                candidate_key, _candidate_value = _outcome(compiled_row.fn, probe.args)
+                candidate_evaluations += 1
+                fallback_partitions.setdefault(candidate_key, []).append(compiled_row)
+
+            oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
+            diagnostic_calls += 1
+            used_diagnostics.add(probe.probe_id)
+            if not oracle_ok:
+                return receipt('abstain', None, None, False, 'diagnostic_oracle_error')
+            test_id = 'r265:diagnostic:' + probe.probe_id.split(':', 1)[-1]
+            if test_id not in observed_test_ids:
+                observed_tests.append(PatchTest(test_id, tuple(probe.args), oracle_value))
+                observed_test_ids.add(test_id)
+            if probe.probe_id not in observed_probe_ids:
+                observed_probe_ids.append(probe.probe_id)
+
+            matching = fallback_partitions.get(oracle_key)
+            if matching:
+                survivors = tuple(matching)
+                continue
+            diagnostic_counterexamples += 1
+            selected_probe = probe
+            break
+
     if selected_probe is None:
-        return receipt('abstain', None, None, False, 'no_out_of_space_counterexample_for_induction')
+        reason = (
+            'no_informative_diagnostic_probe'
+            if len(survivors) > 1
+            else 'no_out_of_space_counterexample_for_induction'
+        )
+        return receipt('abstain', None, None, False, reason)
     if generation_budget == 0 or site_budget == 0:
         return receipt('abstain', None, None, False, 'primitive_generation_budget_exhausted')
 
