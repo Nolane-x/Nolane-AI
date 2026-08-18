@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64 Unified Adaptive Repository Search",
+  "status": "HOSTED_CANONICAL_GATE_PASSED",
+  "accepted_parent_main_sha": "1d1b05e0c1476327eaf3b2457aab16153a43c429",
+  "verified_branch_head": "9e49f9c5a70a189e29cd0f27944624ae1345b43e",
+  "verified_pr_merge_sha": "777cb57cf8f6393fb90cfddbd6906ae0cee532c6",
+  "workflow_run_id": 32131078117,
+  "jobs": {
+    "canonical_full_gate": {"job_id": 95692143439, "conclusion": "success"},
+    "focused": {"job_id": 95692143495, "conclusion": "success"},
+    "phase_a": {"job_id": 95692143406, "conclusion": "success"},
+    "external_numpy_square": {"job_id": 95692143449, "conclusion": "success"},
+    "cross_python_3_11": {"job_id": 95692143456, "conclusion": "success"},
+    "cross_python_3_13": {"job_id": 95692143452, "conclusion": "success"},
+    "publish_full_gate": {"job_id": 95695935177, "conclusion": "success"}
+  },
+  "frozen_source_lock": {"passed": true, "blob_count": 6},
+  "exact_evidence_recomputation": {
+    "phase_a": true,
+    "external_numpy_2_4_6_square": true
+  },
+  "r264_focused": {"passed": 9, "failed": 0},
+  "cross_python": {"python_3_11": "success", "python_3_13": "success"},
+  "protected_parent_lineage": {
+    "R2.63": 7,
+    "R2.62": 6,
+    "R2.61": 16,
+    "R2.60": 7,
+    "R2.59": 12,
+    "R2.58": 11,
+    "R2.57": 15,
+    "R2.56": 16,
+    "R2.55": 19,
+    "R2.54-R2.50": 56,
+    "R2.49-R2.41": 69,
+    "total_passed": 234,
+    "failed": 0
+  },
+  "causal_authored_evidence": {
+    "episodes": 6,
+    "r263_initial_out_of_space_abstains": 6,
+    "r264_exact": 6,
+    "diagnostic_counterexamples": 6,
+    "refinement_counterexamples": 6,
+    "two_expansion_rounds": 6,
+    "negative_abstains": 10,
+    "false_terminal_accepts": 0
+  },
+  "external_causal_transfer": {
+    "source": "numpy.square",
+    "source_version": "2.4.6",
+    "source_exposure": "io_only",
+    "r263_reason": "oracle_outside_initial_candidate_version_space",
+    "r264_reason": "unified_candidate_verified",
+    "final_verification_exact": 46,
+    "final_verification_cases": 46,
+    "total_external_oracle_calls": 49,
+    "false_terminal_accepts": 0
+  },
+  "added_trainable_parameters": 0,
+  "claim_boundary": "Hosted verification establishes consistency and exact reproduction for the bounded R2.64 diagnostic-out-of-space plus refinement-composition mechanism. It does not establish arbitrary code generation, autonomous patch-language invention, effectful experimentation, broad real-repository autonomy, W5 convergence, or AGI."
+}
