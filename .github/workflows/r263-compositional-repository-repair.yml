@@ -36,12 +36,122 @@ jobs:
           python-version: '3.11'
       - name: Install test dependencies
         run: python -m pip install pytest
+      - name: Verify frozen R2.63 source blobs
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_63_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit'] == '02f3d2f6dc16dbb82b0dd1cef111546173b4767e'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R263_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
       - name: Verify accepted R2.62 and R2.61 parents first
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
           PYTHONPATH=. python -m pytest -q tests/test_r261_version_space_expansion.py tests/test_r261_expansion_novelty_proof.py
       - name: Run R2.63 focused tests
         run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+
+  phase-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest
+      - name: Verify source lock and emit exact Phase-A
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          from benchmarks.kfigg.r263_compositional_version_space_expansion import run_benchmark
+          lock=json.loads(Path('R2_63_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          result=run_benchmark()
+          assert result['all_gates_pass'] is True
+          assert result['summary']['episodes'] == 6
+          assert result['summary']['r261_partial_repair_failures'] == 6
+          assert result['summary']['r263_exact'] == 6
+          assert result['summary']['target_absent_initial'] == 6
+          assert result['summary']['target_absent_complete_one_step_space'] == 6
+          assert result['summary']['two_expansion_rounds'] == 6
+          assert result['summary']['negative_abstains'] == 6
+          assert result['summary']['false_terminal_accepts'] == 0
+          assert result['summary']['generation_uses_target_outputs'] is False
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_63_PHASE_A_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_63_PHASE_A_RESULT.json')
+          if frozen.exists():
+              assert json.loads(frozen.read_text()) == result
+              print('R263_PHASE_A_EXACT_OK')
+          else:
+              print('R263_PHASE_A_FREEZE_PENDING')
+          print(json.dumps(result['summary'], sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.63-phase-a
+          path: R2_63_PHASE_A_RECOMPUTED.json
+
+  external-numpy-square:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify source lock and emit exact external transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import numpy as np
+          from research.r263_external_compositional_transfer import run_external_transfer
+          lock=json.loads(Path('R2_63_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          result=run_external_transfer(np.square, source_id='numpy.square', source_version=np.__version__)
+          assert result['passed'] is True
+          assert result['source_version'] == '2.4.6'
+          assert result['source_exposure'] == 'io_only'
+          assert result['source_implementation_inspected'] is False
+          assert result['correct_target_absent_initial'] is True
+          assert result['correct_target_absent_complete_one_step_space'] is True
+          assert result['r261_baseline']['status'] == 'abstain'
+          assert result['r261_baseline']['reason'] == 'independent_verification_failed'
+          assert result['r263']['status'] == 'accept'
+          assert result['r263']['reason'] == 'compositional_candidate_verified'
+          assert result['r263']['composition_depth'] == 2
+          assert result['r263']['expansion_rounds'] == 2
+          assert result['verification_exact'] == result['verification_cases'] == 46
+          assert result['r263']['false_terminal_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_63_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_63_EXTERNAL_TRANSFER.json')
+          if frozen.exists():
+              assert json.loads(frozen.read_text()) == result
+              print('R263_EXTERNAL_EXACT_OK')
+          else:
+              print('R263_EXTERNAL_FREEZE_PENDING')
+          print(json.dumps({'source_version': result['source_version'], 'verification_cases': result['verification_cases'], 'total_external_oracle_calls': result['total_external_oracle_calls'], 'r261_reason': result['r261_baseline']['reason'], 'r263_reason': result['r263']['reason']}, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.63-numpy-square-external
+          path: R2_63_EXTERNAL_TRANSFER_RECOMPUTED.json
 
   cross-python:
     runs-on: ubuntu-latest
