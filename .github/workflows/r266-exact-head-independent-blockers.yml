@@ -31,4 +31,5 @@ jobs:
           PYTHONPATH=. python -m pytest -q \
             tests/test_r266_independent_pair_budget_fairness.py \
             tests/test_r266_intervention_oracle_failclosed.py \
-            tests/test_r266_terminal_numeric_alias_disjointness.py
+            tests/test_r266_terminal_numeric_alias_disjointness.py \
+            tests/test_r266_total_oracle_accounting.py
