@@ -18,7 +18,7 @@ from cogcoder.r260_active_repository_probes import (
 )
 from cogcoder.r261_expansion_proof import repository_content_digest
 from cogcoder.r261_version_space_expansion import expand_repository_candidates
-from cogcoder.r264_unified_adaptive_repository_search import _canonical_candidates_by_content
+from cogcoder.r264_unified_adaptive_repository_search_base import _canonical_candidates_by_content
 
 
 _SUPPORTED_BINOPS = frozenset({'Add', 'Sub', 'Mult', 'Div', 'FloorDiv', 'Mod'})
