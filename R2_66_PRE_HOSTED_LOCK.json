@@ -44,6 +44,7 @@
   "oracle_ledger_frozen": true,
   "parent_release_commit": "768e500d6b3e8d1d8ec747e37aae6302ab6747d1",
   "phase_a_result": "R2_66_PHASE_A_RESULT.json",
+  "post_refreeze_verification_requested": true,
   "probe_executability_frozen": true,
   "production_source_changes_after_lock_forbidden": true,
   "release_oracle_contract_frozen": true,
