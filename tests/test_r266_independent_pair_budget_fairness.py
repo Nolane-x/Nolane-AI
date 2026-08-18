@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Post-fix independent replay against production R2.66 base 0edec9cddc47542eb7cf902f82f771e026bbb352.
+
 from collections.abc import Mapping
 
 from cogcoder.r266_learned_contextual_composition import discover_contextual_composition_structure
