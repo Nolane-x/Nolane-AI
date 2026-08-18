@@ -30,6 +30,7 @@ def _files(*, pos: str = 'floor', neg: str = 'floor', decoy: bool = False) -> di
             'from pos import pos\n'
             'from aux import aux\n\n'
             'def solve(x):\n'
+            '    aux(x)\n'
             '    if x >= 0:\n'
             '        return pos(x)\n'
             '    return neg(-x)\n'
@@ -46,7 +47,7 @@ def _oracle(x: int) -> int:
 
 def _case():
     source = _candidate('caller:source', _files())
-    wrong = _candidate('caller:wrong-decoy', _files(decoy=True), edits=1)
+    wrong = _candidate('caller:wrong-positive', _files(pos='add'), edits=1)
     diagnostic = (RepositoryProbe((5,)),)
     refinement = (RepositoryProbe((-5,)),)
     final = tuple(RepositoryProbe((x,)) for x in (-23, -17, -11, -8, -4, 1, 2, 7, 10, 13, 19, 22))
@@ -55,15 +56,11 @@ def _case():
 
 def test_r264_expands_outside_initial_space_then_continues_compositional_refinement() -> None:
     source, wrong, diagnostic, refinement, final = _case()
-
     r263 = solve_compositional_repository_patch(
         (source, wrong), (), diagnostic, refinement, _oracle,
-        final_verification_inputs=final,
-        expansion_macros=(_macro(),),
-        max_selection_oracle_calls=1,
-        max_refinement_oracle_calls=1,
-        max_expansion_rounds=2,
-        max_generated_candidates_per_round=16,
+        final_verification_inputs=final, expansion_macros=(_macro(),),
+        max_selection_oracle_calls=1, max_refinement_oracle_calls=1,
+        max_expansion_rounds=2, max_generated_candidates_per_round=16,
         max_sites_per_macro=16,
     )
     assert r263.status == 'abstain'
@@ -72,16 +69,11 @@ def test_r264_expands_outside_initial_space_then_continues_compositional_refinem
 
     r264 = solve_unified_adaptive_repository_patch(
         (source, wrong), (), diagnostic, _oracle,
-        refinement_inputs=refinement,
-        final_verification_inputs=final,
-        expansion_seeds=(source,),
-        expansion_macros=(_macro(),),
-        max_selection_oracle_calls=1,
-        max_refinement_oracle_calls=1,
-        max_expansion_rounds=2,
-        max_composition_depth=2,
-        max_generated_candidates_per_round=16,
-        max_sites_per_macro=16,
+        refinement_inputs=refinement, final_verification_inputs=final,
+        expansion_seeds=(source,), expansion_macros=(_macro(),),
+        max_selection_oracle_calls=1, max_refinement_oracle_calls=1,
+        max_expansion_rounds=2, max_composition_depth=2,
+        max_generated_candidates_per_round=16, max_sites_per_macro=16,
     )
     assert r264.status == 'accept'
     assert r264.exact is True
