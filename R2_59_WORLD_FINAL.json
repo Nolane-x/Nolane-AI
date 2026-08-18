@@ -1,0 +1,91 @@
+{
+  "active_seconds_credited": 0.0,
+  "audit": {
+    "digest": "776ffd1c4346803c57ddf782e39bcc131e7dedadef0b0c3c2a8183ab88f3f74e",
+    "session_events": 4,
+    "valid": true
+  },
+  "claim_boundary": "World records the R2.59 engineering process and hosted evidence; W5 non-convergence is preserved and no independent challenger is claimed.",
+  "depth": "W5",
+  "gate": {
+    "metrics": {
+      "active_seconds": 0.0,
+      "anti_consensus_rounds": 0,
+      "attack_families": [],
+      "candidate_margin": 0.0,
+      "candidate_quality": 0.0,
+      "challengers": 0,
+      "counterfactuals": 0,
+      "critical_unknowns": 0,
+      "distinct_hypotheses": 1,
+      "estimated_material_improvement": 1.0,
+      "experiments": 0,
+      "failure_analyses": 0,
+      "first_principles_rounds": 0,
+      "frames": 0,
+      "fresh_context_verifications": 0,
+      "hypothesis_generations": 0,
+      "representation_shifts": 0,
+      "required_active_seconds": 7200,
+      "required_attack_kinds": [
+        "assumption",
+        "failure",
+        "counterexample",
+        "stakeholder",
+        "robustness",
+        "statistical",
+        "systems",
+        "fresh-context"
+      ],
+      "robustness_worlds": 0,
+      "synthesis_generations": 0,
+      "unknown_hunts": 0,
+      "verifications": 0
+    },
+    "passed": false,
+    "reason_codes": [
+      "MIN_RESIDENCY_NOT_MET",
+      "FRAME_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_GENERATIONS_NOT_MET",
+      "ADVERSARIAL_COVERAGE_NOT_MET",
+      "CHALLENGER_SEARCH_NOT_MET",
+      "VERIFICATION_NOT_MET",
+      "COUNTERFACTUAL_COVERAGE_NOT_MET",
+      "UNKNOWN_HUNTS_NOT_MET",
+      "EXPERIMENTATION_NOT_MET",
+      "REPRESENTATION_SHIFTS_NOT_MET",
+      "FIRST_PRINCIPLES_NOT_MET",
+      "ROBUSTNESS_WORLDS_NOT_MET",
+      "FAILURE_ANALYSIS_NOT_MET",
+      "SYNTHESIS_GENERATIONS_NOT_MET",
+      "ANTI_CONSENSUS_NOT_MET",
+      "FRESH_CONTEXT_VERIFICATION_NOT_MET",
+      "MATERIAL_IMPROVEMENT_STILL_LIKELY",
+      "CANDIDATE_QUALITY_BELOW_THRESHOLD",
+      "CANDIDATE_MARGIN_BELOW_THRESHOLD"
+    ],
+    "score": 0
+  },
+  "hosted_evidence": {
+    "capability_head_sha": "7a6584f8509bfa858ac8536ee650385fd57b8671",
+    "capability_main_merge_sha": "9d8779df83751cfb5a93928c1442e169816bc49d",
+    "exact_tree_sha": "c84b3a393e0b7086395c0e4f5041f0695fc56031",
+    "external_artifact_id": 9316951476,
+    "run_id": 32116672446
+  },
+  "milestone": "R2.59",
+  "resolved_unknown_ids": [
+    "unk_41197c06684a",
+    "unk_f87161a7de69"
+  ],
+  "runtime": "Nolane World 0.8.0",
+  "unresolved_unknowns": [
+    {
+      "critical": false,
+      "id": "unk_a4e3199e43d0",
+      "question": "Does semantic indexing remain efficient when anchor basis, field count, or promoted vocabulary grow beyond the current narrow family?"
+    }
+  ],
+  "world_id": "world_abc9e9a6deac"
+}
