@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64.1",
+  "name": "Frontier Fairness Hotfix",
+  "status": "VERIFIED_BOUNDED_CORRECTNESS_HOTFIX_CANDIDATE",
+  "parent_release_commit": "91fa6c094f10df338ce95cf3fb89437e03943c39",
+  "canonical_evidence_head": "05a1d36eed97945a962ba1711144ee1aeb0cc9e1",
+  "added_trainable_parameters": 0,
+  "readiness": {
+    "previous_score": 49.4,
+    "score": 49.4,
+    "delta": 0.0,
+    "kind": "internal_engineering_heuristic_not_agi_probability",
+    "reason": "Correctness hardening fixes a false-abstention defect but does not add distributional breadth or a new intelligence primitive."
+  },
+  "canonical_hosted_verification": {
+    "workflow_run_id": 32133355598,
+    "canonical_full_gate_job_id": 95699109868,
+    "publish_full_gate_job_id": 95700267433,
+    "r264_and_hotfix_tests": 13,
+    "protected_parent_tests": 234,
+    "hosted_relevant_tests_total": 247,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "phase_a_exact": true,
+    "inherited_r264_phase_a_exact": true,
+    "inherited_r264_external_exact": true,
+    "conclusion": "success"
+  },
+  "evidence": {
+    "tdd_red": "R2_64_1_TDD_RED.json",
+    "source_lock": "R2_64_1_PRE_HOSTED_LOCK.json",
+    "phase_a": "R2_64_1_PHASE_A_RESULT.json",
+    "hosted_verification": "R2_64_1_HOSTED_VERIFICATION.json",
+    "nolane_world": "R2_64_1_WORLD_FINAL.json",
+    "delivery": "R2_64_1_DELIVERY.md"
+  },
+  "implementation": [
+    "cogcoder/r264_unified_adaptive_repository_search.py",
+    "cogcoder/r264_unified_adaptive_repository_search_base.py",
+    "cogcoder/r264_frontier_fairness_hotfix.py"
+  ],
+  "benchmark": "benchmarks/kfigg/r264_1_frontier_fairness.py",
+  "world": {
+    "world_id": "world_3180299bb313",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "94fd99ca32bd15695dae969050fcd3547c955a06c323690b2b12d8da5704e5ba",
+    "w5_passed": false,
+    "convergence_forced": false
+  },
+  "claim_boundary": "Evidence-aware live-frontier-first scheduling with bounded authorized fallback fixes a reproducible R2.64 generation-budget starvation defect. It preserves target-output-free generation, inherited R2.64 exact evidence, and protected lineage. It is not new patch-language invention, unrestricted synthesis, effectful autonomy, broad repository autonomy, or AGI evidence.",
+  "release_bundle": {
+    "workflow": ".github/workflows/r264-1-release-bundle.yml",
+    "artifact_name": "Nolane-AI-R2.64.1-COMPLETE",
+    "archive_name": "Nolane-AI-R2.64.1-COMPLETE.zip",
+    "required_on_main_after_merge": true
+  }
+}
