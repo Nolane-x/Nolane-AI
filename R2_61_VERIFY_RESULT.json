@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.61 Counterexample-Guided Version-Space Expansion",
+  "status": "HOSTED_VERIFICATION_PASS",
+  "canonical_full_gate": {
+    "workflow_run_id": 32123219112,
+    "canonical_job_id": 95668029445,
+    "publish_job_id": 95668982387,
+    "pr_merge_sha": "e57c949eb94fe6ba9e027efcbdbe72029a37183a",
+    "base_main_sha": "eef79e0ed6dd105ba8061945437841f3e284091c",
+    "source_branch_head_measured": "25104558f796072bc32a37ec96f9e36d7deb46e8",
+    "conclusion": "success",
+    "published_context": "r261/full-gate"
+  },
+  "frozen_evidence": {
+    "source_lock_verified": true,
+    "phase_a_exact_recomputed": true,
+    "expansion_novelty_proof_exact_recomputed": true,
+    "external_transfer_exact_recomputed": true,
+    "source_lock_file": "R2_61_PRE_HOSTED_LOCK.json",
+    "phase_a_file": "R2_61_PHASE_A_RESULT.json",
+    "expansion_proof_file": "R2_61_EXPANSION_PROOF_RESULT.json",
+    "external_file": "R2_61_EXTERNAL_TRANSFER.json"
+  },
+  "tests": {
+    "r261_focused": {"passed": 16, "failed": 0},
+    "r260": {"passed": 7, "failed": 0},
+    "r259": {"passed": 12, "failed": 0},
+    "r258": {"passed": 11, "failed": 0},
+    "r257": {"passed": 15, "failed": 0},
+    "r256": {"passed": 16, "failed": 0},
+    "r255": {"passed": 19, "failed": 0},
+    "r250_to_r254": {"passed": 56, "failed": 0},
+    "r241_to_r249": {"passed": 69, "failed": 0},
+    "protected_parent_total_r260_to_r241": {"passed": 205, "failed": 0}
+  },
+  "cross_python": {
+    "python_3_11": "success",
+    "python_3_13": "success"
+  },
+  "causal_evidence": {
+    "authored_episodes": 6,
+    "r260_out_of_space_abstains": 6,
+    "r261_exact_repairs": 6,
+    "accepted_content_initially_absent_novelty_proofs": 6,
+    "false_terminal_accepts": 0,
+    "external_source": "numpy.remainder",
+    "external_source_version": "2.4.6",
+    "external_verification_cases": 410,
+    "external_total_oracle_calls": 413
+  },
+  "trainable_parameter_count_added": 0,
+  "post_measurement_changes": "Only evidence/documentation/workflow release metadata may be added after the measured source head; every capability, benchmark, transfer, proof, and focused-test blob remains pinned by R2_61_PRE_HOSTED_LOCK.json. Any locked-blob change invalidates this receipt.",
+  "claim_boundary": "Hosted CI verifies implementation and frozen evidence consistency for bounded trusted PatchMacro-driven single-site version-space expansion. It does not establish arbitrary code generation, autonomous patch-language invention, broad real-repository repair, or AGI."
+}
