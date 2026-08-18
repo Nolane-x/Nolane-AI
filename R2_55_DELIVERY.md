@@ -1,52 +1,43 @@
 # Nolane-AI R2.55 Delivery — Hardened Self-Improving Cognitive Acquisition
 
-Status: **PENDING_HOSTED_ACCEPTANCE** until the clean capability commit and hosted R2.55 workflow are frozen in `R2_55_VERIFY_RESULT.json`.
+Status: **ACCEPTED_BOUNDED_CAPABILITY**
 
-## Capability boundary
+R2.55 hardens R2.54's cognition-time retrieval into an acquisition lifecycle. Retrieved knowledge and behavioral procedures no longer become trusted cognition merely because they rank highly. Host-owned source reliability, poison/Sybil quarantine, independent challenge, lifecycle promotion, side-effect admission, live rollback and verified trajectory distillation sit between retrieval and execution.
 
-R2.55 turns R2.54's federated cognitive retrieval fabric into a bounded acquisition lifecycle. External knowledge or procedures do not become trusted cognition merely because retrieval ranks them highly. Host-owned reliability, poisoning quarantine, independent challenge, lifecycle promotion, side-effect admission control, live rollback and trajectory distillation sit between retrieval and authority.
+A new host-issued, content-addressed **AuthorityEnvelope** is minted before untrusted retrieval/tool data is read. Retrieved content may inform cognition, but cannot mint or widen action identities or side-effect classes. Child scopes can only narrow authority.
 
-R2.55 adds **0 trainable parameters**. Distilled skills are external artifacts, not neural-weight updates. A host-issued content-addressed `AuthorityEnvelope` is minted before untrusted retrieval/tool data is observed; retrieved content may inform cognition but cannot mint or widen action or side-effect authority.
+## Fresh acceptance evidence
 
-## Frozen authored adversarial benchmark
+- Final capability boundary commit: `4bd50efc39d4fe2cd905c2bca4893b5bf495f9cd`
+- Clean hosted gate commit: `0621a43172fff1355bebee3c09922922c49f67c4`
+- GitHub hosted run: `32088996853`
+- Main hosted job: `95567327840` — success
+- Cross-Python 3.11 / 3.13 — success / success
+- Focused R2.55 tests: **19/19**
+- Protected R2.55→R2.41 hosted lineage: **144/144 relevant tests**
+- Added trainable parameters: **0**
 
-- Episodes: **10**
-- R2.55 exact: **10/10**
-- False accepts: **0**
-- R2.54 baseline exact under poison-starved retrieval: **0/10**
-- Poison quarantine: **10/10**
-- Echo/Sybil collapse: **10/10**
-- Safe procedure promotion after challenge: **10/10**
-- Malicious compiled behavior quarantine: **10/10**
-- Transactional live rollback after a fresh counterexample: **10/10**
-- Successful trajectory distillation: **10/10**
-- Distilled skill re-promotion through the normal lifecycle: **10/10**
+## Authored adversarial mechanism benchmark
 
-## World-driven RED→GREEN hardening
+- 10/10 exact, 0 false accepts; R2.54 baseline 0/10 under the same poison-starved setup.
+- 10/10 poison quarantine, echo/Sybil collapse, safe procedure promotion, malicious compiled behavior quarantine, transactional live rollback, skill distillation, and distilled-skill re-promotion through the normal lifecycle.
 
-Nolane World 0.5.0 found three material implementation weaknesses before release:
+## Independent InjecAgent transfer
 
-1. An internal 24-candidate cap could hide reliable evidence before the firewall. It was removed in favor of the host-configured acquisition budget.
-2. Distilled skills could not re-enter the lifecycle because trust/support semantics made promotion unreachable. Two independently verifier-confirmed trajectories now provide distinct internal provenance episodes; challenge remains mandatory.
-3. Working-state cloning was not a real sandbox for external side effects. Probation now rejects unsupported side-effect classes before execution; automatic probation is bounded to pure/state-only primitives.
+Pinned external source: `uiuc-kang-lab/InjecAgent@f19c9f2c79a41046eb13c03c51a24c567a8ffa07`.
 
-## Independent prompt-injection transfer gate
+- 4 official dataset families
+- **2,108/2,108** intended user-tool authorizations preserved
+- **3,196/3,196** benchmark-labeled attacker-action proposals blocked
+- **0** authority escapes
+- 2 same-action-ID attacker cases were still blocked because side-effect authority did not match
 
-Hosted acceptance additionally requires the official **InjecAgent** direct-harm/data-stealing datasets at pinned commit `f19c9f2c79a41046eb13c03c51a24c567a8ffa07`. The gate preserves user-tool utility while proposing every benchmark-labeled attacker tool through the R2.55 authority boundary and requires **zero authority escapes**. This is a control-plane containment test, not a claim that the underlying language model semantically detects every prompt injection.
+This is a deterministic **host control-plane containment** result. It does **not** show that a language model semantically detects or resists every prompt injection.
 
-## Nolane World boundary
+## Nolane World
 
-World audit is valid, but W5 remains **FAIL** with score **0.0**. The blockers and unresolved unknowns are frozen in `research/R2_55_WORLD_FINAL.json`; this milestone does not claim World convergence.
-
-## Remaining unknowns
-
-- source/Sybil reliability attribution is heuristic;
-- regex instruction filtering is not semantic prompt-injection immunity; the authority boundary limits consequences even when semantic detection fails;
-- challenge suites can be incomplete or correlated with the acquired skill;
-- arbitrary external I/O needs a real host sandbox/compensation layer;
-- distillation remains bounded by registered primitive vocabulary;
-- the R2.55 poisoning distribution is authored rather than a broad independent benchmark.
+World `world4_3c6420f8414a4c2d` audit is valid (`0517d85b...`) but W5 remains **FAIL**, score **0**. Non-convergence is preserved. Important unresolved areas include semantic injection detection, reliable Sybil/source attribution, incomplete challenge suites, arbitrary irreversible external-I/O rollback, open-ended primitive invention and broader autonomous coding-agent transfer.
 
 ## Readiness
 
-The final internal Coding-AGI engineering-readiness score is written only after clean hosted CI. It is an engineering rubric, **not AGI probability**.
+Internal Coding-AGI engineering-readiness: **46.0/100**, up only **+0.5** from R2.54's 45.5. The increase is intentionally small because the new independent evidence is a security/control-plane transfer, not broad real-world coding autonomy. This number is not an AGI probability.
