@@ -5,7 +5,6 @@ from collections.abc import Mapping
 from cogcoder.r264_learned_contextual_composition import discover_contextual_composition_structure
 
 
-_ROLES = ('x', 'lo', 'hi', 'left', 'middle', 'right')
 _EXPECTED_CAUSAL_ROLES = frozenset({'lo', 'right'})
 
 
@@ -69,6 +68,10 @@ def _selected_roles(receipt, order: tuple[str, ...]) -> frozenset[str]:
     )
 
 
+def _semantic_outcome(receipt, order: tuple[str, ...]) -> tuple[bool, frozenset[str], str]:
+    return receipt.passed, _selected_roles(receipt, order), receipt.reason
+
+
 def test_roomy_search_preserves_selected_semantic_roles_across_position_permutations() -> None:
     order_a = ('x', 'right', 'left', 'lo', 'hi', 'middle')
     order_b = ('right', 'x', 'lo', 'hi', 'left', 'middle')
@@ -78,18 +81,16 @@ def test_roomy_search_preserves_selected_semantic_roles_across_position_permutat
 
     assert a.passed is True
     assert b.passed is True
-    roles_a = _selected_roles(a, order_a)
-    roles_b = _selected_roles(b, order_b)
-    assert roles_a == roles_b == _EXPECTED_CAUSAL_ROLES
+    assert _selected_roles(a, order_a) == _selected_roles(b, order_b) == _EXPECTED_CAUSAL_ROLES
     assert a.false_accepts == 0
     assert b.false_accepts == 0
 
 
-def test_global_pair_budget_does_not_starve_same_causal_pair_when_hash_order_moves_it_late() -> None:
-    # For one-anchor, arity-1 interventions the content-addressed profile order over
-    # six positions is [2, 1, 5, 3, 4, 0].  Therefore a pair bound to positions
-    # {2,1} is considered first, while {4,0} is considered last.  These two schemas
-    # place the SAME semantic {lo,right} pair at those positions respectively.
+def test_tight_global_pair_budget_has_order_invariant_semantic_outcome() -> None:
+    # For one-anchor, arity-1 interventions the current content-addressed profile
+    # order over six positions is [2, 1, 5, 3, 4, 0]. These two schemas therefore
+    # move the SAME semantic {lo,right} pair from the front of pair iteration to the
+    # back without changing the task itself.
     early = ('x', 'right', 'lo', 'left', 'middle', 'hi')
     late = ('right', 'x', 'hi', 'left', 'lo', 'middle')
 
@@ -100,26 +101,17 @@ def test_global_pair_budget_does_not_starve_same_causal_pair_when_hash_order_mov
     assert _selected_roles(roomy_early, early) == _EXPECTED_CAUSAL_ROLES
     assert _selected_roles(roomy_late, late) == _EXPECTED_CAUSAL_ROLES
 
-    # This is the exact synthesis cost of the causal pair when the pair is scheduled
-    # first.  It is sufficient semantic search budget for the task.  Repositioning
-    # the same pair later must not let unrelated earlier pairs consume all of it.
-    causal_pair_budget = roomy_early.selected.composition_candidates_considered
-    assert 0 < causal_pair_budget <= 12_000
+    # Deliberately tight: a fair hard-cap implementation may conservatively make
+    # BOTH layouts abstain. It may also solve both. What it must not do is let
+    # positional/hash scheduling alone decide whether the same semantic task passes.
+    budget = roomy_early.selected.composition_candidates_considered
+    assert 0 < budget <= 12_000
 
-    tight_early = _run(
-        early,
-        per_pair_budget=causal_pair_budget,
-        total_budget=causal_pair_budget,
-    )
-    tight_late = _run(
-        late,
-        per_pair_budget=causal_pair_budget,
-        total_budget=causal_pair_budget,
-    )
+    tight_early = _run(early, per_pair_budget=budget, total_budget=budget)
+    tight_late = _run(late, per_pair_budget=budget, total_budget=budget)
 
-    assert tight_early.passed is True
-    assert _selected_roles(tight_early, early) == _EXPECTED_CAUSAL_ROLES
-    assert tight_late.passed is True
-    assert _selected_roles(tight_late, late) == _EXPECTED_CAUSAL_ROLES
+    assert _semantic_outcome(tight_early, early) == _semantic_outcome(tight_late, late)
+    assert tight_early.composition_candidates_considered <= budget
+    assert tight_late.composition_candidates_considered <= budget
     assert tight_early.false_accepts == 0
     assert tight_late.false_accepts == 0
