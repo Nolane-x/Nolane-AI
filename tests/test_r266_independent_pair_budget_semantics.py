@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Replayed after semantic-first scheduling fix 00268949c46242dcf1efb92cda0455c9a7949ed3.
+
 from collections.abc import Mapping
 
 from cogcoder.r266_learned_contextual_composition import discover_contextual_composition_structure
