@@ -26,3 +26,8 @@ R2.55 earns **+0.5** over R2.54 (45.5) after a clean hosted 144/144 relevant lin
 ## R2.56 — 46.8 / 100
 
 R2.56 earns **+0.8** over R2.55 (46.0). Unlike a mechanism-only benchmark, it adds a genuinely new primitive-invention path and a pinned independently sourced transfer: the learner receives only I/O from Boltons `clamp`, passes 8 independent challenges and 24/24 post-promotion heldouts, while the R2.55 no-invention baseline is 0/9 on the authored missing-primitive family. The increase remains small because the operator language is finite and hand-designed, external evidence covers one pure-function family, search scalability is unproven, effectful invention is excluded, and no broad repository-level coding-autonomy improvement is demonstrated.
+
+
+## R2.57 — 47.5 / 100
+
+R2.57 earns **+0.7** over R2.56 (46.8). The increase is supported by clean hosted causal transfer where the fixed R2.56 base fails and a learned three-abstraction vocabulary succeeds on pinned `ufunclab.linearstep`, including 8/8 challenge and 24/24 heldout exact results. The movement remains small because the base evaluator is finite and host-designed, the external family is narrow, and the harness chooses an endpoint probe that exposes a useful subgoal. World W5 remains false.
