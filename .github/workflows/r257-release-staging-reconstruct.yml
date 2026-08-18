@@ -1,0 +1,89 @@
+name: R2.57 Byte-Exact Release Staging Reconstruct
+
+on:
+  push:
+    branches: [r257-release]
+    paths:
+      - '_transport/r257_release_chunk_*.txt'
+      - '.github/workflows/r257-release-staging-reconstruct.yml'
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruct and verify release payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s  %s\n' 'fe8f35c0e75f350366aae73f280ca7a508e5b8f8ff471f96e4ff711e76201899' '_transport/r257_release_chunk_0.txt' | sha256sum -c -
+          printf '%s  %s\n' 'c47c1350ba860d1b0d6e2cfa9c27bbb502006be90d92e074313dd5e1628201e9' '_transport/r257_release_chunk_1.txt' | sha256sum -c -
+          cat _transport/r257_release_chunk_0.txt _transport/r257_release_chunk_1.txt | base64 -d > /tmp/r257_release_payload.tar.gz
+          printf '%s  %s\n' '675365e74c82936ac025c5fcf2794f8bba07accb3027914ddcbfbd0db99ce9ea' '/tmp/r257_release_payload.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/r257_release_payload.tar.gz -C .
+          python - <<'PY'
+          import subprocess
+          expected = {
+            'R2_57_DELIVERY.md':'6aa954ec034994f521a7ad8e62dc8f63780a4e8f',
+            'R2_56_TO_R2_57_EVOLUTION.md':'a2ef84bd6f31c2c66744dc0514e2492cb351bf4f',
+            'R2_57_RELEASE_MANIFEST.json':'58c8aab111adcd2de4a48c515f1c2886646cfe20',
+            'R2_57_EXTERNAL_TRANSFER.json':'a03aa268276c410c691caa87db86b4856291db81',
+            'R2_57_VERIFY_RESULT.json':'baaad102d7811820d97dcfe78e85f6c27416b294',
+            'R2_57_WORLD_FINAL.json':'fed4578d5eb37369c025d349c9384411fc939571',
+            'R2_READINESS_RECALIBRATION.md':'927464d68afaa1067fb3aa6b113a4bb8e5d58467',
+            '.github/workflows/r257-release-bundle.yml':'8d2a6242e424b885d919f1da2017a35ec1970821',
+          }
+          for path, wanted in expected.items():
+              got = subprocess.check_output(['git','hash-object',path],text=True).strip()
+              if got != wanted:
+                  raise SystemExit(f'blob mismatch {path}: {got} != {wanted}')
+              print('BLOB_OK', path, got)
+          PY
+      - name: Verify release boundary and focused tests
+        run: |
+          python -m pip install -q pytest
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          phase=json.loads(Path('R2_57_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('R2_57_EXTERNAL_TRANSFER.json').read_text())
+          verify=json.loads(Path('R2_57_VERIFY_RESULT.json').read_text())
+          world=json.loads(Path('R2_57_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('R2_57_RELEASE_MANIFEST.json').read_text())
+          assert phase['extended_exact']==phase['heldout_episodes']==6
+          assert phase['base_exact']==0 and phase['false_accepts']==0
+          assert phase['learned_abstractions']==3 and phase['compression_gains']==[1,11,11]
+          assert external['passed'] and not external['base_passed'] and external['extended_passed']
+          assert external['challenge_exact']==external['challenge_cases']==8
+          assert external['heldout_exact']==external['heldout_cases']==24
+          assert verify['hosted_run_id']==32098662916 and verify['hosted_main_job']=='success'
+          assert verify['focused_r257_tests']==15 and verify['protected_local_relevant_tests']==175
+          assert world['audit']['valid'] and not world['gate']['passed'] and world['gate']['score']==0
+          assert manifest['status']=='ACCEPTED_BOUNDED_CAPABILITY' and manifest['readiness']==47.5
+          print('R257_RELEASE_STAGING_BOUNDARY_OK')
+          PY
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+      - name: Commit reconstructed release files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_57_DELIVERY.md R2_56_TO_R2_57_EVOLUTION.md R2_57_RELEASE_MANIFEST.json R2_57_EXTERNAL_TRANSFER.json R2_57_VERIFY_RESULT.json R2_57_WORLD_FINAL.json R2_READINESS_RECALIBRATION.md .github/workflows/r257-release-bundle.yml
+          git commit -m 'release: stage byte-exact R2.57 evidence'
+          git push origin HEAD:r257-release
+          echo "NEW_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Publish staging status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          curl -fsSL -X POST -H "Authorization: Bearer ${GH_TOKEN}" -H 'Accept: application/vnd.github+json' -H 'X-GitHub-Api-Version: 2022-11-28' "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${NEW_SHA}" -d "{\"state\":\"success\",\"context\":\"r257/release-staging\",\"description\":\"Byte-exact release payload + boundary + 15 tests passed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
