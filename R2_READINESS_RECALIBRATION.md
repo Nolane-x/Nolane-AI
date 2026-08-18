@@ -27,7 +27,6 @@ R2.55 earns **+0.5** over R2.54 (45.5) after a clean hosted 144/144 relevant lin
 
 R2.56 earns **+0.8** over R2.55 (46.0). Unlike a mechanism-only benchmark, it adds a genuinely new primitive-invention path and a pinned independently sourced transfer: the learner receives only I/O from Boltons `clamp`, passes 8 independent challenges and 24/24 post-promotion heldouts, while the R2.55 no-invention baseline is 0/9 on the authored missing-primitive family. The increase remains small because the operator language is finite and hand-designed, external evidence covers one pure-function family, search scalability is unproven, effectful invention is excluded, and no broad repository-level coding-autonomy improvement is demonstrated.
 
-
 ## R2.57 — 47.5 / 100
 
 R2.57 earns **+0.7** over R2.56 (46.8). The increase is supported by clean hosted causal transfer where the fixed R2.56 base fails and a learned three-abstraction vocabulary succeeds on pinned `ufunclab.linearstep`, including 8/8 challenge and 24/24 heldout exact results. The movement remains small because the base evaluator is finite and host-designed, the external family is narrow, and the harness chooses an endpoint probe that exposes a useful subgoal. World W5 remains false.
@@ -35,3 +34,7 @@ R2.57 earns **+0.7** over R2.56 (46.8). The increase is supported by clean hoste
 ## R2.58 — 47.8 / 100
 
 R2.58 earns **+0.3** over R2.57 (47.5). The increase is supported by clean hosted evidence that the R2.58 learner itself searches 20 legal positional interventions on pinned `ufunclab.linearstep`, selects a causally useful intervention without a host-selected field pair, converts a matched 1,000-candidate no-seed failure into a seeded success, and remains exact on 4/4 probe validation, 8/8 challenge, and 24/24 heldout cases. The movement is deliberately smaller than R2.57 because the external family is reused rather than distributionally new, the anchor set and probe-context families are host-designed, and the intervention DSL is finite and pure-input only. World W5 remains false.
+
+## R2.59 — 48.1 / 100
+
+R2.59 earns **+0.3** over R2.58 (47.8). The movement is supported by a new repository-hypothesis diagnostic mechanism plus a pinned external causal transfer against NumPy 2.4.6 `numpy.gcd`: four executable hypotheses remain indistinguishable after two initial oracle observations; the target-independent one-probe baseline remains ambiguous; the active selector uses one label to split all four hypotheses, selects the exact behavior, and passes 625/625 independent verification cases with zero false accepts. The authored repository gate likewise moves from passive 0/6 and target-independent one-probe 1/6 to active 6/6 with candidate-ID/order invariance and no target-output leakage. The increase remains deliberately small because candidate generation and legal probe domains are still host-supplied finite spaces, the external hypothesis set is host-authored, stateful/effectful diagnostics are absent, and exhaustive terminal verification dominates total oracle calls. World W5 remains false.
