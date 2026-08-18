@@ -1,0 +1,181 @@
+{
+  "anchor_source": "downstream_need.constants",
+  "capability": "learned-contextual-causal-composition",
+  "challenge_cases": 12,
+  "challenge_exact": 12,
+  "claim_boundary": "Bounded learned contextual composition of two pure-input interventions over a finite trusted DSL, with no access to positions overwritten by either intervention; not primitive-language invention, 3+ intervention scaling, stateful experimentation, blind task discovery, or AGI.",
+  "composition_candidates_considered": 5283,
+  "derived_anchor_values": [
+    0.0
+  ],
+  "final_expression": {
+    "condition": {
+      "left": {
+        "field": "x"
+      },
+      "op": "ne",
+      "right": {
+        "field": "a"
+      }
+    },
+    "else": {
+      "condition": {
+        "left": {
+          "field": "x"
+        },
+        "op": "ne",
+        "right": {
+          "field": "a"
+        }
+      },
+      "else": {
+        "field": "fa"
+      },
+      "op": "if",
+      "then": {
+        "condition": {
+          "left": {
+            "field": "x"
+          },
+          "op": "le",
+          "right": {
+            "field": "a"
+          }
+        },
+        "else": {
+          "const": 0.0
+        },
+        "op": "if",
+        "then": {
+          "field": "flow"
+        }
+      }
+    },
+    "op": "if",
+    "then": {
+      "condition": {
+        "left": {
+          "field": "x"
+        },
+        "op": "ne",
+        "right": {
+          "field": "a"
+        }
+      },
+      "else": {
+        "const": 0.0
+      },
+      "op": "if",
+      "then": {
+        "condition": {
+          "left": {
+            "field": "x"
+          },
+          "op": "le",
+          "right": {
+            "field": "a"
+          }
+        },
+        "else": {
+          "field": "fhigh"
+        },
+        "op": "if",
+        "then": {
+          "field": "flow"
+        }
+      }
+    }
+  },
+  "final_validation_cases": 9,
+  "final_validation_exact": 9,
+  "heldout_cases": 36,
+  "heldout_exact": 36,
+  "host_selected_intervention": false,
+  "learned_composition_digest": "88efbc02778d8abd4c8e1940f3db9139e93ed6ab08bb8f40c8ef5c7d52c65839",
+  "learned_composition_expression": {
+    "condition": {
+      "left": {
+        "field": "__f0"
+      },
+      "op": "ne",
+      "right": {
+        "field": "__f1"
+      }
+    },
+    "else": {
+      "field": "__p1"
+    },
+    "op": "if",
+    "then": {
+      "field": "__p0"
+    }
+  },
+  "milestone": "R2.64",
+  "passed": true,
+  "probe_candidates_considered": [
+    372,
+    372
+  ],
+  "probe_validation_cases": 9,
+  "probe_validation_exact": 18,
+  "r262_fixed_op_exact": [
+    [
+      "add",
+      19
+    ],
+    [
+      "sub",
+      10
+    ],
+    [
+      "rsub",
+      9
+    ],
+    [
+      "mul",
+      0
+    ],
+    [
+      "min",
+      16
+    ],
+    [
+      "max",
+      19
+    ]
+  ],
+  "r262_fixed_op_passed": false,
+  "selected_bindings": [
+    [
+      [
+        3,
+        0.0
+      ]
+    ],
+    [
+      [
+        4,
+        0.0
+      ]
+    ]
+  ],
+  "selected_position_set": [
+    3,
+    4
+  ],
+  "selection_cases": 27,
+  "shared_positions": [
+    0,
+    1,
+    2
+  ],
+  "singleton_candidates_considered": 2220,
+  "singleton_composition_passed": [
+    false,
+    false
+  ],
+  "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+  "source_exposure": "io_only",
+  "source_id": "WarrenWeckesser/ufunclab:ufunclab.step",
+  "trainable_parameter_count": 0
+}

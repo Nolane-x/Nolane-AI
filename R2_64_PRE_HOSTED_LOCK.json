@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64",
+  "parent_release_commit": "1d1b05e0c1476327eaf3b2457aab16153a43c429",
+  "production_snapshot_commit": "5b2ada31c75e8d9854f718226a651136ce4d5f4e",
+  "production_source_changes_after_lock_forbidden": true,
+  "frozen_git_blobs": {
+    "cogcoder/r264_learned_contextual_composition.py": "1a2dd55ca3db8c5a6a7dae01896084322f7b98bb",
+    "benchmarks/kfigg/r264_learned_contextual_composition.py": "d6b774fa0014ca828e605c8aa6a82487f495129d",
+    "research/r264_external_contextual_transfer.py": "b0ded67405a42684c994c69d49cb56466728ce9a",
+    "tests/test_r264_learned_contextual_composition.py": "5a4e7d76f7b9e8b349377d2032206d43a48f9963",
+    "tests/test_r264_external_contextual_transfer.py": "c0534a2754012273efb3ca648e62315ba6e157aa",
+    "tests/test_r264_contextual_composition_benchmark.py": "7c731d987b5a2baeb21b26573924013aeefd72ba",
+    "tests/test_r264_hosted_red_contract.py": "7f4ba4eeb166bbdb45f091b02051b40468286405"
+  },
+  "frozen_phase_a_sha256": "ff68ec3aeb43c72083cdec888a37045a187ae059b244f8a192fdbe0f65b4ace5",
+  "tdd_red": {
+    "run_id": 32129684251,
+    "commit_sha": "d46344ab937d334f0f18b93bb9c3ee41bc27834d",
+    "status_context": "r264/tdd-red"
+  },
+  "peer_coordination": {
+    "accepted_peer_milestone": "R2.63 Compositional Repository Refinement",
+    "accepted_peer_commit": "1d1b05e0c1476327eaf3b2457aab16153a43c429",
+    "r264_direction": "learned contextual composition of complementary causal probes",
+    "policy": "rebase on accepted peer work, preserve peer namespaces, avoid repository-repair duplication"
+  },
+  "claim_boundary": "Bounded deterministic learning of a contextual composition expression for a pair of pure-input causal probes using only shared untouched input positions and the trusted finite R2.56 DSL. Not open-ended composition-language invention, arbitrary experiment-language growth, stateful/effectful experimentation, broad repository autonomy, AGI, or frontier-model equivalence."
+}

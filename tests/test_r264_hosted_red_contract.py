@@ -1,0 +1,5 @@
+from cogcoder.r264_learned_contextual_composition import synthesize_contextual_expression
+
+
+def test_r264_production_module_exists_after_red_cycle():
+    assert callable(synthesize_contextual_expression)

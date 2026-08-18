@@ -1,0 +1,185 @@
+name: R2.64 Canonical Hosted Verification
+
+on:
+  push:
+    branches: [r264-learned-contextual-composition-gpt56sol]
+    paths:
+      - 'R2_64_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r264-canonical-hosted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lineage dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify frozen R2.64 source and TDD RED evidence
+        run: |
+          python - <<'PY'
+          import hashlib, json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_64_PRE_HOSTED_LOCK.json').read_text())
+          red=json.loads(Path('R2_64_TDD_RED.json').read_text())
+          assert lock['parent_release_commit'] == '1d1b05e0c1476327eaf3b2457aab16153a43c429'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          assert red['status'] == 'HOSTED_TDD_RED_CONFIRMED'
+          assert red['run_id'] == 32129684251
+          assert red['production_module_absent_at_red'] is True
+          assert red['failure_was_contract_relevant'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          assert hashlib.sha256(Path('R2_64_PHASE_A_RESULT.json').read_bytes()).hexdigest() == lock['frozen_phase_a_sha256']
+          print('R264_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Run R2.64 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+      - name: Recompute exact frozen R2.64 Phase-A
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r264_learned_contextual_composition import run_benchmark
+          expected=json.loads(Path('R2_64_PHASE_A_RESULT.json').read_text())
+          actual=run_benchmark()
+          assert actual == expected, (actual, expected)
+          assert actual['discoveries'] == actual['configurations'] == 3
+          assert actual['full_program_successes'] == 3
+          assert actual['r262_fixed_op_failures'] == 3
+          assert actual['singleton_composition_failures'] == 6
+          assert actual['selection_exact'] == actual['selection_cases'] == 72
+          assert actual['probe_validation_exact'] == actual['probe_validation_cases'] * 2
+          assert actual['final_validation_exact'] == actual['final_validation_cases'] == 18
+          assert actual['heldout_exact'] == actual['heldout_cases'] == 18
+          assert actual['rename_program_id_invariant'] is True
+          assert actual['argument_permutation_tracks_roles'] is True
+          assert actual['shared_context_only'] is True
+          assert actual['both_probes_used'] is True
+          assert actual['fixed_op_negative_rejected'] is True
+          assert actual['depth_zero_negative_rejected'] is True
+          assert actual['budget_negative_rejected'] is True
+          assert actual['nonfinite_negative_rejected'] is True
+          assert actual['terminal_contradiction_rejected'] is True
+          assert actual['false_accepts'] == 0
+          assert actual['trainable_parameter_count'] == 0
+          print('R264_PHASE_A_EXACT_OK')
+          PY
+      - name: Run accepted R2.63 and R2.62 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+      - name: Run protected R2.61 to R2.55 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run protected R2.54 to R2.41 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish canonical focused-lineage status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r264/canonical-focused-lineage','description':'R2.64 exact evidence and R2.63-R2.41 lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+
+  external-exact:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Recompute exact frozen pinned ufunclab.step transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r264_external_contextual_transfer import run_external_transfer
+          expected=json.loads(Path('R2_64_EXTERNAL_TRANSFER.json').read_text())
+          actual=run_external_transfer(
+              ufunclab.step,
+              source_id='WarrenWeckesser/ufunclab:ufunclab.step',
+              source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          assert actual == expected, (actual, expected)
+          assert actual['passed'] is True
+          assert actual['source_exposure'] == 'io_only'
+          assert actual['host_selected_intervention'] is False
+          assert actual['r262_fixed_op_passed'] is False
+          assert actual['singleton_composition_passed'] == [False, False]
+          assert actual['challenge_exact'] == actual['challenge_cases'] == 12
+          assert actual['heldout_exact'] == actual['heldout_cases'] == 36
+          assert actual['selected_position_set'] == [3, 4]
+          assert actual['shared_positions'] == [0, 1, 2]
+          assert actual['trainable_parameter_count'] == 0
+          Path('R2_64_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(actual, indent=2, sort_keys=True) + '\n')
+          print('R264_EXTERNAL_EXACT_OK')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.64-canonical-ufunclab-step-transfer
+          path: R2_64_EXTERNAL_TRANSFER_RECOMPUTED.json
+      - name: Publish canonical external status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r264/canonical-external','description':'R2.64 exact pinned ufunclab.step transfer reproduced','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Verify R2.64 focused behavior
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+      - name: Publish canonical cross-Python status
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':f"r264/canonical-cross-python-{os.environ['PYVER']}",'description':f"R2.64 focused tests passed on Python {os.environ['PYVER']}",'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
