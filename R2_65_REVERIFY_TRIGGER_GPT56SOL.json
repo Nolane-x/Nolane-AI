@@ -1,16 +1,22 @@
 {
-  "schema_version": 1,
-  "purpose": "Trigger canonical hosted re-verification after the bot-authored R2.65 evidence freeze without changing any frozen production or evidence blob.",
+  "schema_version": 2,
+  "purpose": "Trigger canonical hosted re-verification after the final measurement-only R2.65 evidence freeze without changing any frozen production, test, workflow, or evidence blob.",
   "parent_release_commit": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
-  "frozen_evidence_commit": "0b52cdd50c8c2847abe5ec4c4b477096286da8fa",
+  "frozen_evidence_commit": "b14d87d338cde88ba392b9e340a074de6d22da2d",
   "required_checks": [
     "source_lock_exact",
-    "r265_focused",
+    "r265_all_focused",
+    "patchmacro_field_contract",
     "hypothesis_budget_fairness",
+    "true_global_generation_cap",
+    "singleton_out_of_space_misspecification",
+    "unanimous_zero_entropy_misspecification",
     "cross_python_3_11_3_13",
     "authored_evidence_exact",
     "external_numpy_multiply_exact",
-    "accepted_r264_1_to_r241_lineage"
+    "accepted_r264_1_to_r241_lineage",
+    "canonical_full_gate"
   ],
+  "freeze_mutates_production": false,
   "production_change": false
 }
