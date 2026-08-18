@@ -1,0 +1,185 @@
+name: R2.58 Autonomous Intervention Discovery
+
+on:
+  push:
+    branches: [main, r258-autonomous-intervention-gpt56sol]
+    paths:
+      - 'cogcoder/r258_*.py'
+      - 'benchmarks/kfigg/r258_*.py'
+      - 'research/r258_*.py'
+      - 'tests/test_r258_*.py'
+      - 'R2_58_PHASE_A_RESULT.json'
+      - 'docs/superpowers/specs/2026-08-18-r258-autonomous-intervention-discovery-design.md'
+      - 'docs/superpowers/plans/2026-08-18-r258-autonomous-intervention-discovery.md'
+      - '.github/workflows/r258-autonomous-intervention-discovery.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-and-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install pytest
+      - name: Run R2.58 focused tests
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r258_intervention_discovery.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_external_intervention_transfer.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_autonomous_intervention_benchmark.py
+      - name: Recompute frozen R2.58 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r258_autonomous_intervention_discovery import run_benchmark
+          expected = json.loads(Path('R2_58_PHASE_A_RESULT.json').read_text())
+          actual = run_benchmark()
+          assert actual == expected, (actual, expected)
+          print(json.dumps(actual, indent=2, sort_keys=True))
+          PY
+      - name: Run protected R2.57 to R2.55 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run protected R2.54 to R2.50 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run protected R2.49 to R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish focused commit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r258/focused-lineage',
+              'description': 'R2.58 focused evidence and protected lineage passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  external-ufunclab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Run independently sourced I/O-only intervention transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r258_external_intervention_transfer import run_external_transfer
+
+          result = run_external_transfer(
+              ufunclab.linearstep,
+              source_id='WarrenWeckesser/ufunclab:ufunclab.linearstep',
+              source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          print(json.dumps(result, indent=2, sort_keys=True))
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['host_selected_intervention'] is False
+          assert result['candidate_interventions_considered'] > 1
+          assert result['no_seed_passed'] is False
+          assert result['seeded_passed'] is True
+          assert result['probe_validation_exact'] == result['probe_validation_cases']
+          assert result['challenge_exact'] == result['challenge_cases'] == 8
+          assert result['heldout_exact'] == result['heldout_cases'] == 24
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_58_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          PY
+      - name: Upload external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.58-ufunclab-autonomous-intervention-transfer
+          path: R2_58_EXTERNAL_TRANSFER.json
+      - name: Publish external transfer commit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r258/external-transfer',
+              'description': 'R2.58 pinned ufunclab autonomous intervention transfer passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify R2.58 core and local transfer across Python runtimes
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r258_intervention_discovery.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_external_intervention_transfer.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_autonomous_intervention_benchmark.py::test_r258_merge_contract_is_pure_and_preserves_strict_claim_boundary
+      - name: Publish cross-Python status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': f"r258/cross-python-{os.environ['PYVER']}",
+              'description': f"R2.58 core passed on Python {os.environ['PYVER']}",
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
