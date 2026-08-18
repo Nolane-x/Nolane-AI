@@ -1,0 +1,51 @@
+name: R2.63 Compositional Repository Repair
+
+on:
+  push:
+    branches: [r263-compositional-repository-repair-integration]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependencies
+        run: python -m pip install pytest
+      - name: Run R2.63 contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+      - name: Publish R2.63 status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          state='success' if os.environ.get('JOB_STATUS') == 'success' else 'failure'
+          payload=json.dumps({
+            'state':state,
+            'context':'r263/tdd-contract',
+            'description':'R2.63 compositional repository repair hosted contract',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+        env:
+          GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
