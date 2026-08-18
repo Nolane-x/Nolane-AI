@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63 Compositional Version-Space Expansion",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "production_module_absent_at_core_red": true,
+  "failure_was_contract_relevant": true,
+  "red_gates": [
+    {
+      "stage": "core",
+      "workflow_run_id": 32126367091,
+      "job_id": 95677706768,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'cogcoder.r263_compositional_version_space_expansion'",
+      "production_artifact_absent": true
+    },
+    {
+      "stage": "authored_benchmark",
+      "workflow_run_id": 32127060553,
+      "job_id": 95679858083,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'benchmarks.kfigg.r263_compositional_version_space_expansion'",
+      "benchmark_artifact_absent": true
+    },
+    {
+      "stage": "external_transfer",
+      "workflow_run_id": 32127356326,
+      "job_id": 95680763255,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'research.r263_external_compositional_transfer'",
+      "external_harness_absent": true
+    }
+  ],
+  "claim": "Each major R2.63 implementation layer was first exercised by a hosted failing test that failed because the corresponding implementation module did not yet exist; no production source for that layer existed at its RED gate."
+}
