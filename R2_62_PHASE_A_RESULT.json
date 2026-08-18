@@ -1,0 +1,25 @@
+{
+  "argument_permutation_tracks_roles": true,
+  "capability": "complementary-causal-experiment-program",
+  "challenge_cases": 24,
+  "challenge_exact": 24,
+  "claim_boundary": "Bounded complementary two-experiment pure-input program discovery with matched local synthesis budget and invariance evidence; not open-ended experiment invention or broad autonomy.",
+  "composition_ops": [
+    "add"
+  ],
+  "configurations": 3,
+  "discoveries": 3,
+  "flat_baseline_candidates_total": 30000,
+  "flat_baseline_failures": 3,
+  "full_program_successes": 3,
+  "matched_synthesis_budget_respected": true,
+  "milestone": "R2.62",
+  "oracle_calls": 420,
+  "probe_synthesis_candidates_total": 14136,
+  "proper_subset_failures": 6,
+  "rename_program_id_invariant": true,
+  "trainable_parameter_count": 0,
+  "validation_cases": 30,
+  "validation_exact": 30,
+  "wrong_pair_false_accepts": 0
+}
