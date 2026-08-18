@@ -405,8 +405,8 @@ def solve_repository_patch_with_primitive_induction(
     candidate_evaluations += compile_evals
     filtered, filter_evals = _filter_initial(generated_compiled, tuple(observed_tests))
     candidate_evaluations += filter_evals
-    allowed_ids = {candidate.candidate_id for candidate in filtered}
-    live = [row for row in primitive_rows if row.candidate.candidate_id in allowed_ids]
+    allowed_content_digests = {repository_content_digest(row.candidate) for row in filtered}
+    live = [row for row in primitive_rows if row.content_digest in allowed_content_digests]
     candidates_after_diagnostic = len(live)
     if not live:
         return receipt('abstain', None, None, False, 'closed_grammar_cannot_express_counterexample')
