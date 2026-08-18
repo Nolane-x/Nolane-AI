@@ -7,6 +7,12 @@ on:
       - 'cogcoder/r259_*.py'
       - 'tests/test_r259_*.py'
       - '.github/workflows/r259-dual-intervention-portfolio.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r259_*.py'
+      - 'tests/test_r259_*.py'
+      - '.github/workflows/r259-dual-intervention-portfolio.yml'
   workflow_dispatch:
 
 permissions:
