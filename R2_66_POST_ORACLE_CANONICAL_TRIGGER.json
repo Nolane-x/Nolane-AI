@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "purpose": "connector-authored post-refreeze canonical trigger",
+  "source_lock_schema": 2,
+  "frozen_evidence_commit": "9ee29a5653687cc8bb1c8c66acf6622f50731125",
+  "oracle_hotfix_merge_commit": "0edec9cddc47542eb7cf902f82f771e026bbb352",
+  "independent_oracle_green_run_id": 32147372531,
+  "independent_pair_budget_green_run_id": 32147458027,
+  "mutates_frozen_blob": false
+}
