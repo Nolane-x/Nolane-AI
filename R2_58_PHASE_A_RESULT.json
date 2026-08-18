@@ -8,7 +8,7 @@
   "milestone": "R2.58",
   "no_seed_failures": 3,
   "noncausal_candidates_rejected": 6,
-  "oracle_calls": 394,
+  "oracle_calls": 410,
   "position_rename_invariant": true,
   "probe_validation_cases": 12,
   "probe_validation_exact": 12,
@@ -33,6 +33,7 @@
       2
     ]
   ],
+  "synthesis_candidates_considered": 261169,
   "trainable_parameter_count": 0,
   "wrong_role_false_accepts": 0
 }
