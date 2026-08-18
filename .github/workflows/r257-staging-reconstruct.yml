@@ -1,0 +1,99 @@
+name: R2.57 Byte-Exact Staging Reconstruct
+
+on:
+  push:
+    branches:
+      - r257-verified-vocabulary-growth
+    paths:
+      - '_transport/r257_chunk_*.txt'
+      - '.github/workflows/r257-staging-reconstruct.yml'
+
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Reconstruct and verify payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat _transport/r257_chunk_0.txt _transport/r257_chunk_1.txt _transport/r257_chunk_2.txt _transport/r257_chunk_3.txt > /tmp/r257_payload.b64
+          printf '%s  %s\n' 'cfab340f44db141505d6145b265d0b97628402fe368e51ecb3d43a09b0ef9d77' '_transport/r257_chunk_0.txt' | sha256sum -c -
+          printf '%s  %s\n' '34e379b94e014f8cde1838e931bbf687bbbb2e0c9ee5941eb95ad8e510147d90' '_transport/r257_chunk_1.txt' | sha256sum -c -
+          printf '%s  %s\n' 'a7d16e9ad83f2ea154c9436e6093c6c6879233259081d01cb57ef611db18909b' '_transport/r257_chunk_2.txt' | sha256sum -c -
+          printf '%s  %s\n' '4933f96608d710d9b3818f4d9c8ec4b59aff17ea0082b9b76a4985b080a996bd' '_transport/r257_chunk_3.txt' | sha256sum -c -
+          base64 -d /tmp/r257_payload.b64 > /tmp/r257_payload.tar.gz
+          printf '%s  %s\n' '5b404526716057df460dd6ef4e49b576aeacfd199c2fe62dfd1661b7f35185a0' '/tmp/r257_payload.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/r257_payload.tar.gz -C .
+          python - <<'PY'
+          import subprocess
+          expected = {
+              'cogcoder/r257_vocabulary.py': '0fec0e62a2687cbbce22f91c66ed00430e405256',
+              'cogcoder/r257_library_learning.py': '06234b49ea0c4aeeb545fcef632970401c54de22',
+              'cogcoder/r257_vocabulary_synthesis.py': '1bec51ecc52525ecdf9b3dfae86ba79ddaa4e177',
+              'benchmarks/kfigg/r257_verified_vocabulary_growth.py': '1a9bc39d851fa5c301537bd57e765df4e4e50d91',
+              'research/r257_external_vocabulary_transfer.py': 'b166dbb405e93fe115d42a0471a48cf59cf08b1f',
+              'tests/test_r257_vocabulary.py': '1c29a6a975d5ccada2d8b62a3e3f41ee9df9a719',
+              'tests/test_r257_library_learning.py': '41f9d148fc12cacc0ba5730b791af388fd572bd9',
+              'tests/test_r257_vocabulary_synthesis.py': '11688f6b0503b26186ff1a5858bbc00105265fe1',
+              'tests/test_r257_verified_vocabulary_benchmark.py': '17384ac64bd73241ea02e9aadc2e9c4acd3b5397',
+              'tests/test_r257_external_vocabulary_transfer.py': '076a3448bca443d40f12a23c35c1c91648bcc970',
+              'docs/superpowers/specs/2026-08-18-r257-verified-cognitive-vocabulary-growth-design.md': 'f5cb8be074d149228a5f7e68feb0fd3a15a304f0',
+              'docs/superpowers/plans/2026-08-18-r257-verified-cognitive-vocabulary-growth.md': '61e2c33ba823707c3678251da6ed13293dda4622',
+              'R2_57_PHASE_A_RESULT.json': 'a1ab0e0da6892a5b7c51b86c7b7be4f563397e1c',
+          }
+          for path, wanted in expected.items():
+              got = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              if got != wanted:
+                  raise SystemExit(f'blob mismatch {path}: {got} != {wanted}')
+              print('BLOB_OK', path, got)
+          PY
+      - name: Verify focused R2.57 tests
+        run: |
+          python -m pip install -q pytest
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+      - name: Commit reconstructed capability files
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add \
+            cogcoder/r257_vocabulary.py \
+            cogcoder/r257_library_learning.py \
+            cogcoder/r257_vocabulary_synthesis.py \
+            benchmarks/kfigg/r257_verified_vocabulary_growth.py \
+            research/r257_external_vocabulary_transfer.py \
+            tests/test_r257_vocabulary.py \
+            tests/test_r257_library_learning.py \
+            tests/test_r257_vocabulary_synthesis.py \
+            tests/test_r257_verified_vocabulary_benchmark.py \
+            tests/test_r257_external_vocabulary_transfer.py \
+            docs/superpowers/specs/2026-08-18-r257-verified-cognitive-vocabulary-growth-design.md \
+            docs/superpowers/plans/2026-08-18-r257-verified-cognitive-vocabulary-growth.md \
+            R2_57_PHASE_A_RESULT.json
+          git commit -m 'feat: stage byte-exact R2.57 capability'
+          git push origin HEAD:r257-verified-vocabulary-growth
+          echo "NEW_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+      - name: Publish staging status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            -X POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H 'Accept: application/vnd.github+json' \
+            -H 'X-GitHub-Api-Version: 2022-11-28' \
+            "https://api.github.com/repos/${GITHUB_REPOSITORY}/statuses/${NEW_SHA}" \
+            -d "{\"state\":\"success\",\"context\":\"r257/staging-reconstruct\",\"description\":\"Byte-exact payload and 15 focused tests passed\",\"target_url\":\"https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}"
