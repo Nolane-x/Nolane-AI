@@ -1,0 +1,88 @@
+name: R2.65 Freeze Exact Evidence
+
+on:
+  push:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'cogcoder/r265_*.py'
+      - 'tests/test_r265_*.py'
+      - 'benchmarks/kfigg/r265_*.py'
+      - 'research/r265_*.py'
+      - '.github/workflows/r265-freeze-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify focused contracts before freezing
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Recompute and freeze exact evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          assert np.__version__ == '2.4.6'
+          Path('R2_65_PHASE_A_RESULT.json').write_text(json.dumps(phase, indent=2, sort_keys=True)+'\n')
+          Path('R2_65_EXTERNAL_TRANSFER.json').write_text(json.dumps(external, indent=2, sort_keys=True)+'\n')
+
+          frozen_paths = (
+              'cogcoder/r265_verified_patch_primitive_induction.py',
+              'benchmarks/kfigg/r265_patch_primitive_induction.py',
+              'research/r265_external_patch_primitive_transfer.py',
+              'tests/test_r265_verified_patch_primitive_induction.py',
+              'tests/test_r265_patch_primitive_benchmark.py',
+              'tests/test_r265_external_patch_primitive_transfer.py',
+          )
+          blobs={
+              path: subprocess.check_output(['git','hash-object',path], text=True).strip()
+              for path in frozen_paths
+          }
+          parent=subprocess.check_output(['git','merge-base','HEAD','origin/main'], text=True).strip()
+          lock={
+              'schema_version':1,
+              'milestone':'R2.65 Verified Patch Primitive Induction',
+              'parent_release_commit':parent,
+              'frozen_git_blobs':blobs,
+              'phase_a_result':'R2_65_PHASE_A_RESULT.json',
+              'external_result':'R2_65_EXTERNAL_TRANSFER.json',
+              'production_source_changes_after_lock_forbidden':True,
+              'note':'Frozen after focused R2.64 parent + R2.65 tests and exact authored/NumPy multiply evidence. Any later change to a frozen blob requires complete remeasurement.'
+          }
+          Path('R2_65_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True)+'\n')
+          print('R265_FREEZE_READY', parent, len(blobs))
+          PY
+      - name: Commit exact evidence if changed
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_65_PHASE_A_RESULT.json R2_65_EXTERNAL_TRANSFER.json R2_65_PRE_HOSTED_LOCK.json
+          if git diff --cached --quiet; then
+            echo R265_EVIDENCE_ALREADY_FROZEN
+          else
+            git commit -m 'research: freeze exact R2.65 evidence and source lock'
+            git push origin HEAD:r265-verified-patch-language-induction-gpt56sol
+          fi
