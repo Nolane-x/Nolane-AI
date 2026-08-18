@@ -1,0 +1,34 @@
+{
+  "milestone": "R2.59",
+  "title": "Budgeted Semantic Intervention Index",
+  "parent_main_commit": "0caac315321ae2ae16bed875d721b1e29eb35e59",
+  "status": "PRE_HOSTED_LOCK",
+  "trainable_parameter_count": 0,
+  "claim_boundary": "Budgeted semantic-index reuse for bounded pure-input intervention discovery; matched-distribution external efficiency evidence only, not new external breadth or open-ended experiment invention.",
+  "frozen_thresholds": {
+    "authored_configurations": 3,
+    "authored_discovered_min": 3,
+    "authored_probe_validation_exact": 12,
+    "wrong_role_false_accepts_max": 0,
+    "max_total_synthesis_candidates_per_full_search": 15000,
+    "authored_synthesis_reduction_ratio_min": 8.0,
+    "external_challenge_exact": 8,
+    "external_heldout_exact": 24,
+    "external_total_synthesis_candidates_max": 15000,
+    "external_synthesis_reduction_ratio_min": 8.0,
+    "protected_lineage_required": true,
+    "cross_python": [
+      "3.11",
+      "3.13"
+    ]
+  },
+  "frozen_source_sha256": {
+    "cogcoder/r259_semantic_index_core.py": "ce4cb21408a480273c33f44eff4d226abec6a099ef68dbe05b5b1c8d757e91f1",
+    "cogcoder/r259_semantic_intervention_index.py": "ed7be99ad4e729dfb39e3fb06888971e49bd9d2212dcd07e9a5ea362888fae58",
+    "benchmarks/kfigg/r259_budgeted_semantic_intervention_index.py": "b9b5cf08e4ab0ccc398440e69deabb49a8c9ff5cfe2ce461840f90fbe2f7dbbe",
+    "research/r259_external_budgeted_intervention_transfer.py": "62166d8ab0b07168fb787ac173f633066053256cd0f33f11f253d033af3bbdd3",
+    "R2_59_PHASE_A_RESULT.json": "eb808abcf3acfb15e004ff01b28792ed1712e01c76f5006f86a6d1e34fa170dc"
+  },
+  "lock_revision": 2,
+  "supersedes": "local pre-hosted lock revision 1; source split only, before any hosted R2.59 measurement"
+}
