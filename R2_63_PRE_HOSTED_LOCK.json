@@ -3,7 +3,7 @@
   "milestone": "R2.63 Compositional Version-Space Expansion",
   "parent_release_commit": "02f3d2f6dc16dbb82b0dd1cef111546173b4767e",
   "frozen_git_blobs": {
-    "cogcoder/r263_compositional_version_space_expansion.py": "e07849f0ae79bcd37bd50de451d7d47597051b73",
+    "cogcoder/r263_compositional_version_space_expansion.py": "025e92553ca88dcba63ec5690785ba22dd8c52bc",
     "benchmarks/kfigg/r263_compositional_version_space_expansion.py": "0fc14800381283eca3515d2e8a81e3d491547a4f",
     "research/r263_external_compositional_transfer.py": "5a40ba67418e296801dad8ecf243def315fd64e1",
     "tests/test_r263_compositional_version_space_expansion.py": "4afe6bbdbe325329324e4b7bdfb7996f1554dc46",
@@ -14,5 +14,5 @@
   "external_result": "R2_63_EXTERNAL_TRANSFER.json",
   "production_source_changes_after_lock_forbidden": true,
   "remeasurement_required": true,
-  "note": "The core remains at the prior frozen blob while peer-derived hardening contracts were added first for hosted RED. Any production change required to satisfy those contracts must update this lock and rerun all exact evidence before acceptance."
+  "note": "Peer-derived identity/provenance hardening changed the production core after the first measurement. This lock pins that hardened core; complete exact Phase-A/external/cross-Python/protected-lineage remeasurement is required before acceptance."
 }
