@@ -1,0 +1,30 @@
+name: R2.65 Zero-Challenge Promotion Challenger
+
+on:
+  pull_request:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - '.github/workflows/r265-zero-challenge-promotion-validation.yml'
+      - 'tests/test_r265_zero_challenge_promotion.py'
+      - 'cogcoder/r265_verified_patch_primitive_induction.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  adversarial-contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Run zero-challenge promotion challenger
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_zero_challenge_promotion.py
