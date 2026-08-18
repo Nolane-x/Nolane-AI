@@ -7,8 +7,14 @@ def _linearstep(x, a, b, fa, fb):
 
 
 def test_r258_external_transfer_discovers_intervention_from_io_without_host_selection():
+    calls = {'count': 0}
+
+    def counted_oracle(*args):
+        calls['count'] += 1
+        return _linearstep(*args)
+
     result = run_external_transfer(
-        _linearstep,
+        counted_oracle,
         source_id='local-standin:linearstep',
         source_commit='test-only',
     )
@@ -23,5 +29,8 @@ def test_r258_external_transfer_discovers_intervention_from_io_without_host_sele
     assert result['probe_validation_exact'] == result['probe_validation_cases']
     assert result['challenge_exact'] == result['challenge_cases'] == 8
     assert result['heldout_exact'] == result['heldout_cases'] == 24
+    assert result['oracle_calls_total'] == calls['count']
+    assert result['oracle_calls_total'] > result['oracle_calls_during_discovery']
+    assert result['synthesis_candidates_considered'] > 0
     assert result['trainable_parameter_count'] == 0
     assert 'not open-ended' in result['claim_boundary']
