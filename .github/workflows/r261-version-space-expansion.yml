@@ -98,6 +98,18 @@ jobs:
           print('R261_PHASE_A_EXACT_OK')
           print(json.dumps(actual['summary'], sort_keys=True))
           PY
+      - name: Recompute exact expansion novelty proof
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
+          expected = json.loads(Path('R2_61_EXPANSION_PROOF_RESULT.json').read_text())
+          actual = run_expansion_novelty_audit()
+          assert actual == expected, (actual, expected)
+          print('R261_EXPANSION_PROOF_EXACT_OK')
+          print(json.dumps(actual['summary'], sort_keys=True))
+          PY
       - name: Recompute exact pinned external evidence
         run: |
           PYTHONPATH=. python - <<'PY'
@@ -149,7 +161,7 @@ jobs:
           payload = json.dumps({
               'state': 'success',
               'context': 'r261/full-gate',
-              'description': 'R2.61 exact evidence, focused/cross-Python, and protected R2.60-R2.41 lineage passed',
+              'description': 'R2.61 source lock, exact causal/novelty/external evidence, cross-Python, and protected R2.60-R2.41 lineage passed',
               'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req = urllib.request.Request(
