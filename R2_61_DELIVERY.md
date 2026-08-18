@@ -2,7 +2,7 @@
 
 ## Status
 
-**ACCEPTED_BOUNDED_CAPABILITY — pending final release-bundle integrity gate and merge into `main`.**
+**ACCEPTED_BOUNDED_CAPABILITY — merged into `main` and post-merge release-bundle verified.**
 
 R2.61 extends the accepted R2.60 active-diagnostic repository path with a bounded escape from a host-complete candidate list. When an R2.60-selected oracle observation is not represented by any surviving candidate, R2.61 records that public counterexample, generates new repository hypotheses from pre-existing trusted R2.47 `PatchMacro` transformations without consulting the target output during syntax/site generation, filters those hypotheses against accumulated public evidence, resumes diagnosis, and requires independent terminal verification before acceptance.
 
@@ -145,6 +145,10 @@ This is not an AGI probability. The increase is limited because R2.61 still has 
 - external breadth is one NumPy ufunc embedded in a synthetic repository wrapper;
 - Nolane World W5 remains false.
 
-## Release acceptance rule
+## Post-merge verification
 
-R2.61 may be merged only if the final release-bundle workflow independently verifies required evidence, the frozen Git blobs, exact Phase-A/novelty/external recomputation, focused regressions, archive completeness and ZIP integrity. The final complete artifact must then be regenerated from the `main` merge commit and checked again before persistence.
+PR #15 was merged as `main` commit **`33042cbe92bea69580c7cc264cb35db09aaeee2f`**. The release workflow reran on that exact `main` commit as GitHub Actions run **32124011348**, job **95670466544**, and completed successfully across required release files, the ten frozen Git blobs, exact Phase-A/novelty/external recomputation, release-boundary assertions, R2.61/R2.60/R2.59 regressions, complete repository archive creation, archive integrity, artifact upload and `r261/release-bundle` status publication.
+
+The uploaded `main` artifact is GitHub artifact **9319642259**. Its outer artifact SHA-256 is `6952c1c36008c9da58022bff450e4da8be8bfffc4abc54d289978daeb09869b0`. The contained repository archive `Nolane-AI-R2.61-COMPLETE.zip` has SHA-256 **`86624bcd9569bcf2f0f076aac9b4d962e69714c8cd5ca8d0daebfc70dea39a9c`**, matching the bundled sidecar. Independent post-download verification found **1,140 archive entries**, all required R2.61 files present, and `unzip -t` reported no errors for both outer and inner archives.
+
+This post-merge check completes the release-acceptance rule. Subsequent documentation-only metadata commits do not alter any frozen capability/benchmark/transfer/proof/test blob; the release-bundle workflow must nevertheless rerun on such a commit before that newer `main` snapshot is treated as the canonical downloadable archive.
