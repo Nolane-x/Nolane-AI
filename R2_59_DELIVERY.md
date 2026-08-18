@@ -79,4 +79,4 @@ The audit highlights several blockers: R2.59 cannot recover a missing target hyp
 
 ## Readiness
 
-Internal Coding-AGI engineering-readiness: **48.4/100**, up **+0.3** from R2.58's 48.1. The movement is intentionally small because R2.59 demonstrates a real causal active-diagnostic transfer at repository-hypothesis level, but still consumes finite host-supplied candidate/probe spaces and does not establish broad issue resolution. This score is an internal engineering heuristic, not an AGI probability.
+Internal Coding-AGI engineering-readiness: **48.1/100**, up **+0.3** from R2.58's canonical **47.8**. The movement is intentionally small because R2.59 demonstrates a real causal active-diagnostic transfer at repository-hypothesis level, but still consumes finite host-supplied candidate/probe spaces and does not establish broad issue resolution. This score is an internal engineering heuristic, not an AGI probability.
