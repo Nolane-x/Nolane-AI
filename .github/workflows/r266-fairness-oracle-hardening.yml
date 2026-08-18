@@ -8,6 +8,13 @@ on:
       - 'tests/test_r266_independent_pair_budget_fairness.py'
       - 'tests/test_r266_intervention_oracle_failclosed.py'
       - '.github/workflows/r266-fairness-oracle-hardening.yml'
+  pull_request:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - 'cogcoder/_r266_contextual_composition_core.py'
+      - 'tests/test_r266_independent_pair_budget_fairness.py'
+      - 'tests/test_r266_intervention_oracle_failclosed.py'
+      - '.github/workflows/r266-fairness-oracle-hardening.yml'
   workflow_dispatch:
 
 permissions:
@@ -75,7 +82,7 @@ jobs:
           PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
           PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
       - name: Commit verified source hardening
-        if: steps.red.outputs.needs_patch == 'true'
+        if: steps.red.outputs.needs_patch == 'true' && github.event_name == 'push'
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
