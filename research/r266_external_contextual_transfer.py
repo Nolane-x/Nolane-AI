@@ -94,6 +94,7 @@ def run_external_transfer(
         need,
         discovery,
         validation,
+        terminal_contexts=challenge,
         intervention_arity=1,
         composition_constants=(0.0,),
         composition_max_depth=2,
@@ -136,6 +137,8 @@ def run_external_transfer(
 
     passed = bool(
         receipt.passed
+        and receipt.final_validation_cases == len(challenge)
+        and receipt.final_validation_exact == len(challenge)
         and challenge_exact == len(challenge)
         and heldout_exact == len(heldout)
         and selected is not None
@@ -177,8 +180,8 @@ def run_external_transfer(
         'trainable_parameter_count': 0,
         'claim_boundary': (
             'Bounded learned contextual composition of two pure-input interventions over a finite trusted DSL, '
-            'with no access to positions overwritten by either intervention; not primitive-language invention, '
-            '3+ intervention scaling, stateful experimentation, blind task discovery, or AGI.'
+            'with no access to positions overwritten by either intervention and a disjoint terminal challenge; '
+            'not primitive-language invention, 3+ intervention scaling, stateful experimentation, blind task discovery, or AGI.'
         ),
     }
 

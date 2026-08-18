@@ -179,6 +179,7 @@ def test_r266_full_program_synthesizes_probes_and_passes_terminal_heldout():
         _need(),
         discovery,
         validation,
+        terminal_contexts=heldout,
         intervention_arity=1,
         composition_constants=(0.0,),
         composition_max_depth=2,
@@ -192,7 +193,7 @@ def test_r266_full_program_synthesizes_probes_and_passes_terminal_heldout():
     assert receipt.expression is not None
     assert len(receipt.probe_expressions) == 2
     assert receipt.probe_validation_exact == receipt.probe_validation_cases * 2
-    assert receipt.final_validation_exact == receipt.final_validation_cases == len(validation)
+    assert receipt.final_validation_exact == receipt.final_validation_cases == len(heldout)
     assert receipt.structure.selected.r262_fixed_op_passed is False
     assert receipt.structure.selected.singleton_composition_passed == (False, False)
     assert all(

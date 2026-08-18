@@ -81,6 +81,7 @@ def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> 
         need,
         discovery,
         validation,
+        terminal_contexts=heldout,
         intervention_arity=1,
         composition_constants=(0.0,),
         composition_max_depth=2,
@@ -246,19 +247,20 @@ def _terminal_contradiction_negative() -> bool:
         need,
         discovery,
         validation,
+        terminal_contexts=heldout,
         composition_max_depth=2,
         composition_max_candidates_per_pair=12000,
         max_composition_candidates_total=120000,
         probe_max_depth=3,
         probe_max_candidates=20000,
     )
-    if not result.passed or result.expression is None:
-        return True
-    exact = sum(
-        int(_eq(evaluate_expr(result.expression, row), shifted(row)))
-        for row in heldout
+    return (
+        result.passed is False
+        and result.reason == 'independent_terminal_verification_failed'
+        and result.final_validation_cases == len(heldout)
+        and result.final_validation_exact == len(heldout) - 1
+        and result.structure.false_accepts == 0
     )
-    return exact < len(heldout)
 
 
 def run_benchmark() -> dict[str, object]:
@@ -269,6 +271,11 @@ def run_benchmark() -> dict[str, object]:
     permuted = _case(permuted_roles, {role: role for role in permuted_roles})
     cases = (base, renamed, permuted)
 
+    fixed_negative = _fixed_op_negative()
+    budget_negative = _budget_negative()
+    nonfinite_negative = _nonfinite_negative()
+    terminal_negative = _terminal_contradiction_negative()
+
     all_passed = bool(
         all(case['passed'] for case in cases)
         and base['program_id'] == renamed['program_id']
@@ -277,10 +284,10 @@ def run_benchmark() -> dict[str, object]:
         and all(case['both_probes_used'] for case in cases)
         and all(case['fixed_op_baseline_failed'] for case in cases)
         and all(case['singletons_failed'] for case in cases)
-        and _fixed_op_negative()
-        and _budget_negative()
-        and _nonfinite_negative()
-        and _terminal_contradiction_negative()
+        and fixed_negative
+        and budget_negative
+        and nonfinite_negative
+        and terminal_negative
         and sum(case['false_accepts'] for case in cases) == 0
     )
     return {
@@ -306,15 +313,16 @@ def run_benchmark() -> dict[str, object]:
         'composition_candidates_considered': sum(int(case['composition_candidates']) for case in cases),
         'singleton_candidates_considered': sum(int(case['singleton_candidates']) for case in cases),
         'probe_candidates_considered': sum(int(case['probe_candidates']) for case in cases),
-        'fixed_op_negative_rejected': _fixed_op_negative(),
-        'budget_negative_rejected': _budget_negative(),
-        'nonfinite_negative_rejected': _nonfinite_negative(),
-        'terminal_contradiction_rejected': _terminal_contradiction_negative(),
+        'fixed_op_negative_rejected': fixed_negative,
+        'budget_negative_rejected': budget_negative,
+        'nonfinite_negative_rejected': nonfinite_negative,
+        'terminal_contradiction_rejected': terminal_negative,
         'false_accepts': sum(int(case['false_accepts']) for case in cases),
         'trainable_parameter_count': 0,
         'claim_boundary': (
-            'Bounded learned contextual composition over exactly two pure-input interventions and a finite trusted DSL; '
-            'not primitive-language invention, 3+ intervention scaling, effectful experimentation, blind discovery, or AGI.'
+            'Bounded learned contextual composition over exactly two pure-input interventions and a finite trusted DSL, '
+            'with an exact-context-disjoint terminal set; not primitive-language invention, 3+ intervention scaling, '
+            'effectful experimentation, blind discovery, or AGI.'
         ),
     }
 
