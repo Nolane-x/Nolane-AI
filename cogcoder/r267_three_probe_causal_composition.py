@@ -282,6 +282,167 @@ def _semantic_arithmetic_synthesis(
     )
 
 
+
+def _synthesize_required_three_probe_skeleton(
+    constants: Sequence[object],
+    examples: Sequence[OperatorExample],
+    *,
+    max_candidates: int,
+) -> _ExpressionSearchReceipt:
+    """Search a bounded neutral algebraic closure that structurally requires all three probes.
+
+    This is not a host-supplied target formula: every binary operator, association,
+    probe permutation and authorized constant transform is enumerated and judged only
+    by public example behavior.  It exists because the inherited R2.66 router search
+    deliberately prioritizes one-step leaves and IfElse structure rather than nested
+    three-input arithmetic trees.
+    """
+    rows = tuple(examples)
+    target = tuple(_finite_json_value(row.expected) for row in rows)
+    limit = int(max_candidates)
+    if limit < 1:
+        raise ValueError('max_candidates must be positive')
+    considered = 0
+    evaluations = 0
+    digests: set[str] = set()
+    semantic_seen: set[str] = set()
+    numeric_ops = ('add', 'sub', 'mul', 'div', 'min', 'max')
+    outer_constant_ops = ('add', 'sub', 'mul', 'div')
+    probe_fields = (Field('__p0'), Field('__p1'), Field('__p2'))
+    authorized_constants: list[Const] = []
+    constant_keys: set[str] = set()
+    for raw in constants:
+        try:
+            value = _finite_json_value(raw)
+            constant = Const(value)
+            key = json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+        except (TypeError, ValueError):
+            continue
+        if key not in constant_keys:
+            constant_keys.add(key)
+            authorized_constants.append(constant)
+
+    def consider(expr: Expr) -> _ExpressionSearchReceipt | None:
+        nonlocal considered, evaluations
+        if considered >= limit:
+            return _ExpressionSearchReceipt(
+                False, None, considered, evaluations, len(semantic_seen),
+                'required_three_probe_budget_exhausted',
+            )
+        digest = expr_digest(expr)
+        if digest in digests:
+            return None
+        digests.add(digest)
+        considered += 1
+        values, count = _evaluate_vector(expr, rows)
+        evaluations += count
+        if values is None:
+            return None
+        semantic_seen.add(semantic_vector_key(values))
+        if all(_equivalent(actual, expected) for actual, expected in zip(values, target, strict=True)):
+            return _ExpressionSearchReceipt(
+                True, expr, considered, evaluations, len(semantic_seen),
+                'required_three_probe_exact',
+            )
+        return None
+
+    for first, second, third in itertools.permutations(probe_fields):
+        for inner_op in numeric_ops:
+            try:
+                inner_left = Binary(inner_op, first, second)
+                inner_right = Binary(inner_op, second, third)
+            except (TypeError, ValueError):
+                continue
+            for outer_op in numeric_ops:
+                bases: list[Expr] = []
+                try:
+                    bases.append(Binary(outer_op, inner_left, third))
+                except (TypeError, ValueError):
+                    pass
+                try:
+                    bases.append(Binary(outer_op, first, inner_right))
+                except (TypeError, ValueError):
+                    pass
+                for base in bases:
+                    hit = consider(base)
+                    if hit is not None:
+                        return hit
+                    for constant in authorized_constants:
+                        for op in outer_constant_ops:
+                            for transformed in (
+                                Binary(op, base, constant),
+                                Binary(op, constant, base),
+                            ):
+                                hit = consider(transformed)
+                                if hit is not None:
+                                    return hit
+    return _ExpressionSearchReceipt(
+        False, None, considered, evaluations, len(semantic_seen),
+        'required_three_probe_no_exact_expression',
+    )
+
+
+def _synthesize_bilinear_pair_skeleton(
+    field_names: Sequence[str],
+    examples: Sequence[OperatorExample],
+    *,
+    max_candidates: int,
+) -> _ExpressionSearchReceipt:
+    """Enumerate the finite depth-2 pair-product closure over available fields.
+
+    The closure is field-agnostic: it does not choose which inputs participate in
+    the target.  It enumerates every unordered field product and every ordered pair
+    of those products under the trusted outer arithmetic operators.  This makes the
+    tri-bilinear probe subproblem complete for its declared depth without widening
+    the R2.56 operator semantics.
+    """
+    fields = tuple(sorted({str(value).strip() for value in field_names if str(value).strip()}))
+    rows = tuple(examples)
+    limit = int(max_candidates)
+    if limit < 1:
+        raise ValueError('max_candidates must be positive')
+    if len(fields) < 2:
+        return _ExpressionSearchReceipt(False, None, 0, 0, 0, 'bilinear_pair_no_fields')
+    target = tuple(_finite_json_value(row.expected) for row in rows)
+    considered = 0
+    evaluations = 0
+    digests: set[str] = set()
+    semantic_seen: set[str] = set()
+    product_terms = tuple(
+        Binary('mul', Field(left), Field(right))
+        for left, right in itertools.combinations(fields, 2)
+    )
+    outer_ops = ('add', 'sub', 'min', 'max')
+
+    for left in product_terms:
+        for right in product_terms:
+            for op in outer_ops:
+                if considered >= limit:
+                    return _ExpressionSearchReceipt(
+                        False, None, considered, evaluations, len(semantic_seen),
+                        'bilinear_pair_budget_exhausted',
+                    )
+                expr = Binary(op, left, right)
+                digest = expr_digest(expr)
+                if digest in digests:
+                    continue
+                digests.add(digest)
+                considered += 1
+                values, count = _evaluate_vector(expr, rows)
+                evaluations += count
+                if values is None:
+                    continue
+                semantic_seen.add(semantic_vector_key(values))
+                if all(_equivalent(actual, expected) for actual, expected in zip(values, target, strict=True)):
+                    return _ExpressionSearchReceipt(
+                        True, expr, considered, evaluations, len(semantic_seen),
+                        'bilinear_pair_exact',
+                    )
+    return _ExpressionSearchReceipt(
+        False, None, considered, evaluations, len(semantic_seen),
+        'bilinear_pair_no_exact_expression',
+    )
+
 def _synthesize_r267_expression(
     field_names: Sequence[str],
     constants: Sequence[object],
@@ -294,7 +455,58 @@ def _synthesize_r267_expression(
     max_candidates = int(max_candidates)
     if max_candidates < 1:
         raise ValueError('max_candidates must be positive')
-    router_budget = min(8_000, max(1, max_candidates // 4))
+
+    structural_considered = 0
+    structural_evaluations = 0
+    structural_semantics = 0
+    required_probes = {'__p0', '__p1', '__p2'}
+    if required_probes <= set(map(str, field_names)):
+        structural_budget = min(max_candidates, max(64, min(10_000, max_candidates // 3)))
+        structural = _synthesize_required_three_probe_skeleton(
+            tuple(constants), tuple(examples), max_candidates=structural_budget,
+        )
+        structural_considered = structural.candidates_considered
+        structural_evaluations = structural.evaluations
+        structural_semantics = structural.semantic_candidates
+        if structural.passed and structural.expression is not None:
+            return structural
+
+    remaining_after_structural = max_candidates - structural_considered
+    if remaining_after_structural < 1:
+        return _ExpressionSearchReceipt(
+            False, None, structural_considered, structural_evaluations,
+            structural_semantics, 'r267_expression_budget_exhausted',
+        )
+
+    bilinear_considered = 0
+    bilinear_evaluations = 0
+    bilinear_semantics = 0
+    if int(max_depth) >= 2:
+        bilinear_budget = min(remaining_after_structural, max(128, min(5_000, remaining_after_structural // 4)))
+        bilinear = _synthesize_bilinear_pair_skeleton(
+            tuple(field_names), tuple(examples), max_candidates=bilinear_budget,
+        )
+        bilinear_considered = bilinear.candidates_considered
+        bilinear_evaluations = bilinear.evaluations
+        bilinear_semantics = bilinear.semantic_candidates
+        if bilinear.passed and bilinear.expression is not None:
+            return _ExpressionSearchReceipt(
+                True, bilinear.expression,
+                structural_considered + bilinear_considered,
+                structural_evaluations + bilinear_evaluations,
+                structural_semantics + bilinear_semantics,
+                bilinear.reason,
+            )
+
+    remaining_after_bilinear = remaining_after_structural - bilinear_considered
+    if remaining_after_bilinear < 1:
+        return _ExpressionSearchReceipt(
+            False, None, structural_considered + bilinear_considered,
+            structural_evaluations + bilinear_evaluations,
+            structural_semantics + bilinear_semantics,
+            'r267_expression_budget_exhausted',
+        )
+    router_budget = min(8_000, max(1, remaining_after_bilinear // 4))
     router = synthesize_contextual_expression(
         tuple(field_names),
         tuple(constants),
@@ -306,19 +518,19 @@ def _synthesize_r267_expression(
         return _ExpressionSearchReceipt(
             True,
             router.expression,
-            router.candidates_considered,
-            router.search_evaluations,
-            router.semantic_candidates,
+            structural_considered + bilinear_considered + router.candidates_considered,
+            structural_evaluations + bilinear_evaluations + router.search_evaluations,
+            structural_semantics + bilinear_semantics + router.semantic_candidates,
             'r266_contextual_exact',
         )
-    remaining = max_candidates - router.candidates_considered
+    remaining = remaining_after_bilinear - router.candidates_considered
     if remaining < 1:
         return _ExpressionSearchReceipt(
             False,
             None,
-            router.candidates_considered,
-            router.search_evaluations,
-            router.semantic_candidates,
+            structural_considered + bilinear_considered + router.candidates_considered,
+            structural_evaluations + bilinear_evaluations + router.search_evaluations,
+            structural_semantics + bilinear_semantics + router.semantic_candidates,
             'r267_expression_budget_exhausted',
         )
     arithmetic = _semantic_arithmetic_synthesis(
@@ -332,9 +544,9 @@ def _synthesize_r267_expression(
     return _ExpressionSearchReceipt(
         arithmetic.passed,
         arithmetic.expression,
-        router.candidates_considered + arithmetic.candidates_considered,
-        router.search_evaluations + arithmetic.evaluations,
-        router.semantic_candidates + arithmetic.semantic_candidates,
+        structural_considered + bilinear_considered + router.candidates_considered + arithmetic.candidates_considered,
+        structural_evaluations + bilinear_evaluations + router.search_evaluations + arithmetic.evaluations,
+        structural_semantics + bilinear_semantics + router.semantic_candidates + arithmetic.semantic_candidates,
         arithmetic.reason,
     )
 
