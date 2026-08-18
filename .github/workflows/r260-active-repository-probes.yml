@@ -1,0 +1,166 @@
+name: R2.60 Active Diagnostic Repository Probes
+
+on:
+  push:
+    branches: [main, r260-active-repository-probes-gpt56sol]
+    paths:
+      - 'cogcoder/r260_*.py'
+      - 'benchmarks/kfigg/r260_*.py'
+      - 'research/r260_*.py'
+      - 'tests/test_r260_*.py'
+      - 'R2_60_PRE_HOSTED_LOCK.json'
+      - 'R2_60_PHASE_A_RESULT.json'
+      - 'R2_60_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r260-active-repository-probes.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r260_*.py'
+      - 'benchmarks/kfigg/r260_*.py'
+      - 'research/r260_*.py'
+      - 'tests/test_r260_*.py'
+      - 'R2_60_PRE_HOSTED_LOCK.json'
+      - 'R2_60_PHASE_A_RESULT.json'
+      - 'R2_60_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r260-active-repository-probes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-external-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install --upgrade pytest z3-solver 'numpy==2.4.6'
+      - name: Verify R2.60 locked source blobs and accepted parent
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock = json.loads(Path('R2_60_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit'] == '1e59bd13baabba0e1ba71294aa02365d4e661ee0'
+          parent = json.loads(Path('R2_59_RELEASE_MANIFEST.json').read_text())
+          assert parent['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert parent['readiness'] == 47.8
+          assert parent['world_w5_passed'] is False
+          for path, expected in lock['source_blobs'].items():
+              actual = subprocess.check_output(['git', 'rev-parse', f'HEAD:{path}'], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R260_SOURCE_LOCK_OK')
+          PY
+      - name: Run R2.60 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Recompute frozen R2.60 Phase-A evidence exactly
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r260_active_repository_probe_transfer import run_frozen_heldout
+          expected = json.loads(Path('R2_60_PHASE_A_RESULT.json').read_text())
+          actual = run_frozen_heldout()
+          assert actual == expected, (actual, expected)
+          s = actual['summary']
+          assert actual['all_gates_pass'] is True
+          assert s['active_exact'] == 6
+          assert s['active_gain_over_random'] == 5
+          assert s['active_max_selection_oracle_calls'] == 1
+          assert s['active_full_verification_cases'] == 2401
+          assert s['candidate_identity_invariant'] is True
+          assert s['probe_generation_uses_target_outputs'] is False
+          print(json.dumps(actual, indent=2, sort_keys=True))
+          PY
+      - name: Recompute pinned NumPy GCD transfer exactly
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r260_external_active_probe_transfer import run_external_transfer
+          calls = {'count': 0}
+          def oracle(a, b):
+              calls['count'] += 1
+              return int(np.gcd(a, b))
+          result = run_external_transfer(oracle, source_id='numpy:numpy.gcd', source_version=np.__version__)
+          expected = json.loads(Path('R2_60_EXTERNAL_TRANSFER.json').read_text())
+          assert np.__version__ == '2.4.6'
+          assert result == expected, (result, expected)
+          assert result['passed'] is True
+          assert result['active_selection_oracle_calls'] == 1
+          assert result['selected_probe_partition_count'] == 4
+          assert result['selected_probe_largest_partition'] == 1
+          assert result['verification_exact'] == result['verification_cases'] == 625
+          assert result['oracle_calls_total'] == calls['count'] == 629
+          Path('R2_60_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+      - name: Upload exact external evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.60-numpy-gcd-active-probe-transfer
+          path: R2_60_EXTERNAL_TRANSFER_RECOMPUTED.json
+      - name: Run direct R2.52 repository parent
+        run: PYTHONPATH=. python -m pytest -q tests/test_r252_repository_query.py tests/test_r252_repository_query_benchmark.py
+      - name: Run accepted R2.59 and protected R2.58
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+      - name: Run protected R2.57 to R2.50 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r254_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r253_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r251_*.py tests/test_r250_*.py
+      - name: Run protected R2.49 to R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish R2.60 hosted status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r260/hosted-gate','description':'R2.60 source lock + exact evidence + R2.59-R2.41 lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install focused dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify R2.60 focused behavior
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Publish cross-Python status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':f"r260/cross-python-{os.environ['PYVER']}",'description':f"R2.60 focused tests passed on Python {os.environ['PYVER']}",'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY

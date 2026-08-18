@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.60",
+  "title": "Active Diagnostic Repository Probe Synthesis",
+  "status": "SOURCE_LOCKED_AFTER_REBASE",
+  "source_lock_revision": 1,
+  "parent_release_commit": "1e59bd13baabba0e1ba71294aa02365d4e661ee0",
+  "accepted_parent_milestone": "R2.59 Budgeted Semantic Intervention Index",
+  "capability_head": "c60b1d2fbd8a9175afbc46e4b8722eeaf46988a2",
+  "pr_merge_tree_verified_run": "26c0fef1c89e00878fd03c1de7310851274f275e",
+  "source_blobs": {
+    "cogcoder/r260_active_repository_probes.py": "5491fac9a14ec35785477e706ece86144b6aa46b",
+    "benchmarks/kfigg/r260_active_repository_probe_transfer.py": "6ffcdff4f521dd157571764548dbd8b97a1f1f4f",
+    "research/r260_external_active_probe_transfer.py": "a1ad4670881ca1a49c7f229c0f459c90b0a860d1",
+    "tests/test_r260_active_repository_probes.py": "08b29b9f911a00cf2dd58b4bc42b7de27e205ffa",
+    "tests/test_r260_active_repository_probe_benchmark.py": "d68b9860825cc6d2e4c76b9cb144c579b4451dff",
+    "tests/test_r260_external_active_probe_transfer.py": "6949e40984937cf865af2430aa80dff28a6f9b01",
+    "R2_60_PHASE_A_RESULT.json": "4cd63ad70cd8aa5e77f6b810d20c91acf39b2efa"
+  },
+  "frozen_gates": {
+    "focused_tests": 7,
+    "authored_active_exact": 6,
+    "authored_random_one_probe_exact": 1,
+    "authored_passive_initial_exact": 0,
+    "authored_max_selection_oracle_calls": 1,
+    "authored_false_accepts": 0,
+    "authored_verification_cases_per_accept": 2401,
+    "candidate_identity_invariant": true,
+    "probe_generation_uses_target_outputs": false,
+    "external_source_id": "numpy:numpy.gcd",
+    "external_source_version": "2.4.6",
+    "external_source_exposure": "io_only",
+    "external_initial_survivors": 4,
+    "external_active_selection_oracle_calls": 1,
+    "external_verification_cases": 625,
+    "external_false_accepts": 0,
+    "external_total_oracle_calls": 629,
+    "protected_parent_relevant_tests": 198,
+    "cross_python": ["3.11", "3.13"],
+    "trainable_parameter_count": 0
+  },
+  "claim_boundary": "Bounded active diagnostic input selection over an existing finite executable repository-patch version space; not independent candidate generation, open-ended/stateful/effectful test invention, general repository coding, unrestricted program synthesis, or AGI."
+}

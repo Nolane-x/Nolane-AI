@@ -1,0 +1,168 @@
+name: R2.60 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [main, r260-active-repository-probes-gpt56sol]
+    paths:
+      - 'R2_59_TO_R2_60_EVOLUTION.md'
+      - 'R2_60_PRE_HOSTED_LOCK.json'
+      - 'R2_60_DELIVERY.md'
+      - 'R2_60_RELEASE_MANIFEST.json'
+      - 'R2_60_PHASE_A_RESULT.json'
+      - 'R2_60_EXTERNAL_TRANSFER.json'
+      - 'R2_60_VERIFY_RESULT.json'
+      - 'R2_60_WORLD_FINAL.json'
+      - 'R2_READINESS_RECALIBRATION.md'
+      - '.github/workflows/r260-release-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install release dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify frozen R2.60 release boundary
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+
+          lock = json.loads(Path('R2_60_PRE_HOSTED_LOCK.json').read_text())
+          phase = json.loads(Path('R2_60_PHASE_A_RESULT.json').read_text())
+          external = json.loads(Path('R2_60_EXTERNAL_TRANSFER.json').read_text())
+          verify = json.loads(Path('R2_60_VERIFY_RESULT.json').read_text())
+          world = json.loads(Path('R2_60_WORLD_FINAL.json').read_text())
+          manifest = json.loads(Path('R2_60_RELEASE_MANIFEST.json').read_text())
+          delivery = Path('R2_60_DELIVERY.md').read_text()
+          readiness = Path('R2_READINESS_RECALIBRATION.md').read_text()
+          parent = json.loads(Path('R2_59_RELEASE_MANIFEST.json').read_text())
+
+          assert lock['parent_release_commit'] == '1e59bd13baabba0e1ba71294aa02365d4e661ee0'
+          assert lock['capability_head'] == verify['capability_commit'] == manifest['capability_commit'] == 'eef1bf246a20cf682040dc48a4481380906d15ec'
+          assert parent['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert parent['readiness'] == 47.8
+          assert parent['world_w5_passed'] is False
+
+          s = phase['summary']
+          assert phase['all_gates_pass'] is True
+          assert s['active_exact'] == 6
+          assert s['random_one_probe_exact'] == 1
+          assert s['passive_initial_only_exact'] == 0
+          assert s['active_gain_over_random'] == 5
+          assert s['active_false_accepts'] == 0
+          assert s['active_max_selection_oracle_calls'] == 1
+          assert s['active_full_verification_cases'] == 2401
+          assert s['candidate_identity_invariant'] is True
+          assert s['probe_generation_uses_target_outputs'] is False
+
+          assert external['passed'] is True
+          assert external['source_id'] == 'numpy:numpy.gcd'
+          assert external['source_version'] == '2.4.6'
+          assert external['source_exposure'] == 'io_only'
+          assert external['candidate_count'] == 4
+          assert external['initial_survivors'] == 4
+          assert external['active_selection_oracle_calls'] == 1
+          assert external['active_exact'] is True
+          assert external['random_one_probe_exact'] is False
+          assert external['passive_initial_only_exact'] is False
+          assert external['selected_probe_partition_count'] == 4
+          assert external['selected_probe_largest_partition'] == 1
+          assert external['verification_exact'] == external['verification_cases'] == 625
+          assert external['active_false_accepts'] == 0
+          assert external['oracle_calls_total'] == 629
+          assert external['probe_generation_uses_target_outputs'] is False
+
+          assert verify['hosted_run_id'] == 32119199311
+          assert verify['hosted_main_job_id'] == 95655513375
+          assert verify['hosted_main_job'] == 'success'
+          assert verify['source_lock_verified'] is True
+          assert verify['focused_r260_tests'] == 7
+          assert verify['protected_parent_relevant_tests'] == 198
+          assert verify['cross_python'] == {'3.11': 'success', '3.13': 'success'}
+          assert verify['frozen_phase_a_recomputed'] == 'success'
+          assert verify['frozen_external_recomputed'] == 'success'
+          assert verify['readiness_before'] == 47.8
+          assert verify['readiness_after'] == 48.1
+          assert verify['readiness_delta'] == 0.3
+          assert verify['world_audit_valid'] is True
+          assert verify['world_w5_passed'] is False
+          assert verify['world_w5_score'] == 0
+
+          assert world['audit']['valid'] is True
+          assert world['audit']['digest'] == '4825bb01fff57b28f37d79e43a5d6a16ca877dd6cbd12d5239405ad11606b6fb'
+          assert world['world_id'] == 'world4_88cbc495caa644cb'
+          assert world['epoch'] == 7
+          assert world['active_seconds_credited'] == 60.0
+          assert world['gate']['passed'] is False
+          assert world['gate']['score'] == 0
+          assert len(world['critical_unknowns']) >= 6
+
+          assert manifest['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert manifest['readiness'] == 48.1
+          assert manifest['trainable_parameter_count'] == 0
+          assert manifest['world_w5_passed'] is False
+          assert '48.1/100' in delivery
+          assert '## R2.60 — 48.1 / 100' in readiness
+          print('R260_RELEASE_BOUNDARY_OK')
+          PY
+      - name: Run R2.60 and accepted R2.59 release regressions
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py tests/test_r259_*.py
+      - name: Recompute pinned external transfer during release
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r260_external_active_probe_transfer import run_external_transfer
+          expected = json.loads(Path('R2_60_EXTERNAL_TRANSFER.json').read_text())
+          result = run_external_transfer(lambda a, b: int(np.gcd(a, b)), source_id='numpy:numpy.gcd', source_version=np.__version__)
+          assert np.__version__ == '2.4.6'
+          assert result == expected
+          print('R260_EXTERNAL_RECOMPUTE_OK')
+          PY
+      - name: Create complete repository snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip -o release/Nolane-AI-R2.60-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.60-COMPLETE.zip | tee release/Nolane-AI-R2.60-COMPLETE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.60-COMPLETE.zip
+      - name: Upload full repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.60-COMPLETE
+          path: |
+            release/Nolane-AI-R2.60-COMPLETE.zip
+            release/Nolane-AI-R2.60-COMPLETE.zip.sha256
+      - name: Publish release-bundle commit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r260/release-bundle',
+              'description': 'R2.60 release boundary, external recomputation, regressions and ZIP integrity passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY

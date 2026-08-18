@@ -1,0 +1,25 @@
+{
+  "accepted_parent_commit": "1e59bd13baabba0e1ba71294aa02365d4e661ee0",
+  "capability_commit": "eef1bf246a20cf682040dc48a4481380906d15ec",
+  "external_artifact_id": 9317856476,
+  "hosted_run_id": 32119199311,
+  "milestone": "R2.60",
+  "readiness": 48.1,
+  "release_files": [
+    "R2_59_TO_R2_60_EVOLUTION.md",
+    "R2_60_PRE_HOSTED_LOCK.json",
+    "R2_60_DELIVERY.md",
+    "R2_60_PHASE_A_RESULT.json",
+    "R2_60_EXTERNAL_TRANSFER.json",
+    "R2_60_VERIFY_RESULT.json",
+    "R2_60_WORLD_FINAL.json",
+    "R2_READINESS_RECALIBRATION.md"
+  ],
+  "release_workflow": ".github/workflows/r260-release-bundle.yml",
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "title": "Active Diagnostic Repository Probe Synthesis",
+  "trainable_parameter_count": 0,
+  "world_audit_digest": "4825bb01fff57b28f37d79e43a5d6a16ca877dd6cbd12d5239405ad11606b6fb",
+  "world_id": "world4_88cbc495caa644cb",
+  "world_w5_passed": false
+}

@@ -1,0 +1,49 @@
+{
+  "active_seconds_credited": 60.0,
+  "audit": {
+    "digest": "4825bb01fff57b28f37d79e43a5d6a16ca877dd6cbd12d5239405ad11606b6fb",
+    "events": 15,
+    "valid": true,
+    "world_id": "world4_88cbc495caa644cb"
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; active diagnostic input selection over an existing finite executable repository-patch version space, not independent candidate generation, open-ended/stateful/effectful test invention, general repository coding, unrestricted program synthesis, or AGI.",
+  "critical_unknowns": [
+    "R2.60 can only discriminate hypotheses that already exist in the supplied executable candidate version space; missing-target recovery and independent candidate generation are not established.",
+    "Legal probe domains remain finite and host-provided, and RepositoryProbe currently represents positional JSON-scalar inputs rather than stateful, temporal, filesystem, network, concurrency, dependency or other effectful experiments.",
+    "The pinned NumPy transfer uses an independently sourced I/O oracle but a host-authored four-hypothesis candidate ecology, so hypothesis-generation independence is not established.",
+    "The authored six-episode repository family inherits the R2.52 generator and may contain family-specific regularities despite target-output-free probe selection and candidate identity invariance.",
+    "Terminal safety currently relies on exhaustive verification: 2,401 oracle calls per authored accepted episode and 625 on the NumPy transfer, so total oracle-call efficiency is not demonstrated.",
+    "Independent challengers, adversarial fresh repositories, counterfactual representation families and broad issue-resolution evidence remain insufficient for W5 convergence."
+  ],
+  "epoch": 7,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence": {
+    "capability_commit": "eef1bf246a20cf682040dc48a4481380906d15ec",
+    "cross_python": {"3.11": "success", "3.13": "success"},
+    "external_artifact_id": 9317856476,
+    "main_job_id": 95655513375,
+    "parent_relevant_tests": 198,
+    "run_id": 32119199311,
+    "source_lock_verified": true
+  },
+  "information_gain": 5.528010902279254,
+  "milestone": "R2.60",
+  "world_id": "world4_88cbc495caa644cb"
+}
