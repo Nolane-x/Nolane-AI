@@ -1,6 +1,6 @@
 {
   "evidence_authority_regressions_frozen": true,
-  "evidence_refreeze_run_id": 32151143038,
+  "evidence_refreeze_run_id": 32152498894,
   "external_pinned_io_transfer_frozen": true,
   "external_result": "R2_66_EXTERNAL_TRANSFER.json",
   "external_source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
@@ -8,7 +8,7 @@
   "frozen_git_blobs": {
     ".github/workflows/r266-authority-hardening-pr.yml": "53f5c0e966604bfa6b266918a36082b13bf21f19",
     ".github/workflows/r266-canonical-gate.yml": "36635d250d239f77124facde78ca814221c8f063",
-    ".github/workflows/r266-external-contextual-transfer.yml": "6097c62969c66e1dfd1a0fa092b82458ec047db0",
+    ".github/workflows/r266-external-contextual-transfer.yml": "83016675c862488327c74bc9d21ff57dd8e459d7",
     ".github/workflows/r266-freeze-evidence.yml": "69a93adf29b9d6685673f6fede2270ac12c9c24e",
     ".github/workflows/r266-intervention-oracle-cross-python.yml": "f97a59df01f81f0c7186df4ea75226b349e3de74",
     ".github/workflows/r266-intervention-oracle-hotfix.yml": "fb55c151e7d4c04e7dd445e2c38e53a1077bbd39",
