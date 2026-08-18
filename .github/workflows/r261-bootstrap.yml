@@ -1,0 +1,31 @@
+name: R2.61 Bootstrap Exact Core
+on:
+  push:
+    branches: [r261-complementary-experiment-program-gpt56sol]
+    paths:
+      - '.r261-bootstrap/**'
+      - '.github/workflows/r261-bootstrap.yml'
+permissions:
+  contents: write
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reconstruct exact R2.61 core
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .r261-bootstrap/core.part.* | base64 -d > cogcoder/r261_complementary_experiment_program.py
+          test "$(git hash-object cogcoder/r261_complementary_experiment_program.py)" = "30b3d290d84209c54f686d36dc614294265599c6"
+          test "$(sha256sum cogcoder/r261_complementary_experiment_program.py | cut -d' ' -f1)" = "ed1d006d275088251122c1fcbf02a612ddd90c15bcc9c3fd868300aa22f56150"
+      - name: Commit reconstructed core to bootstrap branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/r261_complementary_experiment_program.py
+          git commit -m 'bootstrap: reconstruct exact R2.61 core'
+          git push origin HEAD:${GITHUB_REF_NAME}
