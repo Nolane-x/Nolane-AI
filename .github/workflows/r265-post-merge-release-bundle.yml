@@ -1,4 +1,5 @@
 name: R2.65 Final Post-Merge Complete Bundle
+# Triggered after accepted-main delivery, World, readiness and manifest closure.
 
 on:
   push:
