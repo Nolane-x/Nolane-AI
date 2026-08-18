@@ -172,6 +172,32 @@ def _test_probe_ids(tests: Sequence[PatchTest]) -> set[str]:
     return result
 
 
+def _hypothesis_structural_capacity(
+    seeds: Sequence[RepositoryPatchCandidate],
+    macro: PatchPrimitiveMacro,
+    *,
+    max_sites_per_hypothesis: int,
+) -> int:
+    """Return a target-output-free upper bound on legal sites for one primitive."""
+    site_budget = int(max_sites_per_hypothesis)
+    if site_budget < 0:
+        raise ValueError('max_sites_per_hypothesis must be non-negative')
+    if site_budget == 0:
+        return 0
+    capacity = 0
+    for seed in tuple(seeds):
+        for _path, source in sorted(seed.files):
+            tree = ast.parse(source)
+            site_count = sum(
+                1
+                for node in ast.walk(tree)
+                if isinstance(node, ast.BinOp)
+                and type(node.op).__name__ == macro.source_value
+            )
+            capacity += min(site_count, site_budget)
+    return capacity
+
+
 def _generate_hypothesis_fair_candidates(
     seeds: Sequence[RepositoryPatchCandidate],
     hypotheses: Sequence[PatchPrimitiveMacro],
@@ -179,25 +205,53 @@ def _generate_hypothesis_fair_candidates(
     max_generated_candidates: int,
     max_sites_per_hypothesis: int,
 ) -> tuple[PrimitiveCandidate, ...]:
-    """Round-robin legal candidates across primitive hypotheses.
+    """Generate fairly while enforcing the generation budget before expansion.
 
-    A hypothesis with many mutation sites may not monopolize the global returned
-    candidate budget. Enumeration remains deterministic and has no oracle,
-    target-output, expected-repository, or learned ranking channel.
+    The global budget is first distributed round-robin across structurally
+    applicable primitive hypotheses. Each underlying expansion call receives
+    only its assigned quota, so the sum of requested and returned upstream
+    candidates cannot exceed ``max_generated_candidates``. No oracle, target
+    output, expected repository, or learned ranking signal participates.
     """
     budget = int(max_generated_candidates)
     site_budget = int(max_sites_per_hypothesis)
     if budget < 0 or site_budget < 0:
         raise ValueError('generation budgets must be non-negative')
+    seeds = tuple(seeds)
+    hypotheses = tuple(hypotheses)
     if budget == 0 or site_budget == 0 or not seeds or not hypotheses:
         return ()
 
+    capacities = tuple(
+        _hypothesis_structural_capacity(
+            seeds, macro, max_sites_per_hypothesis=site_budget,
+        )
+        for macro in hypotheses
+    )
+    quotas = [0 for _ in hypotheses]
+    remaining = budget
+    while remaining > 0:
+        progressed = False
+        for index, capacity in enumerate(capacities):
+            if quotas[index] >= capacity:
+                continue
+            quotas[index] += 1
+            remaining -= 1
+            progressed = True
+            if remaining == 0:
+                break
+        if not progressed:
+            break
+
     banks: list[tuple[PatchPrimitiveMacro, tuple[object, ...]]] = []
-    for macro in hypotheses:
+    for macro, quota in zip(hypotheses, quotas):
+        if quota <= 0:
+            banks.append((macro, ()))
+            continue
         generated = expand_repository_candidates(
-            tuple(seeds),
+            seeds,
             (macro,),
-            max_generated_candidates=budget,
+            max_generated_candidates=quota,
             max_sites_per_macro=site_budget,
         )
         banks.append((macro, tuple(generated)))
