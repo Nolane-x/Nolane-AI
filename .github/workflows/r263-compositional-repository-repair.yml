@@ -1,0 +1,60 @@
+name: R2.63 Compositional Repository Repair
+
+on:
+  push:
+    branches: [r263-compositional-repository-repair-gpt56sol]
+    paths:
+      - 'cogcoder/r263_*.py'
+      - 'tests/test_r263_*.py'
+      - 'benchmarks/kfigg/r263_*.py'
+      - 'research/r263_*.py'
+      - 'R2_63_*.json'
+      - '.github/workflows/r263-compositional-repository-repair.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r263_*.py'
+      - 'tests/test_r263_*.py'
+      - 'benchmarks/kfigg/r263_*.py'
+      - 'research/r263_*.py'
+      - 'R2_63_*.json'
+      - '.github/workflows/r263-compositional-repository-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest
+      - name: Verify accepted R2.62 and R2.61 parents first
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_version_space_expansion.py tests/test_r261_expansion_novelty_proof.py
+      - name: Run R2.63 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Run R2.63 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
