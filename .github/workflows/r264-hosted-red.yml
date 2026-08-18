@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   red-contract:
@@ -20,4 +21,26 @@ jobs:
       - name: Install focused test dependency
         run: python -m pip install pytest
       - name: Run R2.64 RED contract before production module exists
-        run: PYTHONPATH=. python -m pytest -q tests/test_r264_hosted_red_contract.py
+        id: red
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r264_hosted_red_contract.py > r264-red.log 2>&1
+          rc=$?
+          cat r264-red.log
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          test "$rc" -ne 0
+      - name: Require contract-relevant missing-module failure
+        shell: bash
+        run: |
+          grep -F "ModuleNotFoundError: No module named 'cogcoder.r264_learned_contextual_composition'" r264-red.log
+      - name: Publish hosted RED evidence status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r264/tdd-red','description':'R2.64 hosted RED confirmed: production module absent','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
