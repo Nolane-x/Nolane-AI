@@ -1,0 +1,25 @@
+name: R2.64 Frontier Pruning Falsifier
+
+on:
+  push:
+    branches: [validation-r264-frontier-pruning-gpt56sol]
+    paths:
+      - 'tests/test_r264_frontier_pruning_falsifier.py'
+      - '.github/workflows/r264-frontier-pruning-falsifier.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  falsifier:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Run stale-frontier budget falsifier
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_frontier_pruning_falsifier.py
