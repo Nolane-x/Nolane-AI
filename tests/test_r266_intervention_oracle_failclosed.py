@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Post-fix independent replay against production R2.66 base 0edec9cddc47542eb7cf902f82f771e026bbb352.
+
 from collections.abc import Mapping
 
 from cogcoder.r266_learned_contextual_composition import discover_contextual_composition_structure
@@ -47,6 +49,8 @@ def test_nonfinite_intervention_oracle_result_fails_closed_globally() -> None:
     def oracle(context: Mapping[str, object]) -> float:
         nonlocal calls, intervention_failures
         calls += 1
+        # No original row has middle==0.0. This condition is reached only when
+        # the authorized 0-anchor intervention overwrites the middle field.
         if float(context['middle']) == 0.0:
             intervention_failures += 1
             return float('nan')
