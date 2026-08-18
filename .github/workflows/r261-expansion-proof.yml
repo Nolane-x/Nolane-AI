@@ -1,0 +1,58 @@
+name: R2.61 Expansion Novelty Proof
+
+on:
+  push:
+    branches: [r261-expansion-proof-gpt56sol-review]
+    paths:
+      - 'cogcoder/r261_expansion_proof.py'
+      - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
+      - 'tests/test_r261_expansion_novelty_proof.py'
+      - 'tests/test_r261_expansion_proof_benchmark.py'
+      - '.github/workflows/r261-expansion-proof.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/r261_expansion_proof.py'
+      - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
+      - 'tests/test_r261_expansion_novelty_proof.py'
+      - 'tests/test_r261_expansion_proof_benchmark.py'
+      - '.github/workflows/r261-expansion-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest
+      - name: Run expansion novelty proof tests and authored audit
+        run: PYTHONPATH=. python -m pytest -q tests/test_r261_expansion_novelty_proof.py tests/test_r261_expansion_proof_benchmark.py
+      - name: Publish proof status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r261/expansion-proof',
+            'description':'R2.61 content-addressed expansion novelty proof and authored audit passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
