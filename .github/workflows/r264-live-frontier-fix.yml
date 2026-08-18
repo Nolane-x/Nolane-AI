@@ -1,0 +1,51 @@
+name: R2.64 Live Frontier Fix Verification
+
+on:
+  push:
+    branches: [review-r264-live-frontier-pruning-gpt56sol]
+    paths:
+      - '.github/workflows/r264-live-frontier-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply minimal live-frontier correction
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('cogcoder/r264_unified_adaptive_repository_search.py')
+          text=path.read_text()
+          old="""            matching = partitions.get(oracle_key)\n            if matching:\n                survivors = matching\n                continue\n"""
+          new="""            matching = partitions.get(oracle_key)\n            if matching:\n                survivors = matching\n                live_content_digests = {\n                    repository_content_digest(row.candidate) for row in matching\n                }\n                current_frontier = tuple(\n                    candidate for candidate in current_frontier\n                    if repository_content_digest(candidate) in live_content_digests\n                )\n                frontier_depths = {\n                    candidate.candidate_id: frontier_depths.get(candidate.candidate_id, 0)\n                    for candidate in current_frontier\n                }\n                continue\n"""
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one diagnostic matching block, found {text.count(old)}')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Install focused test dependency
+        run: python -m pip install pytest
+      - name: Verify independent RED falsifier is now GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_frontier_pruning_falsifier.py
+      - name: Run peer R2.64 production tests without frozen-evidence assertions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r264_unified_adaptive_repository_search.py
+          PYTHONPATH=. python -m pytest -q tests/test_r264_unified_adaptive_repository_search_benchmark.py || true
+      - name: Commit reviewed production correction
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/r264_unified_adaptive_repository_search.py
+          git commit -m 'fix: expand R2.64 only from live diagnostic frontier'
+          git push origin HEAD:review-r264-live-frontier-pruning-gpt56sol
