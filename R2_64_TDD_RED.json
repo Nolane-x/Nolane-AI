@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64 Unified Adaptive Repository Search",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "red_gates": [
+    {
+      "stage": "core",
+      "workflow_run_id": 32129744638,
+      "job_id": 95688030191,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'cogcoder.r264_unified_adaptive_repository_search'",
+      "implementation_absent_at_red": true,
+      "accepted_r263_parent_passed_first": true
+    },
+    {
+      "stage": "authored_benchmark",
+      "workflow_run_id": 32130245883,
+      "job_id": 95689575518,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'benchmarks.kfigg.r264_unified_adaptive_repository_search'",
+      "implementation_absent_at_red": true
+    },
+    {
+      "stage": "external_transfer",
+      "workflow_run_id": 32130429352,
+      "job_id": 95690151793,
+      "python": "3.11",
+      "expected_failure": "ModuleNotFoundError: No module named 'research.r264_external_unified_transfer'",
+      "implementation_absent_at_red": true,
+      "accepted_r263_parent_passed_first": true
+    }
+  ],
+  "claim": "Each major R2.64 implementation layer was exercised by a hosted failing contract before that layer existed. The failures were missing-module collection failures rather than post-hoc failing assertions against already-written production implementations."
+}

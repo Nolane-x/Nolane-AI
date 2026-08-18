@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64 Unified Adaptive Repository Search",
+  "parent_release_commit": "1d1b05e0c1476327eaf3b2457aab16153a43c429",
+  "frozen_git_blobs": {
+    "cogcoder/r264_unified_adaptive_repository_search.py": "40b3c0c5312e6c3fd36e543f0095c60f297a1758",
+    "benchmarks/kfigg/r264_unified_adaptive_repository_search.py": "9bc1e99fae1bacebb67987d68f30562fcbc20b12",
+    "research/r264_external_unified_transfer.py": "be25310797a2c605b4137e78b108d4e14ef77db2",
+    "tests/test_r264_unified_adaptive_repository_search.py": "a3f886254354173de92733805e1a87e9f8e164db",
+    "tests/test_r264_unified_adaptive_benchmark.py": "45f0d768c8707c405590b5bd04ff23ff98fbe638",
+    "tests/test_r264_external_unified_transfer.py": "98915ef5f9fb4aa625438a22460e673fc90d5647"
+  },
+  "phase_a_result": "R2_64_PHASE_A_RESULT.json",
+  "external_result": "R2_64_EXTERNAL_TRANSFER.json",
+  "production_source_changes_after_lock_forbidden": true,
+  "note": "The lock pins the hardened R2.64 core, authored causal benchmark, callable-I/O external transfer and tests on top of accepted R2.63. Any later change to a frozen blob invalidates measurement and requires complete remeasurement before acceptance."
+}
