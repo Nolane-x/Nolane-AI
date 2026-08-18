@@ -1,0 +1,63 @@
+name: R2.65 True Global Generation Cap Fix
+
+on:
+  push:
+    branches: [fix-r265-true-global-generation-cap-gpt56sol]
+    paths:
+      - 'tests/test_r265_true_global_generation_cap.py'
+      - '.github/workflows/r265-true-global-generation-cap-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply true-global-budget scheduler
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('cogcoder/r265_verified_patch_primitive_induction.py')
+          text=path.read_text()
+          start=text.index('def _generate_hypothesis_fair_candidates(')
+          end=text.index('\n\ndef solve_repository_patch_with_primitive_induction(', start)
+          replacement='''def _hypothesis_structural_capacity(\n    seeds: Sequence[RepositoryPatchCandidate],\n    macro: PatchPrimitiveMacro,\n    *,\n    max_sites_per_hypothesis: int,\n) -> int:\n    \"\"\"Return a target-output-free upper bound on legal sites for one primitive.\"\"\"\n    site_budget = int(max_sites_per_hypothesis)\n    if site_budget < 0:\n        raise ValueError('max_sites_per_hypothesis must be non-negative')\n    if site_budget == 0:\n        return 0\n    capacity = 0\n    for seed in tuple(seeds):\n        for _path, source in sorted(seed.files):\n            tree = ast.parse(source)\n            site_count = sum(\n                1\n                for node in ast.walk(tree)\n                if isinstance(node, ast.BinOp)\n                and type(node.op).__name__ == macro.source_value\n            )\n            capacity += min(site_count, site_budget)\n    return capacity\n\n\ndef _generate_hypothesis_fair_candidates(\n    seeds: Sequence[RepositoryPatchCandidate],\n    hypotheses: Sequence[PatchPrimitiveMacro],\n    *,\n    max_generated_candidates: int,\n    max_sites_per_hypothesis: int,\n) -> tuple[PrimitiveCandidate, ...]:\n    \"\"\"Generate fairly while enforcing the generation budget before expansion.\n\n    The global budget is first distributed round-robin across structurally\n    applicable primitive hypotheses. Each underlying expansion call receives\n    only its assigned quota, so the sum of requested and returned upstream\n    candidates cannot exceed ``max_generated_candidates``. No oracle, target\n    output, expected repository, or learned ranking signal participates.\n    \"\"\"\n    budget = int(max_generated_candidates)\n    site_budget = int(max_sites_per_hypothesis)\n    if budget < 0 or site_budget < 0:\n        raise ValueError('generation budgets must be non-negative')\n    seeds = tuple(seeds)\n    hypotheses = tuple(hypotheses)\n    if budget == 0 or site_budget == 0 or not seeds or not hypotheses:\n        return ()\n\n    capacities = tuple(\n        _hypothesis_structural_capacity(\n            seeds, macro, max_sites_per_hypothesis=site_budget,\n        )\n        for macro in hypotheses\n    )\n    quotas = [0 for _ in hypotheses]\n    remaining = budget\n    while remaining > 0:\n        progressed = False\n        for index, capacity in enumerate(capacities):\n            if quotas[index] >= capacity:\n                continue\n            quotas[index] += 1\n            remaining -= 1\n            progressed = True\n            if remaining == 0:\n                break\n        if not progressed:\n            break\n\n    banks: list[tuple[PatchPrimitiveMacro, tuple[object, ...]]] = []\n    for macro, quota in zip(hypotheses, quotas):\n        if quota <= 0:\n            banks.append((macro, ()))\n            continue\n        generated = expand_repository_candidates(\n            seeds,\n            (macro,),\n            max_generated_candidates=quota,\n            max_sites_per_macro=site_budget,\n        )\n        banks.append((macro, tuple(generated)))\n\n    rows: list[PrimitiveCandidate] = []\n    seen_pairs: set[tuple[str, str]] = set()\n    rank = 0\n    while len(rows) < budget:\n        progressed = False\n        for macro, generated in banks:\n            if rank >= len(generated):\n                continue\n            progressed = True\n            row = generated[rank]\n            digest = repository_content_digest(row.candidate)\n            key = (macro.macro_id, digest)\n            if key in seen_pairs:\n                continue\n            seen_pairs.add(key)\n            rows.append(PrimitiveCandidate(macro, row.candidate, digest))\n            if len(rows) >= budget:\n                break\n        if not progressed:\n            break\n        rank += 1\n    return tuple(rows)\n'''
+          path.write_text(text[:start] + replacement + text[end:])
+          PY
+      - name: Install focused dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Run all R2.65 focused contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Recompute authored and external smoke
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          print('R265_TRUE_GLOBAL_CAP_GREEN')
+          PY
+      - name: Commit verified production fix
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/r265_verified_patch_primitive_induction.py
+          if git diff --cached --quiet; then
+            echo R265_TRUE_GLOBAL_CAP_ALREADY_APPLIED
+          else
+            git commit -m 'fix: enforce true global generation cap in R2.65'
+            git push origin HEAD:fix-r265-true-global-generation-cap-gpt56sol
+          fi
