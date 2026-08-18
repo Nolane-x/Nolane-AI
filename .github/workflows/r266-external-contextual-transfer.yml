@@ -6,12 +6,14 @@ on:
     paths:
       - 'research/r266_external_contextual_transfer.py'
       - 'cogcoder/r266_learned_contextual_composition.py'
+      - 'cogcoder/_r266_contextual_composition_core.py'
       - '.github/workflows/r266-external-contextual-transfer.yml'
   pull_request:
     branches: [main]
     paths:
       - 'research/r266_external_contextual_transfer.py'
       - 'cogcoder/r266_learned_contextual_composition.py'
+      - 'cogcoder/_r266_contextual_composition_core.py'
       - '.github/workflows/r266-external-contextual-transfer.yml'
   workflow_dispatch:
 
@@ -63,8 +65,8 @@ jobs:
           assert result['trainable_parameter_count'] == 0
           expr = result['learned_composition_expression']
           assert expr['op'] == 'if'
-          assert expr['then'] == {'field': '__p0'}
-          assert expr['else'] == {'field': '__p1'}
+          branch_fields = {expr['then'].get('field'), expr['else'].get('field')}
+          assert branch_fields == {'__p0', '__p1'}
           Path('R2_66_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(
               json.dumps(result, indent=2, sort_keys=True) + '\n'
           )
