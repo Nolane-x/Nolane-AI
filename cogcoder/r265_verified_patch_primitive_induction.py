@@ -129,7 +129,11 @@ def enumerate_patch_macro_hypotheses(
                 'replace',
                 source_value,
                 target_value,
-                support=0,
+                # PatchMacro's long-standing contract requires positive support.
+                # One unit here means only "this source operator was structurally
+                # observed in the authorized seed repository"; it is not behavioral
+                # evidence and does not influence hypothesis identity.
+                support=1,
             ))
     rows.sort(key=lambda row: (
         row.slot, row.operation, row.source_value, row.target_value, row.macro_id,
