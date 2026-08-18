@@ -6,13 +6,16 @@
     "cogcoder/r263_compositional_version_space_expansion.py": "025e92553ca88dcba63ec5690785ba22dd8c52bc",
     "benchmarks/kfigg/r263_compositional_version_space_expansion.py": "0fc14800381283eca3515d2e8a81e3d491547a4f",
     "research/r263_external_compositional_transfer.py": "5a40ba67418e296801dad8ecf243def315fd64e1",
+    "research/r263_external_subtract_transfer.py": "f264a4184c91dae90c9547c32e677614a946e44a",
     "tests/test_r263_compositional_version_space_expansion.py": "4afe6bbdbe325329324e4b7bdfb7996f1554dc46",
     "tests/test_r263_compositional_benchmark.py": "04b97e2fc5cbdce9e7417ed3f9c3af0541fb9b35",
-    "tests/test_r263_external_compositional_transfer.py": "d326a4ef3bebaa641ab2c46ec8769aa891b704c1"
+    "tests/test_r263_external_compositional_transfer.py": "d326a4ef3bebaa641ab2c46ec8769aa891b704c1",
+    "tests/test_r263_external_subtract_transfer.py": "f5c0e64fc2cd4834fdde1ce2b64ff11b7310a07b"
   },
   "phase_a_result": "R2_63_PHASE_A_RESULT.json",
   "external_result": "R2_63_EXTERNAL_TRANSFER.json",
+  "external_subtract_result": "R2_63_EXTERNAL_SUBTRACT_TRANSFER.json",
   "production_source_changes_after_lock_forbidden": true,
   "remeasurement_required": true,
-  "note": "Peer-derived identity/provenance hardening changed the production core after the first measurement. This lock pins that hardened core; complete exact Phase-A/external/cross-Python/protected-lineage remeasurement is required before acceptance."
+  "note": "This lock pins the hardened R2.63 core, authored benchmark, both independent callable-I/O transfer harnesses, and their tests. Full exact Phase-A/square/subtract/cross-Python/protected-lineage remeasurement is required before acceptance."
 }
