@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "audited_branch_commit": "05a1d36eed97945a962ba1711144ee1aeb0cc9e1",
+  "accepted_r264_parent": "91fa6c094f10df338ce95cf3fb89437e03943c39",
+  "hotfix_core_commit": "fc8ed7614d5eb53168d6cc513a16319217f5e137",
+  "public_router_commit": "e66ee9cecd4b126cf7c070588d9019de758250b6",
+  "source_lock_commit": "f6481eca9e5a4bffa228370b4ea7efa849b8f3e9",
+  "canonical_hosted_run": {
+    "run_id": 32133355598,
+    "conclusion": "success",
+    "source_lock_verified": true,
+    "causal_frontier_fairness_recomputed": true,
+    "accepted_r264_authored_evidence_recomputed_exact": true,
+    "accepted_r264_numpy_external_evidence_recomputed_exact": true,
+    "r264_plus_hotfix_focused": "success",
+    "protected_r263_to_r241_lineage": "success",
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    },
+    "published_full_gate": true
+  },
+  "independent_council_challenger": {
+    "run_id": 32133117863,
+    "conclusion": "success",
+    "live_survivor_tight_budget": "pass",
+    "contradicted_ancestor_bounded_fallback": "pass",
+    "target_output_free_hard_budget": "pass",
+    "peer_hotfix_contract": "pass",
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    }
+  },
+  "nolane_world": {
+    "runtime": "Nolane World 0.8.0",
+    "depth": "W5",
+    "world_id": "world4_6be1453f6f3a4936",
+    "audit_valid": true,
+    "audit_digest": "d1125996f5f8708e9359321129350f10e1e71f7216dbbeeb51ef0c2f4c7a8830",
+    "gate_passed": false,
+    "gate_score": 0,
+    "convergence_claimed": false
+  },
+  "causal_discrimination": {
+    "stale_frontier_reproduced": true,
+    "destructive_pruning_rejected": true,
+    "live_first_bounded_fallback_supported": true
+  },
+  "residual_unknowns": [
+    "Multi-round persistence/completeness of contradicted-ancestor fallback is not established by this hotfix evidence.",
+    "The evidence does not establish arbitrary scheduler fairness over unbounded hypotheses, rounds, macros, languages, or repository shapes."
+  ],
+  "decision": "SUPPORTED_AS_BOUNDED_CORRECTNESS_HARDENING_SUBJECT_TO_RELEASE_BINDING",
+  "claim_boundary": "Independent evidence supports the bounded R2.64.1 live-first frontier fairness repair and preservation of the previously accepted R2.64 capability surface. It does not establish general repository repair completeness, open-ended autonomy, AGI, or frontier-model equivalence."
+}
