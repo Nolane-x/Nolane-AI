@@ -1,0 +1,38 @@
+name: R2.67 Three-Probe Causal Composition
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - 'cogcoder/r267_*.py'
+      - 'tests/test_r267_*.py'
+      - '.github/workflows/r267-three-probe-causal-composition.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r267_*.py'
+      - 'tests/test_r267_*.py'
+      - '.github/workflows/r267-three-probe-causal-composition.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.66 parent first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: R2.67 three-probe contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
