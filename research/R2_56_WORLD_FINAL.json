@@ -1,0 +1,41 @@
+{
+  "active_seconds_credited": 0.0,
+  "audit": {
+    "digest": "3ffef684f0e83c38bb6a943954a5e6ad2cb24036eb9997b96ceade20a8c7f7c4",
+    "events": 11,
+    "valid": true
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; finite pure DSL invention, not arbitrary program/effectful tool invention or AGI.",
+  "critical_unknowns": [
+    "DSL opcode vocabulary remains hand-designed and finite; R2.56 does not invent new syntax/evaluator semantics.",
+    "Only pure in-memory transforms are inventable; effectful tool/operator invention is not proven.",
+    "Authored benchmark is synthetic and independent transfer covers one narrow external pure function family.",
+    "Search cost can explode with depth/arity; no large open-ended synthesis scalability proof exists.",
+    "Challenge suites can miss observationally equivalent but wrong expressions outside sampled domains.",
+    "No broad autonomous repository-repair improvement is directly measured by R2.56.",
+    "External oracle execution still requires trusted/sandboxed source handling for hostile code.",
+    "Natural-language task decomposition into the correct invention need is not proven."
+  ],
+  "epoch": 8,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence_artifact": "R2.56-Boltons-External-Operator-Transfer#9309144656",
+  "milestone": "R2.56",
+  "world_id": "world4_cdb6c2cd6cad4606"
+}
