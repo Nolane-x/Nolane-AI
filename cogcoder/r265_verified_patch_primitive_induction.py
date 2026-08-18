@@ -150,9 +150,6 @@ def enumerate_patch_macro_hypotheses(
                 'replace',
                 source_value,
                 target_value,
-                # PatchMacro requires positive support.  Here support=1 means only
-                # that the source operator was structurally observed in an
-                # authorized seed; it is not behavioral/oracle evidence.
                 support=1,
             ))
     rows.sort(key=lambda row: (
@@ -185,7 +182,7 @@ def _generate_hypothesis_fair_candidates(
     """Round-robin legal candidates across primitive hypotheses.
 
     A hypothesis with many mutation sites may not monopolize the global returned
-    candidate budget.  Enumeration remains deterministic and has no oracle,
+    candidate budget. Enumeration remains deterministic and has no oracle,
     target-output, expected-repository, or learned ranking channel.
     """
     budget = int(max_generated_candidates)
@@ -405,7 +402,7 @@ def solve_repository_patch_with_primitive_induction(
     candidate_evaluations += compile_evals
     filtered, filter_evals = _filter_initial(generated_compiled, tuple(observed_tests))
     candidate_evaluations += filter_evals
-    allowed_ids = {candidate.candidate_id for candidate in filtered}
+    allowed_ids = {row.candidate.candidate_id for row in filtered}
     live = [row for row in primitive_rows if row.candidate.candidate_id in allowed_ids]
     candidates_after_diagnostic = len(live)
     if not live:
@@ -446,10 +443,7 @@ def solve_repository_patch_with_primitive_induction(
     unique_by_pair: dict[tuple[str, str], PrimitiveCandidate] = {
         (row.macro.macro_id, row.content_digest): row for row in live
     }
-    live = sorted(
-        unique_by_pair.values(),
-        key=lambda row: (row.content_digest, row.macro.macro_id),
-    )
+    live = sorted(unique_by_pair.values(), key=lambda row: (row.content_digest, row.macro.macro_id))
     if len(live) != 1:
         return receipt('abstain', None, None, False, 'primitive_hypothesis_ambiguous')
 
@@ -470,10 +464,7 @@ def solve_repository_patch_with_primitive_induction(
                 verification_failures=1,
             )
 
-    return receipt(
-        'accept', selected.candidate, selected.macro, True,
-        'induced_patch_primitive_verified',
-    )
+    return receipt('accept', selected.candidate, selected.macro, True, 'induced_patch_primitive_verified')
 
 
 __all__ = [
