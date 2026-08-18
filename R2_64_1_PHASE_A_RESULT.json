@@ -1,0 +1,44 @@
+{
+  "all_gates_pass": true,
+  "capability": "evidence-aware-live-frontier-first-bounded-generation-with-repair-fallback",
+  "claim_boundary": "Correctness hardening of accepted R2.64 bounded trusted-PatchMacro scheduling. No new patch language, oracle channel, target-output generation channel, effectful autonomy, or AGI claim.",
+  "gates": {
+    "accepted_r264_reproduces_starvation": true,
+    "fallback_budget_respected": true,
+    "hotfix_repairs_all_tight_cases": true,
+    "repairable_ancestor_fallback_preserved": true,
+    "roomy_control_remains_exact": true,
+    "target_output_free_generation": true,
+    "tight_budget_respected": true,
+    "zero_false_terminal_accepts": true,
+    "zero_trainable_parameters": true,
+    "zero_verification_failures": true
+  },
+  "heldout_episodes": [6101, 6113, 6121, 6131, 6143, 6151],
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "rows": [
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6101, "target_output_leakage": false, "verification_failures": 0},
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6113, "target_output_leakage": false, "verification_failures": 0},
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6121, "target_output_leakage": false, "verification_failures": 0},
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6131, "target_output_leakage": false, "verification_failures": 0},
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6143, "target_output_leakage": false, "verification_failures": 0},
+    {"accepted_r264_tight_exact": false, "accepted_r264_tight_status": "abstain", "fallback_admitted": 1, "fallback_exact": true, "fallback_generated": 1, "fallback_status": "accept", "false_terminal_accepts": 0, "hotfix_roomy_exact": true, "hotfix_roomy_status": "accept", "hotfix_tight_admitted": 1, "hotfix_tight_exact": true, "hotfix_tight_generated": 1, "hotfix_tight_status": "accept", "seed": 6151, "target_output_leakage": false, "verification_failures": 0}
+  ],
+  "schema_version": 1,
+  "summary": {
+    "accepted_r264_tight_abstains": 6,
+    "episodes": 6,
+    "fallback_exact": 6,
+    "fallback_one_admitted_each": 6,
+    "fallback_one_generated_each": 6,
+    "false_terminal_accepts": 0,
+    "hotfix_roomy_exact": 6,
+    "hotfix_tight_exact": 6,
+    "target_output_leakage": false,
+    "tight_one_admitted_each": 6,
+    "tight_one_generated_each": 6,
+    "trainable_parameter_count": 0,
+    "verification_failures": 0
+  },
+  "trainable_parameter_count": 0
+}

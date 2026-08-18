@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "parent_release_commit": "91fa6c094f10df338ce95cf3fb89437e03943c39",
+  "frozen_git_blobs": {
+    "cogcoder/r264_unified_adaptive_repository_search.py": "19d1b49a47f8842471d430a2bb54035de6806b0b",
+    "cogcoder/r264_unified_adaptive_repository_search_base.py": "40b3c0c5312e6c3fd36e543f0095c60f297a1758",
+    "cogcoder/r264_frontier_fairness_hotfix.py": "4077be2557e806bd3f77699e497d0348337e4cc2",
+    "benchmarks/kfigg/r264_1_frontier_fairness.py": "cd750371cce4ebc455decefeebdf525ac91b1d87",
+    "tests/test_r264_frontier_fairness.py": "d5d43068a4c3385389218eb850cfeb15689a443e",
+    "tests/test_r264_1_frontier_fairness_benchmark.py": "a440bfb9b2c93ff4bfb571a9540169963e435b26"
+  },
+  "inherited_exact_evidence": {
+    "r264_phase_a": "R2_64_PHASE_A_RESULT.json",
+    "r264_external_numpy_square": "R2_64_EXTERNAL_TRANSFER.json"
+  },
+  "production_source_changes_after_lock_forbidden": true,
+  "note": "Any change to a frozen hotfix blob invalidates canonical R2.64.1 measurement. The original accepted R2.64 solver is preserved byte-identically as the base module so the causal before/after comparison remains executable."
+}

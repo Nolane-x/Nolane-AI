@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "parent_release_commit": "91fa6c094f10df338ce95cf3fb89437e03943c39",
+  "red_commit": "e334e56c6cd458a46e809ca38076088cd0abf5f8",
+  "workflow_run_id": 32132315543,
+  "focused_job_id": 95695942271,
+  "result": {
+    "passed": 2,
+    "failed": 1,
+    "failed_test": "test_live_frontier_gets_first_generation_slot_after_prior_diagnostic_filtering",
+    "observed_status": "abstain",
+    "required_status": "accept"
+  },
+  "controls": {
+    "roomy_budget_target_expressible": "pass",
+    "repairable_contradicted_ancestor_fallback": "pass"
+  },
+  "independent_premerge_falsifier": {
+    "workflow_run_id": 32131666124,
+    "result": "1 passed, 1 failed",
+    "same_tight_budget_failure": true
+  },
+  "root_cause_boundary": "The accepted R2.64 diagnostic control loop keeps a broader authorized frontier across a successful partition narrowing. On a later out-of-space observation, globally capped content-sorted generation can spend the sole slot on a parent contradicted by earlier public evidence before expanding a currently-live parent whose child is exact.",
+  "production_hotfix_absent_at_red": true
+}
