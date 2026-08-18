@@ -384,7 +384,7 @@ class ContextualCompositionStructureReceipt:
 
 
 def _profile_semantic_id(profile: ContextualInterventionProfile) -> str:
-    raw = json.dumps(list(profile.outputs), sort_keys=True, separators=(',', ':'), allow_nan=False)
+    raw = semantic_vector_key(profile.outputs)
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
 
 
@@ -716,6 +716,9 @@ class ContextualCompositionSynthesisReceipt:
     final_validation_exact: int
     reason: str
     trainable_parameter_count: int = 0
+    oracle_calls_total: int = 0
+    terminal_probe_validation_cases: int = 0
+    terminal_probe_validation_exact: int = 0
 
 
 def synthesize_contextual_composition_program(
