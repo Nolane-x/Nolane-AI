@@ -1,0 +1,88 @@
+{
+  "anchor_values": [
+    0.0,
+    1.0
+  ],
+  "candidate_interventions_considered": 20,
+  "challenge_cases": 8,
+  "challenge_exact": 8,
+  "claim_boundary": "Autonomous bounded pure-input intervention discovery with causal downstream utility on one I/O-only numeric family; not open-ended experiment invention, source induction, or general program synthesis.",
+  "heldout_cases": 24,
+  "heldout_exact": 24,
+  "host_selected_intervention": false,
+  "learned_abstraction_digests": [
+    "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a",
+    "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f",
+    "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+  ],
+  "learned_expression": {
+    "args": [
+      {
+        "field": "v4"
+      },
+      {
+        "args": [
+          {
+            "args": [
+              {
+                "field": "v0"
+              },
+              {
+                "field": "v2"
+              },
+              {
+                "field": "v1"
+              }
+            ],
+            "call": "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+          },
+          {
+            "const": 0.0
+          },
+          {
+            "const": 1.0
+          }
+        ],
+        "call": "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a"
+      },
+      {
+        "field": "v3"
+      }
+    ],
+    "call": "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f"
+  },
+  "no_seed_candidates_considered": 1000,
+  "no_seed_passed": false,
+  "oracle_calls_during_discovery": 211,
+  "oracle_calls_total": 251,
+  "ordered_input_schema": "opaque-positional-five-field",
+  "passed": true,
+  "probe_validation_cases": 4,
+  "probe_validation_exact": 4,
+  "seeded_candidates_considered": 203,
+  "seeded_passed": true,
+  "selected_bindings": [
+    [
+      3,
+      1.0
+    ],
+    [
+      4,
+      0.0
+    ]
+  ],
+  "selected_intervention_id": "intv.0da50689004f04a3f4963619337a749e73828a3ac924a54330c9c4b74a386fa7",
+  "selected_position_set": [
+    3,
+    4
+  ],
+  "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+  "source_exposure": "io_only",
+  "source_id": "WarrenWeckesser/ufunclab:ufunclab.linearstep",
+  "synthesis_candidates_considered": 136969,
+  "trainable_parameter_count": 0,
+  "used_abstraction_ids": [
+    "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a",
+    "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a"
+  ]
+}
