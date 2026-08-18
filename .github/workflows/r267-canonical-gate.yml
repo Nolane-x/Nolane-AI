@@ -1,0 +1,162 @@
+name: R2.67 Canonical Full Gate
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - 'R2_67_PRE_HOSTED_LOCK.json'
+      - 'R2_67_PHASE_A_RESULT.json'
+      - 'R2_67_EXTERNAL_TRANSFER.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'R2_67_PRE_HOSTED_LOCK.json'
+      - 'R2_67_PHASE_A_RESULT.json'
+      - 'R2_67_EXTERNAL_TRANSFER.json'
+      - 'cogcoder/r267_*.py'
+      - 'tests/test_r267_*.py'
+      - 'benchmarks/kfigg/r267_*.py'
+      - 'research/r267_*.py'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify frozen boundary exists
+        run: |
+          test -f R2_67_PRE_HOSTED_LOCK.json
+          test -f R2_67_PHASE_A_RESULT.json
+          test -f R2_67_EXTERNAL_TRANSFER.json
+      - name: Run exact R2.67 and accepted R2.66 contracts
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+
+  canonical-full-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install canonical dependencies
+        run: |
+          python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Verify exact accepted parent and frozen source blobs
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e2eef08f15e7c0a5e79f58579282db90c157cb4a HEAD
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_67_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['schema_version'] >= 1
+          assert lock['milestone'] == 'R2.67'
+          assert lock['accepted_parent_release_commit'] == 'e2eef08f15e7c0a5e79f58579282db90c157cb4a'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          assert lock['three_probe_requirement_frozen'] is True
+          assert lock['singleton_ablation_falsification_frozen'] is True
+          assert lock['pair_ablation_falsification_frozen'] is True
+          assert lock['ablation_inconclusive_fails_closed_frozen'] is True
+          assert lock['semantic_triplet_invariance_frozen'] is True
+          assert lock['semantic_terminal_disjointness_frozen'] is True
+          assert lock['terminal_probe_reobservation_frozen'] is True
+          assert lock['terminal_validator_before_oracle_frozen'] is True
+          assert lock['oracle_ledger_frozen'] is True
+          assert lock['pinned_external_version'] == '2.4.6'
+          assert lock['trainable_parameter_count'] == 0
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R267_FROZEN_SOURCE_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Recompute exact authored and pinned external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_three_probe_causal_composition import run_benchmark
+          from research.r267_external_dot_transfer import run_external_transfer
+          assert np.__version__ == '2.4.6'
+          phase=run_benchmark()
+          frozen_phase=json.loads(Path('R2_67_PHASE_A_RESULT.json').read_text())
+          assert phase == frozen_phase
+          source_id=json.loads(Path('R2_67_EXTERNAL_TRANSFER.json').read_text())['source_id']
+          external=run_external_transfer(np.dot, source_id=source_id, source_version=np.__version__)
+          frozen_external=json.loads(Path('R2_67_EXTERNAL_TRANSFER.json').read_text())
+          assert external == frozen_external
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          assert external['false_accepts'] == 0
+          assert external['trainable_parameter_count'] == 0
+          print('R267_EXACT_EVIDENCE_OK')
+          PY
+      - name: Run R2.67 and accepted R2.66 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Run protected R2.65 through R2.60 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Run protected R2.59 through R2.50 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run protected R2.49 through R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+
+  publish-full-gate:
+    needs: [cross-python, canonical-full-gate]
+    runs-on: ubuntu-latest
+    if: success()
+    steps:
+      - name: Publish canonical success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r267/canonical-full-gate',
+              'description':'Frozen R2.67 exact evidence, cross-Python and protected R2.66→R2.41 lineage passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R267_CANONICAL_STATUS_PUBLISHED')
+          PY
