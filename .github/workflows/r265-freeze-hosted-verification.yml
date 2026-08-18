@@ -1,0 +1,139 @@
+name: R2.65 Freeze Hosted Verification
+
+on:
+  push:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'R2_65_PRE_HOSTED_LOCK.json'
+      - 'R2_65_PHASE_A_RESULT.json'
+      - 'R2_65_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r265-freeze-hosted-verification.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install verification dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify frozen source and exact evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          print('R265_FROZEN_EVIDENCE_OK')
+          PY
+      - name: Run focused and protected lineage; freeze receipt
+        env:
+          GH_RUN_ID: ${{ github.run_id }}
+          GH_SHA: ${{ github.sha }}
+          GH_REF: ${{ github.ref_name }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, os, re, subprocess
+          from pathlib import Path
+
+          if Path('R2_65_HOSTED_VERIFICATION.json').exists():
+              print('R265_HOSTED_RECEIPT_ALREADY_FROZEN')
+              raise SystemExit(0)
+
+          commands = [
+              ('R2.65', ['python','-m','pytest','-q','tests/test_r265_*.py']),
+              ('R2.64', ['python','-m','pytest','-q','tests/test_r264_*.py']),
+              ('R2.63', ['python','-m','pytest','-q','tests/test_r263_*.py']),
+              ('R2.62', ['python','-m','pytest','-q','tests/test_r262_*.py']),
+              ('R2.61', ['python','-m','pytest','-q','tests/test_r261_*.py']),
+              ('R2.60', ['python','-m','pytest','-q','tests/test_r260_*.py']),
+              ('R2.59', ['python','-m','pytest','-q','tests/test_r259_*.py']),
+              ('R2.58', ['python','-m','pytest','-q','tests/test_r258_*.py']),
+              ('R2.57', ['python','-m','pytest','-q','tests/test_r257_*.py']),
+              ('R2.56', ['python','-m','pytest','-q','tests/test_r256_*.py']),
+              ('R2.55', ['python','-m','pytest','-q','tests/test_r255_*.py']),
+              ('R2.54-R2.50', ['bash','-lc','PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py']),
+              ('R2.49-R2.41', ['bash','-lc','PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py']),
+          ]
+          counts={}
+          for label, command in commands:
+              proc=subprocess.run(command, text=True, capture_output=True, env={**os.environ,'PYTHONPATH':'.'})
+              print(proc.stdout)
+              print(proc.stderr)
+              if proc.returncode != 0:
+                  raise SystemExit(proc.returncode)
+              text=proc.stdout+'\n'+proc.stderr
+              matches=[int(v) for v in re.findall(r'(\d+) passed', text)]
+              if not matches:
+                  raise AssertionError((label, text[-2000:]))
+              counts[label]=sum(matches)
+
+          parent_total=sum(value for key, value in counts.items() if key != 'R2.65')
+          phase=json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          receipt={
+              'schema_version':1,
+              'milestone':'R2.65 Verified Patch Primitive Induction',
+              'status':'HOSTED_BRANCH_VERIFICATION_PASSED',
+              'workflow_run_id':int(os.environ['GH_RUN_ID']),
+              'verified_branch_head':os.environ['GH_SHA'],
+              'branch':os.environ['GH_REF'],
+              'accepted_parent_main_sha':lock['parent_release_commit'],
+              'source_lock':{'passed':True,'blob_count':len(lock['frozen_git_blobs'])},
+              'exact_evidence_recomputation':{'phase_a':True,'external_numpy_2_4_6_multiply':True},
+              'r265_focused':{'passed':counts['R2.65'],'failed':0},
+              'protected_parent_lineage':{
+                  **{key:value for key,value in counts.items() if key != 'R2.65'},
+                  'total_passed':parent_total,
+                  'failed':0,
+              },
+              'phase_a':phase['summary'],
+              'external':{
+                  'source_id':external['source_id'],
+                  'source_version':external['source_version'],
+                  'r264_reason':external['r264_baseline']['reason'],
+                  'r265_reason':external['r265']['reason'],
+                  'verification_cases':external['verification_cases'],
+                  'verification_exact':external['verification_exact'],
+                  'total_external_oracle_calls':external['total_external_oracle_calls'],
+              },
+              'added_trainable_parameters':0,
+              'claim_boundary':'Hosted branch verification establishes exact bounded R2.65 closed-grammar primitive-induction evidence and protected lineage, not open-ended patch-language invention, broad autonomy, W5 convergence, or AGI.'
+          }
+          Path('R2_65_HOSTED_VERIFICATION.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
+          print('R265_HOSTED_RECEIPT_READY', counts, parent_total)
+          PY
+      - name: Commit hosted receipt if newly frozen
+        run: |
+          set -euo pipefail
+          if [ ! -f R2_65_HOSTED_VERIFICATION.json ]; then
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_65_HOSTED_VERIFICATION.json
+          if git diff --cached --quiet; then
+            echo R265_HOSTED_RECEIPT_UNCHANGED
+          else
+            git commit -m 'release: freeze hosted R2.65 verification receipt'
+            git push origin HEAD:r265-verified-patch-language-induction-gpt56sol
+          fi
