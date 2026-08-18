@@ -48,55 +48,29 @@ def _key(row: Mapping[str, object]) -> str:
     return json.dumps(dict(row), sort_keys=True, separators=(',', ':'), allow_nan=False)
 
 
-def _one_field_zero_interventions(rows: tuple[dict[str, float], ...]) -> set[str]:
-    keys: set[str] = set()
-    for row in rows:
-        for field in FIELDS:
-            changed = dict(row)
-            changed[field] = 0.0
-            if changed != row:
-                keys.add(_key(changed))
-    return keys
+def _apply(row: Mapping[str, object], bindings: tuple[tuple[int, object], ...]) -> dict[str, object]:
+    changed = dict(row)
+    for position, value in bindings:
+        changed[FIELDS[position]] = value
+    return changed
 
 
-def test_terminal_authority_rechecks_selected_intervention_outputs_not_only_final_expression() -> None:
-    rows = _rows()
-    discovery = rows[:18]
-    validation = rows[18:24]
-    terminal = rows[24:30]
-
-    learning_query_keys = _one_field_zero_interventions(discovery + validation)
-    terminal_original_keys = {_key(row) for row in terminal}
-    terminal_intervention_keys = (
-        _one_field_zero_interventions(terminal)
-        - learning_query_keys
-        - terminal_original_keys
-    )
-    assert terminal_intervention_keys
-
-    calls = 0
-    terminal_intervention_calls = 0
-
-    def oracle(row: Mapping[str, object]) -> float:
-        nonlocal calls, terminal_intervention_calls
-        calls += 1
-        if _key(row) in terminal_intervention_keys:
-            terminal_intervention_calls += 1
-            return float('nan')
-        return _band_select(row)
-
-    need = OperatorInventionNeed(
-        'R2.66 independent terminal intervention evidence',
+def _need(label: str) -> OperatorInventionNeed:
+    return OperatorInventionNeed(
+        label,
         FIELDS,
         'out',
         constants=(0.0,),
         max_depth=3,
         max_candidates=25_000,
     )
-    receipt = synthesize_contextual_composition_program(
+
+
+def _run(oracle, discovery, validation, terminal):
+    return synthesize_contextual_composition_program(
         oracle,
         FIELDS,
-        need,
+        _need('R2.66 independent terminal selected-probe evidence'),
         discovery,
         validation,
         terminal_contexts=terminal,
@@ -110,10 +84,56 @@ def test_terminal_authority_rechecks_selected_intervention_outputs_not_only_fina
         probe_max_candidates=20_000,
     )
 
-    # R2.66 claims a terminally verified causal composition. Terminal authority must
-    # therefore independently re-observe the selected interventions/probes, not only
-    # evaluate the already-synthesized final expression on untouched terminal rows.
-    assert terminal_intervention_calls > 0
+
+def test_terminal_authority_rechecks_selected_intervention_outputs_not_only_final_expression() -> None:
+    rows = _rows()
+    discovery = rows[:18]
+    validation = rows[18:24]
+    terminal = rows[24:30]
+
+    # First freeze the exact causal pair selected by the normal oracle. This prevents
+    # a future implementation from satisfying the challenger by querying an unrelated
+    # terminal intervention while leaving the two selected learned probes untested.
+    control = _run(_band_select, discovery, validation, terminal)
+    assert control.passed is True
+    assert control.structure.selected is not None
+    assert len(control.probe_expressions) == 2
+    selected_interventions = (
+        control.structure.selected.left_profile.intervention,
+        control.structure.selected.right_profile.intervention,
+    )
+
+    learning_query_keys: set[str] = set()
+    for row in discovery + validation:
+        learning_query_keys.add(_key(row))
+        for intervention in selected_interventions:
+            learning_query_keys.add(_key(_apply(row, intervention.bindings)))
+
+    terminal_original_keys = {_key(row) for row in terminal}
+    selected_terminal_query_keys = {
+        _key(_apply(row, intervention.bindings))
+        for row in terminal
+        for intervention in selected_interventions
+    } - learning_query_keys - terminal_original_keys
+    assert selected_terminal_query_keys
+
+    calls = 0
+    selected_terminal_intervention_calls = 0
+
+    def oracle(row: Mapping[str, object]) -> float:
+        nonlocal calls, selected_terminal_intervention_calls
+        calls += 1
+        if _key(row) in selected_terminal_query_keys:
+            selected_terminal_intervention_calls += 1
+            return float('nan')
+        return _band_select(row)
+
+    receipt = _run(oracle, discovery, validation, terminal)
+
+    # A terminally verified causal composition must independently re-observe the
+    # selected interventions and validate the two learned probe expressions before
+    # granting authority to the final composition.
+    assert selected_terminal_intervention_calls > 0
     assert receipt.passed is False
     assert 'terminal' in receipt.reason
     assert calls > receipt.structure.oracle_calls
