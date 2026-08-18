@@ -1,0 +1,81 @@
+{
+  "authored_benchmark": {
+    "cegis_refinements": 2,
+    "episodes": 9,
+    "exact": 9,
+    "false_accepts": 0,
+    "live_exact": 9,
+    "max_search_evaluations": 332,
+    "promotions": 9,
+    "r255_no_invention_baseline_exact": 0,
+    "transactional_rollbacks": 1
+  },
+  "capability_commit": "4d407560b27a022d242aafdb391848cb0b019143",
+  "claim_boundary": "Finite deterministic pure-DSL operator invention with challenge/CEGIS/promotion/rollback and one independently sourced pure-function oracle transfer; not arbitrary code synthesis, effectful invention, broad coding autonomy, or AGI.",
+  "external_transfer": {
+    "cegis_rounds": 0,
+    "challenge_cases": 8,
+    "claim_boundary": "The external source is executed only as an input/output oracle. The learner never parses its implementation. Success demonstrates bounded pure-DSL operator invention for this sampled function, not arbitrary code synthesis.",
+    "commit": "673e010d0afabc2f530e8d1f67f0a47c37afa7f4",
+    "expression": {
+      "left": {"field": "upper"},
+      "op": "min",
+      "right": {"left": {"field": "lower"}, "op": "max", "right": {"field": "x"}}
+    },
+    "expression_digest": "33852d9257906d85c040361a5bfc44a00723564eaa11f2cbbf33d77bd2e6fb6f",
+    "failures": [],
+    "function_name": "clamp",
+    "heldout_cases": 24,
+    "heldout_exact": 24,
+    "milestone": "R2.56",
+    "operator_id": "invented.33852d9257906d85c040",
+    "passed": true,
+    "repository": "mahmoud/boltons",
+    "search_evaluations": 11961,
+    "source_sha256": "3d81dc8b44136299857373a8f53d50dbf0be7aabfa34e7bcfee7c6b41b3b3236",
+    "source_was_parsed_by_learner": false,
+    "trainable_parameter_count": 0,
+    "training_cases": 8,
+    "validation": "independently-sourced-pure-function-oracle-transfer"
+  },
+  "focused_tests": {"failed": 0, "passed": 16},
+  "hosted_gate_commit": "4d407560b27a022d242aafdb391848cb0b019143",
+  "hosted_job_id": 95580301289,
+  "hosted_run_id": 32093519045,
+  "hosted_statuses": {
+    "r256/cross-python-3.11": "success",
+    "r256/cross-python-3.13": "success",
+    "r256/hosted-gate": "success"
+  },
+  "milestone": "R2.56",
+  "protected_lineage": {"failed": 0, "passed": 144, "range": "R2.55->R2.41 relevant tests"},
+  "readiness": {"current": 46.8, "delta": 0.8, "previous": 46.0, "rubric": "internal Coding-AGI engineering-readiness; not AGI probability"},
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "trainable_parameter_count_added": 0,
+  "world": {
+    "active_seconds_credited": 0.0,
+    "audit": {"digest": "3ffef684f0e83c38bb6a943954a5e6ad2cb24036eb9997b96ceade20a8c7f7c4", "events": 11, "valid": true},
+    "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; finite pure DSL invention, not arbitrary program/effectful tool invention or AGI.",
+    "critical_unknowns": [
+      "DSL opcode vocabulary remains hand-designed and finite; R2.56 does not invent new syntax/evaluator semantics.",
+      "Only pure in-memory transforms are inventable; effectful tool/operator invention is not proven.",
+      "Authored benchmark is synthetic and independent transfer covers one narrow external pure function family.",
+      "Search cost can explode with depth/arity; no large open-ended synthesis scalability proof exists.",
+      "Challenge suites can miss observationally equivalent but wrong expressions outside sampled domains.",
+      "No broad autonomous repository-repair improvement is directly measured by R2.56.",
+      "External oracle execution still requires trusted/sandboxed source handling for hostile code.",
+      "Natural-language task decomposition into the correct invention need is not proven."
+    ],
+    "epoch": 8,
+    "gate": {
+      "blockers": [
+        "active residency insufficient", "insufficient cognitive epochs", "critical_unknowns unresolved", "fresh verification missing", "independent challenger missing", "robust/counterfactual worlds insufficient", "representation diversity insufficient", "material value-of-thought remains", "quality floor correctness", "quality floor evidence", "quality floor robustness", "quality floor verification"
+      ],
+      "passed": false,
+      "score": 0
+    },
+    "hosted_evidence_artifact": "R2.56-Boltons-External-Operator-Transfer#9309144656",
+    "milestone": "R2.56",
+    "world_id": "world4_cdb6c2cd6cad4606"
+  }
+}
