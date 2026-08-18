@@ -3,47 +3,54 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Any, Iterable
+from typing import Iterable, Mapping
 
 
-def _canonical_json(payload: dict[str, Any]) -> str:
-    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+def _nonempty(value: str, name: str) -> str:
+    value = str(value).strip()
+    if not value:
+        raise ValueError(f'{name} must be non-empty')
+    return value
 
 
-def _digest_payload(
-    *,
-    objective: str,
-    allowed_actions: Iterable[str],
-    allowed_side_effect_classes: Iterable[str],
-    issuer: str,
-    parent_digest: str | None,
-) -> str:
-    payload = {
-        "objective": str(objective),
-        "allowed_actions": sorted({str(x) for x in allowed_actions}),
-        "allowed_side_effect_classes": sorted({str(x) for x in allowed_side_effect_classes}),
-        "issuer": str(issuer),
-        "parent_digest": parent_digest,
-    }
-    return hashlib.sha256(_canonical_json(payload).encode("utf-8")).hexdigest()
+def _frozen_nonempty(values: Iterable[str], name: str) -> frozenset[str]:
+    out = frozenset(str(value).strip() for value in values if str(value).strip())
+    if not out:
+        raise ValueError(f'{name} must be non-empty')
+    return out
+
+
+def _payload(*, objective: str, allowed_actions: frozenset[str], allowed_side_effect_classes: frozenset[str], issuer: str, parent_digest: str) -> str:
+    return json.dumps({
+        'objective': objective,
+        'allowed_actions': sorted(allowed_actions),
+        'allowed_side_effect_classes': sorted(allowed_side_effect_classes),
+        'issuer': issuer,
+        'parent_digest': parent_digest,
+    }, sort_keys=True, separators=(',', ':'))
+
+
+def _digest(**kwargs) -> str:
+    return hashlib.sha256(_payload(**kwargs).encode('utf-8')).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)
 class AuthorityEnvelope:
-    """Host-issued control-plane authority, minted before untrusted data is read.
+    """Host-issued, content-addressed action authority.
 
-    The envelope is intentionally capability-like rather than advisory. Retrieved
-    documents/tool responses may influence proposals, but they cannot mint or widen
-    this envelope because the issuer and digest are host-owned and every child scope
-    must be a subset of its parent.
+    External retrieval may *inform* cognition but may not mint or widen this envelope.  A child
+    envelope can only narrow its parent's action and side-effect sets.  This keeps data-plane
+    content from silently becoming control-plane authority even if a model follows an injection.
     """
 
     objective: str
     allowed_actions: frozenset[str]
     allowed_side_effect_classes: frozenset[str]
     issuer: str
-    parent_digest: str | None
-    digest: str
+    parent_digest: str = ''
+    digest: str = ''
+
+    trainable_parameter_count = 0
 
     @classmethod
     def issue(
@@ -52,140 +59,131 @@ class AuthorityEnvelope:
         objective: str,
         allowed_actions: Iterable[str],
         allowed_side_effect_classes: Iterable[str],
-        issuer: str = "host:runtime",
-        parent_digest: str | None = None,
-    ) -> "AuthorityEnvelope":
-        if not str(issuer).startswith("host:"):
-            raise ValueError("authority envelopes must be host-issued")
-        actions = frozenset(str(x) for x in allowed_actions)
-        side_effects = frozenset(str(x) for x in allowed_side_effect_classes)
-        digest = _digest_payload(
+        issuer: str,
+    ) -> 'AuthorityEnvelope':
+        objective = _nonempty(objective, 'objective')
+        issuer = _nonempty(issuer, 'issuer')
+        if not issuer.startswith('host:'):
+            raise ValueError('host authority required to issue envelope')
+        actions = _frozen_nonempty(allowed_actions, 'allowed_actions')
+        effects = _frozen_nonempty(allowed_side_effect_classes, 'allowed_side_effect_classes')
+        digest = _digest(
             objective=objective,
             allowed_actions=actions,
-            allowed_side_effect_classes=side_effects,
+            allowed_side_effect_classes=effects,
             issuer=issuer,
-            parent_digest=parent_digest,
+            parent_digest='',
         )
-        return cls(str(objective), actions, side_effects, str(issuer), parent_digest, digest)
+        return cls(objective, actions, effects, issuer, '', digest)
 
     @classmethod
-    def from_dict(cls, payload: dict[str, Any]) -> "AuthorityEnvelope":
-        """Deserialize without recomputing the supplied digest.
-
-        Keeping the serialized digest is deliberate: `verify()` must detect tampering
-        rather than silently blessing modified fields by minting a new digest.
-        """
-
+    def from_dict(cls, raw: Mapping[str, object]) -> 'AuthorityEnvelope':
+        actions = frozenset(map(str, raw.get('allowed_actions', ())))
+        effects = frozenset(map(str, raw.get('allowed_side_effect_classes', ())))
         return cls(
-            objective=str(payload.get("objective", "")),
-            allowed_actions=frozenset(str(x) for x in payload.get("allowed_actions", ())),
-            allowed_side_effect_classes=frozenset(
-                str(x) for x in payload.get("allowed_side_effect_classes", ())
-            ),
-            issuer=str(payload.get("issuer", "")),
-            parent_digest=payload.get("parent_digest"),
-            digest=str(payload.get("digest", "")),
+            str(raw.get('objective', '')),
+            actions,
+            effects,
+            str(raw.get('issuer', '')),
+            str(raw.get('parent_digest', '')),
+            str(raw.get('digest', '')),
         )
 
-    def to_dict(self) -> dict[str, Any]:
+    def to_dict(self) -> dict[str, object]:
         return {
-            "objective": self.objective,
-            "allowed_actions": sorted(self.allowed_actions),
-            "allowed_side_effect_classes": sorted(self.allowed_side_effect_classes),
-            "issuer": self.issuer,
-            "parent_digest": self.parent_digest,
-            "digest": self.digest,
+            'objective': self.objective,
+            'allowed_actions': sorted(self.allowed_actions),
+            'allowed_side_effect_classes': sorted(self.allowed_side_effect_classes),
+            'issuer': self.issuer,
+            'parent_digest': self.parent_digest,
+            'digest': self.digest,
         }
 
     def verify(self) -> bool:
-        if not self.issuer.startswith("host:"):
+        if not self.objective.strip() or not self.issuer.startswith('host:') or not self.allowed_actions or not self.allowed_side_effect_classes:
             return False
-        expected = _digest_payload(
+        expected = _digest(
             objective=self.objective,
             allowed_actions=self.allowed_actions,
             allowed_side_effect_classes=self.allowed_side_effect_classes,
             issuer=self.issuer,
             parent_digest=self.parent_digest,
         )
-        return hashlib.sha256(self.digest.encode()).digest() == hashlib.sha256(expected.encode()).digest()
+        return bool(self.digest) and self.digest == expected
 
     def narrow(
         self,
         *,
-        allowed_actions: Iterable[str] | None = None,
-        allowed_side_effect_classes: Iterable[str] | None = None,
-        objective: str | None = None,
-    ) -> "AuthorityEnvelope":
+        objective: str,
+        allowed_actions: Iterable[str],
+        allowed_side_effect_classes: Iterable[str],
+    ) -> 'AuthorityEnvelope':
         if not self.verify():
-            raise ValueError("cannot narrow an invalid authority envelope")
-        actions = self.allowed_actions if allowed_actions is None else frozenset(str(x) for x in allowed_actions)
-        side_effects = (
-            self.allowed_side_effect_classes
-            if allowed_side_effect_classes is None
-            else frozenset(str(x) for x in allowed_side_effect_classes)
-        )
-        if not actions.issubset(self.allowed_actions):
-            raise ValueError("child authority cannot widen allowed actions")
-        if not side_effects.issubset(self.allowed_side_effect_classes):
-            raise ValueError("child authority cannot widen side-effect classes")
-        return AuthorityEnvelope.issue(
-            objective=self.objective if objective is None else str(objective),
+            raise ValueError('cannot narrow invalid authority envelope')
+        objective = _nonempty(objective, 'objective')
+        actions = _frozen_nonempty(allowed_actions, 'allowed_actions')
+        effects = _frozen_nonempty(allowed_side_effect_classes, 'allowed_side_effect_classes')
+        if not actions <= self.allowed_actions or not effects <= self.allowed_side_effect_classes:
+            raise ValueError('cannot widen authority in child scope')
+        digest = _digest(
+            objective=objective,
             allowed_actions=actions,
-            allowed_side_effect_classes=side_effects,
+            allowed_side_effect_classes=effects,
             issuer=self.issuer,
             parent_digest=self.digest,
         )
+        return AuthorityEnvelope(objective, actions, effects, self.issuer, self.digest, digest)
 
 
 @dataclass(frozen=True, slots=True)
 class ActionProposal:
     action_id: str
     side_effect_class: str
-    source: str = "cognition"
-    rationale: str = ""
+    proposed_by: str
+    source_uri: str
+
+    def __post_init__(self) -> None:
+        _nonempty(self.action_id, 'action_id')
+        _nonempty(self.side_effect_class, 'side_effect_class')
+        _nonempty(self.proposed_by, 'proposed_by')
+        _nonempty(self.source_uri, 'source_uri')
 
 
 @dataclass(frozen=True, slots=True)
 class AuthorityDecision:
-    authorized: bool
+    allowed: bool
     reason: str
-    authority_digest: str
     action_id: str
     side_effect_class: str
+    envelope_digest: str
+    proposed_by: str
+    source_uri: str
 
 
 class AuthorityBoundary:
-    """Fail-closed authorization boundary between cognition and host actions."""
+    """Fail-closed data-plane/control-plane separation for tool and operator actions."""
+
+    trainable_parameter_count = 0
 
     def authorize(self, envelope: AuthorityEnvelope, proposal: ActionProposal) -> AuthorityDecision:
         if not envelope.verify():
-            return AuthorityDecision(
-                False,
-                "invalid_authority_envelope",
-                envelope.digest,
-                proposal.action_id,
-                proposal.side_effect_class,
-            )
-        if proposal.action_id not in envelope.allowed_actions:
-            return AuthorityDecision(
-                False,
-                "action_not_pre_authorized",
-                envelope.digest,
-                proposal.action_id,
-                proposal.side_effect_class,
-            )
-        if proposal.side_effect_class not in envelope.allowed_side_effect_classes:
-            return AuthorityDecision(
-                False,
-                "side_effect_not_pre_authorized",
-                envelope.digest,
-                proposal.action_id,
-                proposal.side_effect_class,
-            )
+            reason = 'invalid_authority_envelope'
+            allowed = False
+        elif proposal.action_id not in envelope.allowed_actions:
+            reason = 'action_not_pre_authorized'
+            allowed = False
+        elif proposal.side_effect_class not in envelope.allowed_side_effect_classes:
+            reason = 'side_effect_not_pre_authorized'
+            allowed = False
+        else:
+            reason = 'authorized'
+            allowed = True
         return AuthorityDecision(
-            True,
-            "authorized",
-            envelope.digest,
+            allowed,
+            reason,
             proposal.action_id,
             proposal.side_effect_class,
+            envelope.digest,
+            proposal.proposed_by,
+            proposal.source_uri,
         )
