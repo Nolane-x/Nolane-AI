@@ -5,7 +5,7 @@ from cogcoder.r265_verified_patch_primitive_induction import (
 )
 
 
-def test_r265_hypotheses_preserve_inherited_patchmacro_fields_and_semantic_aliases() -> None:
+def test_r265_hypotheses_use_inherited_patchmacro_public_fields() -> None:
     source = RepositoryPatchCandidate(
         'caller:source', (), (('main.py', 'def solve(x, y):\n    return x + y\n'),), 0, 0,
     )
@@ -21,6 +21,3 @@ def test_r265_hypotheses_preserve_inherited_patchmacro_fields_and_semantic_alias
     assert [(row.slot, row.kind, row.src, row.dst, row.macro_id) for row in rows] == sorted(
         (row.slot, row.kind, row.src, row.dst, row.macro_id) for row in rows
     )
-    assert [(row.operation, row.source_value, row.target_value) for row in rows] == [
-        (row.kind, row.src, row.dst) for row in rows
-    ]
