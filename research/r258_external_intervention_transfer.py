@@ -82,11 +82,18 @@ def run_external_transfer(
 ) -> dict[str, object]:
     if not callable(oracle):
         raise TypeError('oracle must be callable')
+    oracle_calls_total = 0
+
+    def counted_oracle(*args):
+        nonlocal oracle_calls_total
+        oracle_calls_total += 1
+        return oracle(*args)
+
     vocabulary, _lifecycle, selected_abstractions = build_promoted_vocabulary()
     learned_digests = tuple(row.abstraction.abstraction_id for row in selected_abstractions)
 
     def context_oracle(context):
-        return _call_oracle(oracle, dict(context))
+        return _call_oracle(counted_oracle, dict(context))
 
     need = OperatorInventionNeed(
         'external:opaque-full-task',
@@ -104,15 +111,15 @@ def run_external_transfer(
         tuple(_context(case) for case in _PROBE_VALID),
         vocabulary,
         need,
-        _examples(oracle, _TRAIN, 'train'),
+        _examples(counted_oracle, _TRAIN, 'train'),
         probe_max_depth=2,
         probe_max_candidates=4200,
     )
     selected = receipt.selected
     expression = selected.seeded_downstream_expression if selected is not None else None
 
-    challenge = _examples(oracle, _CHALLENGE, 'challenge')
-    heldout = _examples(oracle, _heldout(), 'heldout')
+    challenge = _examples(counted_oracle, _CHALLENGE, 'challenge')
+    heldout = _examples(counted_oracle, _heldout(), 'heldout')
     challenge_exact = 0
     heldout_exact = 0
     if expression is not None:
@@ -152,6 +159,8 @@ def run_external_transfer(
         'probe_validation_cases': selected.probe_validation_cases if selected is not None else len(_PROBE_VALID),
         'probe_validation_exact': selected.probe_validation_exact if selected is not None else 0,
         'oracle_calls_during_discovery': receipt.oracle_calls,
+        'oracle_calls_total': oracle_calls_total,
+        'synthesis_candidates_considered': receipt.synthesis_candidates_considered,
         'challenge_cases': len(challenge),
         'challenge_exact': challenge_exact,
         'heldout_cases': len(heldout),
