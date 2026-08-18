@@ -249,6 +249,7 @@ def _run_episode(ep: Episode) -> dict[str, object]:
     live_ok = False
     rollback_contained = False
     distilled_ok = False
+    distilled_repromoted = False
     promoted_fingerprint = None
     if len(evaluation.promoted) == 1:
         promoted_fingerprint = evaluation.promoted[0].behavior_fingerprint
@@ -257,13 +258,30 @@ def _run_episode(ep: Episode) -> dict[str, object]:
         live_ok = live.success and state.context.get('patch_plan') == {'field': ep.expected_field}
 
         trajectory = VerifiedTrajectory(
-            f'episode-{ep.index}', frozenset({'skill_gap'}), frozenset({'contract', 'migration'}),
+            f'episode-{ep.index}-A', frozenset({'skill_gap'}), frozenset({'contract', 'migration'}),
             ('contract.apply_expected', 'contract.verify_surface'), frozenset(), frozenset({'verified'}),
             'contract.verify_surface', (f'episode:{ep.index}', 'challenge:A', 'challenge:B', 'challenge:C'), live_ok,
         )
         if live_ok:
-            distilled = ProcedureDistiller(registry).distill(trajectory)
-            distilled_ok = len(RetrievedProcedureAcquirer(registry, min_artifact_trust=0.7).acquire((distilled,)).accepted) == 1
+            distiller = ProcedureDistiller(registry)
+            distilled_a = distiller.distill(trajectory)
+            trajectory_b = VerifiedTrajectory(
+                f'episode-{ep.index}-B', frozenset({'skill_gap'}), frozenset({'contract', 'migration'}),
+                ('contract.apply_expected', 'contract.verify_surface'), frozenset(), frozenset({'verified'}),
+                'contract.verify_surface', (f'episode:{ep.index}:replication', 'challenge:A', 'challenge:B', 'challenge:C'), True,
+            )
+            distilled_b = distiller.distill(trajectory_b)
+            distilled_ok = len(RetrievedProcedureAcquirer(registry, min_artifact_trust=0.7).acquire((distilled_a,)).accepted) == 1
+            distilled_lifecycle = ProcedureLifecycleLedger()
+            distilled_engine = HardenedProcedureAcquisitionEngine(
+                RetrievedProcedureAcquirer(registry, min_artifact_trust=0.7),
+                RetrievedProcedureExecutor(), reliability, distilled_lifecycle,
+                min_independent_support=2,
+            )
+            distilled_evaluation = distilled_engine.evaluate(
+                (distilled_a, distilled_b), challenges, _snapshot(), _signal(),
+            )
+            distilled_repromoted = len(distilled_evaluation.promoted) == 1
 
         before = copy.deepcopy(state)
         state.context['mode'] = 'novel-live-failure'
@@ -280,7 +298,7 @@ def _run_episode(ep: Episode) -> dict[str, object]:
         all(ep.legacy_field not in row.text for row in hardened_receipt.poison.accepted) and
         len(evaluation.promoted) == 1 and
         any(row.reason.startswith('challenge_failed:') for row in evaluation.quarantined) and
-        live_ok and rollback_contained and distilled_ok and evaluation.live_state_mutations == 0
+        live_ok and rollback_contained and distilled_ok and distilled_repromoted and evaluation.live_state_mutations == 0
     )
     return {
         'episode': ep.index,
@@ -296,6 +314,7 @@ def _run_episode(ep: Episode) -> dict[str, object]:
         'live_ok': live_ok,
         'rollback_contained': rollback_contained,
         'distilled_ok': distilled_ok,
+        'distilled_repromoted': distilled_repromoted,
         'promoted_fingerprint': promoted_fingerprint,
     }
 
@@ -315,6 +334,7 @@ def run_benchmark() -> dict[str, object]:
         'episodes_with_malicious_behavior_quarantine': sum(int(row['quarantined_behaviors']) > 0 for row in rows),
         'episodes_with_transactional_rollback': sum(bool(row['rollback_contained']) for row in rows),
         'episodes_with_skill_distillation': sum(bool(row['distilled_ok']) for row in rows),
+        'episodes_with_distilled_skill_repromotion': sum(bool(row['distilled_repromoted']) for row in rows),
         'max_raw_doc_attachments': max(int(row['raw_doc_attachments']) for row in rows),
         'max_raw_procedure_attachments': max(int(row['raw_procedure_attachments']) for row in rows),
         'trainable_parameter_count': 0,
