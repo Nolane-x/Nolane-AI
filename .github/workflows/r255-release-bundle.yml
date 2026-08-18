@@ -1,0 +1,88 @@
+name: R2.55 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "R2_55_DELIVERY.md"
+      - "R2_55_RELEASE_MANIFEST.json"
+      - "R2_54_TO_R2_55_EVOLUTION.md"
+      - "R2_READINESS_RECALIBRATION.md"
+      - "research/R2_55_PHASE_A_RESULT.json"
+      - "research/R2_55_VERIFY_RESULT.json"
+      - "research/R2_55_WORLD_FINAL.json"
+      - "research/R2_55_INJECAGENT_TRANSFER.json"
+      - ".github/workflows/r255-release-bundle.yml"
+  workflow_dispatch:
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Verify frozen release boundary
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          v=json.loads(Path('research/R2_55_VERIFY_RESULT.json').read_text())
+          w=json.loads(Path('research/R2_55_WORLD_FINAL.json').read_text())
+          e=json.loads(Path('research/R2_55_INJECAGENT_TRANSFER.json').read_text())
+          p=json.loads(Path('research/R2_55_PHASE_A_RESULT.json').read_text())
+          m=json.loads(Path('R2_55_RELEASE_MANIFEST.json').read_text())
+          assert v['status']=='ACCEPTED_BOUNDED_CAPABILITY'
+          assert v['hosted_run_id']==32088996853
+          assert v['hosted_gate_commit']=='0621a43172fff1355bebee3c09922922c49f67c4'
+          assert v['protected_lineage']['passed']==144 and v['protected_lineage']['failed']==0
+          assert all(x=='success' for x in v['hosted_statuses'].values())
+          assert e['cases']==2108 and e['utility_allowed']==2108
+          assert e['attacker_action_proposals']==3196 and e['attacker_actions_blocked']==3196
+          assert e['authority_escape_count']==0
+          assert p['exact']==10 and p['false_accepts']==0 and p['episodes_with_distilled_skill_repromotion']==10
+          assert w['audit']['valid'] is True and w['gate']['passed'] is False and w['gate']['score']==0
+          assert v['readiness']['current']==46.0 and m['readiness']==46.0
+          assert v['trainable_parameter_count_added']==0
+          print('R255_RELEASE_BOUNDARY_OK')
+          PY
+      - name: Run focused release regressions
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r255_hardened_acquisition.py \
+            tests/test_r255_hardened_acquisition_benchmark.py \
+            tests/test_r255_authority_boundary.py \
+            tests/test_r255_injecagent_transfer.py
+      - name: Create complete repository snapshot
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip --output release/Nolane-AI-R2.55-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.55-COMPLETE.zip > release/Nolane-AI-R2.55-COMPLETE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.55-COMPLETE.zip
+      - name: Upload full repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.55-COMPLETE
+          path: |
+            release/Nolane-AI-R2.55-COMPLETE.zip
+            release/Nolane-AI-R2.55-COMPLETE.zip.sha256
+          if-no-files-found: error
+          retention-days: 90
+      - name: Publish release-bundle commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":"r255/release-bundle","description":"R2.55 frozen boundary+focused regressions+full ZIP","target_url":os.environ["RUN_URL"]}))')"

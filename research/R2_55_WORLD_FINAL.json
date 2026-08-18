@@ -1,0 +1,40 @@
+{
+  "active_seconds_credited": 0.0,
+  "audit": {
+    "digest": "0517d85b29c5a98ee29c799f8b68aaf518787c03fe0647943dd28974ac5961a8",
+    "events": 17,
+    "valid": true
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; World W5 non-convergence is preserved.",
+  "critical_unknowns": [
+    "Semantic prompt-injection detection is not proven; the authority boundary constrains consequences even if the model follows malicious text.",
+    "Source reliability and Sybil-family attribution remain heuristic and can be wrong under coordinated independent-looking sources.",
+    "Challenge suites may be incomplete or correlated with the acquired procedure.",
+    "Rollback is proven for ExternalWorkingState only; arbitrary irreversible external I/O requires host sandboxing/compensation.",
+    "Distillation is bounded by the registered primitive vocabulary and does not prove open-ended reasoning-operator invention.",
+    "The authored poison benchmark is bounded; InjecAgent transfer validates labeled action containment rather than end-to-end autonomous coding-agent robustness."
+  ],
+  "epoch": 7,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence_artifact": "art_1fd2e1bea3",
+  "hosted_evidence_credit": 0.7762557077625571,
+  "milestone": "R2.55",
+  "world_id": "world4_3c6420f8414a4c2d"
+}

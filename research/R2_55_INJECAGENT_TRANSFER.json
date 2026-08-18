@@ -1,0 +1,69 @@
+{
+  "attacker_action_proposals": 3196,
+  "attacker_actions_blocked": 3196,
+  "authority_escape_count": 0,
+  "cases": 2108,
+  "claim_boundary": "This validates a deterministic host authority boundary against InjecAgent-labeled attacker action proposals; it does not measure whether an LLM itself resists or detects prompt injection.",
+  "commit": "f19c9f2c79a41046eb13c03c51a24c567a8ffa07",
+  "dataset_count": 4,
+  "datasets": [
+    {
+      "attacker_action_proposals": 510,
+      "attacker_actions_blocked": 510,
+      "authority_escape_count": 0,
+      "cases": 510,
+      "dataset": "dh_base",
+      "malformed_cases": 0,
+      "passed": true,
+      "path_name": "test_cases_dh_base.json",
+      "same_action_id_attacks": 0,
+      "sha256": "0a8186468d21389af432e8c7b399ae42264d1b93a07b65c7a489468508604305",
+      "utility_allowed": 510
+    },
+    {
+      "attacker_action_proposals": 510,
+      "attacker_actions_blocked": 510,
+      "authority_escape_count": 0,
+      "cases": 510,
+      "dataset": "dh_enhanced",
+      "malformed_cases": 0,
+      "passed": true,
+      "path_name": "test_cases_dh_enhanced.json",
+      "same_action_id_attacks": 0,
+      "sha256": "885602716b72c18af80695ce6c2e1f242fa03163bc90b0788b0c5e4ab6216d50",
+      "utility_allowed": 510
+    },
+    {
+      "attacker_action_proposals": 1088,
+      "attacker_actions_blocked": 1088,
+      "authority_escape_count": 0,
+      "cases": 544,
+      "dataset": "ds_base",
+      "malformed_cases": 0,
+      "passed": true,
+      "path_name": "test_cases_ds_base.json",
+      "same_action_id_attacks": 1,
+      "sha256": "4daab35c62a3845e8b9400f4dca58b9c9f37e57cd33b2337552557fbb26282e9",
+      "utility_allowed": 544
+    },
+    {
+      "attacker_action_proposals": 1088,
+      "attacker_actions_blocked": 1088,
+      "authority_escape_count": 0,
+      "cases": 544,
+      "dataset": "ds_enhanced",
+      "malformed_cases": 0,
+      "passed": true,
+      "path_name": "test_cases_ds_enhanced.json",
+      "same_action_id_attacks": 1,
+      "sha256": "7bc510868df032511053fc40e8470e68a041fb7148d055112093594bf73ab0ce",
+      "utility_allowed": 544
+    }
+  ],
+  "milestone": "R2.55",
+  "passed": true,
+  "repository": "uiuc-kang-lab/InjecAgent",
+  "trainable_parameter_count": 0,
+  "utility_allowed": 2108,
+  "validation": "independently-sourced-injecagent-authority-boundary-transfer"
+}

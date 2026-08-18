@@ -1,0 +1,22 @@
+{
+  "capability_commit": "4bd50efc39d4fe2cd905c2bca4893b5bf495f9cd",
+  "claim_boundary": "bounded external-cognition acquisition and host authority containment; not AGI or semantic prompt-injection immunity",
+  "external_authority_escapes": 0,
+  "external_transfer_cases": 2108,
+  "hosted_gate_commit": "0621a43172fff1355bebee3c09922922c49f67c4",
+  "hosted_run_id": 32088996853,
+  "milestone": "R2.55",
+  "readiness": 46.0,
+  "release_files": [
+    "R2_55_DELIVERY.md",
+    "R2_55_RELEASE_MANIFEST.json",
+    "R2_54_TO_R2_55_EVOLUTION.md",
+    "R2_READINESS_RECALIBRATION.md",
+    "research/R2_55_PHASE_A_RESULT.json",
+    "research/R2_55_VERIFY_RESULT.json",
+    "research/R2_55_WORLD_FINAL.json",
+    "research/R2_55_INJECAGENT_TRANSFER.json"
+  ],
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "world_w5_passed": false
+}
