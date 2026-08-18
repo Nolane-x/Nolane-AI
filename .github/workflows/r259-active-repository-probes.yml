@@ -9,6 +9,7 @@ on:
       - 'research/r259_*.py'
       - 'tests/test_r259_*.py'
       - 'R2_59_PHASE_A_RESULT.json'
+      - 'R2_59_EXTERNAL_TRANSFER.json'
       - 'docs/superpowers/specs/2026-08-18-r259-active-repository-probe-synthesis-design.md'
       - 'docs/superpowers/plans/2026-08-18-r259-active-repository-probe-synthesis.md'
       - '.github/workflows/r259-active-repository-probes.yml'
@@ -20,6 +21,7 @@ on:
       - 'research/r259_*.py'
       - 'tests/test_r259_*.py'
       - 'R2_59_PHASE_A_RESULT.json'
+      - 'R2_59_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r259-active-repository-probes.yml'
   workflow_dispatch:
 
@@ -40,7 +42,7 @@ jobs:
         run: python -m pip install --upgrade pytest z3-solver 'numpy==2.4.6'
       - name: Run R2.59 focused tests
         run: PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
-      - name: Run pinned NumPy GCD external I/O transfer
+      - name: Recompute pinned NumPy GCD external I/O transfer exactly
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
@@ -58,28 +60,27 @@ jobs:
               source_id='numpy:numpy.gcd',
               source_version=np.__version__,
           )
+          expected = json.loads(Path('R2_59_EXTERNAL_TRANSFER.json').read_text(encoding='utf-8'))
           assert np.__version__ == '2.4.6'
+          assert result == expected, (result, expected)
           assert result['passed'] is True
           assert result['source_exposure'] == 'io_only'
-          assert result['active_exact'] is True
           assert result['active_selection_oracle_calls'] == 1
-          assert result['random_one_probe_exact'] is False
-          assert result['passive_initial_only_exact'] is False
           assert result['selected_probe_partition_count'] == 4
           assert result['selected_probe_largest_partition'] == 1
           assert result['verification_exact'] == result['verification_cases'] == 625
           assert result['oracle_calls_total'] == calls['count']
           assert result['probe_generation_uses_target_outputs'] is False
-          Path('R2_59_EXTERNAL_TRANSFER.json').write_text(
+          Path('R2_59_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(
               json.dumps(result, indent=2, sort_keys=True) + '\n', encoding='utf-8'
           )
           print(json.dumps(result, indent=2, sort_keys=True))
           PY
-      - name: Upload pinned external transfer evidence
+      - name: Upload recomputed external transfer evidence
         uses: actions/upload-artifact@v4
         with:
           name: R2.59-numpy-gcd-external-transfer
-          path: R2_59_EXTERNAL_TRANSFER.json
+          path: R2_59_EXTERNAL_TRANSFER_RECOMPUTED.json
       - name: Recompute frozen R2.59 Phase-A evidence exactly
         run: |
           PYTHONPATH=. python - <<'PY'
