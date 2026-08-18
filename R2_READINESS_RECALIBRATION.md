@@ -18,3 +18,7 @@ These values are internal engineering heuristics, not probabilities of AGI and n
 3. Synthetic/bounded improvements normally earn zero to small provisional movement.
 4. Large movements require unseen external task distributions, real repositories/environments, no generator access, and causal ablations showing the new mechanism is responsible.
 5. Scores may decrease when stronger falsification reveals overclaiming. New versions are not guaranteed to score higher.
+
+## R2.55 — 46.0 / 100
+
+R2.55 earns **+0.5** over R2.54 (45.5) after a clean hosted 144/144 relevant lineage and an independently sourced InjecAgent control-plane transfer over 2,108 cases / 3,196 attacker-action proposals with zero authority escapes while preserving intended user-tool authorization. The increase is deliberately limited because this does not establish semantic prompt-injection immunity, arbitrary external-I/O rollback, open-ended operator invention, or broad real-repository autonomous repair transfer.
