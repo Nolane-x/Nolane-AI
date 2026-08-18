@@ -9,6 +9,8 @@ on:
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
       - '.github/workflows/r265-freeze-evidence.yml'
+      - '.github/workflows/r265-verified-patch-primitive-induction.yml'
+      - '.github/workflows/r265-canonical-gate.yml'
   workflow_dispatch:
 
 permissions:
@@ -55,6 +57,11 @@ jobs:
               'tests/test_r265_verified_patch_primitive_induction.py',
               'tests/test_r265_patch_primitive_benchmark.py',
               'tests/test_r265_external_patch_primitive_transfer.py',
+              'tests/test_r265_patchmacro_field_contract.py',
+              'tests/test_r265_hypothesis_budget_fairness.py',
+              '.github/workflows/r265-verified-patch-primitive-induction.yml',
+              '.github/workflows/r265-canonical-gate.yml',
+              '.github/workflows/r265-freeze-evidence.yml',
           )
           blobs={
               path: subprocess.check_output(['git','hash-object',path], text=True).strip()
@@ -62,14 +69,16 @@ jobs:
           }
           parent=subprocess.check_output(['git','merge-base','HEAD','origin/main'], text=True).strip()
           lock={
-              'schema_version':1,
+              'schema_version':2,
               'milestone':'R2.65 Verified Patch Primitive Induction',
               'parent_release_commit':parent,
               'frozen_git_blobs':blobs,
               'phase_a_result':'R2_65_PHASE_A_RESULT.json',
               'external_result':'R2_65_EXTERNAL_TRANSFER.json',
               'production_source_changes_after_lock_forbidden':True,
-              'note':'Frozen after focused R2.64 parent + R2.65 tests and exact authored/NumPy multiply evidence. Any later change to a frozen blob requires complete remeasurement.'
+              'hypothesis_budget_fairness_frozen':True,
+              'inherited_patchmacro_contract_frozen':True,
+              'note':'Frozen after fixed R2.64.1 parent, focused R2.65 contract/fairness tests, and exact authored/NumPy multiply evidence. Any later change to a frozen blob requires complete remeasurement.'
           }
           Path('R2_65_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True)+'\n')
           print('R265_FREEZE_READY', parent, len(blobs))
