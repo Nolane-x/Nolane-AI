@@ -66,7 +66,7 @@ def _need(label: str) -> OperatorInventionNeed:
     )
 
 
-def _run(oracle, discovery, validation, terminal):
+def _run(oracle, discovery, validation, terminal, *, context_validator=None):
     return synthesize_contextual_composition_program(
         oracle,
         FIELDS,
@@ -74,6 +74,7 @@ def _run(oracle, discovery, validation, terminal):
         discovery,
         validation,
         terminal_contexts=terminal,
+        context_validator=context_validator,
         intervention_arity=1,
         composition_constants=(0.0,),
         composition_max_depth=2,
@@ -85,36 +86,37 @@ def _run(oracle, discovery, validation, terminal):
     )
 
 
+def _selected_terminal_keys(control, discovery, validation, terminal) -> set[str]:
+    assert control.structure.selected is not None
+    selected_interventions = (
+        control.structure.selected.left_profile.intervention,
+        control.structure.selected.right_profile.intervention,
+    )
+    learning_query_keys: set[str] = set()
+    for row in discovery + validation:
+        learning_query_keys.add(_key(row))
+        for intervention in selected_interventions:
+            learning_query_keys.add(_key(_apply(row, intervention.bindings)))
+    terminal_original_keys = {_key(row) for row in terminal}
+    return {
+        _key(_apply(row, intervention.bindings))
+        for row in terminal
+        for intervention in selected_interventions
+    } - learning_query_keys - terminal_original_keys
+
+
 def test_terminal_authority_rechecks_selected_intervention_outputs_not_only_final_expression() -> None:
     rows = _rows()
     discovery = rows[:18]
     validation = rows[18:24]
     terminal = rows[24:30]
 
-    # First freeze the exact causal pair selected by the normal oracle. This prevents
-    # a future implementation from satisfying the challenger by querying an unrelated
-    # terminal intervention while leaving the two selected learned probes untested.
+    # Freeze the exact causal pair selected by the normal oracle. This prevents a
+    # superficial implementation from querying an unrelated terminal intervention.
     control = _run(_band_select, discovery, validation, terminal)
     assert control.passed is True
-    assert control.structure.selected is not None
     assert len(control.probe_expressions) == 2
-    selected_interventions = (
-        control.structure.selected.left_profile.intervention,
-        control.structure.selected.right_profile.intervention,
-    )
-
-    learning_query_keys: set[str] = set()
-    for row in discovery + validation:
-        learning_query_keys.add(_key(row))
-        for intervention in selected_interventions:
-            learning_query_keys.add(_key(_apply(row, intervention.bindings)))
-
-    terminal_original_keys = {_key(row) for row in terminal}
-    selected_terminal_query_keys = {
-        _key(_apply(row, intervention.bindings))
-        for row in terminal
-        for intervention in selected_interventions
-    } - learning_query_keys - terminal_original_keys
+    selected_terminal_query_keys = _selected_terminal_keys(control, discovery, validation, terminal)
     assert selected_terminal_query_keys
 
     calls = 0
@@ -130,10 +132,51 @@ def test_terminal_authority_rechecks_selected_intervention_outputs_not_only_fina
 
     receipt = _run(oracle, discovery, validation, terminal)
 
-    # A terminally verified causal composition must independently re-observe the
-    # selected interventions and validate the two learned probe expressions before
-    # granting authority to the final composition.
     assert selected_terminal_intervention_calls > 0
     assert receipt.passed is False
     assert 'terminal' in receipt.reason
     assert calls > receipt.structure.oracle_calls
+
+
+def test_terminal_selected_interventions_respect_context_validator_before_oracle_call() -> None:
+    rows = _rows()
+    discovery = rows[:18]
+    validation = rows[18:24]
+    terminal = rows[24:30]
+
+    control = _run(_band_select, discovery, validation, terminal)
+    assert control.passed is True
+    invalid_terminal_intervention_keys = _selected_terminal_keys(control, discovery, validation, terminal)
+    assert invalid_terminal_intervention_keys
+
+    invalid_oracle_calls = 0
+
+    def validator(row: Mapping[str, object]) -> bool:
+        # Every original and every learning-time intervention remains authorized.
+        # Only selected intervention applications on the terminal set are outside
+        # the declared domain.
+        return _key(row) not in invalid_terminal_intervention_keys
+
+    def oracle(row: Mapping[str, object]) -> float:
+        nonlocal invalid_oracle_calls
+        if _key(row) in invalid_terminal_intervention_keys:
+            invalid_oracle_calls += 1
+        return _band_select(row)
+
+    try:
+        receipt = _run(
+            oracle,
+            discovery,
+            validation,
+            terminal,
+            context_validator=validator,
+        )
+    except ValueError as exc:
+        assert 'terminal' in str(exc) or 'context' in str(exc)
+    else:
+        assert receipt.passed is False
+        assert 'terminal' in receipt.reason or 'context' in receipt.reason
+
+    # Authority invariant: an out-of-domain terminal intervention must be rejected
+    # before invoking the target oracle on that context.
+    assert invalid_oracle_calls == 0
