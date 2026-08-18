@@ -198,32 +198,6 @@ def _hypothesis_structural_capacity(
     return capacity
 
 
-def _hypothesis_structural_capacity(
-    seeds: Sequence[RepositoryPatchCandidate],
-    macro: PatchPrimitiveMacro,
-    *,
-    max_sites_per_hypothesis: int,
-) -> int:
-    """Return a target-output-free upper bound on legal sites for one primitive."""
-    site_budget = int(max_sites_per_hypothesis)
-    if site_budget < 0:
-        raise ValueError('max_sites_per_hypothesis must be non-negative')
-    if site_budget == 0:
-        return 0
-    capacity = 0
-    for seed in tuple(seeds):
-        for _path, source in sorted(seed.files):
-            tree = ast.parse(source)
-            site_count = sum(
-                1
-                for node in ast.walk(tree)
-                if isinstance(node, ast.BinOp)
-                and type(node.op).__name__ == macro.source_value
-            )
-            capacity += min(site_count, site_budget)
-    return capacity
-
-
 def _generate_hypothesis_fair_candidates(
     seeds: Sequence[RepositoryPatchCandidate],
     hypotheses: Sequence[PatchPrimitiveMacro],
