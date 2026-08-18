@@ -120,6 +120,7 @@ def synthesize_contextual_composition_program(
         )
 
     terminal_probe_exact = 0
+    terminal_probe_cases = len(terminal) * 2
     try:
         selected = internal.structure.selected
         for context in terminal:
@@ -144,7 +145,7 @@ def synthesize_contextual_composition_program(
             final_validation_exact=0,
             reason='independent_terminal_probe_verification_error',
             oracle_calls_total=oracle_calls_total,
-            terminal_probe_validation_cases=len(terminal),
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
     except Exception:
@@ -155,11 +156,11 @@ def synthesize_contextual_composition_program(
             final_validation_exact=0,
             reason='independent_terminal_probe_verification_error',
             oracle_calls_total=oracle_calls_total,
-            terminal_probe_validation_cases=len(terminal),
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
 
-    if terminal_probe_exact != len(terminal) * 2:
+    if terminal_probe_exact != terminal_probe_cases:
         return replace(
             internal,
             passed=False,
@@ -167,7 +168,7 @@ def synthesize_contextual_composition_program(
             final_validation_exact=0,
             reason='independent_terminal_probe_verification_failed',
             oracle_calls_total=oracle_calls_total,
-            terminal_probe_validation_cases=len(terminal),
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
 
@@ -187,7 +188,7 @@ def synthesize_contextual_composition_program(
             final_validation_exact=exact,
             reason='independent_terminal_verification_error',
             oracle_calls_total=oracle_calls_total,
-            terminal_probe_validation_cases=len(terminal),
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
 
@@ -199,7 +200,7 @@ def synthesize_contextual_composition_program(
             final_validation_exact=exact,
             reason='independent_terminal_verification_failed',
             oracle_calls_total=oracle_calls_total,
-            terminal_probe_validation_cases=len(terminal),
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
 
@@ -210,7 +211,7 @@ def synthesize_contextual_composition_program(
         final_validation_exact=exact,
         reason='contextual_program_synthesized_terminally_verified',
         oracle_calls_total=oracle_calls_total,
-        terminal_probe_validation_cases=len(terminal),
+        terminal_probe_validation_cases=terminal_probe_cases,
         terminal_probe_validation_exact=terminal_probe_exact,
     )
 
