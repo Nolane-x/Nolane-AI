@@ -22,6 +22,8 @@ jobs:
           python-version: '3.11'
       - name: Install focused dependencies
         run: python -m pip install pytest
+      - name: Emit R2.63 benchmark diagnostics
+        run: PYTHONPATH=. python -m benchmarks.kfigg.r263_compositional_repository_repair
       - name: Run R2.63 contract
         run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
       - name: Publish R2.63 status
