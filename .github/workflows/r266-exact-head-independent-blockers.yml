@@ -1,0 +1,33 @@
+name: R2.66 Exact-Head Independent Blockers
+
+on:
+  push:
+    branches: [validation-r266-exact-head-blockers-gpt56sol]
+  pull_request:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  challengers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11','3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.65 regression
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Exact-head independent blockers
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r266_independent_pair_budget_fairness.py \
+            tests/test_r266_intervention_oracle_failclosed.py
