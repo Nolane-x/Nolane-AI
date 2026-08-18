@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "run_id": 32129684251,
+  "commit_sha": "d46344ab937d334f0f18b93bb9c3ee41bc27834d",
+  "production_module_absent_at_red": true,
+  "failure_was_contract_relevant": true,
+  "expected_failure": "ModuleNotFoundError: No module named 'cogcoder.r264_learned_contextual_composition'",
+  "status_context": "r264/tdd-red"
+}
