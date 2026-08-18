@@ -35,3 +35,9 @@ R2.57 earns **+0.7** over R2.56 (46.8). The increase is supported by clean hoste
 ## R2.58 — 47.8 / 100
 
 R2.58 earns **+0.3** over R2.57 (47.5). The increase is supported by clean hosted evidence that the R2.58 learner itself searches 20 legal positional interventions on pinned `ufunclab.linearstep`, selects a causally useful intervention without a host-selected field pair, converts a matched 1,000-candidate no-seed failure into a seeded success, and remains exact on 4/4 probe validation, 8/8 challenge, and 24/24 heldout cases. The movement is deliberately smaller than R2.57 because the external family is reused rather than distributionally new, the anchor set and probe-context families are host-designed, and the intervention DSL is finite and pure-input only. World W5 remains false.
+
+## R2.59 — 47.8 / 100
+
+R2.59 receives **+0.0** over R2.58 (47.8). It materially improves the engineering efficiency of the already-accepted bounded intervention path: the frozen authored search falls from 261,169 synthesis candidates to 10,943 (**23.866307×** reduction), and the pinned matched-distribution `ufunclab.linearstep` transfer falls from 136,969 to 8,394 (**16.317489×**) while preserving 4/4 probe validation, 8/8 challenge, and 24/24 heldout exactness under a hard 15,000-candidate global budget. It also removes the separate host-selected anchor-list channel by deriving the finite anchor basis from public downstream grammar constants.
+
+No readiness increase is awarded because the external oracle and task family are the same pinned numeric distribution already used by R2.58; this is search-efficiency and interface-autonomy evidence, not new distributional breadth or general-intelligence evidence. Hosted CI establishes implementation consistency and exact reproduction of the frozen gate, not intelligence by itself. Nolane World W5 remains false.

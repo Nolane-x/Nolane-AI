@@ -1,0 +1,35 @@
+{
+  "capability_head_sha": "7a6584f8509bfa858ac8536ee650385fd57b8671",
+  "capability_main_merge_sha": "9d8779df83751cfb5a93928c1442e169816bc49d",
+  "cross_python": {
+    "3.11": "success",
+    "3.13": "success"
+  },
+  "exact_tree_sha": "c84b3a393e0b7086395c0e4f5041f0695fc56031",
+  "external_artifact_digest": "sha256:f97d09073b93c8443f60bd3d80a77e552bbd46098d7d78ba79572cba81ac9691",
+  "external_artifact_id": 9316951476,
+  "external_result_sha256": "ec5e189455e6c2f6797c261fcc7abda9da884b3db13a1249ba5dea34fd2dd13d",
+  "external_total_synthesis_candidates": 8394,
+  "focused_r259_tests": 12,
+  "hosted_jobs": {
+    "cross_python_3_11": 95647631362,
+    "cross_python_3_13": 95647631456,
+    "external_ufunclab": 95647631281,
+    "focused_and_lineage": 95647631444
+  },
+  "hosted_relevant_tests_total": 198,
+  "hosted_run_conclusion": "success",
+  "hosted_run_id": 32116672446,
+  "milestone": "R2.59",
+  "phase_a_recomputed_exact": true,
+  "protected_parent_tests": 186,
+  "readiness_after": 47.8,
+  "readiness_before": 47.8,
+  "readiness_delta": 0.0,
+  "source_lock_revision": 2,
+  "source_lock_verified": true,
+  "trainable_parameter_count": 0,
+  "world_audit_valid": true,
+  "world_record_digest": "776ffd1c4346803c57ddf782e39bcc131e7dedadef0b0c3c2a8183ab88f3f74e",
+  "world_w5_passed": false
+}
