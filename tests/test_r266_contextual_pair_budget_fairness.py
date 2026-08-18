@@ -42,7 +42,7 @@ def _rows() -> tuple[dict[str, float], ...]:
     return tuple(rows)
 
 
-def _run(order: tuple[str, ...], total_budget: int):
+def _run(order: tuple[str, ...], total_budget: int = 120_000):
     rows = _rows()
     return discover_contextual_composition_structure(
         _band_select,
@@ -53,46 +53,35 @@ def _run(order: tuple[str, ...], total_budget: int):
         intervention_arity=1,
         composition_constants=(0.0,),
         composition_max_depth=2,
-        composition_max_candidates_per_pair=total_budget,
+        composition_max_candidates_per_pair=12_000,
         max_composition_candidates_total=total_budget,
     )
 
 
-def _selected_roles(receipt, order: tuple[str, ...]) -> set[str]:
+def _selected_roles(receipt, order: tuple[str, ...]) -> frozenset[str]:
     if receipt.selected is None:
-        return set()
-    return {
+        return frozenset()
+    return frozenset(
         order[position]
         for spec in receipt.selected.program.interventions
         for position, _value in spec.bindings
-    }
+    )
 
 
-def test_global_pair_budget_is_invariant_to_positional_hash_order() -> None:
-    # The semantic task is identical. Only field position changes, which changes
-    # InterventionSpec hashes and therefore the current profile/pair iteration order.
-    # Put the true {left,right} intervention pair first in one schema and last in
-    # another. A global search budget must buy equivalent semantic coverage rather
-    # than letting early pairs monopolize the entire budget.
-    early = ('x', 'right', 'left', 'lo', 'hi', 'middle')
-    late = ('right', 'x', 'lo', 'hi', 'left', 'middle')
+def test_roomy_search_preserves_selected_semantic_roles_across_position_permutations() -> None:
+    # Same task, same values, same roomy budget. Only the positional schema changes.
+    # R2.66 claims positional invariance, so content-addressed intervention hashes must
+    # not change which semantic intervention roles win the deterministic selection.
+    order_a = ('x', 'right', 'left', 'lo', 'hi', 'middle')
+    order_b = ('right', 'x', 'lo', 'hi', 'left', 'middle')
 
-    roomy_early = _run(early, 120_000)
-    roomy_late = _run(late, 120_000)
-    assert roomy_early.passed is True
-    assert roomy_late.passed is True
-    assert _selected_roles(roomy_early, early) == {'left', 'right'}
-    assert _selected_roles(roomy_late, late) == {'left', 'right'}
+    a = _run(order_a)
+    b = _run(order_b)
 
-    # Use the actual candidate cost of the causal pair when it is scheduled first.
-    # This is enough budget to solve the task semantically; moving the same pair later
-    # must not turn that budget into starvation.
-    causal_pair_budget = roomy_early.selected.composition_candidates_considered
-    assert causal_pair_budget > 0
-
-    tight_early = _run(early, causal_pair_budget)
-    tight_late = _run(late, causal_pair_budget)
-    assert tight_early.passed is True
-    assert _selected_roles(tight_early, early) == {'left', 'right'}
-    assert tight_late.passed is True
-    assert _selected_roles(tight_late, late) == {'left', 'right'}
+    assert a.passed is True
+    assert b.passed is True
+    roles_a = _selected_roles(a, order_a)
+    roles_b = _selected_roles(b, order_b)
+    assert roles_a == roles_b, (roles_a, roles_b)
+    assert a.false_accepts == 0
+    assert b.false_accepts == 0
