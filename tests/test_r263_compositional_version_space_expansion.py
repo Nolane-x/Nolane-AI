@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from dataclasses import replace
 
 from cogcoder.r247_executable_patch_cegis import PatchMacro
 from cogcoder.r252_repository_query import RepositoryPatchCandidate
@@ -240,3 +241,62 @@ def test_r263_frontier_rejects_seen_repository_state_cycles() -> None:
     )
     assert len(again) == 1
     assert repository_content_digest(again[0].candidate) != repository_content_digest(blocked.candidate)
+
+
+def test_r263_deduplicates_equivalent_initial_content_independent_of_caller_ids() -> None:
+    source, _wrong, diagnostics, _refinement, verification = _case()
+    renamed = replace(source, candidate_id='caller:renamed-duplicate')
+    refinements = (RepositoryProbe((5,)), RepositoryProbe((-5,)))
+    first = solve_repository_patch_with_compositional_expansion(
+        (source, renamed), (), diagnostics, _oracle,
+        refinement_inputs=refinements, verification_inputs=verification,
+        expansion_seeds=(source,), expansion_macros=(_floor_to_mod(),),
+        max_selection_oracle_calls=1, max_refinement_oracle_calls=2,
+        max_expansion_rounds=2, max_composition_depth=2,
+        max_generated_candidates_per_round=8, max_sites_per_macro=8,
+    )
+    second = solve_repository_patch_with_compositional_expansion(
+        (renamed, source), (), diagnostics, _oracle,
+        refinement_inputs=refinements, verification_inputs=verification,
+        expansion_seeds=(renamed,), expansion_macros=(_floor_to_mod(),),
+        max_selection_oracle_calls=1, max_refinement_oracle_calls=2,
+        max_expansion_rounds=2, max_composition_depth=2,
+        max_generated_candidates_per_round=8, max_sites_per_macro=8,
+    )
+    assert first.status == second.status == 'accept'
+    assert first.candidate is not None and second.candidate is not None
+    assert first.candidate.files == second.candidate.files
+    assert first.initial_unique_candidates == second.initial_unique_candidates == 1
+    assert first.expansion_round_count == second.expansion_round_count == 2
+
+
+def test_r263_rejects_duplicate_final_verification_inputs() -> None:
+    source, wrong, diagnostics, refinement, verification = _case()
+    duplicate_final = (verification[0], verification[0], *verification[1:])
+    try:
+        solve_repository_patch_with_compositional_expansion(
+            (source, wrong), (), diagnostics, _oracle, refinement_inputs=refinement,
+            verification_inputs=duplicate_final, expansion_seeds=(source,),
+            expansion_macros=(_floor_to_mod(),),
+        )
+    except ValueError as exc:
+        assert 'verification_inputs must be unique' in str(exc)
+    else:
+        raise AssertionError('duplicate final verification inputs must fail closed')
+
+
+def test_r263_receipt_exposes_content_addressed_selected_mutation_chain() -> None:
+    source, wrong, diagnostics, refinement, verification = _case()
+    result = solve_repository_patch_with_compositional_expansion(
+        (source, wrong), (), diagnostics, _oracle, refinement_inputs=refinement,
+        verification_inputs=verification, expansion_seeds=(source,), expansion_macros=(_floor_to_mod(),),
+        max_selection_oracle_calls=1, max_refinement_oracle_calls=1, max_expansion_rounds=2,
+        max_composition_depth=2, max_generated_candidates_per_round=8, max_sites_per_macro=8,
+    )
+    assert result.status == 'accept'
+    assert result.accepted_content_digest is not None
+    assert result.accepted_edit_count == 2
+    assert len(result.accepted_mutation_chain) == 2
+    assert len(set(result.accepted_mutation_chain)) == 2
+    assert all(mutation_id.startswith('r261m:') for mutation_id in result.accepted_mutation_chain)
+    assert result.generation_used_target_outputs is False
