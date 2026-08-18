@@ -427,6 +427,17 @@ def solve_unified_adaptive_repository_patch(
             matching = partitions.get(oracle_key)
             if matching:
                 survivors = matching
+                live_content_digests = {
+                    repository_content_digest(row.candidate) for row in matching
+                }
+                current_frontier = tuple(
+                    candidate for candidate in current_frontier
+                    if repository_content_digest(candidate) in live_content_digests
+                )
+                frontier_depths = {
+                    candidate.candidate_id: frontier_depths.get(candidate.candidate_id, 0)
+                    for candidate in current_frontier
+                }
                 continue
 
             diagnostic_counterexamples += 1
