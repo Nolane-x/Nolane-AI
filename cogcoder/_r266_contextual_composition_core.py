@@ -527,7 +527,7 @@ def discover_contextual_composition_structure(
             continue
         profiles.append(ContextualInterventionProfile(spec, tuple(d_values), tuple(v_values)))
 
-    profiles.sort(key=lambda row: row.intervention.intervention_id)
+    profiles.sort(key=lambda row: (_profile_semantic_id(row), row.intervention.intervention_id))
     selection_contexts = discovery + validation
     selection_targets = discovery_targets + validation_targets
     passing: list[ContextualCompositionCandidate] = []
