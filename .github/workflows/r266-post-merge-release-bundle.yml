@@ -4,6 +4,10 @@ on:
   push:
     branches: [main]
     paths:
+      - 'R2_66_HOSTED_VERIFICATION.json'
+      - 'R2_66_WORLD_FINAL.json'
+      - 'R2_66_RELEASE_MANIFEST.json'
+      - 'R2_66_DELIVERY.md'
       - '.github/workflows/r266-post-merge-release-bundle.yml'
   workflow_dispatch:
 
@@ -62,7 +66,7 @@ jobs:
         run: |
           python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
           python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
-      - name: Verify accepted-main ancestry and frozen R2.66 authority boundary
+      - name: Verify accepted-main ancestry, frozen authority boundary and release records
         run: |
           set -euo pipefail
           git merge-base --is-ancestor e2eef08f15e7c0a5e79f58579282db90c157cb4a HEAD
@@ -73,6 +77,10 @@ jobs:
               'R2_66_PRE_HOSTED_LOCK.json',
               'R2_66_PHASE_A_RESULT.json',
               'R2_66_EXTERNAL_TRANSFER.json',
+              'R2_66_HOSTED_VERIFICATION.json',
+              'R2_66_WORLD_FINAL.json',
+              'R2_66_RELEASE_MANIFEST.json',
+              'R2_66_DELIVERY.md',
               'cogcoder/_r266_contextual_composition_core.py',
               'cogcoder/r266_learned_contextual_composition.py',
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
@@ -90,11 +98,15 @@ jobs:
               '.github/workflows/r266-intervention-oracle-hotfix.yml',
               '.github/workflows/r266-intervention-oracle-cross-python.yml',
               '.github/workflows/r266-authority-hardening-pr.yml',
+              '.github/workflows/r266-release-authority-gate.yml',
               '.github/workflows/r266-post-merge-release-bundle.yml',
           )
           for path in required:
               assert Path(path).is_file(), path
           lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
+          hosted=json.loads(Path('R2_66_HOSTED_VERIFICATION.json').read_text())
+          world=json.loads(Path('R2_66_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('R2_66_RELEASE_MANIFEST.json').read_text())
           assert lock['schema_version'] >= 4
           assert lock['parent_release_commit'] == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1'
           assert lock['production_source_changes_after_lock_forbidden'] is True
@@ -111,6 +123,19 @@ jobs:
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
+          assert hosted['accepted_main_commit'] == 'e2eef08f15e7c0a5e79f58579282db90c157cb4a'
+          assert hosted['canonical']['conclusion'] == 'success'
+          assert hosted['canonical']['hosted_relevant_tests_total'] == 288
+          assert manifest['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert manifest['accepted_main_commit'] == hosted['accepted_main_commit']
+          assert manifest['source_lock_schema_version'] == lock['schema_version']
+          assert manifest['readiness']['score'] == 49.9
+          assert manifest['world']['w5_passed'] is False
+          assert world['audit']['valid'] is True
+          assert world['audit']['digest'] == 'de32990437181d2f0c33e8a9db226aadd06121a3e435cafc2a0bfdaca6b62712'
+          assert world['gate']['passed'] is False
+          assert world['convergence_forced'] is False
+          assert world['critical_unknowns'] >= 1
           print('R266_POST_MERGE_AUTHORITY_LOCK_OK', lock['schema_version'], len(lock['frozen_git_blobs']))
           PY
       - name: Recompute exact authored and pinned external evidence on main
@@ -165,6 +190,10 @@ jobs:
               'R2_66_PRE_HOSTED_LOCK.json',
               'R2_66_PHASE_A_RESULT.json',
               'R2_66_EXTERNAL_TRANSFER.json',
+              'R2_66_HOSTED_VERIFICATION.json',
+              'R2_66_WORLD_FINAL.json',
+              'R2_66_RELEASE_MANIFEST.json',
+              'R2_66_DELIVERY.md',
               'cogcoder/_r266_contextual_composition_core.py',
               'cogcoder/r266_learned_contextual_composition.py',
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
@@ -172,6 +201,7 @@ jobs:
               'scripts/r266_apply_authority_hardening.py',
               'tests/test_r266_frozen_lock_independent_blockers.py',
               'tests/test_r266_terminal_probe_evidence.py',
+              '.github/workflows/r266-release-authority-gate.yml',
               '.github/workflows/r266-post-merge-release-bundle.yml',
           }
           with zipfile.ZipFile('release/Nolane-AI-R2.66-COMPLETE.zip') as zf:
@@ -197,7 +227,7 @@ jobs:
           payload=json.dumps({
               'state':'success',
               'context':'r266/post-merge-complete-bundle',
-              'description':'Accepted main source lock, exact evidence, cross-Python, protected lineage and COMPLETE ZIP passed',
+              'description':'Accepted main source lock, release authority, exact evidence, cross-Python, lineage and COMPLETE ZIP passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
