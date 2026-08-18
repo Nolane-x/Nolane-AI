@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.61 Counterexample-Guided Version-Space Expansion",
+  "parent_main_sha": "eef79e0ed6dd105ba8061945437841f3e284091c",
+  "measurement_branch_head": "07b3ddea9834ca4faf39b5d6a0b5a72b6755b258",
+  "measurement_pr_merge_sha": "eeea2e2f9994c3e1c08dfd7411341ca3816383d4",
+  "measurement_workflow_run_id": 32122073257,
+  "measurement_freeze_job_id": 95664488772,
+  "frozen_git_blobs": {
+    "cogcoder/r261_version_space_expansion.py": "42ea6aa75c091fc26f1987177cab0cc21f176802",
+    "benchmarks/kfigg/r261_version_space_expansion_transfer.py": "3d9c5fd07f619658e2f0c2d3b3acb93c98811d8d",
+    "research/r261_external_version_space_expansion.py": "5b5a4ca7a26cb5d1469c3bcb2c86d1ce8d2dd367",
+    "tests/test_r261_version_space_expansion.py": "4a25a73acba9e8b93cdbf77072e48ec79a3b7186",
+    "tests/test_r261_version_space_expansion_benchmark.py": "0db929e8e89b536b1294576f5275e6fbcbef6ec2",
+    "tests/test_r261_external_version_space_expansion.py": "62dde4535307930cedaeae7bb6744c5ab361e161"
+  },
+  "phase_a_result": "R2_61_PHASE_A_RESULT.json",
+  "external_result": "R2_61_EXTERNAL_TRANSFER.json",
+  "production_source_changes_after_lock_forbidden": true,
+  "note": "The source lock pins the exact production/benchmark/test/harness blobs measured before evidence-only commits. Any later change to a frozen blob invalidates this lock and requires complete remeasurement."
+}
