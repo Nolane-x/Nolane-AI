@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64 Unified Adaptive Repository Search",
+  "nolane_world_version": "0.8.0",
+  "world_id": "world4_710989051aaa4ef3",
+  "epoch": 7,
+  "active_seconds": 120.0,
+  "audit": {
+    "valid": true,
+    "digest": "a39a2f8fdc11cb711cded3d1537912d4bffb17fc85680270bf6409a8bcc76cc3",
+    "events": 17
+  },
+  "runtime_state": {
+    "critical_unknowns": 1,
+    "fresh_verifications": 1,
+    "challengers_survived": 1,
+    "robust_worlds": 0,
+    "material_representations": 1,
+    "remaining_vot": 1.0,
+    "rivals": 2,
+    "contradictions": 0,
+    "quality": {
+      "correctness": 0.0,
+      "evidence": 0.0,
+      "robustness": 0.0,
+      "verification": 0.0
+    }
+  },
+  "fresh_hosted_verifier": {
+    "principal": "verifier:github-actions",
+    "workflow_run_id": 32131078117,
+    "canonical_job_id": 95692143439,
+    "publish_job_id": 95695935177,
+    "independent_lineage": true,
+    "fresh_context": true
+  },
+  "challenger": {
+    "survived": true,
+    "independent_mechanism": true,
+    "remaining_challenge": "R2.64 does not demonstrate learned patch-language expansion, 3+ edit scalability, effectful experiments, or blind real-repository transfer."
+  },
+  "w5": {
+    "passed": false,
+    "score": 0.0,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ]
+  },
+  "interpretation": "The runtime audit is valid, and the stored state now includes one fresh hosted verification and one survived challenger. The W5 convergence court nevertheless remains fail-closed at score 0 because its thresholds still require more residency/epochs, verification/challenger depth, robust worlds, representation diversity, value-of-thought reduction and verifier-promoted quality floors. The generic blocker labels are retained exactly as returned by the runtime and are not overridden by model narrative.",
+  "claim_boundary": "Nolane World supports bounded R2.64 release evidence but does not authorize a W5 convergence, universal-intelligence, broad-autonomy, or AGI claim."
+}
