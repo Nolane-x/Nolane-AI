@@ -1,0 +1,35 @@
+{
+  "active_exact": true,
+  "active_false_accepts": 0,
+  "active_gain_over_random": true,
+  "active_selection_oracle_calls": 1,
+  "active_verification_oracle_calls": 625,
+  "candidate_count": 4,
+  "capability": "external-active-diagnostic-probe-transfer",
+  "claim_boundary": "I/O-only transfer to one independently sourced integer ufunc over a host-authored finite four-hypothesis behavior set; not general repository coding, open-ended test invention, unrestricted program synthesis, or AGI.",
+  "initial_oracle_calls": 2,
+  "initial_survivors": 4,
+  "milestone": "R2.60",
+  "oracle_calls_total": 629,
+  "passed": true,
+  "passive_initial_only_exact": false,
+  "probe_generation_uses_target_outputs": false,
+  "random_one_probe_args": [
+    2,
+    7
+  ],
+  "random_one_probe_exact": false,
+  "random_one_probe_survivors_after": 2,
+  "selected_probe_args": [
+    -10,
+    -2
+  ],
+  "selected_probe_largest_partition": 1,
+  "selected_probe_partition_count": 4,
+  "source_exposure": "io_only",
+  "source_id": "numpy:numpy.gcd",
+  "source_version": "2.4.6",
+  "trainable_parameter_count": 0,
+  "verification_cases": 625,
+  "verification_exact": 625
+}
