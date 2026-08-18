@@ -1,0 +1,144 @@
+name: R2.65 Final Post-Merge Complete Bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/r265-post-merge-release-bundle.yml'
+      - 'R2_65_HOSTED_VERIFICATION.json'
+      - 'R2_65_WORLD_FINAL.json'
+      - 'R2_65_RELEASE_MANIFEST.json'
+      - 'R2_65_DELIVERY.md'
+      - 'R2_64_1_TO_R2_65_EVOLUTION.md'
+      - 'R2_READINESS_RECALIBRATION.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  final-bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install release dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify accepted R2.65 release records and frozen source boundary
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          hosted=json.loads(Path('R2_65_HOSTED_VERIFICATION.json').read_text())
+          world=json.loads(Path('R2_65_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('R2_65_RELEASE_MANIFEST.json').read_text())
+          delivery=Path('R2_65_DELIVERY.md').read_text()
+          evolution=Path('R2_64_1_TO_R2_65_EVOLUTION.md').read_text()
+          readiness=Path('R2_READINESS_RECALIBRATION.md').read_text()
+
+          assert lock['schema_version'] == 8
+          assert lock['parent_release_commit'] == 'f8a28627dc34f6db4fafca629df3b64d668b05c8'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+
+          assert hosted['status'] == 'HOSTED_CANONICAL_VERIFICATION_PASSED'
+          assert hosted['canonical_workflow_run_id'] == 32139543942
+          assert hosted['hosted_relevant_tests_total'] == 267
+          assert hosted['cross_python'] == {'3.11':'success','3.13':'success'}
+          assert hosted['source_lock_verified'] is True
+          assert hosted['exact_phase_a_recomputed'] is True
+          assert hosted['exact_external_numpy_multiply_recomputed'] is True
+
+          assert world['world_id'] == 'world4_4d42dbc9481047c1'
+          assert world['audit']['valid'] is True
+          assert world['audit']['digest'] == 'ac95f11a0a998946b02c2bb137d81e0d8c1c665f985c4620f22101f8ceecf83b'
+          assert world['gate']['passed'] is False
+          assert world['convergence_forced'] is False
+
+          assert manifest['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert manifest['accepted_main_commit'] == '5c8fe1e6ed8c85a6bd78a739fd26456debe69a06'
+          assert manifest['readiness']['score'] == 49.7
+          assert manifest['added_trainable_parameters'] == 0
+          assert manifest['world']['w5_passed'] is False
+          assert '49.7/100' in delivery
+          assert 'W5 remains false' in delivery
+          assert 'R2.65' in evolution
+          assert '## R2.65 — 49.7 / 100' in readiness
+          print('R265_POST_MERGE_RELEASE_RECORDS_OK')
+          PY
+      - name: Recompute exact authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          print('R265_POST_MERGE_EXACT_EVIDENCE_OK')
+          PY
+      - name: Run R2.65 and protected accepted lineage
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Create and verify final accepted-main repository snapshot
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip -o release/Nolane-AI-R2.65-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.65-COMPLETE.zip | tee release/Nolane-AI-R2.65-COMPLETE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.65-COMPLETE.zip
+      - name: Upload final complete repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.65-COMPLETE-POST-MERGE
+          path: |
+            release/Nolane-AI-R2.65-COMPLETE.zip
+            release/Nolane-AI-R2.65-COMPLETE.zip.sha256
+      - name: Publish final post-merge bundle status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r265/post-merge-complete-bundle',
+              'description':'Accepted main records, exact evidence, 267-test lineage and COMPLETE ZIP passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
