@@ -93,18 +93,20 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
           python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
-      - name: Run pinned I/O-only deadzone transfer
+      - name: Recompute exact frozen I/O-only deadzone transfer
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
           from pathlib import Path
           import ufunclab
           from research.r262_external_complementary_transfer import run_external_transfer
+          expected=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
           result=run_external_transfer(
             ufunclab.deadzone,
             source_id='WarrenWeckesser/ufunclab:ufunclab.deadzone',
             source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
           )
+          assert result == expected, (result, expected)
           assert result['milestone'] == 'R2.62'
           assert result['passed'] is True
           assert result['source_exposure'] == 'io_only'
@@ -120,7 +122,7 @@ jobs:
           assert result['passing_programs'] == 1
           assert result['trainable_parameter_count'] == 0
           Path('R2_62_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
-          print(json.dumps(result, indent=2, sort_keys=True))
+          print('R262_EXTERNAL_EXACT_OK')
           PY
       - name: Upload external transfer evidence
         uses: actions/upload-artifact@v4
@@ -134,7 +136,7 @@ jobs:
         run: |
           python - <<'PY'
           import json, os, urllib.request
-          payload=json.dumps({'state':'success','context':'r262/external-transfer','description':'R2.62 pinned ufunclab deadzone complementary transfer passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          payload=json.dumps({'state':'success','context':'r262/external-transfer','description':'R2.62 exact pinned ufunclab deadzone complementary transfer passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
           req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
           urllib.request.urlopen(req).read()
           PY
