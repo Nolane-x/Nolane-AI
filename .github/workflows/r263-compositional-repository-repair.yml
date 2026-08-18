@@ -1,0 +1,185 @@
+name: R2.63 Compositional Repository Repair
+
+on:
+  push:
+    branches: [r263-compositional-repository-repair-integration]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install lineage dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify frozen R2.63 source blobs
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_63_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit'] == '02f3d2f6dc16dbb82b0dd1cef111546173b4767e'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R263_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Run R2.63 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+      - name: Recompute and emit R2.63 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r263_compositional_repository_repair import run_benchmark
+          result=run_benchmark()
+          assert result['all_gates_pass'] is True
+          s=result['summary']
+          assert s['episodes'] == 6
+          assert s['r261_terminal_verification_abstains'] == 6
+          assert s['r263_exact'] == 6
+          assert s['r263_two_round_repairs'] == 6
+          assert s['r263_two_edit_repairs'] == 6
+          assert s['refinement_counterexamples'] == 12
+          assert s['final_verification_calls'] == 864
+          assert s['false_terminal_accepts'] == 0
+          assert s['verification_failures'] == 0
+          assert s['target_output_leakage_into_generation'] is False
+          assert s['unique_accepted_content_digests'] == 6
+          Path('R2_63_PHASE_A_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_63_PHASE_A_RESULT.json')
+          if frozen.exists():
+              assert result == json.loads(frozen.read_text())
+              print('R263_PHASE_A_EXACT_OK')
+          else:
+              print('R263_PHASE_A_FREEZE_PENDING')
+          PY
+      - name: Upload authored evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.63-phase-a
+          path: R2_63_PHASE_A_RECOMPUTED.json
+      - name: Run accepted R2.62 and R2.61 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+      - name: Run protected R2.60 to R2.55 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run protected R2.54 to R2.41 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish focused-lineage status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r263/focused-lineage','description':'R2.63 source lock, exact authored evidence and R2.62-R2.41 lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+
+  external-numpy-subtract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external dependency
+        run: python -m pip install 'numpy==2.4.6'
+      - name: Recompute I/O-only NumPy subtract transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r263_external_compositional_transfer import run_external_transfer
+          result=run_external_transfer(np.subtract, source_id='numpy:numpy.subtract', source_version=np.__version__)
+          assert np.__version__ == '2.4.6'
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['r261_status'] == 'abstain'
+          assert result['r261_reason'] == 'independent_verification_failed'
+          assert result['r263_status'] == 'accept'
+          assert result['r263_expansion_rounds'] == 2
+          assert result['r263_refinement_counterexamples'] == 2
+          assert result['r263_accepted_edit_count'] == 2
+          assert result['r263_mutation_chain_length'] == 2
+          assert result['r263_generation_used_target_outputs'] is False
+          assert result['r263_false_terminal_accepts'] == 0
+          assert result['verification_exact'] == result['verification_cases'] == 256
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_63_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_63_EXTERNAL_TRANSFER.json')
+          if frozen.exists():
+              assert result == json.loads(frozen.read_text())
+              print('R263_EXTERNAL_EXACT_OK')
+          else:
+              print('R263_EXTERNAL_FREEZE_PENDING')
+          PY
+      - name: Upload external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.63-numpy-subtract-compositional-transfer
+          path: R2_63_EXTERNAL_TRANSFER_RECOMPUTED.json
+      - name: Publish external status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r263/external-transfer','description':'R2.63 pinned NumPy subtract two-edit transfer passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install focused dependencies
+        run: python -m pip install pytest
+      - name: Verify R2.63 focused behavior
+        run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+      - name: Publish cross-Python status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':f"r263/cross-python-{os.environ['PYVER']}",'description':f"R2.63 focused tests passed on Python {os.environ['PYVER']}",'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY

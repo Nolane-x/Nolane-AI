@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63",
+  "status": "HOSTED_VERIFICATION_PASSED",
+  "capability_head": "f7fa5111540995acc17fbefda633850bb3208d4d",
+  "pr_merge_sha": "424b23c09ea8d30fdb94fd4b4db533ed6b9def37",
+  "hosted_run_id": 32128298353,
+  "focused_lineage_job_id": 95683648604,
+  "external_job_id": 95683648703,
+  "cross_python_job_ids": {
+    "3.11": 95683648711,
+    "3.13": 95683648761
+  },
+  "hosted_run_conclusion": "success",
+  "source_lock_verified": true,
+  "frozen_source_blobs": 6,
+  "phase_a_recomputed_exact": true,
+  "external_recomputed_exact": true,
+  "focused_r263_tests": 7,
+  "protected_parent_tests": 227,
+  "hosted_relevant_tests_total": 234,
+  "protected_parent_breakdown": {
+    "R2.62": 6,
+    "R2.61": 16,
+    "R2.60": 7,
+    "R2.59": 12,
+    "R2.58": 11,
+    "R2.57": 15,
+    "R2.56": 16,
+    "R2.55": 19,
+    "R2.54_to_R2.50": 56,
+    "R2.49_to_R2.41": 69
+  },
+  "cross_python": {
+    "3.11": "success",
+    "3.13": "success"
+  },
+  "phase_a_artifact_id": 9321192168,
+  "phase_a_artifact_digest": "sha256:5510814373b71026d63c5fa2285e1a91046aed02518790024a55e89a782ad4e1",
+  "external_artifact_id": 9321192097,
+  "external_artifact_digest": "sha256:e3dff3726c1b2f86a7f84d9dc34bf1ed1188fdf408018457a82d0d7ce01a7cc4",
+  "tdd_red": {
+    "core_run_id": 32127260810,
+    "core_job_id": 95680470378,
+    "external_run_id": 32127796698,
+    "external_job_id": 95682121067
+  },
+  "readiness_before": 48.8,
+  "readiness_after": 49.1,
+  "readiness_delta": 0.3,
+  "world_id": "world_c3eaeda4e13d",
+  "world_w5_passed": false,
+  "claim_boundary": "Hosted verification establishes bounded two-round composition of trusted single-site repository PatchMacro mutations after public refinement counterexamples, with target-output-free generation and disjoint terminal verification. It does not establish arbitrary patch-language invention, broad real-repository repair, effectful experimentation, large-depth scaling, or AGI."
+}
