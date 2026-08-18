@@ -183,6 +183,7 @@ class InterventionDiscoveryReceipt:
     candidates: tuple[InterventionCandidateReceipt, ...]
     no_seed_passed: bool
     no_seed_candidates_considered: int
+    synthesis_candidates_considered: int
     oracle_calls: int
     reason: str
     trainable_parameter_count: int = 0
@@ -261,6 +262,7 @@ def discover_causal_intervention(
         canonical_downstream_examples,
         vocabulary,
     )
+    total_synthesis_candidates = no_seed.candidates_considered
     specs = enumerate_interventions(fields, anchor_values, arity=intervention_arity)
     receipts: list[InterventionCandidateReceipt] = []
     total_oracle_calls = 0
@@ -317,6 +319,7 @@ def discover_causal_intervention(
         )
         base_probe = synthesize_base_with_budget(probe_need, tuple(probe_examples))
         vocab_probe = synthesize_with_vocabulary(probe_need, tuple(probe_examples), vocabulary)
+        total_synthesis_candidates += base_probe.candidates_considered + vocab_probe.candidates_considered
         external_probe = (
             schema.externalize_expr(vocab_probe.expression)
             if vocab_probe.expression is not None else None
@@ -415,6 +418,7 @@ def discover_causal_intervention(
             vocabulary,
             seed_expressions=(vocab_probe.expression,),
         )
+        total_synthesis_candidates += seeded.candidates_considered
         external_seeded = (
             schema.externalize_expr(seeded.expression)
             if seeded.expression is not None else None
@@ -470,6 +474,7 @@ def discover_causal_intervention(
         candidates=tuple(receipts),
         no_seed_passed=bool(no_seed.passed),
         no_seed_candidates_considered=no_seed.candidates_considered,
+        synthesis_candidates_considered=total_synthesis_candidates,
         oracle_calls=total_oracle_calls,
         reason='causal_intervention_discovered' if selected is not None else 'no_causal_intervention_within_budget',
         trainable_parameter_count=0,
