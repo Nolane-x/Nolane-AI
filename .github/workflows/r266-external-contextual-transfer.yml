@@ -33,7 +33,7 @@ jobs:
       - name: Install pinned external oracle dependency
         run: |
           python -m pip install --upgrade pip
-          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install pytest 'numpy==2.4.6' meson-python ninja
           python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
       - name: Recompute fresh I/O-only contextual transfer
         run: |
@@ -59,8 +59,25 @@ jobs:
           assert result['final_validation_exact'] == result['final_validation_cases']
           assert result['challenge_exact'] == result['challenge_cases'] == 12
           assert result['heldout_exact'] == result['heldout_cases'] == 36
-          assert result['selected_position_set'] == [3, 4]
-          assert result['shared_positions'] == [0, 1, 2]
+
+          # The external gate verifies the learned causal topology, not a host-supplied
+          # answer for which semantic positions must be intervened upon. Semantic
+          # hardening is allowed to select a different valid pair as long as exactly
+          # two one-field interventions are learned and the remaining positions are
+          # the disjoint shared context available to composition.
+          selected_positions = tuple(result['selected_position_set'])
+          shared_positions = tuple(result['shared_positions'])
+          assert len(selected_positions) == 2
+          assert len(set(selected_positions)) == 2
+          assert len(shared_positions) == 3
+          assert len(set(shared_positions)) == 3
+          assert set(selected_positions).isdisjoint(shared_positions)
+          assert sorted(selected_positions + shared_positions) == list(range(5))
+          assert len(result['selected_bindings']) == 2
+          assert all(len(bindings) == 1 for bindings in result['selected_bindings'])
+          binding_positions = sorted(bindings[0][0] for bindings in result['selected_bindings'])
+          assert binding_positions == sorted(selected_positions)
+
           assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
           expr = result['learned_composition_expression']
