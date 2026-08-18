@@ -1,0 +1,72 @@
+{
+  "blind_external_task_selection": false,
+  "challenge_cases": 8,
+  "challenge_exact": 8,
+  "claim_boundary": "Bounded two-experiment pure-input causal program discovery on a researcher-selected independently sourced I/O-only deadzone family; not open-ended experiment invention, blind external discovery, effectful intervention design, or general program synthesis.",
+  "composition_language": [
+    "add",
+    "sub",
+    "rsub",
+    "mul",
+    "min",
+    "max"
+  ],
+  "composition_op": "add",
+  "derived_anchor_values": [
+    -10.0,
+    10.0
+  ],
+  "external_function_family": "deadzone",
+  "flat_baseline_candidates": 10000,
+  "flat_baseline_passed": false,
+  "heldout_cases": 24,
+  "heldout_exact": 24,
+  "host_selected_intervention": false,
+  "intervention_anchor_source": "program_need.constants",
+  "invalid_interventions_rejected": 2,
+  "left_essential_cases": 10,
+  "legal_interventions": 4,
+  "matched_synthesis_budget_respected": true,
+  "milestone": "R2.62",
+  "oracle_calls_total": 172,
+  "pair_operation_candidates_considered": 36,
+  "passed": true,
+  "passing_programs": 1,
+  "probe_synthesis_candidates": [
+    1943,
+    1957
+  ],
+  "probe_synthesis_candidates_total": 3900,
+  "proper_subset_failures": 2,
+  "researcher_selected_function_family": true,
+  "right_essential_cases": 10,
+  "selected_bindings": [
+    [
+      [
+        1,
+        -10.0
+      ]
+    ],
+    [
+      [
+        2,
+        10.0
+      ]
+    ]
+  ],
+  "selected_program_id": "exp2.a8f6e1b4d30da4a614bbdf7dc4d19a9d5dd247013156405cd23b6a2803d1f0db",
+  "singleton_challenge_exact": [
+    4,
+    6
+  ],
+  "singleton_validation_exact": [
+    6,
+    6
+  ],
+  "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+  "source_exposure": "io_only",
+  "source_id": "WarrenWeckesser/ufunclab:ufunclab.deadzone",
+  "trainable_parameter_count": 0,
+  "validation_cases": 10,
+  "validation_exact": 10
+}
