@@ -1,0 +1,203 @@
+name: R2.62 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [main, r262-complementary-causal-program-integration]
+    paths:
+      - 'R2_61_TO_R2_62_EVOLUTION.md'
+      - 'R2_62_TDD_RED.json'
+      - 'R2_62_PRE_HOSTED_LOCK.json'
+      - 'R2_62_PHASE_A_RESULT.json'
+      - 'R2_62_EXTERNAL_TRANSFER.json'
+      - 'R2_62_VERIFY_RESULT.json'
+      - 'R2_62_WORLD_FINAL.json'
+      - 'R2_62_DELIVERY.md'
+      - 'R2_62_RELEASE_MANIFEST.json'
+      - 'R2_READINESS_RECALIBRATION.md'
+      - '.github/workflows/r262-release-bundle.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'R2_61_TO_R2_62_EVOLUTION.md'
+      - 'R2_62_TDD_RED.json'
+      - 'R2_62_PRE_HOSTED_LOCK.json'
+      - 'R2_62_PHASE_A_RESULT.json'
+      - 'R2_62_EXTERNAL_TRANSFER.json'
+      - 'R2_62_VERIFY_RESULT.json'
+      - 'R2_62_WORLD_FINAL.json'
+      - 'R2_62_DELIVERY.md'
+      - 'R2_62_RELEASE_MANIFEST.json'
+      - 'R2_READINESS_RECALIBRATION.md'
+      - '.github/workflows/r262-release-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install release dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Verify frozen R2.62 release boundary
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+
+          red=json.loads(Path('R2_62_TDD_RED.json').read_text())
+          lock=json.loads(Path('R2_62_PRE_HOSTED_LOCK.json').read_text())
+          phase=json.loads(Path('R2_62_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
+          verify=json.loads(Path('R2_62_VERIFY_RESULT.json').read_text())
+          world=json.loads(Path('R2_62_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('R2_62_RELEASE_MANIFEST.json').read_text())
+          parent=json.loads(Path('R2_61_RELEASE_MANIFEST.json').read_text())
+          delivery=Path('R2_62_DELIVERY.md').read_text()
+          readiness=Path('R2_READINESS_RECALIBRATION.md').read_text()
+
+          assert parent['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert parent['readiness']['score'] == 48.5
+          assert parent['world']['w5_passed'] is False
+          assert red['status'] == 'HOSTED_TDD_RED_CONFIRMED'
+          assert red['production_module_absent_at_red'] is True
+          assert red['failure_was_contract_relevant'] is True
+          assert lock['parent_release_commit'] == '33042cbe92bea69580c7cc264cb35db09aaeee2f'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+
+          assert phase['discoveries'] == phase['configurations'] == 3
+          assert phase['flat_baseline_failures'] == 3
+          assert phase['full_program_successes'] == 3
+          assert phase['proper_subset_failures'] == 6
+          assert phase['validation_exact'] == phase['validation_cases'] == 30
+          assert phase['challenge_exact'] == phase['challenge_cases'] == 24
+          assert phase['rename_program_id_invariant'] is True
+          assert phase['argument_permutation_tracks_roles'] is True
+          assert phase['matched_synthesis_budget_respected'] is True
+          assert phase['wrong_pair_false_accepts'] == 0
+          assert phase['trainable_parameter_count'] == 0
+
+          assert external['passed'] is True
+          assert external['source_exposure'] == 'io_only'
+          assert external['source_commit'] == 'f1fbe6769850823a1976ccc28d14cd966130b645'
+          assert external['researcher_selected_function_family'] is True
+          assert external['blind_external_task_selection'] is False
+          assert external['host_selected_intervention'] is False
+          assert external['composition_op'] == 'add'
+          assert external['proper_subset_failures'] == 2
+          assert external['validation_exact'] == external['validation_cases'] == 10
+          assert external['challenge_exact'] == external['challenge_cases'] == 8
+          assert external['heldout_exact'] == external['heldout_cases'] == 24
+          assert external['singleton_challenge_exact'] == [4, 6]
+          assert external['flat_baseline_passed'] is False
+          assert external['matched_synthesis_budget_respected'] is True
+          assert external['passing_programs'] == 1
+          assert external['trainable_parameter_count'] == 0
+
+          assert verify['hosted_run_id'] == 32125347766
+          assert verify['hosted_run_conclusion'] == 'success'
+          assert verify['source_lock_verified'] is True
+          assert verify['phase_a_recomputed_exact'] is True
+          assert verify['external_recomputed_exact'] is True
+          assert verify['focused_r262_tests'] == 6
+          assert verify['protected_parent_tests'] == 221
+          assert verify['hosted_relevant_tests_total'] == 227
+          assert verify['cross_python'] == {'3.11':'success','3.13':'success'}
+          assert verify['readiness_before'] == 48.5
+          assert verify['readiness_after'] == 48.8
+          assert verify['world_w5_passed'] is False
+
+          assert world['audit']['valid'] is True
+          assert world['audit']['digest'] == 'b71069ad77ff60013e84f9d9bf6e1322f56a38dbe10a2af4a79df3327807bce2'
+          assert world['world_id'] == 'world_43c4537a8cd7'
+          assert world['gate']['passed'] is False
+          assert world['convergence_forced'] is False
+          assert len(world['critical_unknowns']) >= 4
+
+          assert manifest['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert manifest['readiness']['score'] == 48.8
+          assert manifest['added_trainable_parameters'] == 0
+          assert manifest['world']['w5_passed'] is False
+          assert manifest['peer_provenance']['peer_core_blob_reused_exactly'] == '01e7953f42a858ac94052337b66834a30550d545'
+          assert '48.8/100' in delivery
+          assert '## R2.62 — 48.8 / 100' in readiness
+          print('R262_RELEASE_BOUNDARY_OK')
+          PY
+      - name: Recompute exact authored evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r262_complementary_experiment_program import run_benchmark
+          expected=json.loads(Path('R2_62_PHASE_A_RESULT.json').read_text())
+          actual=run_benchmark()
+          assert actual == expected
+          print('R262_PHASE_A_RELEASE_RECOMPUTE_OK')
+          PY
+      - name: Recompute exact pinned external transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r262_external_complementary_transfer import run_external_transfer
+          expected=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
+          actual=run_external_transfer(
+              ufunclab.deadzone,
+              source_id='WarrenWeckesser/ufunclab:ufunclab.deadzone',
+              source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          assert actual == expected
+          print('R262_EXTERNAL_RELEASE_RECOMPUTE_OK')
+          PY
+      - name: Run R2.62 and accepted R2.61 regressions
+        run: PYTHONPATH=. python -m pytest -q tests/test_r262_*.py tests/test_r261_*.py
+      - name: Create complete repository snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip -o release/Nolane-AI-R2.62-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.62-COMPLETE.zip | tee release/Nolane-AI-R2.62-COMPLETE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.62-COMPLETE.zip
+      - name: Upload full repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.62-COMPLETE
+          path: |
+            release/Nolane-AI-R2.62-COMPLETE.zip
+            release/Nolane-AI-R2.62-COMPLETE.zip.sha256
+      - name: Publish release-bundle status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r262/release-bundle',
+              'description':'R2.62 boundary, exact evidence, regressions and COMPLETE ZIP integrity passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY

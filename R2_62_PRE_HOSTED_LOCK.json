@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.62",
+  "parent_release_commit": "33042cbe92bea69580c7cc264cb35db09aaeee2f",
+  "production_source_changes_after_lock_forbidden": true,
+  "frozen_git_blobs": {
+    "cogcoder/r262_complementary_experiment_program.py": "01e7953f42a858ac94052337b66834a30550d545",
+    "benchmarks/kfigg/r262_complementary_experiment_program.py": "cc077f74c0aa229059c403e4d579b41fe3261a27",
+    "research/r262_external_complementary_transfer.py": "6b1416eac6b6cc169e4f581eb2b28bc8c3a3acb6",
+    "tests/test_r262_complementary_causal_program_port.py": "bca7f89d740e0d8bef5698ea4368a4cec70811ba",
+    "tests/test_r262_complementary_experiment_program.py": "f377f8dc15931687963d5f90e9f3f96318c7f65d",
+    "tests/test_r262_complementary_benchmark.py": "23d69f26914721e20ea99874d226ceee8e3cdd65",
+    "tests/test_r262_external_complementary_transfer.py": "36444472c502c4f3fa58d59b14948ccdacc77233",
+    "R2_62_PHASE_A_RESULT.json": "51f0c1b1703be780f736289de09976d4fd4f592a"
+  },
+  "peer_provenance": {
+    "source_branch": "r260-complementary-experiment-program-gpt56sol",
+    "peer_head": "92e73ae4af5b060454141e057cda6033d4520a21",
+    "peer_core_blob_reused_exactly": "01e7953f42a858ac94052337b66834a30550d545",
+    "integration_policy": "port into R2.62 namespace on accepted R2.61; never overwrite accepted R2.60 files"
+  },
+  "claim_boundary": "Bounded deterministic complementary two-experiment pure-input program discovery over finite host-provided intervention anchors and finite numeric composition operations. Not open-ended experiment-language invention, effectful intervention design, blind task discovery, general program synthesis, broad repository repair, or AGI."
+}

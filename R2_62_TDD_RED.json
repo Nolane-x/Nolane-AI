@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.62",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "workflow_run_id": 32124198258,
+  "job_id": 95671030685,
+  "head_sha": "13409ab8900d78784873585f2880ea8596704179",
+  "test": "tests/test_r262_complementary_causal_program_port.py",
+  "expected_failure": "ModuleNotFoundError: No module named 'cogcoder.r262_complementary_experiment_program'",
+  "production_module_absent_at_red": true,
+  "failure_was_contract_relevant": true,
+  "claim_boundary": "The hosted RED receipt establishes only that the R2.62 port contract failed before the clean namespace implementation existed."
+}
