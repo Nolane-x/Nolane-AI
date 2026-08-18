@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.62",
+  "status": "HOSTED_VERIFICATION_PASSED",
+  "capability_head": "dcdbf26dfb1202326dddceb0893dd1c84699d541",
+  "pr_merge_sha": "be8efbaa9743ae101f4ea1d54be8d7f2be0f327d",
+  "hosted_run_id": 32125347766,
+  "focused_lineage_job_id": 95674566235,
+  "external_job_id": 95674566400,
+  "cross_python_job_ids": {
+    "3.11": 95674566305,
+    "3.13": 95674566417
+  },
+  "hosted_run_conclusion": "success",
+  "source_lock_verified": true,
+  "frozen_source_blobs": 8,
+  "phase_a_recomputed_exact": true,
+  "external_recomputed_exact": true,
+  "focused_r262_tests": 6,
+  "protected_parent_tests": 221,
+  "hosted_relevant_tests_total": 227,
+  "protected_parent_breakdown": {
+    "R2.61": 16,
+    "R2.60": 7,
+    "R2.59": 12,
+    "R2.58": 11,
+    "R2.57": 15,
+    "R2.56": 16,
+    "R2.55": 19,
+    "R2.54_to_R2.50": 56,
+    "R2.49_to_R2.41": 69
+  },
+  "cross_python": {
+    "3.11": "success",
+    "3.13": "success"
+  },
+  "external_artifact_id": 9320117536,
+  "external_artifact_digest": "sha256:30eb5eab74a24569e41d547b3d3d93419dba87414d003b1b72416e6163b8602b",
+  "tdd_red": {
+    "run_id": 32124198258,
+    "job_id": 95671030685,
+    "head_sha": "13409ab8900d78784873585f2880ea8596704179",
+    "contract_relevant": true
+  },
+  "readiness_before": 48.5,
+  "readiness_after": 48.8,
+  "readiness_delta": 0.3,
+  "world_id": "world_43c4537a8cd7",
+  "world_w5_passed": false,
+  "claim_boundary": "Hosted verification establishes implementation consistency for bounded deterministic two-intervention pure-input causal-program discovery and one researcher-selected pinned external deadzone family. It does not establish open-ended experiment invention, blind task discovery, effectful intervention design, broad repository autonomy, unrestricted program synthesis, or AGI."
+}

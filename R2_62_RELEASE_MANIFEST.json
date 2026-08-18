@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.62",
+  "name": "Complementary Causal Experiment Program",
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "parent_final_main_sha": "93734bca20ee613603aa9ab5d592791ee098f1db",
+  "parent_capability_accept_sha": "33042cbe92bea69580c7cc264cb35db09aaeee2f",
+  "capability_head": "dcdbf26dfb1202326dddceb0893dd1c84699d541",
+  "added_trainable_parameters": 0,
+  "readiness": {
+    "score": 48.8,
+    "previous_score": 48.5,
+    "delta": 0.3,
+    "kind": "internal_engineering_heuristic_not_AGI_probability"
+  },
+  "canonical_hosted_verification": {
+    "workflow_run_id": 32125347766,
+    "focused_lineage_job_id": 95674566235,
+    "external_job_id": 95674566400,
+    "pr_merge_sha": "be8efbaa9743ae101f4ea1d54be8d7f2be0f327d",
+    "r262_tests": 6,
+    "protected_parent_tests": 221,
+    "hosted_relevant_tests_total": 227,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "phase_a_exact": true,
+    "external_exact": true,
+    "external_artifact_id": 9320117536,
+    "external_artifact_digest": "sha256:30eb5eab74a24569e41d547b3d3d93419dba87414d003b1b72416e6163b8602b",
+    "conclusion": "success"
+  },
+  "peer_provenance": {
+    "source_branch": "r260-complementary-experiment-program-gpt56sol",
+    "peer_head": "92e73ae4af5b060454141e057cda6033d4520a21",
+    "peer_core_blob_reused_exactly": "01e7953f42a858ac94052337b66834a30550d545",
+    "namespace_policy": "ported as R2.62; accepted R2.60 and R2.61 namespaces are not overwritten"
+  },
+  "evidence": {
+    "tdd_red": "R2_62_TDD_RED.json",
+    "source_lock": "R2_62_PRE_HOSTED_LOCK.json",
+    "phase_a": "R2_62_PHASE_A_RESULT.json",
+    "external_transfer": "R2_62_EXTERNAL_TRANSFER.json",
+    "hosted_verification": "R2_62_VERIFY_RESULT.json",
+    "nolane_world": "R2_62_WORLD_FINAL.json",
+    "delivery": "R2_62_DELIVERY.md",
+    "evolution": "R2_61_TO_R2_62_EVOLUTION.md",
+    "readiness": "R2_READINESS_RECALIBRATION.md"
+  },
+  "implementation": [
+    "cogcoder/r262_complementary_experiment_program.py"
+  ],
+  "benchmarks": [
+    "benchmarks/kfigg/r262_complementary_experiment_program.py",
+    "research/r262_external_complementary_transfer.py"
+  ],
+  "world": {
+    "world_id": "world_43c4537a8cd7",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "b71069ad77ff60013e84f9d9bf6e1322f56a38dbe10a2af4a79df3327807bce2",
+    "w5_passed": false,
+    "convergence_forced": false
+  },
+  "claim_boundary": "Bounded deterministic complementary two-intervention pure-input causal-program discovery over finite host-provided anchors and composition operators, with singleton necessity, matched local synthesis budget and pinned I/O-only deadzone evidence. Not open-ended experiment-language invention, blind external task discovery, effectful intervention design, broad repository autonomy, unrestricted program synthesis, or AGI.",
+  "release_bundle": {
+    "workflow": ".github/workflows/r262-release-bundle.yml",
+    "artifact_name": "Nolane-AI-R2.62-COMPLETE",
+    "archive_name": "Nolane-AI-R2.62-COMPLETE.zip",
+    "required_on_main_after_merge": true
+  }
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.62",
+  "runtime": "Nolane World 0.8.0",
+  "world_id": "world_43c4537a8cd7",
+  "depth": "W5",
+  "audit": {
+    "valid": true,
+    "method": "WorldStore.load plus SHA-256 over the persisted canonical session JSON",
+    "digest": "b71069ad77ff60013e84f9d9bf6e1322f56a38dbe10a2af4a79df3327807bce2",
+    "session_bytes": 9521,
+    "events": 3,
+    "evidence_items": 5,
+    "attack_items": 4
+  },
+  "active_seconds_credited": 60.0,
+  "hosted_evidence": {
+    "canonical_run_id": 32125347766,
+    "focused_lineage_job_id": 95674566235,
+    "external_job_id": 95674566400,
+    "focused_r262_tests": 6,
+    "protected_parent_tests": 221,
+    "external_recomputed_exact": true,
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    }
+  },
+  "adversarial_checks": [
+    "singleton-subset ablation: both proper one-intervention subsets fail while the composed pair passes",
+    "identifier/representation perturbation: program identity is rename invariant and argument permutation tracks positional roles",
+    "resolved CI contradiction: an earlier parent-lineage collection failure was caused by missing NumPy and disappeared after dependency repair without mutation of source-locked R2.62 production artifacts"
+  ],
+  "critical_unknowns": [
+    "Transfer beyond the researcher-selected deadzone family to blind external task distributions is not established.",
+    "Scaling the finite two-intervention program language to three-or-more interventions without combinatorial or false-discovery collapse is not established.",
+    "Stateful, temporal, filesystem, network, dependency and concurrency interventions are outside the represented experiment language.",
+    "Anchor values and composition operators remain finite host-provided choices rather than learned language growth."
+  ],
+  "gate": {
+    "passed": false,
+    "evaluated_at": "2026-08-18T10:14:42.971942+00:00",
+    "reason_codes": [
+      "MIN_RESIDENCY_NOT_MET",
+      "FRAME_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_GENERATIONS_NOT_MET",
+      "ADVERSARIAL_COVERAGE_NOT_MET",
+      "CHALLENGER_SEARCH_NOT_MET",
+      "COUNTERFACTUAL_COVERAGE_NOT_MET",
+      "REPRESENTATION_SHIFTS_NOT_MET",
+      "ROBUSTNESS_WORLDS_NOT_MET",
+      "CRITICAL_UNKNOWNS_REMAIN",
+      "MATERIAL_IMPROVEMENT_STILL_LIKELY",
+      "CANDIDATE_QUALITY_BELOW_THRESHOLD"
+    ]
+  },
+  "convergence_forced": false,
+  "claim_boundary": "R2.62 is accepted only as a bounded complementary two-experiment pure-input program-discovery capability. Nolane World W5 is deliberately not passed; unresolved breadth, scaling, effectful-experiment and language-growth questions remain explicit."
+}
