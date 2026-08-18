@@ -1,0 +1,50 @@
+{
+  "active_seconds_credited": 6.0,
+  "audit": {
+    "digest": "8ec83909d2b5bb48895124e8071135bf0edca9f0187ce908a58cda1d91e5d605",
+    "events": 13,
+    "valid": true,
+    "world_id": "world4_e293c77f03754ec4"
+  },
+  "claim_boundary": "ACCEPTED_BOUNDED_CAPABILITY only; active diagnostic input selection over an existing finite executable repository-patch version space, not general repository coding, open-ended test invention, effectful experimentation, unrestricted program synthesis, or AGI.",
+  "critical_unknowns": [
+    "R2.59 improves evidence acquisition only after a useful candidate version space already exists; it does not repair missing target hypotheses or improve repository candidate generation itself.",
+    "Legal probe domains remain finite and host-provided; autonomous open-ended probe-domain construction is not established.",
+    "RepositoryProbe supports positional JSON-scalar inputs only; stateful, temporal, concurrent, filesystem, dependency and other effectful diagnostic experiments remain outside the representation.",
+    "The external NumPy transfer uses an independently sourced I/O oracle but a host-authored four-hypothesis candidate set, so hypothesis-generation independence is not established.",
+    "R2.59 reduces selection-label ambiguity but terminal safety still uses exhaustive verification: 2,401 labels per authored episode and 625 on the NumPy transfer, so total oracle-call efficiency is not demonstrated.",
+    "Independent candidate generators, counterfactual representation families, hostile/stateful oracles and broad fresh-repository issue-resolution evidence remain insufficient for W5 convergence."
+  ],
+  "epoch": 6,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "fresh verification missing",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0
+  },
+  "hosted_evidence": {
+    "commit": "5abcbbb3b5c159519566fdbdbe353f733871614d",
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    },
+    "external_artifact_id": 9317002843,
+    "main_job_id": 95648197603,
+    "parent_relevant_tests": 186,
+    "run_id": 32116854204
+  },
+  "milestone": "R2.59",
+  "world_id": "world4_e293c77f03754ec4"
+}
