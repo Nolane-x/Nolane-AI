@@ -1,0 +1,68 @@
+name: R2.67 External NumPy Dot Transfer
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - 'research/r267_external_dot_transfer.py'
+      - 'tests/test_r267_external_dot_transfer.py'
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - '.github/workflows/r267-external-dot-transfer.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'research/r267_external_dot_transfer.py'
+      - 'tests/test_r267_external_dot_transfer.py'
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - '.github/workflows/r267-external-dot-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  external-numpy-dot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Accepted R2.66 parent first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Run pinned external transfer test
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_external_dot_transfer.py
+      - name: Recompute fresh I/O-only evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r267_external_dot_transfer import run_external_transfer
+
+          assert np.__version__ == '2.4.6'
+          result = run_external_transfer(
+              np.dot,
+              source_id='numpy.dot',
+              source_version=np.__version__,
+          )
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['host_selected_intervention'] is False
+          assert result['all_singleton_ablations_fail'] is True
+          assert result['all_pair_ablations_fail'] is True
+          assert result['challenge_exact'] == result['challenge_cases'] == 6
+          assert result['heldout_exact'] == result['heldout_cases'] == 6
+          assert result['false_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_67_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(
+              json.dumps(result, indent=2, sort_keys=True) + '\n'
+          )
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.67-numpy-dot-external-transfer
+          path: R2_67_EXTERNAL_TRANSFER_RECOMPUTED.json
