@@ -42,3 +42,7 @@ Hosted acceptance is additionally conditioned on all four official InjecAgent da
 ## Remaining claim boundary
 
 R2.55 does not prove semantic prompt-injection immunity, globally reliable Sybil/source attribution, a complete challenge oracle, real rollback of arbitrary external side effects, open-ended primitive invention, or broad real-world poisoning robustness. The authored benchmark is not a substitute for an independently sourced adversarial distribution.
+
+## Hosted acceptance outcome
+
+Clean GitHub hosted run `32088996853` passed the complete R2.55 gate at commit `0621a43172fff1355bebee3c09922922c49f67c4`, including 19/19 focused tests, the full protected R2.55→R2.41 lineage (144/144 relevant tests), Python 3.11 and 3.13, authored evidence recomputation, and the pinned InjecAgent external transfer. InjecAgent yielded 2,108 cases, preserved 2,108 intended user-tool authorizations, blocked 3,196/3,196 attacker-action proposals and produced zero authority escapes. Readiness therefore moves conservatively from 45.5 to 46.0/100.
