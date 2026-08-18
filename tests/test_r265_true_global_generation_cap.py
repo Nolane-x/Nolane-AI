@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# Hosted trigger after the verification workflow was installed on this branch.
 from cogcoder.r252_repository_query import RepositoryPatchCandidate
 from cogcoder.r260_active_repository_probes import RepositoryProbe
 import cogcoder.r265_verified_patch_primitive_induction as r265
