@@ -20,9 +20,9 @@ def _oracle(x: int) -> int:
 
 def _run(generation_budget: int):
     # At diagnostic x=0, A is eliminated while B/C survive. At x=6 the oracle
-    # lies outside the B/C version space, so expansion must be rooted only in
-    # those still-live hypotheses. A is deliberately lexicographically first
-    # after mutation; a stale pre-filter frontier lets A consume the first slot.
+    # lies outside the B/C version space. A is deliberately lexicographically
+    # first after mutation; a stale pre-filter frontier lets A consume the first
+    # slot even though B is the currently-live parent of the exact repair.
     eliminated = _candidate(
         "caller:A-eliminated",
         "a = 0\n\ndef solve(x):\n    return x // 2 + (1 if x == 0 else 0)\n",
@@ -79,3 +79,57 @@ def test_eliminated_diagnostic_candidates_do_not_consume_later_expansion_budget(
     assert tight.admitted_generated_candidates == 1
     assert tight.false_terminal_accepts == 0
     assert tight.verification_failures == 0
+
+
+def test_contradicted_ancestor_remains_fallback_when_live_frontier_has_no_mutation() -> None:
+    # A is contradicted at x=4, while B/C match the public label and survive.
+    # At x=17 the target is outside B/C.  B/C intentionally have no FloorDiv
+    # sites; A does, and mutating A repairs *both* observations.  A correct fix
+    # must therefore prioritize live hypotheses without deleting repairable
+    # contradicted ancestors from the authorized fallback frontier.
+    repairable_ancestor = _candidate(
+        "caller:A-repairable-ancestor",
+        "def solve(x):\n    return x // 2 + 10\n",
+    )
+    live_b = _candidate(
+        "caller:B-live-no-site",
+        "def solve(x):\n    return 10 if x == 4 else 12\n",
+    )
+    live_c = _candidate(
+        "caller:C-live-no-site",
+        "def solve(x):\n    return 10 if x == 4 else 18\n",
+    )
+    diagnostic = (RepositoryProbe((4,)), RepositoryProbe((17,)))
+    refinement = (RepositoryProbe((2,)),)
+    final = tuple(RepositoryProbe((x,)) for x in (3, 6, 7, 8, 11, 12))
+
+    def oracle(x: int) -> int:
+        return x % 2 + 10
+
+    result = solve_unified_adaptive_repository_patch(
+        (repairable_ancestor, live_b, live_c),
+        (),
+        diagnostic,
+        oracle,
+        refinement_inputs=refinement,
+        final_verification_inputs=final,
+        expansion_seeds=(repairable_ancestor, live_b, live_c),
+        expansion_macros=(_macro(),),
+        max_selection_oracle_calls=2,
+        max_refinement_oracle_calls=1,
+        max_expansion_rounds=1,
+        max_composition_depth=1,
+        max_generated_candidates_per_round=1,
+        max_sites_per_macro=1,
+    )
+
+    assert result.status == "accept"
+    assert result.exact is True
+    assert result.candidate is not None
+    assert "x % 2 + 10" in dict(result.candidate.files)["main.py"]
+    assert result.diagnostic_counterexamples == 1
+    assert result.expansion_round_count == 1
+    assert result.generated_candidates == 1
+    assert result.admitted_generated_candidates == 1
+    assert result.false_terminal_accepts == 0
+    assert result.verification_failures == 0
