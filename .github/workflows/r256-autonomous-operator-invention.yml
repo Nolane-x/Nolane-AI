@@ -1,0 +1,200 @@
+name: R2.56 Autonomous Cognitive Operator Invention
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r256_*.py"
+      - "benchmarks/kfigg/r256_*.py"
+      - "tests/test_r256_*.py"
+      - "research/r256_external_operator_transfer.py"
+      - "research/R2_56_PHASE_A_RESULT.json"
+      - "docs/superpowers/specs/2026-08-18-r256-*.md"
+      - "docs/superpowers/plans/2026-08-18-r256-*.md"
+      - ".github/workflows/r256-autonomous-operator-invention.yml"
+  pull_request:
+    paths:
+      - "cogcoder/r256_*.py"
+      - "benchmarks/kfigg/r256_*.py"
+      - "tests/test_r256_*.py"
+      - "research/r256_external_operator_transfer.py"
+      - ".github/workflows/r256-autonomous-operator-invention.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r256-and-parents:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+      statuses: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.56 focused tests
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r256_operator_dsl.py \
+            tests/test_r256_operator_invention.py \
+            tests/test_r256_operator_invention_benchmark.py \
+            tests/test_r256_external_operator_transfer.py
+      - name: Run independently sourced Boltons pure-function oracle transfer
+        env:
+          EXT_COMMIT: 673e010d0afabc2f530e8d1f67f0a47c37afa7f4
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/r256-boltons
+          api="https://api.github.com/repos/mahmoud/boltons/contents/boltons/mathutils.py?ref=${EXT_COMMIT}"
+          if ! curl --fail --location --silent --show-error --retry 6 --retry-all-errors \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github.raw+json" \
+            "$api" --output /tmp/r256-boltons/mathutils.py; then
+            curl --fail --location --silent --show-error --retry 8 --retry-all-errors \
+              "https://raw.githubusercontent.com/mahmoud/boltons/${EXT_COMMIT}/boltons/mathutils.py" \
+              --output /tmp/r256-boltons/mathutils.py
+          fi
+          PYTHONPATH=. python research/r256_external_operator_transfer.py \
+            --source /tmp/r256-boltons/mathutils.py \
+            --repository mahmoud/boltons \
+            --commit "${EXT_COMMIT}" \
+            --function-name clamp \
+            --output /tmp/R2_56_EXTERNAL_TRANSFER.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/R2_56_EXTERNAL_TRANSFER.json'))
+          assert d['passed'] is True
+          assert d['repository']=='mahmoud/boltons'
+          assert d['commit']=='673e010d0afabc2f530e8d1f67f0a47c37afa7f4'
+          assert d['function_name']=='clamp'
+          assert d['training_cases']==8 and d['challenge_cases']==8
+          assert d['heldout_cases']==24 and d['heldout_exact']==24
+          assert d['source_was_parsed_by_learner'] is False
+          assert d['trainable_parameter_count']==0
+          print(json.dumps(d, sort_keys=True))
+          PY
+      - name: Upload independent external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.56-Boltons-External-Operator-Transfer
+          path: /tmp/R2_56_EXTERNAL_TRANSFER.json
+          if-no-files-found: error
+          retention-days: 90
+      - name: Run R2.55 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r255_hardened_acquisition.py \
+            tests/test_r255_hardened_acquisition_benchmark.py \
+            tests/test_r255_authority_boundary.py \
+            tests/test_r255_injecagent_transfer.py
+      - name: Run R2.54 parent
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r254_cognitive_retrieval.py \
+            tests/test_r254_code_knowledge.py \
+            tests/test_r254_behavioral_retrieval.py \
+            tests/test_r254_cognitive_retrieval_benchmark.py
+      - name: Run R2.53 and R2.52 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r253_external_cognition.py \
+            tests/test_r253_operator_catalog.py \
+            tests/test_r253_external_cognitive_reflex_benchmark.py \
+            tests/test_r252_repository_query.py \
+            tests/test_r252_repository_query_benchmark.py
+      - name: Run R2.51 parent
+        run: PYTHONPATH=. pytest -q tests/test_r251_interprocedural_query.py tests/test_r251_interprocedural_query_benchmark.py
+      - name: Run R2.50 parent
+        run: PYTHONPATH=. pytest -q tests/test_r250_relational_query.py tests/test_r250_self_induced_query_benchmark.py
+      - name: Run R2.49 parent
+        run: PYTHONPATH=. pytest -q tests/test_r249_relational_context.py tests/test_r249_relational_benchmark.py
+      - name: Run R2.48 and R2.47 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r248_contextual_patch.py tests/test_r248_contextual_benchmark.py \
+            tests/test_r247_executable_patch_cegis.py tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 sparse-feedback parent
+        run: PYTHONPATH=. pytest -q tests/test_r246_sparse_feedback.py tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parents
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r245_role_free_binding.py tests/test_r245_role_free_benchmark.py \
+            tests/test_r244_recursive_abstraction.py tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r243_macro_composition.py tests/test_r243_cross_family_benchmark.py \
+            tests/test_r241_macro_competition.py tests/test_r241_competitive_discovery.py \
+            tests/test_r241_multi_macro_benchmark.py
+      - name: Recompute frozen R2.56 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r256_autonomous_operator_invention import run_benchmark
+          d=run_benchmark()
+          frozen=json.loads(Path('research/R2_56_PHASE_A_RESULT.json').read_text())
+          assert d == frozen
+          assert d['episodes']==9 and d['exact']==9 and d['false_accepts']==0
+          assert d['r255_no_invention_baseline_exact']==0
+          assert d['episodes_with_cegis_refinement']>=1
+          assert d['episodes_with_promotion']==9
+          assert d['episodes_with_live_exact']==9
+          assert d['episodes_with_transactional_rollback']>=1
+          assert d['trainable_parameter_count']==0
+          print(json.dumps({k:v for k,v in d.items() if k!='episode_receipts'}, sort_keys=True))
+          PY
+      - name: Publish R2.56 hosted-gate commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":"r256/hosted-gate","description":"focused+Boltons-oracle+R2.55-R2.41-lineage+frozen-evidence","target_url":os.environ["RUN_URL"]}))')"
+
+  cross-python-r256:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      statuses: write
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install --upgrade pytest
+      - name: Verify R2.56 focused behavior across Python runtimes
+        run: |
+          PYTHONPATH=. pytest -q \
+            tests/test_r256_operator_dsl.py \
+            tests/test_r256_operator_invention.py \
+            tests/test_r256_operator_invention_benchmark.py \
+            tests/test_r256_external_operator_transfer.py
+      - name: Publish cross-Python commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CONTEXT: r256/cross-python-${{ matrix.python-version }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":os.environ["CONTEXT"],"description":"R2.56 focused behavior on clean hosted Python","target_url":os.environ["RUN_URL"]}))')"
