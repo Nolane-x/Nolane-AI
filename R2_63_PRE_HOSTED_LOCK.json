@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63",
+  "parent_release_commit": "02f3d2f6dc16dbb82b0dd1cef111546173b4767e",
+  "production_source_changes_after_lock_forbidden": true,
+  "frozen_git_blobs": {
+    "cogcoder/r263_compositional_repository_repair.py": "81bf8c1f70e727c515f221535b55ecab02bd0315",
+    "benchmarks/kfigg/r263_compositional_repository_repair.py": "c87877d2ad229ec543f6caf1c612aad5c3200b38",
+    "research/r263_external_compositional_transfer.py": "4917f0fab9091f937d6b7d94dac15b3cfb08b698",
+    "tests/test_r263_compositional_repository_repair.py": "8908f6ec585ebd19f2dbd9ffb9e2cab3db9c6830",
+    "tests/test_r263_compositional_repository_benchmark.py": "a63d45f66c1a9d50f6feb125973dc1a80c852be1",
+    "tests/test_r263_external_compositional_transfer.py": "08a1d8bd5a438d992abaf59b542af8458e23e001"
+  },
+  "tdd_red": {
+    "core_run_id": 32127260810,
+    "core_job_id": 95680470378,
+    "external_run_id": 32127796698,
+    "external_job_id": 95682121067
+  },
+  "peer_provenance": {
+    "closed_design_pr": 18,
+    "peer_branch": "r263-compositional-repository-repair-gpt56sol",
+    "integration_branch": "r263-compositional-repository-repair-integration",
+    "policy": "preserve the peer design direction while implementing and verifying on a separate branch; do not overwrite peer work"
+  },
+  "claim_boundary": "Bounded multi-round refinement of repository candidates by composing trusted single-site PatchMacro mutations after public counterexamples, with disjoint terminal verification. Not arbitrary source generation, patch-language invention, effectful experimentation, broad real-repository autonomy, or AGI."
+}
