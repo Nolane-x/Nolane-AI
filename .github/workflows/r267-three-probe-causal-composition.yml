@@ -51,7 +51,12 @@ jobs:
           python-version: '3.11'
       - run: python -m pip install pytest
       - name: Apply complete finite-grammar ablation authority fix
-        run: python scripts/r267_apply_ablation_completeness_fix.py
+        run: |
+          if grep -q 'Authority must never infer causal necessity' cogcoder/r267_three_probe_causal_composition.py; then
+            echo R267_ABLATION_AUTHORITY_PATCH_ALREADY_PRESENT
+          else
+            python scripts/r267_apply_ablation_completeness_fix.py
+          fi
       - name: Independent ablation blocker must turn GREEN
         run: PYTHONPATH=. python -m pytest -q tests/test_r267_independent_ablation_completeness.py
       - name: Full R2.67 and accepted R2.66 must remain GREEN
