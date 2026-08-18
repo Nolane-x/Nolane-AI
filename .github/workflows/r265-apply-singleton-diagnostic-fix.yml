@@ -1,0 +1,145 @@
+name: R2.65 Apply Singleton Diagnostic Fix
+
+on:
+  push:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - '.github/workflows/r265-apply-singleton-diagnostic-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Patch singleton out-of-space diagnostic path without touching peer fairness work
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('cogcoder/r265_verified_patch_primitive_induction.py')
+          text = path.read_text()
+          old = '''    selected_probe: RepositoryProbe | None = None
+    while len(survivors) > 1:
+        if diagnostic_calls >= selection_budget:
+            return receipt('abstain', None, None, False, 'selection_oracle_budget_exhausted')
+        probe, partitions, probe_evals = _best_probe(survivors, diagnostics, used_diagnostics)
+        candidate_evaluations += probe_evals
+        if probe is None or partitions is None:
+            return receipt('abstain', None, None, False, 'no_informative_diagnostic_probe')
+        oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
+        diagnostic_calls += 1
+        used_diagnostics.add(probe.probe_id)
+        if not oracle_ok:
+            return receipt('abstain', None, None, False, 'diagnostic_oracle_error')
+        test_id = 'r265:diagnostic:' + probe.probe_id.split(':', 1)[-1]
+        if test_id not in observed_test_ids:
+            observed_tests.append(PatchTest(test_id, tuple(probe.args), oracle_value))
+            observed_test_ids.add(test_id)
+        if probe.probe_id not in observed_probe_ids:
+            observed_probe_ids.append(probe.probe_id)
+        matching = partitions.get(oracle_key)
+        if matching:
+            survivors = matching
+            continue
+        diagnostic_counterexamples += 1
+        selected_probe = probe
+        break
+'''
+          new = '''    selected_probe: RepositoryProbe | None = None
+    if len(survivors) == 1:
+        # A singleton version space is not proof that the survivor is correct.
+        # Validate it against target-independent diagnostic probes under the same
+        # oracle budget.  A mismatch is a public out-of-space counterexample that
+        # authorizes closed-grammar primitive induction; matching probes do not.
+        singleton = survivors[0]
+        ordered_diagnostics = tuple(sorted(diagnostics, key=lambda row: row.probe_id))
+        for probe in ordered_diagnostics:
+            if diagnostic_calls >= selection_budget:
+                break
+            candidate_key, _candidate_value = _outcome(singleton.fn, probe.args)
+            candidate_evaluations += 1
+            oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
+            diagnostic_calls += 1
+            used_diagnostics.add(probe.probe_id)
+            if not oracle_ok:
+                return receipt('abstain', None, None, False, 'diagnostic_oracle_error')
+            test_id = 'r265:diagnostic:' + probe.probe_id.split(':', 1)[-1]
+            if test_id not in observed_test_ids:
+                observed_tests.append(PatchTest(test_id, tuple(probe.args), oracle_value))
+                observed_test_ids.add(test_id)
+            if probe.probe_id not in observed_probe_ids:
+                observed_probe_ids.append(probe.probe_id)
+            if candidate_key != oracle_key:
+                diagnostic_counterexamples += 1
+                selected_probe = probe
+                break
+        if (
+            selected_probe is None
+            and diagnostic_calls >= selection_budget
+            and len(ordered_diagnostics) > diagnostic_calls
+        ):
+            return receipt('abstain', None, None, False, 'selection_oracle_budget_exhausted')
+    else:
+        while len(survivors) > 1:
+            if diagnostic_calls >= selection_budget:
+                return receipt('abstain', None, None, False, 'selection_oracle_budget_exhausted')
+            probe, partitions, probe_evals = _best_probe(survivors, diagnostics, used_diagnostics)
+            candidate_evaluations += probe_evals
+            if probe is None or partitions is None:
+                return receipt('abstain', None, None, False, 'no_informative_diagnostic_probe')
+            oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
+            diagnostic_calls += 1
+            used_diagnostics.add(probe.probe_id)
+            if not oracle_ok:
+                return receipt('abstain', None, None, False, 'diagnostic_oracle_error')
+            test_id = 'r265:diagnostic:' + probe.probe_id.split(':', 1)[-1]
+            if test_id not in observed_test_ids:
+                observed_tests.append(PatchTest(test_id, tuple(probe.args), oracle_value))
+                observed_test_ids.add(test_id)
+            if probe.probe_id not in observed_probe_ids:
+                observed_probe_ids.append(probe.probe_id)
+            matching = partitions.get(oracle_key)
+            if matching:
+                survivors = matching
+                continue
+            diagnostic_counterexamples += 1
+            selected_probe = probe
+            break
+'''
+          if old not in text:
+              raise SystemExit('expected diagnostic block not found; refusing to overwrite concurrent peer changes')
+          if text.count(old) != 1:
+              raise SystemExit('diagnostic block is not unique; refusing patch')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Verify RED contract turns GREEN and peer fairness remains GREEN
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r265_singleton_out_of_space_induction.py \
+            tests/test_r265_hypothesis_budget_fairness.py \
+            tests/test_r265_true_global_generation_cap.py \
+            tests/test_r265_patchmacro_field_contract.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Commit verified production fix
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/r265_verified_patch_primitive_induction.py
+          if git diff --cached --quiet; then
+            echo R265_SINGLETON_FIX_ALREADY_APPLIED
+          else
+            git commit -m 'fix: diagnose singleton repository version spaces before primitive induction'
+            git push origin HEAD:r265-verified-patch-language-induction-gpt56sol
+          fi
