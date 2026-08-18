@@ -57,3 +57,30 @@ jobs:
         run: python -m pip install pytest 'numpy==2.4.6'
       - name: Run R2.61 focused tests
         run: PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+
+  freeze-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install evidence dependencies
+        run: python -m pip install 'numpy==2.4.6'
+      - name: Emit exact Phase-A JSON
+        run: PYTHONPATH=. python benchmarks/kfigg/r261_version_space_expansion_transfer.py
+      - name: Emit exact external JSON
+        run: PYTHONPATH=. python research/r261_external_version_space_expansion.py
+      - name: Emit source Git blob identities
+        run: |
+          for path in \
+            cogcoder/r261_version_space_expansion.py \
+            benchmarks/kfigg/r261_version_space_expansion_transfer.py \
+            research/r261_external_version_space_expansion.py \
+            tests/test_r261_version_space_expansion.py \
+            tests/test_r261_version_space_expansion_benchmark.py \
+            tests/test_r261_external_version_space_expansion.py; do
+            printf '%s ' "$path"
+            git hash-object "$path"
+          done
