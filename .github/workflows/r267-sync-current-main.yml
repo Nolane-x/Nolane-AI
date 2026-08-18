@@ -1,0 +1,40 @@
+name: R2.67 Sync Current Main Before Freeze
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - '.github/workflows/r267-sync-current-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync-test-push:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r267-three-probe-causal-composition-gpt56sol
+          fetch-depth: 0
+      - name: Merge exact current main into R2.67 candidate
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git fetch origin main
+          git merge --no-edit origin/main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Verify R2.67 and accepted R2.66 after main sync
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Push only verified merge
+        run: |
+          set -euo pipefail
+          git push origin HEAD:r267-three-probe-causal-composition-gpt56sol
