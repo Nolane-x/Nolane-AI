@@ -1,0 +1,115 @@
+name: R2.67 Freeze Exact Evidence
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - '.github/workflows/r267-freeze-evidence.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r267-three-probe-causal-composition-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install exact verification dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify accepted parent and all current R2.67 contracts
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e2eef08f15e7c0a5e79f58579282db90c157cb4a HEAD
+          PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Recompute authored and pinned external evidence and freeze source boundary
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_three_probe_causal_composition import run_benchmark
+          from research.r267_external_dot_transfer import run_external_transfer
+
+          assert np.__version__ == '2.4.6', np.__version__
+          phase = run_benchmark()
+          external = run_external_transfer(
+              np.dot,
+              source_id='numpy:numpy.dot',
+              source_version=np.__version__,
+          )
+          assert phase['all_gates_pass'] is True
+          assert phase['semantic_profile_invariant'] is True
+          assert phase['false_accepts'] == 0
+          assert phase['trainable_parameter_count'] == 0
+          assert external['passed'] is True
+          assert external['source_exposure'] == 'io_only'
+          assert external['host_selected_intervention'] is False
+          assert external['all_three_probes_used'] is True
+          assert external['all_singleton_ablations_fail'] is True
+          assert external['all_pair_ablations_fail'] is True
+          assert external['false_accepts'] == 0
+          assert external['trainable_parameter_count'] == 0
+
+          Path('R2_67_PHASE_A_RESULT.json').write_text(json.dumps(phase, indent=2, sort_keys=True) + '\n')
+          Path('R2_67_EXTERNAL_TRANSFER.json').write_text(json.dumps(external, indent=2, sort_keys=True) + '\n')
+
+          frozen = (
+              'cogcoder/r267_three_probe_causal_composition.py',
+              'benchmarks/kfigg/r267_three_probe_causal_composition.py',
+              'research/r267_external_dot_transfer.py',
+              'tests/test_r267_three_probe_causal_composition.py',
+              'tests/test_r267_three_probe_causal_benchmark.py',
+              'tests/test_r267_external_dot_transfer.py',
+              'tests/test_r267_independent_authority_boundaries.py',
+              'tests/test_r267_independent_ablation_completeness.py',
+              '.github/workflows/r267-three-probe-causal-composition.yml',
+              '.github/workflows/r267-external-dot-transfer.yml',
+          )
+          blobs = {
+              path: subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              for path in frozen
+          }
+          main_sha = subprocess.check_output(
+              ['git', 'ls-remote', 'origin', 'refs/heads/main'], text=True
+          ).split()[0]
+          lock = {
+              'schema_version': 1,
+              'milestone': 'R2.67',
+              'capability': 'verified-three-probe-causal-composition',
+              'accepted_parent_release_commit': 'e2eef08f15e7c0a5e79f58579282db90c157cb4a',
+              'main_sha_observed_at_freeze': main_sha,
+              'production_source_changes_after_lock_forbidden': True,
+              'three_probe_requirement_frozen': True,
+              'singleton_ablation_falsification_frozen': True,
+              'pair_ablation_falsification_frozen': True,
+              'ablation_inconclusive_fails_closed_frozen': True,
+              'semantic_triplet_invariance_frozen': True,
+              'semantic_terminal_disjointness_frozen': True,
+              'terminal_probe_reobservation_frozen': True,
+              'terminal_validator_before_oracle_frozen': True,
+              'oracle_ledger_frozen': True,
+              'pinned_external_source': 'numpy:numpy.dot',
+              'pinned_external_version': '2.4.6',
+              'trainable_parameter_count': 0,
+              'frozen_git_blobs': blobs,
+          }
+          Path('R2_67_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
+          print('R267_EVIDENCE_FROZEN', len(blobs), main_sha)
+          PY
+      - name: Commit exact frozen evidence
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_67_PHASE_A_RESULT.json R2_67_EXTERNAL_TRANSFER.json R2_67_PRE_HOSTED_LOCK.json
+          git commit -m 'evidence: freeze exact R2.67 authored and external results'
+          git push origin HEAD:r267-three-probe-causal-composition-gpt56sol
