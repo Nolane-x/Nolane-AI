@@ -1,0 +1,100 @@
+name: R2.66 Apply Evidence Authority Fixes
+
+on:
+  push:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - '.github/workflows/r266-apply-evidence-authority-fixes.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r266-learned-contextual-composition-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply semantic identity and oracle-ledger hardening
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          core = Path('cogcoder/_r266_contextual_composition_core.py')
+          text = core.read_text()
+          old_profile = """def _profile_semantic_id(profile: ContextualInterventionProfile) -> str:\n    raw = json.dumps(list(profile.outputs), sort_keys=True, separators=(',', ':'), allow_nan=False)\n    return hashlib.sha256(raw.encode('utf-8')).hexdigest()\n"""
+          new_profile = """def _profile_semantic_id(profile: ContextualInterventionProfile) -> str:\n    raw = semantic_vector_key(profile.outputs)\n    return hashlib.sha256(raw.encode('utf-8')).hexdigest()\n"""
+          assert text.count(old_profile) == 1
+          text = text.replace(old_profile, new_profile, 1)
+
+          old_receipt = """    reason: str\n    trainable_parameter_count: int = 0\n\n\ndef synthesize_contextual_composition_program(\n"""
+          new_receipt = """    reason: str\n    trainable_parameter_count: int = 0\n    oracle_calls_total: int = 0\n\n\ndef synthesize_contextual_composition_program(\n"""
+          assert text.count(old_receipt) == 1
+          text = text.replace(old_receipt, new_receipt, 1)
+          core.write_text(text)
+
+          public = Path('cogcoder/r266_learned_contextual_composition.py')
+          text = public.read_text()
+          text = text.replace('import json\nfrom typing import Callable, Mapping, Sequence\n', 'from dataclasses import replace\nfrom typing import Callable, Mapping, Sequence\n', 1)
+          anchor = 'from .r258_intervention_discovery import PositionalSchema\n'
+          assert text.count(anchor) == 1
+          text = text.replace(anchor, anchor + 'from .r259_semantic_index_core import semantic_vector_key\n', 1)
+
+          old_key = """def _context_key(schema: PositionalSchema, context: Mapping[str, object]) -> tuple[tuple[str, str], ...]:\n    canonical = schema.to_canonical_context(context)\n    rows: list[tuple[str, str]] = []\n    for field in schema.canonical_fields:\n        encoded = json.dumps(\n            canonical[field],\n            sort_keys=True,\n            separators=(',', ':'),\n            allow_nan=False,\n        )\n        rows.append((field, encoded))\n    return tuple(rows)\n"""
+          new_key = """def _context_key(schema: PositionalSchema, context: Mapping[str, object]) -> str:\n    canonical = schema.to_canonical_context(context)\n    return semantic_vector_key(tuple(canonical[field] for field in schema.canonical_fields))\n"""
+          assert text.count(old_key) == 1
+          text = text.replace(old_key, new_key, 1)
+          text = text.replace('learning_keys: set[tuple[tuple[str, str], ...]] = set()', 'learning_keys: set[str] = set()', 1)
+          text = text.replace('terminal_keys: set[tuple[tuple[str, str], ...]] = set()', 'terminal_keys: set[str] = set()', 1)
+
+          marker = """    internal = _core_synthesize_contextual_composition_program(\n        oracle,\n"""
+          ledger = """    oracle_calls_total = 0\n    queried_keys: set[str] = set()\n\n    def tracked_oracle(context: Mapping[str, object]) -> object:\n        nonlocal oracle_calls_total\n        queried_keys.add(_context_key(schema, context))\n        oracle_calls_total += 1\n        return oracle(dict(context))\n\n    internal = _core_synthesize_contextual_composition_program(\n        tracked_oracle,\n"""
+          assert text.count(marker) == 1
+          text = text.replace(marker, ledger, 1)
+
+          old_internal_return = """    if not internal.passed or internal.expression is None:\n        return internal\n\n    exact = 0\n"""
+          new_internal_return = """    if terminal_keys & queried_keys:\n        raise ValueError('terminal_contexts must be disjoint from all oracle query inputs used for learning')\n    if not internal.passed or internal.expression is None:\n        return replace(internal, oracle_calls_total=oracle_calls_total)\n\n    exact = 0\n"""
+          assert text.count(old_internal_return) == 1
+          text = text.replace(old_internal_return, new_internal_return, 1)
+          assert text.count("expected = oracle(dict(context))") == 1
+          text = text.replace("expected = oracle(dict(context))", "expected = tracked_oracle(context)", 1)
+
+          for reason in (
+              'independent_terminal_verification_error',
+              'independent_terminal_verification_failed',
+              'contextual_program_synthesized_terminally_verified',
+          ):
+              old = f"            '{reason}',\n            0,\n        )" if reason != 'contextual_program_synthesized_terminally_verified' else f"        '{reason}',\n        0,\n    )"
+              new = f"            '{reason}',\n            0,\n            oracle_calls_total,\n        )" if reason != 'contextual_program_synthesized_terminally_verified' else f"        '{reason}',\n        0,\n        oracle_calls_total,\n    )"
+              assert text.count(old) == 1, reason
+              text = text.replace(old, new, 1)
+          public.write_text(text)
+          print('R266_EVIDENCE_AUTHORITY_PATCH_APPLIED')
+          PY
+      - name: Run independent RED blockers first
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q tests/test_r266_frozen_lock_independent_blockers.py
+      - name: Run full R2.66 and accepted R2.65 regressions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Commit verified authority hardening
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r266_contextual_composition_core.py cogcoder/r266_learned_contextual_composition.py
+          if git diff --cached --quiet; then
+            echo R266_AUTHORITY_HARDENING_ALREADY_PRESENT
+          else
+            git commit -m 'fix: harden R2.66 terminal evidence ledger and oracle accounting'
+            git push origin HEAD:r266-learned-contextual-composition-gpt56sol
+          fi
