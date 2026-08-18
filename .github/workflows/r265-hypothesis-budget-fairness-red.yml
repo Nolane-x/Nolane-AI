@@ -6,6 +6,11 @@ on:
     paths:
       - 'tests/test_r265_hypothesis_budget_fairness_falsifier.py'
       - '.github/workflows/r265-hypothesis-budget-fairness-red.yml'
+  pull_request:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'tests/test_r265_hypothesis_budget_fairness_falsifier.py'
+      - '.github/workflows/r265-hypothesis-budget-fairness-red.yml'
   workflow_dispatch:
 
 permissions:
