@@ -36,10 +36,115 @@ jobs:
           python-version: '3.11'
       - name: Install test dependencies
         run: python -m pip install pytest
+      - name: Verify frozen R2.64 source blobs
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_64_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit'] == '1d1b05e0c1476327eaf3b2457aab16153a43c429'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R264_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
       - name: Verify accepted R2.63 parent first
         run: PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
       - name: Run R2.64 focused tests
         run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+
+  phase-a:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Verify source lock and emit exact Phase-A
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          from benchmarks.kfigg.r264_unified_adaptive_repository_search import run_benchmark
+          lock=json.loads(Path('R2_64_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          result=run_benchmark()
+          assert result['all_gates_pass'] is True
+          assert result['summary']['episodes'] == 6
+          assert result['summary']['r263_initial_out_of_space_abstains'] == 6
+          assert result['summary']['r264_exact'] == 6
+          assert result['summary']['diagnostic_counterexamples'] == 6
+          assert result['summary']['refinement_counterexamples'] == 6
+          assert result['summary']['two_expansion_rounds'] == 6
+          assert result['summary']['negative_abstains'] >= 8
+          assert result['summary']['false_terminal_accepts'] == 0
+          assert result['summary']['generation_uses_target_outputs'] is False
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_64_PHASE_A_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_64_PHASE_A_RESULT.json')
+          if frozen.exists():
+              assert json.loads(frozen.read_text()) == result
+              print('R264_PHASE_A_EXACT_OK')
+          else:
+              print('R264_PHASE_A_FREEZE_PENDING')
+          print(json.dumps(result['summary'], sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.64-phase-a
+          path: R2_64_PHASE_A_RECOMPUTED.json
+
+  external-numpy-square:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify source lock and emit exact external transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import numpy as np
+          from research.r264_external_unified_transfer import run_external_transfer
+          lock=json.loads(Path('R2_64_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          result=run_external_transfer(np.square, source_id='numpy.square', source_version=np.__version__)
+          assert result['passed'] is True
+          assert result['source_version'] == '2.4.6'
+          assert result['source_exposure'] == 'io_only'
+          assert result['source_implementation_inspected'] is False
+          assert result['r263_baseline']['reason'] == 'oracle_outside_initial_candidate_version_space'
+          assert result['r264']['reason'] == 'unified_candidate_verified'
+          assert result['r264']['diagnostic_counterexamples'] == 1
+          assert result['r264']['refinement_counterexamples'] == 1
+          assert result['verification_exact'] == result['verification_cases'] == 46
+          assert result['r264']['false_terminal_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_64_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          frozen=Path('R2_64_EXTERNAL_TRANSFER.json')
+          if frozen.exists():
+              assert json.loads(frozen.read_text()) == result
+              print('R264_EXTERNAL_EXACT_OK')
+          else:
+              print('R264_EXTERNAL_FREEZE_PENDING')
+          print(json.dumps({'source_version': result['source_version'], 'verification_cases': result['verification_cases'], 'total_external_oracle_calls': result['total_external_oracle_calls'], 'r263_reason': result['r263_baseline']['reason'], 'r264_reason': result['r264']['reason']}, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.64-numpy-square-external
+          path: R2_64_EXTERNAL_TRANSFER_RECOMPUTED.json
 
   cross-python:
     runs-on: ubuntu-latest
