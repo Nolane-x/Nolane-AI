@@ -1,0 +1,13 @@
+{
+  "milestone": "R2.61",
+  "phase": "generator-red",
+  "pr": 15,
+  "workflow_run_id": 32120880271,
+  "python_3_11_job_id": 95660784459,
+  "python_3_13_job_id": 95660784620,
+  "expected_failure_observed": true,
+  "failure_class": "ModuleNotFoundError",
+  "missing_module": "cogcoder.r261_version_space_expansion",
+  "production_module_existed_at_red": false,
+  "tdd_boundary": "No R2.61 production code was committed before this hosted RED failure was observed."
+}
