@@ -1,0 +1,66 @@
+name: R2.64.1 Council Independent Audit Binding
+
+on:
+  push:
+    branches: [audit-r2641-council-world-gpt56sol]
+    paths:
+      - 'R2_64_1_COUNCIL_INDEPENDENT_AUDIT.json'
+      - '.github/workflows/r264-1-council-independent-audit.yml'
+  pull_request:
+    branches: [r264-frontier-fairness-hotfix-gpt56sol]
+    paths:
+      - 'R2_64_1_COUNCIL_INDEPENDENT_AUDIT.json'
+      - '.github/workflows/r264-1-council-independent-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  bind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify audit binds to frozen hotfix sources
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          audit=json.loads(Path('R2_64_1_COUNCIL_INDEPENDENT_AUDIT.json').read_text())
+          lock=json.loads(Path('R2_64_1_PRE_HOSTED_LOCK.json').read_text())
+          assert audit['milestone'] == 'R2.64.1 Frontier Fairness Hotfix'
+          assert audit['audited_branch_commit'] == '05a1d36eed97945a962ba1711144ee1aeb0cc9e1'
+          assert audit['accepted_r264_parent'] == '91fa6c094f10df338ce95cf3fb89437e03943c39'
+          assert audit['canonical_hosted_run']['run_id'] == 32133355598
+          assert audit['canonical_hosted_run']['conclusion'] == 'success'
+          assert audit['canonical_hosted_run']['published_full_gate'] is True
+          assert audit['independent_council_challenger']['run_id'] == 32133117863
+          assert audit['independent_council_challenger']['conclusion'] == 'success'
+          assert audit['nolane_world']['runtime'] == 'Nolane World 0.8.0'
+          assert audit['nolane_world']['world_id'] == 'world4_6be1453f6f3a4936'
+          assert audit['nolane_world']['audit_valid'] is True
+          assert audit['nolane_world']['audit_digest'] == 'd1125996f5f8708e9359321129350f10e1e71f7216dbbeeb51ef0c2f4c7a8830'
+          assert audit['nolane_world']['gate_passed'] is False
+          assert audit['nolane_world']['convergence_claimed'] is False
+          assert audit['causal_discrimination']['stale_frontier_reproduced'] is True
+          assert audit['causal_discrimination']['destructive_pruning_rejected'] is True
+          assert audit['causal_discrimination']['live_first_bounded_fallback_supported'] is True
+          assert audit['decision'] == 'SUPPORTED_AS_BOUNDED_CORRECTNESS_HARDENING_SUBJECT_TO_RELEASE_BINDING'
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R2641_COUNCIL_AUDIT_BOUND_OK')
+          PY
+      - name: Publish Council audit status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r264.1/council-independent-audit','description':'Independent Council evidence and Nolane World fail-closed audit bound to frozen hotfix sources','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
