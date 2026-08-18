@@ -13,4 +13,5 @@ def test_r255_hardened_self_improving_acquisition_frozen_benchmark():
     assert result['episodes_with_malicious_behavior_quarantine'] == 10
     assert result['episodes_with_transactional_rollback'] == 10
     assert result['episodes_with_skill_distillation'] == 10
+    assert result['episodes_with_distilled_skill_repromotion'] == 10
     assert result['trainable_parameter_count'] == 0
