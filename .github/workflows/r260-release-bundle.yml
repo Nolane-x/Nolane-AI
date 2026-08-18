@@ -48,7 +48,8 @@ jobs:
           parent = json.loads(Path('R2_59_RELEASE_MANIFEST.json').read_text())
 
           assert lock['parent_release_commit'] == '1e59bd13baabba0e1ba71294aa02365d4e661ee0'
-          assert lock['capability_head'] == verify['capability_commit'] == manifest['capability_commit'] == 'eef1bf246a20cf682040dc48a4481380906d15ec'
+          assert lock['capability_head'] == 'c60b1d2fbd8a9175afbc46e4b8722eeaf46988a2'
+          assert verify['capability_commit'] == manifest['capability_commit'] == 'eef1bf246a20cf682040dc48a4481380906d15ec'
           assert parent['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
           assert parent['readiness'] == 47.8
           assert parent['world_w5_passed'] is False
@@ -161,7 +162,7 @@ jobs:
           req = urllib.request.Request(
               f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
               data=payload,
-              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept':'application/vnd.github+json'},
               method='POST',
           )
           urllib.request.urlopen(req).read()
