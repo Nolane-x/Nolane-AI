@@ -1,0 +1,17 @@
+name: R2.62 Complementary Causal Program
+on:
+  push:
+    branches: [r262-complementary-causal-program-integration]
+  pull_request:
+    branches: [main]
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - run: PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
