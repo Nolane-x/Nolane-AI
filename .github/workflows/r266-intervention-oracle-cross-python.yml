@@ -1,0 +1,40 @@
+name: R2.66 Intervention Oracle Cross-Python
+
+on:
+  push:
+    branches: [fix-r266-intervention-oracle-failclosed-gpt56sol]
+    paths:
+      - 'cogcoder/_r266_contextual_composition_core.py'
+      - 'tests/test_r266_intervention_oracle_failclosed.py'
+      - '.github/workflows/r266-intervention-oracle-cross-python.yml'
+  pull_request:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - 'cogcoder/_r266_contextual_composition_core.py'
+      - 'tests/test_r266_intervention_oracle_failclosed.py'
+      - '.github/workflows/r266-intervention-oracle-cross-python.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Verify oracle fail-closed regression
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_intervention_oracle_failclosed.py
+      - name: Verify full R2.66 focused surface
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Verify accepted R2.65 parent
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
