@@ -1,0 +1,23 @@
+{
+  "capability_commit": "a7651f83f23ab3c021985f362e98c644323ecd6c",
+  "external_artifact_id": 9315608064,
+  "hosted_run_id": 32112974493,
+  "milestone": "R2.58",
+  "readiness": 47.8,
+  "release_files": [
+    "R2_58_DELIVERY.md",
+    "R2_57_TO_R2_58_EVOLUTION.md",
+    "R2_58_PHASE_A_RESULT.json",
+    "R2_58_EXTERNAL_TRANSFER.json",
+    "R2_58_VERIFY_RESULT.json",
+    "R2_58_WORLD_FINAL.json",
+    "R2_READINESS_RECALIBRATION.md"
+  ],
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "title": "Autonomous Intervention Discovery",
+  "trainable_parameter_count": 0,
+  "verified_tree_sha": "0a901ba3bde95b6166d453ec8b00ca33a034d5cf",
+  "world_audit_digest": "b6ec9a6c284ce8c9b957b81200a763a1f5796faa3eb68d25f8bda70dab203f9e",
+  "world_id": "world4_2513f45435574d2d",
+  "world_w5_passed": false
+}
