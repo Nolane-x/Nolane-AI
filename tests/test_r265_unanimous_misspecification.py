@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+# Hosted trigger after fix workflow installation.
 from cogcoder.r252_repository_query import RepositoryPatchCandidate
 from cogcoder.r260_active_repository_probes import RepositoryProbe
 from cogcoder.r265_verified_patch_primitive_induction import (
