@@ -1,0 +1,67 @@
+name: R2.65 PatchMacro Support Invariant Fix
+
+on:
+  push:
+    branches: [fix-r265-patchmacro-support-invariant-gpt56sol]
+    paths:
+      - 'cogcoder/r265_verified_patch_primitive_induction.py'
+      - '.github/workflows/r265-support-invariant-fix.yml'
+  pull_request:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'cogcoder/r265_verified_patch_primitive_induction.py'
+      - '.github/workflows/r265-support-invariant-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Require valid positive hypothesis support
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from cogcoder.r252_repository_query import RepositoryPatchCandidate
+          from cogcoder.r265_verified_patch_primitive_induction import PatchPrimitiveGrammar, enumerate_patch_macro_hypotheses
+          seed=RepositoryPatchCandidate('seed',(),(('main.py','def solve(x, y):\n    return x + y\n'),),0,0)
+          grammar=PatchPrimitiveGrammar(allowed_slots=('binop',),allowed_operations=('replace',),allowed_target_values=('FloorDiv','Mod','Mult'),max_hypotheses=16)
+          rows=enumerate_patch_macro_hypotheses((seed,),grammar)
+          assert rows
+          assert all(row.support > 0 for row in rows)
+          print('R265_PATCHMACRO_SUPPORT_VALID', len(rows))
+          PY
+      - name: Run all R2.65 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Recompute authored and local external evidence smoke
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          print('R265_SUPPORT_INVARIANT_GREEN')
+          PY
+      - name: Publish focused support-fix status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r265/support-invariant-fix','description':'R2.65 PatchMacro support invariant and focused evidence passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
