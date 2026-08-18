@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63",
+  "name": "Compositional Repository Refinement",
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "parent_release_commit": "02f3d2f6dc16dbb82b0dd1cef111546173b4767e",
+  "capability_head": "f7fa5111540995acc17fbefda633850bb3208d4d",
+  "added_trainable_parameters": 0,
+  "readiness": {
+    "score": 49.1,
+    "previous_score": 48.8,
+    "delta": 0.3,
+    "kind": "internal_engineering_heuristic_not_AGI_probability"
+  },
+  "canonical_hosted_verification": {
+    "workflow_run_id": 32128298353,
+    "focused_lineage_job_id": 95683648604,
+    "external_job_id": 95683648703,
+    "r263_tests": 7,
+    "protected_parent_tests": 227,
+    "hosted_relevant_tests_total": 234,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "phase_a_exact": true,
+    "external_exact": true,
+    "phase_a_artifact_id": 9321192168,
+    "external_artifact_id": 9321192097,
+    "conclusion": "success"
+  },
+  "peer_provenance": {
+    "closed_design_pr": 18,
+    "peer_branch": "r263-compositional-repository-repair-gpt56sol",
+    "integration_pr": 19,
+    "policy": "preserve peer design direction and never overwrite peer branch"
+  },
+  "evidence": {
+    "tdd_red": "R2_63_TDD_RED.json",
+    "source_lock": "R2_63_PRE_HOSTED_LOCK.json",
+    "phase_a": "R2_63_PHASE_A_RESULT.json",
+    "external_transfer": "R2_63_EXTERNAL_TRANSFER.json",
+    "hosted_verification": "R2_63_VERIFY_RESULT.json",
+    "nolane_world": "R2_63_WORLD_FINAL.json",
+    "delivery": "R2_63_DELIVERY.md",
+    "evolution": "R2_62_TO_R2_63_EVOLUTION.md",
+    "readiness": "R2_READINESS_RECALIBRATION.md"
+  },
+  "implementation": [
+    "cogcoder/r263_compositional_repository_repair.py"
+  ],
+  "benchmarks": [
+    "benchmarks/kfigg/r263_compositional_repository_repair.py",
+    "research/r263_external_compositional_transfer.py"
+  ],
+  "world": {
+    "world_id": "world_c3eaeda4e13d",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "d34314b1825cd214a6d603af89d889e304f35176639e56ad62964bffe80f1987",
+    "w5_passed": false,
+    "convergence_forced": false
+  },
+  "claim_boundary": "Bounded two-round counterexample-guided composition of trusted single-site repository PatchMacro mutations with content identity, mutation provenance, target-output-free generation and disjoint terminal verification. Not arbitrary patch-language invention, broad real-repository autonomy, scalable long repair chains, effectful experimentation, unrestricted program synthesis, or AGI.",
+  "release_bundle": {
+    "workflow": ".github/workflows/r263-release-bundle.yml",
+    "artifact_name": "Nolane-AI-R2.63-COMPLETE",
+    "archive_name": "Nolane-AI-R2.63-COMPLETE.zip",
+    "required_on_main_after_merge": true
+  }
+}

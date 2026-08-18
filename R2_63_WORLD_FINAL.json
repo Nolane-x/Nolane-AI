@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63",
+  "runtime": "Nolane World 0.8.0",
+  "world_id": "world_c3eaeda4e13d",
+  "depth": "W5",
+  "audit": {
+    "valid": true,
+    "method": "persisted canonical session JSON plus World gate evaluation",
+    "digest": "d34314b1825cd214a6d603af89d889e304f35176639e56ad62964bffe80f1987",
+    "session_bytes": 7173,
+    "events": 1,
+    "evidence_items": 5,
+    "attack_items": 3
+  },
+  "active_seconds_credited": 0.0,
+  "hosted_evidence": {
+    "canonical_run_id": 32128298353,
+    "focused_lineage_job_id": 95683648604,
+    "external_job_id": 95683648703,
+    "focused_r263_tests": 7,
+    "protected_parent_tests": 227,
+    "phase_a_recomputed_exact": true,
+    "external_recomputed_exact": true,
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    }
+  },
+  "adversarial_checks": [
+    "caller candidate IDs and ordering are removed from initial semantic identity by repository-content deduplication",
+    "refinement-oracle budget exhaustion abstains after the first composed edit rather than overclaiming completion",
+    "a final-only adversarial mismatch causes terminal abstention and cannot trigger another expansion round"
+  ],
+  "critical_unknowns": [
+    "Compositional refinement beyond two edits is not shown to scale without combinatorial explosion or provenance ambiguity.",
+    "Transfer to real repositories and hidden-test distributions beyond synthetic repository wrappers around pure functions is not established.",
+    "Patch-language primitives remain trusted host-supplied PatchMacro operators rather than safely learned patch-language growth."
+  ],
+  "gate": {
+    "passed": false,
+    "evaluated_at": "2026-08-18T10:49:22.608881+00:00",
+    "reason_codes": [
+      "MIN_RESIDENCY_NOT_MET",
+      "FRAME_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_GENERATIONS_NOT_MET",
+      "ADVERSARIAL_COVERAGE_NOT_MET",
+      "CHALLENGER_SEARCH_NOT_MET",
+      "VERIFICATION_NOT_MET",
+      "COUNTERFACTUAL_COVERAGE_NOT_MET",
+      "UNKNOWN_HUNTS_NOT_MET",
+      "EXPERIMENTATION_NOT_MET",
+      "REPRESENTATION_SHIFTS_NOT_MET",
+      "FIRST_PRINCIPLES_NOT_MET",
+      "ROBUSTNESS_WORLDS_NOT_MET",
+      "SYNTHESIS_GENERATIONS_NOT_MET",
+      "ANTI_CONSENSUS_NOT_MET",
+      "FRESH_CONTEXT_VERIFICATION_NOT_MET",
+      "CRITICAL_UNKNOWNS_REMAIN",
+      "MATERIAL_IMPROVEMENT_STILL_LIKELY",
+      "CANDIDATE_QUALITY_BELOW_THRESHOLD"
+    ]
+  },
+  "convergence_forced": false,
+  "claim_boundary": "R2.63 remains an accepted bounded capability only. Nolane World W5 is deliberately not passed; no active residency, challenger coverage, broad robustness, or convergence evidence is fabricated."
+}
