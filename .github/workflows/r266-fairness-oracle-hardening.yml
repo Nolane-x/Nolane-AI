@@ -1,3 +1,4 @@
+# Exact committed-head reverification trigger after source hardening.
 name: R2.66 Fairness and Oracle Hardening
 
 on:
