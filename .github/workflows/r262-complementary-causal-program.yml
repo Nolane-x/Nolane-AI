@@ -21,7 +21,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install test dependencies
-        run: python -m pip install pytest z3-solver
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
       - name: Verify frozen R2.62 source blobs
         run: |
           python - <<'PY'
