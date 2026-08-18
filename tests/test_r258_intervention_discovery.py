@@ -130,6 +130,7 @@ def test_discovery_selects_a_verified_causal_endpoint_intervention_without_seman
     assert receipt.selected.base_probe_passed is False
     assert receipt.selected.vocabulary_probe_passed is True
     assert receipt.oracle_calls > 0
+    assert receipt.synthesis_candidates_considered > receipt.no_seed_candidates_considered
     assert receipt.trainable_parameter_count == 0
 
 
