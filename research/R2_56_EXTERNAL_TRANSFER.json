@@ -1,0 +1,36 @@
+{
+  "cegis_rounds": 0,
+  "challenge_cases": 8,
+  "claim_boundary": "The external source is executed only as an input/output oracle. The learner never parses its implementation. Success demonstrates bounded pure-DSL operator invention for this sampled function, not arbitrary code synthesis.",
+  "commit": "673e010d0afabc2f530e8d1f67f0a47c37afa7f4",
+  "expression": {
+    "left": {
+      "field": "upper"
+    },
+    "op": "min",
+    "right": {
+      "left": {
+        "field": "lower"
+      },
+      "op": "max",
+      "right": {
+        "field": "x"
+      }
+    }
+  },
+  "expression_digest": "33852d9257906d85c040361a5bfc44a00723564eaa11f2cbbf33d77bd2e6fb6f",
+  "failures": [],
+  "function_name": "clamp",
+  "heldout_cases": 24,
+  "heldout_exact": 24,
+  "milestone": "R2.56",
+  "operator_id": "invented.33852d9257906d85c040",
+  "passed": true,
+  "repository": "mahmoud/boltons",
+  "search_evaluations": 11961,
+  "source_sha256": "3d81dc8b44136299857373a8f53d50dbf0be7aabfa34e7bcfee7c6b41b3b3236",
+  "source_was_parsed_by_learner": false,
+  "trainable_parameter_count": 0,
+  "training_cases": 8,
+  "validation": "independently-sourced-pure-function-oracle-transfer"
+}
