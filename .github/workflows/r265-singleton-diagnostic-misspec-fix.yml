@@ -1,3 +1,4 @@
+# Hosted trigger after workflow installation.
 name: R2.65 Singleton Diagnostic Misspecification Fix
 
 on:
