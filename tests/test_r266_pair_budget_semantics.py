@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+# Independent hosted RED provenance: workflow run 32145137532 demonstrated
+# positional/hash-dependent semantic outcomes under the same tight global budget.
+
 from collections.abc import Mapping
 
 from cogcoder.r266_learned_contextual_composition import discover_contextual_composition_structure
