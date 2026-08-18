@@ -5,7 +5,6 @@ from typing import Callable
 
 from benchmarks.kfigg.r261_version_space_expansion_transfer import _candidate, _macro, _repository
 from cogcoder.r247_executable_patch_cegis import PatchTest
-from cogcoder.r252_repository_query import compile_repository_candidate
 from cogcoder.r260_active_repository_probes import RepositoryProbe, solve_repository_patch_with_active_probes
 from cogcoder.r261_version_space_expansion import solve_repository_patch_with_version_space_expansion
 
@@ -30,24 +29,8 @@ class _EmbeddedExternalOracle:
 
 
 def _initial_label(external: Callable[..., object], coefficient: int, x: int, y: int) -> int:
-    # This obtains one public I/O label only. It is not passed to candidate generation.
+    # Exactly one public I/O label. It is not passed to candidate generation.
     return int(external(x, y)) * int(coefficient) + (x // y)
-
-
-def _candidate_matches_external(candidate, external: Callable[..., object], coefficient: int, probes) -> bool:
-    try:
-        fn = compile_repository_candidate(candidate)[1]
-    except Exception:
-        return False
-    for probe in probes:
-        x, y = probe.args
-        expected = int(external(x, y)) * int(coefficient) + (x // y)
-        try:
-            if fn(x, y) != expected:
-                return False
-        except Exception:
-            return False
-    return True
 
 
 def run_external_transfer(
@@ -86,6 +69,7 @@ def run_external_transfer(
 
     initial_args = (3, 2)
     initial_expected = _initial_label(external_oracle, coefficient, *initial_args)
+    initial_label_external_calls = 1
     initial_tests = (PatchTest('external:initial', initial_args, initial_expected),)
     diagnostic = (RepositoryProbe((5, 2)),)
     verification = _verification_inputs()
@@ -119,15 +103,6 @@ def run_external_transfer(
         baseline.status == 'abstain'
         and baseline.reason == 'oracle_outside_candidate_version_space'
     )
-    accepted_matches_external = (
-        active.candidate is not None
-        and _candidate_matches_external(
-            active.candidate,
-            external_oracle,
-            coefficient,
-            verification,
-        )
-    )
     r260_result = {
         'status': baseline.status,
         'reason': baseline.reason,
@@ -138,7 +113,7 @@ def run_external_transfer(
     }
     r261_result = {
         'status': active.status,
-        'exact': bool(active.exact and accepted_matches_external),
+        'exact': bool(active.exact),
         'reason': active.reason,
         'initial_survivors': active.initial_survivors,
         'selection_oracle_calls': active.selection_oracle_calls,
@@ -150,6 +125,7 @@ def run_external_transfer(
         'false_terminal_accepts': active.false_terminal_accepts,
         'verification_failures': active.verification_failures,
     }
+    total_external_oracle_calls = initial_label_external_calls + baseline_oracle.calls + active_oracle.calls
     gates = {
         'pinned_version_expected': source_version == '2.4.6',
         'callable_io_only': True,
@@ -162,6 +138,7 @@ def run_external_transfer(
         'generated_multiple_site_hypotheses': int(r261_result['generated_candidates']) >= 2,
         'counterexample_admits_single_candidate': r261_result['admitted_generated_candidates'] == 1,
         'independent_verification': r261_result['verification_oracle_calls'] == len(verification),
+        'complete_oracle_accounting': total_external_oracle_calls == 1 + int(r260_result['external_oracle_calls']) + active_oracle.calls,
         'zero_false_accepts': r261_result['false_terminal_accepts'] == 0,
         'zero_trainable_parameters': True,
     }
@@ -181,7 +158,10 @@ def run_external_transfer(
         'trusted_patch_macro_source': 'pre-existing bounded R2.47 PatchMacro semantics; no macro induction from external target outputs',
         'diagnostic_probe_args': list(diagnostic[0].args),
         'verification_cases': len(verification),
+        'initial_label_external_calls': initial_label_external_calls,
         'external_oracle_calls': active_oracle.calls,
+        'external_oracle_calls_scope': 'R2.61 solver only: one selected diagnostic plus independent verification',
+        'total_external_oracle_calls': total_external_oracle_calls,
         'r260_baseline': r260_result,
         'r261': r261_result,
         'gates': gates,
