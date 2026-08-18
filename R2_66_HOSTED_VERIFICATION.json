@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.66",
+  "status": "CANONICAL_HOSTED_VERIFICATION_SUCCESS",
+  "candidate_head": "7b707c22e05bdf2b33dc8d846965c0310834fb84",
+  "accepted_main_commit": "e2eef08f15e7c0a5e79f58579282db90c157cb4a",
+  "parent_release_commit": "768e500d6b3e8d1d8ec747e37aae6302ab6747d1",
+  "source_lock_schema_version": 4,
+  "canonical": {
+    "workflow_run_id": 32152862847,
+    "canonical_full_gate_job_id": 95762826212,
+    "cross_python_3_11_job_id": 95762826331,
+    "cross_python_3_13_job_id": 95762826510,
+    "frozen_focused_job_id": 95762826397,
+    "publish_full_gate_job_id": 95764490383,
+    "conclusion": "success",
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "authored_evidence_exact": true,
+    "external_evidence_exact": true,
+    "r266_tests": 21,
+    "protected_parent_tests": 267,
+    "hosted_relevant_tests_total": 288
+  },
+  "pre_integration_release_bundle": {
+    "workflow_run_id": 32152862858,
+    "job_id": 95762826428,
+    "conclusion": "success",
+    "source_lock_verified": true,
+    "authored_evidence_exact": true,
+    "external_evidence_exact": true,
+    "protected_lineage_passed": true,
+    "complete_zip_created_and_verified": true,
+    "artifact_uploaded": true,
+    "status_published": true
+  },
+  "challenger_lineage": {
+    "validation_prs": [41, 43, 44, 49, 50, 51, 52],
+    "pair_budget_red_run_id": 32143013042,
+    "intervention_oracle_red_run_id": 32144226317,
+    "material_defects_promoted_to_frozen_regressions": true
+  },
+  "claim_boundary": "This receipt proves reproducibility and bounded implementation evidence for the frozen R2.66 mechanism. It does not prove open-ended composition-language invention, 3+ intervention scaling, stateful/effectful experimentation, blind broad repository autonomy, W5 convergence, or AGI."
+}
