@@ -6,6 +6,11 @@ on:
     paths:
       - 'tests/test_r264_frontier_pruning_falsifier.py'
       - '.github/workflows/r264-frontier-pruning-falsifier.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/test_r264_frontier_pruning_falsifier.py'
+      - '.github/workflows/r264-frontier-pruning-falsifier.yml'
   workflow_dispatch:
 
 permissions:
