@@ -1,0 +1,96 @@
+name: R2.55 Hardened Self-Improving Cognitive Acquisition
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "cogcoder/r255_*.py"
+      - "benchmarks/kfigg/r255_hardened_cognitive_acquisition.py"
+      - "tests/test_r255_hardened_acquisition*.py"
+      - ".github/workflows/r255-hardened-cognitive-acquisition.yml"
+  workflow_dispatch:
+
+jobs:
+  verify-r255-and-parents:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install focused dependencies
+        run: python -m pip install --upgrade pytest z3-solver
+      - name: Run R2.55 focused tests
+        run: PYTHONPATH=. pytest -q tests/test_r255_hardened_acquisition.py tests/test_r255_hardened_acquisition_benchmark.py
+      - name: Recompute frozen R2.55 adversarial evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from benchmarks.kfigg.r255_hardened_cognitive_acquisition import run_benchmark
+          d=run_benchmark()
+          assert d['episodes']==10 and d['exact']==10 and d['false_accepts']==0
+          assert d['r254_baseline_exact']==0
+          assert d['episodes_with_poison_quarantine']==10
+          assert d['episodes_with_echo_collapse']==10
+          assert d['episodes_with_procedure_promotion']==10
+          assert d['episodes_with_malicious_behavior_quarantine']==10
+          assert d['episodes_with_transactional_rollback']==10
+          assert d['episodes_with_skill_distillation']==10
+          assert d['trainable_parameter_count']==0
+          print({k:v for k,v in d.items() if k!='episode_receipts'})
+          PY
+      - name: Replay inherited independently sourced more-itertools transfer
+        env:
+          EXT_COMMIT: 2fe1b2eeb9d75f994113fe3ac76d14b6bcd6fb10
+        run: |
+          mkdir -p /tmp/r255-external/more_itertools
+          curl --fail --location --silent --show-error --retry 6 --retry-all-errors \
+            "https://raw.githubusercontent.com/more-itertools/more-itertools/${EXT_COMMIT}/more_itertools/more.py" \
+            --output /tmp/r255-external/more_itertools/more.py
+          curl --fail --location --silent --show-error --retry 6 --retry-all-errors \
+            "https://raw.githubusercontent.com/more-itertools/more-itertools/${EXT_COMMIT}/more_itertools/recipes.py" \
+            --output /tmp/r255-external/more_itertools/recipes.py
+          PYTHONPATH=. python research/r254_external_transfer.py \
+            --source-dir /tmp/r255-external \
+            --repository more-itertools/more-itertools \
+            --commit "${EXT_COMMIT}" \
+            --output /tmp/R2_55_INHERITED_EXTERNAL_TRANSFER.json
+          python - <<'PY'
+          import json
+          d=json.load(open('/tmp/R2_55_INHERITED_EXTERNAL_TRANSFER.json'))
+          assert d['passed'] is True and d['passed_cases']==2 and d['total_cases']==2
+          assert all(c['graph_hops_used']>=1 for c in d['cases'])
+          assert all(not c['source_failures'] for c in d['cases'])
+          print(json.dumps(d, sort_keys=True))
+          PY
+      - name: Run R2.54 through R2.52 parents
+        run: PYTHONPATH=. pytest -q tests/test_r254_cognitive_retrieval.py tests/test_r254_code_knowledge.py tests/test_r254_behavioral_retrieval.py tests/test_r254_cognitive_retrieval_benchmark.py tests/test_r253_external_cognition.py tests/test_r253_operator_catalog.py tests/test_r253_external_cognitive_reflex_benchmark.py tests/test_r252_repository_query.py tests/test_r252_repository_query_benchmark.py
+      - name: Run R2.51 parent
+        run: PYTHONPATH=. pytest -q tests/test_r251_interprocedural_query.py tests/test_r251_interprocedural_query_benchmark.py
+      - name: Run R2.50 parent
+        run: PYTHONPATH=. pytest -q tests/test_r250_relational_query.py tests/test_r250_self_induced_query_benchmark.py
+      - name: Run R2.49 parent
+        run: PYTHONPATH=. pytest -q tests/test_r249_relational_context.py tests/test_r249_relational_benchmark.py
+      - name: Run R2.48 and R2.47 parents
+        run: PYTHONPATH=. pytest -q tests/test_r248_contextual_patch.py tests/test_r248_contextual_benchmark.py tests/test_r247_executable_patch_cegis.py tests/test_r247_executable_patch_benchmark.py
+      - name: Run R2.46 parent
+        run: PYTHONPATH=. pytest -q tests/test_r246_sparse_feedback.py tests/test_r246_sparse_feedback_benchmark.py
+      - name: Run R2.45 and R2.44 parents
+        run: PYTHONPATH=. pytest -q tests/test_r245_role_free_binding.py tests/test_r245_role_free_benchmark.py tests/test_r244_recursive_abstraction.py tests/test_r244_recursive_abstraction_benchmark.py
+      - name: Run R2.43 and R2.41 compatibility
+        run: PYTHONPATH=. pytest -q tests/test_r243_macro_composition.py tests/test_r243_cross_family_benchmark.py tests/test_r241_macro_competition.py tests/test_r241_competitive_discovery.py tests/test_r241_multi_macro_benchmark.py
+
+  cross-python-r255:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install --upgrade pytest
+      - name: Verify R2.55 focused behavior across Python runtimes
+        run: PYTHONPATH=. pytest -q tests/test_r255_hardened_acquisition.py tests/test_r255_hardened_acquisition_benchmark.py
