@@ -1,0 +1,69 @@
+{
+  "abstraction_digests": [
+    "abs.f490c3e728c9bcc23927274bb9ba50fb287b1a4d7b1c5d901b07111bc303c24a",
+    "abs.0a7c0fb7b0442414cef97742ae45b6708c9282f9022bb1dfa81ba55811063f5f",
+    "abs.00d4ca99300e1540f0bd88c29d761b316a4f3cf9031b318318ccc5b5157c0b2a"
+  ],
+  "all_positive_compression": true,
+  "bad_candidate_quarantined": true,
+  "base_exact": 0,
+  "capability": "verified-cognitive-vocabulary-growth",
+  "claim_boundary": "Bounded verified library learning over pure R2.56 expressions; not open-ended language or effectful operator invention.",
+  "compression_gains": [
+    1,
+    11,
+    11
+  ],
+  "episode_receipts": [
+    {
+      "base_passed": false,
+      "episode": "e0",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 182,
+      "probe_candidates_considered": 3338
+    },
+    {
+      "base_passed": false,
+      "episode": "e1",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 251,
+      "probe_candidates_considered": 2085
+    },
+    {
+      "base_passed": false,
+      "episode": "e2",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 263,
+      "probe_candidates_considered": 3667
+    },
+    {
+      "base_passed": false,
+      "episode": "e3",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 191,
+      "probe_candidates_considered": 2060
+    },
+    {
+      "base_passed": false,
+      "episode": "e4",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 176,
+      "probe_candidates_considered": 4631
+    },
+    {
+      "base_passed": false,
+      "episode": "e5",
+      "extended_challenge_exact": true,
+      "full_candidates_considered": 287,
+      "probe_candidates_considered": 2713
+    }
+  ],
+  "extended_exact": 6,
+  "false_accepts": 0,
+  "heldout_episodes": 6,
+  "learned_abstractions": 3,
+  "live_revocation_rollback": true,
+  "milestone": "R2.57",
+  "min_support_tasks": 6,
+  "trainable_parameter_count": 0
+}
