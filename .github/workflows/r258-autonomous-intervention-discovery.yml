@@ -12,6 +12,15 @@ on:
       - 'docs/superpowers/specs/2026-08-18-r258-autonomous-intervention-discovery-design.md'
       - 'docs/superpowers/plans/2026-08-18-r258-autonomous-intervention-discovery.md'
       - '.github/workflows/r258-autonomous-intervention-discovery.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r258_*.py'
+      - 'benchmarks/kfigg/r258_*.py'
+      - 'research/r258_*.py'
+      - 'tests/test_r258_*.py'
+      - 'R2_58_PHASE_A_RESULT.json'
+      - '.github/workflows/r258-autonomous-intervention-discovery.yml'
   workflow_dispatch:
 
 permissions:
