@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63 Compositional Version-Space Expansion",
+  "parent_release_commit": "02f3d2f6dc16dbb82b0dd1cef111546173b4767e",
+  "frozen_git_blobs": {
+    "cogcoder/r263_compositional_version_space_expansion.py": "e07849f0ae79bcd37bd50de451d7d47597051b73",
+    "benchmarks/kfigg/r263_compositional_version_space_expansion.py": "0fc14800381283eca3515d2e8a81e3d491547a4f",
+    "research/r263_external_compositional_transfer.py": "5a40ba67418e296801dad8ecf243def315fd64e1",
+    "tests/test_r263_compositional_version_space_expansion.py": "f753a2954db0b981da379045cd987a84cec91589",
+    "tests/test_r263_compositional_benchmark.py": "04b97e2fc5cbdce9e7417ed3f9c3af0541fb9b35",
+    "tests/test_r263_external_compositional_transfer.py": "d326a4ef3bebaa641ab2c46ec8769aa891b704c1"
+  },
+  "phase_a_result": "R2_63_PHASE_A_RESULT.json",
+  "external_result": "R2_63_EXTERNAL_TRANSFER.json",
+  "production_source_changes_after_lock_forbidden": true,
+  "note": "Any later change to a frozen blob invalidates R2.63 measurements and requires complete remeasurement before acceptance. Documentation/workflow/evidence-only changes do not alter the lock unless they change a frozen path."
+}
