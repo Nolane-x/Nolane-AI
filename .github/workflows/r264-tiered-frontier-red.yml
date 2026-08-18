@@ -1,0 +1,50 @@
+name: R2.64 Tiered Frontier TDD RED
+
+on:
+  push:
+    branches: [r264-frontier-tiered-repair-gpt56sol]
+    paths:
+      - 'tests/test_r264_frontier_pruning_falsifier.py'
+      - '.github/workflows/r264-tiered-frontier-red.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Confirm stale-frontier defect is reproducible before production change
+        id: red
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r264_frontier_pruning_falsifier.py > r264-tiered-red.log 2>&1
+          rc=$?
+          cat r264-tiered-red.log
+          echo "rc=$rc" >> "$GITHUB_OUTPUT"
+          test "$rc" -ne 0
+      - name: Require exact tight-budget defect and control coverage
+        shell: bash
+        run: |
+          grep -F 'test_eliminated_diagnostic_candidates_do_not_consume_later_expansion_budget' r264-tiered-red.log
+          grep -F "AssertionError: assert 'abstain' == 'accept'" r264-tiered-red.log
+          grep -E '1 failed, 2 passed|1 failed.*2 passed' r264-tiered-red.log
+      - name: Publish hosted RED evidence
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({'state':'success','context':'r264/tiered-frontier-red','description':'Hosted RED: stale frontier starves tight expansion budget while controls pass','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
+          urllib.request.urlopen(req).read()
+          PY
