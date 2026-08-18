@@ -151,6 +151,6 @@ jobs:
           python - <<'PY'
           import json, os, urllib.request
           payload=json.dumps({'state':'success','context':f"r259/cross-python-{os.environ['PYVER']}",'description':f"R2.59 focused tests passed on Python {os.environ['PYVER']}",'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
-          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}\",'Accept':'application/vnd.github+json'},method='POST')
+          req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
           urllib.request.urlopen(req).read()
           PY
