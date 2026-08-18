@@ -68,6 +68,8 @@ jobs:
               'tests/test_r265_singleton_out_of_space_induction.py',
               'tests/test_r265_unanimous_misspecification.py',
               'tests/test_r265_post_selection_singleton_misspec.py',
+              'tests/test_r265_diagnostic_order_invariance.py',
+              'tests/test_r265_zero_challenge_promotion.py',
               '.github/workflows/r265-verified-patch-primitive-induction.yml',
               '.github/workflows/r265-canonical-gate.yml',
               '.github/workflows/r265-freeze-evidence.yml',
@@ -76,7 +78,7 @@ jobs:
           blobs = {path: subprocess.check_output(['git','hash-object',path], text=True).strip() for path in frozen_paths}
           parent = subprocess.check_output(['git','merge-base','HEAD','origin/main'], text=True).strip()
           lock = {
-              'schema_version': 7,
+              'schema_version': 8,
               'milestone': 'R2.65 Verified Patch Primitive Induction',
               'parent_release_commit': parent,
               'frozen_git_blobs': blobs,
@@ -89,16 +91,20 @@ jobs:
               'singleton_out_of_space_diagnostic_frozen': True,
               'unanimous_misspecification_diagnostic_frozen': True,
               'post_selection_singleton_misspecification_frozen': True,
+              'diagnostic_order_invariance_frozen': True,
+              'independent_challenge_promotion_gate_frozen': True,
               'release_bundle_workflow_frozen': True,
               'singleton_red_run_id': 32137012090,
               'unanimous_red_run_id': 32137926223,
               'post_selection_singleton_red_run_id': 32138019297,
+              'final_hardening_red_run_id': 32139275510,
               'note': (
                   'Frozen only after fixed R2.64.1 parent and hosted RED/GREEN evidence covered PatchMacro invariants, '
                   'hypothesis fairness, the true global generation cap, initial-singleton misspecification, unanimous '
-                  'zero-entropy misspecification, post-selection singleton misspecification, exact authored evidence, '
-                  'NumPy multiply transfer, canonical verification, and the complete release-bundle workflow. Freeze '
-                  'performs no production mutation. Any later frozen-blob change requires complete remeasurement.'
+                  'zero-entropy misspecification, post-selection singleton misspecification, caller-order-invariant '
+                  'diagnostics, mandatory independent challenge promotion, exact authored evidence, NumPy multiply '
+                  'transfer, canonical verification, and the complete release-bundle workflow. Freeze performs no '
+                  'production mutation. Any later frozen-blob change requires complete remeasurement.'
               ),
           }
           Path('R2_65_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
@@ -113,6 +119,6 @@ jobs:
           if git diff --cached --quiet; then
             echo R265_EVIDENCE_ALREADY_FROZEN
           else
-            git commit -m 'research: refreeze exact R2.65 evidence with release bundle boundary'
+            git commit -m 'research: refreeze exact R2.65 evidence after final hardening'
             git push origin HEAD:r265-verified-patch-language-induction-gpt56sol
           fi
