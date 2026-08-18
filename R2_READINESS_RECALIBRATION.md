@@ -22,3 +22,7 @@ These values are internal engineering heuristics, not probabilities of AGI and n
 ## R2.55 — 46.0 / 100
 
 R2.55 earns **+0.5** over R2.54 (45.5) after a clean hosted 144/144 relevant lineage and an independently sourced InjecAgent control-plane transfer over 2,108 cases / 3,196 attacker-action proposals with zero authority escapes while preserving intended user-tool authorization. The increase is deliberately limited because this does not establish semantic prompt-injection immunity, arbitrary external-I/O rollback, open-ended operator invention, or broad real-repository autonomous repair transfer.
+
+## R2.56 — 46.8 / 100
+
+R2.56 earns **+0.8** over R2.55 (46.0). Unlike a mechanism-only benchmark, it adds a genuinely new primitive-invention path and a pinned independently sourced transfer: the learner receives only I/O from Boltons `clamp`, passes 8 independent challenges and 24/24 post-promotion heldouts, while the R2.55 no-invention baseline is 0/9 on the authored missing-primitive family. The increase remains small because the operator language is finite and hand-designed, external evidence covers one pure-function family, search scalability is unproven, effectful invention is excluded, and no broad repository-level coding-autonomy improvement is demonstrated.
