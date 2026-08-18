@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.66 Learned Contextual Causal Composition",
+  "runtime": "Nolane World 0.8.0 Learning-to-Learn Cognitive OS",
+  "world_id": "world4_aa51b60d5a7e4555",
+  "depth": "W5",
+  "status": "living",
+  "epoch": 5,
+  "active_seconds_credited": 15.0,
+  "audit": {
+    "valid": true,
+    "digest": "de32990437181d2f0c33e8a9db226aadd06121a3e435cafc2a0bfdaca6b62712",
+    "events": 11
+  },
+  "gate": {
+    "passed": false,
+    "score": 0.41666666666666663,
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains"
+    ]
+  },
+  "convergence_forced": false,
+  "critical_unknowns": 1,
+  "fresh_verifications": 2,
+  "challengers_survived": 1,
+  "robust_worlds": 2,
+  "quality": {
+    "correctness": 0.96,
+    "evidence": 0.95,
+    "robustness": 0.88,
+    "verification": 0.96
+  },
+  "world_findings_materialized_into_release": [
+    "pair-budget scheduling must not make semantic success depend on positional/content-addressed ordering",
+    "an invalid or non-finite applied-intervention oracle result must fail closed globally",
+    "terminal evidence must be numerically semantic, unique, disjoint from learning evidence and previously queried intervention inputs",
+    "terminal authority must independently re-observe the selected intervention/probe semantics",
+    "oracle accounting must include terminal verification and respect a hard end-to-end cap",
+    "breadth beyond exactly two pure-input interventions in a finite trusted DSL remains unresolved"
+  ],
+  "canonical_hosted_evidence": {
+    "canonical_run_id": 32152862847,
+    "release_bundle_run_id": 32152862858,
+    "source_lock_schema_version": 4,
+    "r266_tests": 21,
+    "protected_parent_tests": 267,
+    "total_relevant_tests": 288,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "exact_phase_a": true,
+    "exact_external": true
+  },
+  "claim_boundary": "The World audit is valid and the runtime accepted two fresh hosted verifier lineages plus material challenger evidence, while still denying W5 convergence. This file supports a conservative bounded release only; it is not proof of general intelligence, broad coding autonomy, or open-ended experiment-language growth."
+}
