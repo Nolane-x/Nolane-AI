@@ -46,21 +46,28 @@ jobs:
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
               'research/r266_external_contextual_transfer.py',
               'tests/test_r266_pair_budget_semantics.py',
+              'tests/test_r266_intervention_oracle_failclosed.py',
               'tests/test_r266_independent_terminal_contexts.py',
               'tests/test_r266_terminal_evidence_boundary.py',
               '.github/workflows/r266-canonical-gate.yml',
               '.github/workflows/r266-freeze-evidence.yml',
               '.github/workflows/r266-release-bundle.yml',
+              '.github/workflows/r266-intervention-oracle-hotfix.yml',
+              '.github/workflows/r266-intervention-oracle-cross-python.yml',
           )
           for path in required:
               assert Path(path).is_file(), path
           lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
-          assert lock['schema_version'] >= 1
+          assert lock['schema_version'] >= 3
           assert lock['parent_release_commit'] == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['terminal_evidence_disjointness_frozen'] is True
           assert lock['semantic_pair_budget_invariance_frozen'] is True
-          assert lock['independent_pair_budget_green_run_id'] == 32146061579
+          assert lock['independent_pair_budget_green_run_id'] == 32147458027
+          assert lock['intervention_oracle_fail_closed_frozen'] is True
+          assert lock['intervention_oracle_red_run_id'] == 32144226317
+          assert lock['intervention_oracle_green_run_id'] == 32147372531
+          assert lock['release_oracle_contract_frozen'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
@@ -121,11 +128,14 @@ jobs:
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
               'research/r266_external_contextual_transfer.py',
               'tests/test_r266_pair_budget_semantics.py',
+              'tests/test_r266_intervention_oracle_failclosed.py',
               'tests/test_r266_independent_terminal_contexts.py',
               'tests/test_r266_terminal_evidence_boundary.py',
               '.github/workflows/r266-canonical-gate.yml',
               '.github/workflows/r266-freeze-evidence.yml',
               '.github/workflows/r266-release-bundle.yml',
+              '.github/workflows/r266-intervention-oracle-hotfix.yml',
+              '.github/workflows/r266-intervention-oracle-cross-python.yml',
           }
           with zipfile.ZipFile('release/Nolane-AI-R2.66-COMPLETE.zip') as zf:
               names=set(zf.namelist())
