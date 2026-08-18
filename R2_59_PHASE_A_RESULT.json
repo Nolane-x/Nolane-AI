@@ -1,0 +1,49 @@
+{
+  "argument_permutation_tracks_roles": true,
+  "capability": "budgeted-semantic-intervention-index",
+  "claim_boundary": "Budgeted semantic-index reuse for bounded pure-input intervention discovery; not open-ended experiment, anchor-language, or representation invention.",
+  "configurations": 3,
+  "derived_anchor_values": [
+    0.0,
+    1.0
+  ],
+  "discovered": 3,
+  "full_search_configurations": 2,
+  "global_budget_respected": true,
+  "max_total_synthesis_candidates_per_full_search": 15000,
+  "milestone": "R2.59",
+  "no_seed_failures": 3,
+  "noncausal_candidates_rejected": 2,
+  "oracle_calls": 374,
+  "position_rename_invariant": true,
+  "probe_validation_cases": 12,
+  "probe_validation_exact": 12,
+  "projection_index_builds": 12,
+  "projection_index_reuses": 7,
+  "r258_frozen_synthesis_candidates": 261169,
+  "r259_synthesis_candidates_considered": 10943,
+  "rename_replay_configurations": 1,
+  "seeded_successes": 3,
+  "selected_intervention_ids": [
+    "intv.ddb71bad413a0fca7470fb4aa1eff9972be5d26634d7f75c985cca393be16a34",
+    "intv.ddb71bad413a0fca7470fb4aa1eff9972be5d26634d7f75c985cca393be16a34",
+    "intv.a078558deef67d09464dfd4af0c5d57a37586391d784aa8548dc3f058905f0c2"
+  ],
+  "selected_position_sets": [
+    [
+      3,
+      4
+    ],
+    [
+      3,
+      4
+    ],
+    [
+      0,
+      2
+    ]
+  ],
+  "synthesis_reduction_ratio": 23.866307,
+  "trainable_parameter_count": 0,
+  "wrong_role_false_accepts": 0
+}

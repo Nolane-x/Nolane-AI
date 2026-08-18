@@ -1,0 +1,212 @@
+name: R2.59 Budgeted Semantic Intervention Index
+
+on:
+  push:
+    branches: [main, r259-budgeted-semantic-index-gpt56sol]
+    paths:
+      - 'cogcoder/r259_*.py'
+      - 'benchmarks/kfigg/r259_*.py'
+      - 'research/r259_*.py'
+      - 'tests/test_r259_*.py'
+      - 'R2_59_PHASE_A_RESULT.json'
+      - 'R2_59_PRE_HOSTED_LOCK.json'
+      - 'R2_58_TO_R2_59_EVOLUTION.md'
+      - 'docs/superpowers/specs/2026-08-18-r259-budgeted-semantic-intervention-index-design.md'
+      - 'docs/superpowers/plans/2026-08-18-r259-budgeted-semantic-intervention-index.md'
+      - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r259_*.py'
+      - 'benchmarks/kfigg/r259_*.py'
+      - 'research/r259_*.py'
+      - 'tests/test_r259_*.py'
+      - 'R2_59_PHASE_A_RESULT.json'
+      - 'R2_59_PRE_HOSTED_LOCK.json'
+      - 'R2_58_TO_R2_59_EVOLUTION.md'
+      - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused-and-lineage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify frozen source hashes before hosted measurement
+        run: |
+          python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          lock = json.loads(Path('R2_59_PRE_HOSTED_LOCK.json').read_text())
+          for path, expected in lock['frozen_source_sha256'].items():
+              actual = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+              assert actual == expected, (path, actual, expected)
+          print('R259_PRE_HOSTED_SOURCE_LOCK_OK')
+          PY
+      - name: Run R2.59 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+      - name: Recompute frozen R2.59 Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r259_budgeted_semantic_intervention_index import run_benchmark
+          expected = json.loads(Path('R2_59_PHASE_A_RESULT.json').read_text())
+          actual = run_benchmark()
+          assert actual == expected, (actual, expected)
+          assert actual['discovered'] == actual['configurations'] == 3
+          assert actual['wrong_role_false_accepts'] == 0
+          assert actual['global_budget_respected'] is True
+          assert actual['synthesis_reduction_ratio'] >= 8.0
+          print(json.dumps(actual, indent=2, sort_keys=True))
+          PY
+      - name: Run protected R2.58 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+      - name: Run protected R2.57 to R2.55 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run protected R2.54 to R2.50 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run protected R2.49 to R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Publish focused status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r259/focused-lineage',
+            'description':'R2.59 focused evidence and protected R2.58-R2.41 lineage passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  external-ufunclab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned external oracle dependency
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest 'numpy>=2.1.0' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Run matched-distribution budgeted intervention transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import ufunclab
+          from research.r259_external_budgeted_intervention_transfer import run_external_transfer
+          result=run_external_transfer(
+            ufunclab.linearstep,
+            source_id='WarrenWeckesser/ufunclab:ufunclab.linearstep',
+            source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          print(json.dumps(result, indent=2, sort_keys=True))
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['host_selected_intervention'] is False
+          assert result['intervention_anchor_source'] == 'downstream_need.constants'
+          assert result['derived_anchor_values'] == [0.0, 1.0]
+          assert result['legal_interventions_enumerated'] == 20
+          assert result['no_seed_passed'] is False
+          assert result['seeded_passed'] is True
+          assert result['probe_validation_exact'] == result['probe_validation_cases'] == 4
+          assert result['challenge_exact'] == result['challenge_cases'] == 8
+          assert result['heldout_exact'] == result['heldout_cases'] == 24
+          assert result['total_synthesis_candidates'] <= 15000
+          assert result['synthesis_reduction_ratio'] >= 8.0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_59_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          PY
+      - name: Upload external transfer evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.59-ufunclab-budgeted-semantic-index-transfer
+          path: R2_59_EXTERNAL_TRANSFER.json
+      - name: Publish external status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r259/external-transfer',
+            'description':'R2.59 pinned ufunclab budgeted semantic-index transfer passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install pytest
+        run: python -m pip install pytest
+      - name: Verify R2.59 focused behavior across Python runtimes
+        run: PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+      - name: Publish cross-Python status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PYVER: ${{ matrix.python }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':f"r259/cross-python-{os.environ['PYVER']}",
+            'description':f"R2.59 focused tests passed on Python {os.environ['PYVER']}",
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
