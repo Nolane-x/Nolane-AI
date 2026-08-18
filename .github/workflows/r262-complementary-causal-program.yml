@@ -1,4 +1,6 @@
 name: R2.62 Complementary Causal Program
+
+# Hosted TDD gate for the clean R2.62 namespace port.
 on:
   push:
     branches: [r262-complementary-causal-program-integration]
