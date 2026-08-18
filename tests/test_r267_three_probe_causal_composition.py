@@ -89,6 +89,19 @@ def _discover(order: tuple[str, ...] = FIELDS):
     )
 
 
+def _structure_diagnostics(receipt) -> tuple[object, ...]:
+    return (
+        receipt.reason,
+        receipt.legal_interventions,
+        receipt.semantic_profiles,
+        receipt.triplets_considered,
+        receipt.composition_candidates_considered,
+        receipt.singleton_candidates_considered,
+        receipt.pair_candidates_considered,
+        receipt.oracle_calls,
+    )
+
+
 def test_r267_public_three_probe_api_exists_on_exact_r266_parent() -> None:
     assert callable(discover_three_probe_structure)
     assert callable(synthesize_three_probe_causal_program)
@@ -98,7 +111,7 @@ def test_r267_public_three_probe_api_exists_on_exact_r266_parent() -> None:
 
 def test_authored_tri_bilinear_family_requires_and_discovers_three_probe_composition() -> None:
     receipt = _discover()
-    assert receipt.passed is True
+    assert receipt.passed is True, _structure_diagnostics(receipt)
     assert receipt.selected is not None
     selected = receipt.selected
     assert len(selected.profiles) == 3
@@ -135,7 +148,7 @@ def test_full_program_synthesizes_three_executable_probes_and_terminally_reobser
         probe_max_candidates=30_000,
         probe_beam_width=160,
     )
-    assert receipt.passed is True
+    assert receipt.passed is True, (receipt.reason, _structure_diagnostics(receipt.structure))
     assert receipt.expression is not None
     assert len(receipt.probe_expressions) == 3
     assert receipt.probe_validation_cases == len(validation)
