@@ -15,6 +15,7 @@
     "R2_60_WORLD_FINAL.json",
     "R2_READINESS_RECALIBRATION.md"
   ],
+  "release_workflow": ".github/workflows/r260-release-bundle.yml",
   "status": "ACCEPTED_BOUNDED_CAPABILITY",
   "title": "Active Diagnostic Repository Probe Synthesis",
   "trainable_parameter_count": 0,
