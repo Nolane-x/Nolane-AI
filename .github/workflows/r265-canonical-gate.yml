@@ -1,0 +1,175 @@
+name: R2.65 Canonical Gate
+
+on:
+  push:
+    branches: [r265-verified-patch-language-induction-gpt56sol]
+    paths:
+      - 'cogcoder/r265_*.py'
+      - 'tests/test_r265_*.py'
+      - 'benchmarks/kfigg/r265_*.py'
+      - 'research/r265_*.py'
+      - 'R2_65_*.json'
+      - '.github/workflows/r265-canonical-gate.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r265_*.py'
+      - 'tests/test_r265_*.py'
+      - 'benchmarks/kfigg/r265_*.py'
+      - 'research/r265_*.py'
+      - 'R2_65_*.json'
+      - '.github/workflows/r265-canonical-gate.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify source lock exists and matches
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R265_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Accepted R2.64 parent first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+      - name: R2.65 focused
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Exact authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          print('R265_EXACT_EVIDENCE_OK')
+          PY
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+
+  canonical-full-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    env:
+      EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install canonical dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify exact current parent and frozen source
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_release_commit'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_release_commit'])
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R265_PARENT_AND_SOURCE_LOCK_OK', lock['parent_release_commit'])
+          PY
+      - name: Recompute exact R2.65 evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
+          from research.r265_external_patch_primitive_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
+          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          print('R265_EXACT_EVIDENCE_OK')
+          PY
+      - name: Run R2.65 focused suite
+        run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Run accepted R2.64 and R2.63 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+      - name: Run accepted R2.62 through R2.60 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Run R2.59 through R2.55 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run R2.54 through R2.50 parents
+        run: PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run R2.49 through R2.41 parents
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+
+  publish-full-gate:
+    if: github.event_name == 'pull_request'
+    needs: [focused, cross-python, canonical-full-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish canonical success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r265/full-gate',
+              'description':'R2.65 exact evidence, cross-Python and accepted R2.64-R2.41 lineage passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R265_FULL_GATE_STATUS_PUBLISHED')
+          PY

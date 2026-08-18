@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.65 Verified Patch Primitive Induction",
+  "purpose": "Fresh hosted GREEN verification after diagnostic-order canonicalization and mandatory independent-challenge hardening.",
+  "accepted_parent_main_sha": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
+  "production_source_blob": "2ebb89f86c3d61f09f2fbe71b12fa7d540eab9be",
+  "red_runs": {
+    "diagnostic_order_invariance": 32138988364,
+    "zero_challenge_promotion": 32139008781
+  },
+  "production_source_mutation": false
+}

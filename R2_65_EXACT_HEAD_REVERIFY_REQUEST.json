@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.65 Verified Patch Primitive Induction",
+  "purpose": "Trigger exact-head canonical remeasurement after general misspecification fixes without mutating any frozen blob.",
+  "parent_release_commit": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
+  "locked_production_blob": "a0ef632ee30bd164ebbeff0f0531b6c918506dbb",
+  "locked_evidence_manifest_blob": "6a5df893551d3eb6daca13420a25fceae3fa88a7",
+  "required_red_runs": {
+    "initial_singleton_misspecification": 32137012090,
+    "unanimous_zero_entropy_misspecification": 32137926223,
+    "post_selection_singleton_misspecification": 32138019297
+  },
+  "claim": "request_only_no_promotion_authority"
+}
