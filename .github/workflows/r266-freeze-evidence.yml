@@ -9,6 +9,7 @@ on:
       - 'tests/test_r266_*.py'
       - 'benchmarks/kfigg/r266_*.py'
       - 'research/r266_*.py'
+      - 'scripts/r266_apply_authority_hardening.py'
       - 'docs/superpowers/specs/2026-08-18-r266-learned-contextual-composition-design.md'
       - '.github/workflows/r266-*.yml'
   workflow_dispatch:
@@ -64,12 +65,15 @@ jobs:
               'cogcoder/r266_learned_contextual_composition.py',
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
               'research/r266_external_contextual_transfer.py',
+              'scripts/r266_apply_authority_hardening.py',
               'tests/test_r266_learned_contextual_composition.py',
               'tests/test_r266_contextual_composition_benchmark.py',
               'tests/test_r266_independent_terminal_contexts.py',
               'tests/test_r266_terminal_evidence_boundary.py',
               'tests/test_r266_pair_budget_semantics.py',
               'tests/test_r266_intervention_oracle_failclosed.py',
+              'tests/test_r266_frozen_lock_independent_blockers.py',
+              'tests/test_r266_terminal_probe_evidence.py',
               'docs/superpowers/specs/2026-08-18-r266-learned-contextual-composition-design.md',
               '.github/workflows/r266-learned-contextual-composition.yml',
               '.github/workflows/r266-external-contextual-transfer.yml',
@@ -78,6 +82,7 @@ jobs:
               '.github/workflows/r266-release-bundle.yml',
               '.github/workflows/r266-intervention-oracle-hotfix.yml',
               '.github/workflows/r266-intervention-oracle-cross-python.yml',
+              '.github/workflows/r266-authority-hardening-pr.yml',
           )
           blobs = {
               path: subprocess.check_output(['git', 'hash-object', path], text=True).strip()
@@ -86,7 +91,7 @@ jobs:
           parent = subprocess.check_output(['git', 'merge-base', 'HEAD', 'origin/main'], text=True).strip()
           assert parent == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1', parent
           lock = {
-              'schema_version': 3,
+              'schema_version': 4,
               'milestone': 'R2.66 Learned Contextual Causal Composition',
               'parent_release_commit': parent,
               'frozen_git_blobs': blobs,
@@ -97,6 +102,12 @@ jobs:
               'semantic_pair_budget_invariance_frozen': True,
               'intervention_oracle_fail_closed_frozen': True,
               'release_oracle_contract_frozen': True,
+              'evidence_authority_regressions_frozen': True,
+              'terminal_probe_authority_frozen': True,
+              'terminal_intervention_validator_frozen': True,
+              'oracle_ledger_frozen': True,
+              'semantic_profile_identity_frozen': True,
+              'terminal_probe_case_units_frozen': True,
               'no_intervened_value_smuggling_frozen': True,
               'two_probe_necessity_frozen': True,
               'fixed_r262_operator_falsifier_frozen': True,
@@ -111,16 +122,21 @@ jobs:
               'intervention_oracle_green_run_id': 32147372531,
               'intervention_oracle_exact_head_run_id': 32146846570,
               'intervention_oracle_cross_python_run_id': 32146846639,
+              'schema2_authority_red_run_id': 32148094188,
+              'terminal_probe_red_run_id': 32147480690,
+              'terminal_probe_case_units_red_run_id': 32150549582,
               'oracle_hotfix_merge_commit': '0edec9cddc47542eb7cf902f82f771e026bbb352',
               'evidence_refreeze_run_id': int(os.environ['GITHUB_RUN_ID']),
               'external_source_commit': 'f1fbe6769850823a1976ccc28d14cd966130b645',
               'note': (
                   'Frozen only after clean R2.65 parent, explicit module RED, terminal-evidence RED, independent '
                   'pair-budget RED then semantic-first scheduler GREEN on Python 3.11/3.13, intervention-oracle '
-                  'fail-closed RED then independent GREEN on Python 3.11/3.13, exact authored causal recomputation, '
-                  'fresh pinned ufunclab.step I/O-only transfer, and a release contract that requires both post-fix '
-                  'fairness and oracle-hardening evidence. The public R2.66 synthesis API requires a non-empty '
-                  'exact-context-disjoint terminal set. Any later frozen-blob change requires complete remeasurement.'
+                  'fail-closed RED then independent GREEN, independent schema-2 authority REDs for semantic terminal '
+                  'disjointness/oracle-input reuse/oracle accounting/profile identity, terminal selected-probe RED, '
+                  'validator-safe terminal intervention checks, auditable 2N terminal-probe case units, exact authored '
+                  'causal recomputation, and fresh pinned ufunclab.step I/O-only transfer. Authority regression tests, '
+                  'the hardening script, and its workflow are frozen with production. Any later frozen-blob change '
+                  'requires complete remeasurement.'
               ),
           }
           Path('R2_66_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
@@ -135,6 +151,6 @@ jobs:
           if git diff --cached --quiet; then
             echo R266_EVIDENCE_ALREADY_FROZEN
           else
-            git commit -m 'research: refreeze exact R2.66 release boundary after oracle hardening'
+            git commit -m 'research: refreeze complete R2.66 evidence-authority boundary'
             git push origin HEAD:r266-learned-contextual-composition-gpt56sol
           fi
