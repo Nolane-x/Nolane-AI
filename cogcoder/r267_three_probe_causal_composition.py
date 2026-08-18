@@ -452,104 +452,97 @@ def _synthesize_r267_expression(
     max_candidates: int,
     beam_width: int,
 ) -> _ExpressionSearchReceipt:
+    """Search the finite R2.67 authority grammar and expose incompleteness.
+
+    Authority must never infer causal necessity from failure of a heuristic beam.
+    The accepted search is therefore the finite union of the exact three-probe
+    algebraic closure, the complete bilinear-pair closure, and the bounded R2.66
+    contextual-router grammar.  Any exhausted stage is explicitly inconclusive.
+    """
+    del beam_width  # retained in the public contract; not authority-bearing.
     max_candidates = int(max_candidates)
     if max_candidates < 1:
         raise ValueError('max_candidates must be positive')
 
-    structural_considered = 0
-    structural_evaluations = 0
-    structural_semantics = 0
+    considered = 0
+    evaluations = 0
+    semantics = 0
     required_probes = {'__p0', '__p1', '__p2'}
+
     if required_probes <= set(map(str, field_names)):
-        structural_budget = min(max_candidates, max(64, min(10_000, max_candidates // 3)))
+        structural_budget = min(max_candidates, 10_000)
         structural = _synthesize_required_three_probe_skeleton(
             tuple(constants), tuple(examples), max_candidates=structural_budget,
         )
-        structural_considered = structural.candidates_considered
-        structural_evaluations = structural.evaluations
-        structural_semantics = structural.semantic_candidates
+        considered += structural.candidates_considered
+        evaluations += structural.evaluations
+        semantics += structural.semantic_candidates
         if structural.passed and structural.expression is not None:
-            return structural
+            return _ExpressionSearchReceipt(
+                True, structural.expression, considered, evaluations, semantics, structural.reason,
+            )
+        if 'budget_exhausted' in structural.reason:
+            return _ExpressionSearchReceipt(
+                False, None, considered, evaluations, semantics,
+                'r267_expression_budget_exhausted',
+            )
 
-    remaining_after_structural = max_candidates - structural_considered
-    if remaining_after_structural < 1:
+    remaining = max_candidates - considered
+    if remaining < 1:
         return _ExpressionSearchReceipt(
-            False, None, structural_considered, structural_evaluations,
-            structural_semantics, 'r267_expression_budget_exhausted',
+            False, None, considered, evaluations, semantics,
+            'r267_expression_budget_exhausted',
         )
 
-    bilinear_considered = 0
-    bilinear_evaluations = 0
-    bilinear_semantics = 0
     if int(max_depth) >= 2:
-        bilinear_budget = min(remaining_after_structural, max(128, min(5_000, remaining_after_structural // 4)))
+        bilinear_budget = min(remaining, 5_000)
         bilinear = _synthesize_bilinear_pair_skeleton(
             tuple(field_names), tuple(examples), max_candidates=bilinear_budget,
         )
-        bilinear_considered = bilinear.candidates_considered
-        bilinear_evaluations = bilinear.evaluations
-        bilinear_semantics = bilinear.semantic_candidates
+        considered += bilinear.candidates_considered
+        evaluations += bilinear.evaluations
+        semantics += bilinear.semantic_candidates
         if bilinear.passed and bilinear.expression is not None:
             return _ExpressionSearchReceipt(
-                True, bilinear.expression,
-                structural_considered + bilinear_considered,
-                structural_evaluations + bilinear_evaluations,
-                structural_semantics + bilinear_semantics,
-                bilinear.reason,
+                True, bilinear.expression, considered, evaluations, semantics, bilinear.reason,
+            )
+        if 'budget_exhausted' in bilinear.reason:
+            return _ExpressionSearchReceipt(
+                False, None, considered, evaluations, semantics,
+                'r267_expression_budget_exhausted',
             )
 
-    remaining_after_bilinear = remaining_after_structural - bilinear_considered
-    if remaining_after_bilinear < 1:
+    remaining = max_candidates - considered
+    if remaining < 1:
         return _ExpressionSearchReceipt(
-            False, None, structural_considered + bilinear_considered,
-            structural_evaluations + bilinear_evaluations,
-            structural_semantics + bilinear_semantics,
+            False, None, considered, evaluations, semantics,
             'r267_expression_budget_exhausted',
         )
-    router_budget = min(8_000, max(1, remaining_after_bilinear // 4))
+
     router = synthesize_contextual_expression(
         tuple(field_names),
         tuple(constants),
         tuple(examples),
         max_depth=int(max_depth),
-        max_candidates=router_budget,
+        max_candidates=remaining,
     )
+    considered += router.candidates_considered
+    evaluations += router.search_evaluations
+    semantics += router.semantic_candidates
     if router.passed and router.expression is not None:
         return _ExpressionSearchReceipt(
-            True,
-            router.expression,
-            structural_considered + bilinear_considered + router.candidates_considered,
-            structural_evaluations + bilinear_evaluations + router.search_evaluations,
-            structural_semantics + bilinear_semantics + router.semantic_candidates,
+            True, router.expression, considered, evaluations, semantics,
             'r266_contextual_exact',
         )
-    remaining = remaining_after_bilinear - router.candidates_considered
-    if remaining < 1:
+    if router.reason == 'contextual_budget_exhausted':
         return _ExpressionSearchReceipt(
-            False,
-            None,
-            structural_considered + bilinear_considered + router.candidates_considered,
-            structural_evaluations + bilinear_evaluations + router.search_evaluations,
-            structural_semantics + bilinear_semantics + router.semantic_candidates,
+            False, None, considered, evaluations, semantics,
             'r267_expression_budget_exhausted',
         )
-    arithmetic = _semantic_arithmetic_synthesis(
-        tuple(field_names),
-        tuple(constants),
-        tuple(examples),
-        max_depth=int(max_depth),
-        max_candidates=remaining,
-        beam_width=int(beam_width),
-    )
     return _ExpressionSearchReceipt(
-        arithmetic.passed,
-        arithmetic.expression,
-        structural_considered + bilinear_considered + router.candidates_considered + arithmetic.candidates_considered,
-        structural_evaluations + bilinear_evaluations + router.search_evaluations + arithmetic.evaluations,
-        structural_semantics + bilinear_semantics + router.semantic_candidates + arithmetic.semantic_candidates,
-        arithmetic.reason,
+        False, None, considered, evaluations, semantics,
+        'r267_complete_grammar_no_expression',
     )
-
 
 def _composition_examples(
     schema: PositionalSchema,
@@ -723,6 +716,7 @@ def discover_three_probe_structure(
     triplets_considered = 0
     passing: list[ThreeProbeCandidate] = []
     exhausted = False
+    ablation_inconclusive = False
 
     for triplet_index, triplet in enumerate(triplets):
         remaining = max_total - total_composition
@@ -762,7 +756,7 @@ def discover_three_probe_structure(
         )
         total_composition += full.candidates_considered
         if not full.passed or full.expression is None:
-            if total_composition >= max_total:
+            if 'budget_exhausted' in full.reason or total_composition >= max_total:
                 exhausted = True
             continue
         used = _used_fields(full.expression)
@@ -771,6 +765,7 @@ def discover_three_probe_structure(
 
         singleton_passed: list[bool] = []
         singleton_counts: list[int] = []
+        candidate_ablation_inconclusive = False
         for probe_index in range(3):
             examples = _composition_examples(
                 schema,
@@ -791,7 +786,12 @@ def discover_three_probe_structure(
             singleton_passed.append(result.passed)
             singleton_counts.append(result.candidates_considered)
             total_singleton += result.candidates_considered
+            if not result.passed and 'budget_exhausted' in result.reason:
+                candidate_ablation_inconclusive = True
         if any(singleton_passed):
+            continue
+        if candidate_ablation_inconclusive:
+            ablation_inconclusive = True
             continue
 
         pair_passed: list[bool] = []
@@ -816,7 +816,12 @@ def discover_three_probe_structure(
             pair_passed.append(result.passed)
             pair_counts.append(result.candidates_considered)
             total_pair += result.candidates_considered
+            if not result.passed and 'budget_exhausted' in result.reason:
+                candidate_ablation_inconclusive = True
         if any(pair_passed):
+            continue
+        if candidate_ablation_inconclusive:
+            ablation_inconclusive = True
             continue
 
         values = tuple(evaluate_expr(full.expression, row.context) for row in full_examples)
@@ -872,7 +877,9 @@ def discover_three_probe_structure(
         oracle_calls=oracle_calls,
         false_accepts=0,
         reason='three_probe_composition_discovered' if selected is not None else (
-            'composition_budget_exhausted' if exhausted else 'no_three_probe_composition'
+            'ablation_search_inconclusive' if ablation_inconclusive else (
+                'composition_budget_exhausted' if exhausted else 'no_three_probe_composition'
+            )
         ),
         learning_query_keys=frozenset(queried_keys),
         validation_targets=tuple(validation_targets),
