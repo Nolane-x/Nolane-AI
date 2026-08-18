@@ -1,0 +1,79 @@
+{
+  "attack_families": [
+    "candidate-id-order-permutation",
+    "cross-python-runtime-variation",
+    "evidence-recomputation-drift",
+    "over-pruning-repairable-ancestor",
+    "protected-lineage-regression",
+    "stale-frontier-budget-starvation"
+  ],
+  "audit_digest": "94fd99ca32bd15695dae969050fcd3547c955a06c323690b2b12d8da5704e5ba",
+  "audit_valid": true,
+  "convergence_forced": false,
+  "depth": "W5",
+  "evidence_count": 5,
+  "experiment_count": 3,
+  "fresh_context_verifications": 2,
+  "gate": {
+    "pass_gate": false,
+    "reason_codes": [
+      "MIN_RESIDENCY_NOT_MET",
+      "FRAME_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_DIVERSITY_NOT_MET",
+      "HYPOTHESIS_GENERATIONS_NOT_MET",
+      "ADVERSARIAL_COVERAGE_NOT_MET",
+      "COUNTERFACTUAL_COVERAGE_NOT_MET",
+      "REPRESENTATION_SHIFTS_NOT_MET",
+      "ROBUSTNESS_WORLDS_NOT_MET",
+      "SYNTHESIS_GENERATIONS_NOT_MET",
+      "CRITICAL_UNKNOWNS_REMAIN",
+      "MATERIAL_IMPROVEMENT_STILL_LIKELY"
+    ],
+    "metrics": {
+      "anti_consensus_rounds": 2,
+      "attack_family_count": 6,
+      "candidate_margin": 0.1,
+      "candidate_quality": 0.97,
+      "challengers": 3,
+      "counterfactuals": 4,
+      "critical_unknowns": 1,
+      "estimated_material_improvement": 0.05,
+      "experiments": 3,
+      "fresh_context_verifications": 2,
+      "robustness_worlds": 4,
+      "unknown_hunts": 3,
+      "verifications": 4
+    }
+  },
+  "goal": "Audit R2.64.1 frontier-fairness hotfix before promotion",
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "promotion_interpretation": "W5 is not required for this bounded correctness hotfix; unresolved material unknowns remain explicit and must not be converted into a generality claim.",
+  "runtime": "Nolane World 0.8.0",
+  "schema_version": 1,
+  "unknowns": [
+    {
+      "bounded": true,
+      "critical": true,
+      "id": "unk_1519a731457d",
+      "question": "Does content-level seen-state plus first-path provenance ever suppress a later shallower path that would matter under a composition-depth budget?",
+      "resolution": "Bounded for the current solver by a uniform-frontier-depth induction: initial seeds are depth 0, every multi-parent expansion replaces the frontier only with one-step children, diagnostic narrowing does not reduce depth, and refinement expands one parent. This does not claim the property for future mixed-depth frontier designs."
+    },
+    {
+      "bounded": false,
+      "critical": false,
+      "id": "unk_0434bf56a175",
+      "question": "Does the wrapper/base split preserve all downstream source-introspection and import assumptions outside the protected test lineage?",
+      "resolution": null
+    },
+    {
+      "bounded": false,
+      "critical": true,
+      "id": "unk_40fb390b04eb",
+      "question": "Has R2.65 been rebased onto the post-hotfix parent before its own source lock and promotion?",
+      "resolution": null
+    }
+  ],
+  "verification_count": 4,
+  "w5_passed": false,
+  "world_id": "world_3180299bb313"
+}

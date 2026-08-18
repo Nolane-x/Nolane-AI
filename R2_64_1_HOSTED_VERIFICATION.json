@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64.1 Frontier Fairness Hotfix",
+  "status": "VERIFIED_BOUNDED_CORRECTNESS_HOTFIX",
+  "parent_release_commit": "91fa6c094f10df338ce95cf3fb89437e03943c39",
+  "canonical_evidence_head": "05a1d36eed97945a962ba1711144ee1aeb0cc9e1",
+  "tdd_red": {
+    "workflow_run_id": 32132315543,
+    "focused_job_id": 95695942271,
+    "passed": 2,
+    "failed": 1,
+    "expected_failure": "test_live_frontier_gets_first_generation_slot_after_prior_diagnostic_filtering"
+  },
+  "independent_premerge_falsifier": {
+    "workflow_run_id": 32131666124,
+    "same_root_cause_reproduced": true
+  },
+  "canonical_hosted_verification": {
+    "workflow_run_id": 32133355598,
+    "canonical_full_gate_job_id": 95699109868,
+    "publish_full_gate_job_id": 95700267433,
+    "source_lock_verified": true,
+    "r264_1_phase_a_exact": true,
+    "inherited_r264_phase_a_exact": true,
+    "inherited_r264_external_numpy_2_4_6_square_exact": true,
+    "r264_and_hotfix_tests": 13,
+    "protected_parent_tests": 234,
+    "hosted_relevant_tests_total": 247,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "conclusion": "success",
+    "phase_a_artifact_id": 9323046502,
+    "phase_a_artifact_digest": "sha256:7a44a38f5c1007182bf8cff1fce338e234944579950bf62a6cf14086d396fe85"
+  },
+  "causal_result": {
+    "episodes": 6,
+    "accepted_r264_tight_budget_abstains": 6,
+    "hotfix_tight_budget_exact": 6,
+    "hotfix_roomy_control_exact": 6,
+    "repairable_contradicted_ancestor_fallback_exact": 6,
+    "target_output_leakage": false,
+    "false_terminal_accepts": 0,
+    "verification_failures": 0
+  },
+  "added_trainable_parameters": 0,
+  "claim_boundary": "Correctness hardening of accepted R2.64 bounded trusted-PatchMacro frontier scheduling. Live evidence-consistent authorized parents receive bounded generation priority while unused slots retain the broader authorized repair fallback. This is not a new patch language, unrestricted synthesis, effectful autonomy, broad repository autonomy, or AGI evidence."
+}
