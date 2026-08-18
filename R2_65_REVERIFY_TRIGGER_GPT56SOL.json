@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "purpose": "Trigger canonical hosted re-verification after the bot-authored R2.65 evidence freeze without changing any frozen production or evidence blob.",
+  "parent_release_commit": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
+  "frozen_evidence_commit": "0b52cdd50c8c2847abe5ec4c4b477096286da8fa",
+  "required_checks": [
+    "source_lock_exact",
+    "r265_focused",
+    "hypothesis_budget_fairness",
+    "cross_python_3_11_3_13",
+    "authored_evidence_exact",
+    "external_numpy_multiply_exact",
+    "accepted_r264_1_to_r241_lineage"
+  ],
+  "production_change": false
+}
