@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.66",
+  "name": "Learned Contextual Causal Composition",
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "accepted_main_commit": "e2eef08f15e7c0a5e79f58579282db90c157cb4a",
+  "parent_release_commit": "768e500d6b3e8d1d8ec747e37aae6302ab6747d1",
+  "canonical_evidence_head": "7b707c22e05bdf2b33dc8d846965c0310834fb84",
+  "source_lock_schema_version": 4,
+  "added_trainable_parameters": 0,
+  "readiness": {
+    "previous_score": 49.7,
+    "score": 49.9,
+    "delta": 0.2,
+    "kind": "internal_engineering_heuristic_not_agi_probability",
+    "reason": "R2.66 removes the fixed host-selected two-probe composition operator channel and demonstrates learned contextual composition on a distinct pinned callable-I/O transfer, but remains exactly-two-intervention, finite-DSL, pure-input, researcher-selected evidence."
+  },
+  "canonical_hosted_verification": {
+    "workflow_run_id": 32152862847,
+    "canonical_full_gate_job_id": 95762826212,
+    "cross_python_3_11_job_id": 95762826331,
+    "cross_python_3_13_job_id": 95762826510,
+    "frozen_focused_job_id": 95762826397,
+    "publish_full_gate_job_id": 95764490383,
+    "r266_tests": 21,
+    "protected_parent_tests": 267,
+    "hosted_relevant_tests_total": 288,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "phase_a_exact": true,
+    "external_exact": true,
+    "conclusion": "success"
+  },
+  "evidence": {
+    "source_lock": "R2_66_PRE_HOSTED_LOCK.json",
+    "phase_a": "R2_66_PHASE_A_RESULT.json",
+    "external": "R2_66_EXTERNAL_TRANSFER.json",
+    "hosted_verification": "R2_66_HOSTED_VERIFICATION.json",
+    "nolane_world": "R2_66_WORLD_FINAL.json",
+    "delivery": "R2_66_DELIVERY.md"
+  },
+  "implementation": [
+    "cogcoder/_r266_contextual_composition_core.py",
+    "cogcoder/r266_learned_contextual_composition.py"
+  ],
+  "benchmark": "benchmarks/kfigg/r266_learned_contextual_composition.py",
+  "external_transfer": {
+    "source_id": "WarrenWeckesser/ufunclab:ufunclab.step",
+    "source_commit": "f1fbe6769850823a1976ccc28d14cd966130b645",
+    "source_exposure": "io_only",
+    "host_selected_intervention": false,
+    "fixed_r262_composition_passed": false,
+    "both_interventions_required": true,
+    "selection_cases": 27,
+    "challenge_exact": "12/12",
+    "terminal_exact": "36/36",
+    "false_accepts": 0
+  },
+  "authored_evidence": {
+    "configurations": 3,
+    "configuration_successes": 3,
+    "selection_exact": "72/72",
+    "probe_validation_exact": "36/36",
+    "terminal_exact": "18/18",
+    "fixed_op_baseline_failures": 3,
+    "singleton_ablation_failures": 3,
+    "false_accepts": 0
+  },
+  "hardening": {
+    "semantic_pair_budget_invariance": true,
+    "intervention_oracle_fail_closed": true,
+    "numeric_semantic_terminal_disjointness": true,
+    "terminal_intervention_input_disjointness": true,
+    "selected_probe_terminal_authority": true,
+    "terminal_intervention_validator": true,
+    "semantic_profile_identity_type_sensitive": true,
+    "end_to_end_oracle_accounting": true,
+    "hard_total_oracle_cap": true
+  },
+  "world": {
+    "world_id": "world4_aa51b60d5a7e4555",
+    "depth": "W5",
+    "audit_valid": true,
+    "audit_digest": "de32990437181d2f0c33e8a9db226aadd06121a3e435cafc2a0bfdaca6b62712",
+    "fresh_verifications": 2,
+    "challengers_survived": 1,
+    "w5_passed": false,
+    "convergence_forced": false
+  },
+  "claim_boundary": "Verified bounded learning of a contextual composition over exactly two pure-input interventions using a finite trusted DSL and independently controlled terminal evidence. Not open-ended composition-language invention, 3+ intervention scaling, stateful/effectful experimentation, blind task discovery, broad repository coding autonomy, W5 convergence, or AGI.",
+  "release_bundle": {
+    "workflow": ".github/workflows/r266-post-merge-bundle.yml",
+    "artifact_name": "Nolane-AI-R2.66-COMPLETE-POST-MERGE",
+    "archive_name": "Nolane-AI-R2.66-COMPLETE.zip",
+    "pre_integration_verified_run_id": 32152862858,
+    "final_post_merge_bundle_required": true
+  }
+}
