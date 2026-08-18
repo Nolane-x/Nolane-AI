@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.63",
+  "status": "HOSTED_TDD_RED_CONFIRMED",
+  "workflow_run_id": 32127260810,
+  "job_id": 95680470378,
+  "head_sha": "cea5bd2cc6c9a4387dc518846e7e05179374d253",
+  "test": "tests/test_r263_compositional_repository_repair.py",
+  "expected_failure": "ModuleNotFoundError: No module named 'cogcoder.r263_compositional_repository_repair'",
+  "production_module_absent_at_red": true,
+  "failure_was_contract_relevant": true,
+  "claim_boundary": "The hosted RED receipt establishes only that the R2.63 compositional-repair contract failed before the production module existed."
+}
