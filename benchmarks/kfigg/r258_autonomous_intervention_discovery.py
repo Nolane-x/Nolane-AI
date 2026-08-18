@@ -202,7 +202,8 @@ def run_benchmark_part(part: str) -> dict[str, object]:
             'noncausal_candidates_rejected': noncausal,
             'selected_intervention_ids': [selected_id, str(replay_b.get('intervention_id', ''))],
             'selected_position_sets': [selected_positions, replay_positions],
-            'oracle_calls': receipt_a.oracle_calls + int(replay_b.get('probe_cases', 0)) + int(replay_b.get('downstream_cases', 0)),
+            'oracle_calls': receipt_a.oracle_calls + len(_DOWNSTREAM_TRAIN_CASES) + int(replay_b.get('probe_cases', 0)) + int(replay_b.get('downstream_cases', 0)),
+            'synthesis_candidates_considered': receipt_a.synthesis_candidates_considered,
         }
     if part == 'reordered':
         reordered = _OpaqueConfiguration('reordered', ('k0', 'k1', 'k2', 'k3', 'k4'), ('fa', 'x', 'fb', 'a', 'b'))
@@ -222,7 +223,8 @@ def run_benchmark_part(part: str) -> dict[str, object]:
             'noncausal_candidates_rejected': noncausal,
             'selected_intervention_ids': [selected.intervention.intervention_id if selected is not None else ''],
             'selected_position_sets': [selected_positions],
-            'oracle_calls': receipt.oracle_calls,
+            'oracle_calls': receipt.oracle_calls + len(_DOWNSTREAM_TRAIN_CASES),
+            'synthesis_candidates_considered': receipt.synthesis_candidates_considered,
         }
     raise ValueError('benchmark part must be rename or reordered')
 
@@ -249,6 +251,7 @@ def merge_benchmark_parts(rename: dict[str, object], reordered: dict[str, object
         'wrong_role_false_accepts': int(rename['wrong_role_false_accepts']) + int(reordered['wrong_role_false_accepts']),
         'noncausal_candidates_rejected': int(rename['noncausal_candidates_rejected']) + int(reordered['noncausal_candidates_rejected']),
         'oracle_calls': int(rename['oracle_calls']) + int(reordered['oracle_calls']),
+        'synthesis_candidates_considered': int(rename['synthesis_candidates_considered']) + int(reordered['synthesis_candidates_considered']),
         'trainable_parameter_count': 0,
     }
 
