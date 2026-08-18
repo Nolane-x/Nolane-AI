@@ -23,13 +23,23 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest
-      - name: Verify accepted R2.66 parent before ephemeral patching
+      - name: Verify accepted R2.66 parent before any ephemeral patching
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Apply peer-authored R2.67 search patches in declared order
+      - name: Ensure both peer-authored R2.67 search fixes are present
+        shell: bash
         run: |
-          python scripts/r267_apply_three_probe_search_fix.py
-          python scripts/r267_apply_probe_search_fix.py
-      - name: Verify exact patched R2.67 tree
+          set -euo pipefail
+          if ! grep -q 'def _synthesize_required_three_probe_skeleton' cogcoder/r267_three_probe_causal_composition.py; then
+            python scripts/r267_apply_three_probe_search_fix.py
+          else
+            echo R267_REQUIRED_THREE_PROBE_FIX_ALREADY_PRESENT
+          fi
+          if ! grep -q 'def _synthesize_bilinear_pair_skeleton' cogcoder/r267_three_probe_causal_composition.py; then
+            python scripts/r267_apply_probe_search_fix.py
+          else
+            echo R267_BILINEAR_PROBE_FIX_ALREADY_PRESENT
+          fi
+      - name: Verify exact current R2.67 tree
         run: PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
-      - name: Reverify R2.66 after ephemeral patching
+      - name: Reverify R2.66 after R2.67 search surface
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
