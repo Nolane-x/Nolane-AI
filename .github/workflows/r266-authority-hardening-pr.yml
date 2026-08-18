@@ -1,5 +1,7 @@
 name: R2.66 Authority Hardening PR
 
+# Re-run after removing the host-prescribed intervention-pair answer from the
+# fairness contract. The invariant is semantic equality across permutations.
 on:
   pull_request:
     branches: [main]
