@@ -1,0 +1,215 @@
+name: R2.61 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [main, r261-version-space-expansion-gpt56sol]
+    paths:
+      - 'cogcoder/r261_*.py'
+      - 'benchmarks/kfigg/r261_*.py'
+      - 'research/r261_*.py'
+      - 'tests/test_r261_*.py'
+      - 'R2_61_*.json'
+      - 'R2_61_*.md'
+      - 'R2_READINESS_RECALIBRATION.md'
+      - 'docs/superpowers/specs/2026-08-18-r261-version-space-expansion-design.md'
+      - '.github/workflows/r261-release-bundle.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r261_*.py'
+      - 'benchmarks/kfigg/r261_*.py'
+      - 'research/r261_*.py'
+      - 'tests/test_r261_*.py'
+      - 'R2_61_*.json'
+      - 'R2_61_*.md'
+      - 'R2_READINESS_RECALIBRATION.md'
+      - 'docs/superpowers/specs/2026-08-18-r261-version-space-expansion-design.md'
+      - '.github/workflows/r261-release-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install release dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+
+      - name: Verify required R2.61 release files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          required = [
+              'cogcoder/r261_version_space_expansion.py',
+              'cogcoder/r261_expansion_proof.py',
+              'benchmarks/kfigg/r261_version_space_expansion_transfer.py',
+              'benchmarks/kfigg/r261_expansion_proof_audit.py',
+              'research/r261_external_version_space_expansion.py',
+              'tests/test_r261_version_space_expansion.py',
+              'tests/test_r261_version_space_expansion_benchmark.py',
+              'tests/test_r261_external_version_space_expansion.py',
+              'tests/test_r261_expansion_novelty_proof.py',
+              'tests/test_r261_expansion_proof_benchmark.py',
+              'R2_61_TDD_RED.json',
+              'R2_61_PRE_HOSTED_LOCK.json',
+              'R2_61_PHASE_A_RESULT.json',
+              'R2_61_EXPANSION_PROOF_RESULT.json',
+              'R2_61_EXTERNAL_TRANSFER.json',
+              'R2_61_VERIFY_RESULT.json',
+              'R2_61_WORLD_FINAL.json',
+              'R2_61_DELIVERY.md',
+              'R2_61_RELEASE_MANIFEST.json',
+              'R2_READINESS_RECALIBRATION.md',
+          ]
+          missing = [path for path in required if not Path(path).is_file()]
+          assert not missing, missing
+          print('R261_REQUIRED_RELEASE_FILES_OK', len(required))
+          PY
+
+      - name: Verify frozen R2.61 source blobs
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock = json.loads(Path('R2_61_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R261_RELEASE_SOURCE_LOCK_OK', len(lock['frozen_git_blobs']))
+          PY
+
+      - name: Recompute exact frozen Phase-A, novelty proof and external transfer
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r261_version_space_expansion_transfer import run_frozen_heldout
+          from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
+          from research.r261_external_version_space_expansion import run_external_transfer
+
+          phase_expected = json.loads(Path('R2_61_PHASE_A_RESULT.json').read_text())
+          proof_expected = json.loads(Path('R2_61_EXPANSION_PROOF_RESULT.json').read_text())
+          external_expected = json.loads(Path('R2_61_EXTERNAL_TRANSFER.json').read_text())
+          phase_actual = run_frozen_heldout()
+          proof_actual = run_expansion_novelty_audit()
+          external_actual = run_external_transfer(np.remainder, source_id='numpy.remainder', source_version=np.__version__)
+          assert phase_actual == phase_expected
+          assert proof_actual == proof_expected
+          assert external_actual == external_expected
+          assert phase_actual['all_gates_pass'] is True
+          assert proof_actual['all_gates_pass'] is True
+          assert external_actual['all_gates_pass'] is True
+          print('R261_RELEASE_EXACT_EVIDENCE_OK')
+          PY
+
+      - name: Verify hosted receipt, World boundary, readiness and manifest
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          verify = json.loads(Path('R2_61_VERIFY_RESULT.json').read_text())
+          world = json.loads(Path('R2_61_WORLD_FINAL.json').read_text())
+          manifest = json.loads(Path('R2_61_RELEASE_MANIFEST.json').read_text())
+          readiness = Path('R2_READINESS_RECALIBRATION.md').read_text()
+          delivery = Path('R2_61_DELIVERY.md').read_text()
+
+          assert verify['status'] == 'HOSTED_VERIFICATION_PASS'
+          assert verify['canonical_full_gate']['conclusion'] == 'success'
+          assert verify['frozen_evidence']['source_lock_verified'] is True
+          assert verify['frozen_evidence']['phase_a_exact_recomputed'] is True
+          assert verify['frozen_evidence']['expansion_novelty_proof_exact_recomputed'] is True
+          assert verify['frozen_evidence']['external_transfer_exact_recomputed'] is True
+          assert verify['tests']['r261_focused']['passed'] == 16
+          assert verify['tests']['protected_parent_total_r260_to_r241']['passed'] == 205
+          assert world['audit']['valid'] is True
+          assert world['gate']['passed'] is False
+          assert world['release_convergence_forced'] is False
+          assert world['fresh_verifications'] == 2
+          assert manifest['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
+          assert manifest['added_trainable_parameters'] == 0
+          assert manifest['readiness']['score'] == 48.5
+          assert manifest['world']['w5_passed'] is False
+          assert '## R2.61 — 48.5 / 100' in readiness
+          assert 'ACCEPTED_BOUNDED_CAPABILITY' in delivery
+          print('R261_RELEASE_BOUNDARY_OK')
+          PY
+
+      - name: Run release regressions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+
+      - name: Create complete repository snapshot
+        run: |
+          rm -f Nolane-AI-R2.61-COMPLETE.zip Nolane-AI-R2.61-COMPLETE.zip.sha256
+          git archive --format=zip --output=Nolane-AI-R2.61-COMPLETE.zip HEAD
+          sha256sum Nolane-AI-R2.61-COMPLETE.zip | tee Nolane-AI-R2.61-COMPLETE.zip.sha256
+          unzip -t Nolane-AI-R2.61-COMPLETE.zip
+          python - <<'PY'
+          from zipfile import ZipFile
+          required = {
+              'cogcoder/r261_version_space_expansion.py',
+              'cogcoder/r261_expansion_proof.py',
+              'benchmarks/kfigg/r261_version_space_expansion_transfer.py',
+              'benchmarks/kfigg/r261_expansion_proof_audit.py',
+              'research/r261_external_version_space_expansion.py',
+              'R2_61_PRE_HOSTED_LOCK.json',
+              'R2_61_PHASE_A_RESULT.json',
+              'R2_61_EXPANSION_PROOF_RESULT.json',
+              'R2_61_EXTERNAL_TRANSFER.json',
+              'R2_61_VERIFY_RESULT.json',
+              'R2_61_WORLD_FINAL.json',
+              'R2_61_DELIVERY.md',
+              'R2_61_RELEASE_MANIFEST.json',
+              'R2_READINESS_RECALIBRATION.md',
+          }
+          with ZipFile('Nolane-AI-R2.61-COMPLETE.zip') as zf:
+              names = set(zf.namelist())
+          missing = sorted(required - names)
+          assert not missing, missing
+          print('R261_ARCHIVE_CONTENT_OK', len(names))
+          PY
+
+      - name: Upload complete R2.61 repository bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.61-COMPLETE
+          path: |
+            Nolane-AI-R2.61-COMPLETE.zip
+            Nolane-AI-R2.61-COMPLETE.zip.sha256
+          if-no-files-found: error
+
+      - name: Publish release-bundle commit status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r261/release-bundle',
+              'description': 'R2.61 evidence, regressions, complete ZIP and archive integrity passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R261_RELEASE_BUNDLE_STATUS_PUBLISHED')
+          PY

@@ -1,0 +1,175 @@
+name: R2.61 Version-Space Expansion
+
+on:
+  push:
+    branches: [r261-version-space-expansion-gpt56sol]
+    paths:
+      - 'cogcoder/r261_*.py'
+      - 'tests/test_r261_*.py'
+      - '.github/workflows/r261-version-space-expansion.yml'
+      - 'benchmarks/kfigg/r261_*.py'
+      - 'research/r261_*.py'
+      - 'R2_61_*.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r261_*.py'
+      - 'tests/test_r261_*.py'
+      - '.github/workflows/r261-version-space-expansion.yml'
+      - 'benchmarks/kfigg/r261_*.py'
+      - 'research/r261_*.py'
+      - 'R2_61_*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify accepted R2.60 baseline first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Run R2.61 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Install focused dependencies
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Run R2.61 focused tests
+        run: PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+
+  canonical-full-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    env:
+      EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install canonical-gate dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify frozen source lock and canonical parent
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          lock = json.loads(Path('R2_61_PRE_HOSTED_LOCK.json').read_text())
+          assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_main_sha'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_main_sha'])
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R261_SOURCE_LOCK_OK')
+          print('R261_PARENT_MAIN_OK', lock['parent_main_sha'])
+          PY
+      - name: Recompute exact Phase-A evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r261_version_space_expansion_transfer import run_frozen_heldout
+          expected = json.loads(Path('R2_61_PHASE_A_RESULT.json').read_text())
+          actual = run_frozen_heldout()
+          assert actual == expected, (actual, expected)
+          print('R261_PHASE_A_EXACT_OK')
+          print(json.dumps(actual['summary'], sort_keys=True))
+          PY
+      - name: Recompute exact expansion novelty proof
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
+          expected = json.loads(Path('R2_61_EXPANSION_PROOF_RESULT.json').read_text())
+          actual = run_expansion_novelty_audit()
+          assert actual == expected, (actual, expected)
+          print('R261_EXPANSION_PROOF_EXACT_OK')
+          print(json.dumps(actual['summary'], sort_keys=True))
+          PY
+      - name: Recompute exact pinned external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r261_external_version_space_expansion import run_external_transfer
+          expected = json.loads(Path('R2_61_EXTERNAL_TRANSFER.json').read_text())
+          actual = run_external_transfer(np.remainder, source_id='numpy.remainder', source_version=np.__version__)
+          assert actual == expected, (actual, expected)
+          print('R261_EXTERNAL_EXACT_OK')
+          print(json.dumps({
+              'source_version': actual['source_version'],
+              'total_external_oracle_calls': actual['total_external_oracle_calls'],
+              'verification_cases': actual['verification_cases'],
+              'r260_reason': actual['r260_baseline']['reason'],
+              'r261_reason': actual['r261']['reason'],
+          }, sort_keys=True))
+          PY
+      - name: Run R2.61 focused suite
+        run: PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+      - name: Run accepted R2.60 parent
+        run: PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Run R2.59 and R2.58 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+      - name: Run R2.57 through R2.55 parents
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+      - name: Run R2.54 through R2.50 parents
+        run: PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run R2.49 through R2.41 parents
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+
+  publish-full-gate:
+    if: github.event_name == 'pull_request'
+    needs: [focused, cross-python, canonical-full-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish canonical success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload = json.dumps({
+              'state': 'success',
+              'context': 'r261/full-gate',
+              'description': 'R2.61 source lock, exact causal/novelty/external evidence, cross-Python, and protected R2.60-R2.41 lineage passed',
+              'target_url': f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization': f"Bearer {os.environ['GH_TOKEN']}", 'Accept': 'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R261_FULL_GATE_STATUS_PUBLISHED')
+          PY

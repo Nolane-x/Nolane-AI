@@ -1,0 +1,69 @@
+{
+  "active_seconds_credited": 60.0,
+  "audit": {
+    "digest": "a43654c603498845baba9948c92f28a4f64418470fac395cdd50c8a92710bd6a",
+    "events": 14,
+    "valid": true,
+    "world_id": "world4_5368cf57101c48d0"
+  },
+  "challengers_survived": 0,
+  "claim_boundary": "Bounded single-site repository version-space expansion using pre-existing trusted R2.47 PatchMacro semantics after public diagnostic counterexamples; not arbitrary code generation, autonomous patch-language invention, effectful experimentation, or broad autonomous repository repair.",
+  "critical_unknowns": [
+    "Only bounded single-site candidate expansion is implemented; multi-edit/compositional repair induction is unproven.",
+    "Trusted PatchMacro vocabulary is host-supplied; R2.61 does not autonomously invent new patch semantics.",
+    "Legal probe domain/representation remains host-supplied; R2.61 does not invent new experiment languages.",
+    "Stateful/effectful/filesystem/network repository experiments remain outside the capability boundary.",
+    "External breadth is one pinned NumPy ufunc behavior embedded in a synthetic R2.52-compatible repository wrapper.",
+    "Broad autonomous repair on real repositories with hidden tests is not demonstrated.",
+    "Scaling over large candidate, site, macro, and multi-round spaces is not established.",
+    "Independent challenger diversity and representation diversity remain below W5 convergence requirements."
+  ],
+  "critical_unknowns_count": 1,
+  "depth": "W5",
+  "domain": "software-engineering-research",
+  "epoch": 9,
+  "fresh_verifications": 2,
+  "gate": {
+    "blockers": [
+      "active residency insufficient",
+      "insufficient cognitive epochs",
+      "critical_unknowns unresolved",
+      "independent challenger missing",
+      "robust/counterfactual worlds insufficient",
+      "representation diversity insufficient",
+      "material value-of-thought remains",
+      "quality floor correctness",
+      "quality floor evidence",
+      "quality floor robustness",
+      "quality floor verification"
+    ],
+    "passed": false,
+    "score": 0.08333333333333337
+  },
+  "hosted_verification": {
+    "base_main_sha": "eef79e0ed6dd105ba8061945437841f3e284091c",
+    "canonical_job_id": 95668029445,
+    "cross_python": {
+      "3.11": "success",
+      "3.13": "success"
+    },
+    "expansion_proof_exact_recomputed": true,
+    "external_exact_recomputed": true,
+    "full_gate_status": "success",
+    "merge_sha": "e57c949eb94fe6ba9e027efcbdbe72029a37183a",
+    "phase_a_exact_recomputed": true,
+    "protected_parent_tests": 205,
+    "publish_status_job_id": 95668982387,
+    "r261_tests": 16,
+    "run_id": 32123219112,
+    "source_lock_verified": true
+  },
+  "material_representations": 1,
+  "milestone": "R2.61 Counterexample-Guided Version-Space Expansion",
+  "quality_floors": null,
+  "release_convergence_forced": false,
+  "remaining_value_of_thought": 1.0,
+  "robust_worlds": 0,
+  "schema_version": 1,
+  "world_id": "world4_5368cf57101c48d0"
+}

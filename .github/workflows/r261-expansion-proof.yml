@@ -1,0 +1,90 @@
+name: R2.61 Expansion Novelty Proof
+
+on:
+  push:
+    branches: [r261-expansion-proof-gpt56sol-review]
+    paths:
+      - 'cogcoder/r261_expansion_proof.py'
+      - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
+      - 'tests/test_r261_expansion_novelty_proof.py'
+      - 'tests/test_r261_expansion_proof_benchmark.py'
+      - 'R2_61_EXPANSION_PROOF_RESULT.json'
+      - '.github/workflows/r261-expansion-proof.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/r261_expansion_proof.py'
+      - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
+      - 'tests/test_r261_expansion_novelty_proof.py'
+      - 'tests/test_r261_expansion_proof_benchmark.py'
+      - 'R2_61_EXPANSION_PROOF_RESULT.json'
+      - '.github/workflows/r261-expansion-proof.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: python -m pip install pytest
+      - name: Run expansion novelty proof tests and authored audit
+        run: PYTHONPATH=. python -m pytest -q tests/test_r261_expansion_novelty_proof.py tests/test_r261_expansion_proof_benchmark.py
+      - name: Emit exact expansion novelty audit
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
+          result = run_expansion_novelty_audit()
+          assert result['all_gates_pass'] is True
+          Path('R2_61_EXPANSION_PROOF_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          print(json.dumps(result['summary'], sort_keys=True))
+          PY
+      - name: Verify frozen audit when present
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          frozen = Path('R2_61_EXPANSION_PROOF_RESULT.json')
+          if frozen.exists():
+              actual = json.loads(Path('R2_61_EXPANSION_PROOF_RECOMPUTED.json').read_text())
+              expected = json.loads(frozen.read_text())
+              assert actual == expected, (actual, expected)
+              print('R261_EXPANSION_PROOF_EXACT_OK')
+          else:
+              print('R261_EXPANSION_PROOF_FREEZE_PENDING')
+          PY
+      - name: Upload expansion proof audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: R2.61-expansion-novelty-proof
+          path: R2_61_EXPANSION_PROOF_RECOMPUTED.json
+      - name: Publish proof status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+            'state':'success',
+            'context':'r261/expansion-proof',
+            'description':'R2.61 content-addressed novelty proof, authored audit, and artifact emission passed',
+            'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+            f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+            data=payload,
+            headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+            method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
