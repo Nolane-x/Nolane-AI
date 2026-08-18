@@ -61,6 +61,12 @@ class CompositionalVersionSpaceReceipt:
     false_terminal_accepts: int
     verification_failures: int
     reason: str
+    initial_unique_candidates: int = 0
+    refinement_counterexamples: int = 0
+    accepted_mutation_chain: tuple[str, ...] = ()
+    accepted_edit_count: int = 0
+    accepted_content_digest: str | None = None
+    generation_used_target_outputs: bool = False
     trainable_parameter_count: int = 0
 
 
@@ -72,6 +78,50 @@ def _candidate_id_map(candidates: Sequence[RepositoryPatchCandidate]) -> dict[st
             raise ValueError('candidate ids must not alias different repository contents')
         rows[candidate.candidate_id] = candidate
     return rows
+
+
+def _canonical_candidates_by_content(
+    candidates: Sequence[RepositoryPatchCandidate],
+) -> tuple[RepositoryPatchCandidate, ...]:
+    """Deduplicate repository semantics and remove caller IDs from search identity."""
+    candidates = tuple(candidates)
+    _candidate_id_map(candidates)
+    by_files: dict[tuple[tuple[str, str], ...], RepositoryPatchCandidate] = {}
+    for candidate in candidates:
+        files = tuple(sorted((str(path), str(source)) for path, source in candidate.files))
+        normalized = RepositoryPatchCandidate(
+            str(candidate.candidate_id),
+            tuple(candidate.macro_ids),
+            files,
+            int(candidate.support_score),
+            int(candidate.edit_count),
+        )
+        prior = by_files.get(files)
+        if prior is None or (
+            int(normalized.edit_count),
+            -int(normalized.support_score),
+            tuple(normalized.macro_ids),
+            str(normalized.candidate_id),
+        ) < (
+            int(prior.edit_count),
+            -int(prior.support_score),
+            tuple(prior.macro_ids),
+            str(prior.candidate_id),
+        ):
+            by_files[files] = normalized
+
+    rows: list[RepositoryPatchCandidate] = []
+    for files, candidate in by_files.items():
+        digest = repository_content_digest(candidate)
+        rows.append(RepositoryPatchCandidate(
+            'r263c:' + digest.split(':', 1)[-1],
+            tuple(candidate.macro_ids),
+            files,
+            int(candidate.support_score),
+            int(candidate.edit_count),
+        ))
+    rows.sort(key=lambda row: (repository_content_digest(row), row.files))
+    return tuple(rows)
 
 
 def expand_compositional_frontier(
@@ -123,12 +173,38 @@ def expand_compositional_frontier(
             continue
         child_seen.add(child_digest)
         rows.append(CompositionalFrontierCandidate(
-            row.candidate, row.mutation, child_depth, parent_digest, child_digest,
+            row.candidate,
+            row.mutation,
+            child_depth,
+            parent_digest,
+            child_digest,
         ))
     rows.sort(key=lambda item: (
-        item.depth, item.child_content_digest, item.mutation.mutation_id, item.candidate.candidate_id,
+        item.depth,
+        item.child_content_digest,
+        item.mutation.mutation_id,
+        item.candidate.candidate_id,
     ))
     return tuple(rows[:generation_budget])
+
+
+def _trace_mutation_chain(
+    candidate: RepositoryPatchCandidate | None,
+    provenance_by_child_digest: Mapping[str, tuple[str, str]],
+) -> tuple[str, ...]:
+    if candidate is None:
+        return ()
+    current = repository_content_digest(candidate)
+    reversed_chain: list[str] = []
+    seen: set[str] = set()
+    while current in provenance_by_child_digest:
+        if current in seen:
+            raise ValueError('mutation provenance cycle detected')
+        seen.add(current)
+        parent_digest, mutation_id = provenance_by_child_digest[current]
+        reversed_chain.append(str(mutation_id))
+        current = str(parent_digest)
+    return tuple(reversed(reversed_chain))
 
 
 def _receipt(
@@ -150,15 +226,42 @@ def _receipt(
     false_terminal_accepts: int,
     verification_failures: int,
     reason: str,
+    *,
+    initial_unique_candidates: int | None = None,
+    refinement_counterexamples: int = 0,
+    provenance_by_child_digest: Mapping[str, tuple[str, str]] | None = None,
 ) -> CompositionalVersionSpaceReceipt:
+    provenance = dict(provenance_by_child_digest or {})
+    accepted_digest = repository_content_digest(candidate) if candidate is not None else None
+    mutation_chain = _trace_mutation_chain(candidate, provenance)
     return CompositionalVersionSpaceReceipt(
-        status, candidate, bool(exact), int(initial_survivors), int(final_survivors),
-        int(selection_calls), int(refinement_calls), int(verification_calls),
-        int(selection_calls) + int(refinement_calls) + int(verification_calls),
-        int(candidate_evaluations), len(tuple(expansion_rounds)), int(max_depth_reached),
-        int(generated_candidates), int(admitted_generated_candidates), tuple(expansion_rounds),
-        len(tuple(observed_tests)), tuple(observed_probe_ids), int(false_terminal_accepts),
-        int(verification_failures), str(reason), 0,
+        status=status,
+        candidate=candidate,
+        exact=bool(exact),
+        initial_survivors=int(initial_survivors),
+        final_survivors=int(final_survivors),
+        selection_oracle_calls=int(selection_calls),
+        refinement_oracle_calls=int(refinement_calls),
+        verification_oracle_calls=int(verification_calls),
+        oracle_calls_total=int(selection_calls) + int(refinement_calls) + int(verification_calls),
+        candidate_evaluations=int(candidate_evaluations),
+        expansion_round_count=len(tuple(expansion_rounds)),
+        max_composition_depth_reached=int(max_depth_reached),
+        generated_candidates=int(generated_candidates),
+        admitted_generated_candidates=int(admitted_generated_candidates),
+        expansion_rounds=tuple(expansion_rounds),
+        observed_test_count=len(tuple(observed_tests)),
+        observed_probe_ids=tuple(observed_probe_ids),
+        false_terminal_accepts=int(false_terminal_accepts),
+        verification_failures=int(verification_failures),
+        reason=str(reason),
+        initial_unique_candidates=(int(initial_survivors) if initial_unique_candidates is None else int(initial_unique_candidates)),
+        refinement_counterexamples=int(refinement_counterexamples),
+        accepted_mutation_chain=mutation_chain,
+        accepted_edit_count=(int(candidate.edit_count) if candidate is not None else 0),
+        accepted_content_digest=accepted_digest,
+        generation_used_target_outputs=False,
+        trainable_parameter_count=0,
     )
 
 
@@ -195,12 +298,13 @@ def solve_repository_patch_with_compositional_expansion(
 ) -> CompositionalVersionSpaceReceipt:
     if not callable(oracle):
         raise TypeError('oracle must be callable')
-    candidates = tuple(candidates)
+
+    raw_candidates = tuple(candidates)
     initial_tests = tuple(initial_tests)
     diagnostics = tuple(probe_inputs)
     refinements = tuple(refinement_inputs)
     verification = tuple(verification_inputs)
-    expansion_seeds = tuple(expansion_seeds)
+    raw_expansion_seeds = tuple(expansion_seeds)
     expansion_macros = tuple(expansion_macros)
 
     selection_budget = int(max_selection_oracle_calls)
@@ -211,8 +315,11 @@ def solve_repository_patch_with_compositional_expansion(
     site_budget = int(max_sites_per_macro)
     if min(selection_budget, refinement_budget, expansion_budget, depth_budget, generation_budget, site_budget) < 0:
         raise ValueError('budgets must be non-negative')
-    if not candidates:
-        return _receipt('abstain', None, False, 0, 0, 0, 0, 0, 0, (), 0, 0, 0, initial_tests, (), 0, 0, 'no_candidates')
+    if not raw_candidates:
+        return _receipt(
+            'abstain', None, False, 0, 0, 0, 0, 0, 0, (), 0, 0, 0,
+            initial_tests, (), 0, 0, 'no_candidates', initial_unique_candidates=0,
+        )
     if not diagnostics:
         raise ValueError('probe_inputs must be non-empty')
     if not refinements:
@@ -220,8 +327,11 @@ def solve_repository_patch_with_compositional_expansion(
     if not verification:
         raise ValueError('verification_inputs must be non-empty')
 
+    verification_ids = tuple(probe.probe_id for probe in verification)
+    if len(set(verification_ids)) != len(verification_ids):
+        raise ValueError('verification_inputs must be unique')
     learning_ids = _probe_ids(diagnostics) | _probe_ids(refinements) | _test_probe_ids(initial_tests)
-    if learning_ids & _probe_ids(verification):
+    if learning_ids & set(verification_ids):
         raise ValueError('verification_inputs must be disjoint from initial, diagnostic, and refinement evidence')
 
     arity_sets = [
@@ -237,8 +347,9 @@ def solve_repository_patch_with_compositional_expansion(
     if test_arities and (len(test_arities) != 1 or test_arities != arity_sets[0]):
         raise ValueError('initial tests must share probe arity')
 
-    _candidate_id_map(candidates)
-    _candidate_id_map(expansion_seeds)
+    candidates = _canonical_candidates_by_content(raw_candidates)
+    expansion_seeds = _canonical_candidates_by_content(raw_expansion_seeds)
+    initial_unique_candidates = len(candidates)
     compiled, candidate_evaluations = _compile_candidates(candidates)
     survivors, initial_evals = _filter_initial(compiled, initial_tests)
     candidate_evaluations += initial_evals
@@ -249,12 +360,51 @@ def solve_repository_patch_with_compositional_expansion(
     observed_probe_ids: list[str] = []
     used_diagnostic_ids: set[str] = set()
     used_refinement_ids: set[str] = set()
-    selection_calls = refinement_calls = verification_calls = 0
+    selection_calls = 0
+    refinement_calls = 0
+    verification_calls = 0
+    refinement_counterexamples = 0
     expansion_receipts: list[CompositionalExpansionRound] = []
-    generated_total = admitted_total = max_depth_reached = 0
+    generated_total = 0
+    admitted_total = 0
+    max_depth_reached = 0
+    provenance_by_child_digest: dict[str, tuple[str, str]] = {}
+
+    def emit(
+        status: str,
+        candidate: RepositoryPatchCandidate | None,
+        exact: bool,
+        final_survivors: int,
+        reason: str,
+        *,
+        verification_failures: int = 0,
+    ) -> CompositionalVersionSpaceReceipt:
+        return _receipt(
+            status,
+            candidate,
+            exact,
+            initial_survivors,
+            final_survivors,
+            selection_calls,
+            refinement_calls,
+            verification_calls,
+            candidate_evaluations,
+            expansion_receipts,
+            max_depth_reached,
+            generated_total,
+            admitted_total,
+            observed_tests,
+            observed_probe_ids,
+            0,
+            verification_failures,
+            reason,
+            initial_unique_candidates=initial_unique_candidates,
+            refinement_counterexamples=refinement_counterexamples,
+            provenance_by_child_digest=provenance_by_child_digest,
+        )
 
     if not survivors:
-        return _receipt('abstain', None, False, 0, 0, 0, 0, 0, candidate_evaluations, (), 0, 0, 0, observed_tests, observed_probe_ids, 0, 0, 'repository_version_space_empty')
+        return emit('abstain', None, False, 0, 'repository_version_space_empty')
 
     current_frontier = expansion_seeds
     frontier_depths = {candidate.candidate_id: 0 for candidate in expansion_seeds}
@@ -289,9 +439,13 @@ def solve_repository_patch_with_compositional_expansion(
             return None, 'composition_depth_budget_exhausted', {}
 
         generated = expand_compositional_frontier(
-            seeds, expansion_macros, parent_depths=depths,
-            seen_content_digests=tuple(seen_digests), max_composition_depth=depth_budget,
-            max_generated_candidates=generation_budget, max_sites_per_macro=site_budget,
+            seeds,
+            expansion_macros,
+            parent_depths=depths,
+            seen_content_digests=tuple(seen_digests),
+            max_composition_depth=depth_budget,
+            max_generated_candidates=generation_budget,
+            max_sites_per_macro=site_budget,
         )
         generated_total += len(generated)
         if not generated:
@@ -299,6 +453,11 @@ def solve_repository_patch_with_compositional_expansion(
         for row in generated:
             seen_digests.add(row.child_content_digest)
             max_depth_reached = max(max_depth_reached, row.depth)
+            provenance_by_child_digest.setdefault(
+                row.child_content_digest,
+                (row.parent_content_digest, row.mutation.mutation_id),
+            )
+
         generated_compiled, compile_evals = _compile_candidates(tuple(row.candidate for row in generated))
         candidate_evaluations += compile_evals
         admitted, filter_evals = _filter_initial(generated_compiled, tuple(observed_tests))
@@ -306,40 +465,47 @@ def solve_repository_patch_with_compositional_expansion(
         admitted_total += len(admitted)
         depth_by_id = {row.candidate.candidate_id: row.depth for row in generated}
         expansion_receipts.append(CompositionalExpansionRound(
-            len(expansion_receipts), trigger_kind, probe.probe_id, tuple(probe.args),
-            len(survivors), len(generated), len(admitted),
+            len(expansion_receipts),
+            trigger_kind,
+            probe.probe_id,
+            tuple(probe.args),
+            len(survivors),
+            len(generated),
+            len(admitted),
             max((row.depth for row in generated), default=parent_max_depth),
             tuple(row.mutation.mutation_id for row in generated),
         ))
         if not admitted:
             return None, 'expansion_no_candidate_matches_counterexample', {}
         return admitted, None, {
-            row.candidate.candidate_id: depth_by_id[row.candidate.candidate_id] for row in admitted
+            row.candidate.candidate_id: depth_by_id[row.candidate.candidate_id]
+            for row in admitted
         }
 
     while True:
         if len(survivors) > 1:
             if selection_calls >= selection_budget:
-                return _receipt('abstain', None, False, initial_survivors, len(survivors), selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'selection_oracle_budget_exhausted')
+                return emit('abstain', None, False, len(survivors), 'selection_oracle_budget_exhausted')
             probe, partitions, evals = _best_probe(survivors, diagnostics, used_diagnostic_ids)
             candidate_evaluations += evals
             if probe is None or partitions is None:
-                return _receipt('abstain', None, False, initial_survivors, len(survivors), selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'no_informative_probe')
+                return emit('abstain', None, False, len(survivors), 'no_informative_probe')
             oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, probe.args)
             selection_calls += 1
             used_diagnostic_ids.add(probe.probe_id)
             if not oracle_ok:
-                return _receipt('abstain', None, False, initial_survivors, len(survivors), selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'selection_oracle_error')
+                return emit('abstain', None, False, len(survivors), 'selection_oracle_error')
             record_observation('diagnostic', probe, oracle_value)
             matching = partitions.get(oracle_key)
             if matching:
                 survivors = matching
                 continue
+
             admitted, reason, admitted_depths = expand_after_counterexample(
                 'diagnostic', probe, current_frontier, frontier_depths
             )
             if admitted is None:
-                return _receipt('abstain', None, False, initial_survivors, 0, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, str(reason))
+                return emit('abstain', None, False, 0, str(reason))
             survivors = admitted
             current_frontier = tuple(row.candidate for row in admitted)
             frontier_depths = admitted_depths
@@ -347,52 +513,66 @@ def solve_repository_patch_with_compositional_expansion(
             continue
 
         selected = survivors[0]
-        next_refinement = next((probe for probe in refinements if probe.probe_id not in used_refinement_ids), None)
+        next_refinement = next(
+            (probe for probe in refinements if probe.probe_id not in used_refinement_ids),
+            None,
+        )
         if next_refinement is not None:
             if refinement_calls >= refinement_budget:
-                return _receipt('abstain', None, False, initial_survivors, 1, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'refinement_oracle_budget_exhausted')
+                return emit('abstain', None, False, 1, 'refinement_oracle_budget_exhausted')
             candidate_key, _candidate_value = _outcome(selected.fn, next_refinement.args)
             candidate_evaluations += 1
             oracle_key, oracle_value, oracle_ok = _oracle_outcome(oracle, next_refinement.args)
             refinement_calls += 1
             used_refinement_ids.add(next_refinement.probe_id)
             if not oracle_ok:
-                return _receipt('abstain', None, False, initial_survivors, 1, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'refinement_oracle_error')
+                return emit('abstain', None, False, 1, 'refinement_oracle_error')
             record_observation('refinement', next_refinement, oracle_value)
             if candidate_key == oracle_key:
                 continue
+
+            refinement_counterexamples += 1
             if selected.candidate.candidate_id not in authorized_ids:
-                return _receipt('abstain', None, False, initial_survivors, 1, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, 'survivor_not_authorized_as_expansion_seed')
+                return emit('abstain', None, False, 1, 'survivor_not_authorized_as_expansion_seed')
             selected_depth = frontier_depths.get(selected.candidate.candidate_id, 0)
             admitted, reason, admitted_depths = expand_after_counterexample(
-                'refinement', next_refinement, (selected.candidate,),
+                'refinement',
+                next_refinement,
+                (selected.candidate,),
                 {selected.candidate.candidate_id: selected_depth},
             )
             if admitted is None:
-                return _receipt('abstain', None, False, initial_survivors, 0, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, str(reason))
+                return emit('abstain', None, False, 0, str(reason))
             survivors = admitted
             current_frontier = tuple(row.candidate for row in admitted)
             frontier_depths = admitted_depths
             authorized_ids.update(frontier_depths)
             continue
 
-        verification_failures = 0
         for probe in verification:
             candidate_key, _candidate_value = _outcome(selected.fn, probe.args)
             candidate_evaluations += 1
             oracle_key, _oracle_value_result, oracle_ok = _oracle_outcome(oracle, probe.args)
             verification_calls += 1
             if not oracle_ok or candidate_key != oracle_key:
-                verification_failures += 1
-                return _receipt('abstain', None, False, initial_survivors, 1, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, verification_failures, 'independent_verification_failed')
+                return emit(
+                    'abstain',
+                    None,
+                    False,
+                    1,
+                    'independent_verification_failed',
+                    verification_failures=1,
+                )
 
         selected_depth = frontier_depths.get(selected.candidate.candidate_id, 0)
         reason = 'compositional_candidate_verified' if selected_depth >= 2 else 'candidate_verified'
-        return _receipt('accept', selected.candidate, True, initial_survivors, 1, selection_calls, refinement_calls, verification_calls, candidate_evaluations, expansion_receipts, max_depth_reached, generated_total, admitted_total, observed_tests, observed_probe_ids, 0, 0, reason)
+        return emit('accept', selected.candidate, True, 1, reason)
 
 
 __all__ = [
-    'CompositionalFrontierCandidate', 'CompositionalExpansionRound',
-    'CompositionalVersionSpaceReceipt', 'expand_compositional_frontier',
+    'CompositionalFrontierCandidate',
+    'CompositionalExpansionRound',
+    'CompositionalVersionSpaceReceipt',
+    'expand_compositional_frontier',
     'solve_repository_patch_with_compositional_expansion',
 ]
