@@ -22,7 +22,7 @@ Given one or more seed `RepositoryPatchCandidate`s and trusted `PatchMacro`s, en
 The generator must:
 - preserve repository file set and import structure;
 - use only synchronous Python already admitted by R2.52;
-- never add imports, calls, literals, statements, files, or effect classes;
+- never add imports, files, statements, effect classes, arbitrary calls, or arbitrary literals; all syntax changes remain limited to pre-existing trusted `PatchMacro` transformations, including only already-defined pure wrapper primitives where that macro slot permits them;
 - deduplicate by complete repository contents;
 - expose hard `max_generated_candidates` and `max_sites_per_macro` budgets;
 - be invariant to seed/macro ordering;
