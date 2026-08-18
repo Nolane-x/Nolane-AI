@@ -1,0 +1,130 @@
+name: R2.66 Freeze Exact Evidence
+
+on:
+  push:
+    branches: [r266-learned-contextual-composition-gpt56sol]
+    paths:
+      - 'cogcoder/r266_*.py'
+      - 'cogcoder/_r266_*.py'
+      - 'tests/test_r266_*.py'
+      - 'benchmarks/kfigg/r266_*.py'
+      - 'research/r266_*.py'
+      - 'docs/superpowers/specs/2026-08-18-r266-learned-contextual-composition-design.md'
+      - '.github/workflows/r266-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  freeze:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r266-learned-contextual-composition-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies and pinned external oracle
+        run: |
+          python -m pip install pytest 'numpy==2.4.6' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Verify final production before freezing
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Recompute and freeze exact evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          import ufunclab
+          from benchmarks.kfigg.r266_learned_contextual_composition import run_benchmark
+          from research.r266_external_contextual_transfer import run_external_transfer
+
+          phase = run_benchmark()
+          external = run_external_transfer(
+              ufunclab.step,
+              source_id='WarrenWeckesser/ufunclab:ufunclab.step',
+              source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
+          )
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          assert external['challenge_exact'] == external['challenge_cases'] == 12
+          assert external['heldout_exact'] == external['heldout_cases'] == 36
+          assert external['false_accepts'] == 0
+          Path('R2_66_PHASE_A_RESULT.json').write_text(json.dumps(phase, indent=2, sort_keys=True) + '\n')
+          Path('R2_66_EXTERNAL_TRANSFER.json').write_text(json.dumps(external, indent=2, sort_keys=True) + '\n')
+
+          frozen_paths = (
+              'cogcoder/_r266_contextual_composition_core.py',
+              'cogcoder/r266_learned_contextual_composition.py',
+              'benchmarks/kfigg/r266_learned_contextual_composition.py',
+              'research/r266_external_contextual_transfer.py',
+              'tests/test_r266_learned_contextual_composition.py',
+              'tests/test_r266_contextual_composition_benchmark.py',
+              'tests/test_r266_independent_terminal_contexts.py',
+              'tests/test_r266_terminal_evidence_boundary.py',
+              'tests/test_r266_pair_budget_semantics.py',
+              'docs/superpowers/specs/2026-08-18-r266-learned-contextual-composition-design.md',
+              '.github/workflows/r266-learned-contextual-composition.yml',
+              '.github/workflows/r266-external-contextual-transfer.yml',
+              '.github/workflows/r266-canonical-gate.yml',
+              '.github/workflows/r266-freeze-evidence.yml',
+              '.github/workflows/r266-release-bundle.yml',
+          )
+          blobs = {
+              path: subprocess.check_output(['git', 'hash-object', path], text=True).strip()
+              for path in frozen_paths
+          }
+          parent = subprocess.check_output(['git', 'merge-base', 'HEAD', 'origin/main'], text=True).strip()
+          assert parent == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1', parent
+          lock = {
+              'schema_version': 1,
+              'milestone': 'R2.66 Learned Contextual Causal Composition',
+              'parent_release_commit': parent,
+              'frozen_git_blobs': blobs,
+              'phase_a_result': 'R2_66_PHASE_A_RESULT.json',
+              'external_result': 'R2_66_EXTERNAL_TRANSFER.json',
+              'production_source_changes_after_lock_forbidden': True,
+              'terminal_evidence_disjointness_frozen': True,
+              'semantic_pair_budget_invariance_frozen': True,
+              'no_intervened_value_smuggling_frozen': True,
+              'two_probe_necessity_frozen': True,
+              'fixed_r262_operator_falsifier_frozen': True,
+              'probe_executability_frozen': True,
+              'external_pinned_io_transfer_frozen': True,
+              'trainable_parameter_count': 0,
+              'initial_module_red_run_id': 32143284927,
+              'terminal_independence_red_run_id': 32143864154,
+              'independent_pair_budget_red_run_id': 32145137532,
+              'independent_pair_budget_green_run_id': 32146061579,
+              'focused_post_fix_run_id': 32146235376,
+              'external_post_fix_run_id': 32146235254,
+              'external_source_commit': 'f1fbe6769850823a1976ccc28d14cd966130b645',
+              'note': (
+                  'Frozen only after clean R2.65 parent, explicit module RED, terminal-evidence RED, independent '
+                  'pair-budget RED then semantic-first scheduler GREEN on Python 3.11/3.13, exact authored causal '
+                  'recomputation, and fresh pinned ufunclab.step I/O-only transfer. The public R2.66 synthesis API '
+                  'requires a non-empty exact-context-disjoint terminal set. Any later frozen-blob change requires '
+                  'complete remeasurement.'
+              ),
+          }
+          Path('R2_66_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock, indent=2, sort_keys=True) + '\n')
+          print('R266_FREEZE_READY', parent, len(blobs))
+          PY
+      - name: Commit exact evidence if changed
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add R2_66_PHASE_A_RESULT.json R2_66_EXTERNAL_TRANSFER.json R2_66_PRE_HOSTED_LOCK.json
+          if git diff --cached --quiet; then
+            echo R266_EVIDENCE_ALREADY_FROZEN
+          else
+            git commit -m 'research: freeze exact R2.66 contextual composition evidence'
+            git push origin HEAD:r266-learned-contextual-composition-gpt56sol
+          fi
