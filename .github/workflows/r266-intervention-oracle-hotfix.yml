@@ -1,3 +1,4 @@
+# Exact committed-head reverification trigger after oracle source hotfix.
 name: R2.66 Intervention Oracle Hotfix
 
 on:
