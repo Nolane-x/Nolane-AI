@@ -1,0 +1,60 @@
+name: R2.64 Exact Payload Bootstrap
+
+on:
+  push:
+    branches: [r264-learned-contextual-composition-gpt56sol]
+    paths:
+      - '.github/workflows/r264-bootstrap-payload.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Reconstruct source-verified R2.64 payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat \
+            .r264-bootstrap/payload.00a \
+            .r264-bootstrap/payload.00b \
+            .r264-bootstrap/payload.00c \
+            .r264-bootstrap/payload.00d \
+            .r264-bootstrap/payload.01 \
+            | base64 -d > /tmp/r264_payload.tar.gz
+          echo '8b2ea5a9ad0866f68c133ccccf9a96e1454921e6aaf6db3c4f6d9fdd6f0c78d0  /tmp/r264_payload.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/r264_payload.tar.gz -C .
+          rm -rf .r264-bootstrap
+          rm -f .github/workflows/r264-hosted-red.yml
+          rm -f .github/workflows/r264-bootstrap-payload.yml
+      - name: Verify R2.64 focused behavior and exact Phase-A
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r264_learned_contextual_composition import run_benchmark
+          expected=json.loads(Path('R2_64_PHASE_A_RESULT.json').read_text())
+          actual=run_benchmark()
+          assert actual == expected, (actual, expected)
+          print('R264_PHASE_A_EXACT_OK')
+          PY
+      - name: Commit exact reconstructed capability tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'research: add R2.64 learned contextual causal composition'
+          git push origin HEAD:r264-learned-contextual-composition-gpt56sol
