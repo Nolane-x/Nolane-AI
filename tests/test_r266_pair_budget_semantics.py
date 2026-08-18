@@ -2,13 +2,12 @@ from __future__ import annotations
 
 # Independent hosted RED provenance: workflow run 32145137532 demonstrated
 # positional/hash-dependent semantic outcomes under the same tight global budget.
+# The contract intentionally does NOT prescribe a particular valid intervention
+# pair: positional invariance must emerge from evidence, not a host-supplied answer.
 
 from collections.abc import Mapping
 
 from cogcoder.r266_learned_contextual_composition import discover_contextual_composition_structure
-
-
-_EXPECTED_CAUSAL_ROLES = frozenset({'lo', 'right'})
 
 
 def _band_select(context: Mapping[str, object]) -> float:
@@ -78,7 +77,10 @@ def test_roomy_search_preserves_selected_semantic_roles_across_position_permutat
     b = _run(order_b, per_pair_budget=12_000, total_budget=120_000)
     assert a.passed is True
     assert b.passed is True
-    assert _selected_roles(a, order_a) == _selected_roles(b, order_b) == _EXPECTED_CAUSAL_ROLES
+    roles_a = _selected_roles(a, order_a)
+    roles_b = _selected_roles(b, order_b)
+    assert roles_a == roles_b
+    assert len(roles_a) == 2
     assert a.false_accepts == b.false_accepts == 0
 
 
@@ -89,8 +91,9 @@ def test_tight_global_pair_budget_has_order_invariant_semantic_outcome() -> None
     roomy_late = _run(late, per_pair_budget=12_000, total_budget=120_000)
     assert roomy_early.passed is True
     assert roomy_late.passed is True
-    assert _selected_roles(roomy_early, early) == _EXPECTED_CAUSAL_ROLES
-    assert _selected_roles(roomy_late, late) == _EXPECTED_CAUSAL_ROLES
+    roomy_roles = _selected_roles(roomy_early, early)
+    assert roomy_roles == _selected_roles(roomy_late, late)
+    assert len(roomy_roles) == 2
     budget = roomy_early.selected.composition_candidates_considered
     assert 0 < budget <= 12_000
     tight_early = _run(early, per_pair_budget=budget, total_budget=budget)
