@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.65 Verified Patch Primitive Induction",
+  "status": "HOSTED_CANONICAL_VERIFICATION_PASSED",
+  "verified_branch_head": "fd14e1513a793168f08f273e42850ee89c89b8bd",
+  "accepted_parent_main_sha": "f8a28627dc34f6db4fafca629df3b64d668b05c8",
+  "source_lock_schema_version": 8,
+  "source_lock_verified": true,
+  "exact_phase_a_recomputed": true,
+  "exact_external_numpy_multiply_recomputed": true,
+  "canonical_workflow_run_id": 32139543942,
+  "canonical_full_gate_job_id": 95718674869,
+  "canonical_focused_job_id": 95718674879,
+  "publish_full_gate_job_id": 95720398373,
+  "cross_python": {
+    "3.11": "success",
+    "3.13": "success"
+  },
+  "r265_focused_tests": 20,
+  "protected_parent_tests": 247,
+  "hosted_relevant_tests_total": 267,
+  "test_groups": {
+    "R2.65": 20,
+    "R2.64": 13,
+    "R2.63": 7,
+    "R2.62": 6,
+    "R2.61": 16,
+    "R2.60": 7,
+    "R2.59": 12,
+    "R2.58": 11,
+    "R2.57": 15,
+    "R2.56": 16,
+    "R2.55": 19,
+    "R2.54-R2.50": 56,
+    "R2.49-R2.41": 69
+  },
+  "post_hardening_red_runs": {
+    "initial_singleton_misspecification": 32137012090,
+    "unanimous_zero_entropy_misspecification": 32137926223,
+    "post_selection_singleton_misspecification": 32138019297,
+    "diagnostic_order_invariance": 32138988364,
+    "zero_challenge_promotion": 32139008781
+  },
+  "post_hardening_green_run": 32139543854,
+  "external": {
+    "source_id": "numpy.multiply",
+    "source_version": "2.4.6",
+    "source_exposure": "io_only",
+    "challenge_exact": "8/8",
+    "terminal_verification_exact": "225/225",
+    "learned_primitive": "Add->Mult",
+    "target_supplied_to_solver": false,
+    "exact_patch_macro_supplied": false,
+    "generation_used_target_outputs": false,
+    "false_terminal_accepts": 0
+  },
+  "added_trainable_parameters": 0,
+  "claim_boundary": "Fresh hosted evidence establishes bounded closed-grammar repository patch primitive induction with fail-closed challenge promotion, deterministic diagnostic fallback, exact evidence reproduction and protected lineage. It does not establish arbitrary code generation, open-ended patch-language invention, effectful experimentation, broad real-repository autonomy, W5 convergence or AGI."
+}
