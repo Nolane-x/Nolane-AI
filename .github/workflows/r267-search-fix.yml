@@ -1,5 +1,7 @@
 name: R2.67 Required-Probe Search Fix
 
+# Trigger after hosted diagnostics proved the single semantic triplet exhausted
+# the generic 35k composition ledger before lower-order ablations even ran.
 on:
   push:
     branches: [r267-three-probe-causal-composition-gpt56sol]
