@@ -1,0 +1,47 @@
+name: R2.64 Frontier Fairness Hotfix
+
+on:
+  push:
+    branches: [r264-frontier-fairness-hotfix-gpt56sol]
+    paths:
+      - 'cogcoder/r264_unified_adaptive_repository_search.py'
+      - 'tests/test_r264_frontier_fairness.py'
+      - '.github/workflows/r264-frontier-fairness-hotfix.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Run frontier fairness contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_frontier_fairness.py
+      - name: Run accepted R2.64 focused regressions
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Run frontier fairness contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r264_frontier_fairness.py
