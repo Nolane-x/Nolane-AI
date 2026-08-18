@@ -11,7 +11,14 @@ from cogcoder.r265_verified_patch_primitive_induction import (
 
 def _candidate(candidate_id: str, marker: int) -> RepositoryPatchCandidate:
     files = (
-        ('entry.py', 'from worker import work\n\ndef solve(x, y):\n    return work(x, y)\n'),
+        (
+            'entry.py',
+            'from marker import marker\n'
+            'from worker import work\n\n'
+            'def solve(x, y):\n'
+            '    marker()\n'
+            '    return work(x, y)\n',
+        ),
         ('marker.py', f'def marker():\n    return {marker}\n'),
         ('worker.py', 'def work(x, y):\n    return x + y\n'),
     )
