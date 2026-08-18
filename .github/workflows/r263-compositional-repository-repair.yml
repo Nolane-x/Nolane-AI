@@ -28,6 +28,7 @@ jobs:
         if: always()
         env:
           GH_TOKEN: ${{ github.token }}
+          JOB_STATUS: ${{ job.status }}
         run: |
           python - <<'PY'
           import json, os, urllib.request
@@ -46,6 +47,3 @@ jobs:
           )
           urllib.request.urlopen(req).read()
           PY
-        env:
-          GH_TOKEN: ${{ github.token }}
-          JOB_STATUS: ${{ job.status }}
