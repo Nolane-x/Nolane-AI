@@ -1,3 +1,6 @@
+from .r255_authority import (
+    ActionProposal, AuthorityBoundary, AuthorityDecision, AuthorityEnvelope,
+)
 from .r255_reliability import (
     AdversarialAcquisitionPolicy,
     DecayingAssociationCreditGraph,
@@ -33,4 +36,5 @@ __all__ = [
     'ProcedureLifecycleLedger', 'PromotedBehavior', 'QuarantinedArtifact',
     'QuarantinedBehavior', 'SourceReliabilityLedger', 'VerifiedTrajectory',
     'make_r255_hardened_cognitive_retrieval_operator',
+    'ActionProposal', 'AuthorityBoundary', 'AuthorityDecision', 'AuthorityEnvelope',
 ]
