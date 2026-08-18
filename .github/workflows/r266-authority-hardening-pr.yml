@@ -1,0 +1,48 @@
+name: R2.66 Authority Hardening PR
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/r266_apply_authority_hardening.py'
+      - '.github/workflows/r266-authority-hardening-pr.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r266-learned-contextual-composition-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply authority patch in working tree
+        run: python scripts/r266_apply_authority_hardening.py
+      - name: Run independent authority blockers
+        run: |
+          python -m pip install pytest
+          PYTHONPATH=. python -m pytest -q tests/test_r266_frozen_lock_independent_blockers.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_terminal_probe_evidence.py
+      - name: Run full R2.66 and accepted R2.65 regressions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+      - name: Commit exact tested production patch
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r266_contextual_composition_core.py cogcoder/r266_learned_contextual_composition.py
+          if git diff --cached --quiet; then
+            echo R266_AUTHORITY_PATCH_ALREADY_PRESENT
+          else
+            git commit -m 'fix: harden R2.66 terminal probe evidence and oracle ledger'
+            git push origin HEAD:r266-learned-contextual-composition-gpt56sol
+          fi
