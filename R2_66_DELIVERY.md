@@ -42,4 +42,4 @@ R2.66 does **not** establish open-ended composition-language invention, three-or
 
 ## Final release condition
 
-The capability is merged, but the final downloadable release is only complete after `.github/workflows/r266-post-merge-bundle.yml` succeeds on the accepted `main` lineage and its artifact is independently checksum/integrity verified.
+The capability is merged. The final downloadable snapshot is governed by the Council-authored `.github/workflows/r266-post-merge-release-bundle.yml`, which must succeed again after these release-authority records are integrated so the final ZIP contains the hosted receipt, World audit, manifest and delivery record. The resulting artifact must then be independently checksum/integrity verified.
