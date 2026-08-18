@@ -30,6 +30,7 @@ jobs:
     timeout-minutes: 90
     permissions:
       contents: read
+      statuses: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -150,10 +151,25 @@ jobs:
           assert d['trainable_parameter_count']==0
           print(json.dumps({k:v for k,v in d.items() if k!='episode_receipts'}, sort_keys=True))
           PY
+      - name: Publish R2.55 hosted-gate commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":"r255/hosted-gate","description":"focused+InjecAgent+parent-lineage+frozen evidence","target_url":os.environ["RUN_URL"]}))')"
 
   cross-python-r255:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: read
+      statuses: write
     strategy:
       fail-fast: false
       matrix:
@@ -172,3 +188,16 @@ jobs:
             tests/test_r255_hardened_acquisition_benchmark.py \
             tests/test_r255_authority_boundary.py \
             tests/test_r255_injecagent_transfer.py
+      - name: Publish cross-Python commit status
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATE: ${{ job.status == 'success' && 'success' || 'failure' }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          CONTEXT: r255/cross-python-${{ matrix.python-version }}
+        run: |
+          curl --fail --silent --show-error --request POST \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":os.environ["CONTEXT"],"description":"R2.55 focused behavior on clean hosted Python","target_url":os.environ["RUN_URL"]}))')"
