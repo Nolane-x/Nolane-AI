@@ -9,10 +9,10 @@ from cogcoder.r265_verified_patch_primitive_induction import (
 )
 
 
-def _candidate(candidate_id: str, marker: str) -> RepositoryPatchCandidate:
+def _candidate(candidate_id: str, marker: int) -> RepositoryPatchCandidate:
     files = (
         ('entry.py', 'from worker import work\n\ndef solve(x, y):\n    return work(x, y)\n'),
-        ('marker.py', f'MARKER = {marker!r}\n'),
+        ('marker.py', f'def marker():\n    return {marker}\n'),
         ('worker.py', 'def work(x, y):\n    return x + y\n'),
     )
     return RepositoryPatchCandidate(candidate_id, (), files, 0, 0)
@@ -23,8 +23,8 @@ def _oracle(x: int, y: int) -> int:
 
 
 def _case(oracle):
-    first = _candidate('unanimous:first', 'first')
-    second = _candidate('unanimous:second', 'second')
+    first = _candidate('unanimous:first', 1)
+    second = _candidate('unanimous:second', 2)
     diagnostics = tuple(RepositoryProbe(args) for args in ((5, 2), (0, 3), (-4, 3)))
     challenges = tuple(RepositoryProbe(args) for args in ((4, 3), (7, 2), (-3, 5), (9, -2)))
     learning = {tuple(p.args) for p in diagnostics + challenges}
