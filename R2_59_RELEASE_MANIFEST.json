@@ -1,0 +1,22 @@
+{
+  "capability_commit": "5abcbbb3b5c159519566fdbdbe353f733871614d",
+  "external_artifact_id": 9317002843,
+  "hosted_run_id": 32116854204,
+  "milestone": "R2.59",
+  "readiness": 48.4,
+  "release_files": [
+    "R2_59_DELIVERY.md",
+    "R2_58_TO_R2_59_EVOLUTION.md",
+    "R2_59_PHASE_A_RESULT.json",
+    "R2_59_EXTERNAL_TRANSFER.json",
+    "R2_59_VERIFY_RESULT.json",
+    "R2_59_WORLD_FINAL.json",
+    "R2_READINESS_RECALIBRATION.md"
+  ],
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "title": "Active Diagnostic Repository Probe Synthesis",
+  "trainable_parameter_count": 0,
+  "world_audit_digest": "8ec83909d2b5bb48895124e8071135bf0edca9f0187ce908a58cda1d91e5d605",
+  "world_id": "world4_e293c77f03754ec4",
+  "world_w5_passed": false
+}
