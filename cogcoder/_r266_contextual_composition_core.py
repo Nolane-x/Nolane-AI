@@ -498,10 +498,13 @@ def discover_contextual_composition_structure(
         for row in applied_discovery:
             try:
                 d_values.append(_oracle_value(oracle, row))
-            except Exception:
-                invalid = True
+            except Exception as exc:
                 oracle_calls += 1
-                break
+                return ContextualCompositionStructureReceipt(
+                    False, None, 0, len(profiles), invalid_rejected, degenerate_rejected,
+                    len(specs), 0, 0, oracle_calls, 0,
+                    f'oracle_error:{type(exc).__name__}:{exc}', 0,
+                )
             oracle_calls += 1
         if invalid:
             invalid_rejected += 1
@@ -509,10 +512,13 @@ def discover_contextual_composition_structure(
         for row in applied_validation:
             try:
                 v_values.append(_oracle_value(oracle, row))
-            except Exception:
-                invalid = True
+            except Exception as exc:
                 oracle_calls += 1
-                break
+                return ContextualCompositionStructureReceipt(
+                    False, None, 0, len(profiles), invalid_rejected, degenerate_rejected,
+                    len(specs), 0, 0, oracle_calls, 0,
+                    f'oracle_error:{type(exc).__name__}:{exc}', 0,
+                )
             oracle_calls += 1
         if invalid:
             invalid_rejected += 1
