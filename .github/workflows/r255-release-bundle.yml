@@ -27,6 +27,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
+      - name: Install release test dependency
+        run: python -m pip install --upgrade pytest
       - name: Verify frozen release boundary
         run: |
           PYTHONPATH=. python - <<'PY'
