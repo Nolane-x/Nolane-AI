@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.64 Unified Adaptive Repository Search",
+  "status": "ACCEPTED_BOUNDED_CAPABILITY_CANDIDATE",
+  "accepted_parent": {
+    "milestone": "R2.63",
+    "main_sha": "1d1b05e0c1476327eaf3b2457aab16153a43c429"
+  },
+  "capability": "unified-diagnostic-out-of-space-and-compositional-refinement-search",
+  "added_trainable_parameters": 0,
+  "readiness": {
+    "parent": 49.1,
+    "current": 49.4,
+    "delta": 0.3,
+    "kind": "internal_engineering_heuristic_not_agi_probability"
+  },
+  "frozen_evidence": {
+    "source_lock": "R2_64_PRE_HOSTED_LOCK.json",
+    "tdd_red": "R2_64_TDD_RED.json",
+    "phase_a": "R2_64_PHASE_A_RESULT.json",
+    "external": "R2_64_EXTERNAL_TRANSFER.json",
+    "hosted_verification": "R2_64_HOSTED_VERIFICATION.json",
+    "world": "R2_64_WORLD_FINAL.json",
+    "delivery": "R2_64_DELIVERY.md"
+  },
+  "canonical_hosted_gate": {
+    "workflow_run_id": 32131078117,
+    "canonical_job_id": 95692143439,
+    "publish_job_id": 95695935177,
+    "verified_branch_head": "9e49f9c5a70a189e29cd0f27944624ae1345b43e",
+    "verified_pr_merge_sha": "777cb57cf8f6393fb90cfddbd6906ae0cee532c6",
+    "r264_focused_passed": 9,
+    "protected_parent_passed": 234,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "exact_phase_a": true,
+    "exact_external": true
+  },
+  "phase_a": {
+    "episodes": 6,
+    "r263_baseline_initial_out_of_space_abstains": 6,
+    "r264_exact": 6,
+    "diagnostic_counterexamples": 6,
+    "refinement_counterexamples": 6,
+    "two_expansion_rounds": 6,
+    "negative_abstains": 10,
+    "false_terminal_accepts": 0
+  },
+  "external": {
+    "source_id": "numpy.square",
+    "source_version": "2.4.6",
+    "source_exposure": "io_only",
+    "source_implementation_inspected": false,
+    "r263_reason": "oracle_outside_initial_candidate_version_space",
+    "r264_reason": "unified_candidate_verified",
+    "verification_exact": 46,
+    "verification_cases": 46,
+    "total_external_oracle_calls": 49
+  },
+  "nolane_world": {
+    "version": "0.8.0",
+    "world_id": "world4_710989051aaa4ef3",
+    "audit_valid": true,
+    "audit_digest": "a39a2f8fdc11cb711cded3d1537912d4bffb17fc85680270bf6409a8bcc76cc3",
+    "w5_passed": false,
+    "w5_score": 0.0
+  },
+  "release_bundle": {
+    "required": true,
+    "artifact_name": "Nolane-AI-R2.64-COMPLETE",
+    "archive_name": "Nolane-AI-R2.64-COMPLETE.zip",
+    "status_context": "r264/release-bundle",
+    "post_merge_regeneration_required": true
+  },
+  "claim_boundary": "Bounded unification of trusted-macro diagnostic out-of-space expansion and later refinement composition. No arbitrary code generation, patch-language invention, effectful experimentation, broad real-repository autonomy, W5 convergence, or AGI claim."
+}
