@@ -24,9 +24,10 @@ def _need() -> OperatorInventionNeed:
     )
 
 
-def _solve(discovery_rows, validation_rows):
-    def oracle(row):
-        return float(row['a']) + float(row['b'])
+def _solve(discovery_rows, validation_rows, *, oracle=None):
+    if oracle is None:
+        def oracle(row):
+            return float(row['a']) + float(row['b'])
 
     return synthesize_adaptive_causal_basis(
         oracle,
@@ -73,3 +74,18 @@ def test_rejects_validation_intervention_query_already_seen_in_discovery() -> No
     validation = ((1, 2), (7, 8), (9, -4))
     with pytest.raises(ValueError, match='discovery|validation|overlap|disjoint'):
         _solve(discovery, validation)
+
+
+def test_overlap_rejection_happens_before_any_oracle_execution() -> None:
+    calls = 0
+
+    def counted_oracle(row):
+        nonlocal calls
+        calls += 1
+        return float(row['a']) + float(row['b'])
+
+    discovery = ((1, 2), (2, 3), (-2, 5), (4, -3), (5, 7), (-1, -2))
+    validation = ((0, 2), (7, 8), (9, -4))
+    with pytest.raises(ValueError, match='discovery|validation|overlap|disjoint'):
+        _solve(discovery, validation, oracle=counted_oracle)
+    assert calls == 0
