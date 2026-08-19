@@ -1,0 +1,32 @@
+{
+  "ablation_inconclusive_fails_closed_frozen": true,
+  "accepted_parent_release_commit": "e2eef08f15e7c0a5e79f58579282db90c157cb4a",
+  "capability": "verified-three-probe-causal-composition",
+  "frozen_git_blobs": {
+    ".github/workflows/r267-external-dot-transfer.yml": "bd57e4afb47c2bd1c33f9ac0af82225eed1b0c74",
+    ".github/workflows/r267-three-probe-causal-composition.yml": "78e16bc9b97fd7d3988895104febe2fa265acd82",
+    "benchmarks/kfigg/r267_three_probe_causal_composition.py": "21a70bca9ae4838b64f2d177543ed262fae91c6c",
+    "cogcoder/r267_three_probe_causal_composition.py": "4c1e2835372d501d0bc9f60439479559155a9b8e",
+    "research/r267_external_dot_transfer.py": "8b84bbffba1badd3b578c84f397a72afb392120d",
+    "tests/test_r267_external_dot_transfer.py": "e2ebfb4c6c86232b60cc04fa452a1ae5560712b4",
+    "tests/test_r267_independent_ablation_completeness.py": "fc5c1045210e7f005c26e4d20b91ffc35d1ecaaf",
+    "tests/test_r267_independent_authority_boundaries.py": "446c7f7e9071dd7c102032d0872f4a1e25754828",
+    "tests/test_r267_three_probe_causal_benchmark.py": "762501f16d2beb4d473d3e9e6d31cdc5d6923989",
+    "tests/test_r267_three_probe_causal_composition.py": "d141cc326754f946d874b7e7ff666b9f2bcb8d58"
+  },
+  "main_sha_observed_at_freeze": "071ede9f23967404cde74df63ebe891ac7123731",
+  "milestone": "R2.67",
+  "oracle_ledger_frozen": true,
+  "pair_ablation_falsification_frozen": true,
+  "pinned_external_source": "numpy:numpy.dot",
+  "pinned_external_version": "2.4.6",
+  "production_source_changes_after_lock_forbidden": true,
+  "schema_version": 1,
+  "semantic_terminal_disjointness_frozen": true,
+  "semantic_triplet_invariance_frozen": true,
+  "singleton_ablation_falsification_frozen": true,
+  "terminal_probe_reobservation_frozen": true,
+  "terminal_validator_before_oracle_frozen": true,
+  "three_probe_requirement_frozen": true,
+  "trainable_parameter_count": 0
+}

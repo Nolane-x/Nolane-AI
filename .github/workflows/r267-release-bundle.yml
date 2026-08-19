@@ -1,0 +1,157 @@
+name: R2.67 Full Repository Release Bundle
+
+on:
+  push:
+    branches: [r267-three-probe-causal-composition-gpt56sol]
+    paths:
+      - 'R2_67_PRE_HOSTED_LOCK.json'
+      - 'R2_67_PHASE_A_RESULT.json'
+      - 'R2_67_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r267-release-bundle.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    timeout-minutes: 110
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install release dependencies
+        run: |
+          python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
+          python -m pip install 'git+https://github.com/WarrenWeckesser/ufunclab.git@f1fbe6769850823a1976ccc28d14cd966130b645'
+      - name: Verify frozen R2.67 release boundary
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor e2eef08f15e7c0a5e79f58579282db90c157cb4a HEAD
+          PYTHONPATH=. python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          required=(
+              'R2_67_PRE_HOSTED_LOCK.json',
+              'R2_67_PHASE_A_RESULT.json',
+              'R2_67_EXTERNAL_TRANSFER.json',
+              'cogcoder/r267_three_probe_causal_composition.py',
+              'benchmarks/kfigg/r267_three_probe_causal_composition.py',
+              'research/r267_external_dot_transfer.py',
+              'tests/test_r267_independent_authority_boundaries.py',
+              'tests/test_r267_independent_ablation_completeness.py',
+              '.github/workflows/r267-canonical-gate.yml',
+              '.github/workflows/r267-release-bundle.yml',
+          )
+          for path in required:
+              assert Path(path).is_file(), path
+          lock=json.loads(Path('R2_67_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          assert lock['trainable_parameter_count'] == 0
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R267_RELEASE_BOUNDARY_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Recompute exact authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_three_probe_causal_composition import run_benchmark
+          from research.r267_external_dot_transfer import run_external_transfer
+          assert np.__version__ == '2.4.6'
+          phase=run_benchmark()
+          frozen_phase=json.loads(Path('R2_67_PHASE_A_RESULT.json').read_text())
+          assert phase == frozen_phase
+          frozen_external=json.loads(Path('R2_67_EXTERNAL_TRANSFER.json').read_text())
+          external=run_external_transfer(
+              np.dot,
+              source_id=frozen_external['source_id'],
+              source_version=frozen_external['source_version'],
+          )
+          assert external == frozen_external
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          print('R267_RELEASE_EXACT_EVIDENCE_OK')
+          PY
+      - name: Run R2.67 and protected accepted lineage
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+      - name: Create and verify COMPLETE repository snapshot
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip -o release/Nolane-AI-R2.67-COMPLETE.zip HEAD
+          sha256sum release/Nolane-AI-R2.67-COMPLETE.zip | tee release/Nolane-AI-R2.67-COMPLETE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.67-COMPLETE.zip
+          python - <<'PY'
+          import zipfile
+          required={
+              'R2_67_PRE_HOSTED_LOCK.json',
+              'R2_67_PHASE_A_RESULT.json',
+              'R2_67_EXTERNAL_TRANSFER.json',
+              'cogcoder/r267_three_probe_causal_composition.py',
+              'benchmarks/kfigg/r267_three_probe_causal_composition.py',
+              'research/r267_external_dot_transfer.py',
+              'tests/test_r267_independent_authority_boundaries.py',
+              'tests/test_r267_independent_ablation_completeness.py',
+              '.github/workflows/r267-canonical-gate.yml',
+              '.github/workflows/r267-release-bundle.yml',
+          }
+          with zipfile.ZipFile('release/Nolane-AI-R2.67-COMPLETE.zip') as zf:
+              names=set(zf.namelist())
+          missing=required-names
+          assert not missing, sorted(missing)
+          print('R267_COMPLETE_ZIP_OK', len(names))
+          PY
+      - name: Upload complete R2.67 bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.67-COMPLETE
+          path: |
+            release/Nolane-AI-R2.67-COMPLETE.zip
+            release/Nolane-AI-R2.67-COMPLETE.zip.sha256
+      - name: Publish release-bundle status
+        if: success()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r267/release-bundle',
+              'description':'Frozen exact evidence, protected lineage and verified COMPLETE ZIP passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R267_RELEASE_STATUS_PUBLISHED')
+          PY

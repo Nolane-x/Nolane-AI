@@ -1,0 +1,41 @@
+name: R2.67 Authored Evidence Probe
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/r267-authored-evidence-probe.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  authored-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+      - name: Verify R2.67 contracts before evidence emission
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_*.py
+      - name: Recompute authored evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r267_three_probe_causal_composition import run_benchmark
+          result=run_benchmark()
+          assert result['all_gates_pass'] is True
+          assert result['false_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_67_PHASE_A_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
+          print(json.dumps(result, sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.67-authored-phase-a
+          path: R2_67_PHASE_A_RECOMPUTED.json

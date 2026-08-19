@@ -1,0 +1,131 @@
+{
+  "all_gates_pass": true,
+  "base": {
+    "all_pair_ablations_fail": true,
+    "all_singleton_ablations_fail": true,
+    "all_three_probes_used": true,
+    "composition_candidates": 16,
+    "false_accepts": 0,
+    "final_validation_cases": 6,
+    "final_validation_exact": 6,
+    "heldout_cases": 6,
+    "heldout_exact": 6,
+    "no_smuggling": true,
+    "oracle_calls_learning": 126,
+    "oracle_calls_total": 150,
+    "pair_candidates": 3342,
+    "passed": true,
+    "probe_candidates": [
+      37,
+      29,
+      197
+    ],
+    "probe_validation_cases": 6,
+    "probe_validation_exact": 18,
+    "program_id": "ctx3.32bf1289694fb673d4770b4d511bd26d5042816eec087c28fa7d5a838f6ebf83",
+    "selected_roles": [
+      "b",
+      "c",
+      "f"
+    ],
+    "selected_semantic_profile_ids": [
+      "0b9fc3744abda6b77e14dcdbf9314b68fb0cd0c4c8bbdcf16940daafbabf176d",
+      "708bae41c44bceac81bdecd8575280c68519e1995d9eeebd7e29a3c3710ac6b4",
+      "beb699be04da2c81a5bf6d9b952e522deff48e30adc948e3cb8a3f4f1969a04b"
+    ],
+    "selection_cases": 18,
+    "selection_exact": 18,
+    "semantic_profile_count": 3,
+    "singleton_candidates": 2016,
+    "terminal_probe_validation_cases": 18,
+    "terminal_probe_validation_exact": 18,
+    "trainable_parameter_count": 0
+  },
+  "capability": "verified-three-probe-causal-composition",
+  "false_accepts": 0,
+  "milestone": "R2.67",
+  "permuted": {
+    "all_pair_ablations_fail": true,
+    "all_singleton_ablations_fail": true,
+    "all_three_probes_used": true,
+    "composition_candidates": 16,
+    "false_accepts": 0,
+    "final_validation_cases": 6,
+    "final_validation_exact": 6,
+    "heldout_cases": 6,
+    "heldout_exact": 6,
+    "no_smuggling": true,
+    "oracle_calls_learning": 126,
+    "oracle_calls_total": 150,
+    "pair_candidates": 3342,
+    "passed": true,
+    "probe_candidates": [
+      141,
+      269,
+      137
+    ],
+    "probe_validation_cases": 6,
+    "probe_validation_exact": 18,
+    "program_id": "ctx3.32bf1289694fb673d4770b4d511bd26d5042816eec087c28fa7d5a838f6ebf83",
+    "selected_roles": [
+      "a",
+      "d",
+      "e"
+    ],
+    "selected_semantic_profile_ids": [
+      "0b9fc3744abda6b77e14dcdbf9314b68fb0cd0c4c8bbdcf16940daafbabf176d",
+      "708bae41c44bceac81bdecd8575280c68519e1995d9eeebd7e29a3c3710ac6b4",
+      "beb699be04da2c81a5bf6d9b952e522deff48e30adc948e3cb8a3f4f1969a04b"
+    ],
+    "selection_cases": 18,
+    "selection_exact": 18,
+    "semantic_profile_count": 3,
+    "singleton_candidates": 2016,
+    "terminal_probe_validation_cases": 18,
+    "terminal_probe_validation_exact": 18,
+    "trainable_parameter_count": 0
+  },
+  "renamed": {
+    "all_pair_ablations_fail": true,
+    "all_singleton_ablations_fail": true,
+    "all_three_probes_used": true,
+    "composition_candidates": 16,
+    "false_accepts": 0,
+    "final_validation_cases": 6,
+    "final_validation_exact": 6,
+    "heldout_cases": 6,
+    "heldout_exact": 6,
+    "no_smuggling": true,
+    "oracle_calls_learning": 126,
+    "oracle_calls_total": 150,
+    "pair_candidates": 3342,
+    "passed": true,
+    "probe_candidates": [
+      37,
+      29,
+      197
+    ],
+    "probe_validation_cases": 6,
+    "probe_validation_exact": 18,
+    "program_id": "ctx3.32bf1289694fb673d4770b4d511bd26d5042816eec087c28fa7d5a838f6ebf83",
+    "selected_roles": [
+      "b",
+      "c",
+      "f"
+    ],
+    "selected_semantic_profile_ids": [
+      "0b9fc3744abda6b77e14dcdbf9314b68fb0cd0c4c8bbdcf16940daafbabf176d",
+      "708bae41c44bceac81bdecd8575280c68519e1995d9eeebd7e29a3c3710ac6b4",
+      "beb699be04da2c81a5bf6d9b952e522deff48e30adc948e3cb8a3f4f1969a04b"
+    ],
+    "selection_cases": 18,
+    "selection_exact": 18,
+    "semantic_profile_count": 3,
+    "singleton_candidates": 2016,
+    "terminal_probe_validation_cases": 18,
+    "terminal_probe_validation_exact": 18,
+    "trainable_parameter_count": 0
+  },
+  "semantic_profile_invariant": true,
+  "trainable_parameter_count": 0
+}

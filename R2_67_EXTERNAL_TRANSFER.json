@@ -1,0 +1,42 @@
+{
+  "all_pair_ablations_fail": true,
+  "all_singleton_ablations_fail": true,
+  "all_three_probes_used": true,
+  "capability": "verified-three-probe-causal-composition",
+  "challenge_cases": 6,
+  "challenge_exact": 6,
+  "composition_candidates": 16,
+  "false_accepts": 0,
+  "final_validation_cases": 6,
+  "final_validation_exact": 6,
+  "heldout_cases": 6,
+  "heldout_exact": 6,
+  "host_selected_intervention": false,
+  "milestone": "R2.67",
+  "oracle_calls_learning": 126,
+  "oracle_calls_total": 150,
+  "pair_candidates": 3342,
+  "passed": true,
+  "probe_candidates": [
+    197,
+    29,
+    37
+  ],
+  "probe_validation_cases": 6,
+  "probe_validation_exact": 18,
+  "selected_semantic_profile_ids": [
+    "39ddfe7661e1f7591d9284d03b462aa70eebe526d463108dffd467863ce3fbc1",
+    "5308c6ebc97baffb0962c018aa1a589247152cbf00d478535cb61abc2a188aab",
+    "ad779e4d2659cff4562b3e145241d87414c01caf9a2e374b47aea22f51376d73"
+  ],
+  "selection_cases": 18,
+  "selection_exact": 18,
+  "semantic_profile_count": 3,
+  "singleton_candidates": 2016,
+  "source_exposure": "io_only",
+  "source_id": "numpy:numpy.dot",
+  "source_version": "2.4.6",
+  "terminal_probe_validation_cases": 18,
+  "terminal_probe_validation_exact": 18,
+  "trainable_parameter_count": 0
+}
