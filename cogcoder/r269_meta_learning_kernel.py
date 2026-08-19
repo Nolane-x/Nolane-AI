@@ -287,6 +287,14 @@ from .r269_transfer_runtime import (
     run_cold_scratch,
     run_meta_learning_episode,
 )
+from .r269_meta_governance import (
+    CapabilityGapLedger,
+    CapabilityGapRecord,
+    MetaCreditLedger,
+    MetaCreditRecord,
+    adjudicate_prior_credit,
+    record_capability_gap,
+)
 
 __all__ = [
     'PublicTaskSignature',
@@ -300,4 +308,10 @@ __all__ = [
     'MetaLearningReceipt',
     'run_meta_learning_episode',
     'run_cold_scratch',
+    'MetaCreditRecord',
+    'MetaCreditLedger',
+    'CapabilityGapRecord',
+    'CapabilityGapLedger',
+    'adjudicate_prior_credit',
+    'record_capability_gap',
 ]
