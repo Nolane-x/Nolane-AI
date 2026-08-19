@@ -314,7 +314,30 @@ def generate_transfer_candidates(portable: PortableCausalProgram) -> tuple[Trans
     return tuple(sorted(by_digest.values(), key=lambda row: (row.repair_distance, row.candidate_id)))
 
 
-_PROVEN_COMMUTATIVE_NUMERIC_OPS = frozenset(('add', 'mul'))
+def _proven_numeric_expr(expr: Expr) -> bool:
+    # Probe-role contexts are validated as finite numeric values before oracle
+    # authority is exercised. This helper proves only the *result type* needed
+    # to justify commutative numeric addition; it does not prove totality.
+    if isinstance(expr, Field):
+        return True
+    if isinstance(expr, Const):
+        return isinstance(expr.value, (int, float)) and not isinstance(expr.value, bool)
+    if isinstance(expr, Unary):
+        if expr.op in ('abs', 'neg'):
+            return _proven_numeric_expr(expr.arg)
+        if expr.op == 'len':
+            return True
+        return False
+    if isinstance(expr, Binary):
+        if expr.op in ('add', 'sub', 'mul', 'div', 'min', 'max'):
+            return _proven_numeric_expr(expr.left) and _proven_numeric_expr(expr.right)
+        return False
+    if isinstance(expr, IfElse):
+        return (
+            _proven_numeric_expr(expr.when_true)
+            and _proven_numeric_expr(expr.when_false)
+        )
+    raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
 
 def _proven_structural_alias_key(expr: Expr) -> str:
@@ -331,7 +354,15 @@ def _proven_structural_alias_key(expr: Expr) -> str:
     if isinstance(expr, Binary):
         left = _proven_structural_alias_key(expr.left)
         right = _proven_structural_alias_key(expr.right)
-        if expr.op in _PROVEN_COMMUTATIVE_NUMERIC_OPS and right < left:
+        commutative_proven = (
+            expr.op == 'mul'
+            or (
+                expr.op == 'add'
+                and _proven_numeric_expr(expr.left)
+                and _proven_numeric_expr(expr.right)
+            )
+        )
+        if commutative_proven and right < left:
             left, right = right, left
         return json.dumps(
             ('binary', expr.op, left, right),
