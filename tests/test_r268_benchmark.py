@@ -9,3 +9,12 @@ def test_r268_mixed_cardinality_benchmark_is_deterministic_and_exact() -> None:
     assert first['trainable_parameter_count']==0
     assert first['cases'][0]['globally_minimal'] is False
     assert all(case['globally_minimal'] for case in first['cases'][1:])
+
+
+def test_r268_benchmark_freezes_complete_lower_basis_ledger() -> None:
+    result=run_benchmark()
+    assert [case['lower_basis_count'] for case in result['cases']]==[0,2,6,14]
+    assert [case['lower_basis_certified'] for case in result['cases']]==[0,2,6,14]
+    assert [case['lower_basis_inconclusive'] for case in result['cases']]==[0,0,0,0]
+    assert [case['proof_ledger_complete'] for case in result['cases']]==[False,True,True,True]
+    assert result['complete_minimality_ledgers'] is True
