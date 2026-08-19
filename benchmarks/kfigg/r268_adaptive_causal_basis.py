@@ -1,4 +1,5 @@
 from __future__ import annotations
+from dataclasses import asdict
 from typing import Callable,Mapping
 from cogcoder.r256_operator_invention import OperatorInventionNeed
 from cogcoder.r268_adaptive_causal_basis import synthesize_adaptive_causal_basis
@@ -15,6 +16,8 @@ def _solve(case:Case):
         composition_constants=(0.0,2.0),composition_max_depth=5,composition_max_candidates_per_basis=30_000,
         max_composition_candidates_total=160_000,composition_beam_width=192,probe_constants=(0.0,2.0),probe_max_depth=5,
         probe_max_candidates=50_000,probe_beam_width=192)
+    necessity=[asdict(cert) for cert in receipt.structure.necessity_certificates]
+    lower=[asdict(cert) for cert in receipt.structure.lower_basis_certificates]
     return {
         'name':name,'passed':receipt.passed,'selected_basis_size':receipt.selected_basis_size,
         'expected_basis_size':expected_size,'globally_minimal':receipt.globally_minimal,
@@ -23,9 +26,11 @@ def _solve(case:Case):
         'terminal_probe_validation_cases':receipt.terminal_probe_validation_cases,'terminal_probe_validation_exact':receipt.terminal_probe_validation_exact,
         'final_validation_cases':receipt.final_validation_cases,'final_validation_exact':receipt.final_validation_exact,
         'necessity_certificate_sizes':sorted({c.subset_cardinality for c in receipt.structure.necessity_certificates}),
+        'necessity_certificate_count':len(necessity),'necessity_certificates':necessity,
         'lower_basis_count':receipt.structure.lower_basis_count,
         'lower_basis_certified':receipt.structure.lower_basis_certified,
         'lower_basis_inconclusive':receipt.structure.lower_basis_inconclusive,
+        'lower_basis_certificate_count':len(lower),'lower_basis_certificates':lower,
         'lower_basis_universe_digest':receipt.structure.lower_basis_universe_digest,
         'proof_ledger_complete':receipt.structure.proof_ledger_complete,
         'oracle_calls_total':receipt.oracle_calls_total,
@@ -59,7 +64,10 @@ def run_benchmark()->dict[str,object]:
         and results[0]['selected_basis_size']==0
         and results[0]['false_accepts']==0
     )
+    expected_proof_counts=[0,2,6,14]
     complete_minimality_ledgers=results[0]['proof_ledger_complete'] is False and all(row['proof_ledger_complete'] is True for row in results[1:])
+    replayable_global_ledgers=[row['lower_basis_certificate_count'] for row in results]==expected_proof_counts
+    complete_local_ledgers=[row['necessity_certificate_count'] for row in results]==expected_proof_counts
     gates=[
         one_probe_nuisance_rejected,
         all(row['passed'] for row in results[1:]),
@@ -67,9 +75,13 @@ def run_benchmark()->dict[str,object]:
         adaptive_selected==[2,3,4],
         results[0]['globally_minimal'] is False,
         all(row['globally_minimal'] is True for row in results[1:]),
-        [row['lower_basis_count'] for row in results]==[0,2,6,14],
-        [row['lower_basis_certified'] for row in results]==[0,2,6,14],
+        [row['lower_basis_count'] for row in results]==expected_proof_counts,
+        [row['lower_basis_certified'] for row in results]==expected_proof_counts,
         all(row['lower_basis_inconclusive']==0 for row in results),
+        replayable_global_ledgers,
+        complete_local_ledgers,
+        all(all(cert['proof_kind']=='public_basis_target_collision' for cert in row['lower_basis_certificates']) for row in results[1:]),
+        all(all(cert['proof_kind']=='public_target_collision' for cert in row['necessity_certificates']) for row in results[1:]),
         complete_minimality_ledgers,
         all(row['probe_validation_exact']==row['probe_validation_cases'] for row in results),
         all(row['terminal_probe_validation_exact']==row['terminal_probe_validation_cases'] for row in results),
@@ -85,6 +97,8 @@ def run_benchmark()->dict[str,object]:
         'one_probe_nuisance_rejected':one_probe_nuisance_rejected,
         'mixed_cardinality_exact':adaptive_selected==[2,3,4],
         'complete_minimality_ledgers':complete_minimality_ledgers,
+        'replayable_global_ledgers':replayable_global_ledgers,
+        'complete_local_ledgers':complete_local_ledgers,
         'false_accepts':false_accepts,
         'trainable_parameter_count':0,
         'all_gates_pass':all(gates),
