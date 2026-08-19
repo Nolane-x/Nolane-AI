@@ -50,17 +50,27 @@ jobs:
           phase = run_benchmark()
           external = run_external_transfer(
               np.dot,
-              source_id='numpy.dot',
+              source_id='numpy:numpy.dot',
               source_version=np.__version__,
           )
           assert np.__version__ == '2.4.6'
           assert phase['all_gates_pass'] is True
           assert phase['false_accepts'] == 0
           assert phase['trainable_parameter_count'] == 0
+          assert external['source_id'] == 'numpy:numpy.dot'
+          assert external['source_exposure'] == 'io_only'
           assert external['passed'] is True
           assert external['false_accepts'] == 0
           assert external['trainable_parameter_count'] == 0
-          assert external['engine_oracle_calls'] == external['engine_oracle_calls_receipt']
+          assert external['oracle_calls_collision_certificates'] == 72
+          assert external['oracle_calls_challenge'] == 6
+          assert external['oracle_calls_heldout'] == 6
+          assert external['oracle_calls_total'] == (
+              external['oracle_calls_learning_terminal']
+              + external['oracle_calls_collision_certificates']
+              + external['oracle_calls_challenge']
+              + external['oracle_calls_heldout']
+          )
           assert external['oracle_accounting_exact'] is True
           print('R267_1_FRESH_EVIDENCE_OK')
           PY
@@ -109,12 +119,20 @@ jobs:
           phase = run_benchmark()
           external = run_external_transfer(
               np.dot,
-              source_id='numpy.dot',
+              source_id='numpy:numpy.dot',
               source_version=np.__version__,
           )
           assert np.__version__ == '2.4.6'
           assert phase['all_gates_pass'] is True
+          assert external['source_id'] == 'numpy:numpy.dot'
           assert external['passed'] is True
+          assert external['oracle_calls_collision_certificates'] == 72
+          assert external['oracle_calls_total'] == (
+              external['oracle_calls_learning_terminal']
+              + external['oracle_calls_collision_certificates']
+              + external['oracle_calls_challenge']
+              + external['oracle_calls_heldout']
+          )
           assert external['oracle_accounting_exact'] is True
 
           phase_path = Path('R2_67_1_PHASE_A_RESULT.json')
@@ -165,7 +183,7 @@ jobs:
               'production_source_changes_after_lock_forbidden': True,
               'frozen_evidence_changes_after_lock_forbidden': True,
               'historical_r267_artifacts_superseded_not_mutated': True,
-              'claim_boundary': 'bounded pure-input three-intervention composition with subset-specific lower-order evidence, public collision certificates, finite trusted DSL, terminal re-observation, and zero added trainable parameters',
+              'claim_boundary': 'collision-certified insufficiency of proper-subset observable evidence on the tested pure-input corpora, with exactly three interventions, a finite trusted DSL, terminal re-observation, and zero added trainable parameters; not a universal theorem that two probes can never suffice',
               'authority_corrections': {
                   'subset_specific_ablation_fields': True,
                   'uncertified_search_miss_fails_closed': True,
@@ -174,6 +192,7 @@ jobs:
                   'preselection_probe_cases_zero_without_selected_triplet': True,
                   'terminal_selected_probe_reobservation': True,
                   'oracle_ledger_exact': True,
+                  'positive_domain_triangle_min_robustness': True,
               },
               'authored_evidence': {
                   'all_gates_pass': bool(phase['all_gates_pass']),
@@ -185,8 +204,10 @@ jobs:
                   'source_id': external['source_id'],
                   'source_version': external['source_version'],
                   'source_exposure': external['source_exposure'],
+                  'same_algebraic_family_as_authored': True,
                   'passed': bool(external['passed']),
                   'oracle_accounting_exact': bool(external['oracle_accounting_exact']),
+                  'oracle_calls_total': int(external['oracle_calls_total']),
                   'false_accepts': int(external['false_accepts']),
                   'trainable_parameter_count': int(external['trainable_parameter_count']),
                   'sha256_canonical_json': hashlib.sha256(canonical_external).hexdigest(),
@@ -195,9 +216,10 @@ jobs:
                   'r267_probe_receipt_units_red': 32199123145,
                   'r267_lower_order_mask_red': 32199583627,
                   'genuine_cyclic_family_green': 32199850422,
-                  'fresh_secondary_evidence_green': 32202209695,
+                  'replacement_evidence_cross_python_green': 32202170465,
                   'preselection_receipt_red': 32201248043,
                   'preselection_receipt_red_green': 32202287192,
+                  'fresh_receipt_materialization_green': 32202735763,
               },
               'frozen_git_blobs': blobs,
           }
