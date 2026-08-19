@@ -26,7 +26,10 @@
     "world_hardening_red_run": 32218763169,
     "world_hardening_green_run": 32220069141,
     "terminal_verification_only_red_run": 32254278088,
-    "terminal_verification_only_green_run": 32254883515
+    "terminal_verification_only_green_run": 32254883515,
+    "diagnostic_alias_authority_red_run": 32255355846,
+    "diagnostic_alias_structural_rejection_run": 32255717041,
+    "diagnostic_alias_clean_green_run": 32256375191
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -50,6 +53,19 @@
       "source_commit": "b3d454e7b05b47bbc80108809f393765561ae0d5",
       "integration_commit": "0c4885c2e6c59bab3bcd1e9e6e6aaee99143105b",
       "boundary": "terminal oracle rows verify one already-selected hypothesis and may not resolve diagnostic ambiguity"
+    },
+    "diagnostic_alias_authority": {
+      "status": "hosted_green",
+      "red_run": 32255355846,
+      "rejected_structural_only_run": 32255717041,
+      "green_run": 32256375191,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity_run": 32256375192,
+      "r2_0i_integrity_run": 32256375252,
+      "source_commit": "ec67591bb9c5517704e4b779a14aa3d241bc5e7d",
+      "integration_commit": "3aab24d4c09dd7aa106a181d353cf8ad33a0a215",
+      "boundary": "finite diagnostic collisions cannot create false uniqueness; equivalence fingerprinting uses only deterministic bounded recombinations of public diagnostic marginals and excludes terminal inputs and oracle labels"
     }
   },
   "nolane_world": {
