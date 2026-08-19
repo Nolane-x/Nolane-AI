@@ -69,6 +69,29 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
         if context_validator is not None and not bool(context_validator(row)):raise ValueError('base contexts must satisfy context_validator')
     max_basis_size=int(max_basis_size);per_basis=int(composition_max_candidates_per_basis);max_total=int(max_composition_candidates_total)
     if max_basis_size<1 or per_basis<1 or max_total<1:raise ValueError('basis size and candidate budgets must be positive')
+
+    # Validation is independent authority evidence. Prepare the complete oracle
+    # query universe for both phases before any oracle execution. Keep the
+    # validation keys as a multiset to reject repeated evidence, and as a set
+    # for cross-phase intersection. This invariant lives in the private runtime
+    # so direct internal callers cannot bypass the public authority wrapper.
+    specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity))
+    prepared_specs=[]
+    discovery_query_keys={context_key(schema,row) for row in discovery}
+    validation_query_keys=[context_key(schema,row) for row in validation]
+    for spec in specs:
+        ad=tuple(spec.apply(r,schema.field_names) for r in discovery);av=tuple(spec.apply(r,schema.field_names) for r in validation)
+        if context_validator is not None and any(not bool(context_validator(r)) for r in (*ad,*av)):continue
+        prepared_specs.append((spec,ad,av))
+        discovery_query_keys.update(context_key(schema,row) for row in ad)
+        validation_query_keys.extend(context_key(schema,row) for row in av)
+    validation_query_set=set(validation_query_keys)
+    if len(validation_query_set)!=len(validation_query_keys):
+        raise ValueError(f'validation oracle query inputs must be semantically unique (duplicate_count={len(validation_query_keys)-len(validation_query_set)})')
+    overlap=discovery_query_keys & validation_query_set
+    if overlap:
+        raise ValueError(f'discovery and validation oracle query inputs must be semantically disjoint (overlap_count={len(overlap)})')
+
     oracle_calls=0;queried=set()
     def tracked(context):
         nonlocal oracle_calls
@@ -78,10 +101,8 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
         for row in discovery:d_targets.append(tracked(row))
         for row in validation:v_targets.append(tracked(row))
     except Exception as exc:return _empty_structure(f'oracle_error:{type(exc).__name__}:{exc}',oracle_calls=oracle_calls,learning_query_keys=frozenset(queried),validation_targets=tuple(v_targets))
-    specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity));profiles=[]
-    for spec in specs:
-        ad=tuple(spec.apply(r,schema.field_names) for r in discovery);av=tuple(spec.apply(r,schema.field_names) for r in validation)
-        if context_validator is not None and any(not bool(context_validator(r)) for r in (*ad,*av)):continue
+    profiles=[]
+    for spec,ad,av in prepared_specs:
         dv=[];vv=[]
         try:
             for row in ad:dv.append(tracked(row))
