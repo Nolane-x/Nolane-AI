@@ -110,3 +110,20 @@ def test_semantic_profile_dedup_never_collapses_validation_distinct_intervention
 
     assert receipt.legal_interventions==2
     assert receipt.semantic_profiles==2
+
+
+def test_validation_outputs_cannot_control_profile_proposal_order() -> None:
+    import cogcoder._r268_runtime as runtime
+    from cogcoder._r268_types import InterventionProfile
+    from cogcoder.r258_intervention_discovery import InterventionSpec
+
+    left_a=InterventionProfile(InterventionSpec(((0,0.0),)),(1.0,2.0),(10.0,20.0),'authority-left-a')
+    left_b=InterventionProfile(InterventionSpec(((0,0.0),)),(1.0,2.0),(999.0,-999.0),'authority-left-b')
+    right_a=InterventionProfile(InterventionSpec(((1,0.0),)),(1.0,2.0),(-7.0,8.0),'authority-right-a')
+    right_b=InterventionProfile(InterventionSpec(((1,0.0),)),(1.0,2.0),(123.0,456.0),'authority-right-b')
+
+    assert runtime._profile_proposal_key(left_a)==runtime._profile_proposal_key(left_b)
+    assert runtime._profile_proposal_key(right_a)==runtime._profile_proposal_key(right_b)
+    order_a=[row.intervention.intervention_id for row in sorted((left_a,right_a),key=runtime._profile_proposal_key)]
+    order_b=[row.intervention.intervention_id for row in sorted((left_b,right_b),key=runtime._profile_proposal_key)]
+    assert order_a==order_b
