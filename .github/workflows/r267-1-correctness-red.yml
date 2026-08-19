@@ -6,6 +6,11 @@ on:
     paths:
       - 'tests/test_r267_1_correctness_hotfix.py'
       - '.github/workflows/r267-1-correctness-red.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/test_r267_1_correctness_hotfix.py'
+      - '.github/workflows/r267-1-correctness-red.yml'
   workflow_dispatch:
 
 permissions:
