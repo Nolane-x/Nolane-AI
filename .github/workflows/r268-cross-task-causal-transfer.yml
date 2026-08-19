@@ -4,7 +4,7 @@ on:
   push:
     branches: [r268-cross-task-causal-transfer-gpt56sol]
     paths:
-      - 'cogcoder/r268_cross_task_causal_transfer.py'
+      - 'cogcoder/r268_*.py'
       - 'tests/test_r268_*.py'
       - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
       - '.github/workflows/r268-cross-task-causal-transfer.yml'
@@ -12,7 +12,7 @@ on:
       - 'docs/superpowers/plans/2026-08-19-r268-cross-task-causal-transfer.md'
   pull_request:
     paths:
-      - 'cogcoder/r268_cross_task_causal_transfer.py'
+      - 'cogcoder/r268_*.py'
       - 'tests/test_r268_*.py'
       - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
       - '.github/workflows/r268-cross-task-causal-transfer.yml'
