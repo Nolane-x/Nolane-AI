@@ -45,12 +45,15 @@ jobs:
       - name: Recompute fresh authored and pinned external evidence
         run: |
           PYTHONPATH=. python - <<'PY'
+          import json
           import numpy as np
           from benchmarks.kfigg.r268_adaptive_causal_basis import run_benchmark
           from research.r268_external_transfer import run_external_transfer
           assert np.__version__=='2.4.6'
           phase=run_benchmark()
           external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
+          json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False)
+          json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False)
           assert phase['all_gates_pass'] is True
           assert phase['selected_basis_sizes']==[0,2,3,4]
           assert phase['adaptive_selected_basis_sizes']==[2,3,4]
@@ -116,8 +119,10 @@ jobs:
           assert external['lower_basis_count']==external['lower_basis_certified']==external['lower_basis_certificate_count']==4
           assert external['necessity_certificate_count']==2 and external['false_accepts']==0
 
-          Path('R2_68_PHASE_A_RESULT.json').write_text(json.dumps(phase,indent=2,sort_keys=True)+'\n')
-          Path('R2_68_EXTERNAL_TRANSFER.json').write_text(json.dumps(external,indent=2,sort_keys=True)+'\n')
+          phase_text=json.dumps(phase,indent=2,sort_keys=True)+'\n'
+          external_text=json.dumps(external,indent=2,sort_keys=True)+'\n'
+          Path('R2_68_PHASE_A_RESULT.json').write_text(phase_text)
+          Path('R2_68_EXTERNAL_TRANSFER.json').write_text(external_text)
           fixed=[
             'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
             'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
@@ -132,19 +137,19 @@ jobs:
           cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           lock={
-            'schema_version':2,'milestone':'R2.68','name':'Proof-Carrying Adaptive Causal Basis','status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
+            'schema_version':3,'milestone':'R2.68','name':'Proof-Carrying Adaptive Causal Basis','status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
             'parent_release_commit':'b789dd7a48f10f3afb1cf42ee62d3dc77dee200e',
             'source_freeze_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'freeze_workflow_run_id':int(os.environ['FREEZE_RUN_ID']),
             'production_source_changes_after_lock_forbidden':True,'frozen_evidence_changes_after_lock_forbidden':True,'added_trainable_parameters':0,
-            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
+            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, canonical JSON evidence authority, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
             'authority_hardening':{
               'target_preserving_nuisance_rejected':True,'proposal_validation_disjoint':True,'proper_subset_certificate_authority':True,
               'intervention_distinct_global_universe':True,'replayable_global_lower_basis_ledger':True,'subset_specific_exposure_recomputed':True,
               'attempted_observation_accounting':True,'terminal_selected_probe_reobservation':True,'uncertified_search_miss_inconclusive':True,
               'proposal_alias_budget_invariant':True,'proposal_search_reused_once':True,'proposal_cache_discovery_only':True,
               'proposal_cache_authority_validation_separate':True,'external_io_only':True,'cross_python_required':True,
-              'freeze_delta_namespace_isolated':True,
+              'freeze_delta_namespace_isolated':True,'canonical_json_evidence_comparison':True,
             },
             'authored_protocol':{
               'positive_selected_basis_sizes':[2,3,4],'nuisance_control_selected_basis_size':0,'max_basis_size':4,'intervention_arity':1,
@@ -169,6 +174,7 @@ jobs:
               'composition_holdout_red_run':32220363255,'preoracle_accounting_red_run':32228145798,
               'validation_distinct_profile_red_run':32228801576,'semantic_alias_search_reuse_red_run':32237610280,
               'freeze_delta_validator_red_run':32240715765,
+              'release_object_json_type_red_run':32253395151,'release_object_json_type_diagnostic_pr':92,
               'proper_subset_challenger_pr':74,'composition_holdout_challenger_pr':75,'proper_subset_fix_challenger_pr':77,
               'semantic_alias_budget_validation_prs':[80,81],'semantic_alias_budget_fix_pr':85,
               'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551',

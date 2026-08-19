@@ -47,6 +47,7 @@ jobs:
           path=Path('R2_68_PRE_HOSTED_LOCK.json')
           if not path.is_file(): raise SystemExit('R2.68 lock not frozen yet')
           lock=json.loads(path.read_text())
+          assert lock['schema_version']==3
           assert lock['milestone']=='R2.68'
           assert lock['parent_release_commit']=='b789dd7a48f10f3afb1cf42ee62d3dc77dee200e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
@@ -57,10 +58,13 @@ jobs:
             'intervention_distinct_global_universe','replayable_global_lower_basis_ledger','attempted_observation_accounting',
             'terminal_selected_probe_reobservation','uncertified_search_miss_inconclusive','proposal_alias_budget_invariant',
             'proposal_search_reused_once','proposal_cache_discovery_only','proposal_cache_authority_validation_separate',
+            'canonical_json_evidence_comparison',
           )
           for key in required: assert a[key] is True,key
           assert lock['independent_validation']['semantic_alias_search_reuse_red_run']==32237610280
           assert lock['independent_validation']['semantic_alias_search_reuse_challenger_pr']==84
+          assert lock['independent_validation']['release_object_json_type_red_run']==32253395151
+          assert lock['independent_validation']['release_object_json_type_diagnostic_pr']==92
           for file,expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',file],text=True).strip()
               assert actual==expected,(file,actual,expected)
@@ -170,7 +174,7 @@ jobs:
         run: |
           python - <<'PY'
           import json,os,urllib.request
-          payload=json.dumps({'state':'success','context':'r268/full-gate','description':'R2.68 frozen proof authority, alias-invariant search, exact evidence, cross-Python and protected lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          payload=json.dumps({'state':'success','context':'r268/full-gate','description':'R2.68 frozen proof authority, alias-invariant search, canonical JSON evidence, cross-Python and protected lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
           req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
           urllib.request.urlopen(req).read()
           print('R268_FULL_GATE_STATUS_PUBLISHED')
