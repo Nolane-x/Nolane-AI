@@ -32,7 +32,15 @@
     "diagnostic_alias_clean_green_run": 32256375191,
     "oracle_context_mutation_red_run": 32256898268,
     "oracle_context_runner_only_green_run": 32257815942,
-    "oracle_context_clean_green_run": 32259669862
+    "oracle_context_clean_green_run": 32259669862,
+    "finite_fingerprint_authority_red_run": 32260255168,
+    "proof_only_no_dedupe_analysis_run": 32260822498,
+    "proof_only_survivor_analysis_run": 32260974073,
+    "proof_only_first_rejected_run": 32261879068,
+    "proof_backed_equivalence_runner_green_run": 32262146859,
+    "string_add_alias_red_run": 32262615199,
+    "numeric_add_alias_runner_green_run": 32262774042,
+    "proof_backed_equivalence_clean_green_run": 32263016874
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -58,7 +66,7 @@
       "boundary": "terminal oracle rows verify one already-selected hypothesis and may not resolve diagnostic ambiguity"
     },
     "diagnostic_alias_authority": {
-      "status": "hosted_green",
+      "status": "superseded",
       "red_run": 32255355846,
       "rejected_structural_only_run": 32255717041,
       "green_run": 32256375191,
@@ -68,7 +76,8 @@
       "r2_0i_integrity_run": 32256375252,
       "source_commit": "ec67591bb9c5517704e4b779a14aa3d241bc5e7d",
       "integration_commit": "3aab24d4c09dd7aa106a181d353cf8ad33a0a215",
-      "boundary": "finite diagnostic collisions cannot create false uniqueness inside the current bounded semantic-closure heuristic; terminal inputs and oracle labels are excluded from equivalence fingerprinting"
+      "superseded_by": "proof_backed_program_equivalence",
+      "boundary": "the bounded semantic-closure heuristic was a temporary hardening and is no longer equivalence authority"
     },
     "oracle_context_immutability": {
       "status": "hosted_green",
@@ -82,6 +91,27 @@
       "source_commit": "bb55994f89f11a03edae66ce8f0421c7a0941bb0",
       "integration_commit": "3a12fd56dec5ce7a675fbe2c4fe23fe976caecae",
       "boundary": "oracle calls receive isolated canonical three-probe snapshots; mutation cannot alter caller-owned evidence or candidate evaluation, and detected mutation fails closed with exact attempted-call accounting"
+    },
+    "proof_backed_program_equivalence": {
+      "status": "hosted_green",
+      "finite_fingerprint_red_run": 32260255168,
+      "proof_only_no_dedupe_analysis_run": 32260822498,
+      "survivor_analysis_run": 32260974073,
+      "rejected_first_proposal_run": 32261879068,
+      "runner_only_green_run": 32262146859,
+      "source_and_corpus_commit": "d6e0861d406fcf21e2bddabdefce7ec0b195b1ca",
+      "string_add_red_run": 32262615199,
+      "numeric_add_runner_green_run": 32262774042,
+      "numeric_add_source_commit": "2ba434e076268a344cb16f2cc12ffd6033b41523",
+      "clean_green_run": 32263016874,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity_run": 32263016852,
+      "r2_0i_integrity_run": 32263016869,
+      "integration_commit": "d509928285cbad6159982cb46161e7912493d756",
+      "boundary": "finite behavioral fingerprints are not program-equivalence authority; only proof-backed structural aliases collapse, numeric add requires a static numeric-result proof, and remaining ambiguity must be resolved by actual public diagnostic oracle evidence or fail closed",
+      "authored_diagnostic_corpus_changed": true,
+      "older_frozen_authored_evidence_status": "stale_until_explicitly_recomputed_and_refrozen"
     }
   },
   "nolane_world": {
