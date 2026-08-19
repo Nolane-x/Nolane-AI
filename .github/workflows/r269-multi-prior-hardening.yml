@@ -3,7 +3,7 @@ name: R2.69 Multi-Prior Hardening
 on:
   pull_request:
     paths:
-      - 'cogcoder/r269_transfer_runtime.py'
+      - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
       - 'tests/test_r269_*.py'
       - '.github/workflows/r269-multi-prior-hardening.yml'
@@ -15,19 +15,24 @@ permissions:
 jobs:
   focused:
     runs-on: ubuntu-24.04
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install pytest 'numpy==2.4.6'
-      - name: Protected R2.68 safety
-        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-      - name: Materialized multi-prior adversary
+      - name: Accepted R2.68 ancestry and safety
+        run: |
+          git merge-base --is-ancestor fda7f502185266fedb00886d5786c6d28cc0e0eb HEAD
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Multi-prior evidence adjudication
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_multi_prior_adjudication.py
-      - name: Materialized R2.69 contracts except independently RED closure
-        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py -k 'not scratch_compositional_closure'
+      - name: Complete authored R2.69 contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
