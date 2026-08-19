@@ -1,0 +1,83 @@
+name: Validate R2.68 Final Evidence Determinism
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11','3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install 'numpy==2.4.6'
+      - name: Diagnose authored and external evidence stability
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib, json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r268_adaptive_causal_basis import run_benchmark
+          from research.r268_external_transfer import run_external_transfer
+
+          def canon(value):
+              return json.dumps(value, sort_keys=True, separators=(',', ':'), allow_nan=False)
+
+          def digest(value):
+              return hashlib.sha256(canon(value).encode()).hexdigest()
+
+          def diffs(a, b, path='$', out=None):
+              if out is None: out=[]
+              if len(out) >= 80: return out
+              if type(a) is not type(b):
+                  out.append((path, type(a).__name__, type(b).__name__, a, b)); return out
+              if isinstance(a, dict):
+                  for key in sorted(set(a) | set(b), key=str):
+                      if key not in a: out.append((f'{path}.{key}', '<missing>', b[key])); continue
+                      if key not in b: out.append((f'{path}.{key}', a[key], '<missing>')); continue
+                      diffs(a[key], b[key], f'{path}.{key}', out)
+                      if len(out) >= 80: break
+              elif isinstance(a, list):
+                  if len(a) != len(b): out.append((f'{path}.length', len(a), len(b)))
+                  for i, (x, y) in enumerate(zip(a, b)):
+                      diffs(x, y, f'{path}[{i}]', out)
+                      if len(out) >= 80: break
+              elif a != b:
+                  out.append((path, a, b))
+              return out
+
+          assert np.__version__ == '2.4.6'
+          frozen_phase=json.loads(Path('R2_68_PHASE_A_RESULT.json').read_text())
+          frozen_external=json.loads(Path('R2_68_EXTERNAL_TRANSFER.json').read_text())
+          phases=[run_benchmark() for _ in range(3)]
+          externals=[run_external_transfer(np.linalg.det, source_id='numpy:numpy.linalg.det', source_version=np.__version__) for _ in range(2)]
+
+          print('FROZEN_PHASE_SHA', digest(frozen_phase))
+          for i, value in enumerate(phases):
+              print('FRESH_PHASE_SHA', i, digest(value), 'EQ_FROZEN', value == frozen_phase, 'EQ_FIRST', value == phases[0])
+          print('FROZEN_EXTERNAL_SHA', digest(frozen_external))
+          for i, value in enumerate(externals):
+              print('FRESH_EXTERNAL_SHA', i, digest(value), 'EQ_FROZEN', value == frozen_external, 'EQ_FIRST', value == externals[0])
+
+          for row in diffs(frozen_phase, phases[0]): print('PHASE_DIFF', repr(row))
+          for row in diffs(frozen_external, externals[0]): print('EXTERNAL_DIFF', repr(row))
+
+          assert phases[0] == phases[1] == phases[2], 'same-process authored evidence is nondeterministic'
+          assert externals[0] == externals[1], 'same-process external evidence is nondeterministic'
+          assert phases[0] == frozen_phase, 'fresh authored evidence differs from frozen receipt'
+          assert externals[0] == frozen_external, 'fresh external evidence differs from frozen receipt'
+          print('R268_EVIDENCE_DETERMINISM_OK')
+          PY
