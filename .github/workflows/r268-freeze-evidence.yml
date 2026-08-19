@@ -92,6 +92,8 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git rev-parse origin/r268-proof-carrying-adaptive-causal-basis-gpt56sol)" = "$GITHUB_SHA"
           git merge-base --is-ancestor b789dd7a48f10f3afb1cf42ee62d3dc77dee200e HEAD
+          git merge-base --is-ancestor b9313e26e5c62207c1592a6c6e99499c7c7b9551 HEAD
+          git merge-base --is-ancestor 3cb2efaacd43f2f0642bc916d45ddd415257beb0 HEAD
       - name: Reverify exact source tree before freeze
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
@@ -196,7 +198,9 @@ jobs:
               'composition_holdout_challenger_pr':75,
               'proper_subset_fix_challenger_pr':77,
               'semantic_alias_budget_validation_prs':[80,81],
-              'semantic_alias_budget_fix_pr':83,
+              'semantic_alias_budget_fix_pr':85,
+              'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551',
+              'semantic_alias_search_reuse_fix_commit':'3cb2efaacd43f2f0642bc916d45ddd415257beb0',
               'semantic_alias_search_reuse_challenger_pr':84,
             },
             'frozen_git_blobs':blobs,
