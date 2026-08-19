@@ -67,15 +67,22 @@ jobs:
       - name: Recompute exact authored and external evidence
         run: |
           PYTHONPATH=. python - <<'PY'
-          import json
+          import hashlib,json
           from pathlib import Path
           import numpy as np
           from benchmarks.kfigg.r268_adaptive_causal_basis import run_benchmark
           from research.r268_external_transfer import run_external_transfer
           assert np.__version__=='2.4.6'
           phase=run_benchmark(); external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
-          assert phase==json.loads(Path('R2_68_PHASE_A_RESULT.json').read_text())
-          assert external==json.loads(Path('R2_68_EXTERNAL_TRANSFER.json').read_text())
+          phase_text=json.dumps(phase,indent=2,sort_keys=True)+'\n'
+          external_text=json.dumps(external,indent=2,sort_keys=True)+'\n'
+          assert Path('R2_68_PHASE_A_RESULT.json').read_text()==phase_text
+          assert Path('R2_68_EXTERNAL_TRANSFER.json').read_text()==external_text
+          lock=json.loads(Path('R2_68_PRE_HOSTED_LOCK.json').read_text())
+          cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+          ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+          assert hashlib.sha256(cp).hexdigest()==lock['authored_evidence']['sha256_canonical_json']
+          assert hashlib.sha256(ce).hexdigest()==lock['external_evidence']['sha256_canonical_json']
           assert phase['all_gates_pass'] is True and phase['false_accepts']==0
           assert phase['selected_basis_sizes']==[0,2,3,4]
           assert phase['replayable_global_ledgers'] is True and phase['complete_local_ledgers'] is True
@@ -138,7 +145,7 @@ jobs:
         run: |
           python - <<'PY'
           import json,os,urllib.request
-          payload=json.dumps({'state':'success','context':'r268/release-bundle','description':'R2.68 frozen proof-carrying authority, exact evidence, lineage and COMPLETE ZIP passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          payload=json.dumps({'state':'success','context':'r268/release-bundle','description':'R2.68 frozen proof-carrying authority, canonical evidence, lineage and COMPLETE ZIP passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
           req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
           urllib.request.urlopen(req).read()
           print('R268_RELEASE_BUNDLE_STATUS_PUBLISHED')
