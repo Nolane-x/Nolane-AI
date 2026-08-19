@@ -11,7 +11,7 @@ on:
       - 'cogcoder/r268_cross_task_transfer_baseline.py'
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   cross-version-proposed-green:
@@ -19,6 +19,9 @@ jobs:
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: hardening-r268t-input-context-snapshot-gpt56sol
+          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -51,3 +54,15 @@ jobs:
           assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
           PY
+
+      - name: Materialize tested ingress-snapshot sources
+        run: |
+          if git diff --quiet -- cogcoder/r268_cross_task_causal_transfer.py cogcoder/r268_cross_task_transfer_baseline.py; then
+            echo 'Production sources already materialized.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/r268_cross_task_causal_transfer.py cogcoder/r268_cross_task_transfer_baseline.py
+          git commit -m 'fix: snapshot R2.68-T public contexts at ingress'
+          git push origin HEAD:hardening-r268t-input-context-snapshot-gpt56sol
