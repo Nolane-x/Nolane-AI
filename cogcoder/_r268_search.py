@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Mapping,Sequence
 from .r256_operator_dsl import Binary,Const,Expr,Field,IfElse,Unary,evaluate_expr,expr_digest
 from .r256_operator_invention import OperatorExample
+from .r259_semantic_index_core import semantic_vector_key
 
 _ARITHMETIC_OPS=('add','sub','mul','div','min','max')
 _UNARY_OPS=('abs','neg')
@@ -21,7 +22,7 @@ def equivalent(actual:object,expected:object)->bool:
     return actual==expected
 
 def semantic_key(values:Sequence[object])->str:
-    return json.dumps(tuple(finite_json_value(v) for v in values),sort_keys=True,separators=(',',':'),allow_nan=False)
+    return semantic_vector_key(tuple(finite_json_value(v) for v in values))
 
 def used_fields(expr:Expr)->tuple[str,...]:
     out:set[str]=set()
