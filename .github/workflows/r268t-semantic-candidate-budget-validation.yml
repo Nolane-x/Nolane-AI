@@ -1,0 +1,45 @@
+name: R2.68-T Semantic Candidate Budget Validation
+
+on:
+  pull_request:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
+    paths:
+      - 'tests/test_r268_semantic_candidate_budget.py'
+      - 'scripts/r268t_apply_semantic_candidate_budget.py'
+      - '.github/workflows/r268t-semantic-candidate-budget-validation.yml'
+      - 'cogcoder/r268_cross_task_causal_transfer.py'
+      - 'cogcoder/r268_cross_task_transfer_baseline.py'
+
+permissions:
+  contents: read
+
+jobs:
+  proposed-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Apply semantic candidate-budget proposal in runner only
+        run: PYTHONPATH=. python scripts/r268t_apply_semantic_candidate_budget.py
+      - name: Run full R2.68-T focused suite
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Recompute authored benchmark and expose fairness impact
+        if: ${{ always() }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r268_cross_task_causal_transfer import run_benchmark
+          result = run_benchmark()
+          print(json.dumps(result, sort_keys=True, indent=2))
+          assert result['false_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          assert result['negative_transfer_abstained'] == result['negative_transfer_cases'] == 2
+          PY
