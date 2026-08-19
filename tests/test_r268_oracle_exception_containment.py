@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from cogcoder.r256_operator_dsl import Binary, Field
 import cogcoder.r268_cross_task_causal_transfer as transfer
 import cogcoder.r268_cross_task_transfer_baseline as scratch
@@ -144,3 +146,24 @@ def test_scratch_contains_terminal_runtimeerror(monkeypatch):
     assert receipt.terminal_queries == 1
     assert receipt.terminal_exact == 0
     assert receipt.false_accepts == 0
+
+
+def test_transfer_does_not_swallow_keyboardinterrupt(monkeypatch):
+    monkeypatch.setattr(
+        transfer,
+        'generate_transfer_candidates',
+        lambda _portable_program: (_candidate('__p0'),),
+    )
+
+    def oracle(_context):
+        raise KeyboardInterrupt()
+
+    with pytest.raises(KeyboardInterrupt):
+        transfer.adapt_portable_program(
+            _portable(),
+            diagnostic_contexts=_diagnostics(),
+            terminal_contexts=_terminals(),
+            oracle=oracle,
+            max_selection_queries=2,
+            max_candidates=1,
+        )
