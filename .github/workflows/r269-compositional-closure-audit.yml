@@ -46,6 +46,7 @@ jobs:
               'negative_false_accepts': result['negative_transfer_false_accepts'],
               'regret': result['max_negative_transfer_diagnostic_regret'],
               'authored_gate_pass': result['authored_gate_pass'],
+              'roomy_failures': [row['name'] for row in result['positive_cases'] if not row['roomy']['passed']],
           }, sort_keys=True))
           assert result['false_accepts'] == 0
           assert result['negative_transfer_false_accepts'] == 0
