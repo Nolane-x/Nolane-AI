@@ -72,5 +72,16 @@ def test_pinned_numpy_cyclic_dot_transfer_is_io_only_and_exact() -> None:
     assert result['challenge_exact'] == 6
     assert result['heldout_cases'] == 6
     assert result['heldout_exact'] == 6
+    assert result['oracle_accounting_exact'] is True
+    assert result['oracle_calls_learning_terminal'] > 0
+    assert result['oracle_calls_collision_certificates'] == 72
+    assert result['oracle_calls_challenge'] == 6
+    assert result['oracle_calls_heldout'] == 6
+    assert result['oracle_calls_total'] == (
+        result['oracle_calls_learning_terminal']
+        + result['oracle_calls_collision_certificates']
+        + result['oracle_calls_challenge']
+        + result['oracle_calls_heldout']
+    )
     assert result['false_accepts'] == 0
     assert result['trainable_parameter_count'] == 0
