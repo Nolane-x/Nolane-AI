@@ -145,7 +145,10 @@ def synthesize_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],objec
                 intervened=profile.intervention.apply(context,schema.field_names);key=context_key(schema,intervened);terminal_probe_cases+=1
                 if key in structure.learning_query_keys or key in seen:raise ValueError('terminal intervention inputs must be disjoint from all prior evidence inputs')
                 if context_validator is not None and not bool(context_validator(intervened)):raise RuntimeError('terminal intervention rejected')
-                seen.add(key);expected=terminal_oracle(intervened);actual=finite_json_value(evaluate_expr(probe_e[index],context));terminal_probe_exact+=int(equivalent(actual,expected))
+                seen.add(key);expected=terminal_oracle(intervened);actual=finite_json_value(evaluate_expr(probe_e[index],context))
+                if not equivalent(actual,expected):
+                    return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+                terminal_probe_exact+=1
             final_cases+=1;expected=terminal_oracle(context);actual=finite_json_value(evaluate_expr(expression,context));final_exact+=int(equivalent(actual,expected))
     except Exception:
         reason='terminal_probe_oracle_error' if final_cases==0 or terminal_probe_cases>terminal_probe_exact else 'final_terminal_oracle_error'
