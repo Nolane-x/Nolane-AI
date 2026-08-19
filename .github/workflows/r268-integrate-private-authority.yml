@@ -1,4 +1,5 @@
 name: R2.68 Integrate Combined Private Authority
+# Exact-head retrigger after scheduler-only validation-domain isolation.
 
 on:
   push:
