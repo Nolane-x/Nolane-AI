@@ -8,11 +8,12 @@ This file is the short authoritative status index for active research. Historica
 |---|---|---|
 | `main` / R2.67 | **Historical; strong three-probe necessity claim superseded by active correctness work** | Exact merge `43b43ce4b324b0d74357957af18dd0f60b1cb85e` is retained as history, but post-freeze validation found receipt-unit and lower-order-ablation defects. |
 | R2.67.1 / PR #61 | **Pending correctness hotfix; not accepted** | Active branch `r267-1-genuine-causal-necessity-hotfix-gpt56sol`. Promotion requires its own frozen evidence, canonical lineage and release verification. |
-| R2.68 / PR #70 | **Research candidate; promotion forbidden** | Isolated branch `r268-cross-task-causal-transfer-gpt56sol`. It must be rebased/refrozen on the exact accepted R2.67.1-or-successor parent before any promotion claim. |
+| Canonical R2.68 / PR #73 | **Active architectural research candidate; not accepted** | `r268-proof-carrying-adaptive-causal-basis-gpt56sol` owns the R2.68 milestone namespace. Its proof-carrying adaptive causal-basis work is independent from the transfer research below and remains subject to exact-parent/evidence/release gates. |
+| R2.68-T transfer research / PR #70 | **Independent validation/research track; promotion forbidden as R2.68** | `r268-cross-task-causal-transfer-gpt56sol` explicitly yields canonical R2.68 ownership to PR #73. Its evidence may be reused by #73 or a later milestone only after a new version allocation and exact-parent integration. |
 
-## R2.68 research question
+## R2.68-T research question
 
-R2.68 tests whether an identity-free verified three-probe expression prior can make a distinct target solvable under a **smaller bounded hypothesis candidate budget** than the matched scratch search used by this gate while still failing closed under negative transfer.
+R2.68-T tests whether an identity-free verified three-probe expression prior can make a distinct target solvable under a **smaller bounded hypothesis candidate budget** than the matched scratch search used by this gate while still failing closed under negative transfer.
 
 The current evidence does **not** claim fewer total target oracle calls than a roomy scratch solver. That is a separate experiment.
 
@@ -31,25 +32,26 @@ A separate matched scratch solver receives the same target diagnostic/terminal c
 
 ## Hosted TDD evidence established
 
-- Initial portable-prior RED: Actions run `32217699599` failed on Python 3.11/3.13 because the R2.68 module did not exist.
+- Initial portable-prior RED: Actions run `32217699599` failed on Python 3.11/3.13 because the transfer module did not exist.
 - Portable-prior GREEN: run `32217845457` passed on Python 3.11/3.13.
 - Active-adaptation RED: run `32217913671` failed because the target adaptation API did not exist.
 - Active-adaptation GREEN: run `32218004962` passed on Python 3.11/3.13.
 - Matched-scratch RED: run `32218105396` failed because the scratch baseline API did not exist.
 - Matched-scratch GREEN: run `32218226399` passed on Python 3.11/3.13.
 - Authored benchmark RED: run `32218264442` failed on Python 3.11/3.13 because the benchmark module did not exist.
-- Authored benchmark GREEN: run `32218379720` passed the unchanged three-positive/two-negative benchmark on Python 3.11 and 3.13. The frozen assertions require positive transfer `3/3`, negative-transfer abstention `2/2`, tight scratch `0/3`, roomy scratch `3/3`, diagnostic-order invariance, zero false accepts and zero trainable parameters.
+- Authored benchmark GREEN: run `32218379720` passed the unchanged three-positive/two-negative benchmark on Python 3.11 and 3.13. The assertions require positive transfer `3/3`, negative-transfer abstention `2/2`, tight scratch `0/3`, roomy scratch `3/3`, diagnostic-order invariance, zero false accepts and zero trainable parameters.
+- Nolane World W5 hardening RED: run `32218763169` produced **4 failures / 11 passes** on both Python versions. The four failures isolate direct-construction authority bypasses and the missing explicit source-prior ablation; prior transfer/baseline contracts remained green.
 
-Nolane World W5 audit then raised two additional authority requirements before the research evidence can be considered hardened: direct construction of the portable object must not bypass identity/digest/parameter checks, and a same-budget explicit source-prior ablation must remove the transfer advantage. Those challengers are part of the active R2.68 branch and are not optional promotion gates.
+The W5 hardening challengers are mandatory before this research track can be described as hardened: direct construction must enforce identity/digest/probe-role/zero-parameter boundaries, and a same-budget structurally shuffled source-prior ablation must remove the transfer advantage.
 
 ## Source boundary
 
-Phase A begins at the verified abstract expression-prior boundary; it does not independently rerun the complete source-learning pipeline on every benchmark invocation. Before promotion, portable export must be bound to the exact accepted R2.67.1-or-successor receipt/evidence boundary after rebase and refreeze.
+Phase A begins at the verified abstract expression-prior boundary; it does not independently rerun the complete source-learning pipeline on every benchmark invocation. Before any future promotion, portable export must be bound to an exact accepted parent receipt/evidence boundary after rebase and refreeze.
 
 ## Parameter boundary
 
-R2.68 adds **0 trainable neural parameters**. Any measured effect is hybrid-runtime learning-to-learn evidence, not a neural-parameter increase.
+R2.68-T adds **0 trainable neural parameters**. Any measured effect is hybrid-runtime learning-to-learn evidence, not a neural-parameter increase.
 
 ## Claim boundary
 
-No active item in this file establishes AGI, unrestricted program transfer, general software-engineering autonomy, natural-language mastery, open-world learning, lower total oracle cost, or frontier-model equivalence. R2.68 is a bounded causal-prior transfer experiment and remains non-promotable while its parent correctness boundary is unsettled.
+Neither canonical PR #73 nor this transfer-research track establishes AGI. R2.68-T additionally does not establish unrestricted program transfer, arbitrary raw target-schema binding, lower total oracle cost, general software-engineering autonomy, natural-language mastery, open-world learning, or frontier-model equivalence.
