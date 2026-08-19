@@ -52,8 +52,8 @@ def _solve(discovery_rows, validation_rows):
             probe_max_candidates=50_000,
             probe_beam_width=192,
         )
-    # Cross-phase reuse is statically knowable from base contexts and legal
-    # intervention applications; reject it before spending any oracle evidence.
+    # The overlap is statically knowable from base rows and legal intervention
+    # applications, so no oracle evidence may be consumed before rejection.
     assert calls == []
 
 
@@ -69,7 +69,15 @@ def test_rejects_validation_base_row_already_seen_as_discovery_intervention() ->
     _solve(discovery, validation)
 
 
-def test_rejects_validation_intervention_query_already_seen_in_discovery() -> None:
+def test_rejects_validation_intervention_query_already_seen_as_discovery_base() -> None:
     discovery = ((0, 2), (2, 3), (-2, 5), (4, -3), (5, 7), (-1, -2))
     validation = ((1, 2), (7, 8), (9, -4))
+    _solve(discovery, validation)
+
+
+def test_rejects_validation_intervention_query_reused_from_discovery_intervention() -> None:
+    # Discovery (1,2) with a=0 and validation (7,2) with a=0 both query (0,2),
+    # even though neither base row appears in the other phase.
+    discovery = ((1, 2), (2, 3), (-2, 5), (4, -3), (5, 7), (-1, -2))
+    validation = ((7, 2), (8, 9), (9, 10))
     _solve(discovery, validation)
