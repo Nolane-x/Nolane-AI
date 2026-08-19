@@ -1,0 +1,16 @@
+{
+  "version": "Neural-R2.1-Recursive-Latent-Intelligence-Core",
+  "parent": "R2.0i-Active-Causal-Discovery",
+  "parent_effective_parameters": 78779253,
+  "delta_parameters": 1862280,
+  "candidate_effective_parameters": 80641533,
+  "parameter_ceiling": 81000000,
+  "latent_dim": 256,
+  "attention_heads": 4,
+  "ff_mult": 2,
+  "training_reasoning_depth": [1, 6],
+  "verified_runtime_depths": [1, 8, 12],
+  "weight_sharing": "one SharedReasoningCell reused at every reasoning depth",
+  "initial_policy_contract": "exact residual no-op for R2.0i action, stop, success and effect refinements",
+  "distillation_contract": "proof-weighted teacher supervision; zero proof weight carries no policy authority"
+}
