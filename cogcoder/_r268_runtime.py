@@ -56,10 +56,12 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             for row in ad:dv.append(tracked(row))
             for row in av:vv.append(tracked(row))
         except Exception as exc:return AdaptiveCausalBasisStructureReceipt(False,None,0,False,(),(),len(profiles),len(profiles),len(specs),0,0,oracle_calls,0,f'oracle_error:{type(exc).__name__}:{exc}',frozenset(queried),tuple(v_targets))
-        discovery_outputs=tuple(dv)
+        discovery_outputs=tuple(dv);validation_outputs=tuple(vv)
         if all(equivalent(value,target) for value,target in zip(discovery_outputs,d_targets,strict=True)):continue
         if len({semantic_key((v,)) for v in discovery_outputs})<2:continue
-        sid=hashlib.sha256(semantic_key(discovery_outputs).encode()).hexdigest();profiles.append(InterventionProfile(spec,tuple(dv),tuple(vv),sid))
+        identity_payload={'discovery':semantic_key(discovery_outputs),'validation':semantic_key(validation_outputs)}
+        identity_raw=json.dumps(identity_payload,sort_keys=True,separators=(',',':'))
+        sid=hashlib.sha256(identity_raw.encode()).hexdigest();profiles.append(InterventionProfile(spec,discovery_outputs,validation_outputs,sid))
     dedup={}
     for profile in profiles:
         prev=dedup.get(profile.semantic_profile_id)
