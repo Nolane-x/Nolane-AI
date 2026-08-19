@@ -1,0 +1,60 @@
+name: R2.68 Materialize Private Query Isolation
+
+on:
+  push:
+    branches: [fix-r268-private-query-isolation-gpt56sol]
+    paths: ['.github/workflows/r268-private-query-isolation-materialize.yml']
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 65
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-r268-private-query-isolation-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Apply guarded private-runtime invariant
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path=Path('cogcoder/_r268_runtime.py')
+          text=path.read_text()
+          old_budget="""    max_basis_size=int(max_basis_size);per_basis=int(composition_max_candidates_per_basis);max_total=int(max_composition_candidates_total)\n    if max_basis_size<1 or per_basis<1 or max_total<1:raise ValueError('basis size and candidate budgets must be positive')\n    oracle_calls=0;queried=set()\n"""
+          new_budget="""    max_basis_size=int(max_basis_size);per_basis=int(composition_max_candidates_per_basis);max_total=int(max_composition_candidates_total)\n    if max_basis_size<1 or per_basis<1 or max_total<1:raise ValueError('basis size and candidate budgets must be positive')\n\n    # Validation is independent authority evidence. Precompute the complete\n    # oracle-input universes for both phases before any oracle execution and\n    # fail closed if a semantic input would be reused across phases.\n    specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity))\n    prepared_specs=[]\n    discovery_query_keys={context_key(schema,row) for row in discovery}\n    validation_query_keys={context_key(schema,row) for row in validation}\n    for spec in specs:\n        ad=tuple(spec.apply(r,schema.field_names) for r in discovery);av=tuple(spec.apply(r,schema.field_names) for r in validation)\n        if context_validator is not None and any(not bool(context_validator(r)) for r in (*ad,*av)):continue\n        prepared_specs.append((spec,ad,av))\n        discovery_query_keys.update(context_key(schema,row) for row in ad)\n        validation_query_keys.update(context_key(schema,row) for row in av)\n    overlap=discovery_query_keys & validation_query_keys\n    if overlap:\n        raise ValueError(f'discovery and validation oracle-query universes must be semantically disjoint (overlap_count={len(overlap)})')\n\n    oracle_calls=0;queried=set()\n"""
+          assert text.count(old_budget)==1,text.count(old_budget)
+          text=text.replace(old_budget,new_budget,1)
+          old_profiles="""    specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity));profiles=[]\n    for spec in specs:\n        ad=tuple(spec.apply(r,schema.field_names) for r in discovery);av=tuple(spec.apply(r,schema.field_names) for r in validation)\n        if context_validator is not None and any(not bool(context_validator(r)) for r in (*ad,*av)):continue\n        dv=[];vv=[]\n"""
+          new_profiles="""    profiles=[]\n    for spec,ad,av in prepared_specs:\n        dv=[];vv=[]\n"""
+          assert text.count(old_profiles)==1,text.count(old_profiles)
+          path.write_text(text.replace(old_profiles,new_profiles,1))
+          print('R268_PRIVATE_RUNTIME_QUERY_ISOLATION_APPLIED')
+          PY
+      - name: Verify full current authority
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_learning_validation_query_disjointness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Commit exact source delta once
+        if: matrix.python-version == '3.11'
+        run: |
+          set -euo pipefail
+          changed="$(git status --short | awk '{print $2}')"
+          test "$changed" = 'cogcoder/_r268_runtime.py'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r268_runtime.py
+          git commit -m 'fix(r268): enforce query isolation in private runtime'
+          git push origin HEAD:fix-r268-private-query-isolation-gpt56sol
