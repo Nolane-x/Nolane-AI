@@ -10,7 +10,7 @@ def canonical_evidence_payload(examples:Sequence[OperatorExample],exposed_fields
     for index,example in enumerate(tuple(examples)):
         missing=[f for f in fields if f not in example.context]
         if missing:raise KeyError(f'missing exposed fields: {missing}')
-        rows.append({'index':index,'values':[finite_json_value(example.context[f]) for f in fields],'target':finite_json_value(example.expected)})
+        rows.append({'index':index,'values_semantic':semantic_key(tuple(finite_json_value(example.context[f]) for f in fields)),'target_semantic':semantic_key((finite_json_value(example.expected),))})
     return rows
 
 def canonical_evidence_digest(examples:Sequence[OperatorExample],exposed_fields:Sequence[str])->str:
@@ -29,7 +29,7 @@ def build_public_target_collision_certificate(*,basis_semantic_profile_ids:Seque
         values=tuple(example.context[f] for f in fields);key=semantic_key(values);target=finite_json_value(example.expected);previous=seen.get(key)
         if previous is not None and not equivalent(previous[1],target):
             left=previous[0]
-            witness_raw=json.dumps({'proof_kind':'public_target_collision','evidence_digest':evidence_digest,'exposed_fields':list(fields),'witness_rows':[left,index],'values':[finite_json_value(rows[left].context[f]) for f in fields],'targets':[finite_json_value(rows[left].expected),target]},sort_keys=True,separators=(',',':'),allow_nan=False)
+            witness_raw=json.dumps({'proof_kind':'public_target_collision','evidence_digest':evidence_digest,'exposed_fields':list(fields),'witness_rows':[left,index],'values_semantic':semantic_key(tuple(finite_json_value(rows[left].context[f]) for f in fields)),'targets_semantic':semantic_key((finite_json_value(rows[left].expected),target))},sort_keys=True,separators=(',',':'),allow_nan=False)
             return NecessityCertificate(basis_ids,subset_ids,len(subset_ids),fields,evidence_digest,'public_target_collision',hashlib.sha256(witness_raw.encode()).hexdigest(),(left,index))
         seen[key]=(index,target)
     return None
