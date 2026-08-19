@@ -12,9 +12,9 @@ DISCOVERY = (
     {'a': 2.0, 'b': 2.0},
 )
 VALIDATION = (
-    {'a': 1.0, 'b': 2.0},
-    {'a': 2.0, 'b': 3.0},
-    {'a': 4.0, 'b': 1.0},
+    {'a': 5.0, 'b': 7.0},
+    {'a': 7.0, 'b': 11.0},
+    {'a': 11.0, 'b': 13.0},
 )
 
 
@@ -26,7 +26,8 @@ def test_proposal_cache_is_invariant_to_authority_hash_slot_order(monkeypatch) -
     calls: list[tuple[tuple[str, ...], tuple[tuple[object, ...], ...]]] = []
 
     # Remove singleton search from this scheduler-only challenger while keeping
-    # two-probe bases search-eligible.
+    # two-probe bases search-eligible. Validation uses a separate value domain
+    # so this test isolates proposal-slot/hash ordering rather than holdout reuse.
     def singleton_collision_only(*, semantic_profile_ids, exposed_fields, examples):
         if len(semantic_profile_ids) != 1:
             return None
@@ -68,11 +69,6 @@ def test_proposal_cache_is_invariant_to_authority_hash_slot_order(monkeypatch) -
 
     assert receipt.legal_interventions == 4
     assert receipt.semantic_profiles == 4
-
-    # The four authority identities generate exactly three discovery proposal
-    # classes at k=2: {a-alias,a-alias}, {b-alias,b-alias}, and the cross-field
-    # {a-alias,b-alias} class.  Hash ordering of concrete intervention IDs must
-    # not turn the cross-field class into two paid searches with swapped slots.
     assert len(set(calls)) == 3
     assert len(calls) == 3
     assert receipt.composition_candidates_considered == 3
