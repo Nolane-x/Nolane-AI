@@ -5,6 +5,7 @@ on:
     paths:
       - 'cogcoder/r269_transfer_runtime.py'
       - 'scripts/r269_multi_prior_patch.py'
+      - 'scripts/r269_multi_prior_adjust.py'
       - 'tests/test_r269_multi_prior_adjudication.py'
       - '.github/workflows/r269-multi-prior-hardening.yml'
   workflow_dispatch:
@@ -22,7 +23,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Apply runner-only proposal
-        run: PYTHONPATH=. python scripts/r269_multi_prior_patch.py
+        run: |
+          PYTHONPATH=. python scripts/r269_multi_prior_patch.py
+          PYTHONPATH=. python scripts/r269_multi_prior_adjust.py
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
