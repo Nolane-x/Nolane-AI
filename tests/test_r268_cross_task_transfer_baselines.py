@@ -1,12 +1,8 @@
 from __future__ import annotations
 
 from cogcoder.r256_operator_dsl import Binary, Field
-from cogcoder.r268_cross_task_causal_transfer import (
-    adapt_portable_program,
-    export_expression_prior,
-    generate_scratch_candidates,
-    solve_from_scratch,
-)
+from cogcoder.r268_cross_task_causal_transfer import adapt_portable_program, export_expression_prior
+from cogcoder.r268_cross_task_transfer_baseline import generate_scratch_candidates, solve_from_scratch
 
 
 def _source():
