@@ -17,6 +17,7 @@ from .r268_cross_task_causal_transfer import (
     _failed_receipt,
     _proven_structural_alias_key,
     _safe_prediction,
+    _snapshot_context_groups,
 )
 
 
@@ -101,8 +102,10 @@ def solve_from_scratch(
     if max_selection_queries < 1:
         raise ValueError('max_selection_queries must be positive')
 
-    diagnostics = tuple(diagnostic_contexts)
-    terminals = tuple(terminal_contexts)
+    diagnostics, terminals = _snapshot_context_groups(
+        diagnostic_contexts,
+        terminal_contexts,
+    )
     if not diagnostics:
         raise ValueError('diagnostic_contexts must be non-empty')
     if not terminals:
