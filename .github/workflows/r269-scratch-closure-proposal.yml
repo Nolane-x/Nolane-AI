@@ -1,13 +1,13 @@
-name: R2.69 Scratch Closure Proposal
+name: R2.69 Authored Benchmark Audit
 
 on:
   pull_request:
     paths:
-      - 'scripts/r269_scratch_closure_patch.py'
-      - 'scripts/r269_scratch_closure_debug.py'
-      - 'tests/test_r269_scratch_compositional_closure.py'
-      - 'tests/test_r269_benchmark.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
+      - 'tests/test_r269_benchmark.py'
+      - 'tests/test_r269_scratch_compositional_closure.py'
+      - 'cogcoder/r269_meta_learning_kernel.py'
+      - 'cogcoder/r269_transfer_runtime.py'
       - '.github/workflows/r269-scratch-closure-proposal.yml'
   workflow_dispatch:
 
@@ -15,42 +15,44 @@ permissions:
   contents: read
 
 jobs:
-  proposal:
+  audit:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - name: Apply runner-only closure patch
-        run: PYTHONPATH=. python scripts/r269_scratch_closure_patch.py
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: python -m pip install pytest 'numpy==2.4.6'
-      - name: Inspect survivor layers
-        run: PYTHONPATH=. python scripts/r269_scratch_closure_debug.py
-      - name: Python 3.11 protected and focused
-        run: |
-          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.13'
-      - run: python -m pip install pytest 'numpy==2.4.6'
-      - name: Python 3.13 protected and focused
-        run: |
-          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
-      - name: Deterministic benchmark replay
+      - name: Protected R2.68 safety
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Emit exact authored evidence
         env:
           PYTHONHASHSEED: '777'
         run: |
           PYTHONPATH=. python - <<'PY'
+          import json
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
-          a = run_benchmark()
-          b = run_benchmark()
-          assert a['determinism']['semantic_digest'] == b['determinism']['semantic_digest']
-          print('claim=', a['claim'])
-          print('positive_solves=', a['positive']['transfer_solves'], a['positive']['cold_scratch_solves'], a['positive']['roomy_scratch_solves'])
-          print('median_reductions=', a['positive']['median_oracle_call_reduction'], a['positive']['median_search_work_reduction'])
-          print('negative=', a['negative']['false_accepts'], a['negative']['max_extra_physical_oracle_regret'])
-          print('gate=', a['strong_claim_gate'])
+          result = run_benchmark()
+          print(json.dumps({
+              'positive_targets': result['positive_targets'],
+              'positive_transfer_solved': result['positive_transfer_solved'],
+              'tight_cold_scratch_solved': result['tight_cold_scratch_solved'],
+              'roomy_scratch_solved': result['roomy_scratch_solved'],
+              'ablation_solved': result['source_prior_ablation_solved'],
+              'shuffled_prior_solved': result['shuffled_prior_solved'],
+              'ablation_removed_fraction': result['source_prior_ablation_advantage_removed_fraction'],
+              'median_transfer_diagnostic_calls': result['median_transfer_diagnostic_calls'],
+              'median_cold_solved_diagnostic_calls': result['median_cold_solved_diagnostic_calls'],
+              'median_transfer_search_work': result['median_transfer_search_work'],
+              'median_tight_scratch_search_work': result['median_tight_scratch_search_work'],
+              'negative_targets': result['negative_targets'],
+              'negative_transfer_false_accepts': result['negative_transfer_false_accepts'],
+              'continued_scratch_correctness_preserved': result['continued_scratch_correctness_preserved'],
+              'max_negative_transfer_diagnostic_regret': result['max_negative_transfer_diagnostic_regret'],
+              'false_accepts': result['false_accepts'],
+              'authored_gate_pass': result['authored_gate_pass'],
+              'semantic_result_digest': result['semantic_result_digest'],
+          }, sort_keys=True))
           PY
+      - name: Benchmark contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_benchmark.py tests/test_r269_scratch_compositional_closure.py
