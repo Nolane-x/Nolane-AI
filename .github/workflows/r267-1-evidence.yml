@@ -2,9 +2,11 @@ name: R2.67.1 Replacement Evidence
 
 on:
   push:
-    branches: [r267-1-evidence-gpt56sol]
+    branches:
+      - r267-1-genuine-causal-necessity-hotfix-gpt56sol
+      - r267-1-evidence-gpt56sol
   pull_request:
-    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -26,22 +28,18 @@ jobs:
       - run: python -m pip install pytest 'numpy==2.4.6'
       - name: Accepted R2.66 first
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Use corrected R2.67.1 authority semantics
+      - name: Require materialized corrected R2.67.1 authority semantics
         run: |
           set -euo pipefail
-          if grep -q 'def _examples_have_target_collision' cogcoder/r267_three_probe_causal_composition.py; then
-            echo R267_1_CORE_ALREADY_MATERIALIZED
-          else
-            python scripts/r267_1_apply_genuine_necessity_core.py
-            python scripts/r267_1_apply_certified_ablation_authority.py
-            echo R267_1_CORE_APPLIED_EPHEMERALLY
-          fi
+          grep -q 'def _examples_have_target_collision' cogcoder/r267_three_probe_causal_composition.py
           python -m py_compile cogcoder/r267_three_probe_causal_composition.py
-      - name: Verify corrected authority contracts before evidence
+      - name: Verify corrected authority and receipt contracts before evidence
         run: |
           PYTHONPATH=. python -m pytest -q \
             tests/test_r267_1_correctness_hotfix.py \
-            tests/test_r267_1_no_collision_failclosed.py
+            tests/test_r267_1_no_collision_failclosed.py \
+            tests/test_r267_1_authority_boundaries.py \
+            tests/test_r267_1_preselection_receipt_units.py
       - name: R2.67.1 replacement evidence contracts
         run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_evidence.py
       - name: Accepted R2.66 after evidence execution
