@@ -39,13 +39,32 @@ jobs:
           import json,subprocess
           from pathlib import Path
           lock=json.loads(Path('R2_68_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['schema_version']==3
+          assert lock['milestone']=='R2.68'
           assert lock['parent_release_commit']=='b789dd7a48f10f3afb1cf42ee62d3dc77dee200e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
+          assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
+          a=lock['authority_hardening']
+          required_authority=(
+            'discovery_validation_oracle_query_disjoint','cross_phase_overlap_rejected_pre_oracle',
+            'validation_oracle_query_multiset_unique','validation_duplicate_queries_rejected_pre_oracle',
+            'external_projection_unique_validation_code','private_runtime_query_authority_enforced',
+            'public_private_authority_defense_in_depth','private_cross_phase_bypass_rejected_pre_oracle',
+            'private_validation_duplicate_bypass_rejected_pre_oracle','one_shot_integrator_retired_before_freeze',
+            'canonical_json_evidence_comparison','refreeze_tracked_evidence_delta_isolated',
+          )
+          for key in required_authority: assert a[key] is True,key
+          iv=lock['independent_validation']
+          assert iv['learning_validation_query_disjointness_red_run']==32253837397
+          assert iv['validation_query_uniqueness_red_run']==32256422916
+          assert iv['private_runtime_challenger_pr']==103
+          assert iv['private_runtime_integration_commit']=='d8428379550cc601acbadfbd8cc5646db50b95f7'
+          assert iv['private_runtime_integrator_retirement_commit']=='c6f58646acaeb547f31709648f01c7eae12857c1'
           for file,expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',file],text=True).strip()
               assert actual==expected,(file,actual,expected)
           subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'],check=True)
-          print('R268_EXACT_MAIN_FROZEN_OK',len(lock['frozen_git_blobs']))
+          print('R268_EXACT_MAIN_FROZEN_OK',len(lock['frozen_git_blobs']),lock['source_freeze_head'])
           PY
       - name: Recompute exact main evidence
         run: |
@@ -67,7 +86,14 @@ jobs:
           assert hashlib.sha256(cp).hexdigest()==lock['authored_evidence']['sha256_canonical_json']
           assert hashlib.sha256(ce).hexdigest()==lock['external_evidence']['sha256_canonical_json']
           assert phase['all_gates_pass'] is True and phase['false_accepts']==0
-          assert external['passed'] is True and external['oracle_accounting_exact'] is True and external['false_accepts']==0
+          assert external['passed'] is True and external['discovery_validation_oracle_query_disjoint'] is True
+          assert external['validation_oracle_query_attempts']==120
+          assert external['validation_oracle_query_unique']==120
+          assert external['validation_oracle_query_duplicates']==0
+          assert lock['external_evidence']['validation_oracle_query_attempts']==120
+          assert lock['external_evidence']['validation_oracle_query_unique']==120
+          assert lock['external_evidence']['validation_oracle_query_duplicates']==0
+          assert external['oracle_accounting_exact'] is True and external['false_accepts']==0
           print('R268_EXACT_MAIN_EVIDENCE_OK')
           PY
       - name: Run exact-main authority and parent tests
