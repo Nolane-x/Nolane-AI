@@ -1,0 +1,36 @@
+name: Independent R2.68 Composition Holdout
+
+on:
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths:
+      - 'tests/test_r268_independent_composition_holdout.py'
+      - '.github/workflows/validation-r268-composition-holdout.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  challenger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Reconfirm current canonical R2.68 contracts
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r268_adaptive_causal_basis.py \
+            tests/test_r268_proof_authority.py \
+            tests/test_r268_receipt_accounting.py \
+            tests/test_r268_benchmark.py
+      - name: Independent disjoint-composition-validation contract
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_independent_composition_holdout.py
