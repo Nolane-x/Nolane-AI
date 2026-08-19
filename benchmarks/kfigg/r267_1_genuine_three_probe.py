@@ -22,10 +22,12 @@ CONFIGS = (
     (-2.0, 5.0, 3.0), (4.0, -3.0, 2.0),
     (5.0, 2.0, -4.0), (-3.0, -2.0, 6.0),
     (7.0, -1.0, -5.0), (-4.0, 6.0, -2.0),
-    # Independent terminal rows.
-    (8.0, 3.0, 5.0), (-6.0, 4.0, 7.0),
-    (9.0, -2.0, 6.0), (3.0, 8.0, -5.0),
-    (-7.0, -4.0, 2.0), (5.0, -9.0, -3.0),
+    # Independent terminal rows.  Each base row and each zero-intervention
+    # variant is disjoint from every learning query and from the other terminal
+    # evidence keys.
+    (101.0, 103.0, 107.0), (-109.0, 113.0, 127.0),
+    (131.0, -137.0, 139.0), (149.0, 151.0, -157.0),
+    (-163.0, -167.0, 173.0), (179.0, -181.0, -191.0),
     # Heldout rows never used for learning or terminal authority.
     (11.0, 2.0, 7.0), (-8.0, 5.0, 4.0),
     (6.0, -7.0, 3.0), (4.0, 9.0, -6.0),
