@@ -2,7 +2,10 @@ name: R2.68 RED GREEN
 
 on:
   pull_request:
-    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol, main]
+    branches:
+      - r267-1-genuine-causal-necessity-hotfix-gpt56sol
+      - r268-proof-carrying-adaptive-causal-basis-gpt56sol
+      - main
     paths:
       - 'cogcoder/r268_*.py'
       - 'cogcoder/_r268_*.py'
