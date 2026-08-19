@@ -17,6 +17,11 @@ from cogcoder.r21_recursive_core import (  # noqa: E402
     r21_parameter_count,
 )
 
+PHYSICAL_R21A_PARAMETERS = 29_370_727
+LEGACY_EFFECTIVE_R21A_PARAMETERS = 78_899_404
+R21A_ONE_WEIGHT_SHA256 = "4f0b366e2401127e50b7fdbca651601b0a4b972004812c9f32043b82f0e3091b"
+R21A_DELTA_SHA256 = "3bbd63c9cb20e180b78588e15a21e4132b41d80118c6ce229231967a91bfc9c4"
+
 
 def inputs(batch: int = 2, actions: int = 6) -> dict[str, torch.Tensor]:
     g = torch.Generator().manual_seed(2101)
@@ -39,25 +44,62 @@ def inputs(batch: int = 2, actions: int = 6) -> dict[str, torch.Tensor]:
     }
 
 
+def _verify_parameter_audit(manifest: dict, current_best: dict) -> dict:
+    audit_path = ROOT / "evidence" / "R2_1A_PARAMETER_ACCOUNTING_AUDIT.json"
+    audit = json.loads(audit_path.read_text())
+    accounting = current_best["parameter_accounting"]
+    admitted = manifest["current_evidence_backed_candidate"]
+
+    assert audit["status"] == "PASS"
+    assert audit["parameter_accounting_mode"] == "legacy_effective_with_physical_tensor_audit"
+    assert audit["one_weight_sha256"] == R21A_ONE_WEIGHT_SHA256
+    assert audit["delta_sha256"] == R21A_DELTA_SHA256
+    assert int(audit["serialized_tensor_count"]) == 426
+    assert int(audit["serialized_tensor_elements"]) == PHYSICAL_R21A_PARAMETERS
+    assert int(audit["physical_loaded_parameters"]) == PHYSICAL_R21A_PARAMETERS
+    assert sum(int(v) for v in audit["component_parameters"].values()) == PHYSICAL_R21A_PARAMETERS
+    assert int(audit["component_parameters"]["causal_router"]) == 120_151
+    assert int(audit["legacy_effective_parameters"]) == LEGACY_EFFECTIVE_R21A_PARAMETERS
+    assert int(audit["legacy_effective_minus_physical"]) == (
+        LEGACY_EFFECTIVE_R21A_PARAMETERS - PHYSICAL_R21A_PARAMETERS
+    )
+    assert audit["fresh_result_unchanged"] is True
+    assert audit["fresh_holdout_reused_for_tuning"] is False
+    assert audit["weights_changed_by_audit"] is False
+
+    assert accounting["mode"] == audit["parameter_accounting_mode"]
+    assert int(accounting["physical_loaded_parameters"]) == PHYSICAL_R21A_PARAMETERS
+    assert int(accounting["legacy_effective_parameters"]) == LEGACY_EFFECTIVE_R21A_PARAMETERS
+    assert accounting["one_weight_sha256"] == R21A_ONE_WEIGHT_SHA256
+    assert accounting["weights_changed_by_audit"] is False
+
+    assert int(admitted["physical_loaded_parameters"]) == PHYSICAL_R21A_PARAMETERS
+    assert int(admitted["legacy_effective_parameters"]) == LEGACY_EFFECTIVE_R21A_PARAMETERS
+    assert admitted["parameter_accounting_mode"] == audit["parameter_accounting_mode"]
+    return audit
+
+
 def main() -> None:
     torch.manual_seed(21)
     manifest = json.loads((ROOT / "ARCHITECTURE.json").read_text())
     current_best = json.loads((ROOT / "CURRENT_BEST.json").read_text())
     assert int(manifest["parameter_ceiling"]) == R21_PARAMETER_CEILING
+    audit = _verify_parameter_audit(manifest, current_best)
 
     # The admitted evidence-backed candidate and the experimental recursive
-    # architecture are intentionally separate contracts.  Verify both so a
+    # architecture are intentionally separate contracts. Verify both so a
     # future manifest promotion cannot silently invalidate the other path.
     admitted = manifest["current_evidence_backed_candidate"]
     router = CausalEvidenceRouter(hidden_dim=int(admitted["hidden_dim"])).eval()
     admitted_delta = r21a_parameter_count(router)
-    admitted_effective = R20I_EFFECTIVE_PARAMETERS + admitted_delta
+    legacy_effective = R20I_EFFECTIVE_PARAMETERS + admitted_delta
     assert admitted_delta == int(admitted["delta_parameters"])
-    assert admitted_effective == int(admitted["candidate_effective_parameters"])
-    assert admitted_effective <= R21_PARAMETER_CEILING
+    assert legacy_effective == int(admitted["candidate_effective_parameters"])
+    assert legacy_effective == int(admitted["legacy_effective_parameters"])
+    assert legacy_effective <= R21_PARAMETER_CEILING
     assert current_best["version"] == admitted["version"]
     assert int(current_best["delta_parameters"]) == admitted_delta
-    assert int(current_best["candidate_effective_parameters"]) == admitted_effective
+    assert int(current_best["candidate_effective_parameters"]) == legacy_effective
     assert current_best["fresh"]["weights_modified_after_fresh"] is False
     assert current_best["fresh"]["holdout_consumed"] is True
 
@@ -110,9 +152,11 @@ def main() -> None:
         "status": "PASS",
         "admitted_candidate": admitted["version"],
         "admitted_delta_parameters": admitted_delta,
-        "admitted_effective_parameters": admitted_effective,
+        "legacy_effective_parameters": legacy_effective,
+        "physical_loaded_parameters": audit["physical_loaded_parameters"],
+        "one_weight_sha256": audit["one_weight_sha256"],
         "experimental_recursive_delta_parameters": delta,
-        "experimental_recursive_effective_parameters": effective,
+        "experimental_recursive_legacy_effective_parameters": effective,
         "parameter_ceiling": R21_PARAMETER_CEILING,
         "verified_depth": 12,
         "shared_reasoning_cell": True,
