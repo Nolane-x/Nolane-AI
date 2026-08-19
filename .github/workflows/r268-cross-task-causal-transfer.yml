@@ -1,0 +1,43 @@
+name: R2.68-T Cross-Task Causal Transfer
+
+on:
+  push:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
+    paths:
+      - 'cogcoder/r268_*.py'
+      - 'tests/test_r268_*.py'
+      - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
+      - '.github/workflows/r268-cross-task-causal-transfer.yml'
+      - 'docs/superpowers/specs/2026-08-19-r268-cross-task-causal-transfer-design.md'
+      - 'docs/superpowers/plans/2026-08-19-r268-cross-task-causal-transfer.md'
+  pull_request:
+    paths:
+      - 'cogcoder/r268_*.py'
+      - 'tests/test_r268_*.py'
+      - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
+      - '.github/workflows/r268-cross-task-causal-transfer.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: r268t-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Run R2.68-T focused contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
