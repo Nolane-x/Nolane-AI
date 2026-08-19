@@ -136,6 +136,18 @@ class PortableCausalProgram:
     probe_roles: tuple[str, str, str] = _PROBE_ROLES
     trainable_parameter_count: int = 0
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.expression, Expr):
+            raise TypeError('expression must be Expr')
+        if tuple(self.probe_roles) != _PROBE_ROLES:
+            raise ValueError('probe_roles must be the canonical three abstract probe roles')
+        if self.trainable_parameter_count != 0:
+            raise ValueError('trainable_parameter_count must remain zero')
+        if _used_fields(self.expression) != frozenset(_PROBE_ROLES):
+            raise ValueError('expression must depend on exactly three abstract probe roles')
+        if self.expression_digest != expr_digest(self.expression):
+            raise ValueError('expression_digest must exactly match expression content')
+
     def to_data(self) -> dict[str, object]:
         return {
             'schema_version': 1,
