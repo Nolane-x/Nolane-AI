@@ -100,6 +100,8 @@ jobs:
           git merge-base --is-ancestor b34037a41c073a826063e2ba4cb33874ff0c4044 HEAD
           git merge-base --is-ancestor a984b80ad28d7f2876d77be91f556a50ae0d581f HEAD
           git merge-base --is-ancestor b2e205837940e081cda0fa7da8232e7d81966446 HEAD
+          git merge-base --is-ancestor d8428379550cc601acbadfbd8cc5646db50b95f7 HEAD
+          git merge-base --is-ancestor c6f58646acaeb547f31709648f01c7eae12857c1 HEAD
       - name: Reverify exact source tree before freeze
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
@@ -152,7 +154,7 @@ jobs:
             'source_freeze_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'freeze_workflow_run_id':int(os.environ['FREEZE_RUN_ID']),
             'production_source_changes_after_lock_forbidden':True,'frozen_evidence_changes_after_lock_forbidden':True,'added_trainable_parameters':0,
-            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, semantically disjoint discovery/validation oracle-query universes, validation-query multiset uniqueness checked before oracle execution, canonical JSON evidence authority, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
+            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, private-runtime and public-layer pre-oracle enforcement of semantically disjoint discovery/validation oracle-query universes and validation-query multiset uniqueness, canonical JSON evidence authority, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
             'authority_hardening':{
               'target_preserving_nuisance_rejected':True,'proposal_validation_disjoint':True,'proper_subset_certificate_authority':True,
               'intervention_distinct_global_universe':True,'replayable_global_lower_basis_ledger':True,'subset_specific_exposure_recomputed':True,
@@ -161,6 +163,9 @@ jobs:
               'proposal_cache_authority_validation_separate':True,'discovery_validation_oracle_query_disjoint':True,
               'cross_phase_overlap_rejected_pre_oracle':True,'validation_oracle_query_multiset_unique':True,
               'validation_duplicate_queries_rejected_pre_oracle':True,'external_projection_unique_validation_code':True,
+              'private_runtime_query_authority_enforced':True,'public_private_authority_defense_in_depth':True,
+              'private_cross_phase_bypass_rejected_pre_oracle':True,'private_validation_duplicate_bypass_rejected_pre_oracle':True,
+              'one_shot_integrator_retired_before_freeze':True,
               'external_io_only':True,'cross_python_required':True,'freeze_delta_namespace_isolated':True,
               'refreeze_tracked_evidence_delta_isolated':True,'canonical_json_evidence_comparison':True,
             },
@@ -195,6 +200,12 @@ jobs:
               'validation_query_uniqueness_red_run':32256422916,'validation_query_uniqueness_challenger_pr':102,
               'validation_query_uniqueness_fix_commit':'a984b80ad28d7f2876d77be91f556a50ae0d581f',
               'external_projection_unique_corpus_fix_commit':'b2e205837940e081cda0fa7da8232e7d81966446',
+              'private_runtime_challenger_pr':103,
+              'private_runtime_old_base_core_green_run':32256837502,
+              'private_runtime_old_base_external_green_run':32256837610,
+              'private_runtime_integration_trigger_commit':'26d865d82be97cc481498bfa765e2da9eac6b2be',
+              'private_runtime_integration_commit':'d8428379550cc601acbadfbd8cc5646db50b95f7',
+              'private_runtime_integrator_retirement_commit':'c6f58646acaeb547f31709648f01c7eae12857c1',
               'proper_subset_challenger_pr':74,'composition_holdout_challenger_pr':75,'proper_subset_fix_challenger_pr':77,
               'semantic_alias_budget_validation_prs':[80,81],'semantic_alias_budget_fix_pr':85,
               'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551',
