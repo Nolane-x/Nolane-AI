@@ -58,7 +58,7 @@ jobs:
             'intervention_distinct_global_universe','replayable_global_lower_basis_ledger','attempted_observation_accounting',
             'terminal_selected_probe_reobservation','uncertified_search_miss_inconclusive','proposal_alias_budget_invariant',
             'proposal_search_reused_once','proposal_cache_discovery_only','proposal_cache_authority_validation_separate',
-            'canonical_json_evidence_comparison',
+            'canonical_json_evidence_comparison','refreeze_tracked_evidence_delta_isolated',
           )
           for key in required: assert a[key] is True,key
           assert lock['independent_validation']['semantic_alias_search_reuse_red_run']==32237610280
