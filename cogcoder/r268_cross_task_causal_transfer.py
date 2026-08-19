@@ -114,6 +114,28 @@ def _context_key(context: Mapping[str, object]) -> str:
     return json.dumps(_context_values(context), separators=(',', ':'), allow_nan=False)
 
 
+def _snapshot_context_groups(
+    *groups: Sequence[Mapping[str, object]],
+) -> tuple[tuple[dict[str, int | float], ...], ...]:
+    # Freeze each caller-owned Mapping object exactly once. Identity caching is
+    # required because the same stateful Mapping may appear in more than one
+    # authority collection; one object cannot masquerade as multiple semantic
+    # rows by changing values between reads.
+    cache: dict[int, tuple[Mapping[str, object], dict[str, int | float]]] = {}
+
+    def snapshot(context: Mapping[str, object]) -> dict[str, int | float]:
+        identity = id(context)
+        cached = cache.get(identity)
+        if cached is not None and cached[0] is context:
+            return cached[1]
+        values = _context_values(context)
+        frozen = dict(zip(_PROBE_ROLES, values, strict=True))
+        cache[identity] = (context, frozen)
+        return frozen
+
+    return tuple(tuple(snapshot(row) for row in group) for group in groups)
+
+
 def _safe_prediction(expr: Expr, context: Mapping[str, object]) -> tuple[bool, object]:
     try:
         value = _canonical_number(evaluate_expr(expr, context))
@@ -482,8 +504,10 @@ def adapt_portable_program(
     if max_candidates < 1:
         raise ValueError('max_candidates must be positive')
 
-    diagnostics = tuple(diagnostic_contexts)
-    terminals = tuple(terminal_contexts)
+    diagnostics, terminals = _snapshot_context_groups(
+        diagnostic_contexts,
+        terminal_contexts,
+    )
     if not diagnostics:
         raise ValueError('diagnostic_contexts must be non-empty')
     if not terminals:
