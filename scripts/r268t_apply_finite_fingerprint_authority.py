@@ -166,10 +166,11 @@ NEW_DIAGNOSTICS = '''def _diagnostics() -> tuple[dict[str, int | float], ...]:
         {'__p0': 3, '__p1': 3, '__p2': 1},
         {'__p0': 6, '__p1': 2, '__p2': -3},
         {'__p0': -4, '__p1': 5, '__p2': 2},
-        # Python floating subtraction is not reassociative. This public row is
-        # deliberately non-integral so runtime canonicalization preserves the
-        # float semantics and can distinguish ((p0-p2)-p1) from ((p0-p1)-p2).
+        # Python floating subtraction is not reassociative. These public,
+        # non-integral rows make that semantic distinction observable instead
+        # of treating finite behavioral fingerprints as equivalence proofs.
         {'__p0': 1000000000000000.25, '__p1': 1000000000000000.125, '__p2': 0.1},
+        {'__p0': 0.1, '__p1': 10000000000.1, '__p2': 10000000000.1},
     )
 '''
 
@@ -189,6 +190,7 @@ def main() -> None:
         '_proven_structural_alias_key' in source
         and '_diagnostic_semantic_closure' not in source
         and '1000000000000000.25' in benchmark
+        and '10000000000.1' in benchmark
     )
     if already:
         print('R268T_FINITE_FINGERPRINT_AUTHORITY_ALREADY_MATERIALIZED')
