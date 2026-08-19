@@ -1,9 +1,15 @@
 from __future__ import annotations
-from ._r268_proof import build_public_target_collision_certificate,verify_necessity_certificate
+from ._r268_proof import (
+    build_basis_collision_certificate,
+    build_public_target_collision_certificate,
+    verify_basis_collision_certificate,
+    verify_necessity_certificate,
+)
 from ._r268_runtime import discover_adaptive_causal_basis,synthesize_adaptive_causal_basis
-from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,NecessityCertificate
+from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,BasisCollisionCertificate,NecessityCertificate
 
 __all__=[
-    'NecessityCertificate','AdaptiveCausalBasisCandidate','AdaptiveCausalBasisStructureReceipt','AdaptiveCausalBasisReceipt',
-    'build_public_target_collision_certificate','verify_necessity_certificate','discover_adaptive_causal_basis','synthesize_adaptive_causal_basis',
+    'NecessityCertificate','BasisCollisionCertificate','AdaptiveCausalBasisCandidate','AdaptiveCausalBasisStructureReceipt','AdaptiveCausalBasisReceipt',
+    'build_basis_collision_certificate','verify_basis_collision_certificate','build_public_target_collision_certificate','verify_necessity_certificate',
+    'discover_adaptive_causal_basis','synthesize_adaptive_causal_basis',
 ]
