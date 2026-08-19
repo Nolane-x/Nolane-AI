@@ -1,0 +1,57 @@
+name: R2.68 Fix Experiment — Learning/Validation Query Disjointness
+
+on:
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths:
+      - 'tests/test_r268_learning_validation_query_disjointness.py'
+      - 'scripts/r268_apply_learning_validation_query_disjointness.py'
+      - '.github/workflows/r268-learning-validation-query-disjointness-fix-experiment.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  red-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Accepted parent safety before mutation
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Require genuine RED before patch
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r268_learning_validation_query_disjointness.py > /tmp/red.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/red.log
+          test "$code" -ne 0
+          grep -Eq '3 failed' /tmp/red.log
+          echo R268_QUERY_DISJOINTNESS_GENUINE_RED
+      - name: Apply guarded runner-only patch
+        run: python scripts/r268_apply_learning_validation_query_disjointness.py
+      - name: New authority regression GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_learning_validation_query_disjointness.py
+      - name: Full R2.68 plus accepted parent regressions GREEN
+        shell: bash
+        run: |
+          set -euo pipefail
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Patch remains authority-only
+        run: |
+          git diff -- cogcoder/_r268_runtime.py
+          git diff --exit-code -- cogcoder/_r268_proof.py cogcoder/_r268_search.py cogcoder/_r268_types.py cogcoder/r268_adaptive_causal_basis.py
