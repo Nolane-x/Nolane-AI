@@ -1,0 +1,48 @@
+name: R2.67.1 Preselection Receipt Integrity
+
+on:
+  push:
+    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
+    paths:
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - 'tests/test_r267_1_preselection_receipt_units.py'
+      - '.github/workflows/r267-1-preselection-receipt-hotfix.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - 'tests/test_r267_1_preselection_receipt_units.py'
+      - '.github/workflows/r267-1-preselection-receipt-hotfix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  integrity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Accepted R2.66 first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Require materialized preselection observation-ledger semantics
+        run: |
+          ! grep -q 'probe_validation_cases=len(validation)' cogcoder/r267_three_probe_causal_composition.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
+      - name: Preserve R2.67.1 authority and fresh evidence boundaries
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r267_1_authority_boundaries.py \
+            tests/test_r267_1_no_collision_failclosed.py \
+            tests/test_r267_1_correctness_hotfix.py \
+            tests/test_r267_1_evidence.py \
+            tests/test_r267_1_triangle_min_robustness.py
