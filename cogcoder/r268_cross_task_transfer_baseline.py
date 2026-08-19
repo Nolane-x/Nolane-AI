@@ -171,6 +171,17 @@ def solve_from_scratch(
         )
 
     live_after_selection = len(live)
+    if live_after_selection != 1:
+        return _failed_receipt(
+            candidates_generated=len(generated),
+            live=live,
+            selection_queries=selection_queries,
+            terminal_queries=0,
+            terminal_exact=0,
+            reason='ambiguous_after_selection',
+            trace=trace,
+        )
+
     terminal_queries = 0
     terminal_exact = 0
     for context in terminals:
