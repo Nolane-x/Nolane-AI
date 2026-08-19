@@ -1,0 +1,90 @@
+name: R2.68 Observable Frozen Evidence Artifact
+
+on:
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths: ['.github/workflows/r268-observable-freeze-artifact.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  frozen-evidence:
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 291c6c2091d0332fcb53bea8e4fb94b8424439c4
+          fetch-depth: 0
+      - name: Verify exact source ancestry
+        run: |
+          test "$(git rev-parse HEAD)" = '291c6c2091d0332fcb53bea8e4fb94b8424439c4'
+          git merge-base --is-ancestor b789dd7a48f10f3afb1cf42ee62d3dc77dee200e HEAD
+          git merge-base --is-ancestor b9313e26e5c62207c1592a6c6e99499c7c7b9551 HEAD
+          git merge-base --is-ancestor 3cb2efaacd43f2f0642bc916d45ddd415257beb0 HEAD
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Reconfirm focused authority
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Materialize exact frozen records
+        env:
+          FREEZE_RUN_ID: ${{ github.run_id }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r268_adaptive_causal_basis import run_benchmark
+          from research.r268_external_transfer import run_external_transfer
+          SOURCE='291c6c2091d0332fcb53bea8e4fb94b8424439c4'
+          phase=run_benchmark(); external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
+          assert np.__version__=='2.4.6'
+          assert phase['all_gates_pass'] is True and phase['selected_basis_sizes']==[0,2,3,4]
+          assert phase['replayable_global_ledgers'] is True and phase['complete_local_ledgers'] is True and phase['false_accepts']==0
+          assert external['passed'] is True and external['globally_minimal'] is True and external['oracle_accounting_exact'] is True
+          assert external['legal_interventions']==external['semantic_profiles']==4
+          assert external['lower_basis_count']==external['lower_basis_certified']==external['lower_basis_certificate_count']==4
+          assert external['necessity_certificate_count']==2 and external['false_accepts']==0
+          Path('R2_68_PHASE_A_RESULT.json').write_text(json.dumps(phase,indent=2,sort_keys=True)+'\n')
+          Path('R2_68_EXTERNAL_TRANSFER.json').write_text(json.dumps(external,indent=2,sort_keys=True)+'\n')
+          fixed=[
+            'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
+            'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
+            '.github/workflows/r268-red-green.yml','.github/workflows/r268-external-transfer.yml','.github/workflows/r268-canonical-gate.yml','.github/workflows/r268-freeze-evidence.yml','.github/workflows/r268-release-bundle.yml','.github/workflows/r268-post-merge-release-bundle.yml',
+            'docs/superpowers/specs/2026-08-19-r268-proof-carrying-adaptive-causal-basis-design.md','docs/superpowers/plans/2026-08-19-r268-proof-carrying-adaptive-causal-basis.md','docs/superpowers/specs/2026-08-19-r268-semantic-alias-proposal-budget-hardening.md',
+            'R2_68_PHASE_A_RESULT.json','R2_68_EXTERNAL_TRANSFER.json',
+          ]
+          tests=sorted(str(p) for p in Path('tests').glob('test_r268_*.py')); frozen=tuple(dict.fromkeys(fixed+tests))
+          blobs={p:subprocess.check_output(['git','hash-object',p],text=True).strip() for p in frozen}
+          cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode(); ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+          lock={
+            'schema_version':2,'milestone':'R2.68','name':'Proof-Carrying Adaptive Causal Basis','status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
+            'parent_release_commit':'b789dd7a48f10f3afb1cf42ee62d3dc77dee200e','source_freeze_head':SOURCE,'freeze_workflow_run_id':int(os.environ['FREEZE_RUN_ID']),
+            'production_source_changes_after_lock_forbidden':True,'frozen_evidence_changes_after_lock_forbidden':True,'added_trainable_parameters':0,
+            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not unrestricted causal minimality, open-ended scientific autonomy, AGI, or frontier-model equivalence',
+            'authority_hardening':{'target_preserving_nuisance_rejected':True,'proposal_validation_disjoint':True,'proper_subset_certificate_authority':True,'intervention_distinct_global_universe':True,'replayable_global_lower_basis_ledger':True,'subset_specific_exposure_recomputed':True,'attempted_observation_accounting':True,'terminal_selected_probe_reobservation':True,'uncertified_search_miss_inconclusive':True,'proposal_alias_budget_invariant':True,'proposal_search_reused_once':True,'proposal_cache_discovery_only':True,'proposal_cache_authority_validation_separate':True,'external_io_only':True,'cross_python_required':True},
+            'authored_protocol':{'positive_selected_basis_sizes':[2,3,4],'nuisance_control_selected_basis_size':0,'max_basis_size':4,'intervention_arity':1,'expected_local_certificate_counts':[0,2,6,14],'expected_global_lower_basis_certificate_counts':[0,2,6,14]},
+            'authored_evidence':{'all_gates_pass':True,'selected_basis_sizes':phase['selected_basis_sizes'],'replayable_global_ledgers':True,'complete_local_ledgers':True,'false_accepts':0,'trainable_parameter_count':0,'sha256_canonical_json':hashlib.sha256(cp).hexdigest()},
+            'external_evidence':{'source_id':external['source_id'],'source_version':external['source_version'],'source_exposure':external['source_exposure'],'passed':True,'selected_basis_size':external['selected_basis_size'],'globally_minimal':True,'legal_interventions':external['legal_interventions'],'lower_basis_count':external['lower_basis_count'],'lower_basis_certificate_count':external['lower_basis_certificate_count'],'necessity_certificate_count':external['necessity_certificate_count'],'oracle_calls_total':external['oracle_calls_total'],'oracle_accounting_exact':True,'false_accepts':0,'sha256_canonical_json':hashlib.sha256(ce).hexdigest()},
+            'independent_validation':{'exact_core_cross_python_run':32239730903,'exact_external_cross_python_run':32239730919,'composition_holdout_red_run':32220363255,'preoracle_accounting_red_run':32228145798,'validation_distinct_profile_red_run':32228801576,'semantic_alias_search_reuse_red_run':32237610280,'proper_subset_challenger_pr':74,'composition_holdout_challenger_pr':75,'proper_subset_fix_challenger_pr':77,'semantic_alias_budget_validation_prs':[80,81],'semantic_alias_budget_fix_pr':85,'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551','semantic_alias_search_reuse_fix_commit':'3cb2efaacd43f2f0642bc916d45ddd415257beb0','semantic_alias_search_reuse_challenger_pr':84},
+            'frozen_git_blobs':blobs,
+          }
+          Path('R2_68_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock,indent=2,sort_keys=True)+'\n')
+          for name in ('R2_68_PHASE_A_RESULT.json','R2_68_EXTERNAL_TRANSFER.json','R2_68_PRE_HOSTED_LOCK.json'):
+              print(name,hashlib.sha256(Path(name).read_bytes()).hexdigest())
+          PY
+      - name: Ensure exactly three generated records
+        run: |
+          test "$(git status --short | awk '{print $2}' | sort)" = "$(printf '%s\n' R2_68_EXTERNAL_TRANSFER.json R2_68_PHASE_A_RESULT.json R2_68_PRE_HOSTED_LOCK.json | sort)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.68-291c-frozen-evidence
+          path: |
+            R2_68_PHASE_A_RESULT.json
+            R2_68_EXTERNAL_TRANSFER.json
+            R2_68_PRE_HOSTED_LOCK.json
