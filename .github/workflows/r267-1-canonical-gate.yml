@@ -65,6 +65,7 @@ jobs:
           assert a['terminal_selected_probe_reobservation'] is True
           assert a['oracle_ledger_exact'] is True
           assert a['positive_domain_triangle_min_robustness'] is True
+          assert a['triplet_budget_semantic_invariance'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
               assert actual == expected, (path, actual, expected)
@@ -122,6 +123,7 @@ jobs:
           subprocess.run(['git','merge-base','--is-ancestor',parent,base], check=True)
           subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'], check=True)
           assert lock['authority_corrections']['attempted_case_receipt_accounting'] is True
+          assert lock['authority_corrections']['triplet_budget_semantic_invariance'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
@@ -203,7 +205,7 @@ jobs:
           payload=json.dumps({
               'state':'success',
               'context':'r2671/full-gate',
-              'description':'R2.67.1 frozen authority, exact attempted-case evidence, cross-Python and protected R2.66-R2.41 lineage passed',
+              'description':'R2.67.1 frozen authority, attempted-case evidence, triplet fairness and protected R2.66-R2.41 lineage passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
