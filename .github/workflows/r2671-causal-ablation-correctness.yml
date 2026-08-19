@@ -1,0 +1,36 @@
+name: R2.67.1 Causal Ablation Correctness
+
+on:
+  push:
+    branches: [r2671-causal-ablation-correctness-gpt56sol]
+    paths:
+      - 'tests/test_r2671_*.py'
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - 'benchmarks/kfigg/r267_three_probe_causal_composition.py'
+      - 'research/r267_external_dot_transfer.py'
+      - '.github/workflows/r2671-causal-ablation-correctness.yml'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11','3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.66 parent safety first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: R2.67.1 correctness contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r2671_*.py
