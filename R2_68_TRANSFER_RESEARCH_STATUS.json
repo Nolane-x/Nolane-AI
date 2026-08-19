@@ -8,6 +8,12 @@
   "trainable_parameter_count": 0,
   "claim_boundary": {
     "bounded_candidate_budget_advantage": true,
+    "candidate_budget_unit": "proof_distinct_hypotheses",
+    "same_budget_transfer_exact": 3,
+    "same_budget_tight_scratch_exact": 1,
+    "same_budget_case_advantage": 2,
+    "same_budget_candidate_cap": 96,
+    "source_prior_ablation_exact": 0,
     "lower_total_oracle_cost": false,
     "arbitrary_raw_target_schema_binding": false,
     "end_to_end_source_learning_in_phase_a": false,
@@ -40,7 +46,12 @@
     "proof_backed_equivalence_runner_green_run": 32262146859,
     "string_add_alias_red_run": 32262615199,
     "numeric_add_alias_runner_green_run": 32262774042,
-    "proof_backed_equivalence_clean_green_run": 32263016874
+    "proof_backed_equivalence_clean_green_run": 32263016874,
+    "semantic_candidate_budget_red_run": 32263596076,
+    "semantic_budget_fairness_impact_run": 32263766597,
+    "semantic_budget_stale_contract_run": 32264260692,
+    "semantic_budget_runner_green_run": 32264567220,
+    "semantic_budget_clean_green_run": 32264904953
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -70,14 +81,10 @@
       "red_run": 32255355846,
       "rejected_structural_only_run": 32255717041,
       "green_run": 32256375191,
-      "python_3_11": "success",
-      "python_3_13": "success",
-      "r1_9_integrity_run": 32256375192,
-      "r2_0i_integrity_run": 32256375252,
       "source_commit": "ec67591bb9c5517704e4b779a14aa3d241bc5e7d",
       "integration_commit": "3aab24d4c09dd7aa106a181d353cf8ad33a0a215",
       "superseded_by": "proof_backed_program_equivalence",
-      "boundary": "the bounded semantic-closure heuristic was a temporary hardening and is no longer equivalence authority"
+      "boundary": "the bounded semantic-closure heuristic was temporary and is no longer equivalence authority"
     },
     "oracle_context_immutability": {
       "status": "hosted_green",
@@ -104,14 +111,37 @@
       "numeric_add_runner_green_run": 32262774042,
       "numeric_add_source_commit": "2ba434e076268a344cb16f2cc12ffd6033b41523",
       "clean_green_run": 32263016874,
-      "python_3_11": "success",
-      "python_3_13": "success",
       "r1_9_integrity_run": 32263016852,
       "r2_0i_integrity_run": 32263016869,
       "integration_commit": "d509928285cbad6159982cb46161e7912493d756",
       "boundary": "finite behavioral fingerprints are not program-equivalence authority; only proof-backed structural aliases collapse, numeric add requires a static numeric-result proof, and remaining ambiguity must be resolved by actual public diagnostic oracle evidence or fail closed",
-      "authored_diagnostic_corpus_changed": true,
-      "older_frozen_authored_evidence_status": "stale_until_explicitly_recomputed_and_refrozen"
+      "authored_diagnostic_corpus_changed": true
+    },
+    "representation_invariant_candidate_budget": {
+      "status": "hosted_green",
+      "red_run": 32263596076,
+      "fairness_impact_run": 32263766597,
+      "stale_historical_contract_run": 32264260692,
+      "runner_only_green_run": 32264567220,
+      "source_and_benchmark_commit": "3dffccbff604516d0e43346b51a0e0e912a09ce7",
+      "clean_green_run": 32264904953,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity_run": 32264904946,
+      "r2_0i_integrity_run": 32264904970,
+      "integration_commit": "fb6ae26de8d633f3f13e02c109ef4aa2e1cb7afd",
+      "candidate_budget_unit": "proof_distinct_hypotheses",
+      "same_budget_candidate_cap": 96,
+      "positive_transfer_exact": 3,
+      "tight_scratch_exact": 1,
+      "transfer_advantage_over_tight_scratch": 2,
+      "source_prior_ablation_exact": 0,
+      "roomy_scratch_exact": 3,
+      "negative_transfer_abstained": 2,
+      "false_accepts": 0,
+      "boundary": "proof-equivalent AST multiplicity cannot spend extra candidate slots; transfer and matched tight scratch are compared at the same proof-distinct hypothesis cap",
+      "superseded_claim": "3/3 transfer versus 0/3 tight scratch under raw-representation-sensitive budgeting",
+      "older_raw_budget_authored_evidence_status": "stale_until_explicitly_recomputed_and_refrozen"
     }
   },
   "nolane_world": {
