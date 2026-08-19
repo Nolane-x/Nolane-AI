@@ -32,6 +32,7 @@ jobs:
       - name: Run full R2.68-T focused suite
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
       - name: Recompute authored benchmark and enforce bounded claim
+        if: ${{ always() }}
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
