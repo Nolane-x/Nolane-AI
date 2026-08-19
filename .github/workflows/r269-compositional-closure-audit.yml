@@ -1,0 +1,57 @@
+name: R2.69 Compositional Closure Audit
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Inspect four-role candidate closure
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import itertools
+          from cogcoder.r256_operator_dsl import Binary, Field, evaluate_expr
+          from cogcoder.r269_meta_learning_kernel import MetaLearningConfig, PublicTaskSignature
+          from cogcoder.r269_transfer_runtime import _filter, _scratch_hypotheses, _structural_key
+
+          names = ('a','b','c','d')
+          domain = (-3,-1,2,5)
+          a,b,c,d = map(Field, names)
+          target = Binary('sub', Binary('add', a,b), Binary('add',c,d))
+          signature = PublicTaskSignature(
+              role_names=names, numeric_domain='finite_integer',
+              allowed_binary_ops=('add','sub','mul','min','max'),
+              query_space_digest='r269.audit.four-role-complete',
+              budget_contract='diagnostic<=8;candidate<=8192', finite_integer_values=domain,
+          )
+          config = MetaLearningConfig(max_diagnostic_queries=8, transfer_candidate_cap=256,
+              scratch_candidate_cap=8192, scratch_max_depth=3, min_scratch_partitions=2)
+          values = tuple(itertools.product(domain, repeat=4))
+          chosen = (values[1], values[9], values[23], values[41], values[66], values[97], values[138], values[173])
+          diagnostics = tuple(dict(zip(names,row,strict=True)) for row in chosen)
+          rows = _scratch_hypotheses(signature, config)
+          target_key = _structural_key(target, signature)
+          target_indexes = [i for i,row in enumerate(rows) if _structural_key(row.expression, signature) == target_key]
+          print('candidate_count=', len(rows))
+          print('target_indexes=', target_indexes[:10])
+          print('target_present=', bool(target_indexes))
+          live = list(rows)
+          for i, context in enumerate(diagnostics, 1):
+              live = _filter(live, context, evaluate_expr(target, context))
+              print('after=', i, 'live=', len(live), 'costs=', sorted({r.expression.cost for r in live})[:20])
+          print('final_target_survivors=', sum(_structural_key(r.expression, signature) == target_key for r in live))
+          for row in live[:20]:
+              print('survivor=', row.expression.cost, row.expression.to_data())
+          PY
+      - name: Current regression remains RED until fixed
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_scratch_compositional_closure.py
