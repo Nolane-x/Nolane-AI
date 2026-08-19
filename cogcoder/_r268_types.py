@@ -15,6 +15,16 @@ class NecessityCertificate:
     witness_rows: tuple[int, int]
 
 @dataclass(frozen=True, slots=True)
+class BasisCollisionCertificate:
+    semantic_profile_ids: tuple[str, ...]
+    basis_cardinality: int
+    exposed_fields: tuple[str, ...]
+    evidence_digest: str
+    proof_kind: str
+    witness_digest: str
+    witness_rows: tuple[int, int]
+
+@dataclass(frozen=True, slots=True)
 class InterventionProfile:
     intervention: InterventionSpec
     discovery_outputs: tuple[object, ...]
@@ -60,6 +70,7 @@ class AdaptiveCausalBasisStructureReceipt:
     lower_basis_inconclusive: int = 0
     lower_basis_universe_digest: str = ''
     proof_ledger_complete: bool = False
+    lower_basis_certificates: tuple[BasisCollisionCertificate, ...] = ()
     trainable_parameter_count: int = 0
 
 @dataclass(frozen=True, slots=True)
