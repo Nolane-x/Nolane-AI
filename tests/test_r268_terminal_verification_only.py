@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 # Hosted RED authority: run 32254278088 reproduced both terminal-selection leaks
-# before the production guard was materialized.
+# before the production guard was materialized. Source fix: b3d454e7b05b47bbc80108809f393765561ae0d5.
 
 from cogcoder.r256_operator_dsl import Binary, Field
 import cogcoder.r268_cross_task_causal_transfer as transfer
