@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'cogcoder/r269_transfer_runtime.py'
+      - 'scripts/r269_multi_prior_patch.py'
       - 'tests/test_r269_multi_prior_adjudication.py'
       - '.github/workflows/r269-multi-prior-hardening.yml'
   workflow_dispatch:
@@ -20,6 +21,8 @@ jobs:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
+      - name: Apply runner-only proposal
+        run: PYTHONPATH=. python scripts/r269_multi_prior_patch.py
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -28,3 +31,5 @@ jobs:
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
       - name: Multi-prior adversary
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_multi_prior_adjudication.py
+      - name: Existing R2.69 contracts excluding in-flight benchmark closure
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py -k 'not benchmark and not scratch_compositional_closure'
