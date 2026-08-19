@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - 'scripts/r269_scratch_closure_patch.py'
+      - 'scripts/r269_scratch_closure_debug.py'
       - 'tests/test_r269_scratch_compositional_closure.py'
       - 'tests/test_r269_benchmark.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
@@ -24,6 +25,8 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Inspect survivor layers
+        run: PYTHONPATH=. python scripts/r269_scratch_closure_debug.py
       - name: Python 3.11 protected and focused
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
