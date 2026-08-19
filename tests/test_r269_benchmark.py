@@ -3,61 +3,68 @@ from __future__ import annotations
 from benchmarks.kfigg.r269_meta_learning import run_benchmark
 
 
-def test_r269_benchmark_reports_matched_meta_learning_evidence():
+def test_r269_benchmark_reports_verified_matched_meta_learning_evidence():
     result = run_benchmark()
 
     required = {
-        "schema_version",
-        "passed",
-        "claim",
-        "positive",
-        "negative",
-        "ablations",
-        "determinism",
-        "strong_claim_gate",
+        "milestone",
+        "capability",
+        "accepted_parent_sha",
+        "source_basis_sizes",
+        "source_portable_digests",
+        "hard_source_verified",
+        "positive_targets",
+        "positive_transfer_solved",
+        "tight_cold_scratch_solved",
+        "roomy_scratch_solved",
+        "source_prior_ablation_solved",
+        "shuffled_prior_solved",
+        "source_prior_ablation_advantage_removed_fraction",
+        "median_transfer_diagnostic_calls",
+        "median_cold_solved_diagnostic_calls",
+        "median_transfer_search_work",
+        "median_tight_scratch_search_work",
+        "negative_targets",
+        "negative_transfer_false_accepts",
+        "continued_scratch_correctness_preserved",
+        "max_negative_transfer_diagnostic_regret",
+        "false_accepts",
+        "authored_gate_pass",
+        "semantic_result_digest",
+        "positive_cases",
+        "negative_cases",
         "trainable_parameter_count",
     }
     assert required.issubset(result)
-    assert result["schema_version"] == 1
+    assert result["milestone"] == "R2.69"
+    assert result["accepted_parent_sha"] == "fda7f502185266fedb00886d5786c6d28cc0e0eb"
+    assert result["source_basis_sizes"] == [2, 3, 4]
+    assert len(result["source_portable_digests"]) == 3
+    assert len(set(result["source_portable_digests"])) == 3
+    assert result["hard_source_verified"] is True
     assert result["trainable_parameter_count"] == 0
 
-    positive = result["positive"]
-    assert positive["total"] >= 18
-    assert positive["transfer_solves"] <= positive["total"]
-    assert positive["cold_scratch_solves"] <= positive["total"]
-    assert positive["roomy_scratch_solves"] <= positive["total"]
-    assert positive["transfer_physical_oracle_calls"] >= 0
-    assert positive["cold_scratch_physical_oracle_calls"] >= 0
-    assert positive["roomy_scratch_physical_oracle_calls"] >= 0
-    assert positive["transfer_proof_distinct_search_work"] >= 0
-    assert positive["cold_scratch_proof_distinct_search_work"] >= 0
-    assert isinstance(positive["per_case"], list)
-    assert len(positive["per_case"]) == positive["total"]
+    assert result["positive_targets"] >= 18
+    assert len(result["positive_cases"]) == result["positive_targets"]
+    assert result["positive_transfer_solved"] >= 17
+    assert result["tight_cold_scratch_solved"] <= 12
+    assert result["roomy_scratch_solved"] >= 17
+    assert result["median_transfer_diagnostic_calls"] <= 0.70 * result["median_cold_solved_diagnostic_calls"]
+    assert result["median_transfer_search_work"] <= 0.50 * result["median_tight_scratch_search_work"]
+    assert result["source_prior_ablation_advantage_removed_fraction"] >= 0.80
+    assert result["shuffled_prior_solved"] < result["positive_transfer_solved"]
 
-    negative = result["negative"]
-    assert negative["total"] >= 12
-    assert negative["false_accepts"] == 0
-    assert negative["max_extra_physical_oracle_regret"] >= 0
-    assert isinstance(negative["per_case"], list)
-    assert len(negative["per_case"]) == negative["total"]
-
-    ablations = result["ablations"]
-    assert "source_prior" in ablations
-    assert "shuffled_prior" in ablations
-    assert ablations["source_prior"]["total"] == positive["total"]
-    assert ablations["shuffled_prior"]["total"] == positive["total"]
-
-    gate = result["strong_claim_gate"]
-    assert gate["zero_false_accepts"] is True
-    assert gate["roomy_scratch_expressibility"] is True
-    assert gate["deterministic_replay"] is True
-    assert result["passed"] is gate["passed"]
+    assert result["negative_targets"] == 12
+    assert len(result["negative_cases"]) == result["negative_targets"]
+    assert result["negative_transfer_false_accepts"] == 0
+    assert result["continued_scratch_correctness_preserved"] is True
+    assert result["max_negative_transfer_diagnostic_regret"] <= 1
+    assert result["false_accepts"] == 0
+    assert result["authored_gate_pass"] is True
 
 
 def test_r269_benchmark_is_semantically_deterministic_within_process():
     first = run_benchmark()
     second = run_benchmark()
-    assert first["determinism"]["semantic_digest"] == second["determinism"]["semantic_digest"]
-    assert first["positive"] == second["positive"]
-    assert first["negative"] == second["negative"]
-    assert first["ablations"] == second["ablations"]
+    assert first == second
+    assert first["semantic_result_digest"] == second["semantic_result_digest"]
