@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import hashlib
-import json
-from typing import Mapping
-
 from .r256_operator_dsl import Binary, Const, Expr, Field, IfElse, Unary
 from .r269_causal_basis_adapter import (
     PortableExperience,
@@ -42,6 +38,13 @@ def _semantic_signature_payload(signature: PublicTaskSignature) -> dict[str, obj
     }
 
 
+def _domain_claim_scope(signature: PublicTaskSignature) -> tuple[str, ...]:
+    rows = [f'numeric_domain={signature.numeric_domain}']
+    if signature.numeric_domain == 'finite_integer':
+        rows.append('finite_integer_values=' + ','.join(map(str, signature.finite_integer_values)))
+    return tuple(rows)
+
+
 def _canonical_receipt_payload(
     receipt: MetaLearningReceipt,
     *,
@@ -74,8 +77,17 @@ def _validate_receipt_authority(receipt: MetaLearningReceipt, signature: PublicT
         raise TypeError('signature must be PublicTaskSignature')
     if not receipt.passed or receipt.reason not in _ACCEPTED_REASONS:
         raise ValueError('source episode must be verifier-accepted')
+    expected_reason = {
+        'transfer': 'accepted_transfer',
+        'scratch': 'accepted_scratch',
+        'scratch_after_transfer': 'accepted_scratch_after_transfer',
+    }.get(receipt.mode)
+    if expected_reason != receipt.reason:
+        raise ValueError('source episode mode/reason authority is inconsistent')
     if receipt.selected_expression is None:
         raise ValueError('source episode must carry the selected executable expression')
+    if receipt.mode == 'transfer' and not receipt.selected_prior_digest:
+        raise ValueError('accepted transfer episode must identify its evidence-surviving prior')
     if receipt.false_accepts != 0 or receipt.trainable_parameter_count != 0:
         raise ValueError('source episode must preserve zero-false-accept and zero-parameter authority')
     if receipt.reused_observations != receipt.avoided_duplicate_calls:
@@ -134,15 +146,20 @@ def compile_meta_learning_experience(
         canonical_expression=canonical_expression,
     )
     source_receipt_digest = f'r269.receipt.{_sha(receipt_payload)}'
+    claim_scope = (
+        'r269_verified_meta_episode',
+        'terminal_verified',
+        'zero_false_accepts',
+        *_domain_claim_scope(signature),
+    )
     authority_payload = {
         'schema_version': 1,
         'accepted_parent_sha': accepted_parent_sha,
         'source_receipt_digest': source_receipt_digest,
         'public_structural_signature': _semantic_signature_payload(signature),
-        'claim_scope': ['r269_verified_meta_episode', 'terminal_verified', 'zero_false_accepts'],
+        'claim_scope': list(claim_scope),
     }
     source_authority_digest = f'r269.authority.{_sha(authority_payload)}'
-    claim_scope = ('r269_verified_meta_episode', 'terminal_verified', 'zero_false_accepts')
     allowed_adaptation_ops = tuple(signature.allowed_binary_ops)
     payload = _portable_payload(
         adapter_type='verified_meta_episode_v1',
