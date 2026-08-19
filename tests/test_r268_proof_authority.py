@@ -85,3 +85,28 @@ def test_certificate_evidence_digest_is_numeric_semantic_invariant() -> None:
     cb=r268.build_public_target_collision_certificate(basis_semantic_profile_ids=('a','b'),subset_semantic_profile_ids=('a',),exposed_fields=('__p0','__f1'),examples=b)
     assert ca is not None and cb is not None
     assert ca.evidence_digest==cb.evidence_digest and ca.witness_digest==cb.witness_digest
+
+
+def test_semantic_profile_dedup_never_collapses_validation_distinct_interventions() -> None:
+    import cogcoder._r268_runtime as runtime
+
+    fields=('a','b')
+    def ctx(rows): return tuple(dict(zip(fields,row,strict=True)) for row in rows)
+    def oracle(row):
+        a=float(row['a']);b=float(row['b'])
+        if a==0.0: return b
+        if b==0.0: return a
+        return a+b
+
+    receipt=runtime.discover_adaptive_causal_basis(
+        oracle,fields,(0.0,),
+        ctx(((1,1),(2,2),(3,3))),
+        ctx(((4,5),(6,7))),
+        intervention_arity=1,max_basis_size=1,
+        composition_constants=(0.0,2.0),composition_max_depth=3,
+        composition_max_candidates_per_basis=5000,max_composition_candidates_total=10000,
+        composition_beam_width=64,
+    )
+
+    assert receipt.legal_interventions==2
+    assert receipt.semantic_profiles==2
