@@ -112,3 +112,15 @@ def test_no_collision_lower_order_search_miss_stays_minimality_inconclusive(monk
     assert receipt.globally_minimal is False
     assert receipt.reason=='sufficient_but_minimality_inconclusive'
     assert receipt.structure.unresolved_lower_order
+
+
+def test_collision_certificate_rejects_nonmember_subset_identity() -> None:
+    r268=_module()
+    examples=_collision_examples()
+    with pytest.raises(ValueError, match='subset semantic profile ids must belong to basis'):
+        r268.build_public_target_collision_certificate(
+            basis_semantic_profile_ids=('basis-a','basis-b'),
+            subset_semantic_profile_ids=('outside-basis',),
+            exposed_fields=('__p0','__f1'),
+            examples=examples,
+        )
