@@ -4,15 +4,15 @@ on:
   push:
     branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
     paths:
-      - 'R2_67_1_PRE_HOSTED_LOCK.json'
-      - 'R2_67_1_PHASE_A_RESULT.json'
-      - 'R2_67_1_EXTERNAL_TRANSFER.json'
+      - 'R2_67_1_*.json'
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - 'benchmarks/kfigg/r267_1_*.py'
+      - 'research/r267_1_*.py'
+      - 'tests/test_r267_1_*.py'
+      - 'tests/test_r267_independent_ablation_completeness.py'
+      - '.github/workflows/r267-1-*.yml'
   pull_request:
     branches: [main]
-    paths:
-      - 'R2_67_1_PRE_HOSTED_LOCK.json'
-      - 'R2_67_1_PHASE_A_RESULT.json'
-      - 'R2_67_1_EXTERNAL_TRANSFER.json'
   workflow_dispatch:
 
 permissions:
@@ -22,51 +22,58 @@ permissions:
 jobs:
   bundle:
     runs-on: ubuntu-latest
-    timeout-minutes: 80
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Install release dependencies
+        run: python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
       - name: Verify frozen R2.67.1 release boundary
         run: |
-          python - <<'PY'
+          PYTHONPATH=. python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          required=(
+          required = (
               'R2_67_1_PRE_HOSTED_LOCK.json',
               'R2_67_1_PHASE_A_RESULT.json',
               'R2_67_1_EXTERNAL_TRANSFER.json',
               'cogcoder/r267_three_probe_causal_composition.py',
               'benchmarks/kfigg/r267_1_genuine_three_probe.py',
               'research/r267_1_external_cyclic_dot_transfer.py',
-              'tests/test_r267_1_authority_boundaries.py',
               'tests/test_r267_1_correctness_hotfix.py',
-              'tests/test_r267_1_evidence.py',
               'tests/test_r267_1_no_collision_failclosed.py',
+              'tests/test_r267_1_authority_boundaries.py',
               'tests/test_r267_1_preselection_receipt_units.py',
               'tests/test_r267_1_triangle_min_robustness.py',
+              'tests/test_r267_1_evidence.py',
+              'tests/test_r267_independent_ablation_completeness.py',
+              '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
           )
           for path in required:
               assert Path(path).is_file(), path
-          lock=json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
           assert lock['parent_release_commit'] == '43b43ce4b324b0d74357957af18dd0f60b1cb85e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
-          assert lock['authority_corrections']['subset_specific_ablation_fields'] is True
-          assert lock['authority_corrections']['uncertified_search_miss_fails_closed'] is True
-          assert lock['authority_corrections']['preselection_probe_cases_zero_without_selected_triplet'] is True
+          a = lock['authority_corrections']
+          assert a['subset_specific_ablation_fields'] is True
+          assert a['public_collision_certificate_required_for_lower_order_insufficiency'] is True
+          assert a['uncertified_search_miss_fails_closed'] is True
+          assert a['preselection_probe_cases_zero_without_selected_triplet'] is True
+          assert a['positive_domain_triangle_min_robustness'] is True
           for path, expected in lock['frozen_git_blobs'].items():
-              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              actual = subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
-          print('R267_1_RELEASE_LOCK_OK', len(lock['frozen_git_blobs']))
+          subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'], check=True)
+          print('R267_1_RELEASE_BOUNDARY_OK', len(lock['frozen_git_blobs']))
           PY
-      - name: Recompute exact authored and pinned external evidence
+      - name: Recompute exact authored and external evidence
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
@@ -74,14 +81,24 @@ jobs:
           import numpy as np
           from benchmarks.kfigg.r267_1_genuine_three_probe import run_benchmark
           from research.r267_1_external_cyclic_dot_transfer import run_external_transfer
-          phase=run_benchmark()
-          external=run_external_transfer(np.dot, source_id='numpy:numpy.dot', source_version=np.__version__)
           assert np.__version__ == '2.4.6'
+          phase = run_benchmark()
+          external = run_external_transfer(np.dot, source_id='numpy:numpy.dot', source_version=np.__version__)
           assert phase == json.loads(Path('R2_67_1_PHASE_A_RESULT.json').read_text())
           assert external == json.loads(Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text())
-          assert phase['all_gates_pass'] and external['passed']
-          assert external['oracle_accounting_exact']
-          print('R267_1_RELEASE_EVIDENCE_OK')
+          assert phase['all_gates_pass'] is True and phase['false_accepts'] == 0
+          assert external['passed'] is True and external['false_accepts'] == 0
+          assert external['source_id'] == 'numpy:numpy.dot'
+          assert external['source_exposure'] == 'io_only'
+          assert external['oracle_calls_collision_certificates'] == 72
+          assert external['oracle_accounting_exact'] is True
+          assert external['oracle_calls_total'] == (
+              external['oracle_calls_learning_terminal']
+              + external['oracle_calls_collision_certificates']
+              + external['oracle_calls_challenge']
+              + external['oracle_calls_heldout']
+          )
+          print('R267_1_RELEASE_EVIDENCE_EXACT_OK')
           PY
       - name: Run R2.67.1 and protected lineage
         run: |
@@ -111,20 +128,26 @@ jobs:
           unzip -tq release/Nolane-AI-R2.67.1-COMPLETE.zip
           python - <<'PY'
           import zipfile
-          required={
+          required = {
               'R2_67_1_PRE_HOSTED_LOCK.json',
               'R2_67_1_PHASE_A_RESULT.json',
               'R2_67_1_EXTERNAL_TRANSFER.json',
               'cogcoder/r267_three_probe_causal_composition.py',
               'benchmarks/kfigg/r267_1_genuine_three_probe.py',
               'research/r267_1_external_cyclic_dot_transfer.py',
+              'tests/test_r267_1_correctness_hotfix.py',
+              'tests/test_r267_1_no_collision_failclosed.py',
+              'tests/test_r267_1_authority_boundaries.py',
+              'tests/test_r267_1_preselection_receipt_units.py',
               'tests/test_r267_1_triangle_min_robustness.py',
+              'tests/test_r267_1_evidence.py',
+              '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
           }
           with zipfile.ZipFile('release/Nolane-AI-R2.67.1-COMPLETE.zip') as zf:
-              names=set(zf.namelist())
-          missing=required-names
+              names = set(zf.namelist())
+          missing = required - names
           assert not missing, sorted(missing)
           print('R267_1_COMPLETE_ZIP_OK', len(names))
           PY
@@ -143,8 +166,8 @@ jobs:
           import json, os, urllib.request
           payload=json.dumps({
               'state':'success',
-              'context':'r267.1/release-bundle',
-              'description':'Corrected R2.67.1 frozen authority, exact evidence, protected lineage and COMPLETE ZIP passed',
+              'context':'r2671/release-bundle',
+              'description':'R2.67.1 frozen authority, exact evidence, protected lineage and COMPLETE ZIP passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
@@ -154,5 +177,5 @@ jobs:
               method='POST',
           )
           urllib.request.urlopen(req).read()
-          print('R267_1_RELEASE_STATUS_PUBLISHED')
+          print('R267_1_RELEASE_BUNDLE_STATUS_PUBLISHED')
           PY
