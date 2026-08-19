@@ -62,7 +62,7 @@ def _receipt(expr, size: int, label: str) -> AdaptiveCausalBasisReceipt:
 def _prior(expr, label: str):
     return compile_r268_experience(
         _receipt(expr, 2, label),
-        source_authority_digest=f"authority.{label}",
+        verifier_evidence_digest=f"verifier.fixture.{label}",
         accepted_parent_sha=PARENT,
     )
 
