@@ -30,7 +30,7 @@ Accepted R2.68 claim boundary remains bounded: variable-cardinality 2/3/4-probe 
 
 ## R2.69 — Autonomous Transfer & Meta-Learning Kernel — RESEARCH_DRAFT
 
-Branch `r269-autonomous-transfer-meta-learning-kernel-gpt56sol` owns the post-R2.68 non-neural learning-to-learn milestone. PR #112 is the coordination/acceptance lineage and may be temporarily closed during source integration to reduce obsolete CI fan-out without changing branch authority.
+Branch `r269-autonomous-transfer-meta-learning-kernel-gpt56sol` owns the post-R2.68 non-neural learning-to-learn milestone. PR #112 is its coordination/acceptance lineage.
 
 R2.69 compiles verifier-backed R2.68 experience into identity-free portable priors, matches priors from target public structure only, shares every purchased target observation between transfer and scratch reasoning, requires prior-guided probes to satisfy a scratch-information floor, reuses evidence after failed transfer, quarantines misleading priors, and records scoped meta-credit/capability gaps. Phase A adds `0` trainable parameters.
 
