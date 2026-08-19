@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import cogcoder._r268_runtime as runtime
 from cogcoder.r256_operator_invention import OperatorInventionNeed
 from cogcoder.r268_adaptive_causal_basis import synthesize_adaptive_causal_basis
 
@@ -39,3 +40,14 @@ def test_rejects_duplicate_validation_query_after_same_intervention() -> None:
 
 def test_rejects_duplicate_validation_query_across_intervention_profiles() -> None:
     _reject(((2,0),(0,7),(5,11)))
+
+def test_private_runtime_cannot_bypass_validation_query_uniqueness() -> None:
+    calls=[]
+    def oracle(row):
+        calls.append((row['a'],row['b']))
+        return float(row['a'])+float(row['b'])
+    with pytest.raises(ValueError,match='validation|duplicate|unique|overlap'):
+        runtime.discover_adaptive_causal_basis(
+            oracle,FIELDS,(0.0,),_contexts(DISCOVERY),_contexts(((2,3),(7,3),(5,11))),
+            intervention_arity=1,max_basis_size=2)
+    assert calls==[]
