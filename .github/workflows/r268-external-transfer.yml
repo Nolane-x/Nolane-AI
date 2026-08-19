@@ -52,6 +52,12 @@ jobs:
           assert result['source_exposure'] == 'io_only'
           assert result['selected_basis_size'] == 2
           assert result['globally_minimal'] is True
+          assert result['legal_interventions'] == 4
+          assert result['semantic_profiles'] == 4
+          assert result['lower_basis_count'] == 4
+          assert result['lower_basis_certified'] == 4
+          assert result['lower_basis_certificate_count'] == 4
+          assert result['necessity_certificate_count'] == 2
           assert result['oracle_accounting_exact'] is True
           assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
