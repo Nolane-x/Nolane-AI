@@ -18,13 +18,13 @@ A draft PR, passing unit test, benchmark score, or successful external gate is n
 
 R2.67 is historical evidence, not the current authority for the strong three-probe causal-necessity claim. Independent hosted validation found receipt-unit inconsistency and a lower-order ablation/exposure defect after the R2.67 freeze.
 
-## R2.67.1 — active correctness parent
+## R2.67.1 — accepted correctness parent
 
-PR #61 (`R2.67.1 — genuine lower-order causal necessity hotfix`) is the active correctness continuation. It remains draft/unaccepted until its complete release boundary and exact-main verification are satisfied. R2.68 must not be promoted from an unaccepted R2.67.1 ancestor.
+PR #61 (`R2.67.1 — genuine lower-order causal necessity hotfix`) was merged into `main` at commit `b789dd7a48f10f3afb1cf42ee62d3dc77dee200e` on 2026-08-19. It is the accepted parent boundary for canonical R2.68 research and supersedes historical R2.67 for the corrected strong necessity semantics.
 
 ## R2.68 — canonical research milestone
 
-PR #73 (`R2.68 — proof-carrying adaptive causal basis`) owns the canonical R2.68 namespace.
+PR #73 (`R2.68 — proof-carrying adaptive causal basis`) owns the canonical R2.68 namespace and targets accepted `main`.
 
 Current bounded research objective: replace the fixed exactly-three-probe assumption with a variable-cardinality causal-basis search whose proof authority is separated from heuristic proposal search.
 
@@ -33,6 +33,7 @@ Current Phase-A authority boundaries:
 - +0 trainable parameters;
 - target-preserving nuisance interventions are rejected before basis search rather than accepted as one-probe answer-copy channels;
 - positive authored capability evidence is limited to certified 2-, 3-, and 4-probe families;
+- intervention profiles that are identical on discovery but distinct on validation intervention evidence must remain distinct in the authority universe;
 - lower-order search failure is inconclusive unless an authority-bearing collision certificate proves insufficiency;
 - terminal evidence is disjoint and fail-closed;
 - receipt counters represent actually attempted oracle observations, not planned/pre-rejected work;
@@ -46,6 +47,6 @@ PR #70 (`R2.68-T research — cross-task causal prior transfer`) is a separate c
 
 ## Promotion requirements
 
-An R2.68 acceptance requires, at minimum: an exact accepted R2.67.1 ancestor; source/protocol refreeze before final measurement; reproducible authored evidence; pinned I/O-only external transfer; cross-Python hosted verification; protected parent lineage; independent proof/accounting challengers; Nolane World adjudication without forced convergence; release artifacts tied to exact hashes; and post-merge exact-main verification.
+R2.68 now has an exact accepted R2.67.1 ancestor. Remaining acceptance work includes source/protocol refreeze on that parent; reproducible authored evidence; pinned I/O-only external transfer; cross-Python hosted verification; protected lineage; independent proof/accounting challengers; Nolane World adjudication without forced convergence; release artifacts tied to exact hashes; and post-merge exact-main verification.
 
-Until those conditions hold, status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
+Until those remaining conditions hold, status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
