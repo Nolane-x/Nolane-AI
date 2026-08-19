@@ -8,7 +8,7 @@ def test_r269_external_numpy_transfer_is_io_only_matched_and_fail_closed():
 
     assert result["milestone"] == "R2.69"
     assert result["dependency"] == "numpy==2.4.6"
-    assert result["source_external_callable"] == "numpy.subtract"
+    assert result["source_external_callable"] == "numpy.add"
     assert result["source_exposure"] == "io_only"
     assert result["target_exposure"] == "io_only"
     assert result["source_from_authored_generator"] is False
