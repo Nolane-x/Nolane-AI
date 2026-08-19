@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Mapping, Sequence
+from typing import Callable, Mapping
 
 from cogcoder.r256_operator_dsl import Binary, Field, expr_digest
 from cogcoder.r268_cross_task_causal_transfer import adapt_portable_program, export_expression_prior
@@ -13,6 +13,13 @@ Oracle = Callable[[Context], object]
 
 def _source_expression():
     return Binary('sub', Binary('add', Field('__p0'), Field('__p1')), Field('__p2'))
+
+
+def _source_prior_ablation_expression():
+    # Preserve three-role arity and comparable expression depth while destroying
+    # the transferred causal skeleton. The same one-node repair machinery and
+    # candidate budget are then used unchanged.
+    return Binary('div', Field('__p0'), Binary('mul', Field('__p1'), Field('__p2')))
 
 
 def _diagnostics() -> tuple[dict[str, int], ...]:
@@ -53,11 +60,20 @@ def _summary(receipt) -> dict[str, object]:
 
 def _run_positive(name: str, oracle: Oracle) -> dict[str, object]:
     portable = export_expression_prior(_source_expression())
+    ablated_portable = export_expression_prior(_source_prior_ablation_expression())
     diagnostics = _diagnostics()
     terminals = _terminals()
 
     transfer = adapt_portable_program(
         portable,
+        diagnostic_contexts=diagnostics,
+        terminal_contexts=terminals,
+        oracle=oracle,
+        max_selection_queries=3,
+        max_candidates=96,
+    )
+    source_prior_ablation = adapt_portable_program(
+        ablated_portable,
         diagnostic_contexts=diagnostics,
         terminal_contexts=terminals,
         oracle=oracle,
@@ -83,6 +99,9 @@ def _run_positive(name: str, oracle: Oracle) -> dict[str, object]:
     return {
         'name': name,
         'transfer': _summary(transfer),
+        'source_prior_ablation': _summary(source_prior_ablation),
+        'transfer_candidate_budget': 96,
+        'source_prior_ablation_candidate_budget': 96,
         'tight_scratch': _summary(tight_scratch),
         'roomy_scratch': _summary(roomy_scratch),
     }
@@ -180,12 +199,22 @@ def run_benchmark() -> dict[str, object]:
     positive_transfer_exact = sum(bool(row['transfer']['passed']) for row in positives)
     tight_scratch_exact = sum(bool(row['tight_scratch']['passed']) for row in positives)
     roomy_scratch_exact = sum(bool(row['roomy_scratch']['passed']) for row in positives)
+    source_prior_ablation_exact = sum(
+        bool(row['source_prior_ablation']['passed']) for row in positives
+    )
+    source_prior_ablation_same_candidate_budget = all(
+        int(row['transfer_candidate_budget']) == int(row['source_prior_ablation_candidate_budget']) == 96
+        for row in positives
+    )
     negative_transfer_abstained = sum(not bool(row['transfer']['passed']) for row in negatives)
-    false_accepts = sum(int(row['transfer']['false_accepts']) for row in positives) + sum(
-        int(row['transfer']['false_accepts']) for row in negatives
+    false_accepts = (
+        sum(int(row['transfer']['false_accepts']) for row in positives)
+        + sum(int(row['source_prior_ablation']['false_accepts']) for row in positives)
+        + sum(int(row['transfer']['false_accepts']) for row in negatives)
     )
     trainable_parameter_count = max(
         [int(row['transfer']['trainable_parameter_count']) for row in positives]
+        + [int(row['source_prior_ablation']['trainable_parameter_count']) for row in positives]
         + [int(row['transfer']['trainable_parameter_count']) for row in negatives]
     )
     diagnostic_order_invariance = _diagnostic_order_invariance(one_operator_mul)
@@ -194,6 +223,8 @@ def run_benchmark() -> dict[str, object]:
         positive_transfer_exact == len(positives)
         and tight_scratch_exact == 0
         and roomy_scratch_exact == len(positives)
+        and source_prior_ablation_exact == 0
+        and source_prior_ablation_same_candidate_budget
         and negative_transfer_abstained == len(negatives)
         and diagnostic_order_invariance
         and false_accepts == 0
@@ -202,8 +233,10 @@ def run_benchmark() -> dict[str, object]:
 
     return {
         'milestone': 'R2.68',
+        'research_track': 'R2.68-T',
+        'canonical_r268_owner_pr': 73,
         'capability': 'cross-task-causal-program-transfer',
-        'status': 'research_candidate',
+        'status': 'independent_research_candidate',
         'all_gates_pass': all_gates_pass,
         'positive_transfer_cases': len(positives),
         'positive_transfer_exact': positive_transfer_exact,
@@ -211,6 +244,9 @@ def run_benchmark() -> dict[str, object]:
         'negative_transfer_abstained': negative_transfer_abstained,
         'tight_scratch_exact': tight_scratch_exact,
         'roomy_scratch_exact': roomy_scratch_exact,
+        'source_prior_ablation_cases': len(positives),
+        'source_prior_ablation_exact': source_prior_ablation_exact,
+        'source_prior_ablation_same_candidate_budget': source_prior_ablation_same_candidate_budget,
         'diagnostic_order_invariance': diagnostic_order_invariance,
         'transfer_selection_queries_total': sum(
             int(row['transfer']['selection_queries']) for row in positives
