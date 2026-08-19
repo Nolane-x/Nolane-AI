@@ -100,7 +100,12 @@ class MatchedPrior:
     reason: str
 
 
-def match_portable_experiences(priors: Sequence[PortableExperience], signature: PublicTaskSignature, *, quarantined_prior_digests: frozenset[str] = frozenset()) -> tuple[MatchedPrior, ...]:
+def match_portable_experiences(
+    priors: Sequence[PortableExperience],
+    signature: PublicTaskSignature,
+    *,
+    quarantined_prior_digests: frozenset[str] = frozenset(),
+) -> tuple[MatchedPrior, ...]:
     if not isinstance(signature, PublicTaskSignature):
         raise TypeError('signature must be PublicTaskSignature')
     out: list[MatchedPrior] = []
@@ -120,7 +125,9 @@ def match_portable_experiences(priors: Sequence[PortableExperience], signature: 
             continue
         score = 100 + 5 * len(required)
         out.append(MatchedPrior(portable, True, score, 'public_structure_compatible'))
-    return tuple(sorted(out, key=lambda row: (not row.compatible, -row.compatibility_score, row.portable.portable_digest)))
+    return tuple(
+        sorted(out, key=lambda row: (not row.compatible, -row.compatibility_score, row.portable.portable_digest))
+    )
 
 
 class _TrackedContext(dict[str, int | float]):
@@ -190,7 +197,16 @@ class SharedObservationLedger:
     def observations(self) -> tuple[SharedObservation, ...]:
         return tuple(self._rows)
 
-    def observe(self, context: Mapping[str, object], oracle: Callable[[Mapping[str, object]], object], *, phase: str, provenance: str, transfer_info_score: int, scratch_info_score: int) -> tuple[SharedObservation, bool]:
+    def observe(
+        self,
+        context: Mapping[str, object],
+        oracle: Callable[[Mapping[str, object]], object],
+        *,
+        phase: str,
+        provenance: str,
+        transfer_info_score: int,
+        scratch_info_score: int,
+    ) -> tuple[SharedObservation, bool]:
         if not callable(oracle):
             raise TypeError('oracle must be callable')
         phase = str(phase)
@@ -236,12 +252,52 @@ class SharedObservationLedger:
                 status = 'invalid_oracle_output'
                 observed = None
 
-        payload = {'context_key': key, 'phase': phase, 'oracle_call_index': call_index, 'status': status, 'observed': observed}
-        digest = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
-        row = SharedObservation(context_key=key, context_values=values, phase=phase, provenance=provenance, transfer_info_score=transfer_info_score, scratch_info_score=scratch_info_score, oracle_call_index=call_index, status=status, observed=observed, observation_digest=digest)
+        payload = {
+            'context_key': key,
+            'phase': phase,
+            'oracle_call_index': call_index,
+            'status': status,
+            'observed': observed,
+        }
+        digest = hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(',', ':')).encode()
+        ).hexdigest()
+        row = SharedObservation(
+            context_key=key,
+            context_values=values,
+            phase=phase,
+            provenance=provenance,
+            transfer_info_score=transfer_info_score,
+            scratch_info_score=scratch_info_score,
+            oracle_call_index=call_index,
+            status=status,
+            observed=observed,
+            observation_digest=digest,
+        )
         self._rows.append(row)
         self._by_key[key] = row
         return row, False
 
 
-__all__ = ['PublicTaskSignature', 'MatchedPrior', 'match_portable_experiences', 'SharedObservation', 'SharedObservationLedger']
+from .r269_transfer_runtime import (
+    MetaLearningConfig,
+    MetaLearningReceipt,
+    PriorRegistry,
+    PriorState,
+    run_cold_scratch,
+    run_meta_learning_episode,
+)
+
+__all__ = [
+    'PublicTaskSignature',
+    'MatchedPrior',
+    'match_portable_experiences',
+    'SharedObservation',
+    'SharedObservationLedger',
+    'MetaLearningConfig',
+    'PriorState',
+    'PriorRegistry',
+    'MetaLearningReceipt',
+    'run_meta_learning_episode',
+    'run_cold_scratch',
+]
