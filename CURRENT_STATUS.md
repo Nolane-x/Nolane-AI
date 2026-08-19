@@ -1,12 +1,12 @@
 # Nolane-AI Current Research Status
 
-This file is the short operational status index for active research. The README describes older accepted milestones and is not the authoritative indicator of the newest experimental branch state.
+This file is the short operational status index for active research. README history is not the authority for the newest milestone state.
 
 ## Authority order
 
 When claims disagree, use this order:
 
-1. exact accepted release/evidence artifacts on the accepted ancestor;
+1. exact accepted post-merge release/evidence artifacts on `main`;
 2. frozen hosted verification records tied to an exact commit;
 3. current production source and tests;
 4. active pull-request specs/descriptions;
@@ -16,51 +16,30 @@ A draft PR, passing unit test, benchmark score, or successful external gate is n
 
 ## R2.67
 
-R2.67 is historical evidence, not current authority for the strong three-probe causal-necessity claim. Independent hosted validation found receipt-unit inconsistency and a lower-order ablation/exposure defect after the R2.67 freeze.
+R2.67 is historical evidence, not authority for strong causal-necessity claims. R2.67.1 superseded it after independent validation found receipt-unit and lower-order proof defects.
 
 ## R2.67.1 — accepted correctness parent
 
-PR #61 (`R2.67.1 — genuine lower-order causal necessity hotfix`) was merged into `main` at commit `b789dd7a48f10f3afb1cf42ee62d3dc77dee200e` on 2026-08-19. It is the accepted parent boundary for canonical R2.68 research and supersedes historical R2.67 for corrected strong necessity semantics.
+R2.67.1 is an accepted bounded correctness milestone on `main` and remains protected lineage.
 
-## R2.68 — canonical research milestone
+## R2.68 — accepted bounded capability
 
-PR #73 (`R2.68 — proof-carrying adaptive causal basis`) owns the canonical R2.68 namespace and targets accepted `main`.
+R2.68 (`proof-carrying adaptive causal basis`) was accepted through PR #99 and merged to `main` at `fda7f502185266fedb00886d5786c6d28cc0e0eb` after schema-v3 canonical/release verification. Exact-main post-merge run `32264826560` succeeded on Python 3.11/3.13, recomputed exact evidence, ran protected lineage, and produced the verified COMPLETE post-merge snapshot.
 
-Current bounded objective: replace the fixed exactly-three-probe assumption with a variable-cardinality causal-basis search while separating proposal search, validation, local necessity proof, global minimality proof and terminal authority.
+Accepted R2.68 claim boundary remains bounded: variable-cardinality 2/3/4-probe proof-carrying causal-basis discovery under the trusted finite DSL, strict diagnostic/validation/terminal authority separation, replayable lower-basis and proper-subset proof ledgers, exact physical oracle accounting and zero added trainable parameters. It is not unrestricted causal reasoning, W5 convergence, frontier equivalence or AGI.
 
-Current Phase-A authority boundaries:
+## R2.69 — Autonomous Transfer & Meta-Learning Kernel — RESEARCH_DRAFT
 
-- +0 trainable parameters;
-- target-preserving nuisance interventions are rejected before basis search rather than accepted as one-probe answer-copy channels;
-- positive authored capability evidence is limited to certified 2-, 3-, and 4-probe families;
-- every distinct legal intervention spec remains a distinct authority action even when finite discovery/validation behavior happens to coincide;
-- validation intervention outputs may bind authority identity but cannot control proposal ordering; validation targets never train proposal search;
-- discovery-equivalent authority bases share proposal-search computation and finite candidate cost, but never share proof authority;
-- proposal-equivalence keys are discovery-only; each proposal class is searched at most once, while every concrete authority basis is validated and certified independently;
-- adding behavior-identical intervention aliases must not dilute or multiply finite proposal-search budget;
-- full-basis public collision is basis-impossibility screening, not a `NecessityCertificate`;
-- `NecessityCertificate` authority is restricted to non-empty proper subsets of the selected basis under subset-specific exposure;
-- global lower-basis exclusion carries replayable `BasisCollisionCertificate` witnesses instead of trusting counters alone;
-- `lower_basis_universe_digest` binds lower-basis identity, exposure, status and witness digest;
-- lower-order search failure without an information-theoretic certificate is inconclusive;
-- terminal evidence is disjoint and fail-closed;
-- receipt counters represent actually attempted oracle observations, not planned/pre-rejected work;
-- passing external I/O-only transfer does not override a failed core authority gate.
+PR #112 / branch `r269-autonomous-transfer-meta-learning-kernel-gpt56sol` owns the post-R2.68 non-neural learning-to-learn milestone.
 
-R2.68 remains a research draft until a fresh post-alias-hardening lock and complete release evidence are materialized. It is not an AGI claim, not a frontier-model-equivalence claim, and not an accepted readiness increase.
+R2.69 compiles verifier-backed R2.68 experience into identity-free portable priors, matches priors from target public structure only, shares every purchased target observation between transfer and scratch reasoning, requires prior-guided probes to satisfy a scratch-information floor, reuses evidence after failed transfer, quarantines misleading priors, and records scoped meta-credit/capability gaps. Phase A adds `0` trainable parameters.
 
-## Independent validation
+The strong R2.69 claim is not earned by transfer accuracy alone. Promotion requires a matched heldout sequence showing a genuine reduction in fresh target oracle calls and proof-distinct search work versus cold scratch; source-prior and shuffled-prior ablations; bounded negative-transfer regret; zero false accepts; deterministic replay; external I/O-only transfer; protected R2.68 lineage; source/evidence freeze; Nolane World bounded adjudication without forced W5 convergence; COMPLETE release bundle; and exact-main post-merge verification.
 
-Canonical regressions incorporate defects found by independent workers around composition holdout leakage (#75), proper-subset necessity authority (#74/#77), nuisance intervention answer-copy shortcuts, failure-path observation accounting, authority-universe collapse, semantic-alias budget dilution (#80/#81/#83), and repeated proposal search across discovery-equivalent authority aliases (#84).
+PR #70 (`R2.68-T research — cross-task causal prior transfer`) remains independent research/falsifier lineage. Its bounded candidate-budget evidence is not an accepted R2.69 capability and is not an accepted parent.
 
-The stronger alias-reuse challenger #84 produced hosted RED run `32237610280`: accepted R2.67.1/R2.66 safety passed while the R2.68 challenger measured four proposal-search calls in the aliased case versus one in the control. Canonical production now caches one search receipt per discovery-only proposal-equivalence class and reuses it across concrete authority aliases without collapsing their validation or proof identities. This correction requires a fresh source/evidence freeze; all earlier R2.68 locks or evidence tied to pre-fix source are non-authoritative for release.
+Until those promotion conditions hold, R2.69 status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
 
-## R2.68-T — complementary transfer research
+## Scientific boundary
 
-PR #70 (`R2.68-T research — cross-task causal prior transfer`) is a separate complementary research track. It yields the canonical R2.68 milestone namespace to PR #73 and must not be cited as the R2.68 release.
-
-## Promotion requirements
-
-R2.68 has an exact accepted R2.67.1 ancestor. Remaining acceptance work includes a fresh post-alias-hardening production/source lock; reproducible authored evidence; pinned I/O-only external transfer on the frozen source; Python 3.11/3.13 hosted verification; protected lineage; independent proof/accounting/resource-invariance challengers; Nolane World adjudication without forced convergence; exact source/test/evidence hashes; a verified COMPLETE release ZIP; and post-merge exact-main verification.
-
-Until those remaining conditions hold, status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
+Internal/synthetic evidence proves only the declared bounded mechanism. Large readiness movements require unseen external distributions, matched-budget references, causal ablations, reproducible release evidence and substantially broader capability coverage. No current document authorizes an AGI, human-level, unrestricted autonomy or frontier-model-equivalence claim.
