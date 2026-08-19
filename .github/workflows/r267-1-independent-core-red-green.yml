@@ -3,6 +3,8 @@ name: R2.67.1 Independent Core RED-GREEN
 on:
   push:
     branches: [validation-r267-1-core-red-green-gpt56sol]
+  pull_request:
+    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
   workflow_dispatch:
 
 permissions:
