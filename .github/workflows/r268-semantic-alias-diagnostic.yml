@@ -1,0 +1,43 @@
+name: R2.68 Semantic Alias Diagnostic
+
+on:
+  push:
+    branches: [validation-r268-semantic-alias-budget-current-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Print control and aliased receipts
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from dataclasses import asdict
+          from pprint import pprint
+          from cogcoder.r268_adaptive_causal_basis import discover_adaptive_causal_basis
+          FIELDS=('a','b')
+          D=({'a':-2.0,'b':-2.0},{'a':-2.0,'b':-1.0},{'a':-1.0,'b':-2.0},{'a':1.0,'b':3.0},{'a':4.0,'b':-2.0},{'a':5.0,'b':7.0})
+          V=({'a':2.0,'b':5.0},{'a':-3.0,'b':6.0},{'a':8.0,'b':-4.0})
+          def oracle(r): return abs(float(r['a']))+abs(float(r['b']))
+          def run(a):
+              return discover_adaptive_causal_basis(oracle,FIELDS,a,D,V,intervention_arity=1,max_basis_size=2,composition_constants=(0.0,2.0),composition_max_depth=5,composition_max_candidates_per_basis=60,max_composition_candidates_total=60,composition_beam_width=128)
+          for label,anchors in [('control',(-1.0,)),('aliased',(-1.0,1.0))]:
+              r=run(anchors)
+              print('===',label,'===')
+              print('passed',r.passed,'reason',r.reason,'selected_basis_size',r.selected_basis_size,'globally_minimal',r.globally_minimal)
+              print('legal_interventions',r.legal_interventions,'semantic_profiles',r.semantic_profiles,'bases_considered',r.bases_considered,'composition_candidates',r.composition_candidates_considered)
+              print('unresolved_lower_order',r.unresolved_lower_order)
+              print('lower_basis_count',r.lower_basis_count,'certified',r.lower_basis_certified,'inconclusive',r.lower_basis_inconclusive)
+              if r.selected:
+                  print('selected ids',r.selected.semantic_profile_ids)
+                  print('selected interventions',[x.bindings for x in r.selected.interventions])
+                  print('candidate considered',r.selected.composition_candidates_considered)
+          PY
