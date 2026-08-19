@@ -1,0 +1,49 @@
+name: R2.68-T Finite Fingerprint Authority Validation
+
+on:
+  pull_request:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
+    paths:
+      - 'tests/test_r268_finite_fingerprint_authority.py'
+      - 'scripts/r268t_apply_finite_fingerprint_authority.py'
+      - '.github/workflows/r268t-finite-fingerprint-authority-validation.yml'
+      - 'cogcoder/r268_cross_task_causal_transfer.py'
+      - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
+
+permissions:
+  contents: read
+
+jobs:
+  proposed-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Apply proof-only alias authority proposal in runner only
+        run: PYTHONPATH=. python scripts/r268t_apply_finite_fingerprint_authority.py
+      - name: Run full R2.68-T focused suite
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Recompute authored benchmark and enforce bounded claim
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r268_cross_task_causal_transfer import run_benchmark
+          result = run_benchmark()
+          print(json.dumps(result, sort_keys=True, indent=2))
+          assert result['all_gates_pass'] is True
+          assert result['positive_transfer_exact'] == result['positive_transfer_cases'] == 3
+          assert result['source_prior_ablation_exact'] == 0
+          assert result['tight_scratch_exact'] == 0
+          assert result['roomy_scratch_exact'] == 3
+          assert result['negative_transfer_abstained'] == result['negative_transfer_cases'] == 2
+          assert result['false_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          PY
