@@ -51,7 +51,10 @@
     "semantic_budget_fairness_impact_run": 32263766597,
     "semantic_budget_stale_contract_run": 32264260692,
     "semantic_budget_runner_green_run": 32264567220,
-    "semantic_budget_clean_green_run": 32264904953
+    "semantic_budget_clean_green_run": 32264904953,
+    "oracle_exception_containment_red_run": 32265216556,
+    "oracle_exception_runner_green_run": 32265458822,
+    "oracle_exception_clean_green_run": 32265678308
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -68,10 +71,6 @@
       "status": "hosted_green",
       "red_run": 32254278088,
       "green_run": 32254883515,
-      "python_3_11": "success",
-      "python_3_13": "success",
-      "r1_9_integrity": "success",
-      "r2_0i_integrity": "success",
       "source_commit": "b3d454e7b05b47bbc80108809f393765561ae0d5",
       "integration_commit": "0c4885c2e6c59bab3bcd1e9e6e6aaee99143105b",
       "boundary": "terminal oracle rows verify one already-selected hypothesis and may not resolve diagnostic ambiguity"
@@ -83,18 +82,13 @@
       "green_run": 32256375191,
       "source_commit": "ec67591bb9c5517704e4b779a14aa3d241bc5e7d",
       "integration_commit": "3aab24d4c09dd7aa106a181d353cf8ad33a0a215",
-      "superseded_by": "proof_backed_program_equivalence",
-      "boundary": "the bounded semantic-closure heuristic was temporary and is no longer equivalence authority"
+      "superseded_by": "proof_backed_program_equivalence"
     },
     "oracle_context_immutability": {
       "status": "hosted_green",
       "red_run": 32256898268,
       "runner_only_green_run": 32257815942,
       "clean_green_run": 32259669862,
-      "python_3_11": "success",
-      "python_3_13": "success",
-      "r1_9_integrity_run": 32259669749,
-      "r2_0i_integrity_run": 32259669760,
       "source_commit": "bb55994f89f11a03edae66ce8f0421c7a0941bb0",
       "integration_commit": "3a12fd56dec5ce7a675fbe2c4fe23fe976caecae",
       "boundary": "oracle calls receive isolated canonical three-probe snapshots; mutation cannot alter caller-owned evidence or candidate evaluation, and detected mutation fails closed with exact attempted-call accounting"
@@ -125,8 +119,6 @@
       "runner_only_green_run": 32264567220,
       "source_and_benchmark_commit": "3dffccbff604516d0e43346b51a0e0e912a09ce7",
       "clean_green_run": 32264904953,
-      "python_3_11": "success",
-      "python_3_13": "success",
       "r1_9_integrity_run": 32264904946,
       "r2_0i_integrity_run": 32264904970,
       "integration_commit": "fb6ae26de8d633f3f13e02c109ef4aa2e1cb7afd",
@@ -142,6 +134,19 @@
       "boundary": "proof-equivalent AST multiplicity cannot spend extra candidate slots; transfer and matched tight scratch are compared at the same proof-distinct hypothesis cap",
       "superseded_claim": "3/3 transfer versus 0/3 tight scratch under raw-representation-sensitive budgeting",
       "older_raw_budget_authored_evidence_status": "stale_until_explicitly_recomputed_and_refrozen"
+    },
+    "oracle_exception_containment": {
+      "status": "hosted_green",
+      "red_run": 32265216556,
+      "runner_only_green_run": 32265458822,
+      "source_commit": "2d8d79237a19738bea7ad589fc61ff279e2c0eab",
+      "clean_green_run": 32265678308,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity_run": 32265678258,
+      "r2_0i_integrity_run": 32265678186,
+      "integration_commit": "aeb65af7c866a8ed8168ef115088dda8f6d39b19",
+      "boundary": "ordinary Exception subclasses from external oracle execution or output canonicalization become bounded invalid evidence; mutation detection retains precedence, while BaseException process-control events remain uncontained"
     }
   },
   "nolane_world": {
