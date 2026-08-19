@@ -1,0 +1,56 @@
+name: R2.68 Materialize Proposal Search Reuse Fix
+
+on:
+  push:
+    branches: [fix-r268-proposal-search-reuse-gpt56sol]
+    paths:
+      - '.github/workflows/r268-proposal-search-reuse-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.head_commit.message == 'ci(r268): materialize proposal-search cache fix'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix-r268-proposal-search-reuse-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Apply exact search-once cache patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('cogcoder/_r268_runtime.py')
+          s=p.read_text()
+          old="""        attempted_proposal_classes=set()\n\n        for basis_index,basis in enumerate(bases):"""
+          new="""        proposal_search_cache={}\n\n        for basis_index,basis in enumerate(bases):"""
+          assert s.count(old)==1, s.count(old)
+          s=s.replace(old,new,1)
+          old2="""            proposal_class=_basis_proposal_equivalence_key(basis)\n            pending_classes=searchable_proposal_classes-attempted_proposal_classes\n            fair=max(1,remaining//max(1,len(pending_classes)));budget=min(per_basis,fair);bases_considered+=1\n            attempted_proposal_classes.add(proposal_class)\n            search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width));total+=search.candidates_considered\n"""
+          new2="""            proposal_class=_basis_proposal_equivalence_key(basis);bases_considered+=1\n            search=proposal_search_cache.get(proposal_class)\n            if search is None:\n                pending_classes=searchable_proposal_classes-set(proposal_search_cache)\n                fair=max(1,remaining//max(1,len(pending_classes)));budget=min(per_basis,fair)\n                search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width));total+=search.candidates_considered\n                proposal_search_cache[proposal_class]=search\n"""
+          assert s.count(old2)==1, s.count(old2)
+          p.write_text(s.replace(old2,new2,1))
+          PY
+      - name: Verify RED becomes GREEN without lineage regression
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_semantic_alias_search_reuse.py tests/test_r268_semantic_alias_budget_fairness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Commit production-only materialization
+        run: |
+          set -euo pipefail
+          changed="$(git status --short | awk '{print $2}')"
+          test "$changed" = 'cogcoder/_r268_runtime.py'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add cogcoder/_r268_runtime.py
+          git commit -m 'fix(r268): reuse proposal search across semantic aliases'
+          git push origin HEAD:fix-r268-proposal-search-reuse-gpt56sol
