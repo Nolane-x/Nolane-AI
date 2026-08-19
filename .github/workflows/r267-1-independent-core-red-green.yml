@@ -40,5 +40,7 @@ jobs:
         run: python scripts/r267_1_apply_genuine_necessity_core.py
       - name: Verify combined R2.67.1 correctness contract GREEN
         run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_correctness_hotfix.py
+      - name: Challenge corrected core on positive-domain triangle-min family
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_triangle_min_robustness.py
       - name: Reverify accepted R2.66 after ephemeral mutation
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
