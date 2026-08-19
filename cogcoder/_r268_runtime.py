@@ -14,13 +14,16 @@ def context_key(schema:PositionalSchema,context:Mapping[str,object])->str:
 def basis_shared_positions(schema:PositionalSchema,profiles:Sequence[InterventionProfile])->tuple[int,...]:
     fixed={p for profile in profiles for p,_ in profile.intervention.bindings};return tuple(i for i in range(len(schema.field_names)) if i not in fixed)
 
-def composition_examples(schema:PositionalSchema,contexts:Sequence[Mapping[str,object]],targets:Sequence[object],profiles:Sequence[InterventionProfile],shared_positions:Sequence[int])->tuple[OperatorExample,...]:
+def composition_examples(schema:PositionalSchema,contexts:Sequence[Mapping[str,object]],targets:Sequence[object],profiles:Sequence[InterventionProfile],shared_positions:Sequence[int],*,phase:str)->tuple[OperatorExample,...]:
+    if phase not in {'discovery','validation'}:raise ValueError('phase must be discovery or validation')
     out=[]
     for index,(context,expected) in enumerate(zip(contexts,targets,strict=True)):
         canonical=schema.to_canonical_context(context);row={}
-        for local,profile in enumerate(profiles):row[f'__p{local}']=(profile.discovery_outputs+profile.validation_outputs)[index]
+        for local,profile in enumerate(profiles):
+            outputs=profile.discovery_outputs if phase=='discovery' else profile.validation_outputs
+            row[f'__p{local}']=outputs[index]
         for pos in shared_positions:row[schema.canonical_fields[pos]]=canonical[schema.canonical_fields[pos]]
-        out.append(OperatorExample(f'ctx:{index}',row,expected))
+        out.append(OperatorExample(f'{phase}:{index}',row,expected))
     return tuple(out)
 
 def _empty_structure(reason:str,*,oracle_calls:int=0,learning_query_keys:frozenset[str]=frozenset(),validation_targets:tuple[object,...]=())->AdaptiveCausalBasisStructureReceipt:
@@ -44,7 +47,7 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
         for row in discovery:d_targets.append(tracked(row))
         for row in validation:v_targets.append(tracked(row))
     except Exception as exc:return _empty_structure(f'oracle_error:{type(exc).__name__}:{exc}',oracle_calls=oracle_calls,learning_query_keys=frozenset(queried),validation_targets=tuple(v_targets))
-    selection=discovery+validation;targets=tuple(d_targets+v_targets);specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity));profiles=[]
+    specs=enumerate_interventions(schema.field_names,tuple(map(float,anchor_values)),arity=int(intervention_arity));profiles=[]
     for spec in specs:
         ad=tuple(spec.apply(r,schema.field_names) for r in discovery);av=tuple(spec.apply(r,schema.field_names) for r in validation)
         if context_validator is not None and any(not bool(context_validator(r)) for r in (*ad,*av)):continue
@@ -53,9 +56,9 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             for row in ad:dv.append(tracked(row))
             for row in av:vv.append(tracked(row))
         except Exception as exc:return AdaptiveCausalBasisStructureReceipt(False,None,0,False,(),(),len(profiles),len(profiles),len(specs),0,0,oracle_calls,0,f'oracle_error:{type(exc).__name__}:{exc}',frozenset(queried),tuple(v_targets))
-        outputs=tuple(dv+vv)
-        if len({semantic_key((v,)) for v in outputs})<2:continue
-        sid=hashlib.sha256(semantic_key(outputs).encode()).hexdigest();profiles.append(InterventionProfile(spec,tuple(dv),tuple(vv),sid))
+        discovery_outputs=tuple(dv)
+        if len({semantic_key((v,)) for v in discovery_outputs})<2:continue
+        sid=hashlib.sha256(semantic_key(discovery_outputs).encode()).hexdigest();profiles.append(InterventionProfile(spec,tuple(dv),tuple(vv),sid))
     dedup={}
     for profile in profiles:
         prev=dedup.get(profile.semantic_profile_id)
@@ -64,7 +67,7 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     for k in range(1,max_basis_size+1):
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(p.semantic_profile_id for p in b))
         for basis_index,basis in enumerate(bases):
-            ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,selection,targets,basis,shared)
+            ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
             cert=build_public_target_collision_certificate(basis_semantic_profile_ids=ids,subset_semantic_profile_ids=ids,exposed_fields=fields,examples=examples)
             ledger_identity={'cardinality':k,'semantic_profile_ids':list(ids),'exposed_fields':list(fields)}
             if cert is not None:
@@ -82,10 +85,16 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             values,_=evaluate_vector(search.expression,examples)
             if values is None:
                 unresolved.append(f'k{k}:{"|".join(ids)}:evaluation_error');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
-            exact=sum(int(equivalent(a,b)) for a,b in zip(values,targets,strict=True))
-            if exact!=len(targets):
+            exact=sum(int(equivalent(a,b)) for a,b in zip(values,d_targets,strict=True))
+            if exact!=len(d_targets):
                 unresolved.append(f'k{k}:{"|".join(ids)}:selection_mismatch');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
-            candidate=AdaptiveCausalBasisCandidate(tuple(p.intervention for p in basis),tuple(basis),ids,k,shared,search.expression,expr_digest(search.expression),used,len(targets),exact,search.candidates_considered)
+            validation_values,_=evaluate_vector(search.expression,validation_examples)
+            if validation_values is None:
+                unresolved.append(f'k{k}:{"|".join(ids)}:composition_validation_error');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
+            validation_exact=sum(int(equivalent(a,b)) for a,b in zip(validation_values,v_targets,strict=True))
+            if validation_exact!=len(v_targets):
+                unresolved.append(f'k{k}:{"|".join(ids)}:composition_validation_failed');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
+            candidate=AdaptiveCausalBasisCandidate(tuple(p.intervention for p in basis),tuple(basis),ids,k,shared,search.expression,expr_digest(search.expression),used,len(d_targets),exact,len(v_targets),validation_exact,search.candidates_considered)
             lower_rows=[(cardinality,identity,status) for cardinality,identity,status in lower_ledger if cardinality<k]
             lower_unresolved=tuple(row for row in unresolved if any(row.startswith(f'k{s}:') for s in range(1,k)))
             lower_count=len(lower_rows);lower_certified=sum(int(status=='collision_certified') for _cardinality,_identity,status in lower_rows);lower_inconclusive=lower_count-lower_certified
