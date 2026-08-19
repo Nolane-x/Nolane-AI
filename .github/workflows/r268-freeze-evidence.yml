@@ -12,6 +12,7 @@ on:
       - '.github/workflows/r268-*.yml'
       - 'docs/superpowers/specs/2026-08-19-r268-proof-carrying-adaptive-causal-basis-design.md'
       - 'docs/superpowers/plans/2026-08-19-r268-proof-carrying-adaptive-causal-basis.md'
+      - 'docs/superpowers/specs/2026-08-19-r268-semantic-alias-proposal-budget-hardening.md'
   workflow_dispatch:
 
 permissions:
@@ -124,7 +125,7 @@ jobs:
             'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
             'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
             '.github/workflows/r268-red-green.yml','.github/workflows/r268-external-transfer.yml','.github/workflows/r268-canonical-gate.yml','.github/workflows/r268-freeze-evidence.yml','.github/workflows/r268-release-bundle.yml','.github/workflows/r268-post-merge-release-bundle.yml',
-            'docs/superpowers/specs/2026-08-19-r268-proof-carrying-adaptive-causal-basis-design.md','docs/superpowers/plans/2026-08-19-r268-proof-carrying-adaptive-causal-basis.md',
+            'docs/superpowers/specs/2026-08-19-r268-proof-carrying-adaptive-causal-basis-design.md','docs/superpowers/plans/2026-08-19-r268-proof-carrying-adaptive-causal-basis.md','docs/superpowers/specs/2026-08-19-r268-semantic-alias-proposal-budget-hardening.md',
             'R2_68_PHASE_A_RESULT.json','R2_68_EXTERNAL_TRANSFER.json',
           ]
           tests=sorted(str(p) for p in Path('tests').glob('test_r268_*.py'))
@@ -134,7 +135,7 @@ jobs:
           cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           lock={
-            'schema_version':1,
+            'schema_version':2,
             'milestone':'R2.68',
             'name':'Proof-Carrying Adaptive Causal Basis',
             'status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
@@ -144,7 +145,7 @@ jobs:
             'production_source_changes_after_lock_forbidden':True,
             'frozen_evidence_changes_after_lock_forbidden':True,
             'added_trainable_parameters':0,
-            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only proposal search, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
+            'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
             'authority_hardening':{
               'target_preserving_nuisance_rejected':True,
               'proposal_validation_disjoint':True,
@@ -155,6 +156,10 @@ jobs:
               'attempted_observation_accounting':True,
               'terminal_selected_probe_reobservation':True,
               'uncertified_search_miss_inconclusive':True,
+              'proposal_alias_budget_invariant':True,
+              'proposal_search_reused_once':True,
+              'proposal_cache_discovery_only':True,
+              'proposal_cache_authority_validation_separate':True,
               'external_io_only':True,
               'cross_python_required':True,
             },
@@ -186,11 +191,13 @@ jobs:
               'composition_holdout_red_run':32220363255,
               'preoracle_accounting_red_run':32228145798,
               'validation_distinct_profile_red_run':32228801576,
-              'latest_prefreeze_core_green_run':32231468200,
-              'latest_prefreeze_external_green_run':32231468125,
+              'semantic_alias_search_reuse_red_run':32237610280,
               'proper_subset_challenger_pr':74,
               'composition_holdout_challenger_pr':75,
               'proper_subset_fix_challenger_pr':77,
+              'semantic_alias_budget_validation_prs':[80,81],
+              'semantic_alias_budget_fix_pr':83,
+              'semantic_alias_search_reuse_challenger_pr':84,
             },
             'frozen_git_blobs':blobs,
           }
@@ -212,5 +219,3 @@ jobs:
           git add R2_68_PHASE_A_RESULT.json R2_68_EXTERNAL_TRANSFER.json R2_68_PRE_HOSTED_LOCK.json
           git commit -m 'evidence: freeze R2.68 proof-carrying authority boundary'
           git push origin HEAD:r268-proof-carrying-adaptive-causal-basis-gpt56sol
-
-# Retrigger after accepted-parent artifact synchronization; authority semantics unchanged.

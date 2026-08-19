@@ -35,6 +35,9 @@ Current Phase-A authority boundaries:
 - positive authored capability evidence is limited to certified 2-, 3-, and 4-probe families;
 - every distinct legal intervention spec remains a distinct authority action even when finite discovery/validation behavior happens to coincide;
 - validation intervention outputs may bind authority identity but cannot control proposal ordering; validation targets never train proposal search;
+- discovery-equivalent authority bases share proposal-search computation and finite candidate cost, but never share proof authority;
+- proposal-equivalence keys are discovery-only; each proposal class is searched at most once, while every concrete authority basis is validated and certified independently;
+- adding behavior-identical intervention aliases must not dilute or multiply finite proposal-search budget;
 - full-basis public collision is basis-impossibility screening, not a `NecessityCertificate`;
 - `NecessityCertificate` authority is restricted to non-empty proper subsets of the selected basis under subset-specific exposure;
 - global lower-basis exclusion carries replayable `BasisCollisionCertificate` witnesses instead of trusting counters alone;
@@ -44,13 +47,13 @@ Current Phase-A authority boundaries:
 - receipt counters represent actually attempted oracle observations, not planned/pre-rejected work;
 - passing external I/O-only transfer does not override a failed core authority gate.
 
-R2.68 remains a research draft. It is not an AGI claim, not a frontier-model-equivalence claim, and not an accepted readiness increase.
+R2.68 remains a research draft until a fresh post-alias-hardening lock and complete release evidence are materialized. It is not an AGI claim, not a frontier-model-equivalence claim, and not an accepted readiness increase.
 
 ## Independent validation
 
-Canonical regressions now incorporate defects found by independent workers around composition holdout leakage (#75), proper-subset necessity authority (#74/#77), nuisance intervention answer-copy shortcuts, failure-path observation accounting, and authority-universe collapse.
+Canonical regressions incorporate defects found by independent workers around composition holdout leakage (#75), proper-subset necessity authority (#74/#77), nuisance intervention answer-copy shortcuts, failure-path observation accounting, authority-universe collapse, semantic-alias budget dilution (#80/#81/#83), and repeated proposal search across discovery-equivalent authority aliases (#84).
 
-A validation-only child PR may be used to run the exact current #73 snapshot without merging validation-only files into the milestone.
+The stronger alias-reuse challenger #84 produced hosted RED run `32237610280`: accepted R2.67.1/R2.66 safety passed while the R2.68 challenger measured four proposal-search calls in the aliased case versus one in the control. Canonical production now caches one search receipt per discovery-only proposal-equivalence class and reuses it across concrete authority aliases without collapsing their validation or proof identities. This correction requires a fresh source/evidence freeze; all earlier R2.68 locks or evidence tied to pre-fix source are non-authoritative for release.
 
 ## R2.68-T — complementary transfer research
 
@@ -58,6 +61,6 @@ PR #70 (`R2.68-T research — cross-task causal prior transfer`) is a separate c
 
 ## Promotion requirements
 
-R2.68 has an exact accepted R2.67.1 ancestor. Remaining acceptance work includes production/source refreeze; reproducible authored evidence; pinned I/O-only external transfer on the frozen source; Python 3.11/3.13 hosted verification; protected lineage; independent proof/accounting challengers; Nolane World adjudication without forced convergence; exact source/test/evidence hashes; release artifacts; and post-merge exact-main verification.
+R2.68 has an exact accepted R2.67.1 ancestor. Remaining acceptance work includes a fresh post-alias-hardening production/source lock; reproducible authored evidence; pinned I/O-only external transfer on the frozen source; Python 3.11/3.13 hosted verification; protected lineage; independent proof/accounting/resource-invariance challengers; Nolane World adjudication without forced convergence; exact source/test/evidence hashes; a verified COMPLETE release ZIP; and post-merge exact-main verification.
 
 Until those remaining conditions hold, status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
