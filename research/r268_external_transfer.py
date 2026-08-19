@@ -6,6 +6,34 @@ from cogcoder.r256_operator_invention import OperatorInventionNeed
 from cogcoder.r268_adaptive_causal_basis import synthesize_adaptive_causal_basis
 
 
+def _single_parity_validation_code(*, count:int=24)->tuple[tuple[float,...],...]:
+    """Return a nonzero q-ary length-4 code with injective 3-coordinate projections.
+
+    Symbols 3..7 are disjoint from both the discovery alphabet and the 0.0
+    intervention anchor.  The fourth symbol is a single parity check over
+    GF(5)-style indices, so any three coordinates determine the fourth.  Hence
+    no two codewords collapse after zeroing any one coordinate.
+    """
+    symbols=(3.0,4.0,5.0,6.0,7.0)
+    rows=[]
+    for i,j,k in itertools.product(range(5),repeat=3):
+        parity=(-i-j-k)%5
+        rows.append((symbols[i],symbols[j],symbols[k],symbols[parity]))
+        if len(rows)==count:
+            break
+    return tuple(rows)
+
+
+def _query_multiset(rows:tuple[tuple[float,...],...])->tuple[tuple[float,...],...]:
+    queries=list(rows)
+    for position in range(4):
+        for row in rows:
+            query=list(row)
+            query[position]=0.0
+            queries.append(tuple(query))
+    return tuple(queries)
+
+
 def run_external_transfer(external_callable:Callable,*,source_id:str,source_version:str)->dict[str,object]:
     if not callable(external_callable): raise TypeError('external_callable must be callable')
     fields=('a','b','c','d');source_calls=0
@@ -15,17 +43,18 @@ def run_external_transfer(external_callable:Callable,*,source_id:str,source_vers
         matrix=[[float(row['a']),float(row['b'])],[float(row['c']),float(row['d'])]]
         return float(external_callable(matrix))
 
-    # Discovery and validation deliberately occupy disjoint value domains.
-    # With the only intervention anchor fixed at 0.0, every discovery oracle
-    # query (base or intervened) therefore remains semantically disjoint from
-    # every validation oracle query.  Validation is held out at the actual
-    # oracle-input level, not merely by row index.
     discovery_values=(-2.0,-1.0,1.0,2.0)
-    validation_values=(3.0,4.0,5.0,6.0)
     discovery_rows=tuple(itertools.product(discovery_values,repeat=4))
-    validation_rows=tuple(itertools.product(validation_values,repeat=4))
     discovery=discovery_rows[:220]
-    validation=validation_rows[:24]
+    validation=_single_parity_validation_code(count=24)
+
+    discovery_queries=_query_multiset(discovery)
+    validation_queries=_query_multiset(validation)
+    validation_unique=set(validation_queries)
+    assert len(validation_queries)==120
+    assert len(validation_unique)==120
+    assert not (set(discovery_queries)&validation_unique)
+
     terminal=((101.0,103.0,107.0,109.0),(-113.0,127.0,131.0,137.0),(139.0,-149.0,151.0,157.0),(163.0,167.0,-173.0,179.0),(-181.0,191.0,193.0,197.0),(199.0,-211.0,223.0,-227.0))
     def contexts(raw): return tuple(dict(zip(fields,row,strict=True)) for row in raw)
     need=OperatorInventionNeed('R2.68 external determinant causal basis',fields,'out',constants=(0.0,1.0,-1.0,2.0),max_depth=5,max_candidates=200_000)
@@ -62,6 +91,9 @@ def run_external_transfer(external_callable:Callable,*,source_id:str,source_vers
         'milestone':'R2.68','capability':'proof-carrying-adaptive-causal-basis','passed':passed,
         'source_id':str(source_id),'source_version':str(source_version),'source_exposure':'io_only',
         'discovery_validation_oracle_query_disjoint':True,
+        'validation_oracle_query_attempts':len(validation_queries),
+        'validation_oracle_query_unique':len(validation_unique),
+        'validation_oracle_query_duplicates':len(validation_queries)-len(validation_unique),
         'selected_basis_size':receipt.selected_basis_size,'globally_minimal':receipt.globally_minimal,
         'legal_interventions':receipt.structure.legal_interventions,'semantic_profiles':receipt.structure.semantic_profiles,
         'necessity_certificate_sizes':sorted({c.subset_cardinality for c in receipt.structure.necessity_certificates}),
