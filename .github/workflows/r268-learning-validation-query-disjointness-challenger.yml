@@ -1,0 +1,47 @@
+name: R2.68 Challenger — Learning/Validation Query Disjointness
+
+on:
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths:
+      - 'tests/test_r268_learning_validation_query_disjointness.py'
+      - '.github/workflows/r268-learning-validation-query-disjointness-challenger.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  expected-red:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Accepted parent safety first
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Current R2.68 contracts stay green before challenger
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py --ignore=tests/test_r268_learning_validation_query_disjointness.py
+      - name: Require learning/validation overlap challenger to be RED
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r268_learning_validation_query_disjointness.py > /tmp/r268-disjointness-red.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/r268-disjointness-red.log
+          if [ "$code" -eq 0 ]; then
+            echo 'Unexpected GREEN: exact R2.68 already rejects all learning/validation query overlap cases.'
+            exit 1
+          fi
+          grep -Eq '3 failed' /tmp/r268-disjointness-red.log
+          echo 'R268_LEARNING_VALIDATION_QUERY_DISJOINTNESS_CONFIRMED_RED'
