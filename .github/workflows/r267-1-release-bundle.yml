@@ -50,6 +50,7 @@ jobs:
               'tests/test_r267_1_preselection_receipt_units.py',
               'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
+              'tests/test_r267_1_triplet_budget_semantics.py',
               'tests/test_r267_1_evidence.py',
               'tests/test_r267_independent_ablation_completeness.py',
               'scripts/r267_1_apply_partial_receipt_accounting.py',
@@ -71,6 +72,7 @@ jobs:
           assert a['preselection_probe_cases_zero_without_selected_triplet'] is True
           assert a['attempted_case_receipt_accounting'] is True
           assert a['positive_domain_triangle_min_robustness'] is True
+          assert a['triplet_budget_semantic_invariance'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
@@ -149,6 +151,7 @@ jobs:
               'tests/test_r267_1_preselection_receipt_units.py',
               'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
+              'tests/test_r267_1_triplet_budget_semantics.py',
               'tests/test_r267_1_evidence.py',
               'scripts/r267_1_apply_partial_receipt_accounting.py',
               '.github/workflows/r267-1-partial-receipt-hotfix.yml',
@@ -178,7 +181,7 @@ jobs:
           payload=json.dumps({
               'state':'success',
               'context':'r2671/release-bundle',
-              'description':'R2.67.1 frozen attempted-case authority, exact evidence, protected lineage and COMPLETE ZIP passed',
+              'description':'R2.67.1 frozen attempted-case authority, triplet fairness, exact evidence, protected lineage and COMPLETE ZIP passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
