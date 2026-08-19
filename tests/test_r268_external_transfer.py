@@ -25,3 +25,10 @@ def test_r268_external_transfer_carries_complete_lower_basis_proof_ledger() -> N
     assert result['lower_basis_inconclusive']==0
     assert result['proof_ledger_complete'] is True
     assert len(result['lower_basis_universe_digest'])==64
+    assert result['lower_basis_certificate_count']==2
+    assert len(result['lower_basis_certificates'])==2
+    assert all(row['proof_kind']=='public_basis_target_collision' for row in result['lower_basis_certificates'])
+    assert all(len(row['witness_digest'])==64 for row in result['lower_basis_certificates'])
+    assert result['necessity_certificate_count']==2
+    assert len(result['necessity_certificates'])==2
+    assert all(row['proof_kind']=='public_target_collision' for row in result['necessity_certificates'])
