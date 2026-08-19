@@ -1,15 +1,16 @@
 name: R2.69 Multi-Prior Writer
 
 on:
-  push:
-    branches: ['r269-external-architecture-hardening-gpt56sol']
-    paths: ['.github/workflows/r269-multi-prior-writer.yml']
+  pull_request:
+    paths:
+      - '.github/workflows/r269-multi-prior-writer.yml'
 
 permissions:
   contents: write
 
 jobs:
   materialize:
+    if: github.event.pull_request.head.ref == 'r269-external-architecture-hardening-gpt56sol' && github.event.pull_request.base.ref == 'r269-autonomous-transfer-meta-learning-kernel-gpt56sol'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
