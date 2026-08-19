@@ -314,61 +314,87 @@ def generate_transfer_candidates(portable: PortableCausalProgram) -> tuple[Trans
     return tuple(sorted(by_digest.values(), key=lambda row: (row.repair_distance, row.candidate_id)))
 
 
-def _bounded_role_value_bank(
-    diagnostic_contexts: Sequence[Mapping[str, object]],
-    role: str,
-    *,
-    limit: int = 8,
-) -> tuple[int | float, ...]:
-    unique: dict[str, int | float] = {}
-    for context in diagnostic_contexts:
-        value = _canonical_number(context[role])
-        key = json.dumps(value, separators=(',', ':'), allow_nan=False)
-        unique[key] = value
-    ordered = sorted(unique.values())
-    if len(ordered) <= limit:
-        return tuple(ordered)
-    if limit < 2:
-        raise ValueError('semantic closure role-value limit must be at least 2')
-    indices = tuple(index * (len(ordered) - 1) // (limit - 1) for index in range(limit))
-    return tuple(ordered[index] for index in indices)
+def _proven_numeric_expr(expr: Expr) -> bool:
+    # Probe-role contexts are validated as finite numeric values before oracle
+    # authority is exercised. This helper proves only the *result type* needed
+    # to justify commutative numeric addition; it does not prove totality.
+    if isinstance(expr, Field):
+        return True
+    if isinstance(expr, Const):
+        return isinstance(expr.value, (int, float)) and not isinstance(expr.value, bool)
+    if isinstance(expr, Unary):
+        if expr.op in ('abs', 'neg'):
+            return _proven_numeric_expr(expr.arg)
+        if expr.op == 'len':
+            return True
+        return False
+    if isinstance(expr, Binary):
+        if expr.op in ('add', 'sub', 'mul', 'div', 'min', 'max'):
+            return _proven_numeric_expr(expr.left) and _proven_numeric_expr(expr.right)
+        return False
+    if isinstance(expr, IfElse):
+        return (
+            _proven_numeric_expr(expr.when_true)
+            and _proven_numeric_expr(expr.when_false)
+        )
+    raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
 
-def _diagnostic_semantic_closure(
-    diagnostic_contexts: Sequence[Mapping[str, object]],
-) -> tuple[dict[str, int | float], ...]:
-    banks = tuple(_bounded_role_value_bank(diagnostic_contexts, role) for role in _PROBE_ROLES)
-    rows: list[dict[str, int | float]] = []
-    seen: set[str] = set()
-    for values in itertools.product(*banks):
-        context = dict(zip(_PROBE_ROLES, values, strict=True))
-        key = _context_key(context)
-        if key in seen:
-            continue
-        seen.add(key)
-        rows.append(context)
-    return tuple(rows)
+def _proven_structural_alias_key(expr: Expr) -> str:
+    if isinstance(expr, Field):
+        return json.dumps(('field', expr.name), separators=(',', ':'), ensure_ascii=True)
+    if isinstance(expr, Const):
+        return json.dumps(('const', expr.value), separators=(',', ':'), ensure_ascii=True)
+    if isinstance(expr, Unary):
+        return json.dumps(
+            ('unary', expr.op, _proven_structural_alias_key(expr.arg)),
+            separators=(',', ':'),
+            ensure_ascii=True,
+        )
+    if isinstance(expr, Binary):
+        left = _proven_structural_alias_key(expr.left)
+        right = _proven_structural_alias_key(expr.right)
+        commutative_proven = (
+            expr.op == 'mul'
+            or (
+                expr.op == 'add'
+                and _proven_numeric_expr(expr.left)
+                and _proven_numeric_expr(expr.right)
+            )
+        )
+        if commutative_proven and right < left:
+            left, right = right, left
+        return json.dumps(
+            ('binary', expr.op, left, right),
+            separators=(',', ':'),
+            ensure_ascii=True,
+        )
+    if isinstance(expr, IfElse):
+        return json.dumps(
+            (
+                'ifelse',
+                _proven_structural_alias_key(expr.condition),
+                _proven_structural_alias_key(expr.when_true),
+                _proven_structural_alias_key(expr.when_false),
+            ),
+            separators=(',', ':'),
+            ensure_ascii=True,
+        )
+    raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
 
 def _dedupe_live_candidates(
     candidates: Sequence[TransferCandidate],
     diagnostic_contexts: Sequence[Mapping[str, object]],
 ) -> list[TransferCandidate]:
-    # A finite diagnostic table can contain accidental correlations (for
-    # example p0 == p1 on every observed row). Build a bounded, target-label-
-    # free counterfactual closure from the observed marginal values before
-    # treating two candidate programs as observational aliases. Terminal inputs
-    # and oracle outputs are deliberately excluded from this equivalence pass.
-    fingerprint_contexts = (
-        tuple(diagnostic_contexts)
-        + _diagnostic_semantic_closure(diagnostic_contexts)
-    )
-    by_signature: dict[tuple[str, ...], TransferCandidate] = {}
+    # Finite behavioral agreement is evidence, not a proof of extensional
+    # program equivalence. Collapse only structural aliases whose equality is
+    # guaranteed on this numeric three-probe runtime. All remaining hypotheses
+    # must be distinguished by real diagnostic oracle evidence or fail closed.
+    del diagnostic_contexts
+    by_signature: dict[str, TransferCandidate] = {}
     for candidate in candidates:
-        signature = tuple(
-            _prediction_key(_safe_prediction(candidate.expression, context))
-            for context in fingerprint_contexts
-        )
+        signature = _proven_structural_alias_key(candidate.expression)
         previous = by_signature.get(signature)
         if previous is None or (
             candidate.repair_distance,
