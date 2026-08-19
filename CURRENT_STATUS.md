@@ -38,7 +38,7 @@ The strong R2.69 claim is not earned by transfer accuracy alone. Promotion requi
 
 PR #70 (`R2.68-T research — cross-task causal prior transfer`) remains independent research/falsifier lineage. Its bounded candidate-budget evidence is not an accepted R2.69 capability and is not an accepted parent.
 
-Until those promotion conditions hold, R2.69 status is **RESEARCH_DRAFT / NOT_ACCEPTED**.
+Until every R2.69 promotion condition is satisfied on one exact frozen source head, status is **RESEARCH_DRAFT / NOT_ACCEPTED**. Partial GREEN runs, local tests, authored-only measurements, and pre-freeze artifacts must not be cited as an accepted readiness increase.
 
 ## Scientific boundary
 
