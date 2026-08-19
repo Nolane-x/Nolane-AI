@@ -1,0 +1,32 @@
+name: R2.67.1 Independent Partial Receipt Accounting
+
+on:
+  pull_request:
+    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
+    paths:
+      - 'tests/test_r267_1_partial_probe_receipt_accounting.py'
+      - 'cogcoder/r267_three_probe_causal_composition.py'
+      - '.github/workflows/r267-1-independent-partial-receipt-accounting.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  partial-receipt-accounting:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.66 safety first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Challenge partial probe receipt accounting
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_partial_probe_receipt_accounting.py
