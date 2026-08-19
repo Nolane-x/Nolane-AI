@@ -50,6 +50,12 @@ jobs:
           result=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
           assert result['passed'] is True
           assert result['source_exposure'] == 'io_only'
+          assert result['source_id'] == 'numpy:numpy.linalg.det'
+          assert result['source_version'] == '2.4.6'
+          assert result['discovery_validation_oracle_query_disjoint'] is True
+          assert result['validation_oracle_query_attempts'] == 120
+          assert result['validation_oracle_query_unique'] == 120
+          assert result['validation_oracle_query_duplicates'] == 0
           assert result['selected_basis_size'] == 2
           assert result['globally_minimal'] is True
           assert result['legal_interventions'] == 4
@@ -59,6 +65,7 @@ jobs:
           assert result['lower_basis_certificate_count'] == 4
           assert result['necessity_certificate_count'] == 2
           assert result['oracle_accounting_exact'] is True
+          assert result['oracle_calls_total'] == result['source_calls_observed'] == 1238
           assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
           Path('R2_68_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
