@@ -34,8 +34,8 @@ def _run(anchors: tuple[float, ...]):
         max_basis_size=2,
         composition_constants=(0.0, 2.0),
         composition_max_depth=5,
-        composition_max_candidates_per_basis=60,
-        max_composition_candidates_total=60,
+        composition_max_candidates_per_basis=16,
+        max_composition_candidates_total=16,
         composition_beam_width=128,
     )
 
@@ -45,6 +45,7 @@ def test_behavior_identical_authority_aliases_do_not_dilute_proposal_budget() ->
     aliased = _run((-1.0, 1.0))
 
     assert control.passed is True
+    assert control.composition_candidates_considered == 16
     assert control.selected_basis_size == 2
     assert control.globally_minimal is True
 
@@ -54,7 +55,8 @@ def test_behavior_identical_authority_aliases_do_not_dilute_proposal_budget() ->
     assert aliased.semantic_profiles == 4
 
     # Proposal allocation, however, must be invariant to behavior-identical
-    # aliases on the discovery evidence.
+    # aliases on the discovery evidence, even when the global budget is exactly
+    # the amount required by the control task.
     assert aliased.passed is control.passed
     assert aliased.selected_basis_size == control.selected_basis_size
     assert aliased.globally_minimal is control.globally_minimal
