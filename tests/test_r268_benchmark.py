@@ -21,3 +21,11 @@ def test_r268_benchmark_freezes_complete_lower_basis_ledger() -> None:
     assert [case['lower_basis_inconclusive'] for case in result['cases']]==[0,0,0,0]
     assert [case['proof_ledger_complete'] for case in result['cases']]==[False,True,True,True]
     assert result['complete_minimality_ledgers'] is True
+
+
+def test_r268_benchmark_freezes_complete_selected_basis_certificate_ledger() -> None:
+    result=run_benchmark()
+    assert [case['necessity_certificate_count'] for case in result['cases']]==[0,2,6,14]
+    assert [case['necessity_certificate_sizes'] for case in result['cases']]==[[],[1],[1,2],[1,2,3]]
+    assert result['selected_basis_certificate_ledgers_complete'] is True
+    assert all(case['selected_basis_certificates_bound'] is True for case in result['cases'][1:])
