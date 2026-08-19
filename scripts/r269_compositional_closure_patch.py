@@ -6,7 +6,6 @@ PATH = Path("cogcoder/r269_transfer_runtime.py")
 text = PATH.read_text(encoding="utf-8")
 start = text.index("def _scratch_hypotheses(")
 end = text.index("\n\ndef _predict(", start)
-old = text[start:end]
 new = '''def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLearningConfig) -> list[_Hypothesis]:
     rows: list[_Hypothesis] = []
     seen: set[str] = set()
@@ -41,15 +40,21 @@ new = '''def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLea
             return role_coverage(expr.condition) | role_coverage(expr.when_true) | role_coverage(expr.when_false)
         raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
-    def add_ranked_layer(buckets: Mapping[str, Mapping[str, Expr]]) -> bool:
-        ranked: dict[str, list[tuple[str, Expr]]] = {}
+    def add_ranked_layer(buckets: Mapping[str, Sequence[Expr]]) -> bool:
+        ranked: dict[str, list[Expr]] = {}
         for op in signature.allowed_binary_ops:
+            # Cheap syntactic dedupe first.  Complete-domain semantic proofs are
+            # intentionally evaluated lazily only for candidates that the public
+            # target-independent scheduler actually reaches before the cap.
+            syntax_distinct: dict[str, Expr] = {}
+            for expr in buckets.get(op, ()):
+                syntax_distinct.setdefault(expr_digest(expr), expr)
             ranked[op] = sorted(
-                buckets.get(op, {}).items(),
-                key=lambda item: (
-                    -len(role_coverage(item[1])),
-                    item[1].cost,
-                    expr_digest(item[1]),
+                syntax_distinct.values(),
+                key=lambda expr: (
+                    -len(role_coverage(expr)),
+                    expr.cost,
+                    expr_digest(expr),
                 ),
             )
         indexes = {op: 0 for op in signature.allowed_binary_ops}
@@ -62,8 +67,7 @@ new = '''def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLea
                     continue
                 progressed = True
                 indexes[op] = index + 1
-                semantic_key, expr = bucket[index]
-                if not add(expr, key=semantic_key):
+                if not add(bucket[index]):
                     return False
             if not progressed:
                 return True
@@ -75,8 +79,8 @@ new = '''def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLea
     if config.scratch_max_depth == 0:
         return rows
 
-    # Level 1 is materialized proof-distinct.  Raw commutative/extensional
-    # aliases must not get multiplied again when constructing deeper layers.
+    # Level 1 is small enough to materialize proof-distinct.  Raw aliases are
+    # collapsed before they can multiply into deeper construction layers.
     level1_by_key: dict[str, Expr] = {}
     for op in signature.allowed_binary_ops:
         for left in fields:
@@ -90,50 +94,42 @@ new = '''def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLea
         return rows
     level1 = tuple(level1_by_key.values())
 
-    # A complete binary depth-2 layer contains both nested+field and
-    # nested+nested shapes.  The previous enumerator omitted the balanced
-    # nested+nested family entirely.  Candidate scheduling is target-output
-    # independent: prefer public role coverage, then lower syntactic cost, and
-    # round-robin root operators so one operator cannot consume the whole cap.
-    depth2_buckets: dict[str, dict[str, Expr]] = {
-        op: {} for op in signature.allowed_binary_ops
+    # Complete binary depth-2 grammar: nested+field, field+nested and the
+    # previously omitted balanced nested+nested family.  Scheduling uses only
+    # public structure (role coverage, cost, operator round-robin), never target
+    # outputs or hidden labels.  Semantic proof dedupe is lazy under the cap.
+    depth2_buckets: dict[str, list[Expr]] = {
+        op: [] for op in signature.allowed_binary_ops
     }
     for op in signature.allowed_binary_ops:
         bucket = depth2_buckets[op]
         for nested in level1:
             for field in fields:
-                for expr in (Binary(op, nested, field), Binary(op, field, nested)):
-                    key = key_for(expr)
-                    if key not in seen:
-                        bucket.setdefault(key, expr)
+                bucket.append(Binary(op, nested, field))
+                bucket.append(Binary(op, field, nested))
         for left in level1:
             for right in level1:
-                expr = Binary(op, left, right)
-                key = key_for(expr)
-                if key not in seen:
-                    bucket.setdefault(key, expr)
+                bucket.append(Binary(op, left, right))
     if not add_ranked_layer(depth2_buckets):
         return rows
     if config.scratch_max_depth == 2:
         return rows
 
-    # Depth 3 expands only after the semantically complete lower layer.  Keep
-    # the same target-independent scheduling rule so larger caps buy breadth
-    # before representation duplicates or a single root operator.
+    # Depth 3 expands only after the lower layer.  It uses the same lazy,
+    # target-independent policy, so larger budgets buy semantic breadth rather
+    # than paying the full Cartesian proof cost up front.
     previous = tuple(row.expression for row in rows)
     frontier = tuple(expr for expr in previous if expr.depth == 2)
     lower = tuple(expr for expr in previous if expr.depth <= 2)
-    depth3_buckets: dict[str, dict[str, Expr]] = {
-        op: {} for op in signature.allowed_binary_ops
+    depth3_buckets: dict[str, list[Expr]] = {
+        op: [] for op in signature.allowed_binary_ops
     }
     for op in signature.allowed_binary_ops:
         bucket = depth3_buckets[op]
         for left in frontier:
             for right in lower:
-                for expr in (Binary(op, left, right), Binary(op, right, left)):
-                    key = key_for(expr)
-                    if key not in seen:
-                        bucket.setdefault(key, expr)
+                bucket.append(Binary(op, left, right))
+                bucket.append(Binary(op, right, left))
     add_ranked_layer(depth3_buckets)
     return rows
 '''
