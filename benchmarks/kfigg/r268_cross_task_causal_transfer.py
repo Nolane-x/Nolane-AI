@@ -22,7 +22,7 @@ def _source_prior_ablation_expression():
     return Binary('div', Field('__p0'), Binary('mul', Field('__p1'), Field('__p2')))
 
 
-def _diagnostics() -> tuple[dict[str, int], ...]:
+def _diagnostics() -> tuple[dict[str, int | float], ...]:
     return (
         {'__p0': 1, '__p1': 2, '__p2': 3},
         {'__p0': 2, '__p1': 4, '__p2': 1},
@@ -31,6 +31,11 @@ def _diagnostics() -> tuple[dict[str, int], ...]:
         {'__p0': 3, '__p1': 3, '__p2': 1},
         {'__p0': 6, '__p1': 2, '__p2': -3},
         {'__p0': -4, '__p1': 5, '__p2': 2},
+        # Python floating subtraction is not reassociative. These public,
+        # non-integral rows make that semantic distinction observable instead
+        # of treating finite behavioral fingerprints as equivalence proofs.
+        {'__p0': 1000000000000000.25, '__p1': 1000000000000000.125, '__p2': 0.1},
+        {'__p0': 0.1, '__p1': 10000000000.1, '__p2': 10000000000.1},
     )
 
 
