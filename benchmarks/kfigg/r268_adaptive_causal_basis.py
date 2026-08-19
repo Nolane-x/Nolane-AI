@@ -23,6 +23,11 @@ def _solve(case:Case):
         'terminal_probe_validation_cases':receipt.terminal_probe_validation_cases,'terminal_probe_validation_exact':receipt.terminal_probe_validation_exact,
         'final_validation_cases':receipt.final_validation_cases,'final_validation_exact':receipt.final_validation_exact,
         'necessity_certificate_sizes':sorted({c.subset_cardinality for c in receipt.structure.necessity_certificates}),
+        'lower_basis_count':receipt.structure.lower_basis_count,
+        'lower_basis_certified':receipt.structure.lower_basis_certified,
+        'lower_basis_inconclusive':receipt.structure.lower_basis_inconclusive,
+        'lower_basis_universe_digest':receipt.structure.lower_basis_universe_digest,
+        'proof_ledger_complete':receipt.structure.proof_ledger_complete,
         'oracle_calls_total':receipt.oracle_calls_total,
     }
 
@@ -48,14 +53,19 @@ def run_benchmark()->dict[str,object]:
     results=[_solve(case) for case in _cases()]
     selected=[row['selected_basis_size'] for row in results]
     false_accepts=sum(int(row['false_accepts']) for row in results)
+    complete_minimality_ledgers=results[0]['proof_ledger_complete'] is False and all(row['proof_ledger_complete'] is True for row in results[1:])
     gates=[
         all(row['passed'] for row in results),
         selected==[1,2,3,4],
         results[0]['globally_minimal'] is False,
         all(row['globally_minimal'] is True for row in results[1:]),
+        [row['lower_basis_count'] for row in results]==[0,2,6,14],
+        [row['lower_basis_certified'] for row in results]==[0,2,6,14],
+        all(row['lower_basis_inconclusive']==0 for row in results),
+        complete_minimality_ledgers,
         all(row['probe_validation_exact']==row['probe_validation_cases'] for row in results),
         all(row['terminal_probe_validation_exact']==row['terminal_probe_validation_cases'] for row in results),
         all(row['final_validation_exact']==row['final_validation_cases'] for row in results),
         false_accepts==0,
     ]
-    return {'milestone':'R2.68','capability':'proof-carrying-adaptive-causal-basis','cases':results,'selected_basis_sizes':selected,'mixed_cardinality_exact':selected==[1,2,3,4],'false_accepts':false_accepts,'trainable_parameter_count':0,'all_gates_pass':all(gates)}
+    return {'milestone':'R2.68','capability':'proof-carrying-adaptive-causal-basis','cases':results,'selected_basis_sizes':selected,'mixed_cardinality_exact':selected==[1,2,3,4],'complete_minimality_ledgers':complete_minimality_ledgers,'false_accepts':false_accepts,'trainable_parameter_count':0,'all_gates_pass':all(gates)}
