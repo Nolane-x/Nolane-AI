@@ -22,7 +22,7 @@ CONFIGS = (
     (-2.0, 5.0, 3.0), (4.0, -3.0, 2.0),
     (5.0, 2.0, -4.0), (-3.0, -2.0, 6.0),
     (7.0, -1.0, -5.0), (-4.0, 6.0, -2.0),
-    # Independent terminal rows.  Each base row and each zero-intervention
+    # Independent terminal rows. Each base row and each zero-intervention
     # variant is disjoint from every learning query and from the other terminal
     # evidence keys.
     (101.0, 103.0, 107.0), (-109.0, 113.0, 127.0),
@@ -69,10 +69,18 @@ def _has_collision(keys: Sequence[tuple[object, ...]], targets: Sequence[float])
 def _collision_certificate_counts(
     rows: Sequence[Mapping[str, object]],
     oracle: Callable[[Mapping[str, object]], object],
-) -> tuple[int, int]:
-    targets = tuple(float(oracle(row)) for row in rows)
+) -> tuple[int, int, int]:
+    """Return singleton/pair certificate counts and exact oracle-call cost."""
+    oracle_calls = 0
+
+    def counted_oracle(row: Mapping[str, object]) -> object:
+        nonlocal oracle_calls
+        oracle_calls += 1
+        return oracle(row)
+
+    targets = tuple(float(counted_oracle(row)) for row in rows)
     probe_values = {
-        field: tuple(_probe(oracle, field, row) for row in rows)
+        field: tuple(_probe(counted_oracle, field, row) for row in rows)
         for field in ROLES
     }
 
@@ -93,7 +101,7 @@ def _collision_certificate_counts(
             for index, row in enumerate(rows)
         )
         pair += int(_has_collision(keys, targets))
-    return singleton, pair
+    return singleton, pair, oracle_calls
 
 
 def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> dict[str, object]:
@@ -104,14 +112,21 @@ def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> 
     def encode(row: Mapping[str, float]) -> dict[str, float]:
         return {role_to_field[role]: float(row[role]) for role in ROLES}
 
+    oracle_calls = 0
+
     def oracle(row: Mapping[str, object]) -> float:
+        nonlocal oracle_calls
+        oracle_calls += 1
         semantic = {role: row[role_to_field[role]] for role in ROLES}
         return _cyclic(semantic)
 
     semantic_rows = _role_rows()
     rows = tuple(encode(row) for row in semantic_rows)
     discovery, validation, terminal, heldout = rows[:12], rows[12:18], rows[18:24], rows[24:30]
-    singleton_certs, pair_certs = _collision_certificate_counts(semantic_rows[:18], _cyclic)
+    singleton_certs, pair_certs, collision_oracle_calls = _collision_certificate_counts(
+        semantic_rows[:18],
+        _cyclic,
+    )
 
     need = OperatorInventionNeed(
         'R2.67.1 genuine three-probe causal necessity',
@@ -142,13 +157,23 @@ def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> 
         probe_beam_width=128,
     )
     selected = receipt.structure.selected
+    learning_terminal_oracle_calls = oracle_calls
 
     heldout_exact = 0
+    heldout_before = oracle_calls
     if receipt.passed and receipt.expression is not None:
         heldout_exact = sum(
             int(float(evaluate_expr(receipt.expression, row)) == float(oracle(row)))
             for row in heldout
         )
+    heldout_oracle_calls = oracle_calls - heldout_before
+    total_oracle_calls = oracle_calls + collision_oracle_calls
+    oracle_accounting_exact = bool(
+        learning_terminal_oracle_calls == receipt.oracle_calls_total
+        and heldout_oracle_calls == (len(heldout) if receipt.passed and receipt.expression is not None else 0)
+        and total_oracle_calls
+        == learning_terminal_oracle_calls + collision_oracle_calls + heldout_oracle_calls
+    )
 
     selected_semantic_ids: list[str] = []
     selected_roles: list[str] = []
@@ -199,6 +224,8 @@ def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> 
         and probe_units_ok
         and receipt.final_validation_exact == len(terminal)
         and heldout_exact == len(heldout)
+        and oracle_accounting_exact
+        and collision_oracle_calls == 72
         and receipt.structure.false_accepts == 0
         and receipt.trainable_parameter_count == 0
     )
@@ -230,7 +257,11 @@ def _case(ordered_fields: tuple[str, ...], field_to_role: Mapping[str, str]) -> 
         'heldout_cases': len(heldout),
         'heldout_exact': heldout_exact,
         'oracle_calls_learning': receipt.structure.oracle_calls,
-        'oracle_calls_total': receipt.oracle_calls_total,
+        'oracle_calls_learning_terminal': learning_terminal_oracle_calls,
+        'oracle_calls_collision_certificates': collision_oracle_calls,
+        'oracle_calls_heldout': heldout_oracle_calls,
+        'oracle_calls_total': total_oracle_calls,
+        'oracle_accounting_exact': oracle_accounting_exact,
         'false_accepts': receipt.structure.false_accepts,
         'trainable_parameter_count': receipt.trainable_parameter_count,
     }
@@ -251,11 +282,15 @@ def run_benchmark() -> dict[str, object]:
         == renamed['selected_semantic_profile_ids']
         == permuted['selected_semantic_profile_ids']
     )
+    oracle_accounting_exact = all(bool(case['oracle_accounting_exact']) for case in cases)
+    oracle_calls_total = sum(int(case['oracle_calls_total']) for case in cases)
     all_gates_pass = bool(
         all(case['passed'] for case in cases)
         and all(case['semantic_profile_count'] == 3 for case in cases)
         and all(case['singleton_collision_certificates'] == 3 for case in cases)
         and all(case['pair_collision_certificates'] == 3 for case in cases)
+        and all(case['oracle_calls_collision_certificates'] == 72 for case in cases)
+        and oracle_accounting_exact
         and all(case['false_accepts'] == 0 for case in cases)
         and all(case['trainable_parameter_count'] == 0 for case in cases)
         and semantic_invariant
@@ -265,6 +300,8 @@ def run_benchmark() -> dict[str, object]:
         'capability': 'genuine-three-probe-causal-necessity',
         'all_gates_pass': all_gates_pass,
         'semantic_profile_invariant': semantic_invariant,
+        'oracle_accounting_exact': oracle_accounting_exact,
+        'oracle_calls_total': oracle_calls_total,
         'base': base,
         'renamed': renamed,
         'permuted': permuted,
