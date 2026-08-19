@@ -107,3 +107,27 @@ def test_minimality_receipt_carries_complete_lower_basis_ledger() -> None:
     assert receipt.structure.lower_basis_inconclusive==0
     assert receipt.structure.proof_ledger_complete is True
     assert len(receipt.structure.lower_basis_universe_digest)==64
+
+
+def test_three_probe_selection_is_field_order_invariant() -> None:
+    fields=('a','b','c')
+    discovery_rows=((-2,-2,-2),(-2,-2,-1),(-2,-2,0),(-2,-1,-2),(-2,-1,0),(-2,0,-2),(-2,0,-1),(-1,-2,-2),(0,-2,-2),(0,-2,-1),(1,2,3),(4,-3,2),(5,2,-4))
+    validation_rows=((3,5,7),(-5,4,6),(8,-2,9)); terminal_rows=((101,103,107),(-109,113,127),(131,-137,139))
+    def contexts(rows): return tuple(dict(zip(fields,row,strict=True)) for row in rows)
+    def oracle(row):
+        a,b,c=(float(row[name]) for name in fields); return a*b+b*c+c*a
+    r268=_module()
+    def solve(order):
+        return r268.synthesize_adaptive_causal_basis(
+            oracle,order,_need('field order invariant',fields),contexts(discovery_rows),contexts(validation_rows),terminal_contexts=contexts(terminal_rows),
+            intervention_anchor_values=(0.0,),intervention_arity=1,max_basis_size=3,
+            composition_constants=(0.0,2.0),composition_max_depth=5,composition_max_candidates_per_basis=30_000,
+            max_composition_candidates_total=160_000,composition_beam_width=192,probe_constants=(0.0,2.0),probe_max_depth=5,
+            probe_max_candidates=50_000,probe_beam_width=192)
+    base=solve(('a','b','c')); permuted=solve(('c','a','b'))
+    assert base.passed is permuted.passed is True
+    assert base.selected_basis_size==permuted.selected_basis_size==3
+    assert base.globally_minimal is permuted.globally_minimal is True
+    assert base.structure.lower_basis_count==permuted.structure.lower_basis_count==6
+    assert base.structure.lower_basis_certified==permuted.structure.lower_basis_certified==6
+    assert base.false_accepts==permuted.false_accepts==0
