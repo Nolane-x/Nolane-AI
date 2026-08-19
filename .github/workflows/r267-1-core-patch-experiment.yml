@@ -7,6 +7,12 @@ on:
       - 'scripts/r267_1_apply_genuine_necessity_core.py'
       - 'tests/test_r267_1_correctness_hotfix.py'
       - '.github/workflows/r267-1-core-patch-experiment.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/r267_1_apply_genuine_necessity_core.py'
+      - 'tests/test_r267_1_correctness_hotfix.py'
+      - '.github/workflows/r267-1-core-patch-experiment.yml'
   workflow_dispatch:
 
 permissions:
