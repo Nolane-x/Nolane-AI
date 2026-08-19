@@ -4,7 +4,7 @@ from typing import Callable,Mapping,Sequence
 from .r256_operator_dsl import Expr,evaluate_expr,expr_digest
 from .r256_operator_invention import OperatorExample,OperatorInventionNeed
 from .r258_intervention_discovery import PositionalSchema,enumerate_interventions
-from ._r268_proof import build_public_target_collision_certificate,has_public_target_collision
+from ._r268_proof import build_basis_collision_certificate,build_public_target_collision_certificate
 from ._r268_search import equivalent,evaluate_vector,finite_json_value,rewrite_with_mapping,semantic_key,synthesize_variable_expression,used_fields
 from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,InterventionProfile,NecessityCertificate
 
@@ -75,15 +75,15 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     for profile in profiles:
         prev=dedup.get(profile.semantic_profile_id)
         if prev is None or profile.intervention.intervention_id<prev.intervention.intervention_id:dedup[profile.semantic_profile_id]=profile
-    semantic_profiles=tuple(sorted(dedup.values(),key=_profile_proposal_key));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[]
+    semantic_profiles=tuple(sorted(dedup.values(),key=_profile_proposal_key));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[];lower_basis_certs=[]
     for k in range(1,max_basis_size+1):
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
-            collision=has_public_target_collision(examples,fields)
+            basis_cert=build_basis_collision_certificate(semantic_profile_ids=ids,exposed_fields=fields,examples=examples)
             ledger_identity={'cardinality':k,'semantic_profile_ids':list(ids),'exposed_fields':list(fields)}
-            if collision:
-                lower_ledger.append((k,ledger_identity,'collision_certified'));continue
+            if basis_cert is not None:
+                lower_basis_certs.append(basis_cert);lower_ledger.append((k,ledger_identity,'collision_certified'));continue
             remaining=max_total-total
             if remaining<=0:
                 unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
@@ -128,21 +128,28 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
                 if local_certificate_missing:break
             lower_rows=[(cardinality,identity,status) for cardinality,identity,status in lower_ledger if cardinality<k]
             lower_unresolved=tuple(row for row in unresolved if any(row.startswith(f'k{s}:') for s in range(1,k)))
-            lower_count=len(lower_rows);lower_certified=sum(int(status=='collision_certified') for _cardinality,_identity,status in lower_rows);lower_inconclusive=lower_count-lower_certified
-            universe_payload=[identity for _cardinality,identity,_status in sorted(lower_rows,key=lambda row:(row[0],tuple(row[1]['semantic_profile_ids']),tuple(row[1]['exposed_fields'])))]
+            lower_count=len(lower_rows)
+            selected_lower_certs=tuple(cert for cert in lower_basis_certs if cert.basis_cardinality<k)
+            lower_certified=len(selected_lower_certs);lower_inconclusive=lower_count-lower_certified
+            certificate_lookup={(cert.basis_cardinality,cert.semantic_profile_ids,cert.exposed_fields):cert.witness_digest for cert in selected_lower_certs}
+            universe_payload=[]
+            for cardinality,identity,status in sorted(lower_rows,key=lambda row:(row[0],tuple(row[1]['semantic_profile_ids']),tuple(row[1]['exposed_fields']))):
+                key=(cardinality,tuple(identity['semantic_profile_ids']),tuple(identity['exposed_fields']))
+                universe_payload.append({'identity':identity,'status':status,'witness_digest':certificate_lookup.get(key,'')})
             universe_raw=json.dumps(universe_payload,sort_keys=True,separators=(',',':'),allow_nan=False)
             universe_digest=hashlib.sha256(universe_raw.encode()).hexdigest() if universe_payload else ''
-            proof_complete=k>1 and lower_count>0 and lower_certified==lower_count and lower_inconclusive==0
+            global_proof_complete=k>1 and lower_count>0 and lower_certified==lower_count and lower_inconclusive==0 and all(row['witness_digest'] for row in universe_payload)
             expected_local_certificates=(1<<k)-2 if k>1 else 0
             local_proof_complete=k>1 and not local_certificate_missing and len(selected_certs)==expected_local_certificates
-            minimal=proof_complete and local_proof_complete;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
+            minimal=global_proof_complete and local_proof_complete;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
             return AdaptiveCausalBasisStructureReceipt(
                 passed=True,selected=candidate,selected_basis_size=k,globally_minimal=minimal,necessity_certificates=tuple(selected_certs),
                 unresolved_lower_order=lower_unresolved,legal_interventions=len(profiles),semantic_profiles=len(semantic_profiles),
                 intervention_candidates_considered=len(specs),bases_considered=bases_considered,composition_candidates_considered=total,
                 oracle_calls=oracle_calls,false_accepts=0,reason=reason,learning_query_keys=frozenset(queried),validation_targets=tuple(v_targets),
                 lower_basis_count=lower_count,lower_basis_certified=lower_certified,lower_basis_inconclusive=lower_inconclusive,
-                lower_basis_universe_digest=universe_digest,proof_ledger_complete=proof_complete and local_proof_complete,
+                lower_basis_universe_digest=universe_digest,proof_ledger_complete=global_proof_complete and local_proof_complete,
+                lower_basis_certificates=selected_lower_certs,
             )
     reason='basis_search_budget_exhausted' if total>=max_total else 'no_adaptive_basis'
     if unresolved:reason='necessity_certificate_missing'
