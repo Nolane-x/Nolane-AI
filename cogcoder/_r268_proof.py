@@ -6,7 +6,7 @@ from typing import Sequence
 
 from .r256_operator_invention import OperatorExample
 from ._r268_search import equivalent, finite_json_value, semantic_key
-from ._r268_types import NecessityCertificate
+from ._r268_types import BasisCollisionCertificate, NecessityCertificate
 
 
 def canonical_evidence_payload(
@@ -51,7 +51,6 @@ def public_target_collision_witness(
     examples: Sequence[OperatorExample],
     exposed_fields: Sequence[str],
 ) -> tuple[int, int] | None:
-    """Return a public collision witness without granting necessity authority."""
     fields = tuple(map(str, exposed_fields))
     if not fields:
         raise ValueError('exposed_fields must be non-empty')
@@ -73,6 +72,102 @@ def has_public_target_collision(
     exposed_fields: Sequence[str],
 ) -> bool:
     return public_target_collision_witness(examples, exposed_fields) is not None
+
+
+def _validated_basis_ids(semantic_profile_ids: Sequence[str]) -> tuple[str, ...]:
+    ids = tuple(map(str, semantic_profile_ids))
+    if not ids:
+        raise ValueError('semantic profile ids must be non-empty')
+    if any(not value for value in ids) or len(set(ids)) != len(ids):
+        raise ValueError('semantic profile ids must be distinct non-empty strings')
+    return ids
+
+
+def build_basis_collision_certificate(
+    *,
+    semantic_profile_ids: Sequence[str],
+    exposed_fields: Sequence[str],
+    examples: Sequence[OperatorExample],
+) -> BasisCollisionCertificate | None:
+    ids = _validated_basis_ids(semantic_profile_ids)
+    fields = tuple(map(str, exposed_fields))
+    if not fields:
+        raise ValueError('exposed_fields must be non-empty')
+    rows = tuple(examples)
+    evidence_digest = canonical_evidence_digest(rows, fields)
+    witness = public_target_collision_witness(rows, fields)
+    if witness is None:
+        return None
+    left, right = witness
+    witness_raw = json.dumps(
+        {
+            'proof_kind': 'public_basis_target_collision',
+            'semantic_profile_ids': list(ids),
+            'basis_cardinality': len(ids),
+            'evidence_digest': evidence_digest,
+            'exposed_fields': list(fields),
+            'witness_rows': [left, right],
+            'values_semantic': semantic_key(
+                tuple(finite_json_value(rows[left].context[field]) for field in fields)
+            ),
+            'targets_semantic': semantic_key(
+                (
+                    finite_json_value(rows[left].expected),
+                    finite_json_value(rows[right].expected),
+                )
+            ),
+        },
+        sort_keys=True,
+        separators=(',', ':'),
+        allow_nan=False,
+    )
+    return BasisCollisionCertificate(
+        semantic_profile_ids=ids,
+        basis_cardinality=len(ids),
+        exposed_fields=fields,
+        evidence_digest=evidence_digest,
+        proof_kind='public_basis_target_collision',
+        witness_digest=hashlib.sha256(witness_raw.encode()).hexdigest(),
+        witness_rows=(left, right),
+    )
+
+
+def verify_basis_collision_certificate(
+    certificate: BasisCollisionCertificate,
+    examples: Sequence[OperatorExample],
+    *,
+    semantic_profile_ids: Sequence[str],
+    exposed_fields: Sequence[str],
+) -> bool:
+    if not isinstance(certificate, BasisCollisionCertificate):
+        return False
+    try:
+        ids = _validated_basis_ids(semantic_profile_ids)
+    except ValueError:
+        return False
+    fields = tuple(map(str, exposed_fields))
+    if (
+        certificate.proof_kind != 'public_basis_target_collision'
+        or certificate.semantic_profile_ids != ids
+        or certificate.basis_cardinality != len(ids)
+        or certificate.exposed_fields != fields
+    ):
+        return False
+    try:
+        if certificate.evidence_digest != canonical_evidence_digest(examples, fields):
+            return False
+        recomputed = build_basis_collision_certificate(
+            semantic_profile_ids=ids,
+            exposed_fields=fields,
+            examples=examples,
+        )
+        return (
+            recomputed is not None
+            and recomputed.witness_digest == certificate.witness_digest
+            and recomputed.witness_rows == certificate.witness_rows
+        )
+    except (KeyError, TypeError, ValueError):
+        return False
 
 
 def _validated_authority_ids(
@@ -115,6 +210,8 @@ def build_public_target_collision_certificate(
     witness_raw = json.dumps(
         {
             'proof_kind': 'public_target_collision',
+            'basis_semantic_profile_ids': list(basis_ids),
+            'subset_semantic_profile_ids': list(subset_ids),
             'evidence_digest': evidence_digest,
             'exposed_fields': list(fields),
             'witness_rows': [left, right],
