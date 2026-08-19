@@ -1,0 +1,83 @@
+name: R2.68 Post-Merge Exact-Main Bundle
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'R2_68_*.json'
+      - 'R2_68_*.md'
+      - 'cogcoder/r268_*.py'
+      - 'cogcoder/_r268_*.py'
+      - 'benchmarks/kfigg/r268_*.py'
+      - 'research/r268_*.py'
+      - 'tests/test_r268_*.py'
+      - '.github/workflows/r268-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  exact-main:
+    runs-on: ubuntu-latest
+    timeout-minutes: 95
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest z3-solver 'numpy==2.4.6' meson-python ninja
+      - name: Verify exact main and frozen R2.68 blobs
+        run: |
+          set -euo pipefail
+          git fetch origin main
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/main)"
+          PYTHONPATH=. python - <<'PY'
+          import json,subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_68_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit']=='b789dd7a48f10f3afb1cf42ee62d3dc77dee200e'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          for file,expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',file],text=True).strip()
+              assert actual==expected,(file,actual,expected)
+          subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'],check=True)
+          print('R268_EXACT_MAIN_FROZEN_OK',len(lock['frozen_git_blobs']))
+          PY
+      - name: Recompute exact main evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r268_adaptive_causal_basis import run_benchmark
+          from research.r268_external_transfer import run_external_transfer
+          assert np.__version__=='2.4.6'
+          phase=run_benchmark(); external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
+          assert phase==json.loads(Path('R2_68_PHASE_A_RESULT.json').read_text())
+          assert external==json.loads(Path('R2_68_EXTERNAL_TRANSFER.json').read_text())
+          assert phase['all_gates_pass'] is True and phase['false_accepts']==0
+          assert external['passed'] is True and external['oracle_accounting_exact'] is True and external['false_accepts']==0
+          print('R268_EXACT_MAIN_EVIDENCE_OK')
+          PY
+      - name: Run exact-main authority and parent tests
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Build post-merge complete snapshot
+        run: |
+          set -euo pipefail
+          mkdir -p release
+          git archive --format=zip -o release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip HEAD
+          sha256sum release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip | tee release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip.sha256
+          unzip -tq release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Nolane-AI-R2.68-COMPLETE-POST-MERGE
+          path: |
+            release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip
+            release/Nolane-AI-R2.68-COMPLETE-POST-MERGE.zip.sha256
