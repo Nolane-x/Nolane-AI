@@ -3,6 +3,8 @@ name: R2.68 Semantic Alias Diagnostic
 on:
   push:
     branches: [validation-r268-semantic-alias-budget-current-gpt56sol]
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
   workflow_dispatch:
 
 permissions:
@@ -20,8 +22,6 @@ jobs:
       - name: Print control and aliased receipts
         run: |
           PYTHONPATH=. python - <<'PY'
-          from dataclasses import asdict
-          from pprint import pprint
           from cogcoder.r268_adaptive_causal_basis import discover_adaptive_causal_basis
           FIELDS=('a','b')
           D=({'a':-2.0,'b':-2.0},{'a':-2.0,'b':-1.0},{'a':-1.0,'b':-2.0},{'a':1.0,'b':3.0},{'a':4.0,'b':-2.0},{'a':5.0,'b':7.0})
