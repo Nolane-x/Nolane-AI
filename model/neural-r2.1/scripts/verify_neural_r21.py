@@ -9,6 +9,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
+from cogcoder.r21_causal_router import CausalEvidenceRouter, r21a_parameter_count  # noqa: E402
 from cogcoder.r21_recursive_core import (  # noqa: E402
     R20I_EFFECTIVE_PARAMETERS,
     R21_PARAMETER_CEILING,
@@ -41,14 +42,41 @@ def inputs(batch: int = 2, actions: int = 6) -> dict[str, torch.Tensor]:
 def main() -> None:
     torch.manual_seed(21)
     manifest = json.loads((ROOT / "ARCHITECTURE.json").read_text())
+    current_best = json.loads((ROOT / "CURRENT_BEST.json").read_text())
+    assert int(manifest["parameter_ceiling"]) == R21_PARAMETER_CEILING
+
+    # The admitted evidence-backed candidate and the experimental recursive
+    # architecture are intentionally separate contracts.  Verify both so a
+    # future manifest promotion cannot silently invalidate the other path.
+    admitted = manifest["current_evidence_backed_candidate"]
+    router = CausalEvidenceRouter(hidden_dim=int(admitted["hidden_dim"])).eval()
+    admitted_delta = r21a_parameter_count(router)
+    admitted_effective = R20I_EFFECTIVE_PARAMETERS + admitted_delta
+    assert admitted_delta == int(admitted["delta_parameters"])
+    assert admitted_effective == int(admitted["candidate_effective_parameters"])
+    assert admitted_effective <= R21_PARAMETER_CEILING
+    assert current_best["version"] == admitted["version"]
+    assert int(current_best["delta_parameters"]) == admitted_delta
+    assert int(current_best["candidate_effective_parameters"]) == admitted_effective
+    assert current_best["fresh"]["weights_modified_after_fresh"] is False
+    assert current_best["fresh"]["holdout_consumed"] is True
+
+    x = inputs()
+    router_inputs = {key: value for key, value in x.items() if key not in (
+        "base_stop_logit", "base_success_probability"
+    )}
+    with torch.no_grad():
+        router_out = router(**router_inputs)
+    torch.testing.assert_close(router_out["action_logits"], x["base_action_logits"], rtol=0, atol=0)
+
+    recursive_manifest = manifest["experimental_recursive_core"]
     model = RecursiveLatentIntelligenceCore().eval()
     delta = r21_parameter_count(model)
     effective = R20I_EFFECTIVE_PARAMETERS + delta
-    assert delta == int(manifest["delta_parameters"])
-    assert effective == int(manifest["candidate_effective_parameters"])
+    assert delta == int(recursive_manifest["delta_parameters"])
+    assert effective == int(recursive_manifest["candidate_effective_parameters"])
     assert effective <= R21_PARAMETER_CEILING
 
-    x = inputs()
     with torch.no_grad():
         out = model(reasoning_steps=12, **x)
     torch.testing.assert_close(out["action_logits"], x["base_action_logits"], rtol=0, atol=0)
@@ -69,10 +97,22 @@ def main() -> None:
     torch.testing.assert_close(permuted["action_logits"], out["action_logits"][:, order], rtol=1e-5, atol=1e-6)
     torch.testing.assert_close(permuted["latent_state"], out["latent_state"], rtol=1e-5, atol=1e-6)
 
+    router_y = {key: value for key, value in y.items() if key not in (
+        "base_stop_logit", "base_success_probability"
+    )}
+    with torch.no_grad():
+        router_permuted = router(**router_y)
+    torch.testing.assert_close(
+        router_permuted["action_logits"], router_out["action_logits"][:, order], rtol=1e-5, atol=1e-6
+    )
+
     print(json.dumps({
         "status": "PASS",
-        "delta_parameters": delta,
-        "candidate_effective_parameters": effective,
+        "admitted_candidate": admitted["version"],
+        "admitted_delta_parameters": admitted_delta,
+        "admitted_effective_parameters": admitted_effective,
+        "experimental_recursive_delta_parameters": delta,
+        "experimental_recursive_effective_parameters": effective,
         "parameter_ceiling": R21_PARAMETER_CEILING,
         "verified_depth": 12,
         "shared_reasoning_cell": True,
