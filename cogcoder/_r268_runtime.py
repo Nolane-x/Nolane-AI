@@ -17,6 +17,10 @@ def basis_shared_positions(schema:PositionalSchema,profiles:Sequence[Interventio
     fixed={p for profile in profiles for p,_ in profile.intervention.bindings};return tuple(i for i in range(len(schema.field_names)) if i not in fixed)
 
 
+def _profile_proposal_key(profile:InterventionProfile)->tuple[str,str]:
+    return semantic_key(profile.discovery_outputs),profile.intervention.intervention_id
+
+
 def composition_examples(schema:PositionalSchema,contexts:Sequence[Mapping[str,object]],targets:Sequence[object],profiles:Sequence[InterventionProfile],shared_positions:Sequence[int],*,phase:str)->tuple[OperatorExample,...]:
     if phase not in {'discovery','validation'}:raise ValueError('phase must be discovery or validation')
     out=[]
@@ -71,9 +75,9 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     for profile in profiles:
         prev=dedup.get(profile.semantic_profile_id)
         if prev is None or profile.intervention.intervention_id<prev.intervention.intervention_id:dedup[profile.semantic_profile_id]=profile
-    semantic_profiles=tuple(dedup[k] for k in sorted(dedup));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[]
+    semantic_profiles=tuple(sorted(dedup.values(),key=_profile_proposal_key));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[]
     for k in range(1,max_basis_size+1):
-        bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(p.semantic_profile_id for p in b))
+        bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
             collision=has_public_target_collision(examples,fields)
