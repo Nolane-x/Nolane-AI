@@ -4,6 +4,9 @@ on:
   push:
     branches: [validation-r268-phase-evidence-diff-gpt56sol]
     paths: ['.github/workflows/diag-r268-phase-evidence-diff.yml']
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths: ['.github/workflows/diag-r268-phase-evidence-diff.yml']
   workflow_dispatch:
 
 permissions:
