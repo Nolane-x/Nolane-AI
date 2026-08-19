@@ -4,7 +4,7 @@ from typing import Callable,Mapping,Sequence
 from .r256_operator_dsl import Expr,evaluate_expr,expr_digest
 from .r256_operator_invention import OperatorExample,OperatorInventionNeed
 from .r258_intervention_discovery import PositionalSchema,enumerate_interventions
-from ._r268_proof import build_public_target_collision_certificate
+from ._r268_proof import build_public_target_collision_certificate,has_public_target_collision
 from ._r268_search import equivalent,evaluate_vector,finite_json_value,rewrite_with_mapping,semantic_key,synthesize_variable_expression,used_fields
 from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,InterventionProfile,NecessityCertificate
 
@@ -69,10 +69,10 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(p.semantic_profile_id for p in b))
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
-            cert=build_public_target_collision_certificate(basis_semantic_profile_ids=ids,subset_semantic_profile_ids=ids,exposed_fields=fields,examples=examples)
+            collision=has_public_target_collision(examples,fields)
             ledger_identity={'cardinality':k,'semantic_profile_ids':list(ids),'exposed_fields':list(fields)}
-            if cert is not None:
-                certs.append(cert);lower_ledger.append((k,ledger_identity,'collision_certified'));continue
+            if collision:
+                lower_ledger.append((k,ledger_identity,'collision_certified'));continue
             remaining=max_total-total
             if remaining<=0:
                 unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
@@ -96,6 +96,25 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             if validation_exact!=len(v_targets):
                 unresolved.append(f'k{k}:{"|".join(ids)}:composition_validation_failed');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             candidate=AdaptiveCausalBasisCandidate(tuple(p.intervention for p in basis),tuple(basis),ids,k,shared,search.expression,expr_digest(search.expression),used,len(d_targets),exact,len(v_targets),validation_exact,search.candidates_considered)
+            selected_certs=[];local_certificate_missing=False
+            for subset_size in range(1,k):
+                for subset_indexes in itertools.combinations(range(k),subset_size):
+                    subset_profiles=tuple(basis[index] for index in subset_indexes)
+                    subset_ids=tuple(profile.semantic_profile_id for profile in subset_profiles)
+                    subset_shared=basis_shared_positions(schema,subset_profiles)
+                    subset_fields=tuple(f'__p{i}' for i in range(subset_size))+tuple(schema.canonical_fields[index] for index in subset_shared)
+                    subset_examples=composition_examples(schema,discovery,tuple(d_targets),subset_profiles,subset_shared,phase='discovery')
+                    subset_cert=build_public_target_collision_certificate(
+                        basis_semantic_profile_ids=ids,
+                        subset_semantic_profile_ids=subset_ids,
+                        exposed_fields=subset_fields,
+                        examples=subset_examples,
+                    )
+                    if subset_cert is None:
+                        local_certificate_missing=True
+                        break
+                    selected_certs.append(subset_cert)
+                if local_certificate_missing:break
             lower_rows=[(cardinality,identity,status) for cardinality,identity,status in lower_ledger if cardinality<k]
             lower_unresolved=tuple(row for row in unresolved if any(row.startswith(f'k{s}:') for s in range(1,k)))
             lower_count=len(lower_rows);lower_certified=sum(int(status=='collision_certified') for _cardinality,_identity,status in lower_rows);lower_inconclusive=lower_count-lower_certified
@@ -103,9 +122,11 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             universe_raw=json.dumps(universe_payload,sort_keys=True,separators=(',',':'),allow_nan=False)
             universe_digest=hashlib.sha256(universe_raw.encode()).hexdigest() if universe_payload else ''
             proof_complete=k>1 and lower_count>0 and lower_certified==lower_count and lower_inconclusive==0
-            minimal=proof_complete;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
+            expected_local_certificates=(1<<k)-2 if k>1 else 0
+            local_proof_complete=k>1 and not local_certificate_missing and len(selected_certs)==expected_local_certificates
+            minimal=proof_complete and local_proof_complete;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
             return AdaptiveCausalBasisStructureReceipt(
-                passed=True,selected=candidate,selected_basis_size=k,globally_minimal=minimal,necessity_certificates=tuple(certs),
+                passed=True,selected=candidate,selected_basis_size=k,globally_minimal=minimal,necessity_certificates=tuple(selected_certs),
                 unresolved_lower_order=lower_unresolved,legal_interventions=len(profiles),semantic_profiles=len(semantic_profiles),
                 intervention_candidates_considered=len(specs),bases_considered=bases_considered,composition_candidates_considered=total,
                 oracle_calls=oracle_calls,false_accepts=0,reason=reason,learning_query_keys=frozenset(queried),validation_targets=tuple(v_targets),
