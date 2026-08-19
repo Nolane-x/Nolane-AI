@@ -8,8 +8,13 @@ def test_r269_external_numpy_transfer_is_io_only_matched_and_fail_closed():
 
     assert result["milestone"] == "R2.69"
     assert result["dependency"] == "numpy==2.4.6"
+    assert result["source_external_callable"] == "numpy.subtract"
+    assert result["source_exposure"] == "io_only"
+    assert result["target_exposure"] == "io_only"
+    assert result["source_from_authored_generator"] is False
     assert result["source_verified"] is True
     assert result["source_basis_size"] == 2
+    assert result["source_oracle_accounting_exact"] is True
     assert result["trainable_parameter_count"] == 0
 
     assert result["positive_targets"] >= 3
@@ -23,6 +28,8 @@ def test_r269_external_numpy_transfer_is_io_only_matched_and_fail_closed():
     assert result["negative_target"] == "numpy.bitwise_xor"
     assert result["negative_transfer_false_accepts"] == 0
     assert result["negative_receipt_passed"] is False
+    assert result["negative_cold_scratch_passed"] is False
+    assert result["negative_extra_physical_oracle_regret"] <= 1
     assert result["false_accepts"] == 0
     assert result["all_gates_pass"] is True
 
