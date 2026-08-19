@@ -53,6 +53,11 @@ class AdaptiveCausalBasisStructureReceipt:
     reason: str
     learning_query_keys: frozenset[str] = frozenset()
     validation_targets: tuple[object, ...] = ()
+    lower_basis_count: int = 0
+    lower_basis_certified: int = 0
+    lower_basis_inconclusive: int = 0
+    lower_basis_universe_digest: str = ''
+    proof_ledger_complete: bool = False
     trainable_parameter_count: int = 0
 
 @dataclass(frozen=True, slots=True)
