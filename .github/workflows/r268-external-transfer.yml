@@ -1,0 +1,77 @@
+name: R2.68 External NumPy Determinant Transfer
+
+on:
+  pull_request:
+    branches:
+      - r267-1-genuine-causal-necessity-hotfix-gpt56sol
+      - r268-proof-carrying-adaptive-causal-basis-gpt56sol
+      - main
+    paths:
+      - 'cogcoder/r268_*.py'
+      - 'cogcoder/_r268_*.py'
+      - 'research/r268_external_transfer.py'
+      - 'tests/test_r268_*.py'
+      - '.github/workflows/r268-external-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pinned-numpy-det:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify pinned source version
+        run: python -c "import numpy as np; assert np.__version__ == '2.4.6'; print(np.__version__)"
+      - name: Corrected parent authority first
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: R2.68 external I/O-only transfer
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_external_transfer.py
+      - name: Recompute external receipt
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from research.r268_external_transfer import run_external_transfer
+          assert np.__version__ == '2.4.6'
+          result=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
+          assert result['passed'] is True
+          assert result['source_exposure'] == 'io_only'
+          assert result['source_id'] == 'numpy:numpy.linalg.det'
+          assert result['source_version'] == '2.4.6'
+          assert result['discovery_validation_oracle_query_disjoint'] is True
+          assert result['validation_oracle_query_attempts'] == 120
+          assert result['validation_oracle_query_unique'] == 120
+          assert result['validation_oracle_query_duplicates'] == 0
+          assert result['selected_basis_size'] == 2
+          assert result['globally_minimal'] is True
+          assert result['legal_interventions'] == 4
+          assert result['semantic_profiles'] == 4
+          assert result['lower_basis_count'] == 4
+          assert result['lower_basis_certified'] == 4
+          assert result['lower_basis_certificate_count'] == 4
+          assert result['necessity_certificate_count'] == 2
+          assert result['oracle_accounting_exact'] is True
+          assert result['oracle_calls_total'] == result['source_calls_observed'] == 1238
+          assert result['false_accepts'] == 0
+          assert result['trainable_parameter_count'] == 0
+          Path('R2_68_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result,indent=2,sort_keys=True)+'\n')
+          print(json.dumps(result,sort_keys=True))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.68-numpy-determinant-transfer-${{ matrix.python-version }}
+          path: R2_68_EXTERNAL_TRANSFER_RECOMPUTED.json

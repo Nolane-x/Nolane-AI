@@ -1,0 +1,1116 @@
+{
+  "adaptive_selected_basis_sizes": [
+    2,
+    3,
+    4
+  ],
+  "all_gates_pass": true,
+  "capability": "proof-carrying-adaptive-causal-basis",
+  "cases": [
+    {
+      "expected_basis_size": 0,
+      "false_accepts": 0,
+      "final_validation_cases": 0,
+      "final_validation_exact": 0,
+      "globally_minimal": false,
+      "lower_basis_certificate_count": 0,
+      "lower_basis_certificates": [],
+      "lower_basis_certified": 0,
+      "lower_basis_count": 0,
+      "lower_basis_inconclusive": 0,
+      "lower_basis_universe_digest": "",
+      "name": "one-probe-nuisance-rejection",
+      "necessity_certificate_count": 0,
+      "necessity_certificate_sizes": [],
+      "necessity_certificates": [],
+      "oracle_calls_total": 36,
+      "passed": false,
+      "probe_validation_cases": 0,
+      "probe_validation_exact": 0,
+      "proof_ledger_complete": false,
+      "reason": "structure_discovery_failed",
+      "selected_basis_size": 0,
+      "terminal_probe_validation_cases": 0,
+      "terminal_probe_validation_exact": 0
+    },
+    {
+      "expected_basis_size": 2,
+      "false_accepts": 0,
+      "final_validation_cases": 3,
+      "final_validation_exact": 3,
+      "globally_minimal": true,
+      "lower_basis_certificate_count": 2,
+      "lower_basis_certificates": [
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "75bf0160621a045a91cccc4ec82998bf8fe7ea67d6e8a1ace674ba8d19094af3",
+          "exposed_fields": [
+            "__p0",
+            "__f1"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.da8764b644aa698105ab3edcd5f57ffaf2f5c7cca6e7d66261f0809b89bceb29"
+          ],
+          "witness_digest": "cd7724c129c256e22011df4ed7958fc4cf5b855aa9460d2d5b388d62d1892640",
+          "witness_rows": [
+            0,
+            2
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "8d9fa9f935e824a2ad6edb0aea1377fe80c4627a543c5a0c3c6672fbf1a64dd4",
+          "exposed_fields": [
+            "__p0",
+            "__f0"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.fb2c075f2168d721746287695fff663727063c1cde0b5a2e3ef638289d05166d"
+          ],
+          "witness_digest": "8f2d7056a05725c13d2d3acd7e1b648e8312671465f8049ae17b65bfdfc0b251",
+          "witness_rows": [
+            0,
+            1
+          ]
+        }
+      ],
+      "lower_basis_certified": 2,
+      "lower_basis_count": 2,
+      "lower_basis_inconclusive": 0,
+      "lower_basis_universe_digest": "3a5dd60859f4abd20f8c2b48732022d32f368080f70f9e036034fd90b4b59215",
+      "name": "two-probe-sum",
+      "necessity_certificate_count": 2,
+      "necessity_certificate_sizes": [
+        1
+      ],
+      "necessity_certificates": [
+        {
+          "basis_semantic_profile_ids": [
+            "profile.da8764b644aa698105ab3edcd5f57ffaf2f5c7cca6e7d66261f0809b89bceb29",
+            "profile.fb2c075f2168d721746287695fff663727063c1cde0b5a2e3ef638289d05166d"
+          ],
+          "evidence_digest": "75bf0160621a045a91cccc4ec82998bf8fe7ea67d6e8a1ace674ba8d19094af3",
+          "exposed_fields": [
+            "__p0",
+            "__f1"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.da8764b644aa698105ab3edcd5f57ffaf2f5c7cca6e7d66261f0809b89bceb29"
+          ],
+          "witness_digest": "e2de7a82d1a2471e7fd7a1251f03145ea0ccf8a58f6f4d5fe27c66066c9b1ec2",
+          "witness_rows": [
+            0,
+            2
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.da8764b644aa698105ab3edcd5f57ffaf2f5c7cca6e7d66261f0809b89bceb29",
+            "profile.fb2c075f2168d721746287695fff663727063c1cde0b5a2e3ef638289d05166d"
+          ],
+          "evidence_digest": "8d9fa9f935e824a2ad6edb0aea1377fe80c4627a543c5a0c3c6672fbf1a64dd4",
+          "exposed_fields": [
+            "__p0",
+            "__f0"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.fb2c075f2168d721746287695fff663727063c1cde0b5a2e3ef638289d05166d"
+          ],
+          "witness_digest": "4eec53a7c86afa415afb7471626a86eb060229e3083c661dcb1464d5f94569ff",
+          "witness_rows": [
+            0,
+            1
+          ]
+        }
+      ],
+      "oracle_calls_total": 36,
+      "passed": true,
+      "probe_validation_cases": 6,
+      "probe_validation_exact": 6,
+      "proof_ledger_complete": true,
+      "reason": "adaptive_basis_discovered",
+      "selected_basis_size": 2,
+      "terminal_probe_validation_cases": 6,
+      "terminal_probe_validation_exact": 6
+    },
+    {
+      "expected_basis_size": 3,
+      "false_accepts": 0,
+      "final_validation_cases": 3,
+      "final_validation_exact": 3,
+      "globally_minimal": true,
+      "lower_basis_certificate_count": 6,
+      "lower_basis_certificates": [
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "08e0074286cd1326896fdf37d95d3a93f1bbbc2f8e9de20c9c212fa5179e68dd",
+          "exposed_fields": [
+            "__p0",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a"
+          ],
+          "witness_digest": "96ee9414d940990cc05e10be20a2298bf35e994736d0bd39165808b2bb235a4c",
+          "witness_rows": [
+            0,
+            7
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "c93a6b78a18401a40b1a441e0e92f9e302e4a58e56ca1d280e15ba5c10f5c6b4",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae"
+          ],
+          "witness_digest": "0b76a12a5b4fb7fb5bd45eaaa70566387a75f47b51c8c93344bdf4bff2f95e3a",
+          "witness_rows": [
+            0,
+            3
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "78177e86a95e8418ab45ca708090bb01ef82ea64f55184b70d4a7741895aa909",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "9dcdf287665baab5fbd5e785a5b016f308c9dec53c11727a9d059e4610ba4d00",
+          "witness_rows": [
+            0,
+            1
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "665fb7148fc0f08da8da50701f76024f88c4911adb3fb19c9abf35cbf65cb231",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae"
+          ],
+          "witness_digest": "4301d37ce1007c1b2b03daa5fbc14dbd99c1cc12e65d9abf19f425b4f864fb39",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "c5aee964716239db4f527b3cb18d47b58c0c62e82a72d28a06340ea67819850b",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "d861ac249765d101a63b9e0105348fc61835ff720193aad56e5d7925797ee9fc",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "4b3241c1c329ebf230b9e21e194ac70304720badaf0841e799984eea990d7709",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "993bdb1a6e402830f4bafdeddef4ec6c71e32da971cee3a43b2af51adab4ba74",
+          "witness_rows": [
+            8,
+            9
+          ]
+        }
+      ],
+      "lower_basis_certified": 6,
+      "lower_basis_count": 6,
+      "lower_basis_inconclusive": 0,
+      "lower_basis_universe_digest": "3ee990e4d00dcb6ceec1afcc8a3856015e24698648d521c7c33a27bc8e3632b7",
+      "name": "three-probe-triangle",
+      "necessity_certificate_count": 6,
+      "necessity_certificate_sizes": [
+        1,
+        2
+      ],
+      "necessity_certificates": [
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "08e0074286cd1326896fdf37d95d3a93f1bbbc2f8e9de20c9c212fa5179e68dd",
+          "exposed_fields": [
+            "__p0",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a"
+          ],
+          "witness_digest": "d8b8c8a1519a6909d5fbdc3e242238fbe715624f70fd62b9a7e2a5067826e970",
+          "witness_rows": [
+            0,
+            7
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "c93a6b78a18401a40b1a441e0e92f9e302e4a58e56ca1d280e15ba5c10f5c6b4",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae"
+          ],
+          "witness_digest": "070bb8f98b2ea5c769d4fda03d7760db06271a54fee181757068232792a9a838",
+          "witness_rows": [
+            0,
+            3
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "78177e86a95e8418ab45ca708090bb01ef82ea64f55184b70d4a7741895aa909",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "f08980ab21520a7a65d1b9aecc2fdb949c961257e29f62381af6c7ea20388226",
+          "witness_rows": [
+            0,
+            1
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "665fb7148fc0f08da8da50701f76024f88c4911adb3fb19c9abf35cbf65cb231",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae"
+          ],
+          "witness_digest": "00b127140f8f466fa0858249fd5cb024a5ff57b73e65ca8dc4d57feb3ab5bee3",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "c5aee964716239db4f527b3cb18d47b58c0c62e82a72d28a06340ea67819850b",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "8660e11db9b39c939f7e3974013f476ab4efc4d8e926c38bf97aa039b4ef84ee",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.11404252746a4f3d85489557d0993bd0f1020dd0c8784b2985fb639200549e2a",
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "evidence_digest": "4b3241c1c329ebf230b9e21e194ac70304720badaf0841e799984eea990d7709",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.f03a289d924528fe64bda54c2f008639ea5a3f667bebd39678aeb8e04db44fae",
+            "profile.6d6204008d8b63c87530c8e7f29317169cb6ff8a9dc22c584f58571d8fa9d537"
+          ],
+          "witness_digest": "8594ac601010b68db20b9c0d69e87c77ec427c15c066d9aaecf335eca53f8140",
+          "witness_rows": [
+            8,
+            9
+          ]
+        }
+      ],
+      "oracle_calls_total": 76,
+      "passed": true,
+      "probe_validation_cases": 9,
+      "probe_validation_exact": 9,
+      "proof_ledger_complete": true,
+      "reason": "adaptive_basis_discovered",
+      "selected_basis_size": 3,
+      "terminal_probe_validation_cases": 9,
+      "terminal_probe_validation_exact": 9
+    },
+    {
+      "expected_basis_size": 4,
+      "false_accepts": 0,
+      "final_validation_cases": 3,
+      "final_validation_exact": 3,
+      "globally_minimal": true,
+      "lower_basis_certificate_count": 14,
+      "lower_basis_certificates": [
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "359e2dfa8b002e42c751deac5ccdc772f09fba12741deb8a2d06db88551575be",
+          "exposed_fields": [
+            "__p0",
+            "__f1",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4"
+          ],
+          "witness_digest": "f37aa667dbe2bfacac2a55e86405cab399733d2f12738831c1890b1eaad152bb",
+          "witness_rows": [
+            0,
+            13
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "cf5573f1b471cce716bcdcbf3c08557c9e8468ee94d124df8504ca2a9b01851d",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498"
+          ],
+          "witness_digest": "ab48e30b272f760bfbb5ac07982af193d2fc5003b65a9225b99f5b10523e6d31",
+          "witness_rows": [
+            0,
+            8
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "5d58817526e53b4bf708c2be29a6814454e001021cb70621e57e204e5f199f74",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "92b23b9ba385fb88cf00ed7fbd6756ed9480df44f6e7da9150efc9e37e3d05e4",
+          "witness_rows": [
+            0,
+            3
+          ]
+        },
+        {
+          "basis_cardinality": 1,
+          "evidence_digest": "c3c0eb95d68b9b60d17dca20486172e8b2fba59bec4d58e6fcb46b0d6ccac726",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "a557984911b28b47a9c1bb3fae5d5f7f326599bc4ee96007bac72d0312316d12",
+          "witness_rows": [
+            0,
+            1
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "26c409b1caf03d412a5a0d4b2e194b47afe93fe4462fe73a0c38fa1cdfcdeec9",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498"
+          ],
+          "witness_digest": "f96fdf94250c12a99dba7221ef93d30fafa13b75f2fdac377ee1478f0ee4443a",
+          "witness_rows": [
+            2,
+            9
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "2abaf10b8cbf91870f518ca3b1527d59233bb5f48fe0f7bdbddbf520de10b5fb",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "1c11ccbe2e4588d026d6d2e0fc7ccc8a0ea76c6219374d713a16b95947d1f853",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "1fe79d48397880faec0046967e11b6f1deb3911d310c92a88f86bff3209fdf3f",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "8c93976941dde33323c1c6d98e646271c7d1347e9fa85dec2a5fc8edefb9f97a",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "8b087465cc730235c773a544106f346545fd2175f96d83499a8673fcdefcbb93",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "61e85dacc7c2497b9266443f812fea8cda2c53b220defbdb1033d915417dcf34",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "d8604367a1185739375df6f3d93dbde4547900937876f67fdc394a859ef12ed5",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "da096868a9b6bca63f682e7464cd2e0265459be23a701fedc7ebbee6c4cc6653",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_cardinality": 2,
+          "evidence_digest": "04673c98dd38fa37934ce3ef78e9230dd487da144badf00a0c09e8be2cee9541",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f1"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "178781e37006c622db161d21524598c6ffe5ea00c6f894a554f507b4f26b24f5",
+          "witness_rows": [
+            11,
+            12
+          ]
+        },
+        {
+          "basis_cardinality": 3,
+          "evidence_digest": "37a9036cde68182d386486db92ea072f010bb1ceae2c92cee4526554cb357f3e",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f3"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "f620b1ba0701c3e425d89bce17cf5b0260d873e0f0ddf25be75b2a773a7cad0d",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_cardinality": 3,
+          "evidence_digest": "1229e340fda249f35804fc7ed588a4df0ab5310f6bdbae1452bc18110aa4751f",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f2"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "3d449351561b3db623fdfa2939ede03dac6b9f54204ccf249c3ecc0dc607bf92",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_cardinality": 3,
+          "evidence_digest": "a1810f45a117733cb04b8f812026a6af17371b248d1d78a49526f49a156e4876",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f1"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "e0b5ffcffc83b1586895a73303c9f0e9c9e9bc2472f87dac9bb9ddf1baa511d0",
+          "witness_rows": [
+            11,
+            12
+          ]
+        },
+        {
+          "basis_cardinality": 3,
+          "evidence_digest": "9ec491a618c8ac7698ee8fb4f79663632fb958096c148dbf3e8b32a3432a68a4",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f0"
+          ],
+          "proof_kind": "public_basis_target_collision",
+          "semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "8eba60a5e05a597f9a9aed466f1231a46ac613158a128017a859a8730e3ea24a",
+          "witness_rows": [
+            7,
+            10
+          ]
+        }
+      ],
+      "lower_basis_certified": 14,
+      "lower_basis_count": 14,
+      "lower_basis_inconclusive": 0,
+      "lower_basis_universe_digest": "dc06f2df323681a9e3ad2bb43c4757f66a7e182f520018af5b276b9f20885005",
+      "name": "four-probe-complete-pairwise",
+      "necessity_certificate_count": 14,
+      "necessity_certificate_sizes": [
+        1,
+        2,
+        3
+      ],
+      "necessity_certificates": [
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "359e2dfa8b002e42c751deac5ccdc772f09fba12741deb8a2d06db88551575be",
+          "exposed_fields": [
+            "__p0",
+            "__f1",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4"
+          ],
+          "witness_digest": "24335be2f6b8a49363fe885dd7e08d1e40e6b031d1a7e7d5bafd2919e53b8b2f",
+          "witness_rows": [
+            0,
+            13
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "cf5573f1b471cce716bcdcbf3c08557c9e8468ee94d124df8504ca2a9b01851d",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498"
+          ],
+          "witness_digest": "f73dc975fe4080f53974be5636228a5035eff4ded4d048c672910e75a926d856",
+          "witness_rows": [
+            0,
+            8
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "5d58817526e53b4bf708c2be29a6814454e001021cb70621e57e204e5f199f74",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "88a2ad67a29a05bb3c5ca98d695d31e74313ee64c92854ddd3eaab44f695357d",
+          "witness_rows": [
+            0,
+            3
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "c3c0eb95d68b9b60d17dca20486172e8b2fba59bec4d58e6fcb46b0d6ccac726",
+          "exposed_fields": [
+            "__p0",
+            "__f0",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 1,
+          "subset_semantic_profile_ids": [
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "4cf8123a4168160a5f4fba7f3216db1da6d4738914e8665a45b02800567d5487",
+          "witness_rows": [
+            0,
+            1
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "26c409b1caf03d412a5a0d4b2e194b47afe93fe4462fe73a0c38fa1cdfcdeec9",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f2",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498"
+          ],
+          "witness_digest": "622a35de9fc05cf95cc4b62b99dc705f301f22867ede38caefe108af9a35ebfc",
+          "witness_rows": [
+            2,
+            9
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "2abaf10b8cbf91870f518ca3b1527d59233bb5f48fe0f7bdbddbf520de10b5fb",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "6406cbf3260164c419fb9777dd1c1032279d44622e0c8f3760a55a145c0325d4",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "1fe79d48397880faec0046967e11b6f1deb3911d310c92a88f86bff3209fdf3f",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f1",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "7fb3806f7f791ff897017f80722dd739bd37b47e6de9a6e721f7136f23867d04",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "8b087465cc730235c773a544106f346545fd2175f96d83499a8673fcdefcbb93",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "1cc11929b0c2a639bff825340de65d59a55749fea5f0682f3fb392cd52532f98",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "d8604367a1185739375df6f3d93dbde4547900937876f67fdc394a859ef12ed5",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "9d8e1a7127c72def9cefd0094d08eb1d182bf28fc87f3467127298a8ed088abe",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "04673c98dd38fa37934ce3ef78e9230dd487da144badf00a0c09e8be2cee9541",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__f0",
+            "__f1"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 2,
+          "subset_semantic_profile_ids": [
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "4fa9640761571bcd28e5fd7bd6a5b003ac97bd8200d01083dff91526748e903a",
+          "witness_rows": [
+            11,
+            12
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "37a9036cde68182d386486db92ea072f010bb1ceae2c92cee4526554cb357f3e",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f3"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 3,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9"
+          ],
+          "witness_digest": "3eafd76491b9f369b8aee5a9b9fa78314e449c290dfc64a86700db82430a6226",
+          "witness_rows": [
+            2,
+            4
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "1229e340fda249f35804fc7ed588a4df0ab5310f6bdbae1452bc18110aa4751f",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f2"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 3,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "49494374b09ad63a0f3d7866ffc1c046a2b5fc47d9b92214bb1eb6669ebf6414",
+          "witness_rows": [
+            5,
+            6
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "a1810f45a117733cb04b8f812026a6af17371b248d1d78a49526f49a156e4876",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f1"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 3,
+          "subset_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "110cfb03d744b7da737f7823abeebc3586a1d7101077b76887c99979fa1f89ef",
+          "witness_rows": [
+            11,
+            12
+          ]
+        },
+        {
+          "basis_semantic_profile_ids": [
+            "profile.d674f7a5c2903da5f258209badd63e30dcdc02dcc5304c1797365f63652716e4",
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "evidence_digest": "9ec491a618c8ac7698ee8fb4f79663632fb958096c148dbf3e8b32a3432a68a4",
+          "exposed_fields": [
+            "__p0",
+            "__p1",
+            "__p2",
+            "__f0"
+          ],
+          "proof_kind": "public_target_collision",
+          "subset_cardinality": 3,
+          "subset_semantic_profile_ids": [
+            "profile.e54f471882e0fcc2dee2a2749061acb3d5cb70d2a91148b0919c6ba3f8789498",
+            "profile.e47c5a9374d5581248eaa651f734eff9c5378af646b70fc5ecdb19c9c158c8a9",
+            "profile.d485efa8f43dca5ed2fd343a95d4e3df72fe81c2b2ef9aa6f51598aea11f8cc4"
+          ],
+          "witness_digest": "70f2c82f12a5880fb61c793e9a9bc07ab0131f8b63a68af3907cbad3de17af02",
+          "witness_rows": [
+            7,
+            10
+          ]
+        }
+      ],
+      "oracle_calls_total": 115,
+      "passed": true,
+      "probe_validation_cases": 12,
+      "probe_validation_exact": 12,
+      "proof_ledger_complete": true,
+      "reason": "adaptive_basis_discovered",
+      "selected_basis_size": 4,
+      "terminal_probe_validation_cases": 12,
+      "terminal_probe_validation_exact": 12
+    }
+  ],
+  "complete_local_ledgers": true,
+  "complete_minimality_ledgers": true,
+  "false_accepts": 0,
+  "milestone": "R2.68",
+  "mixed_cardinality_exact": true,
+  "one_probe_nuisance_rejected": true,
+  "replayable_global_ledgers": true,
+  "selected_basis_sizes": [
+    0,
+    2,
+    3,
+    4
+  ],
+  "trainable_parameter_count": 0
+}

@@ -1,25 +1,27 @@
-# Nolane AI — R2.4 Long-Horizon Replanning
+# Nolane AI — Experimental Compact Cognitive System
+
+> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active research boundary, accepted parent, draft milestones and promotion requirements, read [`CURRENT_STATUS.md`](CURRENT_STATUS.md). R2.67.1 is the accepted causal-correctness parent on `main` at `b789dd7a48f10f3afb1cf42ee62d3dc77dee200e`; canonical R2.68 is still a research draft and is not an AGI or frontier-equivalence claim.
 
 Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, retrieval, epistemic verification, reusable skills, active experimentation and public-feedback replanning. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
-## Active coding research track — not externally promoted
+## Active coding research track — historical context, not current status authority
 
-The repository now contains an experimental coding-generalization track beyond the currently accepted R2.4 system:
+The repository contains an experimental coding-generalization lineage beyond the older R2.4 system. The entries below document historical gates and claim boundaries; they are not a substitute for `CURRENT_STATUS.md`.
 
 - **R2.7 CodeWorld Phase A:** adds a 622,147-parameter coding-loop controller, producing **79,401,400** effective neural parameters. Its internal language×task-pair curriculum is a workflow-policy gate only, not evidence of general repository coding performance.
 - **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
 - **R2.9 Verifier-Guided Patch Search Phase A:** adds **0 neural parameters**. It performs canonicalized, hard-budget patch search with executable verification, R2.8 blast-radius risk, failure-memory refinement, and candidate-id-invariant traces. Its locked executable Python/JavaScript micro-repository gate resolves **4/4** cases with **0 false terminal accepts**, **0 duplicate evaluator calls**, and at most **2** evaluator calls per case.
 - **R2.10 Compact Copy-Edit Proposer Phase A:** adds **49,089 neural parameters**, producing **79,450,489** effective parameters. Training uses Python surfaces only; the frozen 48-case JavaScript heldout gate reaches **91.67% top-1 candidate accuracy** and **93.75% verified solve rate** at budget 2 versus **50.00%** for the same-candidate unranked baseline (**+43.75 pp**), with **100% identifier/candidate rename invariance** and **0 false terminal accepts**. It ranks constrained minimal edits; it is not a general source-code decoder.
 - **R2.11 Differential Multi-File Localization Phase A:** adds **0 neural parameters**, keeping **79,450,489** effective parameters. A frozen 64-repository JavaScript gate with randomized identities and an intentionally spectrum-indistinguishable healthy shadow reaches **95.31% localization Hit@1**, **97.66% MRR**, and **92.19% end-to-end verified solve**, versus **62.5% Hit@1 / 59.38% solve** for spectrum-only localization (**+32.81 pp**), with **100% identity permutation invariance** and **0 false terminal accepts**.
-- **R2.12 Fresh Real-Repository Localization:** source/protocol is frozen on `main`, but the first valid external score is still **pending** because GitHub Actions was blocked before runner allocation by account billing/spending limits. No R2.12 capability score is counted.
+- **R2.12 Fresh Real-Repository Localization:** source/protocol was frozen, but the first valid external score was pending at the time of this historical note because GitHub Actions was blocked before runner allocation by account billing/spending limits. No R2.12 capability score is counted here.
 - **R2.13 Evidence-Preserving Skill Consolidation:** **rejected**. Frozen heldout contextual transfer and old-regime retention were both **75%** against **87.5%** gates. The negative result identified program underdetermination in the inherited shortest-consistent symbolic synthesizer; it adds **0 parameters** and is not promoted.
 - **R2.14 Active Program Disambiguation Phase A:** adds **0 neural parameters**, keeping **79,450,489** effective parameters. A pre-registered 160-case main heldout reaches **100% active identification** versus **0% shortest-consistent**, **21.25% passive-fixed**, and **71.875% random-budgeted** baselines; a deeper stress set reaches **93.75%**, with **100% retention**, **100% out-of-class abstention**, **100% permutation invariance**, **0 false resolved accepts**, and at most **3** oracle calls. This is internal finite-domain evidence only.
 
-External coding claims remain disabled. R2.7/R2.8/R2.9/R2.10/R2.11 have not yet established arbitrary patch generation or fresh-repository issue-resolution performance; R2.10 improves constrained source-aware proposal ordering but is not a general source-code decoder. Those claims require fresh multi-file localization/proposal plus executable external evaluation on broad repository tasks.
+External coding claims remain disabled by this historical evidence. R2.7/R2.8/R2.9/R2.10/R2.11 do not establish arbitrary patch generation or broad fresh-repository issue-resolution performance; those claims require independent external evaluation under matched budgets.
 
-## Current accepted system
+## Historical broadly accepted pre-coding system — R2.4
 
-The broadly accepted pre-coding-research system remains R2.4. Its neural stack is **78,779,253 effective parameters**:
+R2.4 is retained here as an older broadly accepted pre-coding baseline. Its neural stack is **78,779,253 effective parameters**:
 
 - R1.9 FrontierRollout parent: **78,214,173**
 - R2.0e EvidenceEffect executive: **+565,080**
@@ -68,7 +70,8 @@ Successful GitHub Actions runs:
 
 ## Verification
 
-- `research/R2_4_STATUS.json` — accepted R2.4 state and exact metrics.
+- `CURRENT_STATUS.md` — authoritative short operational status for current accepted/draft boundaries.
+- `research/R2_4_STATUS.json` — accepted R2.4 historical state and exact metrics.
 - `research/R2_4_PRE_DEV_LOCK.md` — protocol/source lock before stage 2.
 - `research/R2_4_STAGE3_FREEZE.md` — source freeze before stage 3.
 - `.github/workflows/r24-integrity.yml` — exact Git blob and aggregate gate.
@@ -84,11 +87,11 @@ Successful GitHub Actions runs:
 - `research/R2_14_PRE_HELDOUT_LOCK.json` — frozen R2.14 source/protocol/thresholds before heldout.
 - `research/R2_14_PHASE_A_RESULT.json` — accepted R2.14 finite-domain active-identification result and claim boundary.
 
-The R2.4 internal readiness rubric was **18.2/100**. After the accepted R2.14 active-disambiguation gate, the conservative AGI engineering-readiness estimate is **20.0/100**. This is an engineering-readiness rubric, not a probability that the system is AGI. Broad reasoning, language/world knowledge, math competence, multimodality, open-ended learning and independent external evidence remain insufficient.
+The historical R2.4 internal readiness rubric was **18.2/100**. After the accepted R2.14 active-disambiguation gate, the recorded conservative AGI engineering-readiness estimate was **20.0/100**. This is an engineering-readiness rubric, not a probability that the system is AGI, and it must not be extrapolated to current draft work without a fresh governed assessment.
 
 ## Scientific boundary
 
-KFIGG evidence is synthetic; R2.8 Phase A is a small adversarial routing gate; R2.9 Phase A is a small executable micro-repository patch-search gate; R2.10 Phase A is a constrained Python→JavaScript copy-edit proposal gate; and R2.11 Phase A is an internal differential multi-file localization gate. Neither establishes unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Those claims require independent external benchmarks and matched-budget reference-model evaluations.
+KFIGG evidence is synthetic; the historical coding Phase-A gates are bounded internal evidence. They do not establish unrestricted real-world operation, human-level strategic judgment, AGI, or superiority to >100B/frontier models. Such claims require independent external benchmarks, matched-budget references, reproducible release evidence and much broader capability coverage.
 
 ## GitHub binary boundary
 
