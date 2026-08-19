@@ -7,6 +7,7 @@ on:
       - 'tests/test_r267_1_partial_probe_receipt_accounting.py'
       - 'scripts/r267_1_apply_partial_receipt_accounting.py'
       - '.github/workflows/r267-1-partial-receipt-hotfix.yml'
+      - '.github/workflows/r267-1-freeze-evidence.yml'
       - 'cogcoder/r267_three_probe_causal_composition.py'
   workflow_dispatch:
 
