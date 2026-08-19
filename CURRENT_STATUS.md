@@ -12,9 +12,11 @@ This file is the short authoritative status index for active research. Historica
 
 ## R2.68 research question
 
-R2.68 tests whether a verified three-probe causal expression can become an identity-free portable prior, then reduce target-side search/evidence cost on a distinct task while still failing closed under negative transfer.
+R2.68 tests whether an identity-free verified three-probe expression prior can make a distinct target solvable under a **smaller bounded hypothesis candidate budget** than the matched scratch search used by this gate while still failing closed under negative transfer.
 
-The portable object contains only an abstract expression over `__p0`, `__p1`, `__p2`, its digest and zero-parameter structural metadata. It does not carry source field names, intervention IDs, semantic profile IDs, raw source examples, source outputs or target labels.
+The current evidence does **not** claim fewer total target oracle calls than a roomy scratch solver. That is a separate experiment.
+
+The portable object contains only an abstract expression over `__p0`, `__p1`, `__p2`, its digest and zero-parameter structural metadata. It may not carry source field names, intervention IDs, semantic profile IDs, raw source examples, source outputs or target labels.
 
 Target adaptation is intentionally bounded:
 
@@ -25,9 +27,9 @@ Target adaptation is intentionally bounded:
 - independent disjoint terminal verification;
 - no unrestricted scratch fallback inside the transfer solver.
 
-A separate matched scratch solver receives the same target evidence contract but no source prior.
+A separate matched scratch solver receives the same target diagnostic/terminal contract and active selector but no source prior.
 
-## Hosted TDD evidence already established
+## Hosted TDD evidence established
 
 - Initial portable-prior RED: Actions run `32217699599` failed on Python 3.11/3.13 because the R2.68 module did not exist.
 - Portable-prior GREEN: run `32217845457` passed on Python 3.11/3.13.
@@ -36,13 +38,18 @@ A separate matched scratch solver receives the same target evidence contract but
 - Matched-scratch RED: run `32218105396` failed because the scratch baseline API did not exist.
 - Matched-scratch GREEN: run `32218226399` passed on Python 3.11/3.13.
 - Authored benchmark RED: run `32218264442` failed on Python 3.11/3.13 because the benchmark module did not exist.
+- Authored benchmark GREEN: run `32218379720` passed the unchanged three-positive/two-negative benchmark on Python 3.11 and 3.13. The frozen assertions require positive transfer `3/3`, negative-transfer abstention `2/2`, tight scratch `0/3`, roomy scratch `3/3`, diagnostic-order invariance, zero false accepts and zero trainable parameters.
 
-The benchmark implementation is not an accepted result merely because code exists. Its final hosted GREEN evidence must be recorded separately before the research gate can be described as passing.
+Nolane World W5 audit then raised two additional authority requirements before the research evidence can be considered hardened: direct construction of the portable object must not bypass identity/digest/parameter checks, and a same-budget explicit source-prior ablation must remove the transfer advantage. Those challengers are part of the active R2.68 branch and are not optional promotion gates.
+
+## Source boundary
+
+Phase A begins at the verified abstract expression-prior boundary; it does not independently rerun the complete source-learning pipeline on every benchmark invocation. Before promotion, portable export must be bound to the exact accepted R2.67.1-or-successor receipt/evidence boundary after rebase and refreeze.
 
 ## Parameter boundary
 
-R2.68 adds **0 trainable neural parameters**. Any improvement measured here is hybrid-runtime learning-to-learn evidence, not a neural-parameter increase.
+R2.68 adds **0 trainable neural parameters**. Any measured effect is hybrid-runtime learning-to-learn evidence, not a neural-parameter increase.
 
 ## Claim boundary
 
-No active item in this file establishes AGI, unrestricted program transfer, general software-engineering autonomy, natural-language mastery, open-world learning, or frontier-model equivalence. R2.68 is a bounded causal-transfer experiment and remains non-promotable while its parent correctness boundary is unsettled.
+No active item in this file establishes AGI, unrestricted program transfer, general software-engineering autonomy, natural-language mastery, open-world learning, lower total oracle cost, or frontier-model equivalence. R2.68 is a bounded causal-prior transfer experiment and remains non-promotable while its parent correctness boundary is unsettled.
