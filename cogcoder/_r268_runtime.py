@@ -170,20 +170,31 @@ def synthesize_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],objec
     def terminal_oracle(context):
         nonlocal terminal_calls
         terminal_calls+=1;return finite_json_value(oracle(dict(context)))
-    try:
-        for context in terminal:
-            for index,profile in enumerate(selected.profiles):
-                intervened=profile.intervention.apply(context,schema.field_names);key=context_key(schema,intervened);terminal_probe_cases+=1
-                if key in structure.learning_query_keys or key in seen:raise ValueError('terminal intervention inputs must be disjoint from all prior evidence inputs')
-                if context_validator is not None and not bool(context_validator(intervened)):raise RuntimeError('terminal intervention rejected')
-                seen.add(key);expected=terminal_oracle(intervened);actual=finite_json_value(evaluate_expr(probe_e[index],context))
-                if not equivalent(actual,expected):
-                    return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
-                terminal_probe_exact+=1
-            final_cases+=1;expected=terminal_oracle(context);actual=finite_json_value(evaluate_expr(expression,context));final_exact+=int(equivalent(actual,expected))
-    except Exception:
-        reason='terminal_probe_oracle_error' if final_cases==0 or terminal_probe_cases>terminal_probe_exact else 'final_terminal_oracle_error'
-        return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,reason,selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
-    if terminal_probe_exact!=terminal_probe_cases:return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
-    if final_exact!=final_cases:return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'final_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+    for context in terminal:
+        for index,profile in enumerate(selected.profiles):
+            intervened=profile.intervention.apply(context,schema.field_names);key=context_key(schema,intervened)
+            if key in structure.learning_query_keys or key in seen:
+                return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_evidence_overlap',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+            if context_validator is not None and not bool(context_validator(intervened)):
+                return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_context_rejected',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+            seen.add(key);terminal_probe_cases+=1
+            try:expected=terminal_oracle(intervened)
+            except Exception:
+                return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_oracle_error',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+            try:actual=finite_json_value(evaluate_expr(probe_e[index],context))
+            except (ArithmeticError,KeyError,TypeError,ValueError,OverflowError,ZeroDivisionError):
+                return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+            if not equivalent(actual,expected):
+                return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'terminal_probe_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+            terminal_probe_exact+=1
+        final_cases+=1
+        try:expected=terminal_oracle(context)
+        except Exception:
+            return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'final_terminal_oracle_error',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+        try:actual=finite_json_value(evaluate_expr(expression,context))
+        except (ArithmeticError,KeyError,TypeError,ValueError,OverflowError,ZeroDivisionError):
+            return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'final_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+        if not equivalent(actual,expected):
+            return AdaptiveCausalBasisReceipt(False,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,'final_validation_failed',selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
+        final_exact+=1
     return AdaptiveCausalBasisReceipt(True,structure,expression,tuple(probe_e),tuple(probe_counts),probe_cases,probe_exact,final_cases,final_exact,structure.reason,selected.basis_size,structure.globally_minimal,0,0,structure.oracle_calls+terminal_calls,terminal_probe_cases,terminal_probe_exact)
