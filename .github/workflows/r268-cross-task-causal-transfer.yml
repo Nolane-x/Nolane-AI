@@ -1,4 +1,4 @@
-name: R2.68 Cross-Task Causal Transfer
+name: R2.68-T Cross-Task Causal Transfer
 
 on:
   push:
@@ -19,7 +19,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: r268-${{ github.workflow }}-${{ github.ref }}
+  group: r268t-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 permissions:
@@ -39,5 +39,5 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest
-      - name: Run R2.68 focused contracts
+      - name: Run R2.68-T focused contracts
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
