@@ -28,7 +28,7 @@ jobs:
       - name: Protected R2.68 safety
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
       - name: Existing portable adapter contracts
-        run: PYTHONPATH=. python -m pytest -q tests/test_r269_portable_experience.py tests/test_r269_causal_basis_adapter.py
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_portable_experience.py
       - name: Sequential verifier-backed compilation
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_sequential_experience_compilation.py
       - name: Existing R2.69 contracts except independent closure track
