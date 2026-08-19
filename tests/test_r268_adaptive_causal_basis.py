@@ -131,3 +131,27 @@ def test_three_probe_selection_is_field_order_invariant() -> None:
     assert base.structure.lower_basis_count==permuted.structure.lower_basis_count==6
     assert base.structure.lower_basis_certified==permuted.structure.lower_basis_certified==6
     assert base.false_accepts==permuted.false_accepts==0
+
+
+def test_structure_proposal_search_never_trains_on_validation_targets(monkeypatch) -> None:
+    import cogcoder._r268_runtime as runtime
+    original=runtime.synthesize_variable_expression
+    observed=[]
+    def traced(field_names,required_probe_fields,constants,examples,**kwargs):
+        if tuple(required_probe_fields): observed.append(len(tuple(examples)))
+        return original(field_names,required_probe_fields,constants,examples,**kwargs)
+    monkeypatch.setattr(runtime,'synthesize_variable_expression',traced)
+    fields=('a','b')
+    def oracle(row): return float(row['a'])+float(row['b'])
+    discovery=_contexts(fields,((-2,-2),(-2,-1),(-1,-2),(1,3),(4,-2),(5,7)))
+    validation=_contexts(fields,((2,5),(-3,6),(8,-4)))
+    receipt=runtime.discover_adaptive_causal_basis(
+        oracle,fields,(0.0,),discovery,validation,intervention_arity=1,max_basis_size=2,
+        composition_constants=(0.0,2.0),composition_max_depth=5,composition_max_candidates_per_basis=30_000,
+        max_composition_candidates_total=160_000,composition_beam_width=192)
+    assert receipt.passed is True
+    assert observed and all(count==len(discovery) for count in observed)
+    assert receipt.selected is not None
+    assert receipt.selected.selection_cases==len(discovery)
+    assert receipt.selected.validation_cases==len(validation)
+    assert receipt.selected.validation_exact==len(validation)
