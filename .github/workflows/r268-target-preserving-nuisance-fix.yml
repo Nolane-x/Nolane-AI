@@ -1,0 +1,79 @@
+name: R2.68 Target-Preserving Nuisance Fix
+
+on:
+  push:
+    branches: [fix-r268-target-preserving-nuisance-gpt56sol]
+    paths:
+      - 'scripts/r268_apply_target_preserving_nuisance_fix.py'
+      - '.github/workflows/r268-target-preserving-nuisance-fix.yml'
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+    paths:
+      - 'cogcoder/_r268_runtime.py'
+      - 'benchmarks/kfigg/r268_adaptive_causal_basis.py'
+      - 'tests/test_r268_adaptive_causal_basis.py'
+      - 'tests/test_r268_benchmark.py'
+      - 'scripts/r268_apply_target_preserving_nuisance_fix.py'
+      - '.github/workflows/r268-target-preserving-nuisance-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  red-green-materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Corrected parent safety first
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Confirm nuisance challenger is RED before mutation
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r268_adaptive_causal_basis.py::test_rejects_target_preserving_one_probe_nuisance_as_noncausal \
+            tests/test_r268_benchmark.py::test_r268_mixed_cardinality_benchmark_is_deterministic_and_exact
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'Expected R2.68 nuisance regression to be RED before patch.' >&2
+            exit 1
+          fi
+      - name: Apply guarded root-cause patch
+        run: python scripts/r268_apply_target_preserving_nuisance_fix.py
+      - name: Compile patched sources
+        run: python -m py_compile cogcoder/_r268_runtime.py benchmarks/kfigg/r268_adaptive_causal_basis.py
+      - name: Focused R2.68 suite GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Corrected parent remains GREEN
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Materialize exact source delta after GREEN
+        if: matrix.python-version == '3.11' && github.event_name == 'push'
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name 'Nolane R2.68 verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git add cogcoder/_r268_runtime.py benchmarks/kfigg/r268_adaptive_causal_basis.py
+          if git diff --cached --quiet; then
+            echo 'No source delta to materialize.'
+            exit 0
+          fi
+          git commit -m 'fix: reject target-preserving nuisance interventions'
+          git push origin HEAD:fix-r268-target-preserving-nuisance-gpt56sol
