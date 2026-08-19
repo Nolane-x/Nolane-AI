@@ -33,6 +33,8 @@ class AdaptiveCausalBasisCandidate:
     used_fields: tuple[str, ...]
     selection_cases: int
     selection_exact: int
+    validation_cases: int
+    validation_exact: int
     composition_candidates_considered: int
 
 @dataclass(frozen=True, slots=True)
