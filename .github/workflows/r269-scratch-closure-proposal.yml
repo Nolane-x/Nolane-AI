@@ -1,0 +1,48 @@
+name: R2.69 Scratch Closure Proposal
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/r269_scratch_closure_patch.py'
+      - 'tests/test_r269_scratch_compositional_closure.py'
+      - 'tests/test_r269_benchmark.py'
+      - 'benchmarks/kfigg/r269_meta_learning.py'
+      - '.github/workflows/r269-scratch-closure-proposal.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  proposal:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Apply runner-only closure patch
+        run: PYTHONPATH=. python scripts/r269_scratch_closure_patch.py
+      - name: Protected R2.68 safety
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: R2.69 focused contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - name: Deterministic benchmark replay
+        env:
+          PYTHONHASHSEED: '777'
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          a = run_benchmark()
+          b = run_benchmark()
+          assert a['determinism']['semantic_digest'] == b['determinism']['semantic_digest']
+          print(a['claim'])
+          print(a['positive'])
+          print(a['negative'])
+          print(a['strong_claim_gate'])
+          PY
