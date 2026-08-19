@@ -1,0 +1,87 @@
+{
+  "audit": {
+    "events": 37,
+    "head": "be4c02b35962cbc9cdcf6bb6da7ba4027e27ab19dbf5197996b05d9487f0a138",
+    "valid": true
+  },
+  "bounded_acceptance_recommended": true,
+  "claim_boundary": "Collision-certified insufficiency of proper-subset observable evidence on the tested pure-input corpora, with exactly three interventions, a finite trusted DSL, terminal re-observation, and zero added trainable parameters; not a universal theorem that two probes can never suffice and not evidence of AGI/frontier-model equivalence.",
+  "convergence_forced": false,
+  "critical_unknowns": 1,
+  "depth": "W5",
+  "epistemic_debt": [
+    {
+      "kind": "external_validity",
+      "reason": "NumPy transfer is real IO-only hosted evidence but uses the same cyclic algebraic family as the authored benchmark.",
+      "status": "open"
+    },
+    {
+      "kind": "selection_bias",
+      "reason": "The external family was researcher-selected rather than blindly selected.",
+      "status": "open"
+    }
+  ],
+  "fresh_verifications": 2,
+  "full_local_audit_sha256": "e20644412f409596099c4b8d9672424cc9103e9af82710ce3069d2aaeaf12355",
+  "gate": {
+    "blockers": [
+      "trusted active residency insufficient",
+      "independent attested compute insufficient",
+      "cognitive VM program insufficiently executed",
+      "critical unknowns unresolved by trusted evidence",
+      "independent challenger evidence insufficient",
+      "verified robust/counterfactual worlds insufficient",
+      "verified material representation diversity insufficient",
+      "trusted assessment says material value-of-thought remains",
+      "proof obligations remain open",
+      "trusted quality floor robustness"
+    ],
+    "passed": false,
+    "score": 0.2857142857142857
+  },
+  "hosted_evidence": {
+    "canonical_conclusion": "success",
+    "canonical_relevant_tests": 306,
+    "canonical_run": 32219326321,
+    "cross_python": [
+      "3.11",
+      "3.13"
+    ],
+    "fairness_challenger_conclusion": "success",
+    "fairness_challenger_run": 32218054272,
+    "frozen_git_blobs": 29,
+    "inner_complete_zip_sha256": "3874be09bf3f2b740860797daffd7d18357533ed45d8330baea2f651613ad9e0",
+    "release_artifact_digest": "sha256:fcfe0254afe73d84b93ad98387ea5a671d017d6f5cd24d60f24e9b493111827b",
+    "release_artifact_id": 9353957140,
+    "release_conclusion": "success",
+    "release_run": 32219326390
+  },
+  "milestone": "R2.67.1",
+  "note": "This repository record is a compact loss-aware summary of the full Nolane World runtime audit. W5 is intentionally fail-closed; no convergence claim is made.",
+  "quality": {
+    "correctness": 0.95,
+    "evidence": 0.925,
+    "robustness": 0.83,
+    "verification": 0.955
+  },
+  "record_type": "NOLANE_WORLD_W5_AUDIT_SUMMARY",
+  "remaining_vot": 0.35,
+  "research_closure": {
+    "blockers": [
+      "rivals_resolved",
+      "source_independence",
+      "external_validity",
+      "confidence_calibrated",
+      "stopping_rule"
+    ],
+    "epistemic_debt_open": 2,
+    "verdict": "blocked"
+  },
+  "robust_worlds": 5,
+  "runtime": "Nolane World 0.8.0 / LivingWorldV5",
+  "schema_version": 1,
+  "source_freeze_head": "6c516f854fb34773287f00e6efd021293f039d73",
+  "state_root": "/mnt/data/.nolane-r2671-final",
+  "verified_representations": 4,
+  "world_id": "world5_a9766d2aa52bfeda55e1"
+}

@@ -58,6 +58,7 @@ jobs:
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
+              '.github/workflows/r267-1-post-merge-release-bundle.yml',
           )
           for path in required:
               assert Path(path).is_file(), path
@@ -158,6 +159,7 @@ jobs:
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
+              '.github/workflows/r267-1-post-merge-release-bundle.yml',
           }
           with zipfile.ZipFile('release/Nolane-AI-R2.67.1-COMPLETE.zip') as zf:
               names = set(zf.namelist())
