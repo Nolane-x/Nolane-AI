@@ -26,8 +26,29 @@ SCRATCH_TERMINAL_OLD = '''        try:\n            observed = _canonical_number
 SCRATCH_TERMINAL_NEW = '''        oracle_status, observed, semantic_context = _call_oracle_isolated(oracle, context)\n        if oracle_status != 'ok':\n            return _failed_receipt(\n                candidates_generated=len(generated), live=live,\n                selection_queries=selection_queries,\n                terminal_queries=terminal_queries + 1,\n                terminal_exact=terminal_exact,\n                reason=(\n                    'terminal_oracle_context_mutation'\n                    if oracle_status == 'mutation'\n                    else 'invalid_terminal_oracle_output'\n                ), trace=trace,\n            )\n        terminal_queries += 1\n        survivors = []\n        for candidate in live:\n            valid, predicted = _safe_prediction(candidate.expression, semantic_context)\n'''
 
 
-def replace_once(text: str, old: str, new: str, label: str) -> str:\n    count = text.count(old)\n    if count != 1:\n        raise SystemExit(f'{label}: expected exactly one replacement boundary, found {count}')\n    return text.replace(old, new, 1)\n
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        raise SystemExit(f'{label}: expected exactly one replacement boundary, found {count}')
+    return text.replace(old, new, 1)
 
-def main() -> None:\n    transfer = TRANSFER.read_text(encoding='utf-8')\n    scratch = SCRATCH.read_text(encoding='utf-8')\n\n    if '_call_oracle_isolated(' not in transfer:\n        transfer = replace_once(transfer, HELPER_ANCHOR, HELPER_ANCHOR + HELPER, 'helper')\n    transfer = replace_once(transfer, TRANSFER_SELECTION_OLD, TRANSFER_SELECTION_NEW, 'transfer selection')\n    transfer = replace_once(transfer, TRANSFER_TERMINAL_OLD, TRANSFER_TERMINAL_NEW, 'transfer terminal')\n    scratch = replace_once(scratch, SCRATCH_IMPORT_OLD, SCRATCH_IMPORT_NEW, 'scratch import')\n    scratch = replace_once(scratch, SCRATCH_SELECTION_OLD, SCRATCH_SELECTION_NEW, 'scratch selection')\n    scratch = replace_once(scratch, SCRATCH_TERMINAL_OLD, SCRATCH_TERMINAL_NEW, 'scratch terminal')\n\n    TRANSFER.write_text(transfer, encoding='utf-8')\n    SCRATCH.write_text(scratch, encoding='utf-8')\n    print('R268T_ORACLE_CONTEXT_ISOLATION_MATERIALIZED')\n
 
-if __name__ == '__main__':\n    main()\n
+def main() -> None:
+    transfer = TRANSFER.read_text(encoding='utf-8')
+    scratch = SCRATCH.read_text(encoding='utf-8')
+
+    if '_call_oracle_isolated(' not in transfer:
+        transfer = replace_once(transfer, HELPER_ANCHOR, HELPER_ANCHOR + HELPER, 'helper')
+    transfer = replace_once(transfer, TRANSFER_SELECTION_OLD, TRANSFER_SELECTION_NEW, 'transfer selection')
+    transfer = replace_once(transfer, TRANSFER_TERMINAL_OLD, TRANSFER_TERMINAL_NEW, 'transfer terminal')
+    scratch = replace_once(scratch, SCRATCH_IMPORT_OLD, SCRATCH_IMPORT_NEW, 'scratch import')
+    scratch = replace_once(scratch, SCRATCH_SELECTION_OLD, SCRATCH_SELECTION_NEW, 'scratch selection')
+    scratch = replace_once(scratch, SCRATCH_TERMINAL_OLD, SCRATCH_TERMINAL_NEW, 'scratch terminal')
+
+    TRANSFER.write_text(transfer, encoding='utf-8')
+    SCRATCH.write_text(scratch, encoding='utf-8')
+    print('R268T_ORACLE_CONTEXT_ISOLATION_MATERIALIZED')
+
+
+if __name__ == '__main__':
+    main()
