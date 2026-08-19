@@ -58,6 +58,7 @@ jobs:
           assert lock['parent_release_commit']=='b789dd7a48f10f3afb1cf42ee62d3dc77dee200e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
+          assert lock['authority_hardening']['canonical_json_evidence_comparison'] is True
           for file,expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',file],text=True).strip()
               assert actual==expected,(file,actual,expected)
@@ -74,8 +75,10 @@ jobs:
           from research.r268_external_transfer import run_external_transfer
           assert np.__version__=='2.4.6'
           phase=run_benchmark(); external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
-          assert phase==json.loads(Path('R2_68_PHASE_A_RESULT.json').read_text())
-          assert external==json.loads(Path('R2_68_EXTERNAL_TRANSFER.json').read_text())
+          phase_text=json.dumps(phase,indent=2,sort_keys=True)+'\n'
+          external_text=json.dumps(external,indent=2,sort_keys=True)+'\n'
+          assert phase_text==Path('R2_68_PHASE_A_RESULT.json').read_text()
+          assert external_text==Path('R2_68_EXTERNAL_TRANSFER.json').read_text()
           assert phase['all_gates_pass'] is True and phase['false_accepts']==0
           assert phase['selected_basis_sizes']==[0,2,3,4]
           assert phase['replayable_global_ledgers'] is True and phase['complete_local_ledgers'] is True
