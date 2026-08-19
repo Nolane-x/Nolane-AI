@@ -24,6 +24,15 @@ def _assert_case(case: dict[str, object]) -> None:
     assert case['final_validation_exact'] == 6
     assert case['heldout_cases'] == 6
     assert case['heldout_exact'] == 6
+    assert case['oracle_accounting_exact'] is True
+    assert case['oracle_calls_learning_terminal'] > 0
+    assert case['oracle_calls_collision_certificates'] == 72
+    assert case['oracle_calls_heldout'] == 6
+    assert case['oracle_calls_total'] == (
+        case['oracle_calls_learning_terminal']
+        + case['oracle_calls_collision_certificates']
+        + case['oracle_calls_heldout']
+    )
     assert case['false_accepts'] == 0
     assert case['trainable_parameter_count'] == 0
 
@@ -34,10 +43,15 @@ def test_authored_r267_1_replacement_evidence_is_exact_and_invariant() -> None:
     assert result['capability'] == 'genuine-three-probe-causal-necessity'
     assert result['all_gates_pass'] is True
     assert result['semantic_profile_invariant'] is True
+    assert result['oracle_accounting_exact'] is True
     assert result['false_accepts'] == 0
     assert result['trainable_parameter_count'] == 0
     for key in ('base', 'renamed', 'permuted'):
         _assert_case(result[key])
+    assert result['oracle_calls_total'] == sum(
+        int(result[key]['oracle_calls_total'])
+        for key in ('base', 'renamed', 'permuted')
+    )
 
 
 def test_pinned_numpy_cyclic_dot_transfer_is_io_only_and_exact() -> None:
