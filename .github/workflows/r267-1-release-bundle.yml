@@ -48,9 +48,12 @@ jobs:
               'tests/test_r267_1_no_collision_failclosed.py',
               'tests/test_r267_1_authority_boundaries.py',
               'tests/test_r267_1_preselection_receipt_units.py',
+              'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
               'tests/test_r267_1_evidence.py',
               'tests/test_r267_independent_ablation_completeness.py',
+              'scripts/r267_1_apply_partial_receipt_accounting.py',
+              '.github/workflows/r267-1-partial-receipt-hotfix.yml',
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
@@ -66,6 +69,7 @@ jobs:
           assert a['public_collision_certificate_required_for_lower_order_insufficiency'] is True
           assert a['uncertified_search_miss_fails_closed'] is True
           assert a['preselection_probe_cases_zero_without_selected_triplet'] is True
+          assert a['attempted_case_receipt_accounting'] is True
           assert a['positive_domain_triangle_min_robustness'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git','hash-object',path], text=True).strip()
@@ -87,6 +91,7 @@ jobs:
           assert phase == json.loads(Path('R2_67_1_PHASE_A_RESULT.json').read_text())
           assert external == json.loads(Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True and phase['false_accepts'] == 0
+          assert phase['oracle_accounting_exact'] is True
           assert external['passed'] is True and external['false_accepts'] == 0
           assert external['source_id'] == 'numpy:numpy.dot'
           assert external['source_exposure'] == 'io_only'
@@ -98,6 +103,9 @@ jobs:
               + external['oracle_calls_challenge']
               + external['oracle_calls_heldout']
           )
+          lock = json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          assert phase['oracle_calls_total'] == lock['authored_evidence']['oracle_calls_total']
+          assert external['oracle_calls_total'] == lock['external_evidence']['oracle_calls_total']
           print('R267_1_RELEASE_EVIDENCE_EXACT_OK')
           PY
       - name: Run R2.67.1 and protected lineage
@@ -139,8 +147,11 @@ jobs:
               'tests/test_r267_1_no_collision_failclosed.py',
               'tests/test_r267_1_authority_boundaries.py',
               'tests/test_r267_1_preselection_receipt_units.py',
+              'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
               'tests/test_r267_1_evidence.py',
+              'scripts/r267_1_apply_partial_receipt_accounting.py',
+              '.github/workflows/r267-1-partial-receipt-hotfix.yml',
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
@@ -167,7 +178,7 @@ jobs:
           payload=json.dumps({
               'state':'success',
               'context':'r2671/release-bundle',
-              'description':'R2.67.1 frozen authority, exact evidence, protected lineage and COMPLETE ZIP passed',
+              'description':'R2.67.1 frozen attempted-case authority, exact evidence, protected lineage and COMPLETE ZIP passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
