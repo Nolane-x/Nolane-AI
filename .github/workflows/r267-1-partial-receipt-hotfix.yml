@@ -6,7 +6,6 @@ on:
     paths:
       - 'tests/test_r267_1_partial_probe_receipt_accounting.py'
       - 'scripts/r267_1_apply_partial_receipt_accounting.py'
-      - 'scripts/r267_1_apply_partial_receipt_release_boundary.py'
       - '.github/workflows/r267-1-partial-receipt-hotfix.yml'
       - 'cogcoder/r267_three_probe_causal_composition.py'
   workflow_dispatch:
@@ -49,10 +48,8 @@ jobs:
             test "$blob" = 'ee7dc56db206a1e2f8a9da47976db112870dcd3e'
             echo R267_1_PARTIAL_RECEIPT_ALREADY_MATERIALIZED
           fi
-      - name: Apply guarded production and boundary fixes ephemerally
-        run: |
-          python scripts/r267_1_apply_partial_receipt_accounting.py
-          python scripts/r267_1_apply_partial_receipt_release_boundary.py
+      - name: Apply guarded production fix ephemerally
+        run: python scripts/r267_1_apply_partial_receipt_accounting.py
       - name: Focused R2.67.1 GREEN
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
@@ -78,24 +75,25 @@ jobs:
           set -euo pipefail
           git fetch origin r267-1-genuine-causal-necessity-hotfix-gpt56sol
           test "$(git rev-parse HEAD)" = "$(git rev-parse origin/r267-1-genuine-causal-necessity-hotfix-gpt56sol)"
-      - name: Materialize guarded fixes
-        run: |
-          python scripts/r267_1_apply_partial_receipt_accounting.py
-          python scripts/r267_1_apply_partial_receipt_release_boundary.py
+      - name: Materialize guarded production fix
+        run: python scripts/r267_1_apply_partial_receipt_accounting.py
       - name: Reverify writer tree
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
           PYTHONPATH=. python -m pytest -q tests/test_r267_independent_ablation_completeness.py
           PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Commit only verified production/boundary deltas
+      - name: Commit only verified production delta
         run: |
           set -euo pipefail
           changed="$(git diff --name-only | sort)"
           printf '%s\n' "$changed"
-          allowed="$(printf '%s\n' .github/workflows/r267-1-freeze-evidence.yml cogcoder/r267_three_probe_causal_composition.py | sort)"
-          test "$changed" = "$allowed" || { test -z "$changed"; exit 0; }
+          if [ -z "$changed" ]; then
+            echo R267_1_PARTIAL_RECEIPT_NO_SOURCE_DELTA
+            exit 0
+          fi
+          test "$changed" = 'cogcoder/r267_three_probe_causal_composition.py'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add cogcoder/r267_three_probe_causal_composition.py .github/workflows/r267-1-freeze-evidence.yml
+          git add cogcoder/r267_three_probe_causal_composition.py
           git commit -m 'fix: account only attempted R2.67.1 evidence cases'
           git push origin HEAD:r267-1-genuine-causal-necessity-hotfix-gpt56sol
