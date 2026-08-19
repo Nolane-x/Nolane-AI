@@ -124,3 +124,15 @@ def test_collision_certificate_rejects_nonmember_subset_identity() -> None:
             exposed_fields=('__p0','__f1'),
             examples=examples,
         )
+
+
+def test_collision_certificate_normalizes_numeric_aliases() -> None:
+    r268=_module()
+    examples=(
+        OperatorExample('int-float',{'__p0':1,'__f1':2.0},11.0),
+        OperatorExample('float-int',{'__p0':1.0,'__f1':2},13.0),
+    )
+    cert=r268.build_public_target_collision_certificate(
+        basis_semantic_profile_ids=('basis-a','basis-b'),subset_semantic_profile_ids=('basis-a',),
+        exposed_fields=('__p0','__f1'),examples=examples)
+    assert cert is not None
