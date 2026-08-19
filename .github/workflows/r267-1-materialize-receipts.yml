@@ -1,0 +1,76 @@
+name: R2.67.1 Materialize Evidence Receipts
+
+on:
+  push:
+    branches: [r267-1-receipts-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  receipts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify accepted parent and replacement evidence contracts
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_evidence.py
+      - name: Materialize deterministic authored and external receipts
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_1_genuine_three_probe import run_benchmark
+          from research.r267_1_external_cyclic_dot_transfer import run_external_transfer
+
+          phase = run_benchmark()
+          external = run_external_transfer(
+              np.dot,
+              source_id='numpy:numpy.dot',
+              source_version=np.__version__,
+          )
+          assert phase['all_gates_pass'] is True
+          assert phase['false_accepts'] == 0
+          assert phase['trainable_parameter_count'] == 0
+          assert external['passed'] is True
+          assert external['oracle_accounting_exact'] is True
+          assert external['false_accepts'] == 0
+          assert external['trainable_parameter_count'] == 0
+          Path('R2_67_1_PHASE_A_RESULT.json').write_text(
+              json.dumps(phase, sort_keys=True, indent=2) + '\n'
+          )
+          Path('R2_67_1_EXTERNAL_TRANSFER.json').write_text(
+              json.dumps(external, sort_keys=True, indent=2) + '\n'
+          )
+          print('R267_1_RECEIPTS_MATERIALIZED')
+          PY
+      - name: Recompute and require byte-stable receipts
+        run: |
+          cp R2_67_1_PHASE_A_RESULT.json /tmp/phase.json
+          cp R2_67_1_EXTERNAL_TRANSFER.json /tmp/external.json
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_1_genuine_three_probe import run_benchmark
+          from research.r267_1_external_cyclic_dot_transfer import run_external_transfer
+          phase = json.dumps(run_benchmark(), sort_keys=True, indent=2) + '\n'
+          external = json.dumps(run_external_transfer(np.dot, source_id='numpy:numpy.dot', source_version=np.__version__), sort_keys=True, indent=2) + '\n'
+          assert Path('/tmp/phase.json').read_text() == phase
+          assert Path('/tmp/external.json').read_text() == external
+          print('R267_1_RECEIPTS_BYTE_STABLE')
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R2.67.1-FRESH-EVIDENCE-RECEIPTS
+          path: |
+            R2_67_1_PHASE_A_RESULT.json
+            R2_67_1_EXTERNAL_TRANSFER.json
