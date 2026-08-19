@@ -495,8 +495,12 @@ def adapt_portable_program(
     if set(diagnostic_keys) & set(terminal_keys):
         raise ValueError('selection and terminal contexts must be disjoint')
 
-    generated = generate_transfer_candidates(portable)[:max_candidates]
-    live = _dedupe_live_candidates(generated, diagnostics)
+    # max_candidates is a semantic-hypothesis budget. Proof-equivalent AST
+    # representations cannot consume multiple slots before selection.
+    generated = tuple(
+        _dedupe_live_candidates(generate_transfer_candidates(portable), diagnostics)[:max_candidates]
+    )
+    live = list(generated)
     trace: list[TransferQueryTrace] = []
     used_keys: set[str] = set()
     selection_queries = 0
