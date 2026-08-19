@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 
+import pytest
+
 from cogcoder.r256_operator_dsl import Binary, Field
 import cogcoder.r268_cross_task_causal_transfer as transfer
 import cogcoder.r268_cross_task_transfer_baseline as scratch
@@ -117,3 +119,51 @@ def test_scratch_snapshots_contexts_before_disjointness_and_oracle_use(monkeypat
     assert diagnostic.role_reads == 3
     assert terminal.role_reads == 3
     assert receipt.query_trace[0].context_values == (2, 9, 1)
+
+
+def test_transfer_reused_mapping_cannot_masquerade_as_two_contexts(monkeypatch):
+    shared = SwitchingContext(
+        {'__p0': 2, '__p1': 9, '__p2': 1},
+        {'__p0': 7, '__p1': 4, '__p2': 3},
+    )
+    monkeypatch.setattr(
+        transfer,
+        'generate_transfer_candidates',
+        lambda _portable_program: (_candidate(),),
+    )
+
+    with pytest.raises(ValueError, match='selection and terminal contexts must be disjoint'):
+        transfer.adapt_portable_program(
+            _portable(),
+            diagnostic_contexts=(shared,),
+            terminal_contexts=(shared,),
+            oracle=lambda context: context['__p0'],
+            max_selection_queries=1,
+            max_candidates=1,
+        )
+
+    assert shared.role_reads == 3
+
+
+def test_scratch_reused_mapping_cannot_masquerade_as_two_contexts(monkeypatch):
+    shared = SwitchingContext(
+        {'__p0': 2, '__p1': 9, '__p2': 1},
+        {'__p0': 7, '__p1': 4, '__p2': 3},
+    )
+    monkeypatch.setattr(
+        scratch,
+        'generate_scratch_candidates',
+        lambda *, max_depth, max_candidates: (_candidate(),),
+    )
+
+    with pytest.raises(ValueError, match='selection and terminal contexts must be disjoint'):
+        scratch.solve_from_scratch(
+            diagnostic_contexts=(shared,),
+            terminal_contexts=(shared,),
+            oracle=lambda context: context['__p0'],
+            max_selection_queries=1,
+            max_candidates=1,
+            max_depth=0,
+        )
+
+    assert shared.role_reads == 3
