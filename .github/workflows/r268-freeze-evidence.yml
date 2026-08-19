@@ -149,7 +149,7 @@ jobs:
               'attempted_observation_accounting':True,'terminal_selected_probe_reobservation':True,'uncertified_search_miss_inconclusive':True,
               'proposal_alias_budget_invariant':True,'proposal_search_reused_once':True,'proposal_cache_discovery_only':True,
               'proposal_cache_authority_validation_separate':True,'external_io_only':True,'cross_python_required':True,
-              'freeze_delta_namespace_isolated':True,'canonical_json_evidence_comparison':True,
+              'freeze_delta_namespace_isolated':True,'refreeze_tracked_evidence_delta_isolated':True,'canonical_json_evidence_comparison':True,
             },
             'authored_protocol':{
               'positive_selected_basis_sizes':[2,3,4],'nuisance_control_selected_basis_size':0,'max_basis_size':4,'intervention_arity':1,
@@ -189,15 +189,22 @@ jobs:
       - name: Verify freeze delta is evidence-only
         run: |
           set -euo pipefail
-          git diff --exit-code
-          git diff --cached --exit-code
           python - <<'PY'
+          import subprocess
           from pathlib import Path
-          expected={'R2_68_EXTERNAL_TRANSFER.json','R2_68_PHASE_A_RESULT.json','R2_68_PRE_HOSTED_LOCK.json'}
+          allowed={'R2_68_EXTERNAL_TRANSFER.json','R2_68_PHASE_A_RESULT.json','R2_68_PRE_HOSTED_LOCK.json'}
+          tracked=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
+          cached=set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())
+          untracked=set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).splitlines())
+          changed=tracked|cached|untracked
+          print('R268_EVIDENCE_DELTA',sorted(changed))
+          assert changed, 'freeze must materialize or refresh at least one evidence record'
+          assert changed<=allowed,(sorted(changed),sorted(allowed))
+          assert 'R2_68_PRE_HOSTED_LOCK.json' in changed,sorted(changed)
           found={p.name for p in Path('.').glob('R2_68_*.json')}
           print('R268_EVIDENCE_NAMESPACE',sorted(found))
-          assert found==expected,(sorted(found),sorted(expected))
-          for name in expected:
+          assert found==allowed,(sorted(found),sorted(allowed))
+          for name in allowed:
               assert Path(name).is_file() and Path(name).stat().st_size>0,name
           PY
       - name: Commit frozen R2.68 evidence records
