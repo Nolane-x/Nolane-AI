@@ -28,12 +28,18 @@ def _assert_cross_phase_oracle_query_disjointness(
     context_validator: Callable[[Mapping[str, object]], bool] | None,
     intervention_arity: int,
 ) -> None:
-    """Reject any semantic oracle input shared by discovery and validation.
+    """Validate the complete discovery/validation oracle-query authority pre-call.
 
-    The complete query universe is computed before the oracle is touched: base
-    contexts plus every intervention query that the runtime would regard as
-    legal.  This makes validation evidence genuinely fresh at the oracle-input
-    level rather than merely excluding validation rows from proposal fitting.
+    Before the oracle is touched, materialize the semantic inputs that the
+    runtime would actually query: every base context plus every query from each
+    legal intervention profile.  Validation evidence must satisfy two stronger
+    conditions than mere row-level holdout:
+
+    * every validation oracle input is semantically unique within validation;
+    * no validation oracle input was already present in discovery.
+
+    This prevents repeated validation observations from inflating evidence and
+    keeps validation genuinely fresh at the oracle-input level.
     """
     schema = PositionalSchema(tuple(map(str, ordered_field_names)))
     discovery = tuple(dict(row) for row in discovery_contexts)
@@ -41,16 +47,16 @@ def _assert_cross_phase_oracle_query_disjointness(
     if not discovery or not validation:
         return
 
-    # Preserve the runtime's base-context authority.  If a base row is invalid,
+    # Preserve the runtime's base-context authority. If a base row is invalid,
     # let the runtime raise its established base-context error rather than
-    # replacing that contract with an overlap error.
+    # replacing that contract with an overlap/uniqueness error.
     for row in (*discovery, *validation):
         schema.to_canonical_context(row)
         if context_validator is not None and not bool(context_validator(row)):
             return
 
     discovery_keys = {_context_key(schema, row) for row in discovery}
-    validation_keys = {_context_key(schema, row) for row in validation}
+    validation_query_keys = [_context_key(schema, row) for row in validation]
     specs = enumerate_interventions(
         schema.field_names,
         tuple(map(float, anchor_values)),
@@ -67,7 +73,14 @@ def _assert_cross_phase_oracle_query_disjointness(
             # of these contexts belongs to either actually-used query phase.
             continue
         discovery_keys.update(_context_key(schema, row) for row in discovery_queries)
-        validation_keys.update(_context_key(schema, row) for row in validation_queries)
+        validation_query_keys.extend(_context_key(schema, row) for row in validation_queries)
+
+    validation_keys = set(validation_query_keys)
+    if len(validation_keys) != len(validation_query_keys):
+        raise ValueError(
+            'validation oracle query inputs must be semantically unique '
+            f'(duplicate_count={len(validation_query_keys) - len(validation_keys)})'
+        )
 
     overlap = discovery_keys & validation_keys
     if overlap:
