@@ -24,7 +24,9 @@
     "authored_benchmark_red_run": 32218264442,
     "authored_benchmark_green_run": 32218379720,
     "world_hardening_red_run": 32218763169,
-    "world_hardening_green_run": null
+    "world_hardening_green_run": 32220069141,
+    "terminal_verification_only_red_run": 32254278088,
+    "terminal_verification_only_green_run": 32254883515
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -36,6 +38,20 @@
       "authored evidence lacked an explicit same-budget source-prior ablation"
     ]
   },
+  "post_world_hardening": {
+    "terminal_verification_only": {
+      "status": "hosted_green",
+      "red_run": 32254278088,
+      "green_run": 32254883515,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity": "success",
+      "r2_0i_integrity": "success",
+      "source_commit": "b3d454e7b05b47bbc80108809f393765561ae0d5",
+      "integration_commit": "0c4885c2e6c59bab3bcd1e9e6e6aaee99143105b",
+      "boundary": "terminal oracle rows verify one already-selected hypothesis and may not resolve diagnostic ambiguity"
+    }
+  },
   "nolane_world": {
     "version": "0.8.0",
     "session_id": "world_08f2eb97340c",
@@ -45,6 +61,7 @@
   "coordination": {
     "canonical_namespace_yielded": true,
     "canonical_r268_pr": 73,
-    "may_feed_canonical_or_later_milestone": true
+    "may_feed_canonical_or_later_milestone": true,
+    "canonical_r268_fix_chain_active_elsewhere": true
   }
 }
