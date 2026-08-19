@@ -31,7 +31,7 @@ def _receipt(expr, size):
 def _prior(authority="authority.a"):
     return compile_r268_experience(
         _receipt(Binary("add", Field("a"), Field("b")), 2),
-        source_authority_digest=authority,
+        verifier_evidence_digest=f"verifier.fixture.{authority}",
         accepted_parent_sha=PARENT,
     )
 
