@@ -20,9 +20,11 @@ R2.68 distinguishes:
 
 1. **Sufficiency** — a basis plus composition reproduces public selection/validation evidence and independent terminal evidence.
 2. **Local irreducibility** — every proper subset required by the local certificate policy is independently shown insufficient under its own subset-specific exposure schema.
-3. **Global minimality** — all legal bases of lower cardinality are either conclusively insufficient by proof or conclusively rejected by successful contradictory alternatives. If any lower-order possibility remains unproved because search is incomplete, the result is minimality-inconclusive.
+3. **Global minimality** — all legal bases of lower cardinality are conclusively ruled out under an authority-bearing proof mechanism. If any lower-order possibility remains unproved because search is incomplete, the result is minimality-inconclusive.
 
 A sufficient candidate may be returned without a global-minimality claim, but promotion as a certified minimal basis is forbidden unless global minimality is proven.
+
+A soundness boundary applies at basis size 1: with deterministic targets and full raw input exposure, `public_target_collision` cannot prove that the zero-probe case is impossible. Therefore Phase A may discover and terminally verify a one-probe sufficient basis, but it must not claim global minimality for basis size 1 unless a separate complete zero-basis proof mechanism is added and frozen. This prevents an impossible proof obligation from being silently replaced by search failure.
 
 ## Architecture
 
@@ -59,7 +61,7 @@ Certificate verification recomputes the witness from public evidence. Serialized
 
 Search basis sizes in increasing cardinality. For each `k`, enumerate legal semantic intervention bases using deterministic fair scheduling, synthesize a composition from selected probes plus basis-specific free fields, validate on disjoint validation evidence, independently validate learned probe expressions, build necessity certificates for lower-order subsets when public information-theoretic witnesses exist, mark unresolved lower-order claims inconclusive when proof is absent, and terminally re-observe the exact selected interventions before final acceptance.
 
-The first sufficient basis is not automatically globally minimal. Global minimality depends on the complete lower-cardinality proof ledger.
+The first sufficient basis is not automatically globally minimal. Global minimality depends on the complete lower-cardinality proof ledger. For `k >= 2`, every legal lower-cardinality basis must be conclusively ruled out or the candidate is minimality-inconclusive. For `k == 1`, Phase A reports sufficiency without global minimality unless a distinct zero-basis proof is present.
 
 ### Fail-closed authority states
 
@@ -86,7 +88,7 @@ Every receipt reports actual attempted observations, never planned denominators.
 
 ## Phase-A benchmark
 
-Create `benchmarks/kfigg/r268_adaptive_causal_basis.py` with a frozen authored mixed-cardinality suite. It must contain structurally distinct tasks whose certified minimal basis sizes are 1, 2, 3, and 4.
+Create `benchmarks/kfigg/r268_adaptive_causal_basis.py` with a frozen authored mixed-cardinality suite. It must contain structurally distinct tasks whose **selected sufficient basis sizes** are 1, 2, 3, and 4. Collision-backed global-minimality certification is required for the 2-, 3-, and 4-probe families. The 1-probe family must explicitly report `globally_minimal == false` unless a separate zero-probe authority proof is introduced.
 
 Required adversarial properties:
 
