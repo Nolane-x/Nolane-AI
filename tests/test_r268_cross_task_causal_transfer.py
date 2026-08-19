@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Hosted RED probe: production module is intentionally absent on this child branch.
+
 import json
 
 import pytest
