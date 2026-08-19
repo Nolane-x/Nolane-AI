@@ -6,6 +6,8 @@ on:
     paths:
       - 'cogcoder/_r268_proof.py'
       - 'cogcoder/_r268_runtime.py'
+      - 'benchmarks/kfigg/r268_adaptive_causal_basis.py'
+      - 'tests/test_r268_benchmark.py'
       - 'tests/test_r268_proper_subset_authority.py'
       - 'tests/test_r268_proper_subset_authority_integration.py'
       - '.github/workflows/r268-proper-subset-integration.yml'
