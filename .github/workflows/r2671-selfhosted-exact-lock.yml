@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: read
+  statuses: write
 
 jobs:
   cross-python:
@@ -107,3 +108,23 @@ jobs:
           path: |
             release/Nolane-AI-R2.67.1-SELFHOSTED-VALIDATED.zip
             release/Nolane-AI-R2.67.1-SELFHOSTED-VALIDATED.zip.sha256
+      - name: Publish exact-lock success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r2671/selfhosted-exact-lock',
+              'description':'Exact frozen R2.67.1 lock, cross-Python, evidence, lineage and ZIP passed on self-hosted runner',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json','Content-Type':'application/json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          PY
