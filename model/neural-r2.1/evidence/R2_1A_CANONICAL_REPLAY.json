@@ -1,0 +1,9 @@
+{
+  "status":"PASS",
+  "effective_parameters":78899404,
+  "baseline":{"episodes":80,"solved":38,"steps":1579,"families":{"causal_prerequisites":{"episodes":20,"solved":2,"steps":527},"conditional_regimes":{"episodes":20,"solved":13,"steps":335},"implicit_goal_regimes":{"episodes":20,"solved":14,"steps":296},"regime_switch":{"episodes":20,"solved":9,"steps":421}}},
+  "candidate":{"episodes":80,"solved":40,"steps":1545,"families":{"causal_prerequisites":{"episodes":20,"solved":4,"steps":493},"conditional_regimes":{"episodes":20,"solved":13,"steps":335},"implicit_goal_regimes":{"episodes":20,"solved":14,"steps":296},"regime_switch":{"episodes":20,"solved":9,"steps":421}}},
+  "gain_solved":2,
+  "gain_pp":2.5,
+  "replay_contract":"Exact frozen delta replayed through canonical R2.1a source after the single-action hardening; 4/6-action admitted behavior reproduced exactly."
+}
