@@ -1,12 +1,11 @@
 name: R2.68-T Proof-Only Dedupe Analysis
 
 on:
-  push:
-    branches: [hardening-r268t-finite-fingerprint-authority-gpt56sol]
+  pull_request:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
     paths:
       - 'scripts/r268t_analyze_proof_only_dedupe.py'
       - '.github/workflows/r268t-proof-only-analysis.yml'
-  workflow_dispatch:
 
 permissions:
   contents: read
