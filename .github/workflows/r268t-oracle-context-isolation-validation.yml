@@ -1,0 +1,33 @@
+name: R2.68-T Oracle Context Isolation Validation
+
+on:
+  pull_request:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
+    paths:
+      - 'tests/test_r268_oracle_context_immutability.py'
+      - 'scripts/r268t_apply_oracle_context_isolation.py'
+      - '.github/workflows/r268t-oracle-context-isolation-validation.yml'
+      - 'cogcoder/r268_cross_task_causal_transfer.py'
+      - 'cogcoder/r268_cross_task_transfer_baseline.py'
+
+permissions:
+  contents: read
+
+jobs:
+  proposed-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest
+      - name: Apply oracle-context isolation in runner only
+        run: PYTHONPATH=. python scripts/r268t_apply_oracle_context_isolation.py
+      - name: Run full R2.68-T focused suite against proposed source
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
