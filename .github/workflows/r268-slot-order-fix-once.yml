@@ -1,0 +1,74 @@
+name: R2.68 Proposal Slot Order Fix Once
+
+on:
+  push:
+    branches: [fix-r268-proposal-slot-order-gpt56sol]
+    paths:
+      - '.github/workflows/r268-slot-order-fix-once.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Require exact RED parent
+        run: |
+          test "$(git rev-parse HEAD^)" = '55de53aa7ccb410303aad3e92ab6fb9f254198ba'
+          PYTHONPATH=. python -m pytest -q tests/test_r268_alias_order_invariance.py && exit 1 || true
+      - name: Canonicalize proposal slots by discovery-only semantics
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('cogcoder/_r268_runtime.py')
+          s=p.read_text()
+          old="""def _basis_proposal_equivalence_key(profiles:Sequence[InterventionProfile])->tuple[tuple[tuple[int,...],str],...]:
+    return tuple(_profile_proposal_equivalence_key(profile) for profile in profiles)
+"""
+          new="""def _basis_proposal_equivalence_key(profiles:Sequence[InterventionProfile])->tuple[tuple[tuple[int,...],str],...]:
+    return tuple(sorted(_profile_proposal_equivalence_key(profile) for profile in profiles))
+
+
+def _canonical_proposal_basis(profiles:Sequence[InterventionProfile])->tuple[InterventionProfile,...]:
+    # Proposal slot order is discovery-only. Concrete authority identity stays
+    # separate and is still independently validated/certified after cache reuse.
+    return tuple(sorted(profiles,key=_profile_proposal_equivalence_key))
+"""
+          assert s.count(old)==1, s.count(old)
+          s=s.replace(old,new,1)
+          old2="""        bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
+"""
+          new2="""        bases=[_canonical_proposal_basis(b) for b in itertools.combinations(semantic_profiles,k)]
+        bases.sort(key=lambda b:(tuple(_profile_proposal_equivalence_key(p) for p in b),tuple(p.semantic_profile_id for p in b)))
+"""
+          assert s.count(old2)==1, s.count(old2)
+          p.write_text(s.replace(old2,new2,1))
+          PY
+      - name: Verify GREEN and protected parent
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_alias_order_invariance.py
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Commit production fix and remove one-shot workflow
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/r268-slot-order-fix-once.yml
+          git add cogcoder/_r268_runtime.py
+          changed="$(git status --short | awk '{print $2}' | sort)"
+          expected="$(printf '%s\n' .github/workflows/r268-slot-order-fix-once.yml cogcoder/_r268_runtime.py | sort)"
+          test "$changed" = "$expected"
+          git commit -m 'fix(r268): canonicalize proposal slot order before cache reuse'
+          git push origin HEAD:fix-r268-proposal-slot-order-gpt56sol
