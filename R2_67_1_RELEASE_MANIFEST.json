@@ -1,0 +1,99 @@
+{
+  "accepted_main_commit": "b789dd7a48f10f3afb1cf42ee62d3dc77dee200e",
+  "added_trainable_parameters": 0,
+  "authored_evidence": {
+    "all_gates_pass": true,
+    "false_accepts": 0,
+    "oracle_accounting_exact": true,
+    "oracle_calls_total": 522
+  },
+  "canonical_hosted_verification": {
+    "canonical_full_gate_job_id": 95966731587,
+    "conclusion": "success",
+    "cross_python_3_11_job_id": 95966731507,
+    "cross_python_3_13_job_id": 95966731539,
+    "external_exact": true,
+    "frozen_focused_job_id": 95966731731,
+    "hosted_relevant_tests_total": 306,
+    "phase_a_exact": true,
+    "publish_full_gate_job_id": 95973249761,
+    "python_3_11": "success",
+    "python_3_13": "success",
+    "source_lock_verified": true,
+    "workflow_run_id": 32219326321
+  },
+  "claim_boundary": "Collision-certified insufficiency of proper-subset observable evidence on the tested pure-input corpora, with exactly three interventions, a finite trusted DSL, terminal re-observation, and zero added trainable parameters; not a universal theorem that two probes can never suffice and not evidence of AGI/frontier-model equivalence.",
+  "evidence_files": {
+    "delivery": "R2_67_1_DELIVERY.md",
+    "external": "R2_67_1_EXTERNAL_TRANSFER.json",
+    "hosted_verification": "R2_67_1_HOSTED_VERIFICATION.json",
+    "nolane_world": "R2_67_1_WORLD_FINAL.json",
+    "phase_a": "R2_67_1_PHASE_A_RESULT.json",
+    "source_lock": "R2_67_1_PRE_HOSTED_LOCK.json"
+  },
+  "external_transfer": {
+    "false_accepts": 0,
+    "oracle_calls_total": 180,
+    "same_algebraic_family_as_authored": true,
+    "source_exposure": "io_only",
+    "source_id": "numpy:numpy.dot",
+    "source_version": "2.4.6"
+  },
+  "hardening": {
+    "attempted_case_receipt_accounting": true,
+    "end_to_end_oracle_accounting": true,
+    "positive_domain_triangle_min_robustness": true,
+    "preselection_zero_case_semantics": true,
+    "probe_case_unit": "probe_observation",
+    "public_collision_certificate_required": true,
+    "subset_specific_ablation_fields": true,
+    "terminal_selected_probe_reobservation": true,
+    "triplet_budget_semantic_invariance": true,
+    "uncertified_search_miss_fails_closed": true
+  },
+  "lock_commit": "225704f7df6a191e2569c5d12085e6b495b60f01",
+  "milestone": "R2.67.1",
+  "name": "Genuine Lower-Order Causal Necessity Hotfix",
+  "parent_release_commit": "43b43ce4b324b0d74357957af18dd0f60b1cb85e",
+  "readiness": {
+    "basis": "last explicit accepted readiness manifest is R2.66",
+    "delta": 0.0,
+    "kind": "internal_engineering_heuristic_not_agi_probability",
+    "previous_explicit_score": 49.9,
+    "reason": "R2.67.1 is a correctness/authority hotfix. It fixes release-invalidating evidence semantics and adds no new breadth; no automatic readiness increase is awarded.",
+    "score": 49.9
+  },
+  "release_bundle": {
+    "artifact_id": 9353957140,
+    "artifact_name": "Nolane-AI-R2.67.1-COMPLETE",
+    "artifact_outer_digest": "sha256:fcfe0254afe73d84b93ad98387ea5a671d017d6f5cd24d60f24e9b493111827b",
+    "bundle_job_id": 95966732050,
+    "conclusion": "success",
+    "final_post_merge_bundle_required": true,
+    "independent_inner_sha_match": true,
+    "independent_outer_digest_match": true,
+    "independent_unzip_test_passed": true,
+    "inner_archive_name": "Nolane-AI-R2.67.1-COMPLETE.zip",
+    "inner_archive_sha256": "3874be09bf3f2b740860797daffd7d18357533ed45d8330baea2f651613ad9e0",
+    "post_merge_artifact_name": "Nolane-AI-R2.67.1-COMPLETE-POST-MERGE",
+    "post_merge_workflow": ".github/workflows/r267-1-post-merge-release-bundle.yml",
+    "workflow_run_id": 32219326390
+  },
+  "schema_version": 1,
+  "source_freeze_head": "6c516f854fb34773287f00e6efd021293f039d73",
+  "source_lock_schema_version": 2,
+  "status": "ACCEPTED_BOUNDED_CAPABILITY",
+  "world": {
+    "audit_digest": "be4c02b35962cbc9cdcf6bb6da7ba4027e27ab19dbf5197996b05d9487f0a138",
+    "audit_valid": true,
+    "convergence_forced": false,
+    "critical_unknowns": 1,
+    "depth": "W5",
+    "fresh_verifications": 2,
+    "full_local_audit_sha256": "e20644412f409596099c4b8d9672424cc9103e9af82710ce3069d2aaeaf12355",
+    "record_sha256": "37d2ddf8de56271d843d5a3adfb606fb51c331c829d953fe7e9aef6132761eec",
+    "research_closure": "blocked",
+    "w5_passed": false,
+    "world_id": "world5_a9766d2aa52bfeda55e1"
+  }
+}
