@@ -28,20 +28,13 @@ class CausalEvidenceRouter(nn.Module):
         self.context = nn.Linear(64, h, bias=False)
         self.scalars = nn.Linear(8, h, bias=False)
         self.relation = nn.Sequential(
-            nn.Linear(h * 10, h * 2),
-            nn.GELU(),
-            nn.LayerNorm(h * 2),
-            nn.Linear(h * 2, h),
-            nn.GELU(),
-            nn.LayerNorm(h),
+            nn.Linear(h * 10, h * 2), nn.GELU(), nn.LayerNorm(h * 2),
+            nn.Linear(h * 2, h), nn.GELU(), nn.LayerNorm(h),
         )
         self.score = nn.Linear(h, 1)
         self.role = nn.Linear(h, 5)
         self.gate = nn.Sequential(
-            nn.Linear(h * 4 + 5, h),
-            nn.GELU(),
-            nn.LayerNorm(h),
-            nn.Linear(h, 1),
+            nn.Linear(h * 4 + 5, h), nn.GELU(), nn.LayerNorm(h), nn.Linear(h, 1),
         )
         nn.init.constant_(self.gate[-1].bias, -3.0)
         nn.init.zeros_(self.score.weight)
@@ -91,21 +84,19 @@ class CausalEvidenceRouter(nn.Module):
             raise ValueError("global public scalar shape mismatch")
 
         centered = base_action_logits - base_action_logits.mean(dim=-1, keepdim=True)
-        # correction=0 avoids the one-action NaN edge case while preserving the
-        # trained behavior for the 4/6-action FIGG-18 tasks used for admission.
-        scale = base_action_logits.std(dim=-1, keepdim=True, correction=0).clamp_min(1e-3)
+        # Preserve the exact admitted training/evaluation normalization for
+        # multi-action states. Only the degenerate one-action case is special-
+        # cased to avoid PyTorch's unbiased-variance NaN.
+        if actions == 1:
+            scale = torch.ones_like(centered)
+        else:
+            scale = base_action_logits.std(dim=-1, keepdim=True).clamp_min(1e-3)
         standardized = centered / scale
-        scalar = torch.cat(
-            (
-                imagined_uncertainty.unsqueeze(-1),
-                imagined_value.unsqueeze(-1),
-                standardized.unsqueeze(-1),
-                progress.unsqueeze(1).expand(-1, actions, -1),
-                budget_fraction.unsqueeze(1).expand(-1, actions, -1),
-                previous_feedback.unsqueeze(1).expand(-1, actions, -1),
-            ),
-            dim=-1,
-        )
+        scalar = torch.cat((
+            imagined_uncertainty.unsqueeze(-1), imagined_value.unsqueeze(-1), standardized.unsqueeze(-1),
+            progress.unsqueeze(1).expand(-1, actions, -1), budget_fraction.unsqueeze(1).expand(-1, actions, -1),
+            previous_feedback.unsqueeze(1).expand(-1, actions, -1),
+        ), dim=-1)
         action_h = torch.tanh(self.action(action_embeddings))
         evidence_h = torch.tanh(self.evidence(evidence_effects))
         parent_h = torch.tanh(self.parent(parent_effects))
@@ -114,18 +105,16 @@ class CausalEvidenceRouter(nn.Module):
         state_h = torch.tanh(self.state(state)).unsqueeze(1).expand(-1, actions, -1)
         context_h = torch.tanh(self.context(context)).unsqueeze(1).expand(-1, actions, -1)
         scalar_h = torch.tanh(self.scalars(scalar))
-        hidden = self.relation(
-            torch.cat(
-                (action_h, evidence_h, parent_h, imagined_h, memory_h, state_h, context_h, scalar_h, state_h * evidence_h, torch.abs(state_h - evidence_h)),
-                dim=-1,
-            )
-        )
+        hidden = self.relation(torch.cat((
+            action_h, evidence_h, parent_h, imagined_h, memory_h, state_h, context_h, scalar_h,
+            state_h * evidence_h, torch.abs(state_h - evidence_h),
+        ), dim=-1))
         raw_residual = self.score(hidden).squeeze(-1)
         role_logits = self.role(hidden)
-        gate_features = torch.cat(
-            (hidden.mean(dim=1), hidden.max(dim=1).values, evidence_h.mean(dim=1), memory_h.mean(dim=1), progress, budget_fraction, previous_feedback),
-            dim=-1,
-        )
+        gate_features = torch.cat((
+            hidden.mean(dim=1), hidden.max(dim=1).values, evidence_h.mean(dim=1), memory_h.mean(dim=1),
+            progress, budget_fraction, previous_feedback,
+        ), dim=-1)
         activation = torch.sigmoid(self.gate(gate_features)).squeeze(-1)
         residual = activation.unsqueeze(-1) * raw_residual
         return {
