@@ -21,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: integrate-r268-proper-subset-authority-gpt56sol
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
@@ -45,7 +46,7 @@ jobs:
           PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
           PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
       - name: Materialize runtime after GREEN
-        if: matrix.python-version == '3.11' && github.event_name == 'push'
+        if: matrix.python-version == '3.11' && github.event_name == 'pull_request'
         shell: bash
         run: |
           git diff --check
