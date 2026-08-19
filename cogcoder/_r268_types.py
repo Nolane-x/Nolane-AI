@@ -1,4 +1,6 @@
 from __future__ import annotations
+import hashlib
+import json
 from dataclasses import dataclass
 from .r256_operator_dsl import Expr
 from .r258_intervention_discovery import InterventionSpec
@@ -30,6 +32,17 @@ class InterventionProfile:
     discovery_outputs: tuple[object, ...]
     validation_outputs: tuple[object, ...]
     semantic_profile_id: str
+
+    def __post_init__(self) -> None:
+        base=str(self.semantic_profile_id).strip()
+        if not base:
+            raise ValueError('semantic_profile_id must be non-empty')
+        payload={
+            'observed_semantic_id':base,
+            'intervention_id':self.intervention.intervention_id,
+        }
+        raw=json.dumps(payload,sort_keys=True,separators=(',',':'))
+        object.__setattr__(self,'semantic_profile_id',f'profile.{hashlib.sha256(raw.encode()).hexdigest()}')
 
 @dataclass(frozen=True, slots=True)
 class AdaptiveCausalBasisCandidate:
