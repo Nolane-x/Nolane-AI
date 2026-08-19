@@ -1,12 +1,12 @@
 from __future__ import annotations
-import hashlib,itertools,math
+import hashlib,itertools,json,math
 from typing import Callable,Mapping,Sequence
-from .r256_operator_dsl import evaluate_expr,expr_digest
+from .r256_operator_dsl import Expr,evaluate_expr,expr_digest
 from .r256_operator_invention import OperatorExample,OperatorInventionNeed
 from .r258_intervention_discovery import PositionalSchema,enumerate_interventions
 from ._r268_proof import build_public_target_collision_certificate
 from ._r268_search import equivalent,evaluate_vector,finite_json_value,rewrite_with_mapping,semantic_key,synthesize_variable_expression,used_fields
-from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,InterventionProfile
+from ._r268_types import AdaptiveCausalBasisCandidate,AdaptiveCausalBasisReceipt,AdaptiveCausalBasisStructureReceipt,InterventionProfile,NecessityCertificate
 
 def context_key(schema:PositionalSchema,context:Mapping[str,object])->str:
     canonical=schema.to_canonical_context(context);return semantic_key(tuple(canonical[f] for f in schema.canonical_fields))
@@ -60,27 +60,48 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     for profile in profiles:
         prev=dedup.get(profile.semantic_profile_id)
         if prev is None or profile.intervention.intervention_id<prev.intervention.intervention_id:dedup[profile.semantic_profile_id]=profile
-    semantic_profiles=tuple(dedup[k] for k in sorted(dedup));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;certs=[];unresolved=[]
+    semantic_profiles=tuple(dedup[k] for k in sorted(dedup));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;certs=[];unresolved=[];lower_ledger=[]
     for k in range(1,max_basis_size+1):
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(p.semantic_profile_id for p in b))
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,selection,targets,basis,shared)
             cert=build_public_target_collision_certificate(basis_semantic_profile_ids=ids,subset_semantic_profile_ids=ids,exposed_fields=fields,examples=examples)
-            if cert is not None:certs.append(cert);continue
+            ledger_identity={'cardinality':k,'semantic_profile_ids':list(ids),'exposed_fields':list(fields)}
+            if cert is not None:
+                certs.append(cert);lower_ledger.append((k,ledger_identity,'collision_certified'));continue
             remaining=max_total-total
-            if remaining<=0:unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');continue
+            if remaining<=0:
+                unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             fair=max(1,remaining//max(1,len(bases)-basis_index));budget=min(per_basis,fair);bases_considered+=1
             search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width));total+=search.candidates_considered
-            if not search.passed or search.expression is None:unresolved.append(f'k{k}:{"|".join(ids)}:{search.reason}');continue
+            if not search.passed or search.expression is None:
+                unresolved.append(f'k{k}:{"|".join(ids)}:{search.reason}');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             used=used_fields(search.expression);required={f'__p{i}' for i in range(k)}
-            if not required<=set(used):unresolved.append(f'k{k}:{"|".join(ids)}:required_probe_omitted');continue
+            if not required<=set(used):
+                unresolved.append(f'k{k}:{"|".join(ids)}:required_probe_omitted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             values,_=evaluate_vector(search.expression,examples)
-            if values is None:unresolved.append(f'k{k}:{"|".join(ids)}:evaluation_error');continue
+            if values is None:
+                unresolved.append(f'k{k}:{"|".join(ids)}:evaluation_error');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             exact=sum(int(equivalent(a,b)) for a,b in zip(values,targets,strict=True))
-            if exact!=len(targets):unresolved.append(f'k{k}:{"|".join(ids)}:selection_mismatch');continue
+            if exact!=len(targets):
+                unresolved.append(f'k{k}:{"|".join(ids)}:selection_mismatch');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             candidate=AdaptiveCausalBasisCandidate(tuple(p.intervention for p in basis),tuple(basis),ids,k,shared,search.expression,expr_digest(search.expression),used,len(targets),exact,search.candidates_considered)
-            prefixes=tuple(f'k{s}:' for s in range(1,k));lower_unresolved=tuple(row for row in unresolved if prefixes and row.startswith(prefixes));minimal=k>1 and not lower_unresolved;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
-            return AdaptiveCausalBasisStructureReceipt(True,candidate,k,minimal,tuple(certs),lower_unresolved,len(profiles),len(semantic_profiles),len(specs),bases_considered,total,oracle_calls,0,reason,frozenset(queried),tuple(v_targets))
+            lower_rows=[(cardinality,identity,status) for cardinality,identity,status in lower_ledger if cardinality<k]
+            lower_unresolved=tuple(row for row in unresolved if any(row.startswith(f'k{s}:') for s in range(1,k)))
+            lower_count=len(lower_rows);lower_certified=sum(int(status=='collision_certified') for _cardinality,_identity,status in lower_rows);lower_inconclusive=lower_count-lower_certified
+            universe_payload=[identity for _cardinality,identity,_status in sorted(lower_rows,key=lambda row:(row[0],tuple(row[1]['semantic_profile_ids']),tuple(row[1]['exposed_fields'])))]
+            universe_raw=json.dumps(universe_payload,sort_keys=True,separators=(',',':'),allow_nan=False)
+            universe_digest=hashlib.sha256(universe_raw.encode()).hexdigest() if universe_payload else ''
+            proof_complete=k>1 and lower_count>0 and lower_certified==lower_count and lower_inconclusive==0
+            minimal=proof_complete;reason='adaptive_basis_discovered' if minimal else 'sufficient_but_minimality_inconclusive'
+            return AdaptiveCausalBasisStructureReceipt(
+                passed=True,selected=candidate,selected_basis_size=k,globally_minimal=minimal,necessity_certificates=tuple(certs),
+                unresolved_lower_order=lower_unresolved,legal_interventions=len(profiles),semantic_profiles=len(semantic_profiles),
+                intervention_candidates_considered=len(specs),bases_considered=bases_considered,composition_candidates_considered=total,
+                oracle_calls=oracle_calls,false_accepts=0,reason=reason,learning_query_keys=frozenset(queried),validation_targets=tuple(v_targets),
+                lower_basis_count=lower_count,lower_basis_certified=lower_certified,lower_basis_inconclusive=lower_inconclusive,
+                lower_basis_universe_digest=universe_digest,proof_ledger_complete=proof_complete,
+            )
     reason='basis_search_budget_exhausted' if total>=max_total else 'no_adaptive_basis'
     if unresolved:reason='necessity_certificate_missing'
     return AdaptiveCausalBasisStructureReceipt(False,None,0,False,tuple(certs),tuple(unresolved),len(profiles),len(semantic_profiles),len(specs),bases_considered,total,oracle_calls,0,reason,frozenset(queried),tuple(v_targets))
