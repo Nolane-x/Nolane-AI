@@ -2,152 +2,226 @@
 
 ## Status
 
-Research draft under hosted verification. This milestone is a bounded capability step toward more autonomous causal reasoning. It is not an AGI claim and it is not promotion-authoritative while R2.67.1 remains unaccepted.
+Research draft under hosted verification. R2.68 is a bounded capability step toward more autonomous causal reasoning. It is not an AGI claim, frontier-equivalence claim, or accepted readiness increase.
 
-## Parent and coordination boundary
+## Accepted parent boundary
 
-R2.68 must build on the corrected R2.67.1 causal-necessity semantics, not historical R2.67 semantics. The implementation branch is isolated from the active R2.67.1 production branch and must not mutate R2.67.1 artifacts. Before promotion, the R2.68 branch must be updated to an exact accepted R2.67.1 parent and rerun the full protected lineage.
+R2.67.1 is accepted on `main` at commit `b789dd7a48f10f3afb1cf42ee62d3dc77dee200e`. Canonical R2.68 PR #73 targets that accepted parent. Historical R2.67 is not authority for the corrected strong causal-necessity semantics.
+
+All final R2.68 evidence, locks, manifests and release claims must be regenerated after production stabilizes on this exact accepted-parent lineage. R2.68 does not mutate frozen R2.67.1 artifacts.
 
 ## Goal
 
-Replace the fixed exactly-three-probe causal-composition assumption with an adaptive, proof-carrying causal-basis search that can discover a sufficient intervention basis of variable cardinality while strictly separating heuristic proposal search from proof authority.
+Replace the fixed exactly-three-probe causal-composition assumption with an adaptive, variable-cardinality causal-basis search that strictly separates heuristic proposal search, validation authority, local proper-subset necessity, global lower-basis impossibility proof, and terminal acceptance.
 
 ## Core principle
 
-Search may propose. Evidence may authorize. A bounded or heuristic search miss is never an impossibility certificate.
+**Search may propose. Evidence may authorize.** A bounded search miss is never an impossibility certificate.
 
-R2.68 distinguishes:
+R2.68 distinguishes four claims:
 
-1. **Sufficiency** — a basis plus composition reproduces public selection/validation evidence and independent terminal evidence.
-2. **Local irreducibility** — every proper subset required by the local certificate policy is independently shown insufficient under its own subset-specific exposure schema.
-3. **Global minimality** — all legal bases of lower cardinality are conclusively ruled out under an authority-bearing proof mechanism. If any lower-order possibility remains unproved because search is incomplete, the result is minimality-inconclusive.
+1. **Sufficiency** — a selected basis and composition fit discovery evidence, pass disjoint validation evidence, synthesize executable probe expressions, and pass independent terminal re-observation.
+2. **Local irreducibility** — every non-empty proper subset of the selected basis has an independently recomputed subset-specific public collision certificate.
+3. **Global lower-basis exclusion** — every legal basis of smaller cardinality carries a replayable public basis-collision certificate or global minimality remains inconclusive.
+4. **Global minimality** — both the complete lower-cardinality ledger and the complete selected-basis proper-subset ledger are proof-complete.
 
-A sufficient candidate may be returned without a global-minimality claim, but promotion as a certified minimal basis is forbidden unless global minimality is proven.
+A sufficient candidate may be returned while minimality is inconclusive. Promotion as a certified minimal basis is forbidden unless both proof layers are complete.
 
-### One-probe soundness and nuisance-intervention boundary
+## One-probe and nuisance boundary
 
-Basis size 1 remains representable by the generic architecture, but Phase A does not promote a positive one-probe causal claim under the current proof mechanism. With deterministic targets and full raw-input exposure, `public_target_collision` cannot establish zero-probe impossibility.
+Basis size 1 remains representable architecturally, but Phase A does not promote a positive one-probe minimality claim because there is no complete zero-basis proof mechanism.
 
-There is an additional anti-smuggling rule: an intervention profile is not authority-eligible when its discovery outputs equal the un-intervened public target on every discovery row. Such an intervention has demonstrated no target effect on the admitted evidence and can create an answer-copy channel in which `__p0` simply reproduces the target. It is classified as a target-preserving nuisance profile and rejected before semantic deduplication or basis search.
+A target-preserving intervention is not authority-eligible when its discovery intervention outputs equal the un-intervened discovery target on every discovery row. Such a profile can create an answer-copy channel where `__p0` merely reproduces the target. It is rejected before basis search.
 
-This target-effect admission rule is necessary but not sufficient evidence of causality; it prevents a specific shortcut and grants no minimality authority by itself. It uses discovery evidence only and must not inspect validation or terminal targets during proposal admission.
+This rule is an anti-smuggling guard, not proof of causality. It consults discovery evidence only and grants no positive capability authority by itself.
 
-## Architecture
+## Evidence partitions
 
-### Generic adaptive basis model
+- **Discovery evidence** may influence candidate construction, proposal scheduling, expression synthesis and anti-smuggling admission.
+- **Validation intervention outputs** may distinguish authority identities and verify already-proposed structures, but may not alter proposal ordering or composition training examples.
+- **Validation targets** are authority-only and may not be used for proposal generation/ranking.
+- **Terminal evidence** is disjoint from all learning/validation query inputs and is used only after a candidate has been selected and executable probe expressions have been validated.
 
-`cogcoder/r268_adaptive_causal_basis.py` exposes immutable public receipt types:
+Composition candidate synthesis receives discovery rows only. Independent challenger PR #75 established a historical RED boundary for validation leakage; canonical R2.68 keeps that contract as a permanent regression.
+
+## Intervention authority universe
+
+Every legal intervention spec that survives context validation, finite-value checks, non-degeneracy and target-effect admission remains a distinct authority action.
+
+Finite evidence equivalence is not permission to erase a legal intervention from the global-minimality universe. `InterventionProfile.semantic_profile_id` therefore binds both observed behavior and the content-addressed intervention identity. Two different intervention specs remain distinct even if their discovery and validation outputs happen to coincide on the finite corpus.
+
+Proposal ordering is a separate concept. `_profile_proposal_key` uses discovery behavior plus intervention identity and does not use validation outputs or validation targets. This prevents validation evidence from steering bounded search order while preserving an intervention-distinct proof universe.
+
+## Generic adaptive basis model
+
+Public R2.68 authority types include:
 
 - `NecessityCertificate`
+- `BasisCollisionCertificate`
 - `AdaptiveCausalBasisCandidate`
 - `AdaptiveCausalBasisStructureReceipt`
 - `AdaptiveCausalBasisReceipt`
 
-`AdaptiveCausalBasisCandidate` stores a tuple of interventions and profiles of length `k`, where `1 <= k <= max_basis_size`. Cardinality-specific public classes such as `ThreeProbe*`, `FourProbe*`, or `FiveProbe*` are forbidden in the R2.68 public model.
+The architecture supports `k=1..4` under explicit budgets and the trusted arithmetic/logic DSL. Current positive Phase-A capability evidence is restricted to certified 2-, 3-, and 4-probe families.
 
-### Correct-parent reuse
+Cardinality-specific public classes such as `ThreeProbe*`, `FourProbe*` or `FiveProbe*` are forbidden in the R2.68 public model.
 
-R2.68 reuses trusted primitives from corrected R2.67.1 where semantics are already sound: positional schema canonicalization, intervention enumeration and validation, semantic profile identity, finite-value normalization, expression evaluation and DSL semantics, subset-specific shared/free-field recomputation, public target-collision detection, and observed-case accounting principles. R2.68 must not mutate frozen R2.67.1 production code.
+## Correct-parent reuse
 
-### Intervention profile admission
+R2.68 reuses corrected R2.67.1 primitives where semantics are already trusted: positional schema canonicalization, intervention enumeration/validation, finite-value normalization, expression evaluation and DSL semantics, subset-specific free-field recomputation, public collision detection, and attempted-observation accounting.
 
-Each legal intervention is executed on discovery and validation contexts under exact oracle accounting. Before a profile may enter semantic deduplication and basis enumeration it must satisfy all of the following:
+## Proposal and validation search
 
-- every intervention context passes the declared context validator when one exists;
-- all returned values are finite trusted JSON values;
-- discovery outputs are not constant/degenerate under the semantic-profile gate;
-- discovery outputs differ from the un-intervened discovery target on at least one row.
+Search basis sizes in increasing cardinality. For each legal basis:
 
-The final rule prevents target-preserving nuisance interventions from masquerading as causal evidence. Validation targets are not consulted for this admission decision.
+1. build discovery-only composition examples from selected probes plus basis-specific free fields;
+2. if public discovery evidence already contains a target collision under the complete basis exposure, build a `BasisCollisionCertificate` and rule that basis out information-theoretically;
+3. otherwise run bounded expression synthesis using discovery examples only;
+4. require every selected probe field to occur structurally in the candidate;
+5. validate the selected expression on disjoint validation examples;
+6. keep search-budget exhaustion or search miss inconclusive unless an information-theoretic collision certificate exists.
 
-### Variable-arity composition search
+Per-basis and global candidate budgets are explicit and deterministic. Validation outputs may not control proposal ordering.
 
-Implement a generic expression synthesizer over fields `__p0 ... __p{k-1}` plus subset-specific free context fields. The architecture supports `k=1..4` under explicit budgets and the existing trusted arithmetic/logic DSL; the current Phase-A positive capability evidence is restricted to certified 2-, 3-, and 4-probe families.
+## Local proper-subset necessity authority
 
-The search must require every selected probe field to occur structurally in a candidate being considered as a `k`-basis, use deterministic semantic deduplication, expose per-basis and global candidate budgets, and schedule semantic bases independently of positional names or content-addressed IDs. Budget exhaustion is always inconclusive, never an impossibility certificate.
+`NecessityCertificate` is reserved for a **non-empty proper subset of the selected basis**. Full-basis collision screening is not a necessity certificate.
 
-### Proof-carrying necessity layer
+For selected basis `B` of size `k >= 2`, local proof completeness requires exactly `2^k - 2` proper-subset certificates. For each subset `S`:
 
-`NecessityCertificate` binds proof authority to the exact lower-order claim. Required identity fields are basis semantic profile IDs, tested subset profile IDs, subset cardinality, subset-specific exposed field names, canonical public evidence digest, proof kind, and proof witness digest.
+- recompute `S`'s own intervention profiles;
+- recompute the fields left free by exactly `S`;
+- rebuild the complete exposed evidence vector for `S`;
+- find a public collision where identical exposed evidence has different normalized targets;
+- bind the certificate to selected-basis IDs, subset IDs, subset cardinality, exposed fields, evidence digest and witness digest.
 
-Phase-A proof kind is `public_target_collision`: two public examples are identical in the complete exposed lower-order evidence vector but have distinct normalized targets. This proves that no deterministic expression of that exposed evidence can satisfy both examples.
+A certificate cannot be minted for the full basis, cannot contain foreign profile IDs, cannot contain duplicate profile IDs, and cannot be replayed under a different exposure schema.
 
-Certificate verification recomputes the witness from public evidence. Serialized claims are not trusted by declaration. A collision certificate cannot be transferred from one subset to another unless the target subset independently recomputes the same exposure and witness. Each subset must recompute its own free fields.
+Independent validator #74/#77 identified this authority distinction; canonical tests preserve the proper-subset boundary.
 
-### Adaptive cardinality search
+## Global lower-basis proof authority
 
-Search basis sizes in increasing cardinality. For each `k`, enumerate legal semantic intervention bases using deterministic fair scheduling, synthesize a composition from selected probes plus basis-specific free fields, validate on disjoint validation evidence, independently validate learned probe expressions, build necessity certificates for lower-order subsets when public information-theoretic witnesses exist, mark unresolved lower-order claims inconclusive when proof is absent, and terminally re-observe the exact selected interventions before final acceptance.
+`BasisCollisionCertificate` is separate from `NecessityCertificate`. It proves that one complete candidate basis of lower cardinality is information-theoretically insufficient under that basis's own full exposed evidence.
 
-The first sufficient basis is not automatically globally minimal. Global minimality depends on the complete lower-cardinality proof ledger. For `k >= 2`, every legal lower-cardinality basis must be conclusively ruled out or the candidate is minimality-inconclusive. For `k == 1`, Phase A grants no global-minimality authority without a distinct complete zero-basis proof mechanism.
+Each certificate binds:
 
-### Fail-closed authority states
+- the exact intervention/profile identities of the candidate basis;
+- basis cardinality;
+- exposed fields;
+- canonical public evidence digest;
+- proof kind `public_basis_target_collision`;
+- witness digest and witness rows.
 
-The public receipt must distinguish at least:
+`AdaptiveCausalBasisStructureReceipt.lower_basis_certificates` carries one replayable certificate for every lower basis counted as certified. `lower_basis_universe_digest` binds lower-basis identity, exposure, status and witness digest. A counter without a corresponding certificate is not sufficient for global-minimality authority.
 
-- `adaptive_basis_discovered`
-- `sufficient_but_minimality_inconclusive`
-- `lower_order_basis_found`
-- `necessity_certificate_missing`
-- `basis_search_budget_exhausted`
-- `probe_synthesis_failed`
-- `probe_validation_failed`
+Global proof completeness requires:
+
+- every legal lower-cardinality basis is represented in the ledger;
+- `lower_basis_certified == lower_basis_count`;
+- `lower_basis_inconclusive == 0`;
+- every certified lower-basis row has a non-empty replayable witness digest.
+
+## Probe synthesis and terminal authority
+
+After structure selection, each selected intervention receives an executable probe expression synthesized from discovery evidence and checked on validation intervention outputs.
+
+Terminal authority then re-observes the exact selected interventions on independent terminal contexts before evaluating the final composed expression.
+
+Terminal base contexts and terminal intervention contexts must be semantically disjoint from all earlier oracle query inputs. Any overlap, invalid context, oracle exception, non-finite result, probe mismatch or final mismatch fails closed with zero false terminal accepts.
+
+## Exact attempted-observation accounting
+
+Every receipt counter represents work actually attempted, never planned denominators.
+
+- Pre-oracle context rejection or evidence-overlap rejection does **not** increment an observation counter.
+- An oracle call that is actually attempted is counted even if it raises or returns an invalid value.
+- Probe and final exact counters increment only after successful exact comparison.
+
+Explicit terminal failure states include:
+
 - `terminal_probe_evidence_overlap`
 - `terminal_probe_context_rejected`
 - `terminal_probe_oracle_error`
 - `terminal_probe_validation_failed`
 - `final_terminal_oracle_error`
 - `final_validation_failed`
+
+Independent hosted RED→GREEN accounting tests freeze these semantics.
+
+## Other fail-closed states
+
+The public receipt also distinguishes at least:
+
+- `adaptive_basis_discovered`
+- `sufficient_but_minimality_inconclusive`
+- `necessity_certificate_missing`
+- `basis_search_budget_exhausted`
+- `probe_synthesis_failed`
+- `probe_validation_failed`
 - `no_adaptive_basis`
 
-Any oracle error, non-finite observation, malformed evidence, invalid certificate, authority-ledger inconsistency, disallowed terminal context, or evidence overlap fails closed with zero false terminal accepts.
-
-### Exact evidence accounting
-
-Every receipt reports actual attempted observations, never planned denominators. A case counter is incremented only at the point an oracle observation is actually attempted. Pre-oracle context rejection or evidence-overlap rejection therefore does not increment an observation counter. If an oracle call itself raises or returns an invalid value, that attempted call is counted even though it is not exact.
-
-Counters include intervention discovery oracle calls, basis selection observations, probe validation attempted/exact, necessity-certificate witness observations, terminal selected-probe attempted/exact, final terminal attempted/exact, and total oracle calls. Hosted benchmark wrappers that call the oracle outside the engine expose a separate end-to-end exact ledger.
+Malformed evidence, certificate inconsistency or authority-ledger incompleteness cannot be promoted as minimality.
 
 ## Phase-A benchmark
 
 `benchmarks/kfigg/r268_adaptive_causal_basis.py` freezes four roles:
 
-1. **one-probe nuisance rejection** — a target-preserving intervention over an irrelevant field must be rejected; expected selected basis size is `0` and `passed == false`;
+1. **one-probe nuisance rejection** — irrelevant target-preserving intervention rejected; expected selected basis size `0` and `passed == false`;
 2. **two-probe positive family** — certified sufficient and globally minimal basis size `2`;
 3. **three-probe positive family** — certified sufficient and globally minimal basis size `3`;
 4. **four-probe positive family** — certified sufficient and globally minimal basis size `4`.
 
-The benchmark therefore records `selected_basis_sizes == [0, 2, 3, 4]`, `adaptive_selected_basis_sizes == [2, 3, 4]`, and `one_probe_nuisance_rejected == true`. This is intentionally stricter than treating a target-preserving one-probe shortcut as a capability success.
+The authored benchmark therefore expects:
 
-Required adversarial properties include:
-
-- target-preserving nuisance-intervention rejection;
-- intervention identity renaming invariance;
-- field permutation invariance;
-- basis scheduling/order invariance under a tight global search budget;
-- a lower-order no-collision search-miss case that must remain inconclusive;
-- outside-authorized-grammar or misspecified-oracle control that fails closed;
-- terminal evidence disjointness;
-- pre-oracle rejection accounting;
-- exact receipt accounting;
-- zero false terminal accepts;
+- `selected_basis_sizes == [0, 2, 3, 4]`;
+- `adaptive_selected_basis_sizes == [2, 3, 4]`;
+- complete lower-basis ledgers `[0, 2, 6, 14]`;
+- replayable lower-basis certificates for every positive case;
+- complete proper-subset necessity certificates for every positive case;
+- exact validation/terminal accounting;
+- zero false accepts;
 - `trainable_parameter_count == 0`.
 
-The suite must not equate milestone number R2.68 with any fixed basis cardinality.
+Required adversarial properties include nuisance rejection, finite-equivalent intervention preservation, validation-independent proposal ordering, field permutation invariance, disjoint composition holdout, lower-order search-miss inconclusiveness, proper-subset certificate binding, global certificate replay, terminal disjointness, pre-oracle accounting, invalid-oracle fail-closed behavior and deterministic replay.
 
 ## External transfer
 
-External evidence is a separate hosted gate and must use callable I/O only. The external target is frozen before measurement and must be structurally distinct from the authored family. Do not promote an external result if it is merely an isomorphic renaming of an authored formula.
+External evidence is a separate hosted gate using pinned NumPy `2.4.6` and callable I/O only. External source internals are not exposed to the solver.
 
-An external transfer is required before an accepted R2.68 capability release or readiness increase. Passing external evidence does not override a failed core authority gate.
+External success cannot override a failed core authority gate. Final external evidence must be regenerated on the frozen accepted-parent R2.68 source after production stops changing.
 
-## TDD and protected regressions
+## TDD and independent challengers
 
-TDD is mandatory and RED must be observed before production correction. Minimum contracts cover adaptive cardinality, absence of fixed-three assumptions, certificate binding to exact subset exposure, no certificate reuse across different free-field schemas, target-preserving nuisance rejection, heuristic-search miss without collision remaining inconclusive, a real lower-order sufficient basis blocking higher-order minimality promotion, rename/permutation invariance, fair global budget scheduling, partial/failure-path observed-case accounting, pre-oracle rejection accounting, terminal selected-probe re-observation, oracle failure fail-closed behavior, deterministic replay, and accepted R2.67.1/R2.66 protected regressions.
+TDD is mandatory for production corrections. Hosted RED evidence is retained when available, and independently opened challenger PRs remain useful even when their code is not merged.
+
+Canonical regressions include defects found by independent workers around:
+
+- composition holdout leakage (#75);
+- proper-subset certificate authority (#74/#77);
+- target-preserving nuisance probes;
+- attempted-observation accounting;
+- validation-distinct/finite-equivalent intervention universe collapse.
 
 ## Promotion boundary
 
-R2.68 may be called `ACCEPTED_BOUNDED_CAPABILITY` only after corrected R2.67.1 is an accepted ancestor, source/protocol is frozen before final evidence measurement, exact authored evidence recomputes byte-for-byte, a pinned I/O-only external transfer passes, cross-Python hosted tests pass, protected lineage passes, an independent challenger lineage attacks proof authority and accounting, Nolane World adjudication is recorded without forcing convergence, and no automatic AGI-readiness increase is granted merely for bug fixes or receipts.
+R2.68 may be called `ACCEPTED_BOUNDED_CAPABILITY` only after:
+
+- exact accepted R2.67.1 ancestry is fixed;
+- production source/protocol is frozen before final evidence measurement;
+- authored evidence recomputes from the frozen source;
+- pinned I/O-only external transfer passes on the same source;
+- Python 3.11 and 3.13 focused verification pass;
+- protected parent lineage passes;
+- independent proof/accounting challengers are resolved or explicitly adjudicated;
+- Nolane World adjudication is recorded without forcing convergence;
+- exact source/test/evidence hashes are recorded;
+- release bundle is generated from the frozen tree;
+- post-merge exact-main verification passes.
+
+No readiness score automatically increases merely because a bug was fixed or a receipt became internally consistent.
 
 ## Non-claims
 
-R2.68 does not establish open-ended causal language invention, unbounded intervention cardinality, stateful/temporal experimentation, filesystem/network scientific autonomy, human-level reasoning, or AGI. It establishes a bounded architecture for adaptively discovering and proof-scoping a causal intervention basis without treating search failure or target-preserving shortcuts as proof.
+R2.68 does not establish open-ended causal language invention, unbounded intervention cardinality, stateful/temporal experimentation, unrestricted scientific autonomy, broad software-engineering autonomy, human-level reasoning, frontier-model parity, or AGI.
+
+It establishes a bounded architecture for discovering, validating and proof-scoping a variable-cardinality causal intervention basis while refusing to treat search failure, finite-evidence collapse, validation leakage, answer-copy shortcuts or unverifiable counters as proof.
