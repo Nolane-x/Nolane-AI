@@ -1,4 +1,5 @@
 name: R2.68 RED GREEN
+# Final freeze retrigger after cross-Python external receipt materialization; no test semantics changed.
 
 on:
   pull_request:
