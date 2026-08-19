@@ -55,19 +55,15 @@ jobs:
           assert phase['selected_basis_sizes']==[0,2,3,4]
           assert phase['adaptive_selected_basis_sizes']==[2,3,4]
           assert phase['one_probe_nuisance_rejected'] is True
-          assert phase['replayable_global_ledgers'] is True
-          assert phase['complete_local_ledgers'] is True
+          assert phase['replayable_global_ledgers'] is True and phase['complete_local_ledgers'] is True
           assert phase['false_accepts']==0 and phase['trainable_parameter_count']==0
-          assert external['passed'] is True
-          assert external['source_id']=='numpy:numpy.linalg.det'
+          assert external['passed'] is True and external['source_id']=='numpy:numpy.linalg.det'
           assert external['source_version']=='2.4.6' and external['source_exposure']=='io_only'
           assert external['selected_basis_size']==2 and external['globally_minimal'] is True
           assert external['legal_interventions']==external['semantic_profiles']==4
           assert external['lower_basis_count']==external['lower_basis_certified']==external['lower_basis_certificate_count']==4
-          assert external['necessity_certificate_count']==2
-          assert external['proof_ledger_complete'] is True
-          assert external['oracle_accounting_exact'] is True
-          assert external['false_accepts']==0 and external['trainable_parameter_count']==0
+          assert external['necessity_certificate_count']==2 and external['proof_ledger_complete'] is True
+          assert external['oracle_accounting_exact'] is True and external['false_accepts']==0 and external['trainable_parameter_count']==0
           print('R268_FRESH_EVIDENCE_OK')
           PY
 
@@ -122,7 +118,6 @@ jobs:
 
           Path('R2_68_PHASE_A_RESULT.json').write_text(json.dumps(phase,indent=2,sort_keys=True)+'\n')
           Path('R2_68_EXTERNAL_TRANSFER.json').write_text(json.dumps(external,indent=2,sort_keys=True)+'\n')
-
           fixed=[
             'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
             'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
@@ -137,68 +132,45 @@ jobs:
           cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           lock={
-            'schema_version':2,
-            'milestone':'R2.68',
-            'name':'Proof-Carrying Adaptive Causal Basis',
-            'status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
+            'schema_version':2,'milestone':'R2.68','name':'Proof-Carrying Adaptive Causal Basis','status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
             'parent_release_commit':'b789dd7a48f10f3afb1cf42ee62d3dc77dee200e',
             'source_freeze_head':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
             'freeze_workflow_run_id':int(os.environ['FREEZE_RUN_ID']),
-            'production_source_changes_after_lock_forbidden':True,
-            'frozen_evidence_changes_after_lock_forbidden':True,
-            'added_trainable_parameters':0,
+            'production_source_changes_after_lock_forbidden':True,'frozen_evidence_changes_after_lock_forbidden':True,'added_trainable_parameters':0,
             'claim_boundary':'bounded deterministic pure-input causal-basis discovery with legal intervention cardinality up to four, finite trusted expression grammar, discovery-only alias-invariant proposal search/cache, disjoint validation, replayable collision certificates, terminal re-observation, and zero added trainable parameters; not a theorem of unrestricted causal minimality, not open-ended scientific autonomy, and not AGI/frontier-model equivalence',
             'authority_hardening':{
-              'target_preserving_nuisance_rejected':True,
-              'proposal_validation_disjoint':True,
-              'proper_subset_certificate_authority':True,
-              'intervention_distinct_global_universe':True,
-              'replayable_global_lower_basis_ledger':True,
-              'subset_specific_exposure_recomputed':True,
-              'attempted_observation_accounting':True,
-              'terminal_selected_probe_reobservation':True,
-              'uncertified_search_miss_inconclusive':True,
-              'proposal_alias_budget_invariant':True,
-              'proposal_search_reused_once':True,
-              'proposal_cache_discovery_only':True,
-              'proposal_cache_authority_validation_separate':True,
-              'external_io_only':True,
-              'cross_python_required':True,
+              'target_preserving_nuisance_rejected':True,'proposal_validation_disjoint':True,'proper_subset_certificate_authority':True,
+              'intervention_distinct_global_universe':True,'replayable_global_lower_basis_ledger':True,'subset_specific_exposure_recomputed':True,
+              'attempted_observation_accounting':True,'terminal_selected_probe_reobservation':True,'uncertified_search_miss_inconclusive':True,
+              'proposal_alias_budget_invariant':True,'proposal_search_reused_once':True,'proposal_cache_discovery_only':True,
+              'proposal_cache_authority_validation_separate':True,'external_io_only':True,'cross_python_required':True,
+              'freeze_delta_namespace_isolated':True,
             },
             'authored_protocol':{
-              'positive_selected_basis_sizes':[2,3,4],
-              'nuisance_control_selected_basis_size':0,
-              'max_basis_size':4,
-              'intervention_arity':1,
-              'expected_local_certificate_counts':[0,2,6,14],
-              'expected_global_lower_basis_certificate_counts':[0,2,6,14],
+              'positive_selected_basis_sizes':[2,3,4],'nuisance_control_selected_basis_size':0,'max_basis_size':4,'intervention_arity':1,
+              'expected_local_certificate_counts':[0,2,6,14],'expected_global_lower_basis_certificate_counts':[0,2,6,14],
             },
             'authored_evidence':{
-              'all_gates_pass':bool(phase['all_gates_pass']),
-              'selected_basis_sizes':phase['selected_basis_sizes'],
-              'replayable_global_ledgers':bool(phase['replayable_global_ledgers']),
-              'complete_local_ledgers':bool(phase['complete_local_ledgers']),
-              'false_accepts':int(phase['false_accepts']),
-              'trainable_parameter_count':int(phase['trainable_parameter_count']),
+              'all_gates_pass':bool(phase['all_gates_pass']),'selected_basis_sizes':phase['selected_basis_sizes'],
+              'replayable_global_ledgers':bool(phase['replayable_global_ledgers']),'complete_local_ledgers':bool(phase['complete_local_ledgers']),
+              'false_accepts':int(phase['false_accepts']),'trainable_parameter_count':int(phase['trainable_parameter_count']),
               'sha256_canonical_json':hashlib.sha256(cp).hexdigest(),
             },
             'external_evidence':{
               'source_id':external['source_id'],'source_version':external['source_version'],'source_exposure':external['source_exposure'],
               'passed':bool(external['passed']),'selected_basis_size':int(external['selected_basis_size']),'globally_minimal':bool(external['globally_minimal']),
-              'legal_interventions':int(external['legal_interventions']),'lower_basis_count':int(external['lower_basis_count']),'lower_basis_certificate_count':int(external['lower_basis_certificate_count']),'necessity_certificate_count':int(external['necessity_certificate_count']),
-              'oracle_calls_total':int(external['oracle_calls_total']),'oracle_accounting_exact':bool(external['oracle_accounting_exact']),'false_accepts':int(external['false_accepts']),
-              'sha256_canonical_json':hashlib.sha256(ce).hexdigest(),
+              'legal_interventions':int(external['legal_interventions']),'lower_basis_count':int(external['lower_basis_count']),
+              'lower_basis_certificate_count':int(external['lower_basis_certificate_count']),'necessity_certificate_count':int(external['necessity_certificate_count']),
+              'oracle_calls_total':int(external['oracle_calls_total']),'oracle_accounting_exact':bool(external['oracle_accounting_exact']),
+              'false_accepts':int(external['false_accepts']),'sha256_canonical_json':hashlib.sha256(ce).hexdigest(),
             },
             'independent_validation':{
-              'composition_holdout_red_run':32220363255,
-              'preoracle_accounting_red_run':32228145798,
-              'validation_distinct_profile_red_run':32228801576,
-              'semantic_alias_search_reuse_red_run':32237610280,
-              'proper_subset_challenger_pr':74,
-              'composition_holdout_challenger_pr':75,
-              'proper_subset_fix_challenger_pr':77,
-              'semantic_alias_budget_validation_prs':[80,81],
-              'semantic_alias_budget_fix_pr':85,
+              'exact_core_cross_python_run':32239730903,'exact_external_cross_python_run':32239730919,
+              'composition_holdout_red_run':32220363255,'preoracle_accounting_red_run':32228145798,
+              'validation_distinct_profile_red_run':32228801576,'semantic_alias_search_reuse_red_run':32237610280,
+              'freeze_delta_validator_red_run':32240715765,
+              'proper_subset_challenger_pr':74,'composition_holdout_challenger_pr':75,'proper_subset_fix_challenger_pr':77,
+              'semantic_alias_budget_validation_prs':[80,81],'semantic_alias_budget_fix_pr':85,
               'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551',
               'semantic_alias_search_reuse_fix_commit':'3cb2efaacd43f2f0642bc916d45ddd415257beb0',
               'semantic_alias_search_reuse_challenger_pr':84,
@@ -211,10 +183,17 @@ jobs:
       - name: Verify freeze delta is evidence-only
         run: |
           set -euo pipefail
-          changed="$(git status --short | awk '{print $2}' | sort)"
-          printf '%s\n' "$changed"
-          expected="$(printf '%s\n' R2_68_EXTERNAL_TRANSFER.json R2_68_PHASE_A_RESULT.json R2_68_PRE_HOSTED_LOCK.json | sort)"
-          test "$changed" = "$expected"
+          git diff --exit-code
+          git diff --cached --exit-code
+          python - <<'PY'
+          from pathlib import Path
+          expected={'R2_68_EXTERNAL_TRANSFER.json','R2_68_PHASE_A_RESULT.json','R2_68_PRE_HOSTED_LOCK.json'}
+          found={p.name for p in Path('.').glob('R2_68_*.json')}
+          print('R268_EVIDENCE_NAMESPACE',sorted(found))
+          assert found==expected,(sorted(found),sorted(expected))
+          for name in expected:
+              assert Path(name).is_file() and Path(name).stat().st_size>0,name
+          PY
       - name: Commit frozen R2.68 evidence records
         run: |
           set -euo pipefail
