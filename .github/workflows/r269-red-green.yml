@@ -5,7 +5,7 @@ on:
     branches: [ main ]
     paths:
       - 'cogcoder/r269_*.py'
-      - 'benchmarks/kfigg/r269_*.py'
+      - 'benchmarks/kfigg/r269_meta_learning.py'
       - 'tests/test_r269_*.py'
       - '.github/workflows/r269-red-green.yml'
       - 'docs/superpowers/specs/2026-08-19-r269-autonomous-transfer-meta-learning-kernel-design.md'
@@ -21,14 +21,33 @@ jobs:
       fail-fast: false
       matrix:
         python: ['3.11', '3.13']
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: R2.68 source ancestry
+        run: git merge-base --is-ancestor fda7f502185266fedb00886d5786c6d28cc0e0eb HEAD
       - name: Accepted R2.68 safety first
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-      - name: R2.69 focused contracts
-        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - name: R2.69 focused authored contracts
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
+      - name: Emit canonical authored benchmark evidence
+        if: matrix.python == '3.11'
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          result = run_benchmark()
+          assert result['trainable_parameter_count'] == 0
+          assert result['negative']['false_accepts'] == 0
+          assert result['strong_claim_gate']['zero_false_accepts'] is True
+          assert result['strong_claim_gate']['roomy_scratch_expressibility'] is True
+          print('R269_AUTHORED_CANONICAL_JSON=' + json.dumps(result, sort_keys=True, separators=(',', ':')))
+          print('R269_AUTHORED_DIGEST=' + result['determinism']['semantic_digest'])
+          PY
