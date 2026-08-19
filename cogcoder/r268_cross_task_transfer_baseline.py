@@ -15,6 +15,7 @@ from .r268_cross_task_causal_transfer import (
     _dedupe_live_candidates,
     _equivalent,
     _failed_receipt,
+    _proven_structural_alias_key,
     _safe_prediction,
 )
 
@@ -32,17 +33,18 @@ def generate_scratch_candidates(*, max_depth: int, max_candidates: int) -> tuple
         raise ValueError('max_candidates must be positive')
 
     out: list[TransferCandidate] = []
-    seen: set[str] = set()
+    seen_semantic_hypotheses: set[str] = set()
 
     def add(expr: Expr) -> bool:
         if len(out) >= max_candidates:
             return False
         from .r256_operator_dsl import expr_digest
 
-        digest = expr_digest(expr)
-        if digest in seen:
+        semantic_key = _proven_structural_alias_key(expr)
+        if semantic_key in seen_semantic_hypotheses:
             return True
-        seen.add(digest)
+        seen_semantic_hypotheses.add(semantic_key)
+        digest = expr_digest(expr)
         ordinal = len(out)
         out.append(
             TransferCandidate(

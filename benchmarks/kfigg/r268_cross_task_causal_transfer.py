@@ -107,6 +107,8 @@ def _run_positive(name: str, oracle: Oracle) -> dict[str, object]:
         'source_prior_ablation': _summary(source_prior_ablation),
         'transfer_candidate_budget': 96,
         'source_prior_ablation_candidate_budget': 96,
+        'tight_scratch_candidate_budget': 96,
+        'roomy_scratch_candidate_budget': 600,
         'tight_scratch': _summary(tight_scratch),
         'roomy_scratch': _summary(roomy_scratch),
     }
@@ -211,6 +213,11 @@ def run_benchmark() -> dict[str, object]:
         int(row['transfer_candidate_budget']) == int(row['source_prior_ablation_candidate_budget']) == 96
         for row in positives
     )
+    transfer_vs_tight_scratch_same_candidate_budget = all(
+        int(row['transfer_candidate_budget']) == int(row['tight_scratch_candidate_budget']) == 96
+        for row in positives
+    )
+    transfer_advantage_over_tight_scratch = positive_transfer_exact - tight_scratch_exact
     negative_transfer_abstained = sum(not bool(row['transfer']['passed']) for row in negatives)
     false_accepts = (
         sum(int(row['transfer']['false_accepts']) for row in positives)
@@ -226,10 +233,12 @@ def run_benchmark() -> dict[str, object]:
 
     all_gates_pass = (
         positive_transfer_exact == len(positives)
-        and tight_scratch_exact == 0
+        and tight_scratch_exact == 1
+        and transfer_advantage_over_tight_scratch == 2
         and roomy_scratch_exact == len(positives)
         and source_prior_ablation_exact == 0
         and source_prior_ablation_same_candidate_budget
+        and transfer_vs_tight_scratch_same_candidate_budget
         and negative_transfer_abstained == len(negatives)
         and diagnostic_order_invariance
         and false_accepts == 0
@@ -242,6 +251,7 @@ def run_benchmark() -> dict[str, object]:
         'canonical_r268_owner_pr': 73,
         'capability': 'cross-task-causal-program-transfer',
         'status': 'independent_research_candidate',
+        'candidate_budget_unit': 'proof_distinct_hypotheses',
         'all_gates_pass': all_gates_pass,
         'positive_transfer_cases': len(positives),
         'positive_transfer_exact': positive_transfer_exact,
@@ -252,6 +262,8 @@ def run_benchmark() -> dict[str, object]:
         'source_prior_ablation_cases': len(positives),
         'source_prior_ablation_exact': source_prior_ablation_exact,
         'source_prior_ablation_same_candidate_budget': source_prior_ablation_same_candidate_budget,
+        'transfer_vs_tight_scratch_same_candidate_budget': transfer_vs_tight_scratch_same_candidate_budget,
+        'transfer_advantage_over_tight_scratch': transfer_advantage_over_tight_scratch,
         'diagnostic_order_invariance': diagnostic_order_invariance,
         'transfer_selection_queries_total': sum(
             int(row['transfer']['selection_queries']) for row in positives
