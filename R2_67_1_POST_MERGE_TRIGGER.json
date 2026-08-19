@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "milestone": "R2.67.1",
+  "purpose": "Trigger the frozen exact-main post-merge verifier after hosted/world/release records were committed via Git data API.",
+  "capability_merge_commit": "b789dd7a48f10f3afb1cf42ee62d3dc77dee200e",
+  "release_records_commit": "c3b28a78c837fdce73c5d92f0fb7ca61837744a6",
+  "source_freeze_head": "6c516f854fb34773287f00e6efd021293f039d73",
+  "lock_commit": "225704f7df6a191e2569c5d12085e6b495b60f01",
+  "frozen_source_changed": false
+}
