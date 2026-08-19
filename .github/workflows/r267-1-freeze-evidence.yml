@@ -153,6 +153,7 @@ jobs:
               'tests/test_r267_1_preselection_receipt_units.py',
               'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
+              'tests/test_r267_1_triplet_budget_semantics.py',
               'tests/test_r267_independent_ablation_completeness.py',
               'scripts/r267_1_apply_genuine_necessity_core.py',
               'scripts/r267_1_apply_certified_ablation_authority.py',
@@ -201,6 +202,7 @@ jobs:
                   'terminal_selected_probe_reobservation': True,
                   'oracle_ledger_exact': True,
                   'positive_domain_triangle_min_robustness': True,
+                  'triplet_budget_semantic_invariance': True,
                   'canonical_and_release_gate_blobs_frozen': True,
               },
               'authored_evidence': {
@@ -232,6 +234,7 @@ jobs:
                   'preselection_receipt_red_green': 32202287192,
                   'fresh_receipt_materialization_green': 32202735763,
                   'partial_receipt_accounting_red': 32204776228,
+                  'triplet_budget_semantic_invariance_green': 32218054272,
               },
               'frozen_git_blobs': blobs,
           }
