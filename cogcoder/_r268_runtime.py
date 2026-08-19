@@ -28,8 +28,19 @@ def _profile_proposal_equivalence_key(profile:InterventionProfile)->tuple[tuple[
     return positions,semantic_key(profile.discovery_outputs)
 
 
+def _canonicalize_proposal_basis(profiles:Sequence[InterventionProfile])->tuple[InterventionProfile,...]:
+    # Probe slot assignment must not depend on the content-addressed ordering of
+    # concrete authority identities. Sort first by discovery-only proposal class
+    # and use intervention id only as a deterministic tie-break within one class.
+    return tuple(sorted(
+        tuple(profiles),
+        key=lambda profile:(_profile_proposal_equivalence_key(profile),profile.intervention.intervention_id),
+    ))
+
+
 def _basis_proposal_equivalence_key(profiles:Sequence[InterventionProfile])->tuple[tuple[tuple[int,...],str],...]:
-    return tuple(_profile_proposal_equivalence_key(profile) for profile in profiles)
+    canonical=_canonicalize_proposal_basis(profiles)
+    return tuple(_profile_proposal_equivalence_key(profile) for profile in canonical)
 
 
 def composition_examples(schema:PositionalSchema,contexts:Sequence[Mapping[str,object]],targets:Sequence[object],profiles:Sequence[InterventionProfile],shared_positions:Sequence[int],*,phase:str)->tuple[OperatorExample,...]:
@@ -88,12 +99,14 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
         if prev is None or profile.intervention.intervention_id<prev.intervention.intervention_id:dedup[profile.semantic_profile_id]=profile
     semantic_profiles=tuple(sorted(dedup.values(),key=_profile_proposal_key));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[];lower_basis_certs=[]
     for k in range(1,max_basis_size+1):
-        bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
+        bases=[_canonicalize_proposal_basis(basis) for basis in itertools.combinations(semantic_profiles,k)]
+        bases.sort(key=lambda basis:tuple((_profile_proposal_equivalence_key(profile),profile.intervention.intervention_id) for profile in basis))
 
         # Proof authority enumerates every concrete intervention basis. Proposal
         # search is a discovery-only computation and is reusable across bases
-        # with exactly the same proposal-equivalence key. Validation and proof
-        # authority are still recomputed independently for every concrete basis.
+        # with exactly the same proposal-equivalence key. Every basis is first
+        # canonicalized into proposal-slot order so cached expressions preserve
+        # the same __p0..__p{k-1} meaning across concrete authority aliases.
         searchable_proposal_classes=set()
         for preview_basis in bases:
             preview_ids=tuple(p.semantic_profile_id for p in preview_basis)
