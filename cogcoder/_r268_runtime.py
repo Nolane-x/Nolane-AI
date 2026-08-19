@@ -21,6 +21,17 @@ def _profile_proposal_key(profile:InterventionProfile)->tuple[str,str]:
     return semantic_key(profile.discovery_outputs),profile.intervention.intervention_id
 
 
+def _profile_proposal_equivalence_key(profile:InterventionProfile)->tuple[tuple[int,...],str]:
+    # Proposal scheduling is discovery-only.  Authority identity remains bound
+    # to the concrete intervention in InterventionProfile.semantic_profile_id.
+    positions=tuple(position for position,_value in profile.intervention.bindings)
+    return positions,semantic_key(profile.discovery_outputs)
+
+
+def _basis_proposal_equivalence_key(profiles:Sequence[InterventionProfile])->tuple[tuple[tuple[int,...],str],...]:
+    return tuple(_profile_proposal_equivalence_key(profile) for profile in profiles)
+
+
 def composition_examples(schema:PositionalSchema,contexts:Sequence[Mapping[str,object]],targets:Sequence[object],profiles:Sequence[InterventionProfile],shared_positions:Sequence[int],*,phase:str)->tuple[OperatorExample,...]:
     if phase not in {'discovery','validation'}:raise ValueError('phase must be discovery or validation')
     out=[]
@@ -78,6 +89,24 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     semantic_profiles=tuple(sorted(dedup.values(),key=_profile_proposal_key));max_basis_size=min(max_basis_size,len(semantic_profiles));total=0;bases_considered=0;unresolved=[];lower_ledger=[];lower_basis_certs=[]
     for k in range(1,max_basis_size+1):
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
+
+        # The proof universe enumerates every authority-distinct basis.  Search
+        # budget, however, is divided only across discovery-equivalent proposal
+        # classes that cannot already be rejected by a replayable collision
+        # certificate.  This prevents behavior-identical intervention aliases
+        # from diluting a finite proposal budget while preserving all authority
+        # identities in the lower-order proof ledger.
+        searchable_proposal_classes=set()
+        for preview_basis in bases:
+            preview_ids=tuple(p.semantic_profile_id for p in preview_basis)
+            preview_shared=basis_shared_positions(schema,preview_basis)
+            preview_fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in preview_shared)
+            preview_examples=composition_examples(schema,discovery,tuple(d_targets),preview_basis,preview_shared,phase='discovery')
+            preview_cert=build_basis_collision_certificate(semantic_profile_ids=preview_ids,exposed_fields=preview_fields,examples=preview_examples)
+            if preview_cert is None:
+                searchable_proposal_classes.add(_basis_proposal_equivalence_key(preview_basis))
+        attempted_proposal_classes=set()
+
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
             basis_cert=build_basis_collision_certificate(semantic_profile_ids=ids,exposed_fields=fields,examples=examples)
@@ -87,7 +116,10 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             remaining=max_total-total
             if remaining<=0:
                 unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
-            fair=max(1,remaining//max(1,len(bases)-basis_index));budget=min(per_basis,fair);bases_considered+=1
+            proposal_class=_basis_proposal_equivalence_key(basis)
+            pending_classes=searchable_proposal_classes-attempted_proposal_classes
+            fair=max(1,remaining//max(1,len(pending_classes)));budget=min(per_basis,fair);bases_considered+=1
+            attempted_proposal_classes.add(proposal_class)
             search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width));total+=search.candidates_considered
             if not search.passed or search.expression is None:
                 unresolved.append(f'k{k}:{"|".join(ids)}:{search.reason}');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
