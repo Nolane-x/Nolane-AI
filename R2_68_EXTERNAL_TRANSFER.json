@@ -1,0 +1,157 @@
+{
+  "capability": "proof-carrying-adaptive-causal-basis",
+  "false_accepts": 0,
+  "globally_minimal": true,
+  "legal_interventions": 4,
+  "lower_basis_certificate_count": 4,
+  "lower_basis_certificates": [
+    {
+      "basis_cardinality": 1,
+      "evidence_digest": "bd1c5190c3ab936254e4c0b7ead5c601ccb7655f3ad69f4ed96b514f1701074c",
+      "exposed_fields": [
+        "__p0",
+        "__f1",
+        "__f2",
+        "__f3"
+      ],
+      "proof_kind": "public_basis_target_collision",
+      "semantic_profile_ids": [
+        "profile.b420cd33d7493671b7ad3239d697b90d4f0f65936fea74c32adf73a25a6e69c4"
+      ],
+      "witness_digest": "739d16a0406c9cd6649a0f2ab3791224574d3981aefbecac1033c4b746b593e3",
+      "witness_rows": [
+        0,
+        64
+      ]
+    },
+    {
+      "basis_cardinality": 1,
+      "evidence_digest": "4d92ff85405589e23e8663bdf62b907431387a0dc46865b889774adce3569d24",
+      "exposed_fields": [
+        "__p0",
+        "__f0",
+        "__f2",
+        "__f3"
+      ],
+      "proof_kind": "public_basis_target_collision",
+      "semantic_profile_ids": [
+        "profile.0a786d385e1f4b6c225686664088502e2f3487aaace3881771b5590ee5d90f68"
+      ],
+      "witness_digest": "62f0e1dfad5b8378cf14ce9fc19a3ed77035e0d1c79eefbe85f085bfddc10edd",
+      "witness_rows": [
+        0,
+        16
+      ]
+    },
+    {
+      "basis_cardinality": 1,
+      "evidence_digest": "b0a06b1bd3f198928fef301bba65db4d864074c4b98c1692dcd090c006a1a0d5",
+      "exposed_fields": [
+        "__p0",
+        "__f0",
+        "__f1",
+        "__f3"
+      ],
+      "proof_kind": "public_basis_target_collision",
+      "semantic_profile_ids": [
+        "profile.828cf253fe7c8e6bdebf1161d5077082c92d1d6fb91dceabbf6410b6debb4633"
+      ],
+      "witness_digest": "b286a8bb490fa1262cfe5c816de2d662ebb97bfbb5f86594aba0772627c73892",
+      "witness_rows": [
+        0,
+        4
+      ]
+    },
+    {
+      "basis_cardinality": 1,
+      "evidence_digest": "2fcb1d090b570944c9f9b80bfd3603c4a35bc0a4b753014b2ee282ebd5b38935",
+      "exposed_fields": [
+        "__p0",
+        "__f0",
+        "__f1",
+        "__f2"
+      ],
+      "proof_kind": "public_basis_target_collision",
+      "semantic_profile_ids": [
+        "profile.4f8647c4af778f67ffcbaaa8f487be345fe73fd17de38bf5095305220cf70bab"
+      ],
+      "witness_digest": "90009c6d5f984e16eb05eae48a62909cb045f5e4e3d17bd020873e4e06e33399",
+      "witness_rows": [
+        0,
+        1
+      ]
+    }
+  ],
+  "lower_basis_certified": 4,
+  "lower_basis_count": 4,
+  "lower_basis_inconclusive": 0,
+  "lower_basis_universe_digest": "5ddb43933e2d749f5fbbd19dcec837e3c7f66600f3053b8c081c03f6d32802d3",
+  "milestone": "R2.68",
+  "necessity_certificate_count": 2,
+  "necessity_certificate_sizes": [
+    1
+  ],
+  "necessity_certificates": [
+    {
+      "basis_semantic_profile_ids": [
+        "profile.b420cd33d7493671b7ad3239d697b90d4f0f65936fea74c32adf73a25a6e69c4",
+        "profile.0a786d385e1f4b6c225686664088502e2f3487aaace3881771b5590ee5d90f68"
+      ],
+      "evidence_digest": "bd1c5190c3ab936254e4c0b7ead5c601ccb7655f3ad69f4ed96b514f1701074c",
+      "exposed_fields": [
+        "__p0",
+        "__f1",
+        "__f2",
+        "__f3"
+      ],
+      "proof_kind": "public_target_collision",
+      "subset_cardinality": 1,
+      "subset_semantic_profile_ids": [
+        "profile.b420cd33d7493671b7ad3239d697b90d4f0f65936fea74c32adf73a25a6e69c4"
+      ],
+      "witness_digest": "12d9fb378d55cbf3bdbe6452d73f7404e114dec6cf1b180a6096c6f1a4fc952c",
+      "witness_rows": [
+        0,
+        64
+      ]
+    },
+    {
+      "basis_semantic_profile_ids": [
+        "profile.b420cd33d7493671b7ad3239d697b90d4f0f65936fea74c32adf73a25a6e69c4",
+        "profile.0a786d385e1f4b6c225686664088502e2f3487aaace3881771b5590ee5d90f68"
+      ],
+      "evidence_digest": "4d92ff85405589e23e8663bdf62b907431387a0dc46865b889774adce3569d24",
+      "exposed_fields": [
+        "__p0",
+        "__f0",
+        "__f2",
+        "__f3"
+      ],
+      "proof_kind": "public_target_collision",
+      "subset_cardinality": 1,
+      "subset_semantic_profile_ids": [
+        "profile.0a786d385e1f4b6c225686664088502e2f3487aaace3881771b5590ee5d90f68"
+      ],
+      "witness_digest": "094bb1483db0c0ff8d44b1c66b31033d6f1b9006c968abcc7759bcdf4faeb51a",
+      "witness_rows": [
+        0,
+        16
+      ]
+    }
+  ],
+  "oracle_accounting_exact": true,
+  "oracle_calls_total": 1238,
+  "passed": true,
+  "proof_ledger_complete": true,
+  "selected_basis_size": 2,
+  "semantic_profiles": 4,
+  "source_calls_observed": 1238,
+  "source_exposure": "io_only",
+  "source_id": "numpy:numpy.linalg.det",
+  "source_version": "2.4.6",
+  "terminal_cases": 6,
+  "terminal_exact": 6,
+  "terminal_probe_cases": 12,
+  "terminal_probe_exact": 12,
+  "trainable_parameter_count": 0
+}
