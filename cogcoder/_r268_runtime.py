@@ -22,7 +22,7 @@ def _profile_proposal_key(profile:InterventionProfile)->tuple[str,str]:
 
 
 def _profile_proposal_equivalence_key(profile:InterventionProfile)->tuple[tuple[int,...],str]:
-    # Proposal scheduling is discovery-only.  Authority identity remains bound
+    # Proposal scheduling is discovery-only. Authority identity remains bound
     # to the concrete intervention in InterventionProfile.semantic_profile_id.
     positions=tuple(position for position,_value in profile.intervention.bindings)
     return positions,semantic_key(profile.discovery_outputs)
@@ -90,12 +90,10 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
     for k in range(1,max_basis_size+1):
         bases=list(itertools.combinations(semantic_profiles,k));bases.sort(key=lambda b:tuple(_profile_proposal_key(p) for p in b))
 
-        # The proof universe enumerates every authority-distinct basis.  Search
-        # budget, however, is divided only across discovery-equivalent proposal
-        # classes that cannot already be rejected by a replayable collision
-        # certificate.  This prevents behavior-identical intervention aliases
-        # from diluting a finite proposal budget while preserving all authority
-        # identities in the lower-order proof ledger.
+        # Proof authority enumerates every concrete intervention basis. Proposal
+        # search is a discovery-only computation and is reusable across bases
+        # with exactly the same proposal-equivalence key. Validation and proof
+        # authority are still recomputed independently for every concrete basis.
         searchable_proposal_classes=set()
         for preview_basis in bases:
             preview_ids=tuple(p.semantic_profile_id for p in preview_basis)
@@ -105,7 +103,7 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             preview_cert=build_basis_collision_certificate(semantic_profile_ids=preview_ids,exposed_fields=preview_fields,examples=preview_examples)
             if preview_cert is None:
                 searchable_proposal_classes.add(_basis_proposal_equivalence_key(preview_basis))
-        attempted_proposal_classes=set()
+        attempted_proposal_classes=set();proposal_search_cache={}
 
         for basis_index,basis in enumerate(bases):
             ids=tuple(p.semantic_profile_id for p in basis);shared=basis_shared_positions(schema,basis);fields=tuple(f'__p{i}' for i in range(k))+tuple(schema.canonical_fields[i] for i in shared);examples=composition_examples(schema,discovery,tuple(d_targets),basis,shared,phase='discovery');validation_examples=composition_examples(schema,validation,tuple(v_targets),basis,shared,phase='validation')
@@ -113,14 +111,18 @@ def discover_adaptive_causal_basis(oracle:Callable[[Mapping[str,object]],object]
             ledger_identity={'cardinality':k,'semantic_profile_ids':list(ids),'exposed_fields':list(fields)}
             if basis_cert is not None:
                 lower_basis_certs.append(basis_cert);lower_ledger.append((k,ledger_identity,'collision_certified'));continue
-            remaining=max_total-total
-            if remaining<=0:
-                unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
-            proposal_class=_basis_proposal_equivalence_key(basis)
-            pending_classes=searchable_proposal_classes-attempted_proposal_classes
-            fair=max(1,remaining//max(1,len(pending_classes)));budget=min(per_basis,fair);bases_considered+=1
-            attempted_proposal_classes.add(proposal_class)
-            search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width));total+=search.candidates_considered
+            proposal_class=_basis_proposal_equivalence_key(basis);bases_considered+=1
+            if proposal_class in proposal_search_cache:
+                search=proposal_search_cache[proposal_class]
+            else:
+                remaining=max_total-total
+                if remaining<=0:
+                    unresolved.append(f'k{k}:{"|".join(ids)}:budget_exhausted');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
+                pending_classes=searchable_proposal_classes-attempted_proposal_classes
+                fair=max(1,remaining//max(1,len(pending_classes)));budget=min(per_basis,fair)
+                attempted_proposal_classes.add(proposal_class)
+                search=synthesize_variable_expression(fields,tuple(f'__p{i}' for i in range(k)),tuple(composition_constants),examples,max_depth=int(composition_max_depth),max_candidates=budget,beam_width=int(composition_beam_width))
+                proposal_search_cache[proposal_class]=search;total+=search.candidates_considered
             if not search.passed or search.expression is None:
                 unresolved.append(f'k{k}:{"|".join(ids)}:{search.reason}');lower_ledger.append((k,ledger_identity,'inconclusive'));continue
             used=used_fields(search.expression);required={f'__p{i}' for i in range(k)}
