@@ -1092,7 +1092,7 @@ def synthesize_three_probe_causal_program(
             expression=None,
             probe_expressions=(),
             probe_candidates_considered=(),
-            probe_validation_cases=len(validation),
+            probe_validation_cases=0,
             probe_validation_exact=0,
             final_validation_cases=len(terminal),
             final_validation_exact=0,
