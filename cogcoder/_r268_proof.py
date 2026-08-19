@@ -85,7 +85,9 @@ def _validated_authority_ids(
         raise ValueError('basis and subset semantic profile ids must be non-empty')
     if len(set(basis_ids)) != len(basis_ids) or len(set(subset_ids)) != len(subset_ids):
         raise ValueError('semantic profile ids must be distinct')
-    if not set(subset_ids) < set(basis_ids):
+    if any(profile_id not in basis_ids for profile_id in subset_ids):
+        raise ValueError('subset semantic profile ids must belong to basis')
+    if len(subset_ids) >= len(basis_ids):
         raise ValueError('subset semantic profile ids must form a proper subset of basis')
     return basis_ids, subset_ids
 
