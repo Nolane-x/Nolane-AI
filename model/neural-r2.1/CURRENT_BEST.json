@@ -1,0 +1,13 @@
+{
+  "version":"Neural-R2.1a-Causal-Evidence-Router",
+  "status":"candidate_passed_locked_fresh",
+  "parent_effective_parameters":78779253,
+  "parent_sha256":"b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "delta_parameters":120151,
+  "candidate_effective_parameters":78899404,
+  "delta_sha256":"3bbd63c9cb20e180b78588e15a21e4132b41d80118c6ce229231967a91bfc9c4",
+  "dev":{"indices":[800,819],"baseline_solved":30,"candidate_solved":36},
+  "fresh":{"indices":[900,919],"episodes":80,"baseline_solved":38,"candidate_solved":40,"gain_pp":2.5,"causal_baseline":2,"causal_candidate":4,"noncausal_preserved":true,"weights_modified_after_fresh":false,"holdout_consumed":true},
+  "claim_boundary":"Evidence-backed neural-only gain on the locked FIGG-18 fresh slice. No AGI, frontier-model, universal-reasoning, or hybrid-runtime-equivalence claim.",
+  "experimental_recursive_core":{"delta_parameters":1862280,"candidate_effective_parameters":80641533,"status":"architecture_verified_not_weight_admitted"}
+}
