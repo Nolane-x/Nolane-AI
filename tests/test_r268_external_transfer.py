@@ -15,3 +15,13 @@ def test_r268_pinned_numpy_det_io_only_transfer() -> None:
     assert result['oracle_accounting_exact'] is True
     assert result['oracle_calls_total']==result['source_calls_observed']
     assert result['trainable_parameter_count']==0
+
+
+def test_r268_external_transfer_carries_complete_lower_basis_proof_ledger() -> None:
+    from research.r268_external_transfer import run_external_transfer
+    result=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
+    assert result['lower_basis_count']==2
+    assert result['lower_basis_certified']==2
+    assert result['lower_basis_inconclusive']==0
+    assert result['proof_ledger_complete'] is True
+    assert len(result['lower_basis_universe_digest'])==64
