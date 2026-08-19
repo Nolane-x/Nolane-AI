@@ -59,7 +59,8 @@ jobs:
             'terminal_selected_probe_reobservation','uncertified_search_miss_inconclusive','proposal_alias_budget_invariant',
             'proposal_search_reused_once','proposal_cache_discovery_only','proposal_cache_authority_validation_separate',
             'discovery_validation_oracle_query_disjoint','cross_phase_overlap_rejected_pre_oracle',
-            'canonical_json_evidence_comparison','refreeze_tracked_evidence_delta_isolated',
+            'validation_oracle_query_multiset_unique','validation_duplicate_queries_rejected_pre_oracle',
+            'external_projection_unique_validation_code','canonical_json_evidence_comparison','refreeze_tracked_evidence_delta_isolated',
           )
           for key in required: assert a[key] is True,key
           iv=lock['independent_validation']
@@ -70,6 +71,10 @@ jobs:
           assert iv['learning_validation_query_disjointness_red_run']==32253837397
           assert iv['learning_validation_query_disjointness_challenger_pr']==91
           assert iv['learning_validation_query_disjointness_fix_commit']=='b34037a41c073a826063e2ba4cb33874ff0c4044'
+          assert iv['validation_query_uniqueness_red_run']==32256422916
+          assert iv['validation_query_uniqueness_challenger_pr']==102
+          assert iv['validation_query_uniqueness_fix_commit']=='a984b80ad28d7f2876d77be91f556a50ae0d581f'
+          assert iv['external_projection_unique_corpus_fix_commit']=='b2e205837940e081cda0fa7da8232e7d81966446'
           for file,expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',file],text=True).strip()
               assert actual==expected,(file,actual,expected)
@@ -109,6 +114,10 @@ jobs:
           assert phase['false_accepts']==0 and phase['trainable_parameter_count']==0
           assert external['passed'] is True and external['globally_minimal'] is True
           assert external['source_id']=='numpy:numpy.linalg.det' and external['source_exposure']=='io_only'
+          assert external['discovery_validation_oracle_query_disjoint'] is True
+          assert external['validation_oracle_query_attempts']==120
+          assert external['validation_oracle_query_unique']==120
+          assert external['validation_oracle_query_duplicates']==0
           assert external['legal_interventions']==external['semantic_profiles']==4
           assert external['lower_basis_count']==external['lower_basis_certified']==external['lower_basis_certificate_count']==4
           assert external['necessity_certificate_count']==2
@@ -179,7 +188,7 @@ jobs:
         run: |
           python - <<'PY'
           import json,os,urllib.request
-          payload=json.dumps({'state':'success','context':'r268/full-gate','description':'R2.68 frozen proof authority, pre-oracle cross-phase isolation, canonical JSON evidence, cross-Python and protected lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
+          payload=json.dumps({'state':'success','context':'r268/full-gate','description':'R2.68 frozen proof authority, pre-oracle cross-phase/validation uniqueness, canonical JSON evidence, cross-Python and protected lineage passed','target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}"}).encode()
           req=urllib.request.Request(f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",data=payload,headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},method='POST')
           urllib.request.urlopen(req).read()
           print('R268_FULL_GATE_STATUS_PUBLISHED')
