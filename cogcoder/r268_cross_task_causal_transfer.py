@@ -187,7 +187,10 @@ def _call_oracle_isolated(
 
     try:
         raw = oracle(oracle_context)
-    except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+    except Exception:
+        # Ordinary external-oracle failures are evidence failures, not solver
+        # process failures. Deliberately do not catch BaseException subclasses
+        # such as KeyboardInterrupt or SystemExit.
         after_token = _oracle_context_token(oracle_context)
         if oracle_context.mutation_attempted or after_token != before_token:
             return 'mutation', None, semantic_context
@@ -198,7 +201,7 @@ def _call_oracle_isolated(
         return 'mutation', None, semantic_context
     try:
         observed = _canonical_number(raw)
-    except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+    except Exception:
         return 'invalid', None, semantic_context
     return 'ok', observed, semantic_context
 
