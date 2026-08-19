@@ -168,6 +168,7 @@ jobs:
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
+              '.github/workflows/r267-1-post-merge-release-bundle.yml',
               'docs/superpowers/specs/2026-08-19-r267-1-genuine-causal-necessity-hotfix.md',
               'R2_67_1_PHASE_A_RESULT.json',
               'R2_67_1_EXTERNAL_TRANSFER.json',
