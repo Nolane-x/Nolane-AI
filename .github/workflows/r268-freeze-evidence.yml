@@ -212,3 +212,5 @@ jobs:
           git add R2_68_PHASE_A_RESULT.json R2_68_EXTERNAL_TRANSFER.json R2_68_PRE_HOSTED_LOCK.json
           git commit -m 'evidence: freeze R2.68 proof-carrying authority boundary'
           git push origin HEAD:r268-proof-carrying-adaptive-causal-basis-gpt56sol
+
+# Retrigger after accepted-parent artifact synchronization; authority semantics unchanged.
