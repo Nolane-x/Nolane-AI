@@ -11,10 +11,12 @@ DISCOVERY = (
     {'a': 1.0, 'b': 1.0},
     {'a': 2.0, 'b': 2.0},
 )
+# Scheduler-only validation rows use a separate domain so this test isolates
+# proposal-slot/hash-order behavior rather than violating cross-phase evidence.
 VALIDATION = (
-    {'a': 1.0, 'b': 2.0},
-    {'a': 2.0, 'b': 3.0},
-    {'a': 4.0, 'b': 1.0},
+    {'a': 5.0, 'b': 7.0},
+    {'a': 7.0, 'b': 11.0},
+    {'a': 11.0, 'b': 13.0},
 )
 
 
@@ -71,7 +73,7 @@ def test_proposal_cache_is_invariant_to_authority_hash_slot_order(monkeypatch) -
 
     # The four authority identities generate exactly three discovery proposal
     # classes at k=2: {a-alias,a-alias}, {b-alias,b-alias}, and the cross-field
-    # {a-alias,b-alias} class.  Hash ordering of concrete intervention IDs must
+    # {a-alias,b-alias} class. Hash ordering of concrete intervention IDs must
     # not turn the cross-field class into two paid searches with swapped slots.
     assert len(set(calls)) == 3
     assert len(calls) == 3
