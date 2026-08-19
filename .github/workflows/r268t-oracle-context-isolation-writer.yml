@@ -60,3 +60,5 @@ jobs:
           git add cogcoder/r268_cross_task_causal_transfer.py cogcoder/r268_cross_task_transfer_baseline.py
           git commit -m 'fix: isolate R2.68-T oracle contexts from mutation'
           git push origin HEAD:hardening-r268t-oracle-context-immutability-gpt56sol
+
+# Retriggered only after hosted runner-only GREEN on Python 3.11 and 3.13.
