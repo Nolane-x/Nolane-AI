@@ -7,6 +7,7 @@ from .r268_cross_task_causal_transfer import (
     TransferCandidate,
     TransferQueryTrace,
     TransferReceipt,
+    _call_oracle_isolated,
     _canonical_number,
     _choose_diagnostic,
     _context_key,
@@ -129,20 +130,23 @@ def solve_from_scratch(
         key = _context_key(context)
         values = _context_values(context)
         before = len(live)
-        try:
-            observed = _canonical_number(oracle(context))
-        except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        oracle_status, observed, semantic_context = _call_oracle_isolated(oracle, context)
+        if oracle_status != 'ok':
             return _failed_receipt(
                 candidates_generated=len(generated), live=live,
                 selection_queries=selection_queries + 1,
                 terminal_queries=0, terminal_exact=0,
-                reason='invalid_oracle_output', trace=trace,
+                reason=(
+                    'oracle_context_mutation'
+                    if oracle_status == 'mutation'
+                    else 'invalid_oracle_output'
+                ), trace=trace,
             )
         selection_queries += 1
         used_keys.add(key)
         survivors: list[TransferCandidate] = []
         for candidate in live:
-            valid, predicted = _safe_prediction(candidate.expression, context)
+            valid, predicted = _safe_prediction(candidate.expression, semantic_context)
             if valid and _equivalent(predicted, observed):
                 survivors.append(candidate)
         live = survivors
@@ -185,20 +189,23 @@ def solve_from_scratch(
     terminal_queries = 0
     terminal_exact = 0
     for context in terminals:
-        try:
-            observed = _canonical_number(oracle(context))
-        except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        oracle_status, observed, semantic_context = _call_oracle_isolated(oracle, context)
+        if oracle_status != 'ok':
             return _failed_receipt(
                 candidates_generated=len(generated), live=live,
                 selection_queries=selection_queries,
                 terminal_queries=terminal_queries + 1,
                 terminal_exact=terminal_exact,
-                reason='invalid_terminal_oracle_output', trace=trace,
+                reason=(
+                    'terminal_oracle_context_mutation'
+                    if oracle_status == 'mutation'
+                    else 'invalid_terminal_oracle_output'
+                ), trace=trace,
             )
         terminal_queries += 1
         survivors = []
         for candidate in live:
-            valid, predicted = _safe_prediction(candidate.expression, context)
+            valid, predicted = _safe_prediction(candidate.expression, semantic_context)
             if valid and _equivalent(predicted, observed):
                 survivors.append(candidate)
         live = survivors
