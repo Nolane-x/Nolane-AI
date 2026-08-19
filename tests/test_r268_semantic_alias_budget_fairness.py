@@ -53,6 +53,10 @@ def test_behavior_identical_authority_aliases_do_not_dilute_proposal_budget() ->
     # proof universe merely to make proposal search cheaper.
     assert aliased.legal_interventions == 4
     assert aliased.semantic_profiles == 4
+    assert aliased.lower_basis_count == 4
+    assert aliased.lower_basis_certified == 4
+    assert aliased.lower_basis_inconclusive == 0
+    assert aliased.proof_ledger_complete is True
 
     # Proposal allocation, however, must be invariant to behavior-identical
     # aliases on the discovery evidence, even when the global budget is exactly
