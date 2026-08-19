@@ -18,6 +18,10 @@ on:
       - '.github/workflows/r268-cross-task-causal-transfer.yml'
   workflow_dispatch:
 
+concurrency:
+  group: r268-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
