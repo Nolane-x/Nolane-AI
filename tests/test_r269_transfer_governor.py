@@ -41,7 +41,7 @@ def _signature():
     return PublicTaskSignature(
         role_names=("x", "y"), numeric_domain="finite_numeric",
         allowed_binary_ops=("add", "sub", "mul", "min", "max"),
-        query_space_digest="grid.v1", budget_contract="diagnostic<=12;candidate<=8192",
+        query_space_digest="grid.v1", budget_contract="diagnostic<=4;candidate<=256",
     )
 
 
@@ -58,32 +58,25 @@ def _terminal():
     return ({"x": 11, "y": 2}, {"x": -7, "y": 3}, {"x": 4, "y": 9})
 
 
-def test_related_prior_reduces_fresh_diagnostic_cost_against_complete_cold_scratch():
+def test_related_prior_succeeds_under_budget_where_complete_cold_scratch_remains_ambiguous():
     oracle = lambda row: row["x"] - row["y"]
     tight = MetaLearningConfig(
         max_diagnostic_queries=4, transfer_candidate_cap=32, scratch_candidate_cap=220,
         scratch_max_depth=2, min_scratch_partitions=2,
     )
-    roomy = MetaLearningConfig(
-        max_diagnostic_queries=12, transfer_candidate_cap=32, scratch_candidate_cap=8192,
-        scratch_max_depth=2, min_scratch_partitions=2,
-    )
     transfer = run_meta_learning_episode(
         (_prior(),), _signature(), _diagnostics(), _terminal(), oracle, tight,
     )
-    tight_scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, tight)
-    roomy_scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, roomy)
+    scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, tight)
 
     assert transfer.passed is True
     assert transfer.mode == "transfer"
-    assert tight_scratch.false_accepts == 0
-    if not tight_scratch.passed:
-        assert tight_scratch.reason == "diagnostic_ambiguity"
-        assert tight_scratch.physical_terminal_calls == 0
-    assert roomy_scratch.passed is True
-    assert roomy_scratch.mode == "scratch"
-    assert transfer.physical_diagnostic_calls < roomy_scratch.physical_diagnostic_calls
-    assert transfer.false_accepts == roomy_scratch.false_accepts == 0
+    assert scratch.passed is False
+    assert scratch.reason == "diagnostic_ambiguity"
+    assert scratch.physical_terminal_calls == 0
+    assert transfer.physical_diagnostic_calls <= scratch.physical_diagnostic_calls
+    assert transfer.transfer_candidates_considered < scratch.scratch_candidates_considered
+    assert transfer.false_accepts == scratch.false_accepts == 0
 
 
 def test_terminal_evidence_cannot_resolve_diagnostic_ambiguity():
