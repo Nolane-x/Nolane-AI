@@ -57,6 +57,7 @@ jobs:
           assert phase['all_gates_pass'] is True
           assert phase['false_accepts'] == 0
           assert phase['trainable_parameter_count'] == 0
+          assert phase['oracle_accounting_exact'] is True
           assert external['source_id'] == 'numpy:numpy.dot'
           assert external['source_exposure'] == 'io_only'
           assert external['passed'] is True
@@ -124,6 +125,7 @@ jobs:
           )
           assert np.__version__ == '2.4.6'
           assert phase['all_gates_pass'] is True
+          assert phase['oracle_accounting_exact'] is True
           assert external['source_id'] == 'numpy:numpy.dot'
           assert external['passed'] is True
           assert external['oracle_calls_collision_certificates'] == 72
@@ -149,16 +151,19 @@ jobs:
               'tests/test_r267_1_evidence.py',
               'tests/test_r267_1_no_collision_failclosed.py',
               'tests/test_r267_1_preselection_receipt_units.py',
+              'tests/test_r267_1_partial_probe_receipt_accounting.py',
               'tests/test_r267_1_triangle_min_robustness.py',
               'tests/test_r267_independent_ablation_completeness.py',
               'scripts/r267_1_apply_genuine_necessity_core.py',
               'scripts/r267_1_apply_certified_ablation_authority.py',
               'scripts/r267_1_apply_preselection_receipt_units.py',
+              'scripts/r267_1_apply_partial_receipt_accounting.py',
               '.github/workflows/r267-1-commit-core-on-green.yml',
               '.github/workflows/r267-1-core-patch-experiment.yml',
               '.github/workflows/r267-1-correctness-red.yml',
               '.github/workflows/r267-1-evidence.yml',
               '.github/workflows/r267-1-preselection-receipt-hotfix.yml',
+              '.github/workflows/r267-1-partial-receipt-hotfix.yml',
               '.github/workflows/r267-1-freeze-evidence.yml',
               '.github/workflows/r267-1-canonical-gate.yml',
               '.github/workflows/r267-1-release-bundle.yml',
@@ -192,6 +197,7 @@ jobs:
                   'public_collision_certificate_required_for_lower_order_insufficiency': True,
                   'postselection_probe_case_unit': 'probe_observation',
                   'preselection_probe_cases_zero_without_selected_triplet': True,
+                  'attempted_case_receipt_accounting': True,
                   'terminal_selected_probe_reobservation': True,
                   'oracle_ledger_exact': True,
                   'positive_domain_triangle_min_robustness': True,
@@ -199,6 +205,8 @@ jobs:
               },
               'authored_evidence': {
                   'all_gates_pass': bool(phase['all_gates_pass']),
+                  'oracle_accounting_exact': bool(phase['oracle_accounting_exact']),
+                  'oracle_calls_total': int(phase['oracle_calls_total']),
                   'false_accepts': int(phase['false_accepts']),
                   'trainable_parameter_count': int(phase['trainable_parameter_count']),
                   'sha256_canonical_json': hashlib.sha256(canonical_phase).hexdigest(),
@@ -223,6 +231,7 @@ jobs:
                   'preselection_receipt_red': 32201248043,
                   'preselection_receipt_red_green': 32202287192,
                   'fresh_receipt_materialization_green': 32202735763,
+                  'partial_receipt_accounting_red': 32204776228,
               },
               'frozen_git_blobs': blobs,
           }
@@ -236,7 +245,8 @@ jobs:
           set -euo pipefail
           changed="$(git status --short | awk '{print $2}' | sort)"
           printf '%s\n' "$changed"
-          test "$changed" = "$(printf '%s\n' R2_67_1_EXTERNAL_TRANSFER.json R2_67_1_PHASE_A_RESULT.json R2_67_1_PRE_HOSTED_LOCK.json | sort)"
+          expected="$(printf '%s\n' R2_67_1_EXTERNAL_TRANSFER.json R2_67_1_PHASE_A_RESULT.json R2_67_1_PRE_HOSTED_LOCK.json | sort)"
+          test "$changed" = "$expected"
       - name: Commit fresh frozen records
         run: |
           set -euo pipefail
