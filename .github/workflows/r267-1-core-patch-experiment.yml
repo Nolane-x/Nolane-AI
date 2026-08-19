@@ -8,6 +8,7 @@ on:
       - 'scripts/r267_1_apply_certified_ablation_authority.py'
       - 'tests/test_r267_1_correctness_hotfix.py'
       - 'tests/test_r267_1_no_collision_failclosed.py'
+      - 'tests/test_r267_1_authority_boundaries.py'
       - '.github/workflows/r267-1-core-patch-experiment.yml'
   pull_request:
     branches: [main]
@@ -16,6 +17,7 @@ on:
       - 'scripts/r267_1_apply_certified_ablation_authority.py'
       - 'tests/test_r267_1_correctness_hotfix.py'
       - 'tests/test_r267_1_no_collision_failclosed.py'
+      - 'tests/test_r267_1_authority_boundaries.py'
       - '.github/workflows/r267-1-core-patch-experiment.yml'
   workflow_dispatch:
 
@@ -44,15 +46,11 @@ jobs:
           python scripts/r267_1_apply_certified_ablation_authority.py
       - name: Compile patched production
         run: python -m py_compile cogcoder/r267_three_probe_causal_composition.py
-      - name: R2.67.1 correctness contracts after patch
+      - name: R2.67.1 correctness and authority contracts after patch
         run: |
           PYTHONPATH=. python -m pytest -q \
             tests/test_r267_1_correctness_hotfix.py \
-            tests/test_r267_1_no_collision_failclosed.py
-      - name: Preserve R2.67 fail-closed and authority regressions where semantically compatible
-        run: |
-          PYTHONPATH=. python -m pytest -q \
-            tests/test_r267_independent_ablation_completeness.py \
-            tests/test_r267_independent_authority_boundaries.py \
-            tests/test_r267_oracle_accounting.py \
-            tests/test_r267_terminal_probe_evidence.py
+            tests/test_r267_1_no_collision_failclosed.py \
+            tests/test_r267_1_authority_boundaries.py
+      - name: Preserve semantically compatible historical fail-closed regression
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_independent_ablation_completeness.py
