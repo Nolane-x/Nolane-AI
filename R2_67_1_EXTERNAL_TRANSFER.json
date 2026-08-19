@@ -22,10 +22,18 @@
   "pair_candidates": 0,
   "pair_collision_certificates": 3,
   "passed": true,
-  "probe_candidates": [3,3,3],
+  "probe_candidates": [
+    3,
+    3,
+    3
+  ],
   "probe_validation_cases": 18,
   "probe_validation_exact": 18,
-  "selected_roles": ["a","b","c"],
+  "selected_roles": [
+    "a",
+    "b",
+    "c"
+  ],
   "selected_semantic_profile_ids": [
     "4c09e6d99df899d2a86641317b64d7f7b0fda674863608645b6d19537aee6580",
     "a5a132a0400ef066fbadd9cd542994f58bc90b401440470b8f7cde3633106cac",
