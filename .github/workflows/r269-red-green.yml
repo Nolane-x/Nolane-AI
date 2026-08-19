@@ -44,10 +44,20 @@ jobs:
           import json
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           result = run_benchmark()
+          assert result['milestone'] == 'R2.69'
+          assert result['accepted_parent_sha'] == 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
+          assert result['source_basis_sizes'] == [2, 3, 4]
+          assert result['positive_transfer_solved'] >= 17
+          assert result['tight_cold_scratch_solved'] <= 12
+          assert result['roomy_scratch_solved'] >= 17
+          assert result['source_prior_ablation_advantage_removed_fraction'] >= 0.80
+          assert result['negative_targets'] == 12
+          assert result['negative_transfer_false_accepts'] == 0
+          assert result['continued_scratch_correctness_preserved'] is True
+          assert result['max_negative_transfer_diagnostic_regret'] <= 1
+          assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
-          assert result['negative']['false_accepts'] == 0
-          assert result['strong_claim_gate']['zero_false_accepts'] is True
-          assert result['strong_claim_gate']['roomy_scratch_expressibility'] is True
+          assert result['authored_gate_pass'] is True
           print('R269_AUTHORED_CANONICAL_JSON=' + json.dumps(result, sort_keys=True, separators=(',', ':')))
-          print('R269_AUTHORED_DIGEST=' + result['determinism']['semantic_digest'])
+          print('R269_AUTHORED_DIGEST=' + result['semantic_result_digest'])
           PY
