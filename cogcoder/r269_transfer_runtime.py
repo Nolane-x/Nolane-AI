@@ -36,8 +36,8 @@ class MetaLearningConfig:
     def __post_init__(self) -> None:
         if self.max_diagnostic_queries < 1 or self.transfer_candidate_cap < 1 or self.scratch_candidate_cap < 1:
             raise ValueError('budgets must be positive')
-        if self.scratch_max_depth not in (0, 1, 2):
-            raise ValueError('scratch_max_depth must be 0, 1, or 2')
+        if self.scratch_max_depth not in (0, 1, 2, 3):
+            raise ValueError('scratch_max_depth must be 0, 1, 2, or 3')
         if self.min_scratch_partitions < 1:
             raise ValueError('min_scratch_partitions must be positive')
 
@@ -58,35 +58,35 @@ class PriorRegistry:
 
     @property
     def quarantined_prior_digests(self) -> frozenset[str]:
-        return frozenset(k for k, v in self._states.items() if v.status == 'quarantined')
+        return frozenset(digest for digest, state in self._states.items() if state.status == 'quarantined')
 
     def state_for(self, digest: str) -> PriorState:
-        return self._states.get(digest, PriorState(digest, 'active', 0, 0, 0, 'unseen'))
+        return self._states.get(str(digest), PriorState(str(digest), 'active', 0, 0, 0, 'unseen'))
 
     def quarantine(self, digest: str, *, reason: str, regret: int = 0) -> PriorState:
         old = self.state_for(digest)
         row = PriorState(
-            digest,
+            str(digest),
             'quarantined',
             old.contradiction_count + 1,
-            old.negative_regret + max(0, regret),
+            old.negative_regret + max(0, int(regret)),
             old.positive_credit,
-            reason,
+            str(reason),
         )
-        self._states[digest] = row
+        self._states[row.portable_digest] = row
         return row
 
     def credit(self, digest: str, amount: int = 1) -> PriorState:
         old = self.state_for(digest)
         row = PriorState(
-            digest,
+            str(digest),
             old.status,
             old.contradiction_count,
             old.negative_regret,
-            old.positive_credit + max(0, amount),
+            old.positive_credit + max(0, int(amount)),
             'verified_credit',
         )
-        self._states[digest] = row
+        self._states[row.portable_digest] = row
         return row
 
 
@@ -114,6 +114,16 @@ class MetaLearningReceipt:
             raise ValueError('trainable_parameter_count must remain zero')
         if self.false_accepts != 0:
             raise ValueError('R2.69 receipts cannot authorize false accepts')
+        if any(value < 0 for value in (
+            self.physical_diagnostic_calls,
+            self.physical_terminal_calls,
+            self.transfer_candidates_considered,
+            self.scratch_candidates_considered,
+            self.reused_observations,
+            self.avoided_duplicate_calls,
+            self.transfer_contradictions,
+        )):
+            raise ValueError('receipt counters must be non-negative')
 
 
 def _rewrite(expr: Expr, mapping: Mapping[str, str]) -> Expr:
@@ -131,7 +141,7 @@ def _rewrite(expr: Expr, mapping: Mapping[str, str]) -> Expr:
             _rewrite(expr.when_true, mapping),
             _rewrite(expr.when_false, mapping),
         )
-    raise TypeError(type(expr).__name__)
+    raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
 
 def _mutations(expr: Expr, ops: Sequence[str]) -> tuple[Expr, ...]:
@@ -149,18 +159,38 @@ def _mutations(expr: Expr, ops: Sequence[str]) -> tuple[Expr, ...]:
     return tuple(out)
 
 
-def _structural_key(expr: Expr) -> str:
+def _finite_integer_semantic_key(expr: Expr, signature: PublicTaskSignature) -> str:
+    if signature.numeric_domain != 'finite_integer':
+        raise ValueError('complete finite-domain proof requires finite_integer signature')
+    rows: list[tuple[str, object]] = []
+    for values in itertools.product(signature.finite_integer_values, repeat=len(signature.role_names)):
+        context = dict(zip(signature.role_names, values, strict=True))
+        try:
+            value = _canonical_number(evaluate_expr(expr, context))
+            if not isinstance(value, int):
+                rows.append(('invalid', 'non_integer'))
+            else:
+                rows.append(('value', value))
+        except (ArithmeticError, KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+            rows.append(('invalid', 'evaluation'))
+    # Because finite_integer_values declares the complete legal query universe,
+    # this vector is an extensional proof inside the bounded Phase-A domain,
+    # not a finite sampled fingerprint.
+    return json.dumps(('finite-extensional-proof', rows), separators=(',', ':'))
+
+
+def _structural_key(expr: Expr, signature: PublicTaskSignature) -> str:
+    if signature.numeric_domain == 'finite_integer':
+        return _finite_integer_semantic_key(expr, signature)
     if isinstance(expr, Field):
         return json.dumps(('f', expr.name), separators=(',', ':'))
     if isinstance(expr, Const):
         return json.dumps(('c', expr.value), separators=(',', ':'))
     if isinstance(expr, Unary):
-        return json.dumps(('u', expr.op, _structural_key(expr.arg)), separators=(',', ':'))
+        return json.dumps(('u', expr.op, _structural_key(expr.arg, signature)), separators=(',', ':'))
     if isinstance(expr, Binary):
-        left = _structural_key(expr.left)
-        right = _structural_key(expr.right)
-        # Only universally valid finite-numeric identities are proof authority.
-        # Finite agreement on the current diagnostic corpus is not enough.
+        left = _structural_key(expr.left, signature)
+        right = _structural_key(expr.right, signature)
         if expr.op in ('min', 'max') and left == right:
             return left
         if expr.op in ('add', 'mul', 'min', 'max') and right < left:
@@ -168,70 +198,90 @@ def _structural_key(expr: Expr) -> str:
         return json.dumps(('b', expr.op, left, right), separators=(',', ':'))
     if isinstance(expr, IfElse):
         return json.dumps(
-            ('i', _structural_key(expr.condition), _structural_key(expr.when_true), _structural_key(expr.when_false)),
+            (
+                'i',
+                _structural_key(expr.condition, signature),
+                _structural_key(expr.when_true, signature),
+                _structural_key(expr.when_false, signature),
+            ),
             separators=(',', ':'),
         )
-    raise TypeError(type(expr).__name__)
+    raise TypeError(f'unsupported expression type: {type(expr).__name__}')
 
 
-def _dedupe(rows: Sequence[_Hypothesis], cap: int) -> list[_Hypothesis]:
-    by: dict[str, _Hypothesis] = {}
+def _dedupe(rows: Sequence[_Hypothesis], cap: int, signature: PublicTaskSignature) -> list[_Hypothesis]:
+    by_key: dict[str, _Hypothesis] = {}
     for row in rows:
-        key = _structural_key(row.expression)
-        old = by.get(key)
+        key = _structural_key(row.expression, signature)
+        old = by_key.get(key)
         if old is None or (row.repair_distance, row.hypothesis_id) < (old.repair_distance, old.hypothesis_id):
-            by[key] = row
-    return sorted(by.values(), key=lambda r: (r.repair_distance, r.hypothesis_id))[:cap]
+            by_key[key] = row
+    return sorted(by_key.values(), key=lambda row: (row.repair_distance, row.hypothesis_id))[:int(cap)]
 
 
-def _transfer_hypotheses(portable: PortableExperience, sig: PublicTaskSignature, cap: int) -> list[_Hypothesis]:
+def _transfer_hypotheses(portable: PortableExperience, signature: PublicTaskSignature, cap: int) -> list[_Hypothesis]:
     bases = [(portable.canonical_expression, 0)] + [
-        (expr, 1) for expr in _mutations(portable.canonical_expression, sig.allowed_binary_ops)
+        (expr, 1) for expr in _mutations(portable.canonical_expression, signature.allowed_binary_ops)
     ]
     rows: list[_Hypothesis] = []
     for expr, distance in bases:
-        for permutation in itertools.permutations(sig.role_names):
+        for permutation in itertools.permutations(signature.role_names):
             rewritten = _rewrite(expr, dict(zip(portable.canonical_roles, permutation, strict=True)))
             rows.append(_Hypothesis(rewritten, 'transfer.' + expr_digest(rewritten), 'transfer', distance))
-    return _dedupe(rows, cap)
+    return _dedupe(rows, int(cap), signature)
 
 
-def _scratch_hypotheses(sig: PublicTaskSignature, cfg: MetaLearningConfig) -> list[_Hypothesis]:
+def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLearningConfig) -> list[_Hypothesis]:
     rows: list[_Hypothesis] = []
     seen: set[str] = set()
 
     def add(expr: Expr) -> bool:
-        key = _structural_key(expr)
+        key = _structural_key(expr, signature)
         if key in seen:
             return True
         seen.add(key)
         rows.append(_Hypothesis(expr, 'scratch.' + expr_digest(expr), 'scratch', len(rows)))
-        return len(rows) < cfg.scratch_candidate_cap
+        return len(rows) < config.scratch_candidate_cap
 
-    fields = tuple(Field(name) for name in sig.role_names)
+    fields = tuple(Field(name) for name in signature.role_names)
     for field in fields:
         if not add(field):
             return rows
-    if cfg.scratch_max_depth == 0:
+    if config.scratch_max_depth == 0:
         return rows
 
     level1: list[Expr] = []
-    for op in sig.allowed_binary_ops:
+    for op in signature.allowed_binary_ops:
         for left in fields:
             for right in fields:
                 expr = Binary(op, left, right)
                 level1.append(expr)
                 if not add(expr):
                     return rows
-    if cfg.scratch_max_depth == 1:
+    if config.scratch_max_depth == 1:
         return rows
 
-    for op in sig.allowed_binary_ops:
+    for op in signature.allowed_binary_ops:
         for nested in level1:
             for field in fields:
                 if not add(Binary(op, nested, field)):
                     return rows
                 if not add(Binary(op, field, nested)):
+                    return rows
+    if config.scratch_max_depth == 2:
+        return rows
+
+    # Depth 3 is reserved for the roomy expressibility control. Proposal
+    # ordering up through depth 2 is identical to the tight baseline.
+    previous = tuple(row.expression for row in rows)
+    frontier = tuple(expr for expr in previous if expr.depth == 2)
+    lower = tuple(expr for expr in previous if expr.depth <= 2)
+    for op in signature.allowed_binary_ops:
+        for left in frontier:
+            for right in lower:
+                if not add(Binary(op, left, right)):
+                    return rows
+                if right is not left and not add(Binary(op, right, left)):
                     return rows
     return rows
 
@@ -246,8 +296,8 @@ def _predict(expr: Expr, context: Mapping[str, object]) -> tuple[bool, int | flo
 def _partitions(rows: Sequence[_Hypothesis], context: Mapping[str, object]) -> dict[str, int]:
     out: dict[str, int] = {}
     for row in rows:
-        ok, value = _predict(row.expression, context)
-        key = 'invalid' if not ok else json.dumps(value, separators=(',', ':'), allow_nan=False)
+        valid, value = _predict(row.expression, context)
+        key = 'invalid' if not valid else json.dumps(value, separators=(',', ':'), allow_nan=False)
         out[key] = out.get(key, 0) + 1
     return out
 
@@ -286,7 +336,12 @@ def _choose_query(
 
 
 def _filter(rows: Sequence[_Hypothesis], context: Mapping[str, object], observed: int | float) -> list[_Hypothesis]:
-    return [row for row in rows if (lambda pred: pred[0] and pred[1] == observed)(_predict(row.expression, context))]
+    survivors: list[_Hypothesis] = []
+    for row in rows:
+        valid, predicted = _predict(row.expression, context)
+        if valid and predicted == observed:
+            survivors.append(row)
+    return survivors
 
 
 def _terminal_verify(selected: _Hypothesis, terminal_contexts, oracle, ledger: SharedObservationLedger):
@@ -306,10 +361,44 @@ def _terminal_verify(selected: _Hypothesis, terminal_contexts, oracle, ledger: S
         if row.status != 'ok':
             return False, row.status, ledger.physical_oracle_calls - before
         semantic = dict(zip(ledger.signature.role_names, row.context_values, strict=True))
-        ok, predicted = _predict(selected.expression, semantic)
-        if not ok or predicted != row.observed:
+        valid, predicted = _predict(selected.expression, semantic)
+        if not valid or predicted != row.observed:
             return False, 'terminal_contradiction', ledger.physical_oracle_calls - before
     return True, 'verified', ledger.physical_oracle_calls - before
+
+
+def _receipt(
+    passed: bool,
+    mode: str,
+    selected: Expr | None,
+    prior_digest: str | None,
+    ledger: SharedObservationLedger,
+    transfer_initial: int,
+    scratch_initial: int,
+    reused: int,
+    contradictions: int,
+    quarantine: bool,
+    reason: str,
+    terminal_calls: int = 0,
+) -> MetaLearningReceipt:
+    return MetaLearningReceipt(
+        passed=passed,
+        mode=mode,
+        selected_expression=selected,
+        selected_prior_digest=prior_digest,
+        physical_diagnostic_calls=sum(row.phase == 'diagnostic' for row in ledger.observations),
+        physical_terminal_calls=terminal_calls,
+        transfer_candidates_considered=transfer_initial,
+        scratch_candidates_considered=scratch_initial,
+        reused_observations=reused,
+        avoided_duplicate_calls=reused,
+        transfer_contradictions=contradictions,
+        quarantine_action=quarantine,
+        false_accepts=0,
+        reason=reason,
+        ledger=ledger.observations,
+        trainable_parameter_count=0,
+    )
 
 
 def run_meta_learning_episode(
@@ -322,8 +411,12 @@ def run_meta_learning_episode(
     *,
     registry=None,
 ) -> MetaLearningReceipt:
+    if not isinstance(signature, PublicTaskSignature):
+        raise TypeError('signature must be PublicTaskSignature')
     if not isinstance(config, MetaLearningConfig):
         raise TypeError('config must be MetaLearningConfig')
+    if not callable(oracle):
+        raise TypeError('oracle must be callable')
     if not diagnostic_contexts or not terminal_contexts:
         raise ValueError('diagnostic and terminal contexts must be non-empty')
     diagnostic_keys = tuple(_context_key(signature, row) for row in diagnostic_contexts)
@@ -382,35 +475,35 @@ def run_meta_learning_episode(
             if prior:
                 registry.quarantine(prior.portable_digest, reason=row.status, regret=1)
                 quarantine = True
-            return MetaLearningReceipt(
+            return _receipt(
                 False,
                 'transfer' if prior else 'scratch',
                 None,
                 prior.portable_digest if prior else None,
-                sum(ob.phase == 'diagnostic' for ob in ledger.observations),
-                0,
+                ledger,
                 transfer_initial,
                 scratch_initial,
                 reused_count,
-                reused_count,
                 contradictions,
                 quarantine,
-                0,
                 row.status,
-                ledger.observations,
             )
+
         semantic = dict(zip(signature.role_names, row.context_values, strict=True))
         if transfer:
             transfer = _filter(transfer, semantic, row.observed)
             if not transfer and prior:
                 contradictions += 1
                 abandoned = True
-                reused_count = sum(ob.phase == 'diagnostic' for ob in ledger.observations)
+                # All already purchased diagnostic observations are eligible for
+                # scratch continuation. This is the concrete shared-evidence
+                # credit, not an extra oracle call.
+                reused_count = sum(observation.phase == 'diagnostic' for observation in ledger.observations)
                 registry.quarantine(prior.portable_digest, reason='transfer_hypothesis_eliminated', regret=1)
                 quarantine = True
         scratch = _filter(scratch, semantic, row.observed)
 
-    selected = None
+    selected: _Hypothesis | None = None
     mode = 'scratch'
     if len(transfer) == 1 and ledger.physical_oracle_calls >= 1:
         selected = transfer[0]
@@ -420,45 +513,38 @@ def run_meta_learning_episode(
         mode = 'scratch_after_transfer' if abandoned else 'scratch'
 
     if selected is None:
-        return MetaLearningReceipt(
+        return _receipt(
             False,
             'scratch_after_transfer' if abandoned else ('transfer' if prior else 'scratch'),
             None,
             prior.portable_digest if prior else None,
-            sum(ob.phase == 'diagnostic' for ob in ledger.observations),
-            0,
+            ledger,
             transfer_initial,
             scratch_initial,
             reused_count,
-            reused_count,
             contradictions,
             quarantine,
-            0,
             'diagnostic_ambiguity',
-            ledger.observations,
         )
 
-    passed, reason, terminal_calls = _terminal_verify(selected, terminal_contexts, oracle, ledger)
+    passed, terminal_reason, terminal_calls = _terminal_verify(selected, terminal_contexts, oracle, ledger)
     if not passed:
         if mode == 'transfer' and prior:
-            registry.quarantine(prior.portable_digest, reason=reason, regret=terminal_calls)
+            registry.quarantine(prior.portable_digest, reason=terminal_reason, regret=terminal_calls)
             quarantine = True
-        return MetaLearningReceipt(
+        return _receipt(
             False,
             mode,
             None,
             prior.portable_digest if prior else None,
-            sum(ob.phase == 'diagnostic' for ob in ledger.observations),
-            terminal_calls,
+            ledger,
             transfer_initial,
             scratch_initial,
             reused_count,
-            reused_count,
             contradictions,
             quarantine,
-            0,
-            reason,
-            ledger.observations,
+            terminal_reason,
+            terminal_calls,
         )
 
     reason = (
@@ -466,22 +552,19 @@ def run_meta_learning_episode(
         if mode == 'transfer'
         else ('accepted_scratch_after_transfer' if mode == 'scratch_after_transfer' else 'accepted_scratch')
     )
-    return MetaLearningReceipt(
+    return _receipt(
         True,
         mode,
         selected.expression,
         prior.portable_digest if mode == 'transfer' and prior else None,
-        sum(ob.phase == 'diagnostic' for ob in ledger.observations),
-        terminal_calls,
+        ledger,
         transfer_initial,
         scratch_initial,
         reused_count,
-        reused_count,
         contradictions,
         quarantine,
-        0,
         reason,
-        ledger.observations,
+        terminal_calls,
     )
 
 
