@@ -4,9 +4,8 @@ on:
   pull_request:
     paths:
       - 'cogcoder/r269_transfer_runtime.py'
-      - 'scripts/r269_multi_prior_patch.py'
-      - 'scripts/r269_multi_prior_adjust.py'
-      - 'tests/test_r269_multi_prior_adjudication.py'
+      - 'benchmarks/kfigg/r269_meta_learning.py'
+      - 'tests/test_r269_*.py'
       - '.github/workflows/r269-multi-prior-hardening.yml'
   workflow_dispatch:
 
@@ -22,17 +21,13 @@ jobs:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
-      - name: Apply runner-only proposal
-        run: |
-          PYTHONPATH=. python scripts/r269_multi_prior_patch.py
-          PYTHONPATH=. python scripts/r269_multi_prior_adjust.py
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install pytest 'numpy==2.4.6'
       - name: Protected R2.68 safety
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-      - name: Multi-prior adversary
+      - name: Materialized multi-prior adversary
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_multi_prior_adjudication.py
-      - name: Existing R2.69 contracts excluding in-flight benchmark closure
-        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py -k 'not benchmark and not scratch_compositional_closure'
+      - name: Materialized R2.69 contracts except independently RED closure
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py -k 'not scratch_compositional_closure'
