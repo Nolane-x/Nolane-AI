@@ -160,6 +160,8 @@ jobs:
               '.github/workflows/r267-1-evidence.yml',
               '.github/workflows/r267-1-preselection-receipt-hotfix.yml',
               '.github/workflows/r267-1-freeze-evidence.yml',
+              '.github/workflows/r267-1-canonical-gate.yml',
+              '.github/workflows/r267-1-release-bundle.yml',
               'docs/superpowers/specs/2026-08-19-r267-1-genuine-causal-necessity-hotfix.md',
               'R2_67_1_PHASE_A_RESULT.json',
               'R2_67_1_EXTERNAL_TRANSFER.json',
@@ -193,6 +195,7 @@ jobs:
                   'terminal_selected_probe_reobservation': True,
                   'oracle_ledger_exact': True,
                   'positive_domain_triangle_min_robustness': True,
+                  'canonical_and_release_gate_blobs_frozen': True,
               },
               'authored_evidence': {
                   'all_gates_pass': bool(phase['all_gates_pass']),
