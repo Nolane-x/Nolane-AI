@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from benchmarks.kfigg.r268_cross_task_causal_transfer import run_benchmark
 from cogcoder.r256_operator_dsl import Binary, Field
 import cogcoder.r268_cross_task_causal_transfer as transfer
 import cogcoder.r268_cross_task_transfer_baseline as scratch
@@ -108,3 +109,16 @@ def test_scratch_candidate_budget_counts_proof_distinct_hypotheses():
     assert receipt.selection_queries >= 1
     assert receipt.terminal_queries == 1
     assert receipt.false_accepts == 0
+
+
+def test_authored_control_uses_same_semantic_candidate_budget():
+    result = run_benchmark()
+
+    assert result['candidate_budget_unit'] == 'proof_distinct_hypotheses'
+    assert result['transfer_vs_tight_scratch_same_candidate_budget'] is True
+    assert result['positive_transfer_exact'] == result['positive_transfer_cases'] == 3
+    assert result['tight_scratch_exact'] == 1
+    assert result['transfer_advantage_over_tight_scratch'] == 2
+    assert result['source_prior_ablation_exact'] == 0
+    assert result['false_accepts'] == 0
+    assert result['all_gates_pass'] is True
