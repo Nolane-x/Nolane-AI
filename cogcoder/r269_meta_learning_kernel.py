@@ -35,7 +35,12 @@ def _canonical_number(value: object) -> int | float:
 def _context_values(signature: 'PublicTaskSignature', context: Mapping[str, object]) -> tuple[int | float, ...]:
     if set(map(str, context.keys())) != set(signature.role_names):
         raise ValueError('context keys must exactly match public role_names')
-    return tuple(_canonical_number(context[name]) for name in signature.role_names)
+    values = tuple(_canonical_number(context[name]) for name in signature.role_names)
+    if signature.numeric_domain == 'finite_integer':
+        legal = frozenset(signature.finite_integer_values)
+        if any(not isinstance(value, int) or value not in legal for value in values):
+            raise ValueError('context is outside the declared finite integer query universe')
+    return values
 
 
 def _context_key(signature: 'PublicTaskSignature', context: Mapping[str, object]) -> str:
@@ -62,6 +67,7 @@ class PublicTaskSignature:
     allowed_binary_ops: tuple[str, ...]
     query_space_digest: str
     budget_contract: str
+    finite_integer_values: tuple[int, ...] = ()
 
     def __post_init__(self) -> None:
         roles = tuple(_nonempty(row, 'role name') for row in self.role_names)
@@ -69,12 +75,21 @@ class PublicTaskSignature:
             raise ValueError('role_names must contain 1..8 unique names')
         if any(name.startswith('__r') for name in roles):
             raise ValueError('target role_names must be surface roles, not portable role names')
-        if self.numeric_domain != 'finite_numeric':
-            raise ValueError('Phase A supports finite_numeric only')
+        if self.numeric_domain not in ('finite_numeric', 'finite_integer'):
+            raise ValueError('Phase A supports finite_numeric or finite_integer')
+        raw_domain = tuple(self.finite_integer_values)
+        if any(isinstance(value, bool) or not isinstance(value, int) for value in raw_domain):
+            raise ValueError('finite_integer_values must contain integers only')
+        domain_values = tuple(sorted(set(raw_domain)))
+        if self.numeric_domain == 'finite_integer' and len(domain_values) < 3:
+            raise ValueError('finite_integer requires at least three declared legal values')
+        if self.numeric_domain == 'finite_numeric' and domain_values:
+            raise ValueError('finite_integer_values are only valid for finite_integer tasks')
         ops = tuple(map(str, self.allowed_binary_ops))
         if not ops or len(set(ops)) != len(ops) or any(op not in _ALLOWED_OPS for op in ops):
             raise ValueError('allowed_binary_ops must be a unique supported numeric op set')
         object.__setattr__(self, 'role_names', roles)
+        object.__setattr__(self, 'finite_integer_values', domain_values)
         object.__setattr__(self, 'allowed_binary_ops', ops)
         object.__setattr__(self, 'query_space_digest', _nonempty(self.query_space_digest, 'query_space_digest'))
         object.__setattr__(self, 'budget_contract', _nonempty(self.budget_contract, 'budget_contract'))
@@ -87,6 +102,7 @@ class PublicTaskSignature:
             'allowed_binary_ops': sorted(self.allowed_binary_ops),
             'query_space_digest': self.query_space_digest,
             'budget_contract': self.budget_contract,
+            'finite_integer_values': list(self.finite_integer_values),
         }
         raw = json.dumps(payload, sort_keys=True, separators=(',', ':'))
         return hashlib.sha256(raw.encode()).hexdigest()
@@ -248,6 +264,9 @@ class SharedObservationLedger:
         else:
             try:
                 observed = _canonical_number(raw)
+                if self.signature.numeric_domain == 'finite_integer' and not isinstance(observed, int):
+                    status = 'invalid_oracle_output'
+                    observed = None
             except (TypeError, ValueError):
                 status = 'invalid_oracle_output'
                 observed = None
