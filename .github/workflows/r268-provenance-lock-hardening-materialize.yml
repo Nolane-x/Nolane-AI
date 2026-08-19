@@ -1,0 +1,79 @@
+name: R2.68 Materialize Provenance Lock Hardening
+
+on:
+  push:
+    branches: [r268-provenance-lock-hardening-gpt56sol]
+    paths:
+      - '.github/workflows/r268-provenance-lock-hardening-materialize.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.event.head_commit.message == 'ci(r268): materialize provenance lock hardening'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r268-proof-carrying-adaptive-causal-basis-gpt56sol
+          fetch-depth: 0
+      - name: Refuse stale materializer
+        run: test "$(git rev-parse HEAD)" = 'a5ac730c297994601aa13ae81219b419e4be6cbe'
+      - name: Correct and bind provenance authority
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          freeze=Path('.github/workflows/r268-freeze-evidence.yml')
+          text=freeze.read_text()
+          old="""          git merge-base --is-ancestor b789dd7a48f10f3afb1cf42ee62d3dc77dee200e HEAD
+"""
+          new="""          git merge-base --is-ancestor b789dd7a48f10f3afb1cf42ee62d3dc77dee200e HEAD
+          git merge-base --is-ancestor b9313e26e5c62207c1592a6c6e99499c7c7b9551 HEAD
+          git merge-base --is-ancestor 3cb2efaacd43f2f0642bc916d45ddd415257beb0 HEAD
+"""
+          assert text.count(old)==1, text.count(old)
+          text=text.replace(old,new,1)
+          old2="""              'semantic_alias_budget_fix_pr':83,
+              'semantic_alias_search_reuse_challenger_pr':84,
+"""
+          new2="""              'semantic_alias_budget_fix_pr':85,
+              'semantic_alias_budget_fix_merge_commit':'b9313e26e5c62207c1592a6c6e99499c7c7b9551',
+              'semantic_alias_search_reuse_fix_commit':'3cb2efaacd43f2f0642bc916d45ddd415257beb0',
+              'semantic_alias_search_reuse_challenger_pr':84,
+"""
+          assert text.count(old2)==1, text.count(old2)
+          freeze.write_text(text.replace(old2,new2,1))
+
+          gate=Path('.github/workflows/r268-canonical-gate.yml')
+          text=gate.read_text()
+          old3="""          assert lock['independent_validation']['semantic_alias_search_reuse_red_run']==32237610280
+          assert lock['independent_validation']['semantic_alias_search_reuse_challenger_pr']==84
+          for file,expected in lock['frozen_git_blobs'].items():
+"""
+          new3="""          iv=lock['independent_validation']
+          assert iv['semantic_alias_search_reuse_red_run']==32237610280
+          assert iv['semantic_alias_budget_fix_pr']==85
+          assert iv['semantic_alias_budget_fix_merge_commit']=='b9313e26e5c62207c1592a6c6e99499c7c7b9551'
+          assert iv['semantic_alias_search_reuse_fix_commit']=='3cb2efaacd43f2f0642bc916d45ddd415257beb0'
+          assert iv['semantic_alias_search_reuse_challenger_pr']==84
+          for commit in (iv['semantic_alias_budget_fix_merge_commit'],iv['semantic_alias_search_reuse_fix_commit']):
+              subprocess.run(['git','merge-base','--is-ancestor',commit,lock['source_freeze_head']],check=True)
+          for file,expected in lock['frozen_git_blobs'].items():
+"""
+          assert text.count(old3)==1, text.count(old3)
+          gate.write_text(text.replace(old3,new3,1))
+          PY
+      - name: Commit exact protocol hardening
+        run: |
+          set -euo pipefail
+          changed="$(git status --short | awk '{print $2}' | sort)"
+          expected="$(printf '%s\n' .github/workflows/r268-canonical-gate.yml .github/workflows/r268-freeze-evidence.yml | sort)"
+          test "$changed" = "$expected"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/workflows/r268-canonical-gate.yml .github/workflows/r268-freeze-evidence.yml
+          git commit -m 'evidence: bind R2.68 alias fixes to canonical provenance'
+          git push origin HEAD:r268-proof-carrying-adaptive-causal-basis-gpt56sol
