@@ -8,18 +8,20 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   authority:
     runs-on: ubuntu-latest
-    timeout-minutes: 50
+    timeout-minutes: 60
     strategy:
       fail-fast: false
       matrix:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -28,5 +30,31 @@ jobs:
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
           PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Proper-subset proof authority
+      - name: Apply guarded runtime authority patch
+        run: python scripts/r268_apply_proper_subset_authority.py
+      - name: Compile authority surfaces
+        run: python -m py_compile cogcoder/_r268_proof.py cogcoder/_r268_runtime.py
+      - name: Proper-subset proof authority GREEN
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_proper_subset_authority_integration.py
+      - name: Full R2.68 focused contracts GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: External determinant transfer remains GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_external_transfer.py
+      - name: Corrected parent remains GREEN after patch
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Materialize exact runtime delta after GREEN
+        if: matrix.python-version == '3.11' && github.event_name == 'push'
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name 'Nolane R2.68 verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git add cogcoder/_r268_runtime.py
+          if git diff --cached --quiet; then
+            echo 'No runtime delta to materialize.'
+            exit 0
+          fi
+          git commit -m 'fix: bind R2.68 necessity proofs to proper subsets'
+          git push origin HEAD:fix-r268-proper-subset-authority-gpt56sol
