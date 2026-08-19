@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "track": "R2.68-T",
+  "canonical_r268_owner_pr": 73,
+  "pull_request": 70,
+  "status": "independent_research_candidate",
+  "promotion_allowed": false,
+  "trainable_parameter_count": 0,
+  "claim_boundary": {
+    "bounded_candidate_budget_advantage": true,
+    "lower_total_oracle_cost": false,
+    "arbitrary_raw_target_schema_binding": false,
+    "end_to_end_source_learning_in_phase_a": false,
+    "unrestricted_program_transfer": false,
+    "agi": false
+  },
+  "hosted_tdd": {
+    "portable_prior_red_run": 32217699599,
+    "portable_prior_green_run": 32217845457,
+    "active_adaptation_red_run": 32217913671,
+    "active_adaptation_green_run": 32218004962,
+    "scratch_baseline_red_run": 32218105396,
+    "scratch_baseline_green_run": 32218226399,
+    "authored_benchmark_red_run": 32218264442,
+    "authored_benchmark_green_run": 32218379720,
+    "world_hardening_red_run": 32218763169,
+    "world_hardening_green_run": null
+  },
+  "world_hardening_red": {
+    "python_3_11": "4 failed, 11 passed",
+    "python_3_13": "4 failed, 11 passed",
+    "findings": [
+      "direct portable construction could bypass source-identity boundary",
+      "direct portable construction could forge expression digest",
+      "direct portable construction could alter canonical probe roles or parameter metadata",
+      "authored evidence lacked an explicit same-budget source-prior ablation"
+    ]
+  },
+  "nolane_world": {
+    "version": "0.8.0",
+    "session_id": "world_08f2eb97340c",
+    "world": "W5",
+    "role": "independent falsification and claim calibration"
+  },
+  "coordination": {
+    "canonical_namespace_yielded": true,
+    "canonical_r268_pr": 73,
+    "may_feed_canonical_or_later_milestone": true
+  }
+}
