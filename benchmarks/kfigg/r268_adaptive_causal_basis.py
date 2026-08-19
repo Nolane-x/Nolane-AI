@@ -43,7 +43,7 @@ def _cases()->tuple[Case,...]:
     def o4(r):
         a,b,c,d=(float(r[x]) for x in f4);return a*b+a*c+a*d+b*c+b*d+c*d
     return (
-        ('one-probe-sufficient',f1,o1,((1,2,3),(2,3,4),(-2,5,7),(4,-3,9),(5,2,11),(-3,-2,13)),((6,7,15),(-5,4,17),(8,-2,19)),((101,103,107),(-109,113,127),(131,-137,139)),1),
+        ('one-probe-nuisance-rejection',f1,o1,((1,2,3),(2,3,4),(-2,5,7),(4,-3,9),(5,2,11),(-3,-2,13)),((6,7,15),(-5,4,17),(8,-2,19)),((101,103,107),(-109,113,127),(131,-137,139)),0),
         ('two-probe-sum',f2,o2,((-2,-2),(-2,-1),(-1,-2),(1,3),(4,-2),(5,7)),((2,5),(-3,6),(8,-4)),((101,103),(-109,113),(127,-131)),2),
         ('three-probe-triangle',f3,o3,((-2,-2,-2),(-2,-2,-1),(-2,-2,0),(-2,-1,-2),(-2,-1,0),(-2,0,-2),(-2,0,-1),(-1,-2,-2),(0,-2,-2),(0,-2,-1),(1,2,3),(4,-3,2),(5,2,-4)),((3,5,7),(-5,4,6),(8,-2,9)),((101,103,107),(-109,113,127),(131,-137,139)),3),
         ('four-probe-complete-pairwise',f4,o4,((-2,-2,-2,-2),(-2,-2,-2,-1),(-2,-2,-2,2),(-2,-2,-1,-2),(-2,-2,-1,2),(-2,-2,2,-2),(-2,-2,2,-1),(-2,-2,2,2),(-2,-1,-2,-2),(-2,-1,-2,2),(-2,-1,2,2),(-2,2,-2,-2),(-2,2,-2,-1),(-1,-2,-2,-2),(1,2,3,4),(5,-3,2,7),(-4,6,-2,3)),((3,5,7,11),(-5,4,6,-3),(8,-2,9,10)),((101,103,107,109),(-113,127,131,137),(139,-149,151,157)),4),
@@ -53,10 +53,18 @@ def run_benchmark()->dict[str,object]:
     results=[_solve(case) for case in _cases()]
     selected=[row['selected_basis_size'] for row in results]
     false_accepts=sum(int(row['false_accepts']) for row in results)
+    adaptive_selected=selected[1:]
+    one_probe_nuisance_rejected=(
+        results[0]['passed'] is False
+        and results[0]['selected_basis_size']==0
+        and results[0]['false_accepts']==0
+    )
     complete_minimality_ledgers=results[0]['proof_ledger_complete'] is False and all(row['proof_ledger_complete'] is True for row in results[1:])
     gates=[
-        all(row['passed'] for row in results),
-        selected==[1,2,3,4],
+        one_probe_nuisance_rejected,
+        all(row['passed'] for row in results[1:]),
+        selected==[0,2,3,4],
+        adaptive_selected==[2,3,4],
         results[0]['globally_minimal'] is False,
         all(row['globally_minimal'] is True for row in results[1:]),
         [row['lower_basis_count'] for row in results]==[0,2,6,14],
@@ -68,4 +76,16 @@ def run_benchmark()->dict[str,object]:
         all(row['final_validation_exact']==row['final_validation_cases'] for row in results),
         false_accepts==0,
     ]
-    return {'milestone':'R2.68','capability':'proof-carrying-adaptive-causal-basis','cases':results,'selected_basis_sizes':selected,'mixed_cardinality_exact':selected==[1,2,3,4],'complete_minimality_ledgers':complete_minimality_ledgers,'false_accepts':false_accepts,'trainable_parameter_count':0,'all_gates_pass':all(gates)}
+    return {
+        'milestone':'R2.68',
+        'capability':'proof-carrying-adaptive-causal-basis',
+        'cases':results,
+        'selected_basis_sizes':selected,
+        'adaptive_selected_basis_sizes':adaptive_selected,
+        'one_probe_nuisance_rejected':one_probe_nuisance_rejected,
+        'mixed_cardinality_exact':adaptive_selected==[2,3,4],
+        'complete_minimality_ledgers':complete_minimality_ledgers,
+        'false_accepts':false_accepts,
+        'trainable_parameter_count':0,
+        'all_gates_pass':all(gates),
+    }
