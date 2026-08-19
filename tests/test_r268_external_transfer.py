@@ -9,6 +9,9 @@ def test_r268_pinned_numpy_det_io_only_transfer() -> None:
     assert result['source_exposure']=='io_only'
     assert result['source_id']=='numpy:numpy.linalg.det'
     assert result['discovery_validation_oracle_query_disjoint'] is True
+    assert result['validation_oracle_query_attempts']==120
+    assert result['validation_oracle_query_unique']==120
+    assert result['validation_oracle_query_duplicates']==0
     assert result['selected_basis_size']==2
     assert result['globally_minimal'] is True
     assert result['false_accepts']==0
