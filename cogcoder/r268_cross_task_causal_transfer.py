@@ -93,12 +93,14 @@ def _canonical_number(value: object) -> int | float:
 
 def _equivalent(left: object, right: object) -> bool:
     try:
-        a = _finite_number(left)
-        b = _finite_number(right)
+        a = _canonical_number(left)
+        b = _canonical_number(right)
     except (TypeError, ValueError):
         return False
-    if isinstance(a, float) or isinstance(b, float):
-        return math.isclose(float(a), float(b), rel_tol=1e-10, abs_tol=1e-10)
+    # R2.68-T receipts claim exact numeric agreement. Integral floats are
+    # normalized to integers by _canonical_number; non-integral finite floats
+    # retain their actual runtime value. Magnitude-dependent tolerance is not
+    # authority for candidate selection or terminal acceptance.
     return a == b
 
 
