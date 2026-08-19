@@ -240,15 +240,60 @@ def generate_transfer_candidates(portable: PortableCausalProgram) -> tuple[Trans
     return tuple(sorted(by_digest.values(), key=lambda row: (row.repair_distance, row.candidate_id)))
 
 
+def _bounded_role_value_bank(
+    diagnostic_contexts: Sequence[Mapping[str, object]],
+    role: str,
+    *,
+    limit: int = 8,
+) -> tuple[int | float, ...]:
+    unique: dict[str, int | float] = {}
+    for context in diagnostic_contexts:
+        value = _canonical_number(context[role])
+        key = json.dumps(value, separators=(',', ':'), allow_nan=False)
+        unique[key] = value
+    ordered = sorted(unique.values())
+    if len(ordered) <= limit:
+        return tuple(ordered)
+    if limit < 2:
+        raise ValueError('semantic closure role-value limit must be at least 2')
+    indices = tuple(index * (len(ordered) - 1) // (limit - 1) for index in range(limit))
+    return tuple(ordered[index] for index in indices)
+
+
+def _diagnostic_semantic_closure(
+    diagnostic_contexts: Sequence[Mapping[str, object]],
+) -> tuple[dict[str, int | float], ...]:
+    banks = tuple(_bounded_role_value_bank(diagnostic_contexts, role) for role in _PROBE_ROLES)
+    rows: list[dict[str, int | float]] = []
+    seen: set[str] = set()
+    for values in itertools.product(*banks):
+        context = dict(zip(_PROBE_ROLES, values, strict=True))
+        key = _context_key(context)
+        if key in seen:
+            continue
+        seen.add(key)
+        rows.append(context)
+    return tuple(rows)
+
+
 def _dedupe_live_candidates(
     candidates: Sequence[TransferCandidate],
     diagnostic_contexts: Sequence[Mapping[str, object]],
 ) -> list[TransferCandidate]:
+    # A finite diagnostic table can contain accidental correlations (for
+    # example p0 == p1 on every observed row). Build a bounded, target-label-
+    # free counterfactual closure from the observed marginal values before
+    # treating two candidate programs as observational aliases. Terminal inputs
+    # and oracle outputs are deliberately excluded from this equivalence pass.
+    fingerprint_contexts = (
+        tuple(diagnostic_contexts)
+        + _diagnostic_semantic_closure(diagnostic_contexts)
+    )
     by_signature: dict[tuple[str, ...], TransferCandidate] = {}
     for candidate in candidates:
         signature = tuple(
             _prediction_key(_safe_prediction(candidate.expression, context))
-            for context in diagnostic_contexts
+            for context in fingerprint_contexts
         )
         previous = by_signature.get(signature)
         if previous is None or (
