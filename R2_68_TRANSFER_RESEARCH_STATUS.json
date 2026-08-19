@@ -29,7 +29,10 @@
     "terminal_verification_only_green_run": 32254883515,
     "diagnostic_alias_authority_red_run": 32255355846,
     "diagnostic_alias_structural_rejection_run": 32255717041,
-    "diagnostic_alias_clean_green_run": 32256375191
+    "diagnostic_alias_clean_green_run": 32256375191,
+    "oracle_context_mutation_red_run": 32256898268,
+    "oracle_context_runner_only_green_run": 32257815942,
+    "oracle_context_clean_green_run": 32259669862
   },
   "world_hardening_red": {
     "python_3_11": "4 failed, 11 passed",
@@ -65,7 +68,20 @@
       "r2_0i_integrity_run": 32256375252,
       "source_commit": "ec67591bb9c5517704e4b779a14aa3d241bc5e7d",
       "integration_commit": "3aab24d4c09dd7aa106a181d353cf8ad33a0a215",
-      "boundary": "finite diagnostic collisions cannot create false uniqueness; equivalence fingerprinting uses only deterministic bounded recombinations of public diagnostic marginals and excludes terminal inputs and oracle labels"
+      "boundary": "finite diagnostic collisions cannot create false uniqueness inside the current bounded semantic-closure heuristic; terminal inputs and oracle labels are excluded from equivalence fingerprinting"
+    },
+    "oracle_context_immutability": {
+      "status": "hosted_green",
+      "red_run": 32256898268,
+      "runner_only_green_run": 32257815942,
+      "clean_green_run": 32259669862,
+      "python_3_11": "success",
+      "python_3_13": "success",
+      "r1_9_integrity_run": 32259669749,
+      "r2_0i_integrity_run": 32259669760,
+      "source_commit": "bb55994f89f11a03edae66ce8f0421c7a0941bb0",
+      "integration_commit": "3a12fd56dec5ce7a675fbe2c4fe23fe976caecae",
+      "boundary": "oracle calls receive isolated canonical three-probe snapshots; mutation cannot alter caller-owned evidence or candidate evaluation, and detected mutation fails closed with exact attempted-call accounting"
     }
   },
   "nolane_world": {
