@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pytest
 
+import cogcoder._r268_runtime as runtime
 from cogcoder.r256_operator_invention import OperatorInventionNeed
 from cogcoder.r268_adaptive_causal_basis import synthesize_adaptive_causal_basis
 
@@ -88,4 +89,27 @@ def test_overlap_rejection_happens_before_any_oracle_execution() -> None:
     validation = ((0, 2), (7, 8), (9, -4))
     with pytest.raises(ValueError, match='discovery|validation|overlap|disjoint'):
         _solve(discovery, validation, oracle=counted_oracle)
+    assert calls == 0
+
+
+def test_private_runtime_cannot_bypass_cross_phase_query_isolation() -> None:
+    calls = 0
+
+    def counted_oracle(row):
+        nonlocal calls
+        calls += 1
+        return float(row['a']) + float(row['b'])
+
+    discovery = _contexts(((1, 2), (2, 3), (-2, 5), (4, -3), (5, 7), (-1, -2)))
+    validation = _contexts(((0, 2), (7, 8), (9, -4)))
+    with pytest.raises(ValueError, match='discovery|validation|overlap|disjoint'):
+        runtime.discover_adaptive_causal_basis(
+            counted_oracle,
+            FIELDS,
+            (0.0,),
+            discovery,
+            validation,
+            intervention_arity=1,
+            max_basis_size=2,
+        )
     assert calls == 0
