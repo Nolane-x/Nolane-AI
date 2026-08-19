@@ -26,11 +26,7 @@ jobs:
       - run: python -m pip install pytest
       - name: Accepted R2.66 first
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Apply peer R2.67.1 correctness patches ephemerally
-        run: |
-          python scripts/r267_1_apply_genuine_necessity_core.py
-          python scripts/r267_1_apply_certified_ablation_authority.py
-      - name: Confirm independent preselection contract RED before this fix
+      - name: Confirm independent preselection contract RED on current R2.67.1 production
         shell: bash
         run: |
           set -euo pipefail
@@ -44,5 +40,7 @@ jobs:
         run: python scripts/r267_1_apply_preselection_receipt_units.py
       - name: Confirm preselection contract GREEN
         run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
-      - name: Preserve accepted parent after ephemeral fix
-        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Preserve accepted parent and R2.67.1 authority boundaries
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_authority_boundaries.py tests/test_r267_1_no_collision_failclosed.py
