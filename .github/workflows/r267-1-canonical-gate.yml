@@ -1,0 +1,167 @@
+name: R2.67.1 Canonical Gate
+
+on:
+  push:
+    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
+    paths:
+      - 'R2_67_1_PRE_HOSTED_LOCK.json'
+      - 'R2_67_1_PHASE_A_RESULT.json'
+      - 'R2_67_1_EXTERNAL_TRANSFER.json'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'R2_67_1_PRE_HOSTED_LOCK.json'
+      - 'R2_67_1_PHASE_A_RESULT.json'
+      - 'R2_67_1_EXTERNAL_TRANSFER.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  statuses: write
+
+jobs:
+  cross-python:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Verify frozen source and evidence blobs
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['parent_release_commit'] == '43b43ce4b324b0d74357957af18dd0f60b1cb85e'
+          assert lock['production_source_changes_after_lock_forbidden'] is True
+          assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
+          assert lock['historical_r267_artifacts_superseded_not_mutated'] is True
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R267_1_FROZEN_BLOBS_OK', len(lock['frozen_git_blobs']))
+          PY
+      - name: Accepted R2.66 then corrected R2.67.1
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_independent_ablation_completeness.py
+      - name: Recompute exact authored and pinned external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_1_genuine_three_probe import run_benchmark
+          from research.r267_1_external_cyclic_dot_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.dot, source_id='numpy.dot', source_version=np.__version__)
+          assert np.__version__ == '2.4.6'
+          assert phase == json.loads(Path('R2_67_1_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text())
+          assert phase['all_gates_pass'] is True
+          assert external['passed'] is True
+          assert external['oracle_accounting_exact'] is True
+          print('R267_1_EXACT_EVIDENCE_OK')
+          PY
+
+  canonical-full-gate:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 70
+    env:
+      EXPECTED_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest z3-solver 'numpy==2.4.6'
+      - name: Verify exact accepted R2.67 parent and frozen boundary
+        run: |
+          python - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_release_commit'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_release_commit'])
+          assert lock['parent_release_commit'] == '43b43ce4b324b0d74357957af18dd0f60b1cb85e'
+          for path, expected in lock['frozen_git_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
+              assert actual == expected, (path, actual, expected)
+          print('R267_1_PARENT_AND_LOCK_OK')
+          PY
+      - name: Recompute frozen authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r267_1_genuine_three_probe import run_benchmark
+          from research.r267_1_external_cyclic_dot_transfer import run_external_transfer
+          phase=run_benchmark()
+          external=run_external_transfer(np.dot, source_id='numpy.dot', source_version=np.__version__)
+          assert phase == json.loads(Path('R2_67_1_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text())
+          assert phase['all_gates_pass'] and external['passed']
+          assert external['oracle_accounting_exact']
+          print('R267_1_CANONICAL_EVIDENCE_OK')
+          PY
+      - name: Run corrected R2.67.1 and accepted R2.66
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Run protected R2.65 through R2.60 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r264_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r263_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r262_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r261_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r260_*.py
+      - name: Run protected R2.59 through R2.50 lineage
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r259_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r258_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r257_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r256_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r255_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r25[0-4]_*.py
+      - name: Run protected R2.49 through R2.41 lineage
+        run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
+
+  publish-full-gate:
+    if: github.event_name == 'pull_request'
+    needs: [cross-python, canonical-full-gate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish canonical success status
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY'
+          import json, os, urllib.request
+          payload=json.dumps({
+              'state':'success',
+              'context':'r267.1/full-gate',
+              'description':'Corrected R2.67.1 frozen evidence, cross-Python and protected R2.66-R2.41 lineage passed',
+              'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
+          }).encode()
+          req=urllib.request.Request(
+              f"https://api.github.com/repos/{os.environ['GITHUB_REPOSITORY']}/statuses/{os.environ['GITHUB_SHA']}",
+              data=payload,
+              headers={'Authorization':f"Bearer {os.environ['GH_TOKEN']}",'Accept':'application/vnd.github+json'},
+              method='POST',
+          )
+          urllib.request.urlopen(req).read()
+          print('R267_1_FULL_GATE_STATUS_PUBLISHED')
+          PY
