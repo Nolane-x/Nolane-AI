@@ -15,23 +15,27 @@ permissions:
 
 jobs:
   proposal:
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.11', '3.13']
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-      - run: python -m pip install pytest 'numpy==2.4.6'
       - name: Apply runner-only closure patch
         run: PYTHONPATH=. python scripts/r269_scratch_closure_patch.py
-      - name: Protected R2.68 safety
-        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-      - name: R2.69 focused contracts
-        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.11 protected and focused
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.13 protected and focused
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
       - name: Deterministic benchmark replay
         env:
           PYTHONHASHSEED: '777'
@@ -41,8 +45,9 @@ jobs:
           a = run_benchmark()
           b = run_benchmark()
           assert a['determinism']['semantic_digest'] == b['determinism']['semantic_digest']
-          print(a['claim'])
-          print(a['positive'])
-          print(a['negative'])
-          print(a['strong_claim_gate'])
+          print('claim=', a['claim'])
+          print('positive_solves=', a['positive']['transfer_solves'], a['positive']['cold_scratch_solves'], a['positive']['roomy_scratch_solves'])
+          print('median_reductions=', a['positive']['median_oracle_call_reduction'], a['positive']['median_search_work_reduction'])
+          print('negative=', a['negative']['false_accepts'], a['negative']['max_extra_physical_oracle_regret'])
+          print('gate=', a['strong_claim_gate'])
           PY
