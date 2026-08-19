@@ -129,6 +129,80 @@ def _prediction_key(prediction: tuple[bool, object]) -> str:
     return json.dumps(_canonical_number(value), separators=(',', ':'), allow_nan=False)
 
 
+class _TrackedOracleContext(dict[str, int | float]):
+    __slots__ = ('mutation_attempted',)
+
+    def __init__(self, values: Mapping[str, int | float]) -> None:
+        super().__init__(values)
+        self.mutation_attempted = False
+
+    def __setitem__(self, key: str, value: int | float) -> None:
+        self.mutation_attempted = True
+        super().__setitem__(key, value)
+
+    def __delitem__(self, key: str) -> None:
+        self.mutation_attempted = True
+        super().__delitem__(key)
+
+    def clear(self) -> None:
+        self.mutation_attempted = True
+        super().clear()
+
+    def pop(self, key: str, *default: object) -> object:
+        self.mutation_attempted = True
+        return super().pop(key, *default)
+
+    def popitem(self) -> tuple[str, int | float]:
+        self.mutation_attempted = True
+        return super().popitem()
+
+    def setdefault(self, key: str, default: int | float = 0) -> int | float:
+        self.mutation_attempted = True
+        return super().setdefault(key, default)
+
+    def update(self, *args: object, **kwargs: int | float) -> None:
+        self.mutation_attempted = True
+        super().update(*args, **kwargs)
+
+    def __ior__(self, other: object):
+        self.mutation_attempted = True
+        return super().__ior__(other)
+
+
+def _oracle_context_token(context: Mapping[str, object]) -> str | None:
+    try:
+        return json.dumps(dict(context), sort_keys=True, separators=(',', ':'), allow_nan=False)
+    except (TypeError, ValueError):
+        return None
+
+
+def _call_oracle_isolated(
+    oracle: Callable[[Mapping[str, object]], object],
+    context: Mapping[str, object],
+) -> tuple[str, int | float | None, dict[str, int | float]]:
+    values = _context_values(context)
+    semantic_context = dict(zip(_PROBE_ROLES, values, strict=True))
+    oracle_context = _TrackedOracleContext(semantic_context)
+    before_token = _oracle_context_token(oracle_context)
+
+    try:
+        raw = oracle(oracle_context)
+    except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        after_token = _oracle_context_token(oracle_context)
+        if oracle_context.mutation_attempted or after_token != before_token:
+            return 'mutation', None, semantic_context
+        return 'invalid', None, semantic_context
+
+    after_token = _oracle_context_token(oracle_context)
+    if oracle_context.mutation_attempted or after_token != before_token:
+        return 'mutation', None, semantic_context
+    try:
+        observed = _canonical_number(raw)
+    except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        return 'invalid', None, semantic_context
+    return 'ok', observed, semantic_context
+
+
 @dataclass(frozen=True, slots=True)
 class PortableCausalProgram:
     expression: Expr
@@ -410,23 +484,26 @@ def adapt_portable_program(
         key = _context_key(context)
         values = _context_values(context)
         before = len(live)
-        try:
-            observed = _canonical_number(oracle(context))
-        except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        oracle_status, observed, semantic_context = _call_oracle_isolated(oracle, context)
+        if oracle_status != 'ok':
             return _failed_receipt(
                 candidates_generated=len(generated),
                 live=live,
                 selection_queries=selection_queries + 1,
                 terminal_queries=0,
                 terminal_exact=0,
-                reason='invalid_oracle_output',
+                reason=(
+                    'oracle_context_mutation'
+                    if oracle_status == 'mutation'
+                    else 'invalid_oracle_output'
+                ),
                 trace=trace,
             )
         selection_queries += 1
         used_keys.add(key)
         survivors: list[TransferCandidate] = []
         for candidate in live:
-            valid, predicted = _safe_prediction(candidate.expression, context)
+            valid, predicted = _safe_prediction(candidate.expression, semantic_context)
             if valid and _equivalent(predicted, observed):
                 survivors.append(candidate)
         live = survivors
@@ -476,22 +553,25 @@ def adapt_portable_program(
     terminal_queries = 0
     terminal_exact = 0
     for context in terminals:
-        try:
-            observed = _canonical_number(oracle(context))
-        except (ArithmeticError, TypeError, ValueError, OverflowError, ZeroDivisionError):
+        oracle_status, observed, semantic_context = _call_oracle_isolated(oracle, context)
+        if oracle_status != 'ok':
             return _failed_receipt(
                 candidates_generated=len(generated),
                 live=live,
                 selection_queries=selection_queries,
                 terminal_queries=terminal_queries + 1,
                 terminal_exact=terminal_exact,
-                reason='invalid_terminal_oracle_output',
+                reason=(
+                    'terminal_oracle_context_mutation'
+                    if oracle_status == 'mutation'
+                    else 'invalid_terminal_oracle_output'
+                ),
                 trace=trace,
             )
         terminal_queries += 1
         survivors = []
         for candidate in live:
-            valid, predicted = _safe_prediction(candidate.expression, context)
+            valid, predicted = _safe_prediction(candidate.expression, semantic_context)
             if valid and _equivalent(predicted, observed):
                 survivors.append(candidate)
         live = survivors
