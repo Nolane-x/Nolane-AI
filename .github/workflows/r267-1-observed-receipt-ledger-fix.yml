@@ -1,0 +1,52 @@
+name: R2.67.1 Observed Receipt Ledger Fix
+
+on:
+  push:
+    branches: [fix-r2671-observed-receipt-ledger-gpt56sol]
+    paths:
+      - 'scripts/r267_1_apply_observed_receipt_ledger.py'
+      - 'tests/test_r267_1_partial_probe_receipt_accounting.py'
+      - '.github/workflows/r267-1-observed-receipt-ledger-fix.yml'
+  pull_request:
+    branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  red-green:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest
+      - name: Accepted R2.66 safety first
+        run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Confirm failure-ledger challenger is RED before mutation
+        shell: bash
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_partial_probe_receipt_accounting.py
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            echo 'Expected RED before patch, but challenger passed.' >&2
+            exit 1
+          fi
+      - name: Apply observed-case receipt patch in runner only
+        run: python scripts/r267_1_apply_observed_receipt_ledger.py
+      - name: Compile patched production
+        run: python -m py_compile cogcoder/r267_three_probe_causal_composition.py
+      - name: Failure-ledger challenger GREEN after patch
+        run: PYTHONPATH=. python -m pytest -q tests/test_r267_1_partial_probe_receipt_accounting.py
+      - name: Preserve R2.67.1 and accepted R2.66 regressions
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r266_*.py
