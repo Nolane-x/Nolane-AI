@@ -20,13 +20,16 @@ def test_r268_pinned_numpy_det_io_only_transfer() -> None:
 def test_r268_external_transfer_carries_complete_lower_basis_proof_ledger() -> None:
     from research.r268_external_transfer import run_external_transfer
     result=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
-    assert result['lower_basis_count']==2
-    assert result['lower_basis_certified']==2
+    assert result['legal_interventions']==4
+    assert result['semantic_profiles']==4
+    assert result['lower_basis_count']==4
+    assert result['lower_basis_certified']==4
     assert result['lower_basis_inconclusive']==0
     assert result['proof_ledger_complete'] is True
     assert len(result['lower_basis_universe_digest'])==64
-    assert result['lower_basis_certificate_count']==2
-    assert len(result['lower_basis_certificates'])==2
+    assert result['lower_basis_certificate_count']==4
+    assert len(result['lower_basis_certificates'])==4
+    assert all(row['basis_cardinality']==1 for row in result['lower_basis_certificates'])
     assert all(row['proof_kind']=='public_basis_target_collision' for row in result['lower_basis_certificates'])
     assert all(len(row['witness_digest'])==64 for row in result['lower_basis_certificates'])
     assert result['necessity_certificate_count']==2
