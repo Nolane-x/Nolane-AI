@@ -1,0 +1,65 @@
+name: R2.68 World Hardening Apply
+
+on:
+  push:
+    branches: [r268-cross-task-causal-transfer-gpt56sol]
+    paths:
+      - 'scripts/r268_apply_world_hardening.py'
+      - '.github/workflows/r268-world-hardening-apply.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: r268-world-hardening-apply
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r268-cross-task-causal-transfer-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest
+
+      - name: Reconfirm hardened contracts are RED before mutation
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r268_portable_authority.py \
+            tests/test_r268_prior_ablation.py
+          code=$?
+          set -e
+          test "$code" -ne 0
+
+      - name: Apply audited minimal hardening patch
+        run: python scripts/r268_apply_world_hardening.py
+
+      - name: Verify targeted contracts GREEN
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r268_portable_authority.py \
+            tests/test_r268_prior_ablation.py
+
+      - name: Verify full R2.68 focused suite GREEN
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+
+      - name: Verify patch scope
+        run: |
+          git diff --exit-code -- . ':!cogcoder/r268_cross_task_causal_transfer.py' ':!benchmarks/kfigg/r268_cross_task_causal_transfer.py'
+          test -n "$(git diff -- cogcoder/r268_cross_task_causal_transfer.py benchmarks/kfigg/r268_cross_task_causal_transfer.py)"
+
+      - name: Materialize verified source changes
+        run: |
+          git config user.name 'Nolane R2.68 World Hardening'
+          git config user.email 'actions@users.noreply.github.com'
+          git add cogcoder/r268_cross_task_causal_transfer.py benchmarks/kfigg/r268_cross_task_causal_transfer.py
+          git commit -m 'fix: harden R2.68 portable authority and prior ablation'
+          git push origin HEAD:r268-cross-task-causal-transfer-gpt56sol
