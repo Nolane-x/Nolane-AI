@@ -319,8 +319,44 @@ def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLearningConf
     if config.scratch_max_depth == 2:
         return rows
 
+    # In a declared complete finite-integer universe, admit balanced depth-2
+    # compositions before expanding to depth 3. This prevents the candidate
+    # cap from starving simple four-role programs such as (a+b)-(c+d). The
+    # support-disjoint/full-cover gate keeps this bounded, and extensional
+    # deduplication above is proof-authoritative over the complete domain.
+    if signature.numeric_domain == 'finite_integer':
+        role_set = frozenset(signature.role_names)
+
+        def support(expr: Expr) -> frozenset[str]:
+            if isinstance(expr, Field):
+                return frozenset((expr.name,))
+            if isinstance(expr, Const):
+                return frozenset()
+            if isinstance(expr, Unary):
+                return support(expr.arg)
+            if isinstance(expr, Binary):
+                return support(expr.left) | support(expr.right)
+            if isinstance(expr, IfElse):
+                return support(expr.condition) | support(expr.when_true) | support(expr.when_false)
+            raise TypeError(f'unsupported expression type: {type(expr).__name__}')
+
+        balanced_atoms = tuple(row.expression for row in rows if row.expression.depth == 1)
+        support_by_digest = {expr_digest(expr): support(expr) for expr in balanced_atoms}
+        for op in signature.allowed_binary_ops:
+            for left in balanced_atoms:
+                left_support = support_by_digest[expr_digest(left)]
+                for right in balanced_atoms:
+                    right_support = support_by_digest[expr_digest(right)]
+                    if left_support & right_support:
+                        continue
+                    if left_support | right_support != role_set:
+                        continue
+                    if not add(Binary(op, left, right)):
+                        return rows
+
     # Depth 3 is reserved for the roomy expressibility control. Proposal
-    # ordering up through depth 2 is identical to the tight baseline.
+    # ordering up through the tight baseline is unchanged; the exact-domain
+    # balanced layer above is admitted only for roomy depth-3 search.
     previous = tuple(row.expression for row in rows)
     frontier = tuple(expr for expr in previous if expr.depth == 2)
     lower = tuple(expr for expr in previous if expr.depth <= 2)
