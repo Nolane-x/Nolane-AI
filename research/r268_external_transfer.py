@@ -13,9 +13,15 @@ def run_external_transfer(external_callable:Callable,*,source_id:str,source_vers
         source_calls+=1
         matrix=[[float(row['a']),float(row['b'])],[float(row['c']),float(row['d'])]]
         return float(external_callable(matrix))
-    values=(-2.0,-1.0,1.0,2.0)
-    rows=tuple(itertools.product(values,repeat=4))
-    discovery=rows[:220];validation=rows[220:244]
+    discovery_values=(-2.0,-1.0,1.0,2.0)
+    discovery_rows=tuple(itertools.product(discovery_values,repeat=4))
+    discovery=discovery_rows[:220]
+    # Validation uses a numerically separate domain. With the sole intervention
+    # anchor fixed at 0.0, neither validation base rows nor any one-coordinate
+    # validation intervention can equal a discovery-phase oracle input.
+    validation_values=(3.0,5.0,7.0,11.0)
+    validation_domain=tuple(itertools.product(validation_values,repeat=4))
+    validation=validation_domain[::11][:24]
     terminal=((101.0,103.0,107.0,109.0),(-113.0,127.0,131.0,137.0),(139.0,-149.0,151.0,157.0),(163.0,167.0,-173.0,179.0),(-181.0,191.0,193.0,197.0),(199.0,-211.0,223.0,-227.0))
     def contexts(raw): return tuple(dict(zip(fields,row,strict=True)) for row in raw)
     need=OperatorInventionNeed('R2.68 external determinant causal basis',fields,'out',constants=(0.0,1.0,-1.0,2.0),max_depth=5,max_candidates=200_000)
