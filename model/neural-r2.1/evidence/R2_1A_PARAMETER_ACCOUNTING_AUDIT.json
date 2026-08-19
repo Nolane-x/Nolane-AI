@@ -1,0 +1,38 @@
+{
+  "audit_version": "Neural-R2.1.1-Parameter-Accounting-Audit",
+  "status": "PASS",
+  "audited_release": "Neural-R2.1a-Causal-Evidence-Router",
+  "audit_base_main_commit": "4b1db9b6acbf147dce82ef43d65fc3e9fc049793",
+  "artifact_filename": "Nolane-Neural-R2.1a-78.9M-STRONGEST-ONE-WEIGHT.pt",
+  "artifact_filename_note": "The 78.9M token in the frozen filename is retained for provenance compatibility and refers to the historical legacy-effective accounting, not the unique serialized tensor count.",
+  "one_weight_bytes": 60027771,
+  "one_weight_sha256": "4f0b366e2401127e50b7fdbca651601b0a4b972004812c9f32043b82f0e3091b",
+  "delta_bytes": 251573,
+  "delta_sha256": "3bbd63c9cb20e180b78588e15a21e4132b41d80118c6ce229231967a91bfc9c4",
+  "legacy_parent_effective_parameters": 78779253,
+  "legacy_effective_parameters": 78899404,
+  "physical_parent_loaded_parameters": 29250576,
+  "physical_loaded_parameters": 29370727,
+  "delta_parameters": 120151,
+  "legacy_effective_minus_physical": 49528677,
+  "component_parameters": {
+    "neural_system2": 27090742,
+    "frontier_rollout": 1594754,
+    "evidence_effect": 565080,
+    "causal_router": 120151
+  },
+  "serialized_tensor_count": 426,
+  "serialized_tensor_elements": 29370727,
+  "serialized_tensor_dtypes": {
+    "torch.float16": 390,
+    "torch.float32": 36
+  },
+  "audit_method": "Load the exact frozen one-weight through the canonical R2.1a loader, sum numel() across each loaded neural module, independently recurse over every serialized tensor in the one-weight payload, and compare both totals.",
+  "audit_cross_check": "Loaded-module numel total and serialized-tensor element total both equal 29370727.",
+  "parameter_accounting_mode": "legacy_effective_with_physical_tensor_audit",
+  "compatibility_note": "candidate_effective_parameters and parent_effective_parameters remain compatibility aliases for the historical effective accounting used by preceding releases; they must not be presented as physical unique tensor counts.",
+  "fresh_result_unchanged": true,
+  "fresh_holdout_reused_for_tuning": false,
+  "weights_changed_by_audit": false,
+  "claim_boundary": "This audit corrects parameter-count interpretation only. It does not strengthen performance, AGI, frontier-equivalence, universal-reasoning, or hybrid-runtime claims."
+}
