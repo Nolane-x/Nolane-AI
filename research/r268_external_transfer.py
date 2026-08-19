@@ -25,12 +25,15 @@ def run_external_transfer(external_callable:Callable,*,source_id:str,source_vers
         composition_max_candidates_per_basis=50_000,max_composition_candidates_total=200_000,
         composition_beam_width=256,probe_constants=(0.0,1.0,-1.0,2.0),probe_max_depth=5,
         probe_max_candidates=60_000,probe_beam_width=256)
-    passed=(receipt.passed and receipt.selected_basis_size==2 and receipt.globally_minimal and receipt.false_accepts==0 and receipt.final_validation_exact==receipt.final_validation_cases==len(terminal) and receipt.terminal_probe_validation_exact==receipt.terminal_probe_validation_cases==len(terminal)*2 and receipt.oracle_calls_total==source_calls)
+    passed=(receipt.passed and receipt.selected_basis_size==2 and receipt.globally_minimal and receipt.structure.proof_ledger_complete and receipt.structure.lower_basis_count==2 and receipt.structure.lower_basis_certified==2 and receipt.structure.lower_basis_inconclusive==0 and receipt.false_accepts==0 and receipt.final_validation_exact==receipt.final_validation_cases==len(terminal) and receipt.terminal_probe_validation_exact==receipt.terminal_probe_validation_cases==len(terminal)*2 and receipt.oracle_calls_total==source_calls)
     return {
         'milestone':'R2.68','capability':'proof-carrying-adaptive-causal-basis','passed':passed,
         'source_id':str(source_id),'source_version':str(source_version),'source_exposure':'io_only',
         'selected_basis_size':receipt.selected_basis_size,'globally_minimal':receipt.globally_minimal,
         'necessity_certificate_sizes':sorted({c.subset_cardinality for c in receipt.structure.necessity_certificates}),
+        'lower_basis_count':receipt.structure.lower_basis_count,'lower_basis_certified':receipt.structure.lower_basis_certified,
+        'lower_basis_inconclusive':receipt.structure.lower_basis_inconclusive,'lower_basis_universe_digest':receipt.structure.lower_basis_universe_digest,
+        'proof_ledger_complete':receipt.structure.proof_ledger_complete,
         'terminal_cases':receipt.final_validation_cases,'terminal_exact':receipt.final_validation_exact,
         'terminal_probe_cases':receipt.terminal_probe_validation_cases,'terminal_probe_exact':receipt.terminal_probe_validation_exact,
         'false_accepts':receipt.false_accepts,'oracle_calls_total':receipt.oracle_calls_total,
