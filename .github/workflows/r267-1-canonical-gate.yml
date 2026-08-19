@@ -61,6 +61,7 @@ jobs:
           assert a['public_collision_certificate_required_for_lower_order_insufficiency'] is True
           assert a['postselection_probe_case_unit'] == 'probe_observation'
           assert a['preselection_probe_cases_zero_without_selected_triplet'] is True
+          assert a['attempted_case_receipt_accounting'] is True
           assert a['terminal_selected_probe_reobservation'] is True
           assert a['oracle_ledger_exact'] is True
           assert a['positive_domain_triangle_min_robustness'] is True
@@ -120,6 +121,7 @@ jobs:
           base = os.environ['EXPECTED_BASE_SHA']
           subprocess.run(['git','merge-base','--is-ancestor',parent,base], check=True)
           subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'], check=True)
+          assert lock['authority_corrections']['attempted_case_receipt_accounting'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
@@ -147,11 +149,14 @@ jobs:
           assert hashlib.sha256(canonical_phase).hexdigest() == lock['authored_evidence']['sha256_canonical_json']
           assert hashlib.sha256(canonical_external).hexdigest() == lock['external_evidence']['sha256_canonical_json']
           assert phase['all_gates_pass'] is True and phase['false_accepts'] == 0
+          assert phase['oracle_accounting_exact'] is True
+          assert phase['oracle_calls_total'] == lock['authored_evidence']['oracle_calls_total']
           assert external['passed'] is True and external['false_accepts'] == 0
           assert external['source_id'] == 'numpy:numpy.dot'
           assert external['source_exposure'] == 'io_only'
           assert external['oracle_calls_collision_certificates'] == 72
           assert external['oracle_accounting_exact'] is True
+          assert external['oracle_calls_total'] == lock['external_evidence']['oracle_calls_total']
           assert external['oracle_calls_total'] == (
               external['oracle_calls_learning_terminal']
               + external['oracle_calls_collision_certificates']
@@ -198,7 +203,7 @@ jobs:
           payload=json.dumps({
               'state':'success',
               'context':'r2671/full-gate',
-              'description':'R2.67.1 frozen authority, exact evidence, cross-Python and protected R2.66-R2.41 lineage passed',
+              'description':'R2.67.1 frozen authority, exact attempted-case evidence, cross-Python and protected R2.66-R2.41 lineage passed',
               'target_url':f"https://github.com/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}",
           }).encode()
           req=urllib.request.Request(
