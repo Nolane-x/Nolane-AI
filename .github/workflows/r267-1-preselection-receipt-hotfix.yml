@@ -20,9 +20,9 @@ permissions:
   contents: write
 
 jobs:
-  red-green-commit:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 55
     strategy:
       fail-fast: false
       matrix:
@@ -37,30 +37,73 @@ jobs:
       - run: python -m pip install pytest
       - name: Accepted R2.66 first
         run: PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Confirm hosted RED before production mutation
+      - name: Confirm RED only while fix is not materialized
         shell: bash
         run: |
           set -euo pipefail
-          set +e
-          PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
-          rc=$?
-          set -e
-          test "$rc" -ne 0
-          echo R267_1_PRESELECTION_RED_CONFIRMED
-      - name: Apply minimal guarded fix
-        run: python scripts/r267_1_apply_preselection_receipt_units.py
-      - name: Verify focused GREEN
+          if grep -q 'probe_validation_cases=len(validation)' cogcoder/r267_three_probe_causal_composition.py; then
+            set +e
+            PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
+            rc=$?
+            set -e
+            test "$rc" -ne 0
+            echo R267_1_PRESELECTION_RED_CONFIRMED
+          else
+            PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
+            echo R267_1_PRESELECTION_ALREADY_MATERIALIZED
+          fi
+      - name: Apply minimal guarded fix ephemerally when needed
+        run: |
+          if grep -q 'probe_validation_cases=len(validation)' cogcoder/r267_three_probe_causal_composition.py; then
+            python scripts/r267_1_apply_preselection_receipt_units.py
+          fi
+      - name: Verify focused GREEN and authority lineage
         run: |
           PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py
-          PYTHONPATH=. python -m pytest -q tests/test_r267_1_authority_boundaries.py tests/test_r267_1_no_collision_failclosed.py
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_authority_boundaries.py tests/test_r267_1_no_collision_failclosed.py tests/test_r267_1_correctness_hotfix.py tests/test_r267_1_evidence.py
           PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
-      - name: Commit production fix once from push Python 3.11
-        if: github.event_name == 'push' && matrix.python == '3.11'
+
+  materialize:
+    needs: [verify]
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: r267-1-genuine-causal-necessity-hotfix-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Refuse stale writer
         run: |
           set -euo pipefail
+          git fetch origin r267-1-genuine-causal-necessity-hotfix-gpt56sol
+          test "$(git rev-parse HEAD)" = "$(git rev-parse origin/r267-1-genuine-causal-necessity-hotfix-gpt56sol)"
+      - name: Materialize only the verified one-line source correction
+        run: |
+          set -euo pipefail
+          if grep -q 'probe_validation_cases=len(validation)' cogcoder/r267_three_probe_causal_composition.py; then
+            python scripts/r267_1_apply_preselection_receipt_units.py
+            test "$(git diff --name-only)" = 'cogcoder/r267_three_probe_causal_composition.py'
+          else
+            echo R267_1_PRESELECTION_ALREADY_MATERIALIZED
+          fi
+      - name: Reverify exact writer tree
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_preselection_receipt_units.py tests/test_r267_1_authority_boundaries.py tests/test_r267_1_no_collision_failclosed.py tests/test_r267_1_correctness_hotfix.py tests/test_r267_1_evidence.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Commit materialized source if changed
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- cogcoder/r267_three_probe_causal_composition.py; then
+            echo R267_1_PRESELECTION_NO_SOURCE_DELTA
+            exit 0
+          fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add cogcoder/r267_three_probe_causal_composition.py
-          git diff --cached --quiet && { echo 'expected production delta missing'; exit 1; }
           git commit -m 'fix: correct R2.67.1 preselection receipt units'
           git push origin HEAD:r267-1-genuine-causal-necessity-hotfix-gpt56sol
