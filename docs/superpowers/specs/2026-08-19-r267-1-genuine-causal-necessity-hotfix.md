@@ -14,6 +14,7 @@ Hosted evidence:
 - PR #58 / run `32199123145`: RED on Python 3.11 and 3.13 after accepted R2.66 passes first; successful R2.67 receipts report `probe_validation_cases=6`, `probe_validation_exact=18`.
 - PR #59 / run `32199583627`: RED on Python 3.11 and 3.13 after accepted R2.66 passes first; every selected two-probe subset of the original tri-bilinear benchmark has an exact trusted-DSL reconstruction once free fields are recomputed for that subset, yet production grants three-probe authority.
 - PR #60 / run `32199850422`: GREEN on Python 3.11 and 3.13 for a replacement cyclic family with information-theoretic singleton/pair collisions and autonomous three-probe discovery.
+- Independent failure-path challenger / run `32204776228`: RED on Python 3.11 and 3.13 for receipts that reported planned probe/terminal denominators after execution stopped early. R2.67.1 therefore uses attempted-case accounting on all partial failure paths.
 
 The merged R2.67 source/evidence lock therefore cannot serve as the final correctness boundary for the strong `strict lower-order falsification` claim.
 
@@ -34,13 +35,13 @@ A full-triplet union mask may still be used for the full three-probe composition
 
 ## Receipt accounting correction
 
-`probe_validation_exact` counts probe observations, not validation contexts. Therefore `probe_validation_cases` must use the same unit:
+`probe_validation_exact` counts probe observations, not validation contexts. Therefore `probe_validation_cases` must use the same unit. On a successful receipt this is:
 
 `len(validation_contexts) * len(selected_probes)`.
 
 For R2.67/R2.67.1 exactly three selected probes are required, so a successful six-context validation receipt must be `18 / 18`, never `18 / 6`.
 
-Every early failure return after triplet selection must report the same planned probe-validation case unit. Before a triplet exists, the receipt may report zero probe cases because no probe-validation obligation has yet been created.
+Failure receipts must not claim work that was merely planned. After triplet selection, `probe_validation_cases`, `terminal_probe_validation_cases`, and `final_validation_cases` count only evidence cases actually attempted before the failure. For example, if the second learned probe fails to synthesize after the first probe has already been checked on six validation contexts, the receipt reports six probe-validation cases, not eighteen. If the first terminal intervention oracle call fails, the receipt reports one attempted terminal-probe case and zero final base cases. Before a triplet exists, the receipt reports zero probe/final cases because no such evidence has been attempted.
 
 ## Replacement authored family
 
@@ -96,20 +97,21 @@ R2.67.1 must freeze all of the following:
 1. accepted R2.66 regressions remain green;
 2. R2.67 ablation-budget incompleteness remains fail-closed;
 3. probe receipt units are observation-consistent on every successful and post-selection failure path;
-4. each singleton ablation recomputes its own free positions;
-5. each pair ablation recomputes its own free positions;
-6. original tri-bilinear family is rejected as a genuine three-probe-necessity witness under corrected subset semantics;
-7. cyclic family has explicit information-theoretic collisions for every singleton and pair;
-8. cyclic family full three-probe expression is exact;
-9. engine discovers the cyclic family without a host-selected intervention triplet;
-10. semantic rename and positional permutation invariance remain green;
-11. terminal selected-probe re-observation remains green;
-12. validator-before-oracle remains green;
-13. semantic terminal disjointness remains green;
-14. full oracle ledger remains exact;
-15. pinned NumPy cyclic-dot external transfer passes challenge and heldout evidence;
-16. false accepts remain zero;
-17. trainable parameter delta remains zero.
+4. every partial failure receipt counts only actually attempted probe, terminal-probe, and final cases;
+5. each singleton ablation recomputes its own free positions;
+6. each pair ablation recomputes its own free positions;
+7. original tri-bilinear family is rejected as a genuine three-probe-necessity witness under corrected subset semantics;
+8. cyclic family has explicit information-theoretic collisions for every singleton and pair;
+9. cyclic family full three-probe expression is exact;
+10. engine discovers the cyclic family without a host-selected intervention triplet;
+11. semantic rename and positional permutation invariance remain green;
+12. terminal selected-probe re-observation remains green;
+13. validator-before-oracle remains green;
+14. semantic terminal disjointness remains green;
+15. full oracle ledger remains exact;
+16. pinned NumPy cyclic-dot external transfer passes challenge and heldout evidence;
+17. false accepts remain zero;
+18. trainable parameter delta remains zero.
 
 ## Evidence invalidation and release discipline
 
