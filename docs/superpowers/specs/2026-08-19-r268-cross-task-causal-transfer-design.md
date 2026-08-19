@@ -8,33 +8,32 @@ Research candidate only. This branch is intentionally isolated from the active R
 
 Add a zero-trainable-parameter capability that can reuse a previously verified three-probe causal program on a distinct target task without copying source field identities, intervention identities, source outputs, target outputs, or a host-selected target binding.
 
-The intended capability is not generic AGI. It is one bounded learning-to-learn step: verified causal structure learned on one task becomes a portable hypothesis prior that can reduce target-side evidence/search cost while preserving fail-closed verification.
+The intended capability is not generic AGI. It is one bounded learning-to-learn step: verified causal structure learned on one task becomes a portable hypothesis prior that can reduce the **target hypothesis-search candidate budget required for success** while preserving fail-closed verification.
+
+The current Phase-A gate does **not** claim fewer total target oracle/evidence calls than an unconstrained roomy scratch solver. Oracle-cost reduction is a separate hypothesis that requires its own matched experiment.
 
 ## Scientific question
 
-Can Nolane-AI transfer a verified causal composition across task identity, schema permutation, field renaming, intervention renaming and surface representation changes, then adapt that composition with strictly bounded target evidence while refusing negative transfer?
+Can Nolane-AI transfer a verified causal composition across task identity, schema permutation, field renaming, intervention renaming and surface representation changes, then adapt that composition under a strictly bounded target search/evidence budget while refusing negative transfer?
 
-The answer must be established by target-side heldout evidence and a matched-budget scratch baseline, not by reusing source labels or by embedding the target answer in the portable object.
+The answer must be established by target-side heldout evidence, a matched tight scratch baseline, a roomy scratch control and a source-prior ablation. It must not be established by reusing source labels or embedding the target answer in the portable object.
+
+## Source boundary
+
+The Phase-A R2.68 benchmark begins at the **verified expression-prior boundary**. It tests portability/adaptation of an abstract three-probe composition; it does not independently re-prove the entire parent R2.67.1 source-learning pipeline on every benchmark invocation.
+
+Before promotion, R2.68 must be rebased on the exact accepted R2.67.1-or-successor parent and the portable export must be bound to that parent's verified receipt type/evidence boundary. Until then, R2.68 is not an end-to-end claim that it learned the source program itself.
 
 ## Architecture
 
 ### 1. Portable causal program
 
-A source `ThreeProbeCompositionReceipt` may be converted into `PortableCausalProgram` only when:
-
-- the source receipt passed;
-- a selected three-probe structure exists;
-- exactly three learned probe expressions exist;
-- source false accepts are zero;
-- the source program has an executable composition expression;
-- the source receipt has no trainable-parameter delta.
-
-The portable representation stores only:
+A portable program contains only:
 
 - a canonical composition expression over abstract probe roles `__p0`, `__p1`, `__p2`;
-- an expression digest;
-- the number of probe roles;
-- structural metadata required for auditable replay.
+- an exact expression digest;
+- exactly the canonical three probe roles;
+- a zero trainable-parameter declaration.
 
 It must not store:
 
@@ -45,99 +44,108 @@ It must not store:
 - source target labels;
 - target field names, examples, or labels.
 
+This authority boundary must hold for **direct construction as well as helper-based export**. Public constructor use may not bypass identity checks, digest integrity, canonical probe-role identity, or the zero-parameter boundary.
+
 ### 2. Target adaptation
 
-The target receives three target probe channels as ordinary examples whose contexts expose abstract probe values `__p0`, `__p1`, `__p2` and whose expected value is the target output.
+The target exposes only abstract probe-value contexts `__p0`, `__p1`, `__p2` to the transfer API. Expected target outputs are obtained only through the target oracle after the solver has selected a diagnostic context.
 
-R2.68 searches a small, deterministic repair neighborhood around the transferred source expression. The neighborhood contains:
+R2.68 searches a small deterministic repair neighborhood around the transferred source expression. The neighborhood contains:
 
 - the exact transferred expression;
 - all probe-role permutations;
 - one-node binary-operator substitutions over a frozen numeric operator vocabulary;
 - probe-role permutations of those one-node repairs.
 
-No candidate may be generated from target expected outputs. Target expected outputs are consulted only when evaluating already-generated hypotheses.
+Candidate generation has no target-output argument. Candidate IDs derive from canonical expression data only.
 
-The search is content-addressed and order-invariant. Candidate IDs derive from canonical expression data only.
+### 3. Active evidence ledger
 
-### 3. Evidence ledger
+Every target oracle call is charged explicitly. Diagnostic choice is computed only from disagreement among already-generated candidates, before observing the target output for that context.
 
-Every target evaluation is charged to a hard target-evidence budget. A candidate becomes a provisional winner only after exact agreement on the selection set.
-
-A provisional winner must then pass an independent terminal set that is disjoint from the selection set by canonical context key. Terminal evidence is mandatory even if only one candidate survives.
+A candidate or surviving version space then faces an independent terminal set that is canonically disjoint from the diagnostic pool. No terminal success is recorded until all required terminal calls are attempted and agree.
 
 The receipt records:
 
-- candidates generated;
-- candidates evaluated;
-- selection cases attempted/exact;
-- terminal cases attempted/exact;
-- whether the source expression itself solved the target;
-- whether a repaired expression solved the target;
-- whether transfer abstained;
+- generated candidate count;
+- live version-space size;
+- attempted selection queries;
+- attempted terminal queries and exact count;
+- selected expression/candidate identity;
+- source-expression versus repaired-expression selection;
 - false terminal accepts;
-- target evidence calls;
+- query trace;
 - trainable parameter count.
 
 ### 4. Negative transfer
 
-If no transferred-neighborhood candidate is exact on selection evidence, R2.68 abstains. If more than one semantically distinct candidate survives selection, R2.68 abstains unless terminal evidence uniquely validates one candidate. If terminal evidence contradicts the selected candidate, R2.68 abstains.
+If no transferred-neighborhood candidate remains after observed evidence, R2.68 abstains. If terminal evidence contradicts the surviving hypothesis space, it abstains. If multiple semantically distinct candidates remain after the declared evidence boundary, it abstains.
 
-R2.68 must never silently expand into unrestricted scratch synthesis after transfer failure. Scratch is measured separately as a baseline.
+R2.68 must never silently expand into unrestricted scratch synthesis after transfer failure. Scratch is measured separately as a control.
 
 ## Matched scratch baseline
 
-A separate scratch baseline receives the same target selection and terminal examples and the same frozen operator vocabulary, but no source program. It enumerates the bounded three-probe expression grammar from depth zero up to the frozen depth/candidate cap.
+A separate scratch baseline receives the same target diagnostic/terminal contexts, the same target oracle contract, the same active context-selection rule and the same terminal verifier, but no source prior. It enumerates a frozen bounded three-probe expression grammar.
 
-The transfer claim is only valid when:
+The candidate-budget transfer claim is valid only when:
 
-- transfer solves a target within its frozen candidate/evidence budget;
-- scratch with the same tight candidate budget fails closed or uses strictly more candidates/evidence;
-- a roomy scratch control can solve the task, proving the target is not made impossible for the baseline;
-- transfer advantage disappears when the source abstraction is ablated.
+- transfer solves all positive targets within the frozen tight candidate cap;
+- matched scratch under that same tight candidate cap fails closed;
+- roomy scratch can solve the same targets, proving the target remains expressible without the prior;
+- an explicit structurally shuffled source-prior ablation, using the same transfer machinery and candidate cap, removes the transfer success;
+- negative-transfer families abstain with zero false accepts.
+
+A difference in total oracle calls is reported but is **not** promoted as an evidence-efficiency claim unless separately preregistered and tested.
 
 ## Positive benchmark families
 
-The initial authored gate contains at least three target families:
+The authored Phase-A gate contains three bounded families:
 
-1. **Identity-preserving transfer** — same abstract causal program under field rename, schema permutation and probe-role permutation.
-2. **One-operator adaptation** — target differs from source by exactly one binary operator while retaining the same three-probe causal skeleton.
-3. **Surface-shift transfer** — source and target use distinct public task identifiers and distinct field/probe identities, with only abstract probe-role contexts shared at the transfer API boundary.
+1. **Probe-role permutation** — the same abstract source structure under a nontrivial probe-role binding.
+2. **One-operator multiplication adaptation** — the target differs by one internal binary operator.
+3. **One-operator subtraction adaptation** — a distinct one-node repair within the same causal skeleton.
 
-Heldout cases must be disjoint from selection cases.
+Terminal contexts are disjoint from the diagnostic pool.
 
 ## Negative benchmark families
 
-At least two negative families are mandatory:
+Two negative families are mandatory:
 
-1. target requires a composition outside the one-node repair neighborhood;
-2. target is intentionally ambiguous on selection evidence but separated by terminal evidence.
+1. a target outside the one-node repair neighborhood;
+2. a target that agrees with a legal hypothesis on diagnostics but deliberately contradicts it on terminal evidence.
 
-Expected behavior is abstention or terminal rejection with zero false accepts.
+Expected behavior is abstention/terminal rejection with zero false accepts.
 
 ## Invariance and anti-smuggling gates
 
-The frozen tests must prove:
+The tests must prove at least:
 
-1. source field/intervention/profile identifiers do not occur in `PortableCausalProgram` serialization;
-2. target field/probe renaming does not change semantic outcome;
-3. permutation of candidate enumeration order does not change semantic outcome;
-4. changing source raw examples while preserving the verified abstract expression does not change the portable object;
-5. target expected outputs are not passed to candidate generation;
-6. target task identity is not used as a lookup key for the answer;
-7. selection and terminal contexts are disjoint;
-8. target evidence accounting uses attempted-case counts only;
-9. non-finite/invalid evaluation fails closed;
-10. false terminal accepts remain zero.
+1. portable serialization contains only canonical probe roles and no source identities;
+2. direct constructor use cannot bypass identity or digest checks;
+3. the trainable-parameter field cannot be changed from zero;
+4. target expected outputs are absent from candidate generation;
+5. target task identity is not a lookup key for an answer;
+6. diagnostic ordering does not change the semantic selected result/query sequence;
+7. selection and terminal context sets are disjoint before any oracle use;
+8. invalid/non-finite oracle behavior fails closed;
+9. source-prior ablation removes the tight-budget advantage;
+10. negative transfer produces zero false accepts.
 
 ## Parameter and claim boundary
 
-R2.68 adds `0` trainable neural parameters. It may claim only bounded cross-task reuse/adaptation of a verified three-probe causal expression inside a frozen expression-repair neighborhood.
+R2.68 adds `0` trainable neural parameters. Phase A may claim only:
+
+- identity-free portability of a bounded verified three-probe expression prior;
+- target-label-free local adaptation inside the frozen permutation/one-node-repair neighborhood;
+- successful positive transfer under a tighter hypothesis candidate budget than the matched scratch search used by this gate;
+- fail-closed negative transfer and terminal contradiction handling.
 
 It does not establish:
 
+- fewer total oracle calls than general scratch learning;
 - unrestricted program transfer;
 - arbitrary-N interventions;
+- end-to-end source-program learning in the R2.68 Phase-A benchmark;
 - natural-language understanding;
 - open-world skill acquisition;
 - broad software engineering autonomy;
@@ -150,10 +158,11 @@ It does not establish:
 R2.68 must remain a draft research branch until R2.67.1 is either accepted or superseded. Before any promotion:
 
 - rebase onto the exact accepted parent;
-- rerun the R2.68 RED→GREEN contracts on the rebased source;
+- bind portable export to the exact accepted parent receipt/evidence boundary;
+- rerun all R2.68 RED→GREEN authority, ablation and transfer contracts;
 - freeze source/spec/test hashes before heldout measurement;
 - recompute authored evidence from source;
-- run the matched scratch baselines;
+- run matched tight/roomy scratch controls and source-prior ablation;
 - run protected parent lineage;
 - run cross-Python verification;
 - record Nolane World adjudication;
