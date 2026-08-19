@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from dataclasses import dataclass
 from typing import Mapping
 
@@ -11,12 +10,19 @@ from .r256_operator_dsl import Binary, Const, Expr, Field, IfElse, Unary
 
 _ACCEPTED_R268_PARENT = 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
 _ALLOWED_ADAPTATION_OPS = ('add', 'sub', 'mul', 'div', 'min', 'max')
-_CANONICAL_ROLE_RE = re.compile(r'^__r([0-9]+)$')
+_CLAIM_SCOPE = ('r268_verified_adaptive_basis', 'globally_minimal', 'proof_ledger_complete')
 
 
 def _sha(payload: object) -> str:
     raw = json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
+
+
+def _nonempty(value: object, name: str) -> str:
+    text = str(value).strip()
+    if not text:
+        raise ValueError(f'{name} must be non-empty')
+    return text
 
 
 def _used_fields(expr: Expr) -> frozenset[str]:
@@ -76,14 +82,46 @@ def _expr_from_data(data: Mapping[str, object]) -> Expr:
     raise ValueError('invalid expression data')
 
 
-def _portable_payload(*, adapter_type: str, expression: Expr, roles: tuple[str, ...], source_receipt_digest: str, source_authority_digest: str, accepted_parent_sha: str, claim_scope: tuple[str, ...], allowed_adaptation_ops: tuple[str, ...], trainable_parameter_count: int) -> dict[str, object]:
-    return {
+def _authority_digest(
+    *,
+    source_receipt_digest: str,
+    source_verifier_evidence_digest: str,
+    accepted_parent_sha: str,
+    claim_scope: tuple[str, ...],
+) -> str:
+    payload = {
         'schema_version': 1,
+        'source_receipt_digest': _nonempty(source_receipt_digest, 'source_receipt_digest'),
+        'source_verifier_evidence_digest': _nonempty(
+            source_verifier_evidence_digest, 'source_verifier_evidence_digest'
+        ),
+        'accepted_parent_sha': _nonempty(accepted_parent_sha, 'accepted_parent_sha'),
+        'claim_scope': list(claim_scope),
+    }
+    return 'r269.source-authority.' + _sha(payload)
+
+
+def _portable_payload(
+    *,
+    adapter_type: str,
+    expression: Expr,
+    roles: tuple[str, ...],
+    source_receipt_digest: str,
+    source_verifier_evidence_digest: str,
+    source_authority_digest: str,
+    accepted_parent_sha: str,
+    claim_scope: tuple[str, ...],
+    allowed_adaptation_ops: tuple[str, ...],
+    trainable_parameter_count: int,
+) -> dict[str, object]:
+    return {
+        'schema_version': 2,
         'adapter_type': adapter_type,
         'canonical_expression': expression.to_data(),
         'canonical_roles': list(roles),
         'role_count': len(roles),
         'source_receipt_digest': source_receipt_digest,
+        'source_verifier_evidence_digest': source_verifier_evidence_digest,
         'source_authority_digest': source_authority_digest,
         'accepted_parent_sha': accepted_parent_sha,
         'claim_scope': list(claim_scope),
@@ -95,6 +133,7 @@ def _portable_payload(*, adapter_type: str, expression: Expr, roles: tuple[str, 
 @dataclass(frozen=True, slots=True)
 class VerifiedExperienceEnvelope:
     source_receipt_digest: str
+    source_verifier_evidence_digest: str
     source_authority_digest: str
     accepted_parent_sha: str
     claim_scope: tuple[str, ...]
@@ -102,16 +141,32 @@ class VerifiedExperienceEnvelope:
     trainable_parameter_count: int = 0
 
     def __post_init__(self) -> None:
-        if not self.source_receipt_digest or not self.source_authority_digest:
-            raise ValueError('verifier-backed source digests are required')
-        if self.accepted_parent_sha != _ACCEPTED_R268_PARENT:
+        receipt_digest = _nonempty(self.source_receipt_digest, 'source_receipt_digest')
+        verifier_digest = _nonempty(
+            self.source_verifier_evidence_digest, 'source_verifier_evidence_digest'
+        )
+        parent = _nonempty(self.accepted_parent_sha, 'accepted_parent_sha')
+        scope = tuple(_nonempty(row, 'claim scope') for row in self.claim_scope)
+        if parent != _ACCEPTED_R268_PARENT:
             raise ValueError('accepted_parent_sha must be the accepted R2.68 parent')
         if self.source_basis_size not in (2, 3, 4):
             raise ValueError('source_basis_size must be 2, 3, or 4')
         if self.trainable_parameter_count != 0:
             raise ValueError('trainable_parameter_count must remain zero')
-        if not self.claim_scope:
+        if not scope:
             raise ValueError('claim_scope must be non-empty')
+        expected = _authority_digest(
+            source_receipt_digest=receipt_digest,
+            source_verifier_evidence_digest=verifier_digest,
+            accepted_parent_sha=parent,
+            claim_scope=scope,
+        )
+        if self.source_authority_digest != expected:
+            raise ValueError('source_authority_digest must be derived from receipt, parent, and verifier evidence')
+        object.__setattr__(self, 'source_receipt_digest', receipt_digest)
+        object.__setattr__(self, 'source_verifier_evidence_digest', verifier_digest)
+        object.__setattr__(self, 'accepted_parent_sha', parent)
+        object.__setattr__(self, 'claim_scope', scope)
 
 
 @dataclass(frozen=True, slots=True)
@@ -121,6 +176,7 @@ class PortableExperience:
     canonical_roles: tuple[str, ...]
     role_count: int
     source_receipt_digest: str
+    source_verifier_evidence_digest: str
     source_authority_digest: str
     accepted_parent_sha: str
     claim_scope: tuple[str, ...]
@@ -136,32 +192,52 @@ class PortableExperience:
         if self.trainable_parameter_count != 0:
             raise ValueError('trainable_parameter_count must remain zero')
         roles = tuple(self.canonical_roles)
-        expected = tuple(f'__r{i}' for i in range(len(roles)))
-        if roles != expected or self.role_count != len(roles) or not roles:
+        expected_roles = tuple(f'__r{i}' for i in range(len(roles)))
+        if roles != expected_roles or self.role_count != len(roles) or not roles:
             raise ValueError('canonical_roles must be contiguous __rN roles')
         if _used_fields(self.canonical_expression) != frozenset(roles):
             raise ValueError('canonical_expression must depend on exactly canonical_roles')
-        if self.accepted_parent_sha != _ACCEPTED_R268_PARENT:
+        parent = _nonempty(self.accepted_parent_sha, 'accepted_parent_sha')
+        if parent != _ACCEPTED_R268_PARENT:
             raise ValueError('portable experience must bind accepted R2.68 parent')
-        if not self.source_receipt_digest or not self.source_authority_digest:
-            raise ValueError('source authority digests must be non-empty')
-        if not self.claim_scope:
+        receipt_digest = _nonempty(self.source_receipt_digest, 'source_receipt_digest')
+        verifier_digest = _nonempty(
+            self.source_verifier_evidence_digest, 'source_verifier_evidence_digest'
+        )
+        scope = tuple(_nonempty(row, 'claim scope') for row in self.claim_scope)
+        if not scope:
             raise ValueError('claim_scope must be non-empty')
-        if not self.allowed_adaptation_ops or any(op not in _ALLOWED_ADAPTATION_OPS for op in self.allowed_adaptation_ops):
+        ops = tuple(map(str, self.allowed_adaptation_ops))
+        if not ops or any(op not in _ALLOWED_ADAPTATION_OPS for op in ops):
             raise ValueError('unsupported adaptation op')
+        expected_authority = _authority_digest(
+            source_receipt_digest=receipt_digest,
+            source_verifier_evidence_digest=verifier_digest,
+            accepted_parent_sha=parent,
+            claim_scope=scope,
+        )
+        if self.source_authority_digest != expected_authority:
+            raise ValueError('source_authority_digest must bind receipt, parent, and verifier evidence')
         payload = _portable_payload(
             adapter_type=self.adapter_type,
             expression=self.canonical_expression,
             roles=roles,
-            source_receipt_digest=self.source_receipt_digest,
-            source_authority_digest=self.source_authority_digest,
-            accepted_parent_sha=self.accepted_parent_sha,
-            claim_scope=tuple(self.claim_scope),
-            allowed_adaptation_ops=tuple(self.allowed_adaptation_ops),
+            source_receipt_digest=receipt_digest,
+            source_verifier_evidence_digest=verifier_digest,
+            source_authority_digest=expected_authority,
+            accepted_parent_sha=parent,
+            claim_scope=scope,
+            allowed_adaptation_ops=ops,
             trainable_parameter_count=0,
         )
         if self.portable_digest != _sha(payload):
             raise ValueError('portable_digest must exactly match portable content')
+        object.__setattr__(self, 'canonical_roles', roles)
+        object.__setattr__(self, 'source_receipt_digest', receipt_digest)
+        object.__setattr__(self, 'source_verifier_evidence_digest', verifier_digest)
+        object.__setattr__(self, 'accepted_parent_sha', parent)
+        object.__setattr__(self, 'claim_scope', scope)
+        object.__setattr__(self, 'allowed_adaptation_ops', ops)
 
     def to_data(self) -> dict[str, object]:
         payload = _portable_payload(
@@ -169,6 +245,7 @@ class PortableExperience:
             expression=self.canonical_expression,
             roles=tuple(self.canonical_roles),
             source_receipt_digest=self.source_receipt_digest,
+            source_verifier_evidence_digest=self.source_verifier_evidence_digest,
             source_authority_digest=self.source_authority_digest,
             accepted_parent_sha=self.accepted_parent_sha,
             claim_scope=tuple(self.claim_scope),
@@ -198,7 +275,12 @@ def _source_receipt_digest(receipt: AdaptiveCausalBasisReceipt) -> str:
     return f'r268.receipt.{_sha(payload)}'
 
 
-def compile_r268_experience(receipt: AdaptiveCausalBasisReceipt, *, source_authority_digest: str, accepted_parent_sha: str) -> PortableExperience:
+def compile_r268_experience(
+    receipt: AdaptiveCausalBasisReceipt,
+    *,
+    verifier_evidence_digest: str,
+    accepted_parent_sha: str,
+) -> PortableExperience:
     if not isinstance(receipt, AdaptiveCausalBasisReceipt):
         raise TypeError('receipt must be AdaptiveCausalBasisReceipt')
     if not receipt.passed or receipt.false_accepts != 0:
@@ -216,18 +298,26 @@ def compile_r268_experience(receipt: AdaptiveCausalBasisReceipt, *, source_autho
     if receipt.trainable_parameter_count != 0 or receipt.structure.trainable_parameter_count != 0:
         raise ValueError('R2.69 adapter accepts zero-parameter R2.68 receipts only')
 
-    source_authority_digest = str(source_authority_digest).strip()
-    accepted_parent_sha = str(accepted_parent_sha).strip()
+    accepted_parent_sha = _nonempty(accepted_parent_sha, 'accepted_parent_sha')
+    verifier_evidence_digest = _nonempty(verifier_evidence_digest, 'verifier_evidence_digest')
     source_fields = tuple(sorted(_used_fields(receipt.expression)))
     if not source_fields:
         raise ValueError('source expression must expose at least one structural role')
     canonical_roles = tuple(f'__r{i}' for i in range(len(source_fields)))
     canonical_expression = _rewrite_fields(receipt.expression, dict(zip(source_fields, canonical_roles, strict=True)))
-    envelope = VerifiedExperienceEnvelope(
-        source_receipt_digest=_source_receipt_digest(receipt),
-        source_authority_digest=source_authority_digest,
+    receipt_digest = _source_receipt_digest(receipt)
+    authority_digest = _authority_digest(
+        source_receipt_digest=receipt_digest,
+        source_verifier_evidence_digest=verifier_evidence_digest,
         accepted_parent_sha=accepted_parent_sha,
-        claim_scope=('r268_verified_adaptive_basis', 'globally_minimal', 'proof_ledger_complete'),
+        claim_scope=_CLAIM_SCOPE,
+    )
+    envelope = VerifiedExperienceEnvelope(
+        source_receipt_digest=receipt_digest,
+        source_verifier_evidence_digest=verifier_evidence_digest,
+        source_authority_digest=authority_digest,
+        accepted_parent_sha=accepted_parent_sha,
+        claim_scope=_CLAIM_SCOPE,
         source_basis_size=receipt.selected_basis_size,
         trainable_parameter_count=0,
     )
@@ -236,6 +326,7 @@ def compile_r268_experience(receipt: AdaptiveCausalBasisReceipt, *, source_autho
         expression=canonical_expression,
         roles=canonical_roles,
         source_receipt_digest=envelope.source_receipt_digest,
+        source_verifier_evidence_digest=envelope.source_verifier_evidence_digest,
         source_authority_digest=envelope.source_authority_digest,
         accepted_parent_sha=envelope.accepted_parent_sha,
         claim_scope=envelope.claim_scope,
@@ -248,6 +339,7 @@ def compile_r268_experience(receipt: AdaptiveCausalBasisReceipt, *, source_autho
         canonical_roles=canonical_roles,
         role_count=len(canonical_roles),
         source_receipt_digest=envelope.source_receipt_digest,
+        source_verifier_evidence_digest=envelope.source_verifier_evidence_digest,
         source_authority_digest=envelope.source_authority_digest,
         accepted_parent_sha=envelope.accepted_parent_sha,
         claim_scope=envelope.claim_scope,
@@ -271,6 +363,7 @@ def portable_experience_from_data(data: Mapping[str, object]) -> PortableExperie
         canonical_roles=tuple(map(str, roles_obj)),
         role_count=int(row.get('role_count', -1)),
         source_receipt_digest=str(row.get('source_receipt_digest', '')),
+        source_verifier_evidence_digest=str(row.get('source_verifier_evidence_digest', '')),
         source_authority_digest=str(row.get('source_authority_digest', '')),
         accepted_parent_sha=str(row.get('accepted_parent_sha', '')),
         claim_scope=tuple(map(str, scope_obj)),
@@ -280,4 +373,9 @@ def portable_experience_from_data(data: Mapping[str, object]) -> PortableExperie
     )
 
 
-__all__ = ['VerifiedExperienceEnvelope', 'PortableExperience', 'compile_r268_experience', 'portable_experience_from_data']
+__all__ = [
+    'VerifiedExperienceEnvelope',
+    'PortableExperience',
+    'compile_r268_experience',
+    'portable_experience_from_data',
+]
