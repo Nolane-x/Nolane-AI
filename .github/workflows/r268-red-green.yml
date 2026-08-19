@@ -1,5 +1,6 @@
 name: R2.68 RED GREEN
 # Final freeze retrigger after cross-Python external receipt materialization; no test semantics changed.
+# Isolated retrigger after superseded child PRs were closed; runner fan-out reduced, no authority semantics changed.
 
 on:
   pull_request:
