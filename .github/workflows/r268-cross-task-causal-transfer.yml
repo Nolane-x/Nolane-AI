@@ -5,7 +5,7 @@ on:
     branches: [r268-cross-task-causal-transfer-gpt56sol]
     paths:
       - 'cogcoder/r268_cross_task_causal_transfer.py'
-      - 'tests/test_r268_cross_task_causal_transfer.py'
+      - 'tests/test_r268_*.py'
       - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
       - '.github/workflows/r268-cross-task-causal-transfer.yml'
       - 'docs/superpowers/specs/2026-08-19-r268-cross-task-causal-transfer-design.md'
@@ -13,7 +13,7 @@ on:
   pull_request:
     paths:
       - 'cogcoder/r268_cross_task_causal_transfer.py'
-      - 'tests/test_r268_cross_task_causal_transfer.py'
+      - 'tests/test_r268_*.py'
       - 'benchmarks/kfigg/r268_cross_task_causal_transfer.py'
       - '.github/workflows/r268-cross-task-causal-transfer.yml'
   workflow_dispatch:
@@ -36,4 +36,4 @@ jobs:
           python-version: ${{ matrix.python }}
       - run: python -m pip install pytest
       - name: Run R2.68 focused contracts
-        run: PYTHONPATH=. python -m pytest -q tests/test_r268_cross_task_causal_transfer.py
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
