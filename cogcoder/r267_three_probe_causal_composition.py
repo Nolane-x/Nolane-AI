@@ -1094,14 +1094,14 @@ def synthesize_three_probe_causal_program(
             probe_candidates_considered=(),
             probe_validation_cases=0,
             probe_validation_exact=0,
-            final_validation_cases=len(terminal),
+            final_validation_cases=0,
             final_validation_exact=0,
             reason='structure_discovery_failed',
             oracle_calls_total=structure.oracle_calls,
         )
 
     selected = structure.selected
-    planned_probe_validation_cases = len(validation) * len(selected.profiles)
+    probe_validation_cases = 0
     probe_canonical: list[Expr] = []
     probe_external: list[Expr] = []
     probe_counts: list[int] = []
@@ -1139,9 +1139,9 @@ def synthesize_three_probe_causal_program(
                 expression=None,
                 probe_expressions=tuple(probe_external),
                 probe_candidates_considered=tuple(probe_counts),
-                probe_validation_cases=planned_probe_validation_cases,
+                probe_validation_cases=probe_validation_cases,
                 probe_validation_exact=probe_validation_exact,
-                final_validation_cases=len(terminal),
+                final_validation_cases=0,
                 final_validation_exact=0,
                 reason='probe_synthesis_failed',
                 oracle_calls_total=structure.oracle_calls,
@@ -1151,6 +1151,7 @@ def synthesize_three_probe_causal_program(
         probe_canonical.append(canonical)
         probe_external.append(external)
         for context, expected in zip(validation, profile.validation_outputs, strict=True):
+            probe_validation_cases += 1
             try:
                 actual = _finite_json_value(evaluate_expr(external, context))
             except (ArithmeticError, KeyError, TypeError, ValueError, OverflowError, ZeroDivisionError):
@@ -1164,9 +1165,9 @@ def synthesize_three_probe_causal_program(
             expression=None,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=0,
             final_validation_exact=0,
             reason='probe_validation_failed',
             oracle_calls_total=structure.oracle_calls,
@@ -1193,9 +1194,9 @@ def synthesize_three_probe_causal_program(
             expression=expression,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=0,
             final_validation_exact=0,
             reason='substituted_validation_failed',
             oracle_calls_total=structure.oracle_calls,
@@ -1214,7 +1215,9 @@ def synthesize_three_probe_causal_program(
         terminal_seen.add(key)
 
     terminal_calls = 0
+    terminal_probe_cases = 0
     terminal_probe_exact = 0
+    final_cases = 0
     final_exact = 0
 
     def terminal_oracle(context: Mapping[str, object]) -> object:
@@ -1229,6 +1232,7 @@ def synthesize_three_probe_causal_program(
                 key = _context_key(schema, intervened)
                 if key in structure.learning_query_keys or key in terminal_seen:
                     raise ValueError('terminal intervention inputs must be disjoint from all prior evidence inputs')
+                terminal_probe_cases += 1
                 if context_validator is not None and not bool(context_validator(intervened)):
                     return ThreeProbeCompositionReceipt(
                         passed=False,
@@ -1236,19 +1240,20 @@ def synthesize_three_probe_causal_program(
                         expression=expression,
                         probe_expressions=tuple(probe_external),
                         probe_candidates_considered=tuple(probe_counts),
-                        probe_validation_cases=planned_probe_validation_cases,
+                        probe_validation_cases=probe_validation_cases,
                         probe_validation_exact=probe_validation_exact,
-                        final_validation_cases=len(terminal),
+                        final_validation_cases=final_cases,
                         final_validation_exact=final_exact,
                         reason='independent_terminal_probe_verification_error',
                         oracle_calls_total=structure.oracle_calls + terminal_calls,
-                        terminal_probe_validation_cases=len(terminal) * 3,
+                        terminal_probe_validation_cases=terminal_probe_cases,
                         terminal_probe_validation_exact=terminal_probe_exact,
                     )
                 terminal_seen.add(key)
                 expected_probe = terminal_oracle(intervened)
                 actual_probe = _finite_json_value(evaluate_expr(probe_external[index], context))
                 terminal_probe_exact += int(_equivalent(actual_probe, expected_probe))
+            final_cases += 1
             expected = terminal_oracle(context)
             actual = _finite_json_value(evaluate_expr(expression, context))
             final_exact += int(_equivalent(actual, expected))
@@ -1261,13 +1266,13 @@ def synthesize_three_probe_causal_program(
             expression=expression,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=final_cases,
             final_validation_exact=final_exact,
             reason='independent_terminal_verification_error',
             oracle_calls_total=structure.oracle_calls + terminal_calls,
-            terminal_probe_validation_cases=len(terminal) * 3,
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
     except Exception:
@@ -1277,17 +1282,16 @@ def synthesize_three_probe_causal_program(
             expression=expression,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=final_cases,
             final_validation_exact=final_exact,
             reason='independent_terminal_verification_error',
             oracle_calls_total=structure.oracle_calls + terminal_calls,
-            terminal_probe_validation_cases=len(terminal) * 3,
+            terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
 
-    terminal_probe_cases = len(terminal) * 3
     if terminal_probe_exact != terminal_probe_cases:
         return ThreeProbeCompositionReceipt(
             passed=False,
@@ -1295,25 +1299,25 @@ def synthesize_three_probe_causal_program(
             expression=expression,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=final_cases,
             final_validation_exact=final_exact,
             reason='independent_terminal_probe_verification_failed',
             oracle_calls_total=structure.oracle_calls + terminal_calls,
             terminal_probe_validation_cases=terminal_probe_cases,
             terminal_probe_validation_exact=terminal_probe_exact,
         )
-    if final_exact != len(terminal):
+    if final_exact != final_cases:
         return ThreeProbeCompositionReceipt(
             passed=False,
             structure=structure,
             expression=expression,
             probe_expressions=tuple(probe_external),
             probe_candidates_considered=tuple(probe_counts),
-            probe_validation_cases=planned_probe_validation_cases,
+            probe_validation_cases=probe_validation_cases,
             probe_validation_exact=probe_validation_exact,
-            final_validation_cases=len(terminal),
+            final_validation_cases=final_cases,
             final_validation_exact=final_exact,
             reason='independent_terminal_verification_failed',
             oracle_calls_total=structure.oracle_calls + terminal_calls,
@@ -1326,9 +1330,9 @@ def synthesize_three_probe_causal_program(
         expression=expression,
         probe_expressions=tuple(probe_external),
         probe_candidates_considered=tuple(probe_counts),
-        probe_validation_cases=planned_probe_validation_cases,
+        probe_validation_cases=probe_validation_cases,
         probe_validation_exact=probe_validation_exact,
-        final_validation_cases=len(terminal),
+        final_validation_cases=final_cases,
         final_validation_exact=final_exact,
         reason='three_probe_program_synthesized_terminally_verified',
         oracle_calls_total=structure.oracle_calls + terminal_calls,
