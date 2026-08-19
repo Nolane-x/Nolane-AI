@@ -1,0 +1,32 @@
+name: R2.68 Semantic Alias Budget Fairness Current
+
+on:
+  push:
+    branches: [validation-r268-semantic-alias-budget-current-gpt56sol]
+  pull_request:
+    branches: [r268-proof-carrying-adaptive-causal-basis-gpt56sol]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  challenger:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Accepted R2.67.1 parent first
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r267_1_*.py tests/test_r267_independent_ablation_completeness.py
+          PYTHONPATH=. python -m pytest -q tests/test_r266_*.py
+      - name: Current semantic-alias budget fairness challenger
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_semantic_alias_budget_fairness_current.py
