@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+import cogcoder.r267_three_probe_causal_composition as r267
 from cogcoder.r256_operator_invention import OperatorInventionNeed
 from cogcoder.r267_three_probe_causal_composition import (
     discover_three_probe_structure,
@@ -61,6 +62,24 @@ def _tri_oracle(row: Mapping[str, object]) -> float:
     )
 
 
+def _tri_discovery():
+    rows = _rows(TRI_FIELDS, TRI_ROWS)
+    return discover_three_probe_structure(
+        _tri_oracle,
+        TRI_FIELDS,
+        (0.0,),
+        rows[:12],
+        rows[12:18],
+        intervention_arity=1,
+        composition_constants=(0.0, 2.0),
+        composition_max_depth=3,
+        composition_max_candidates_per_triplet=35_000,
+        max_composition_candidates_total=70_000,
+        ablation_max_candidates=20_000,
+        composition_beam_width=192,
+    )
+
+
 def test_probe_validation_receipt_uses_probe_observation_case_units() -> None:
     rows = _rows(CYCLIC_FIELDS, CYCLIC_ROWS)
     need = OperatorInventionNeed(
@@ -99,22 +118,47 @@ def test_probe_validation_receipt_uses_probe_observation_case_units() -> None:
     assert receipt.probe_validation_exact <= receipt.probe_validation_cases
 
 
-def test_old_tri_bilinear_family_is_rejected_under_subset_specific_ablations() -> None:
-    rows = _rows(TRI_FIELDS, TRI_ROWS)
-    structure = discover_three_probe_structure(
-        _tri_oracle,
-        TRI_FIELDS,
-        (0.0,),
-        rows[:12],
-        rows[12:18],
-        intervention_arity=1,
-        composition_constants=(0.0, 2.0),
-        composition_max_depth=3,
-        composition_max_candidates_per_triplet=35_000,
-        max_composition_candidates_total=70_000,
-        ablation_max_candidates=20_000,
-        composition_beam_width=192,
-    )
-    assert structure.pair_candidates_considered > 0
+def test_old_tri_bilinear_family_fails_closed_without_a_lower_order_certificate() -> None:
+    structure = _tri_discovery()
+    assert structure.passed is False
+    assert structure.selected is None
+    assert structure.false_accepts == 0
+    assert structure.reason == 'ablation_search_inconclusive'
+
+
+def test_pair_ablation_search_receives_fields_free_under_that_pair(monkeypatch) -> None:
+    # The original R2.67 union mask exposed only three original fields to every
+    # pair ablation.  With two distinct one-field interventions, a genuine pair
+    # must instead receive four original fields plus __p0/__p1.
+    real_search = r267._synthesize_r267_expression
+    real_collision = r267._examples_have_target_collision
+    pair_field_sets: list[tuple[str, ...]] = []
+
+    def collision_gate(examples):
+        names = set(examples[0].context)
+        if '__p0' in names and '__p1' not in names:
+            return True  # certify singleton insufficiency so the pair stage runs
+        return real_collision(examples)
+
+    def traced_search(field_names, constants, examples, *, max_depth, max_candidates, beam_width):
+        names = tuple(map(str, field_names))
+        if '__p0' in names and '__p1' in names and '__p2' not in names:
+            pair_field_sets.append(names)
+        return real_search(
+            field_names,
+            constants,
+            examples,
+            max_depth=max_depth,
+            max_candidates=max_candidates,
+            beam_width=beam_width,
+        )
+
+    monkeypatch.setattr(r267, '_examples_have_target_collision', collision_gate)
+    monkeypatch.setattr(r267, '_synthesize_r267_expression', traced_search)
+    structure = _tri_discovery()
+
+    assert pair_field_sets
+    assert all(len(names) == 6 for names in pair_field_sets)
+    assert all(sum(not name.startswith('__p') for name in names) == 4 for names in pair_field_sets)
     assert structure.passed is False
     assert structure.selected is None
