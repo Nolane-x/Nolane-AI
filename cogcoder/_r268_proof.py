@@ -20,7 +20,9 @@ def canonical_evidence_digest(examples:Sequence[OperatorExample],exposed_fields:
 def build_public_target_collision_certificate(*,basis_semantic_profile_ids:Sequence[str],subset_semantic_profile_ids:Sequence[str],exposed_fields:Sequence[str],examples:Sequence[OperatorExample])->NecessityCertificate|None:
     basis_ids=tuple(map(str,basis_semantic_profile_ids));subset_ids=tuple(map(str,subset_semantic_profile_ids));fields=tuple(map(str,exposed_fields));rows=tuple(examples)
     if not basis_ids or not subset_ids:raise ValueError('basis and subset semantic profile ids must be non-empty')
+    if len(set(basis_ids))!=len(basis_ids) or len(set(subset_ids))!=len(subset_ids):raise ValueError('semantic profile ids must be unique')
     if len(subset_ids)>len(basis_ids):raise ValueError('subset cannot exceed basis cardinality')
+    if any(profile_id not in basis_ids for profile_id in subset_ids):raise ValueError('subset semantic profile ids must belong to basis')
     if not fields:raise ValueError('exposed_fields must be non-empty')
     evidence_digest=canonical_evidence_digest(rows,fields);seen={}
     for index,example in enumerate(rows):
@@ -36,6 +38,7 @@ def verify_necessity_certificate(certificate:NecessityCertificate,examples:Seque
     if not isinstance(certificate,NecessityCertificate):return False
     basis_ids=tuple(map(str,basis_semantic_profile_ids));subset_ids=tuple(map(str,subset_semantic_profile_ids));fields=tuple(map(str,exposed_fields))
     if certificate.proof_kind!='public_target_collision' or certificate.basis_semantic_profile_ids!=basis_ids or certificate.subset_semantic_profile_ids!=subset_ids or certificate.subset_cardinality!=len(subset_ids) or certificate.exposed_fields!=fields:return False
+    if len(set(basis_ids))!=len(basis_ids) or len(set(subset_ids))!=len(subset_ids) or any(profile_id not in basis_ids for profile_id in subset_ids):return False
     try:
         if certificate.evidence_digest!=canonical_evidence_digest(examples,fields):return False
         rows=tuple(examples);left,right=certificate.witness_rows
