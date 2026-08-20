@@ -10,6 +10,7 @@ on:
       - 'cogcoder/r269_experience_compiler.py'
       - 'cogcoder/r269_causal_basis_adapter.py'
       - 'cogcoder/r269_meta_learning_kernel.py'
+      - 'cogcoder/r269_transfer_runtime.py'
       - 'benchmarks/kfigg/r269_promotion_authority.py'
       - 'tests/test_r269_promotion_*.py'
       - 'tests/test_r269_governed_runtime.py'
