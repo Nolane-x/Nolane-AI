@@ -15,6 +15,7 @@ permissions:
 
 env:
   BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
 
 jobs:
   cross-python-external:
@@ -25,8 +26,13 @@ jobs:
         with:
           ref: ${{ env.BRANCH }}
           fetch-depth: 0
-      - name: Exact accepted R2.68 ancestry
-        run: git merge-base --is-ancestor fda7f502185266fedb00886d5786c6d28cc0e0eb HEAD
+      - name: Refuse stale external evidence writer
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH} main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
 
       - uses: actions/setup-python@v5
         with:
@@ -73,7 +79,7 @@ jobs:
       - name: Cross-verify canonical external evidence
         run: |
           PYTHONPATH=. python - <<'PY'
-          import json
+          import json,subprocess
           from pathlib import Path
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           first = json.loads(Path('/tmp/r269_external_311.json').read_text(encoding='utf-8'))
@@ -82,10 +88,12 @@ jobs:
           assert first['semantic_result_digest'] == second['semantic_result_digest']
           assert json.dumps(first, sort_keys=True, separators=(',', ':')) == json.dumps(second, sort_keys=True, separators=(',', ':'))
           receipt = {
-              'schema_version': 1,
+              'schema_version': 2,
               'milestone': 'R2.69',
               'capability': 'cross-python-external-black-box-meta-transfer',
               'accepted_parent_sha': 'fda7f502185266fedb00886d5786c6d28cc0e0eb',
+              'source_head_sha': subprocess.check_output(['git','rev-parse','HEAD'], text=True).strip(),
+              'source_tree_sha': subprocess.check_output(['git','rev-parse','HEAD^{tree}'], text=True).strip(),
               'dependency': 'numpy==2.4.6',
               'python_versions_verified': ['3.11', '3.13'],
               'source_exposure': second['source_exposure'],
@@ -108,6 +116,11 @@ jobs:
           )
           print('R269_EXTERNAL_CROSS_PYTHON_DIGEST=' + second['semantic_result_digest'])
           PY
+      - name: Recheck exact branch before receipt push
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH}
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
       - name: Commit only cross-verified external receipt
         run: |
           if git diff --quiet -- R2_69_EXTERNAL_TRANSFER.json; then
