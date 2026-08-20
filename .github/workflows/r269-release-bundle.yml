@@ -7,7 +7,7 @@ on:
       - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_*.py'
       - 'tests/test_r269_*.py'
-      - 'scripts/r269_build_complete_bundle.py'
+      - 'scripts/r269_*.py'
       - 'R2_69_*.json'
       - '.github/workflows/r269-*.yml'
   workflow_dispatch:
@@ -35,7 +35,7 @@ jobs:
         if: steps.freeze.outputs.frozen == 'true'
         with:
           python-version: '3.11'
-      - name: Reverify source evidence and hosted promotion authority
+      - name: Reverify source evidence, hosted promotion and World authority
         if: steps.freeze.outputs.frozen == 'true'
         env:
           BUNDLE_RUN_ID: ${{ github.run_id }}
@@ -49,9 +49,10 @@ jobs:
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
-          assert lock['schema_version']>=3
+          assert lock['schema_version']>=4
           authored=run_benchmark(); external=run_external_transfer()
           assert authored['semantic_result_digest']==lock['authored_semantic_digest']
           assert external['semantic_result_digest']==lock['external_semantic_digest']
@@ -75,10 +76,14 @@ jobs:
           assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
           assert promotion['false_accepts']==0 and promotion['trainable_parameter_count']==0
 
-          world=json.loads(Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json').read_text())
+          world=verify_world_receipt()
           assert world['final_bounded_release']=='ACCEPT'
+          assert world['full_w5_gate_pass'] is False
           assert world['w5_convergence_claimed'] is False
           assert world['claim_boundary']==lock['claim_boundary']
+          assert world['receipt_digest']==lock['world_bounded_receipt_digest']
+          assert world['world_state_sha256']==lock['world_state_sha256']
+          assert world['world_gate_sha256']==lock['world_gate_sha256']
           PY
       - name: Build and independently verify deterministic COMPLETE ZIP
         if: steps.freeze.outputs.frozen == 'true'
