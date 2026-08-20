@@ -9,6 +9,7 @@ from cogcoder.r269_scoped_promotion import (
 )
 
 SCOPE = "4f5a56f01b9b9d4b57fe7f0e196f48c3cb0f8f088ee409160840ba8ab58f1db8"
+VERIFIER_AUTHORITY = "1f" * 32
 
 
 def _decision(
@@ -35,6 +36,7 @@ def _decision(
         terminal_verifier_digest="verifier.terminal.001",
         candidate_issuer="issuer.candidate",
         verifier_issuer="issuer.independent",
+        verifier_authority_digest=VERIFIER_AUTHORITY,
         heldout_targets=8,
         champion_accepted_targets=8 if promoted else 0,
         challenger_accepted_targets=7,
@@ -46,7 +48,9 @@ def _decision(
         terminal_verification_passed=True,
         target_answer_channel_detected=False,
     )
-    return ScopedPromotionController().adjudicate(candidate, evidence)
+    return ScopedPromotionController(
+        trusted_verifier_authority_digests=frozenset({VERIFIER_AUTHORITY})
+    ).adjudicate(candidate, evidence)
 
 
 def test_registry_activates_one_scoped_decision_idempotently_and_records_history():
