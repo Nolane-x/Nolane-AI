@@ -1,0 +1,11 @@
+{
+  "candidate_effective_parameters":78899404,
+  "delta_bytes":251573,
+  "delta_parameters":120151,
+  "delta_path":"Nolane-Neural-R2.1a-Causal-Evidence-Router-DELTA.pt",
+  "delta_sha256":"3bbd63c9cb20e180b78588e15a21e4132b41d80118c6ce229231967a91bfc9c4",
+  "dev_tuning":{"baseline_solved":30,"candidate_solved":36,"families_baseline":{"causal_prerequisites":1,"conditional_regimes":10,"implicit_goal_regimes":11,"regime_switch":8},"families_candidate":{"causal_prerequisites":7,"conditional_regimes":10,"implicit_goal_regimes":11,"regime_switch":8},"indices":[800,819],"split":"dev"},
+  "fresh_evaluation":{"episodes":80,"families":["conditional_regimes","regime_switch","implicit_goal_regimes","causal_prerequisites"],"indices":[900,919],"split":"fresh","status":"LOCKED_UNCONSUMED"},
+  "parent_sha256":"b1c2be66b6d42cc34b62a1c0960e47b13525d68126fa038b2ce9a11980b7f20e",
+  "version":"Neural-R2.1a-Causal-Evidence-Router"
+}
