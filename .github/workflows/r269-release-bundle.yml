@@ -1,0 +1,70 @@
+name: R2.69 COMPLETE Release Bundle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r269_*.py'
+      - 'benchmarks/kfigg/r269_*.py'
+      - 'tests/test_r269_*.py'
+      - 'scripts/r269_build_complete_bundle.py'
+      - 'R2_69_*.json'
+      - '.github/workflows/r269-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: freeze
+        run: |
+          if [ -f R2_69_PRE_HOSTED_LOCK.json ]; then
+            echo 'frozen=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'frozen=false' >> "$GITHUB_OUTPUT"
+            echo 'R269_NOT_FROZEN: bundle intentionally inactive.'
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          python-version: '3.11'
+      - name: Reverify source and evidence
+        if: steps.freeze.outputs.frozen == 'true'
+        run: |
+          python -m pip install pytest 'numpy==2.4.6'
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          authored=run_benchmark(); external=run_external_transfer()
+          assert authored['semantic_result_digest']==lock['authored_semantic_digest']
+          assert external['semantic_result_digest']==lock['external_semantic_digest']
+          assert authored['authored_gate_pass'] is True and authored['false_accepts']==0
+          assert external['all_gates_pass'] is True and external['false_accepts']==0
+          world=json.loads(Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json').read_text())
+          assert world['final_bounded_release']=='ACCEPT'
+          assert world['w5_convergence_claimed'] is False
+          PY
+      - name: Build and independently verify deterministic COMPLETE ZIP
+        if: steps.freeze.outputs.frozen == 'true'
+        run: PYTHONPATH=. python scripts/r269_build_complete_bundle.py
+      - uses: actions/upload-artifact@v4
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          name: Nolane-AI-R2.69-COMPLETE
+          path: |
+            release/Nolane-AI-R2.69-COMPLETE.zip
+            release/Nolane-AI-R2.69-COMPLETE.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
