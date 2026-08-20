@@ -18,7 +18,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
@@ -36,7 +36,7 @@ jobs:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || env.BRANCH }}
           fetch-depth: 0
 
-      - name: Refuse stale promotion authority writer
+      - name: Refuse stale promotion authority verifier
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -86,7 +86,7 @@ jobs:
             tests/test_r269_promotion_evidence_authority.py \
             tests/test_r269_promotion_authority_benchmark.py \
             tests/test_r269_governed_runtime.py
-      - name: Materialize Python 3.11 receipt
+      - name: Materialize Python 3.11 receipt in runner workspace
         env:
           AUTHORITY_ROOT: ${{ steps.identity.outputs.authority_root }}
           SOURCE_TREE_DIGEST: ${{ steps.identity.outputs.source_tree_digest }}
@@ -124,7 +124,7 @@ jobs:
             tests/test_r269_promotion_evidence_authority.py \
             tests/test_r269_promotion_authority_benchmark.py \
             tests/test_r269_governed_runtime.py
-      - name: Cross-Python exact receipt and materialize authority evidence
+      - name: Cross-Python exact receipt verification only
         env:
           AUTHORITY_ROOT: ${{ steps.identity.outputs.authority_root }}
           SOURCE_TREE_DIGEST: ${{ steps.identity.outputs.source_tree_digest }}
@@ -143,37 +143,11 @@ jobs:
           )
           second['verifier_workflow_blob']=os.environ['WORKFLOW_BLOB']
           assert json.dumps(first,sort_keys=True,separators=(',',':')) == json.dumps(second,sort_keys=True,separators=(',',':'))
-          receipt={
-              'schema_version':1,
-              'milestone':'R2.69',
-              'capability':'cross-python-host-authority-bound-scoped-promotion',
-              'python_versions_verified':['3.11','3.13'],
-              'protected_r268_green':True,
-              **second,
-          }
-          Path('R2_69_PROMOTION_AUTHORITY.json').write_text(
-              json.dumps(receipt,sort_keys=True,indent=2)+'\n', encoding='utf-8'
-          )
-          print('R269_PROMOTION_AUTHORITY_OK='+second['semantic_result_digest'])
+          assert second['promotion_gate_pass'] is True
+          assert second['false_accepts']==0
+          assert second['trainable_parameter_count']==0
+          print('R269_PROMOTION_RETIRED_VERIFIER_OK='+second['semantic_result_digest'])
           PY
 
-      - name: Recheck exact branch before receipt push
-        env:
-          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          git fetch origin ${BRANCH}
-          REMOTE="$(git rev-parse origin/${BRANCH})"
-          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$REMOTE" = "$EXPECTED_HEAD"; fi
-
-      - name: Commit only cross-Python hosted authority receipt
-        run: |
-          if [ -z "$(git status --porcelain -- R2_69_PROMOTION_AUTHORITY.json)" ]; then
-            echo 'Promotion authority receipt already materialized.'
-            exit 0
-          fi
-          git config user.name 'Nolane R2.69 hosted promotion verifier'
-          git config user.email 'actions@users.noreply.github.com'
-          git add R2_69_PROMOTION_AUTHORITY.json
-          git commit -m 'evidence(r269): materialize hosted promotion authority receipt'
-          git push origin HEAD:${BRANCH}
+      - name: Writer retired
+        run: echo 'Hosted promotion receipt writer is retired; this workflow is verification-only.'
