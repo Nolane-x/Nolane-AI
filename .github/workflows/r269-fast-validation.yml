@@ -1,8 +1,8 @@
 name: R2.69 Fast Validation Lane
 
 on:
-  push:
-    branches: [r269-autonomous-transfer-meta-learning-kernel-gpt56sol]
+  pull_request:
+    branches: [main]
     paths:
       - 'cogcoder/r269_transfer_runtime.py'
       - 'tests/test_r269_transfer_governor.py'
