@@ -113,6 +113,11 @@ def test_freeze_requires_all_mutating_r269_verifiers_retired_before_lock():
         'r269-multi-prior-hardening.yml',
     ):
         assert f"! grep -q 'contents: write' .github/workflows/{workflow}" in freeze
+    for temporary in (
+        'r269-lazy-scratch-hotfix.yml',
+        'r269-fast-validation.yml',
+    ):
+        assert f'test ! -f .github/workflows/{temporary}' in freeze
     assert 'git rm R2_69_FREEZE_REQUEST .github/workflows/r269-freeze-evidence.yml' in freeze
 
 
