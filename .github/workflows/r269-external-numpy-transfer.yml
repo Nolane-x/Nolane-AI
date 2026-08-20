@@ -7,6 +7,8 @@ on:
       - 'benchmarks/kfigg/r269_external_numpy_transfer.py'
       - 'tests/test_r269_external_numpy_transfer.py'
       - 'cogcoder/r269_*.py'
+      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
+      - 'R2_69_PROMOTION_AUTHORITY.json'
       - '.github/workflows/r269-external-numpy-transfer.yml'
   workflow_dispatch:
 
