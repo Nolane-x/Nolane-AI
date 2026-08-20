@@ -8,6 +8,8 @@ on:
       - 'benchmarks/kfigg/r269_meta_learning.py'
       - 'tests/test_r269_*.py'
       - 'scripts/r269_integrate_sequential_meta.py'
+      - 'R2_69_PROMOTION_AUTHORITY.json'
+      - 'R2_69_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r269-red-green.yml'
   workflow_dispatch:
 
