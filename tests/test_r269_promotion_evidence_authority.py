@@ -27,7 +27,7 @@ def _candidate() -> PromotionCandidate:
     )
 
 
-def _evidence(candidate: PromotionCandidate) -> ChampionChallengerEvidence:
+def _evidence(candidate: PromotionCandidate, *, root: str) -> ChampionChallengerEvidence:
     return ChampionChallengerEvidence(
         candidate_artifact_digest=candidate.artifact_digest,
         freeze_receipt_digest=candidate.freeze_receipt_digest,
@@ -37,6 +37,7 @@ def _evidence(candidate: PromotionCandidate) -> ChampionChallengerEvidence:
         terminal_verifier_digest='receipt.terminal.authority',
         candidate_issuer='candidate.agent',
         verifier_issuer='github.hosted.verifier',
+        verifier_authority_digest=root,
         heldout_targets=8,
         champion_accepted_targets=8,
         challenger_accepted_targets=7,
@@ -63,9 +64,10 @@ def _attestation(candidate: PromotionCandidate, evidence: ChampionChallengerEvid
 
 def test_caller_distinct_issuer_strings_are_not_release_authority_without_hosted_attestation():
     candidate = _candidate()
-    evidence = _evidence(candidate)
+    root = _hex('trusted-root')
+    evidence = _evidence(candidate, root=root)
     authority = PromotionEvidenceAuthority(
-        authority_root_digest=_hex('trusted-root'),
+        authority_root_digest=root,
         verifier_issuer='github.hosted.verifier',
     )
 
@@ -75,8 +77,8 @@ def test_caller_distinct_issuer_strings_are_not_release_authority_without_hosted
 
 def test_attestation_is_content_addressed_to_evidence_candidate_scope_freeze_and_source_tree():
     candidate = _candidate()
-    evidence = _evidence(candidate)
     root = _hex('trusted-root')
+    evidence = _evidence(candidate, root=root)
     receipt = _attestation(candidate, evidence, root=root)
 
     assert receipt.evidence_digest == evidence.evidence_digest
@@ -89,28 +91,42 @@ def test_attestation_is_content_addressed_to_evidence_candidate_scope_freeze_and
 
 def test_wrong_authority_root_or_verifier_issuer_fails_closed():
     candidate = _candidate()
-    evidence = _evidence(candidate)
-    receipt = _attestation(candidate, evidence, root=_hex('untrusted-root'))
+    trusted_root = _hex('trusted-root')
+    untrusted_root = _hex('untrusted-root')
+    evidence = _evidence(candidate, root=trusted_root)
+    receipt = _attestation(candidate, evidence, root=untrusted_root)
     authority = PromotionEvidenceAuthority(
-        authority_root_digest=_hex('trusted-root'),
+        authority_root_digest=trusted_root,
         verifier_issuer='github.hosted.verifier',
     )
     with pytest.raises(ValueError, match='authority root'):
         authority.adjudicate(candidate, evidence, receipt)
 
-    trusted_receipt = _attestation(candidate, evidence, root=_hex('trusted-root'))
+    trusted_receipt = _attestation(candidate, evidence, root=trusted_root)
     wrong_issuer = PromotionEvidenceAuthority(
-        authority_root_digest=_hex('trusted-root'),
+        authority_root_digest=trusted_root,
         verifier_issuer='different.verifier',
     )
     with pytest.raises(ValueError, match='verifier issuer'):
         wrong_issuer.adjudicate(candidate, evidence, trusted_receipt)
 
 
+def test_evidence_authority_digest_must_equal_attested_trusted_root():
+    candidate = _candidate()
+    trusted_root = _hex('trusted-root')
+    forged_root = _hex('forged-root')
+    evidence = _evidence(candidate, root=forged_root)
+    receipt = _attestation(candidate, evidence, root=trusted_root)
+    authority = PromotionEvidenceAuthority(trusted_root, 'github.hosted.verifier')
+
+    with pytest.raises(ValueError, match='evidence verifier authority'):
+        authority.adjudicate(candidate, evidence, receipt)
+
+
 def test_only_authority_bound_envelope_can_activate_release_registry_and_rollback_revokes_it():
     candidate = _candidate()
-    evidence = _evidence(candidate)
     root = _hex('trusted-root')
+    evidence = _evidence(candidate, root=root)
     receipt = _attestation(candidate, evidence, root=root)
     authority = PromotionEvidenceAuthority(root, 'github.hosted.verifier')
     envelope = authority.adjudicate(candidate, evidence, receipt)
