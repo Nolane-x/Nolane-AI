@@ -22,7 +22,7 @@ env:
 jobs:
   canonical:
     runs-on: ubuntu-24.04
-    timeout-minutes: 120
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,22 +66,28 @@ jobs:
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+          CANONICAL_RUN_ID: ${{ github.run_id }}
         run: |
           PYTHONPATH=. python - <<'PY'
-          import json,os,subprocess
+          import hashlib,json,os,subprocess
           from pathlib import Path
           import numpy as np
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
 
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
-          assert lock['schema_version']>=1
+          assert lock['schema_version']>=3
           assert lock['milestone']=='R2.69'
           assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
           assert lock['source_authority_parent']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
           assert lock['added_trainable_parameters']==0
           assert lock['writers_retired'] is True
           assert lock['w5_convergence_claimed'] is False
+          assert lock['host_attested_promotion_authority_required'] is True
+          assert lock['promotion_authority_source_frozen'] is True
+          assert lock['exact_rollback_registry_required'] is True
+
           expected_head=os.environ.get('EXPECTED_HEAD','').strip()
           expected_base=os.environ.get('EXPECTED_BASE','').strip()
           source_head=lock['source_head_sha']
@@ -121,19 +127,42 @@ jobs:
           phase=json.loads(Path('R2_69_PHASE_A_RESULT.json').read_text())
           ext_receipt=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text())
           seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text())
+          promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
           world=json.loads(Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json').read_text())
           assert phase==authored
           assert ext_receipt['semantic_result_digest']==external['semantic_result_digest']
           assert ext_receipt['all_gates_pass'] is True
           assert seq['authored_benchmark_digest']==authored['semantic_result_digest']
           assert seq['complete_authored_r269_green'] is True
+
+          assert promo['promotion_gate_pass'] is True
+          assert promo['false_accepts']==0 and promo['trainable_parameter_count']==0
+          assert promo['semantic_result_digest']==lock['promotion_semantic_digest']
+          assert promo['authority_root_digest']==lock['promotion_authority_root_digest']
+          assert promo['hosted_attestation_digest']==lock['promotion_hosted_attestation_digest']
+          assert promo['authority_envelope_digest']==lock['promotion_authority_envelope_digest']
+          assert promo['verifier_workflow_blob']==lock['promotion_verifier_workflow_blob']
+          tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          current_tree_digest=hashlib.sha256(tree_sha.encode()).hexdigest()
+          promotion=run_promotion_authority_benchmark(
+              authority_root_digest=lock['promotion_authority_root_digest'],
+              hosted_run_identity='github-actions:canonical:'+os.environ['CANONICAL_RUN_ID'],
+              source_tree_digest=current_tree_digest,
+          )
+          assert promotion['promotion_gate_pass'] is True
+          assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
+          assert promotion['false_accepts']==0 and promotion['trainable_parameter_count']==0
+
           assert world['milestone']=='R2.69'
           assert world['final_bounded_release']=='ACCEPT'
           assert world['w5_convergence_claimed'] is False
           assert world['claim_boundary']==lock['claim_boundary']
 
           forbidden=[]
-          for wf in ('r269-red-green.yml','r269-external-numpy-transfer.yml','r269-multi-prior-hardening.yml'):
+          for wf in (
+              'r269-red-green.yml','r269-external-numpy-transfer.yml',
+              'r269-promotion-authority.yml','r269-multi-prior-hardening.yml'
+          ):
               if 'contents: write' in Path('.github/workflows',wf).read_text(): forbidden.append(wf)
           assert not forbidden,('release writers not retired',forbidden)
           assert not Path('.github/workflows/r269-authority-binding-migrate.yml').exists()
@@ -163,17 +192,28 @@ jobs:
           python-version: '3.13'
       - name: Python 3.13 exact replay
         if: steps.freeze.outputs.frozen == 'true'
+        env:
+          CANONICAL_RUN_ID: ${{ github.run_id }}
         run: |
           python -m pip install pytest 'numpy==2.4.6'
           PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
           PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
           PYTHONPATH=. python - <<'PY'
-          import json
+          import hashlib,json,os,subprocess
           from pathlib import Path
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert run_benchmark()['semantic_result_digest']==lock['authored_semantic_digest']
           assert run_external_transfer()['semantic_result_digest']==lock['external_semantic_digest']
+          tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          promotion=run_promotion_authority_benchmark(
+              authority_root_digest=lock['promotion_authority_root_digest'],
+              hosted_run_identity='github-actions:canonical-313:'+os.environ['CANONICAL_RUN_ID'],
+              source_tree_digest=hashlib.sha256(tree_sha.encode()).hexdigest(),
+          )
+          assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
+          assert promotion['promotion_gate_pass'] is True
           print('R269_CROSS_PYTHON_CANONICAL_OK')
           PY
