@@ -43,6 +43,8 @@ jobs:
           test -f scripts/r269_world_adjudication.py
           test ! -f .github/workflows/r269-authority-binding-migrate.yml
           test ! -f .github/workflows/r269-sync-current-main.yml
+          test ! -f .github/workflows/r269-lazy-scratch-hotfix.yml
+          test ! -f .github/workflows/r269-fast-validation.yml
           test ! -f scripts/r269_integrate_sequential_meta.py
           ! grep -q 'contents: write' .github/workflows/r269-red-green.yml
           ! grep -q 'contents: write' .github/workflows/r269-external-numpy-transfer.yml
