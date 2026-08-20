@@ -1,0 +1,66 @@
+name: R2.69 Guarded Current Main Sync
+
+on:
+  push:
+    branches: [r269-autonomous-transfer-meta-learning-kernel-gpt56sol]
+    paths:
+      - '.github/workflows/r269-sync-current-main.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+
+jobs:
+  sync:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Refuse stale integration writer
+        run: |
+          set -euo pipefail
+          git fetch origin main ${BRANCH}
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+      - name: Merge exact current main without rewriting R2.68 source authority
+        run: |
+          set -euo pipefail
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "R269_INTEGRATION_PARENT=${MAIN_SHA}"
+          git config user.name 'Nolane R2.69 integration verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git merge --no-ff --no-edit origin/main
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+          git merge-base --is-ancestor "$MAIN_SHA" HEAD
+      - name: Full R2.69 and protected R2.68 after integration
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Recompute authored benchmark after integration
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          r=run_benchmark()
+          assert r['authored_gate_pass'] is True
+          assert r['false_accepts'] == 0
+          assert r['trainable_parameter_count'] == 0
+          print('R269_SYNC_AUTHORED_DIGEST='+r['semantic_result_digest'])
+          PY
+      - name: Push only if branch is still exact triggering head
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH}
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          git push origin HEAD:${BRANCH}
