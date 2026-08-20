@@ -104,13 +104,14 @@ jobs:
           claim=(
             'bounded zero-trainable-parameter verifier-backed causal-experience transfer and sequential meta-learning '
             'over declared finite numeric structural classes, with shared target evidence, bounded negative-transfer regret, '
-            'scoped champion/challenger promotion, exact rollback, and governed learned-prior reuse; not unrestricted '
+            'host-attested scoped champion/challenger promotion, exact rollback, and governed learned-prior reuse; not unrestricted '
             'cross-domain learning, not arbitrary self-modification, not W5 convergence, not AGI, and not frontier-model equivalence'
           )
           assert world['claim_boundary']==claim
           fixed=[
             'cogcoder/r269_causal_basis_adapter.py','cogcoder/r269_experience_compiler.py','cogcoder/r269_meta_learning_kernel.py',
-            'cogcoder/r269_transfer_runtime.py','cogcoder/r269_meta_governance.py','cogcoder/r269_scoped_promotion.py','cogcoder/r269_governed_runtime.py',
+            'cogcoder/r269_transfer_runtime.py','cogcoder/r269_meta_governance.py','cogcoder/r269_scoped_promotion.py',
+            'cogcoder/r269_promotion_authority.py','cogcoder/r269_governed_runtime.py',
             'benchmarks/kfigg/r269_meta_learning.py','benchmarks/kfigg/r269_external_numpy_transfer.py',
             '.github/workflows/r269-red-green.yml','.github/workflows/r269-external-numpy-transfer.yml',
             '.github/workflows/r269-multi-prior-hardening.yml','.github/workflows/r269-canonical-gate.yml',
@@ -127,7 +128,7 @@ jobs:
               assert Path(path).is_file(),path
           blobs={path:subprocess.check_output(['git','hash-object',path],text=True).strip() for path in frozen}
           lock={
-            'schema_version':1,
+            'schema_version':2,
             'milestone':'R2.69',
             'name':'Autonomous Transfer & Meta-Learning Kernel',
             'status':'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK',
@@ -146,6 +147,8 @@ jobs:
             'negative_transfer_false_accepts':int(authored['negative_transfer_false_accepts']),
             'false_accepts':int(authored['false_accepts'])+int(external['false_accepts']),
             'governed_promotion_required_for_learned_prior_reuse':True,
+            'host_attested_promotion_authority_required':True,
+            'promotion_authority_source_frozen':True,
             'exact_rollback_registry_required':True,
             'frozen_git_blobs':blobs,
           }
