@@ -61,21 +61,21 @@ jobs:
           PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
           PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
 
-      - name: Verify lock blobs, evidence identity, governance and retired writers
+      - name: Verify lock blobs, freeze-only delta, evidence identity and retired writers
         if: steps.freeze.outputs.frozen == 'true'
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
           EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
         run: |
           PYTHONPATH=. python - <<'PY'
-          import hashlib,json,os,subprocess
+          import json,os,subprocess
           from pathlib import Path
           import numpy as np
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
 
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
-          assert lock['schema_version'] >= 1
+          assert lock['schema_version']>=1
           assert lock['milestone']=='R2.69'
           assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
           assert lock['source_authority_parent']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
@@ -84,17 +84,28 @@ jobs:
           assert lock['w5_convergence_claimed'] is False
           expected_head=os.environ.get('EXPECTED_HEAD','').strip()
           expected_base=os.environ.get('EXPECTED_BASE','').strip()
-          if expected_head: assert lock['source_head_sha']==expected_head
-          if expected_base: assert lock['integration_base_sha']==expected_base
+          source_head=lock['source_head_sha']
+          if expected_head:
+              subprocess.run(['git','merge-base','--is-ancestor',source_head,expected_head],check=True)
+              raw=subprocess.check_output(['git','diff','--name-status',source_head+'..'+expected_head],text=True)
+              changed=set()
+              for line in raw.splitlines():
+                  if line.strip(): changed.add(line.split('\t')[-1])
+              allowed={
+                  'R2_69_PHASE_A_RESULT.json','R2_69_PRE_HOSTED_LOCK.json',
+                  'R2_69_FREEZE_REQUEST','.github/workflows/r269-freeze-evidence.yml',
+              }
+              assert changed.issubset(allowed),('post-freeze source drift',sorted(changed-allowed))
+          if expected_base:
+              assert lock['integration_base_sha']==expected_base
 
           for path,expected in sorted(lock['frozen_git_blobs'].items()):
-              assert Path(path).is_file(), path
+              assert Path(path).is_file(),path
               actual=subprocess.check_output(['git','hash-object',path],text=True).strip()
               assert actual==expected,(path,actual,expected)
 
           assert np.__version__=='2.4.6'
-          authored=run_benchmark()
-          external=run_external_transfer()
+          authored=run_benchmark(); external=run_external_transfer()
           assert authored['authored_gate_pass'] is True
           assert authored['false_accepts']==0 and authored['trainable_parameter_count']==0
           assert external['all_gates_pass'] is True
@@ -123,12 +134,11 @@ jobs:
 
           forbidden=[]
           for wf in ('r269-red-green.yml','r269-external-numpy-transfer.yml','r269-multi-prior-hardening.yml'):
-              text=Path('.github/workflows',wf).read_text()
-              if 'contents: write' in text:
-                  forbidden.append(wf)
+              if 'contents: write' in Path('.github/workflows',wf).read_text(): forbidden.append(wf)
           assert not forbidden,('release writers not retired',forbidden)
           assert not Path('.github/workflows/r269-authority-binding-migrate.yml').exists()
           assert not Path('.github/workflows/r269-sync-current-main.yml').exists()
+          assert not Path('.github/workflows/r269-freeze-evidence.yml').exists()
           assert not Path('scripts/r269_integrate_sequential_meta.py').exists()
           print('R269_CANONICAL_AUTHORITY_OK')
           PY
@@ -137,7 +147,7 @@ jobs:
         if: steps.freeze.outputs.frozen == 'true'
         run: |
           python - <<'PY'
-          import json,os,subprocess,sys
+          import os,subprocess,sys
           code="from benchmarks.kfigg.r269_meta_learning import run_benchmark; print(run_benchmark()['semantic_result_digest'])"
           out=[]
           for seed in ('1','777'):
