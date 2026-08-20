@@ -74,6 +74,26 @@ def test_related_prior_reduces_fresh_diagnostic_cost_against_cold_scratch():
     assert transfer.false_accepts == scratch.false_accepts == 0
 
 
+def test_successful_transfer_defers_full_scratch_materialization_and_reduces_total_search_work():
+    oracle = lambda row: row["x"] - row["y"]
+    config = MetaLearningConfig(
+        max_diagnostic_queries=4, transfer_candidate_cap=32, scratch_candidate_cap=220,
+        scratch_max_depth=2, min_scratch_partitions=2,
+    )
+    transfer = run_meta_learning_episode(
+        (_prior(),), _signature(), _diagnostics(), _terminal(), oracle, config,
+    )
+    scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, config)
+
+    assert transfer.passed is True and transfer.mode == "transfer"
+    assert scratch.passed is True
+    assert transfer.scratch_candidates_considered < scratch.scratch_candidates_considered
+    assert (
+        transfer.transfer_candidates_considered + transfer.scratch_candidates_considered
+        < scratch.scratch_candidates_considered
+    )
+
+
 def test_terminal_evidence_cannot_resolve_diagnostic_ambiguity():
     oracle = lambda row: row["x"] + row["y"]
     config = MetaLearningConfig(
