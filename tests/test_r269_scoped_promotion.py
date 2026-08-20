@@ -40,6 +40,7 @@ def _evidence(candidate=None, **overrides):
     candidate = candidate or _candidate()
     values = dict(
         candidate_artifact_digest=candidate.artifact_digest,
+        freeze_receipt_digest=candidate.freeze_receipt_digest,
         preregistered_scope_digest=candidate.structural_class_digest,
         champion_receipt_digest="receipt.champion.001",
         challenger_receipt_digest="receipt.challenger.001",
@@ -73,6 +74,7 @@ def test_scoped_promotion_requires_complete_independent_champion_challenger_evid
     assert first.promoted is True
     assert first.reason == "scoped_promotion_accepted"
     assert first.structural_class_digest == SCOPE
+    assert first.freeze_receipt_digest == candidate.freeze_receipt_digest
     assert first.rollback_identity == candidate.rollback_identity
     assert first.decision_digest.startswith("r269.promotion-decision.")
 
@@ -80,6 +82,7 @@ def test_scoped_promotion_requires_complete_independent_champion_challenger_evid
 @pytest.mark.parametrize(
     ("overrides", "reason"),
     [
+        ({"freeze_receipt_digest": "freeze.r269.tampered"}, "freeze_receipt_mismatch"),
         ({"preregistered_scope_digest": OTHER_SCOPE}, "scope_mismatch"),
         ({"verifier_issuer": "issuer.candidate"}, "independent_verifier_required"),
         ({"oracle_call_advantage": 0, "search_work_advantage": 0, "champion_accepted_targets": 7}, "challenger_advantage_not_proven"),
@@ -118,6 +121,25 @@ def test_scope_is_structural_and_cannot_be_global_or_rebound_after_evidence():
     assert decision.reason == "scope_mismatch"
 
 
+def test_decision_identity_changes_when_exact_freeze_receipt_changes():
+    *_, ScopedPromotionController, _ = _api()
+    first_candidate = _candidate()
+    PromotionCandidate, *_ = _api()
+    second_candidate = PromotionCandidate(
+        candidate_kind=first_candidate.candidate_kind,
+        artifact_digest=first_candidate.artifact_digest,
+        structural_class_digest=first_candidate.structural_class_digest,
+        freeze_receipt_digest="freeze.r269.002",
+        rollback_identity=first_candidate.rollback_identity,
+        trainable_parameter_count=0,
+    )
+    first = ScopedPromotionController().adjudicate(first_candidate, _evidence(first_candidate))
+    second = ScopedPromotionController().adjudicate(second_candidate, _evidence(second_candidate))
+    assert first.promoted is second.promoted is True
+    assert first.decision_digest != second.decision_digest
+    assert first.evidence_digest != second.evidence_digest
+
+
 def test_direct_decision_construction_rechecks_content_digest_and_rollback_binding():
     *_, ScopedPromotionController, PromotionDecision = _api()
     candidate = _candidate()
@@ -128,6 +150,7 @@ def test_direct_decision_construction_rechecks_content_digest_and_rollback_bindi
             promoted=decision.promoted,
             candidate_kind=decision.candidate_kind,
             candidate_artifact_digest=decision.candidate_artifact_digest,
+            freeze_receipt_digest=decision.freeze_receipt_digest,
             structural_class_digest=decision.structural_class_digest,
             rollback_identity=decision.rollback_identity,
             evidence_digest=decision.evidence_digest,
@@ -141,6 +164,7 @@ def test_direct_decision_construction_rechecks_content_digest_and_rollback_bindi
             promoted=decision.promoted,
             candidate_kind=decision.candidate_kind,
             candidate_artifact_digest=decision.candidate_artifact_digest,
+            freeze_receipt_digest=decision.freeze_receipt_digest,
             structural_class_digest=decision.structural_class_digest,
             rollback_identity="rollback.tampered",
             evidence_digest=decision.evidence_digest,
