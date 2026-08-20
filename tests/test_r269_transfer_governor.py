@@ -33,7 +33,7 @@ def _prior(expr=None):
         terminal_probe_validation_cases=0, terminal_probe_validation_exact=0,
     )
     return compile_r268_experience(
-        receipt, source_authority_digest="authority.source", accepted_parent_sha=PARENT,
+        receipt, verifier_evidence_digest="verifier.fixture.source", accepted_parent_sha=PARENT,
     )
 
 

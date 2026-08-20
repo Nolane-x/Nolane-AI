@@ -33,7 +33,7 @@ def _sha(payload: object) -> str:
     ).hexdigest()
 
 
-def _authority_digest(receipt, label: str) -> str:
+def _verifier_evidence_digest(receipt, label: str) -> str:
     payload = {
         "label": label,
         "passed": receipt.passed,
@@ -46,7 +46,7 @@ def _authority_digest(receipt, label: str) -> str:
         "expression": receipt.expression.to_data() if receipt.expression is not None else None,
         "terminal_exact": [receipt.final_validation_exact, receipt.final_validation_cases],
     }
-    return "r269.source-authority." + _sha(payload)
+    return "r269.verifier-evidence." + _sha(payload)
 
 
 def _accepted_r268_receipt(case):
@@ -113,7 +113,7 @@ def _three_x_plus_y_receipt():
 def _compile(receipt, label: str) -> PortableExperience:
     return compile_r268_experience(
         receipt,
-        source_authority_digest=_authority_digest(receipt, label),
+        verifier_evidence_digest=_verifier_evidence_digest(receipt, label),
         accepted_parent_sha=_PARENT,
     )
 

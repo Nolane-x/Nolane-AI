@@ -64,7 +64,7 @@ def _accepted_receipt(*, passed: bool = True, minimal: bool = True, proof_comple
 def test_compile_r268_experience_is_identity_free_and_roundtrips():
     portable = compile_r268_experience(
         _accepted_receipt(),
-        source_authority_digest="authority.123",
+        verifier_evidence_digest="verifier.fixture.authority.123",
         accepted_parent_sha=PARENT,
     )
     data = portable.to_data()
@@ -93,7 +93,7 @@ def test_compile_requires_verified_minimal_proof_complete_r268(receipt):
     with pytest.raises(ValueError):
         compile_r268_experience(
             receipt,
-            source_authority_digest="authority.123",
+            verifier_evidence_digest="verifier.fixture.authority.123",
             accepted_parent_sha=PARENT,
         )
 
@@ -101,7 +101,7 @@ def test_compile_requires_verified_minimal_proof_complete_r268(receipt):
 def test_direct_construction_cannot_forge_digest_roles_or_parameter_count():
     portable = compile_r268_experience(
         _accepted_receipt(),
-        source_authority_digest="authority.123",
+        verifier_evidence_digest="verifier.fixture.authority.123",
         accepted_parent_sha=PARENT,
     )
 
@@ -112,6 +112,7 @@ def test_direct_construction_cannot_forge_digest_roles_or_parameter_count():
             canonical_roles=portable.canonical_roles,
             role_count=portable.role_count,
             source_receipt_digest=portable.source_receipt_digest,
+            source_verifier_evidence_digest=portable.source_verifier_evidence_digest,
             source_authority_digest=portable.source_authority_digest,
             accepted_parent_sha=portable.accepted_parent_sha,
             claim_scope=portable.claim_scope,
@@ -127,6 +128,7 @@ def test_direct_construction_cannot_forge_digest_roles_or_parameter_count():
             canonical_roles=("source_alpha", "source_beta"),
             role_count=2,
             source_receipt_digest=portable.source_receipt_digest,
+            source_verifier_evidence_digest=portable.source_verifier_evidence_digest,
             source_authority_digest=portable.source_authority_digest,
             accepted_parent_sha=portable.accepted_parent_sha,
             claim_scope=portable.claim_scope,
@@ -142,6 +144,7 @@ def test_direct_construction_cannot_forge_digest_roles_or_parameter_count():
             canonical_roles=portable.canonical_roles,
             role_count=portable.role_count,
             source_receipt_digest=portable.source_receipt_digest,
+            source_verifier_evidence_digest=portable.source_verifier_evidence_digest,
             source_authority_digest=portable.source_authority_digest,
             accepted_parent_sha=portable.accepted_parent_sha,
             claim_scope=portable.claim_scope,

@@ -104,7 +104,7 @@ def _source_receipt():
     return receipt, calls
 
 
-def _source_authority_digest(receipt) -> str:
+def _source_verifier_evidence_digest(receipt) -> str:
     payload = {
         "accepted_parent_sha": _PARENT,
         "dependency": _DEPENDENCY,
@@ -121,7 +121,7 @@ def _source_authority_digest(receipt) -> str:
         "terminal_exact": [receipt.final_validation_exact, receipt.final_validation_cases],
         "oracle_calls_total": receipt.oracle_calls_total,
     }
-    return "r269.external-source-authority." + _sha(payload)
+    return "r269.external-verifier-evidence." + _sha(payload)
 
 
 def _signature() -> PublicTaskSignature:
@@ -216,7 +216,7 @@ def _compute() -> dict[str, object]:
 
     prior = compile_r268_experience(
         source,
-        source_authority_digest=_source_authority_digest(source),
+        verifier_evidence_digest=_source_verifier_evidence_digest(source),
         accepted_parent_sha=_PARENT,
     )
     signature = _signature()
