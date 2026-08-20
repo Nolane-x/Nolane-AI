@@ -125,7 +125,7 @@ jobs:
           test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
       - name: Commit only cross-verified external receipt
         run: |
-          if git diff --quiet -- R2_69_EXTERNAL_TRANSFER.json; then
+          if [ -z "$(git status --porcelain -- R2_69_EXTERNAL_TRANSFER.json)" ]; then
             echo 'External receipt already materialized.'
             exit 0
           fi
