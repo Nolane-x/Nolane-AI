@@ -6,6 +6,8 @@ import subprocess
 import zipfile
 from pathlib import Path
 
+from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
+
 LOCK = Path('R2_69_PRE_HOSTED_LOCK.json')
 OUT = Path('release/Nolane-AI-R2.69-COMPLETE.zip')
 SHA = Path('release/Nolane-AI-R2.69-COMPLETE.zip.sha256')
@@ -16,10 +18,13 @@ REQUIRED = {
     'R2_69_EXTERNAL_TRANSFER.json',
     'R2_69_PROMOTION_AUTHORITY.json',
     'R2_69_WORLD_BOUNDED_ADJUDICATION.json',
+    'R2_69_WORLD_STATE_SNAPSHOT.json',
+    'R2_69_WORLD_GATE_SNAPSHOT.json',
     'cogcoder/r269_scoped_promotion.py',
     'cogcoder/r269_promotion_authority.py',
     'cogcoder/r269_governed_runtime.py',
     'benchmarks/kfigg/r269_promotion_authority.py',
+    'scripts/r269_world_adjudication.py',
     '.github/workflows/r269-promotion-authority.yml',
 }
 
@@ -37,8 +42,8 @@ def verify_lock() -> dict[str, object]:
     if not LOCK.is_file():
         raise RuntimeError('R2.69 source is not frozen')
     lock = json.loads(LOCK.read_text())
-    if lock.get('schema_version', 0) < 3:
-        raise RuntimeError('R2.69 lock predates hosted promotion authority')
+    if lock.get('schema_version', 0) < 4:
+        raise RuntimeError('R2.69 lock predates content-addressed World adjudication')
     if lock.get('milestone') != 'R2.69' or lock.get('status') != 'PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK':
         raise RuntimeError('invalid R2.69 lock state')
     if lock.get('writers_retired') is not True:
@@ -61,9 +66,12 @@ def verify_lock() -> dict[str, object]:
         'promotion_hosted_attestation_digest',
         'promotion_authority_envelope_digest',
         'promotion_verifier_workflow_blob',
+        'world_bounded_receipt_digest',
+        'world_state_sha256',
+        'world_gate_sha256',
     ):
         if not str(lock.get(field, '')).strip():
-            raise RuntimeError(f'missing promotion lock field: {field}')
+            raise RuntimeError(f'missing release lock field: {field}')
     blobs = lock.get('frozen_git_blobs')
     if not isinstance(blobs, dict) or not blobs:
         raise RuntimeError('frozen_git_blobs missing')
@@ -83,6 +91,13 @@ def verify_lock() -> dict[str, object]:
         raise RuntimeError('promotion authority envelope does not match lock')
     if promotion.get('verifier_workflow_blob') != lock.get('promotion_verifier_workflow_blob'):
         raise RuntimeError('promotion verifier workflow blob does not match lock')
+    world = verify_world_receipt()
+    if world.get('receipt_digest') != lock.get('world_bounded_receipt_digest'):
+        raise RuntimeError('World bounded receipt digest does not match lock')
+    if world.get('world_state_sha256') != lock.get('world_state_sha256'):
+        raise RuntimeError('World state digest does not match lock')
+    if world.get('world_gate_sha256') != lock.get('world_gate_sha256'):
+        raise RuntimeError('World gate digest does not match lock')
     return lock
 
 
