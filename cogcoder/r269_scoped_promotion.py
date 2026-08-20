@@ -24,6 +24,13 @@ def _scope(value: object) -> str:
     return text
 
 
+def _authority(value: object) -> str:
+    text = _nonempty(value, 'verifier_authority_digest').lower()
+    if _HEX64.fullmatch(text) is None:
+        raise ValueError('verifier_authority_digest must be one exact 64-hex host authority digest')
+    return text
+
+
 def _sha(payload: object) -> str:
     raw = json.dumps(payload, sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False)
     return hashlib.sha256(raw.encode('utf-8')).hexdigest()
@@ -61,6 +68,7 @@ class ChampionChallengerEvidence:
     terminal_verifier_digest: str
     candidate_issuer: str
     verifier_issuer: str
+    verifier_authority_digest: str
     heldout_targets: int
     champion_accepted_targets: int
     challenger_accepted_targets: int
@@ -81,6 +89,7 @@ class ChampionChallengerEvidence:
         object.__setattr__(self, 'terminal_verifier_digest', _nonempty(self.terminal_verifier_digest, 'terminal_verifier_digest'))
         object.__setattr__(self, 'candidate_issuer', _nonempty(self.candidate_issuer, 'candidate_issuer'))
         object.__setattr__(self, 'verifier_issuer', _nonempty(self.verifier_issuer, 'verifier_issuer'))
+        object.__setattr__(self, 'verifier_authority_digest', _authority(self.verifier_authority_digest))
         if self.heldout_targets < 1:
             raise ValueError('heldout_targets must be positive')
         if not (0 <= self.champion_accepted_targets <= self.heldout_targets):
@@ -96,7 +105,7 @@ class ChampionChallengerEvidence:
     @property
     def evidence_digest(self) -> str:
         payload = {
-            'schema_version': 1,
+            'schema_version': 2,
             'candidate_artifact_digest': self.candidate_artifact_digest,
             'freeze_receipt_digest': self.freeze_receipt_digest,
             'preregistered_scope_digest': self.preregistered_scope_digest,
@@ -105,6 +114,7 @@ class ChampionChallengerEvidence:
             'terminal_verifier_digest': self.terminal_verifier_digest,
             'candidate_issuer': self.candidate_issuer,
             'verifier_issuer': self.verifier_issuer,
+            'verifier_authority_digest': self.verifier_authority_digest,
             'heldout_targets': self.heldout_targets,
             'champion_accepted_targets': self.champion_accepted_targets,
             'challenger_accepted_targets': self.challenger_accepted_targets,
@@ -187,6 +197,17 @@ class PromotionDecision:
 
 
 class ScopedPromotionController:
+    def __init__(self, *, trusted_verifier_authority_digests: frozenset[str] = frozenset()) -> None:
+        if not isinstance(trusted_verifier_authority_digests, frozenset):
+            raise TypeError('trusted_verifier_authority_digests must be frozenset')
+        self._trusted_verifier_authority_digests = frozenset(
+            _authority(row) for row in trusted_verifier_authority_digests
+        )
+
+    @property
+    def trusted_verifier_authority_digests(self) -> frozenset[str]:
+        return self._trusted_verifier_authority_digests
+
     def adjudicate(self, candidate: PromotionCandidate, evidence: ChampionChallengerEvidence) -> PromotionDecision:
         if not isinstance(candidate, PromotionCandidate):
             raise TypeError('candidate must be PromotionCandidate')
@@ -201,6 +222,8 @@ class ScopedPromotionController:
             promoted, reason = False, 'scope_mismatch'
         elif evidence.candidate_issuer == evidence.verifier_issuer:
             promoted, reason = False, 'independent_verifier_required'
+        elif evidence.verifier_authority_digest not in self._trusted_verifier_authority_digests:
+            promoted, reason = False, 'untrusted_verifier_authority'
         elif evidence.champion_accepted_targets < 1:
             promoted, reason = False, 'champion_not_accepted'
         elif (
