@@ -1,8 +1,8 @@
 name: R2.69 External NumPy Meta-Transfer
 
 on:
-  pull_request:
-    branches: [ main ]
+  push:
+    branches: [ r269-autonomous-transfer-meta-learning-kernel-gpt56sol ]
     paths:
       - 'benchmarks/kfigg/r269_external_numpy_transfer.py'
       - 'tests/test_r269_external_numpy_transfer.py'
@@ -11,36 +11,38 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
+
+env:
+  BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
 
 jobs:
-  external:
+  cross-python-external:
     runs-on: ubuntu-24.04
     timeout-minutes: 55
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ env.BRANCH }}
           fetch-depth: 0
+      - name: Exact accepted R2.68 ancestry
+        run: git merge-base --is-ancestor fda7f502185266fedb00886d5786c6d28cc0e0eb HEAD
+
       - uses: actions/setup-python@v5
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: '3.11'
       - run: python -m pip install pytest 'numpy==2.4.6'
-      - name: Exact pinned dependency and R2.68 source ancestry
+      - name: Python 3.11 protected R2.68 and pinned dependency
         run: |
           python -c "import numpy as np; assert np.__version__ == '2.4.6', np.__version__"
-          git merge-base --is-ancestor fda7f502185266fedb00886d5786c6d28cc0e0eb HEAD
-      - name: Accepted R2.68 safety
-        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
-      - name: External black-box transfer contract
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Python 3.11 external black-box transfer
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_external_numpy_transfer.py
-      - name: Emit canonical external evidence
+      - name: Freeze Python 3.11 semantic evidence
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
+          from pathlib import Path
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           result = run_external_transfer()
           assert result['all_gates_pass'] is True
@@ -52,6 +54,68 @@ jobs:
           assert result['negative_extra_physical_oracle_regret'] <= 1
           assert result['false_accepts'] == 0
           assert result['trainable_parameter_count'] == 0
-          print('R269_EXTERNAL_CANONICAL_JSON=' + json.dumps(result, sort_keys=True, separators=(',', ':')))
-          print('R269_EXTERNAL_DIGEST=' + result['semantic_result_digest'])
+          Path('/tmp/r269_external_311.json').write_text(
+              json.dumps(result, sort_keys=True, separators=(',', ':')), encoding='utf-8'
+          )
+          print('R269_EXTERNAL_311_DIGEST=' + result['semantic_result_digest'])
           PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.13 protected R2.68 and pinned dependency
+        run: |
+          python -c "import numpy as np; assert np.__version__ == '2.4.6', np.__version__"
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Python 3.13 external black-box transfer
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_external_numpy_transfer.py
+      - name: Cross-verify canonical external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          first = json.loads(Path('/tmp/r269_external_311.json').read_text(encoding='utf-8'))
+          second = run_external_transfer()
+          assert second['all_gates_pass'] is True
+          assert first['semantic_result_digest'] == second['semantic_result_digest']
+          assert json.dumps(first, sort_keys=True, separators=(',', ':')) == json.dumps(second, sort_keys=True, separators=(',', ':'))
+          receipt = {
+              'schema_version': 1,
+              'milestone': 'R2.69',
+              'capability': 'cross-python-external-black-box-meta-transfer',
+              'accepted_parent_sha': 'fda7f502185266fedb00886d5786c6d28cc0e0eb',
+              'dependency': 'numpy==2.4.6',
+              'python_versions_verified': ['3.11', '3.13'],
+              'source_exposure': second['source_exposure'],
+              'target_exposure': second['target_exposure'],
+              'source_from_authored_generator': second['source_from_authored_generator'],
+              'source_oracle_accounting_exact': second['source_oracle_accounting_exact'],
+              'oracle_accounting_exact': second['oracle_accounting_exact'],
+              'semantic_result_digest': second['semantic_result_digest'],
+              'positive_targets': second['positive_targets'],
+              'transfer_solved': second['transfer_solved'],
+              'tight_scratch_solved': second['tight_scratch_solved'],
+              'roomy_scratch_solved': second['roomy_scratch_solved'],
+              'negative_extra_physical_oracle_regret': second['negative_extra_physical_oracle_regret'],
+              'false_accepts': second['false_accepts'],
+              'trainable_parameter_count': second['trainable_parameter_count'],
+              'all_gates_pass': second['all_gates_pass'],
+          }
+          Path('R2_69_EXTERNAL_TRANSFER.json').write_text(
+              json.dumps(receipt, sort_keys=True, indent=2) + '\n', encoding='utf-8'
+          )
+          print('R269_EXTERNAL_CROSS_PYTHON_DIGEST=' + second['semantic_result_digest'])
+          PY
+      - name: Commit only cross-verified external receipt
+        run: |
+          if git diff --quiet -- R2_69_EXTERNAL_TRANSFER.json; then
+            echo 'External receipt already materialized.'
+            exit 0
+          fi
+          git config user.name 'Nolane R2.69 external verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git add R2_69_EXTERNAL_TRANSFER.json
+          git commit -m 'evidence(r269): materialize cross-python external transfer receipt'
+          git push origin HEAD:${BRANCH}
