@@ -80,3 +80,19 @@ def test_postmerge_requires_exact_main_and_frozen_promotion_lineage():
     assert "lock['host_attested_promotion_authority_required'] is True" in postmerge
     assert "lock['promotion_authority_source_frozen'] is True" in postmerge
     assert "lock['exact_rollback_registry_required'] is True" in postmerge
+
+
+def test_evidence_writers_do_not_mistake_untracked_receipts_for_already_materialized():
+    writers = {
+        '.github/workflows/r269-red-green.yml': 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json',
+        '.github/workflows/r269-external-numpy-transfer.yml': 'R2_69_EXTERNAL_TRANSFER.json',
+        '.github/workflows/r269-promotion-authority.yml': 'R2_69_PROMOTION_AUTHORITY.json',
+    }
+    for path, receipt in writers.items():
+        workflow = _text(path)
+        unsafe = f'git diff --quiet -- {receipt}'
+        assert unsafe not in workflow, (path, 'git diff ignores untracked receipt files')
+        assert f'git status --porcelain -- {receipt}' in workflow, (
+            path,
+            'writer must inspect tracked and untracked receipt materialization',
+        )
