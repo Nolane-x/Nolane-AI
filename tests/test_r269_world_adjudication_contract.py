@@ -21,7 +21,7 @@ def _fixture(tmp_path: Path):
     receipt = tmp_path / 'receipt.json'
 
     _write(state, {
-        'id': 'world_test_r269',
+        'id': 'world5_test_r269',
         'depth': 'W5',
         'evidence': [
             {'id': 'ev1', 'independent': True, 'source': 'hosted-red-green'},
@@ -86,7 +86,20 @@ def test_world_bounded_receipt_is_exactly_bound_to_world_and_hosted_evidence(tmp
     assert verified['final_bounded_release'] == 'ACCEPT'
     assert verified['full_w5_gate_pass'] is False
     assert verified['w5_convergence_claimed'] is False
+    assert verified['world_session_id'].startswith('world5_')
     assert verified['receipt_digest'].startswith('r269.world-bounded.')
+
+
+def test_world_bounded_receipt_rejects_non_native_session_id(tmp_path: Path):
+    state, gate, seq, ext, promo, _receipt = _fixture(tmp_path)
+    value = json.loads(state.read_text())
+    value['id'] = 'world_test_r269'
+    _write(state, value)
+    with pytest.raises(ValueError, match='actual W5 Nolane World session snapshot'):
+        build_receipt(
+            world_state_path=state, world_gate_path=gate, sequential_path=seq,
+            external_path=ext, promotion_path=promo,
+        )
 
 
 def test_world_receipt_rejects_hosted_evidence_tampering(tmp_path: Path):
