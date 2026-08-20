@@ -15,6 +15,7 @@ from cogcoder.r269_scoped_promotion import (
 PARENT = 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
 DOMAIN = (-2, 0, 3, 5)
 OPS = ('add', 'sub', 'mul', 'min', 'max')
+VERIFIER_AUTHORITY = '1f' * 32
 
 
 def _signature(names: tuple[str, str]) -> PublicTaskSignature:
@@ -71,6 +72,12 @@ def _learned_prior():
     return learned
 
 
+def _controller() -> ScopedPromotionController:
+    return ScopedPromotionController(
+        trusted_verifier_authority_digests=frozenset({VERIFIER_AUTHORITY})
+    )
+
+
 def _activate(learned, target_signature: PublicTaskSignature) -> tuple[ScopedPromotionRegistry, object]:
     candidate = PromotionCandidate(
         candidate_kind='portable_prior',
@@ -89,6 +96,7 @@ def _activate(learned, target_signature: PublicTaskSignature) -> tuple[ScopedPro
         terminal_verifier_digest='verifier.terminal.governed',
         candidate_issuer='issuer.candidate.governed',
         verifier_issuer='issuer.independent.governed',
+        verifier_authority_digest=VERIFIER_AUTHORITY,
         heldout_targets=8,
         champion_accepted_targets=8,
         challenger_accepted_targets=7,
@@ -100,7 +108,7 @@ def _activate(learned, target_signature: PublicTaskSignature) -> tuple[ScopedPro
         terminal_verification_passed=True,
         target_answer_channel_detected=False,
     )
-    decision = ScopedPromotionController().adjudicate(candidate, evidence)
+    decision = _controller().adjudicate(candidate, evidence)
     assert decision.promoted is True
     registry = ScopedPromotionRegistry()
     registry.activate(decision)
@@ -194,6 +202,7 @@ def test_foreign_promoted_artifact_cannot_authorize_another_learned_prior():
         terminal_verifier_digest='verifier.terminal.foreign',
         candidate_issuer='issuer.candidate.foreign',
         verifier_issuer='issuer.independent.foreign',
+        verifier_authority_digest=VERIFIER_AUTHORITY,
         heldout_targets=2,
         champion_accepted_targets=2,
         challenger_accepted_targets=1,
@@ -205,7 +214,7 @@ def test_foreign_promoted_artifact_cannot_authorize_another_learned_prior():
         terminal_verification_passed=True,
         target_answer_channel_detected=False,
     )
-    decision = ScopedPromotionController().adjudicate(foreign, evidence)
+    decision = _controller().adjudicate(foreign, evidence)
     promotions = ScopedPromotionRegistry()
     promotions.activate(decision)
 
