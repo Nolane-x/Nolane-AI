@@ -253,3 +253,157 @@ __all__ = [
     'PromotionDecision',
     'ScopedPromotionController',
 ]
+
+_ALLOWED_REGISTRY_ACTIONS = frozenset({'activate', 'rollback'})
+
+
+def _promotion_event_payload(*, action: str, structural_class_digest: str, decision_digest: str,
+                             rollback_identity: str, previous_event_digest: str | None) -> dict[str, object]:
+    return {
+        'schema_version': 1,
+        'action': action,
+        'structural_class_digest': structural_class_digest,
+        'decision_digest': decision_digest,
+        'rollback_identity': rollback_identity,
+        'previous_event_digest': previous_event_digest,
+    }
+
+
+@dataclass(frozen=True, slots=True)
+class PromotionRegistryEvent:
+    action: str
+    structural_class_digest: str
+    decision_digest: str
+    rollback_identity: str
+    previous_event_digest: str | None
+    event_digest: str
+
+    def __post_init__(self) -> None:
+        action = _nonempty(self.action, 'action')
+        if action not in _ALLOWED_REGISTRY_ACTIONS:
+            raise ValueError('unsupported registry action')
+        scope = _scope(self.structural_class_digest)
+        decision = _nonempty(self.decision_digest, 'decision_digest')
+        rollback = _nonempty(self.rollback_identity, 'rollback_identity')
+        previous = None if self.previous_event_digest is None else _nonempty(
+            self.previous_event_digest, 'previous_event_digest'
+        )
+        payload = _promotion_event_payload(
+            action=action,
+            structural_class_digest=scope,
+            decision_digest=decision,
+            rollback_identity=rollback,
+            previous_event_digest=previous,
+        )
+        expected = 'r269.promotion-event.' + _sha(payload)
+        if self.event_digest != expected:
+            raise ValueError('event_digest must bind exact promotion registry event content')
+        object.__setattr__(self, 'action', action)
+        object.__setattr__(self, 'structural_class_digest', scope)
+        object.__setattr__(self, 'decision_digest', decision)
+        object.__setattr__(self, 'rollback_identity', rollback)
+        object.__setattr__(self, 'previous_event_digest', previous)
+
+
+class ScopedPromotionRegistry:
+    def __init__(self) -> None:
+        self._active: dict[str, PromotionDecision] = {}
+        self._history: list[PromotionRegistryEvent] = []
+
+    @property
+    def history(self) -> tuple[PromotionRegistryEvent, ...]:
+        return tuple(self._history)
+
+    @property
+    def event_head(self) -> str | None:
+        return self._history[-1].event_digest if self._history else None
+
+    def active_for(self, structural_class_digest: str) -> PromotionDecision | None:
+        return self._active.get(_scope(structural_class_digest))
+
+    def _event(self, action: str, decision: PromotionDecision) -> PromotionRegistryEvent:
+        payload = _promotion_event_payload(
+            action=action,
+            structural_class_digest=decision.structural_class_digest,
+            decision_digest=decision.decision_digest,
+            rollback_identity=decision.rollback_identity,
+            previous_event_digest=self.event_head,
+        )
+        return PromotionRegistryEvent(
+            action=action,
+            structural_class_digest=decision.structural_class_digest,
+            decision_digest=decision.decision_digest,
+            rollback_identity=decision.rollback_identity,
+            previous_event_digest=self.event_head,
+            event_digest='r269.promotion-event.' + _sha(payload),
+        )
+
+    def activate(self, decision: PromotionDecision) -> PromotionRegistryEvent:
+        if not isinstance(decision, PromotionDecision):
+            raise TypeError('decision must be PromotionDecision')
+        if not decision.promoted:
+            raise ValueError('registry activation requires a promoted decision')
+        scope = decision.structural_class_digest
+        current = self._active.get(scope)
+        if current is not None:
+            if current.decision_digest == decision.decision_digest:
+                for event in reversed(self._history):
+                    if event.action == 'activate' and event.decision_digest == decision.decision_digest:
+                        return event
+                raise RuntimeError('active decision has no activation event')
+            raise ValueError('structural scope already has an active promotion; rollback is required first')
+        event = self._event('activate', decision)
+        self._history.append(event)
+        self._active[scope] = decision
+        return event
+
+    def rollback(
+        self,
+        structural_class_digest: str,
+        *,
+        rollback_identity: str,
+        expected_decision_digest: str,
+    ) -> PromotionRegistryEvent:
+        scope = _scope(structural_class_digest)
+        current = self._active.get(scope)
+        if current is None:
+            raise ValueError('structural scope has no active promotion')
+        rollback = _nonempty(rollback_identity, 'rollback_identity')
+        expected = _nonempty(expected_decision_digest, 'expected_decision_digest')
+        if rollback != current.rollback_identity:
+            raise ValueError('rollback_identity does not match active promotion')
+        if expected != current.decision_digest:
+            raise ValueError('expected_decision_digest does not match active promotion')
+        event = self._event('rollback', current)
+        self._history.append(event)
+        del self._active[scope]
+        return event
+
+    def audit(self) -> bool:
+        previous: str | None = None
+        reconstructed: dict[str, str] = {}
+        for event in self._history:
+            payload = _promotion_event_payload(
+                action=event.action,
+                structural_class_digest=event.structural_class_digest,
+                decision_digest=event.decision_digest,
+                rollback_identity=event.rollback_identity,
+                previous_event_digest=previous,
+            )
+            expected = 'r269.promotion-event.' + _sha(payload)
+            if event.previous_event_digest != previous or event.event_digest != expected:
+                return False
+            if event.action == 'activate':
+                if event.structural_class_digest in reconstructed:
+                    return False
+                reconstructed[event.structural_class_digest] = event.decision_digest
+            else:
+                if reconstructed.get(event.structural_class_digest) != event.decision_digest:
+                    return False
+                del reconstructed[event.structural_class_digest]
+            previous = event.event_digest
+        active = {scope: decision.decision_digest for scope, decision in self._active.items()}
+        return reconstructed == active
+
+
+__all__.extend(['PromotionRegistryEvent', 'ScopedPromotionRegistry'])
