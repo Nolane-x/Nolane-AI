@@ -90,7 +90,8 @@ def build_receipt(
     promo = _load(promotion_path)
     _assert_release_evidence(seq, ext, promo)
 
-    if state.get('depth') != 'W5' or not str(state.get('id', '')).startswith('world_'):
+    world_id = str(state.get('id', ''))
+    if state.get('depth') != 'W5' or not world_id.startswith('world5_'):
         raise ValueError('World state must be an actual W5 Nolane World session snapshot')
     critical_unknowns = [row for row in state.get('unknowns', []) if isinstance(row, dict) and row.get('critical') is True]
     unresolved = [row for row in critical_unknowns if row.get('bounded') is not True or not str(row.get('resolution') or '').strip()]
@@ -110,7 +111,7 @@ def build_receipt(
         'schema_version': 2,
         'milestone': 'R2.69',
         'world_version': '0.8.0',
-        'world_session_id': state['id'],
+        'world_session_id': world_id,
         'world_depth': 'W5',
         'world_state_sha256': file_sha256(world_state_path),
         'world_gate_sha256': file_sha256(world_gate_path),
