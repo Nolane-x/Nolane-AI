@@ -114,7 +114,9 @@ jobs:
           if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT_REMOTE" = "$EXPECTED_HEAD"; fi
       - name: Commit verified sequential integration once
         run: |
-          if git diff --quiet -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json; then
+          SOURCE_DIRTY="$(git diff --name-only -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py)"
+          RECEIPT_DIRTY="$(git status --porcelain -- R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json)"
+          if [ -z "$SOURCE_DIRTY" ] && [ -z "$RECEIPT_DIRTY" ]; then
             echo 'Sequential meta-learning integration already materialized.'
             exit 0
           fi
