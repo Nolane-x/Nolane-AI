@@ -370,6 +370,26 @@ def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLearningConf
     return rows
 
 
+def _scratch_information_floor(
+    signature: PublicTaskSignature,
+    config: MetaLearningConfig,
+) -> list[_Hypothesis]:
+    """Materialize only a bounded shallow scratch sentinel for transfer-query safety.
+
+    Sentinel hypotheses may score whether a transfer probe also partitions a
+    generic scratch space, but they are never selection authority. Full scratch
+    is materialized only for cold scratch or after transfer is abandoned.
+    """
+    floor_config = MetaLearningConfig(
+        max_diagnostic_queries=config.max_diagnostic_queries,
+        transfer_candidate_cap=config.transfer_candidate_cap,
+        scratch_candidate_cap=min(config.scratch_candidate_cap, 32),
+        scratch_max_depth=min(config.scratch_max_depth, 1),
+        min_scratch_partitions=config.min_scratch_partitions,
+    )
+    return _scratch_hypotheses(signature, floor_config)
+
+
 def _predict(expr: Expr, context: Mapping[str, object]) -> tuple[bool, int | float | None]:
     try:
         return True, _canonical_number(evaluate_expr(expr, context))
@@ -523,8 +543,13 @@ def run_meta_learning_episode(
         row.portable.portable_digest: row.compatibility_score for row in compatible_matches
     }
     transfer = _transfer_hypotheses_many(compatible, signature, config.transfer_candidate_cap)
-    scratch = _scratch_hypotheses(signature, config)
     transfer_initial = len(transfer)
+    scratch_materialized = not bool(transfer)
+    scratch = (
+        _scratch_hypotheses(signature, config)
+        if scratch_materialized
+        else _scratch_information_floor(signature, config)
+    )
     scratch_initial = len(scratch)
     ledger = SharedObservationLedger(signature)
     used: set[str] = set()
@@ -591,8 +616,25 @@ def run_meta_learning_episode(
                 abandoned = True
                 # All already purchased diagnostic observations are eligible for
                 # scratch continuation. This is the concrete shared-evidence
-                # credit, not an extra oracle call.
+                # credit, not an extra oracle call. Only now do we materialize
+                # the full scratch frontier and replay already purchased evidence.
                 reused_count = sum(observation.phase == 'diagnostic' for observation in ledger.observations)
+                full_scratch = _scratch_hypotheses(signature, config)
+                scratch_initial = len(full_scratch)
+                scratch = full_scratch
+                scratch_materialized = True
+                for observation in ledger.observations:
+                    if (
+                        observation.phase != 'diagnostic'
+                        or observation.status != 'ok'
+                        or observation.observed is None
+                    ):
+                        continue
+                    observed_context = dict(
+                        zip(signature.role_names, observation.context_values, strict=True)
+                    )
+                    scratch = _filter(scratch, observed_context, observation.observed)
+                continue
         scratch = _filter(scratch, semantic, row.observed)
 
     selected: _Hypothesis | None = None
@@ -600,7 +642,7 @@ def run_meta_learning_episode(
     if len(transfer) == 1 and ledger.physical_oracle_calls >= 1:
         selected = transfer[0]
         mode = 'transfer'
-    elif len(scratch) == 1 and ledger.physical_oracle_calls >= 1:
+    elif scratch_materialized and len(scratch) == 1 and ledger.physical_oracle_calls >= 1:
         selected = scratch[0]
         mode = 'scratch_after_transfer' if abandoned else 'scratch'
 
