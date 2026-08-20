@@ -135,6 +135,15 @@ def match_portable_experiences(
         if portable.role_count != len(signature.role_names):
             out.append(MatchedPrior(portable, False, 0, 'role_cardinality_mismatch'))
             continue
+        if portable.adapter_type == 'verified_meta_episode_v1':
+            scope = frozenset(portable.claim_scope)
+            domain_ok = f'numeric_domain={signature.numeric_domain}' in scope
+            if signature.numeric_domain == 'finite_integer':
+                exact_domain = 'finite_integer_values=' + ','.join(map(str, signature.finite_integer_values))
+                domain_ok = domain_ok and exact_domain in scope
+            if not domain_ok:
+                out.append(MatchedPrior(portable, False, 0, 'verified_meta_domain_mismatch'))
+                continue
         required = _binary_ops(portable.canonical_expression)
         if not required.issubset(allowed):
             out.append(MatchedPrior(portable, False, 0, 'operator_vocabulary_mismatch'))

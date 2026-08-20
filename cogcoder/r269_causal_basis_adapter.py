@@ -11,6 +11,7 @@ from .r256_operator_dsl import Binary, Const, Expr, Field, IfElse, Unary
 _ACCEPTED_R268_PARENT = 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
 _ALLOWED_ADAPTATION_OPS = ('add', 'sub', 'mul', 'div', 'min', 'max')
 _CLAIM_SCOPE = ('r268_verified_adaptive_basis', 'globally_minimal', 'proof_ledger_complete')
+_ALLOWED_ADAPTER_TYPES = frozenset(('causal_basis_v1', 'verified_meta_episode_v1'))
 
 
 def _sha(payload: object) -> str:
@@ -185,7 +186,7 @@ class PortableExperience:
     trainable_parameter_count: int = 0
 
     def __post_init__(self) -> None:
-        if self.adapter_type != 'causal_basis_v1':
+        if self.adapter_type not in _ALLOWED_ADAPTER_TYPES:
             raise ValueError('unsupported adapter_type')
         if not isinstance(self.canonical_expression, Expr):
             raise TypeError('canonical_expression must be Expr')
