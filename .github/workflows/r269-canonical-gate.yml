@@ -7,6 +7,7 @@ on:
       - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_*.py'
       - 'tests/test_r269_*.py'
+      - 'scripts/r269_*.py'
       - 'R2_69_*.json'
       - '.github/workflows/r269-*.yml'
       - 'docs/superpowers/specs/2026-08-19-r269-autonomous-transfer-meta-learning-kernel-design.md'
@@ -75,9 +76,10 @@ jobs:
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
-          assert lock['schema_version']>=3
+          assert lock['schema_version']>=4
           assert lock['milestone']=='R2.69'
           assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
           assert lock['source_authority_parent']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
@@ -86,6 +88,7 @@ jobs:
           assert lock['w5_convergence_claimed'] is False
           assert lock['host_attested_promotion_authority_required'] is True
           assert lock['promotion_authority_source_frozen'] is True
+          assert lock['content_addressed_world_adjudication_required'] is True
           assert lock['exact_rollback_registry_required'] is True
 
           expected_head=os.environ.get('EXPECTED_HEAD','').strip()
@@ -128,7 +131,6 @@ jobs:
           ext_receipt=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text())
           seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text())
           promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
-          world=json.loads(Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json').read_text())
           assert phase==authored
           assert ext_receipt['semantic_result_digest']==external['semantic_result_digest']
           assert ext_receipt['all_gates_pass'] is True
@@ -153,10 +155,16 @@ jobs:
           assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
           assert promotion['false_accepts']==0 and promotion['trainable_parameter_count']==0
 
+          world=verify_world_receipt()
           assert world['milestone']=='R2.69'
           assert world['final_bounded_release']=='ACCEPT'
+          assert world['full_w5_gate_pass'] is False
           assert world['w5_convergence_claimed'] is False
+          assert world['convergence_forced'] is False
           assert world['claim_boundary']==lock['claim_boundary']
+          assert world['receipt_digest']==lock['world_bounded_receipt_digest']
+          assert world['world_state_sha256']==lock['world_state_sha256']
+          assert world['world_gate_sha256']==lock['world_gate_sha256']
 
           forbidden=[]
           for wf in (
@@ -204,6 +212,7 @@ jobs:
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
           lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert run_benchmark()['semantic_result_digest']==lock['authored_semantic_digest']
           assert run_external_transfer()['semantic_result_digest']==lock['external_semantic_digest']
@@ -215,5 +224,7 @@ jobs:
           )
           assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
           assert promotion['promotion_gate_pass'] is True
+          world=verify_world_receipt()
+          assert world['receipt_digest']==lock['world_bounded_receipt_digest']
           print('R269_CROSS_PYTHON_CANONICAL_OK')
           PY
