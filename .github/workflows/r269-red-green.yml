@@ -114,7 +114,7 @@ jobs:
           if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT_REMOTE" = "$EXPECTED_HEAD"; fi
       - name: Commit verified sequential integration once
         run: |
-          SOURCE_DIRTY="$(git diff --name-only -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py)"
+          SOURCE_DIRTY="$(git diff --name-only -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py cogcoder/r269_transfer_runtime.py)"
           RECEIPT_DIRTY="$(git status --porcelain -- R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json)"
           if [ -z "$SOURCE_DIRTY" ] && [ -z "$RECEIPT_DIRTY" ]; then
             echo 'Sequential meta-learning integration already materialized.'
@@ -122,6 +122,6 @@ jobs:
           fi
           git config user.name 'Nolane R2.69 verifier'
           git config user.email 'actions@users.noreply.github.com'
-          git add cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
+          git add cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py cogcoder/r269_transfer_runtime.py R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
           git commit -m 'feat(r269): integrate verified sequential meta-learning'
           git push origin HEAD:${BRANCH}
