@@ -9,6 +9,7 @@ import pytest
 MODULE = "cogcoder.r269_scoped_promotion"
 SCOPE = "4f5a56f01b9b9d4b57fe7f0e196f48c3cb0f8f088ee409160840ba8ab58f1db8"
 OTHER_SCOPE = "71cd4002f92c4a4668c0b6dbc914a4dac25cba00d91cde8490c93232eaa042b1"
+VERIFIER_AUTHORITY = "1f" * 32
 
 
 def _api():
@@ -20,6 +21,13 @@ def _api():
         module.ChampionChallengerEvidence,
         module.ScopedPromotionController,
         module.PromotionDecision,
+    )
+
+
+def _controller():
+    *_, ScopedPromotionController, _ = _api()
+    return ScopedPromotionController(
+        trusted_verifier_authority_digests=frozenset({VERIFIER_AUTHORITY})
     )
 
 
@@ -47,6 +55,7 @@ def _evidence(candidate=None, **overrides):
         terminal_verifier_digest="verifier.terminal.001",
         candidate_issuer="issuer.candidate",
         verifier_issuer="issuer.independent",
+        verifier_authority_digest=VERIFIER_AUTHORITY,
         heldout_targets=8,
         champion_accepted_targets=8,
         challenger_accepted_targets=7,
@@ -63,12 +72,11 @@ def _evidence(candidate=None, **overrides):
 
 
 def test_scoped_promotion_requires_complete_independent_champion_challenger_evidence():
-    *_, ScopedPromotionController, _ = _api()
     candidate = _candidate()
     evidence = _evidence(candidate)
 
-    first = ScopedPromotionController().adjudicate(candidate, evidence)
-    replay = ScopedPromotionController().adjudicate(candidate, evidence)
+    first = _controller().adjudicate(candidate, evidence)
+    replay = _controller().adjudicate(candidate, evidence)
 
     assert first == replay
     assert first.promoted is True
@@ -94,9 +102,8 @@ def test_scoped_promotion_requires_complete_independent_champion_challenger_evid
     ],
 )
 def test_promotion_fails_closed_on_each_authority_boundary(overrides, reason):
-    *_, ScopedPromotionController, _ = _api()
     candidate = _candidate()
-    decision = ScopedPromotionController().adjudicate(candidate, _evidence(candidate, **overrides))
+    decision = _controller().adjudicate(candidate, _evidence(candidate, **overrides))
     assert decision.promoted is False
     assert decision.reason == reason
 
@@ -113,16 +120,14 @@ def test_scope_is_structural_and_cannot_be_global_or_rebound_after_evidence():
             trainable_parameter_count=0,
         )
 
-    *_, ScopedPromotionController, _ = _api()
     candidate = _candidate()
     rebound = _evidence(candidate, preregistered_scope_digest=OTHER_SCOPE)
-    decision = ScopedPromotionController().adjudicate(candidate, rebound)
+    decision = _controller().adjudicate(candidate, rebound)
     assert decision.promoted is False
     assert decision.reason == "scope_mismatch"
 
 
 def test_decision_identity_changes_when_exact_freeze_receipt_changes():
-    *_, ScopedPromotionController, _ = _api()
     first_candidate = _candidate()
     PromotionCandidate, *_ = _api()
     second_candidate = PromotionCandidate(
@@ -133,17 +138,17 @@ def test_decision_identity_changes_when_exact_freeze_receipt_changes():
         rollback_identity=first_candidate.rollback_identity,
         trainable_parameter_count=0,
     )
-    first = ScopedPromotionController().adjudicate(first_candidate, _evidence(first_candidate))
-    second = ScopedPromotionController().adjudicate(second_candidate, _evidence(second_candidate))
+    first = _controller().adjudicate(first_candidate, _evidence(first_candidate))
+    second = _controller().adjudicate(second_candidate, _evidence(second_candidate))
     assert first.promoted is second.promoted is True
     assert first.decision_digest != second.decision_digest
     assert first.evidence_digest != second.evidence_digest
 
 
 def test_direct_decision_construction_rechecks_content_digest_and_rollback_binding():
-    *_, ScopedPromotionController, PromotionDecision = _api()
+    *_, PromotionDecision = _api()
     candidate = _candidate()
-    decision = ScopedPromotionController().adjudicate(candidate, _evidence(candidate))
+    decision = _controller().adjudicate(candidate, _evidence(candidate))
 
     with pytest.raises(ValueError, match="decision_digest"):
         PromotionDecision(
