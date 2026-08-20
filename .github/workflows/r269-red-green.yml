@@ -1,8 +1,8 @@
 name: R2.69 RED GREEN
 
 on:
-  push:
-    branches: [r269-autonomous-transfer-meta-learning-kernel-gpt56sol]
+  pull_request:
+    branches: [main]
     paths:
       - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
@@ -20,19 +20,24 @@ env:
 
 jobs:
   cross-python-integration:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.BRANCH }}
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || env.BRANCH }}
           fetch-depth: 0
       - name: Refuse stale integration writer
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           git fetch origin ${BRANCH} main
-          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
-          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          CURRENT="$(git rev-parse HEAD)"
+          REMOTE="$(git rev-parse origin/${BRANCH})"
+          test "$CURRENT" = "$REMOTE"
+          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT" = "$EXPECTED_HEAD"; fi
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
       - name: Apply guarded sequential-meta source integration
         run: python scripts/r269_integrate_sequential_meta.py
@@ -100,10 +105,13 @@ jobs:
           Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').write_text(json.dumps(evidence,sort_keys=True,indent=2)+'\n')
           PY
       - name: Recheck exact branch before materialization push
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
           git fetch origin ${BRANCH}
-          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          CURRENT_REMOTE="$(git rev-parse origin/${BRANCH})"
+          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT_REMOTE" = "$EXPECTED_HEAD"; fi
       - name: Commit verified sequential integration once
         run: |
           if git diff --quiet -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json; then
