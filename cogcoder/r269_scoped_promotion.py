@@ -54,6 +54,7 @@ class PromotionCandidate:
 @dataclass(frozen=True, slots=True)
 class ChampionChallengerEvidence:
     candidate_artifact_digest: str
+    freeze_receipt_digest: str
     preregistered_scope_digest: str
     champion_receipt_digest: str
     challenger_receipt_digest: str
@@ -73,6 +74,7 @@ class ChampionChallengerEvidence:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, 'candidate_artifact_digest', _nonempty(self.candidate_artifact_digest, 'candidate_artifact_digest'))
+        object.__setattr__(self, 'freeze_receipt_digest', _nonempty(self.freeze_receipt_digest, 'freeze_receipt_digest'))
         object.__setattr__(self, 'preregistered_scope_digest', _scope(self.preregistered_scope_digest))
         object.__setattr__(self, 'champion_receipt_digest', _nonempty(self.champion_receipt_digest, 'champion_receipt_digest'))
         object.__setattr__(self, 'challenger_receipt_digest', _nonempty(self.challenger_receipt_digest, 'challenger_receipt_digest'))
@@ -96,6 +98,7 @@ class ChampionChallengerEvidence:
         payload = {
             'schema_version': 1,
             'candidate_artifact_digest': self.candidate_artifact_digest,
+            'freeze_receipt_digest': self.freeze_receipt_digest,
             'preregistered_scope_digest': self.preregistered_scope_digest,
             'champion_receipt_digest': self.champion_receipt_digest,
             'challenger_receipt_digest': self.challenger_receipt_digest,
@@ -117,13 +120,14 @@ class ChampionChallengerEvidence:
 
 
 def _decision_payload(*, promoted: bool, candidate_kind: str, candidate_artifact_digest: str,
-                      structural_class_digest: str, rollback_identity: str,
+                      freeze_receipt_digest: str, structural_class_digest: str, rollback_identity: str,
                       evidence_digest: str, reason: str, trainable_parameter_count: int) -> dict[str, object]:
     return {
         'schema_version': 1,
         'promoted': promoted,
         'candidate_kind': candidate_kind,
         'candidate_artifact_digest': candidate_artifact_digest,
+        'freeze_receipt_digest': freeze_receipt_digest,
         'structural_class_digest': structural_class_digest,
         'rollback_identity': rollback_identity,
         'evidence_digest': evidence_digest,
@@ -137,6 +141,7 @@ class PromotionDecision:
     promoted: bool
     candidate_kind: str
     candidate_artifact_digest: str
+    freeze_receipt_digest: str
     structural_class_digest: str
     rollback_identity: str
     evidence_digest: str
@@ -153,6 +158,7 @@ class PromotionDecision:
         if kind not in _ALLOWED_KINDS:
             raise ValueError('unsupported candidate_kind')
         artifact = _nonempty(self.candidate_artifact_digest, 'candidate_artifact_digest')
+        freeze = _nonempty(self.freeze_receipt_digest, 'freeze_receipt_digest')
         scope = _scope(self.structural_class_digest)
         rollback = _nonempty(self.rollback_identity, 'rollback_identity')
         evidence = _nonempty(self.evidence_digest, 'evidence_digest')
@@ -161,6 +167,7 @@ class PromotionDecision:
             promoted=self.promoted,
             candidate_kind=kind,
             candidate_artifact_digest=artifact,
+            freeze_receipt_digest=freeze,
             structural_class_digest=scope,
             rollback_identity=rollback,
             evidence_digest=evidence,
@@ -172,6 +179,7 @@ class PromotionDecision:
             raise ValueError('decision_digest must bind exact scoped promotion decision content')
         object.__setattr__(self, 'candidate_kind', kind)
         object.__setattr__(self, 'candidate_artifact_digest', artifact)
+        object.__setattr__(self, 'freeze_receipt_digest', freeze)
         object.__setattr__(self, 'structural_class_digest', scope)
         object.__setattr__(self, 'rollback_identity', rollback)
         object.__setattr__(self, 'evidence_digest', evidence)
@@ -187,6 +195,8 @@ class ScopedPromotionController:
 
         if evidence.candidate_artifact_digest != candidate.artifact_digest:
             promoted, reason = False, 'candidate_artifact_mismatch'
+        elif evidence.freeze_receipt_digest != candidate.freeze_receipt_digest:
+            promoted, reason = False, 'freeze_receipt_mismatch'
         elif evidence.preregistered_scope_digest != candidate.structural_class_digest:
             promoted, reason = False, 'scope_mismatch'
         elif evidence.candidate_issuer == evidence.verifier_issuer:
@@ -216,6 +226,7 @@ class ScopedPromotionController:
             promoted=promoted,
             candidate_kind=candidate.candidate_kind,
             candidate_artifact_digest=candidate.artifact_digest,
+            freeze_receipt_digest=candidate.freeze_receipt_digest,
             structural_class_digest=candidate.structural_class_digest,
             rollback_identity=candidate.rollback_identity,
             evidence_digest=evidence.evidence_digest,
@@ -226,6 +237,7 @@ class ScopedPromotionController:
             promoted=promoted,
             candidate_kind=candidate.candidate_kind,
             candidate_artifact_digest=candidate.artifact_digest,
+            freeze_receipt_digest=candidate.freeze_receipt_digest,
             structural_class_digest=candidate.structural_class_digest,
             rollback_identity=candidate.rollback_identity,
             evidence_digest=evidence.evidence_digest,
