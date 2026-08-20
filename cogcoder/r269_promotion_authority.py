@@ -213,6 +213,8 @@ class PromotionEvidenceAuthority:
             raise ValueError('hosted attestation verifier issuer is not trusted')
         if evidence.verifier_issuer != self.verifier_issuer:
             raise ValueError('evidence verifier issuer does not match hosted authority')
+        if evidence.verifier_authority_digest != self.authority_root_digest:
+            raise ValueError('evidence verifier authority digest is not trusted')
         if attestation.evidence_digest != evidence.evidence_digest:
             raise ValueError('hosted attestation evidence digest mismatch')
         if attestation.candidate_artifact_digest != candidate.artifact_digest:
@@ -222,7 +224,9 @@ class PromotionEvidenceAuthority:
         if attestation.freeze_receipt_digest != candidate.freeze_receipt_digest:
             raise ValueError('hosted attestation freeze receipt mismatch')
 
-        decision = ScopedPromotionController().adjudicate(candidate, evidence)
+        decision = ScopedPromotionController(
+            trusted_verifier_authority_digests=frozenset({self.authority_root_digest})
+        ).adjudicate(candidate, evidence)
         payload = _envelope_payload(
             decision_digest=decision.decision_digest,
             attestation_digest=attestation.attestation_digest,
