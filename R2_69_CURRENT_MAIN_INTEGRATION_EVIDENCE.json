@@ -1,0 +1,21 @@
+{
+  "authored_gate_pass": true,
+  "authored_semantic_digest": "9ebc590e4a93a5adb65b8e30bc75a4ad4eebf775b60d4855c0d051f074af9e06",
+  "capability": "current-main-integrated-transfer-meta-learning-candidate",
+  "external_gate_pass": true,
+  "external_semantic_digest": "b5210880f9138dc84aa6b05c52f6b0f859215d2eb5fa204e66bba5e60c509556",
+  "false_accepts": 0,
+  "integrated_main_sha": "5d9498a371b6c0f082170fbe152ba7546c5a1f8c",
+  "milestone": "R2.69",
+  "neural_r21_r211_green": true,
+  "python_versions_verified": [
+    "3.11",
+    "3.13"
+  ],
+  "r268_protected_green": true,
+  "r269_complete_green": true,
+  "schema_version": 1,
+  "sequential_meta_learning_materialized": true,
+  "source_authority_parent": "fda7f502185266fedb00886d5786c6d28cc0e0eb",
+  "trainable_parameter_count_added_by_r269": 0
+}
