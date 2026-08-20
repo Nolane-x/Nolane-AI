@@ -1,0 +1,55 @@
+name: R2.69 Promotion Verifier Authority Hardening
+
+on:
+  push:
+    branches: [ r269-promotion-verifier-authority-hardening-gpt56sol ]
+    paths:
+      - 'cogcoder/r269_scoped_promotion.py'
+      - 'tests/test_r269_scoped_promotion.py'
+      - 'tests/test_r269_promotion_registry.py'
+      - 'tests/test_r269_promotion_verifier_authority.py'
+      - 'scripts/r269_patch_promotion_verifier_authority.py'
+      - '.github/workflows/r269-promotion-verifier-authority-hardening.yml'
+
+permissions:
+  contents: write
+
+env:
+  BRANCH: r269-promotion-verifier-authority-hardening-gpt56sol
+
+jobs:
+  red-green:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Confirm issuer-label spoof contract is RED
+        run: |
+          set +e
+          PYTHONPATH=. python -m pytest -q tests/test_r269_promotion_verifier_authority.py
+          code=$?
+          set -e
+          test "$code" -ne 0
+      - name: Apply guarded verifier-authority patch
+        run: python scripts/r269_patch_promotion_verifier_authority.py
+      - name: Promotion authority GREEN
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r269_scoped_promotion.py tests/test_r269_promotion_registry.py tests/test_r269_promotion_verifier_authority.py
+      - name: Complete R2.69 plus protected R2.68 GREEN
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Commit verified hardening
+        run: |
+          git config user.name 'Nolane R2.69 promotion verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git add cogcoder/r269_scoped_promotion.py tests/test_r269_scoped_promotion.py tests/test_r269_promotion_registry.py
+          git commit -m 'fix(r269): require host-trusted promotion verifier authority'
+          git push origin HEAD:${BRANCH}
