@@ -21,8 +21,11 @@ def _fixture(tmp_path: Path):
     receipt = tmp_path / 'receipt.json'
 
     _write(state, {
-        'id': 'world5_test_r269',
+        'id': 'world_012345abcdef',
         'depth': 'W5',
+        'events': [
+            {'type': 'world.enter', 'depth': 'W5', 'dev_fast': False, 'at': '2026-08-20T00:00:00+00:00'},
+        ],
         'evidence': [
             {'id': 'ev1', 'independent': True, 'source': 'hosted-red-green'},
             {'id': 'ev2', 'independent': True, 'source': 'hosted-external'},
@@ -86,16 +89,52 @@ def test_world_bounded_receipt_is_exactly_bound_to_world_and_hosted_evidence(tmp
     assert verified['final_bounded_release'] == 'ACCEPT'
     assert verified['full_w5_gate_pass'] is False
     assert verified['w5_convergence_claimed'] is False
-    assert verified['world_session_id'].startswith('world5_')
+    assert verified['world_session_id'] == 'world_012345abcdef'
     assert verified['receipt_digest'].startswith('r269.world-bounded.')
 
 
 def test_world_bounded_receipt_rejects_non_native_session_id(tmp_path: Path):
     state, gate, seq, ext, promo, _receipt = _fixture(tmp_path)
     value = json.loads(state.read_text())
-    value['id'] = 'world_test_r269'
+    value['id'] = 'world5_test_r269'
     _write(state, value)
-    with pytest.raises(ValueError, match='actual W5 Nolane World session snapshot'):
+    with pytest.raises(ValueError, match='native Nolane World 0.8.0 session id format'):
+        build_receipt(
+            world_state_path=state, world_gate_path=gate, sequential_path=seq,
+            external_path=ext, promotion_path=promo,
+        )
+
+
+def test_world_bounded_receipt_rejects_missing_native_enter_event(tmp_path: Path):
+    state, gate, seq, ext, promo, _receipt = _fixture(tmp_path)
+    value = json.loads(state.read_text())
+    value['events'] = []
+    _write(state, value)
+    with pytest.raises(ValueError, match='world.enter provenance event'):
+        build_receipt(
+            world_state_path=state, world_gate_path=gate, sequential_path=seq,
+            external_path=ext, promotion_path=promo,
+        )
+
+
+def test_world_bounded_receipt_rejects_non_w5_enter_provenance(tmp_path: Path):
+    state, gate, seq, ext, promo, _receipt = _fixture(tmp_path)
+    value = json.loads(state.read_text())
+    value['events'][0]['depth'] = 'W4'
+    _write(state, value)
+    with pytest.raises(ValueError, match='W5 world.enter provenance event'):
+        build_receipt(
+            world_state_path=state, world_gate_path=gate, sequential_path=seq,
+            external_path=ext, promotion_path=promo,
+        )
+
+
+def test_world_bounded_receipt_rejects_dev_fast_session(tmp_path: Path):
+    state, gate, seq, ext, promo, _receipt = _fixture(tmp_path)
+    value = json.loads(state.read_text())
+    value['events'][0]['dev_fast'] = True
+    _write(state, value)
+    with pytest.raises(ValueError, match='non-dev-fast World session'):
         build_receipt(
             world_state_path=state, world_gate_path=gate, sequential_path=seq,
             external_path=ext, promotion_path=promo,
