@@ -1,6 +1,15 @@
 name: R2.69 RED GREEN
 
 on:
+  push:
+    branches: [ r269-autonomous-transfer-meta-learning-kernel-gpt56sol ]
+    paths:
+      - 'cogcoder/r269_*.py'
+      - 'benchmarks/kfigg/r269_meta_learning.py'
+      - 'tests/test_r269_*.py'
+      - '.github/workflows/r269-red-green.yml'
+      - 'docs/superpowers/specs/2026-08-19-r269-autonomous-transfer-meta-learning-kernel-design.md'
+      - 'docs/superpowers/plans/2026-08-19-r269-autonomous-transfer-meta-learning-kernel.md'
   pull_request:
     branches: [ main ]
     paths:
