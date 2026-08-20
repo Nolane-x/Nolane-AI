@@ -167,7 +167,7 @@ jobs:
 
       - name: Commit only cross-Python hosted authority receipt
         run: |
-          if git diff --quiet -- R2_69_PROMOTION_AUTHORITY.json; then
+          if [ -z "$(git status --porcelain -- R2_69_PROMOTION_AUTHORITY.json)" ]; then
             echo 'Promotion authority receipt already materialized.'
             exit 0
           fi
