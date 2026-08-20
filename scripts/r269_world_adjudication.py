@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Mapping
 
@@ -20,6 +21,8 @@ DEFAULT_PATHS = {
     'external': Path('R2_69_EXTERNAL_TRANSFER.json'),
     'promotion': Path('R2_69_PROMOTION_AUTHORITY.json'),
 }
+
+_NATIVE_WORLD_ID = re.compile(r'^world_[0-9a-f]{12}$')
 
 
 def _load(path: Path) -> dict[str, object]:
@@ -75,6 +78,31 @@ def _assert_release_evidence(seq: Mapping[str, object], ext: Mapping[str, object
         raise ValueError('promotion evidence must preserve zero false accepts and zero trainable parameters')
 
 
+def _assert_native_world_w5_state(state: Mapping[str, object]) -> str:
+    """Verify provenance for the top-level Nolane World 0.8.0 session API.
+
+    WorldEngine.enter() creates WorldSession IDs via new_id('world'), which is
+    `world_` plus 12 lowercase hexadecimal characters.  A W5 session is
+    authoritatively established by the raw `world.enter` event carrying W5 and
+    dev_fast=false; `world5_...` belongs to a different v5 runtime and is not
+    the ID shape emitted by the top-level CLI/session API used for this release.
+    """
+    world_id = str(state.get('id', ''))
+    if _NATIVE_WORLD_ID.fullmatch(world_id) is None:
+        raise ValueError('World state must use the native Nolane World 0.8.0 session id format')
+    if state.get('depth') != 'W5':
+        raise ValueError('World state must be an actual W5 Nolane World session snapshot')
+    events = state.get('events')
+    if not isinstance(events, list) or not events or not isinstance(events[0], dict):
+        raise ValueError('World state must preserve the native world.enter provenance event')
+    entered = events[0]
+    if entered.get('type') != 'world.enter' or entered.get('depth') != 'W5':
+        raise ValueError('World state must preserve a W5 world.enter provenance event')
+    if entered.get('dev_fast') is not False:
+        raise ValueError('bounded R2.69 adjudication requires a non-dev-fast World session')
+    return world_id
+
+
 def build_receipt(
     *,
     world_state_path: Path = DEFAULT_PATHS['world_state'],
@@ -90,9 +118,7 @@ def build_receipt(
     promo = _load(promotion_path)
     _assert_release_evidence(seq, ext, promo)
 
-    world_id = str(state.get('id', ''))
-    if state.get('depth') != 'W5' or not world_id.startswith('world5_'):
-        raise ValueError('World state must be an actual W5 Nolane World session snapshot')
+    world_id = _assert_native_world_w5_state(state)
     critical_unknowns = [row for row in state.get('unknowns', []) if isinstance(row, dict) and row.get('critical') is True]
     unresolved = [row for row in critical_unknowns if row.get('bounded') is not True or not str(row.get('resolution') or '').strip()]
     if unresolved:
