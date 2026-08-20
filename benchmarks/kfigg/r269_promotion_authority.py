@@ -4,14 +4,10 @@ import hashlib
 import json
 from typing import Mapping
 
+from benchmarks.kfigg import r269_meta_learning as authored
 from cogcoder.r269_experience_compiler import compile_meta_learning_experience
 from cogcoder.r269_governed_runtime import run_governed_meta_learning_episode
-from cogcoder.r269_meta_learning_kernel import (
-    MetaLearningConfig,
-    PublicTaskSignature,
-    run_cold_scratch,
-    run_meta_learning_episode,
-)
+from cogcoder.r269_meta_learning_kernel import MetaLearningConfig, PublicTaskSignature, run_cold_scratch, run_meta_learning_episode
 from cogcoder.r269_promotion_authority import (
     AuthorityBoundPromotionRegistry,
     HostedVerifierAttestation,
@@ -20,9 +16,8 @@ from cogcoder.r269_promotion_authority import (
 from cogcoder.r269_scoped_promotion import ChampionChallengerEvidence, PromotionCandidate
 
 _PARENT = 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
-_DOMAIN = (-2, 0, 3, 5)
-_OPS = ('add', 'sub', 'mul', 'min', 'max')
 _VERIFIER_ISSUER = 'github.hosted.r269.promotion-verifier'
+_SOURCE_ROLES = ('source_left', 'source_right')
 _HELDOUT_ROLES = (
     ('left', 'right'),
     ('north', 'south'),
@@ -41,60 +36,78 @@ def _sha(payload: object) -> str:
     return hashlib.sha256(raw.encode()).hexdigest()
 
 
-def _signature(names: tuple[str, str]) -> PublicTaskSignature:
-    return PublicTaskSignature(
-        role_names=names,
-        numeric_domain='finite_integer',
-        allowed_binary_ops=_OPS,
-        query_space_digest='r269.promotion-authority.complete-domain.v1',
-        budget_contract='diagnostic<=4;candidate<=256',
-        finite_integer_values=_DOMAIN,
+def _tight_config() -> MetaLearningConfig:
+    # This is deliberately the same tight target budget used by the authored
+    # hard-transfer lane. Promotion must earn an advantage under matched
+    # champion/challenger budgets; the controller is never relaxed for this
+    # benchmark.
+    return MetaLearningConfig(
+        max_diagnostic_queries=6,
+        transfer_candidate_cap=64,
+        scratch_candidate_cap=64,
+        scratch_max_depth=2,
+        min_scratch_partitions=2,
     )
+
+
+def _signature(names: tuple[str, str]) -> PublicTaskSignature:
+    return authored._signature(names)
 
 
 def _contexts(names: tuple[str, str]):
-    a, b = names
-    rows = (
-        {a: -2, b: 3},
-        {a: 0, b: 5},
-        {a: 3, b: -2},
-        {a: 5, b: 0},
-        {a: 3, b: 5},
-        {a: -2, b: 0},
-    )
-    return rows[:4], rows[4:]
-
-
-def _config() -> MetaLearningConfig:
-    return MetaLearningConfig(
-        max_diagnostic_queries=4,
-        transfer_candidate_cap=64,
-        scratch_candidate_cap=256,
-        scratch_max_depth=1,
-        min_scratch_partitions=2,
-    )
+    return authored._contexts(names)
 
 
 def _oracle(names: tuple[str, str]):
     left, right = names
 
     def oracle(row: Mapping[str, object]):
-        return row[left] + row[right]
+        return 3 * row[left] + row[right]
 
     return oracle
 
 
-def _source_prior():
-    names = ('source_left', 'source_right')
-    signature = _signature(names)
-    diagnostic, terminal = _contexts(names)
-    receipt = run_cold_scratch(signature, diagnostic, terminal, _oracle(names), _config())
+def _learned_source_prior():
+    # Build the source from the already-authored/protected R2.68 hard causal
+    # basis, then force one real R2.69 transfer episode to compile that verified
+    # episode into a reusable verified_meta_episode_v1. The candidate promoted
+    # below is therefore learned R2.69 experience, not the imported R2.68 seed.
+    hard_receipt = authored._three_x_plus_y_receipt()
+    hard_r268_prior = authored._compile(hard_receipt, 'r269-promotion-seed-three-x-plus-y')
+    signature = _signature(_SOURCE_ROLES)
+    diagnostic, terminal = _contexts(_SOURCE_ROLES)
+    receipt = run_meta_learning_episode(
+        (hard_r268_prior,),
+        signature,
+        diagnostic,
+        terminal,
+        _oracle(_SOURCE_ROLES),
+        _tight_config(),
+    )
     if not receipt.passed or receipt.false_accepts != 0:
-        raise AssertionError('promotion source episode must be verifier-accepted with zero false accepts')
-    return compile_meta_learning_experience(
+        raise AssertionError('promotion source meta episode must be verifier-accepted with zero false accepts')
+    if receipt.selected_prior_digest != hard_r268_prior.portable_digest:
+        raise AssertionError('promotion source meta episode must genuinely reuse the protected R2.68 seed')
+    learned = compile_meta_learning_experience(
         receipt,
         signature=signature,
         accepted_parent_sha=_PARENT,
+    )
+    if learned.adapter_type != 'verified_meta_episode_v1':
+        raise AssertionError('promotion candidate must be compiled learned R2.69 experience')
+    return learned, hard_r268_prior.portable_digest, receipt
+
+
+def _rejection_message(decision, evidence: ChampionChallengerEvidence) -> str:
+    return (
+        f'promotion evidence rejected: reason={decision.reason}; '
+        f'champion={evidence.champion_accepted_targets}/{evidence.heldout_targets}; '
+        f'challenger={evidence.challenger_accepted_targets}/{evidence.heldout_targets}; '
+        f'oracle_advantage={evidence.oracle_call_advantage}; '
+        f'search_advantage={evidence.search_work_advantage}; '
+        f'false_accepts={evidence.false_accepts}; '
+        f'terminal={evidence.terminal_verification_passed}; '
+        f'budget_exact={evidence.budget_accounting_exact}'
     )
 
 
@@ -111,10 +124,11 @@ def run_promotion_authority_benchmark(
     if len(source_tree_digest) != 64 or any(c not in '0123456789abcdef' for c in source_tree_digest):
         raise ValueError('source_tree_digest must be 64-hex')
 
-    learned = _source_prior()
+    learned, seed_prior_digest, source_receipt = _learned_source_prior()
     target_scope = _signature(_HELDOUT_ROLES[0]).structural_class_digest
     champion = []
     challenger = []
+    config = _tight_config()
     for names in _HELDOUT_ROLES:
         signature = _signature(names)
         if signature.structural_class_digest != target_scope:
@@ -122,9 +136,9 @@ def run_promotion_authority_benchmark(
         diagnostic, terminal = _contexts(names)
         oracle = _oracle(names)
         champion.append(
-            run_meta_learning_episode((learned,), signature, diagnostic, terminal, oracle, _config())
+            run_meta_learning_episode((learned,), signature, diagnostic, terminal, oracle, config)
         )
-        challenger.append(run_cold_scratch(signature, diagnostic, terminal, oracle, _config()))
+        challenger.append(run_cold_scratch(signature, diagnostic, terminal, oracle, config))
 
     champion_accepted = sum(int(row.passed) for row in champion)
     challenger_accepted = sum(int(row.passed) for row in challenger)
@@ -140,11 +154,13 @@ def run_promotion_authority_benchmark(
     search_advantage = challenger_search_work - champion_search_work
 
     freeze_payload = {
-        'schema_version': 1,
+        'schema_version': 2,
         'candidate_artifact_digest': learned.portable_digest,
         'structural_class_digest': target_scope,
         'source_tree_digest': source_tree_digest,
         'authority_root_digest': authority_root_digest,
+        'seed_prior_digest': seed_prior_digest,
+        'source_meta_receipt_digest': learned.source_receipt_digest,
     }
     freeze_receipt_digest = 'r269.promotion-freeze.' + _sha(freeze_payload)
     rollback_identity = 'r269.promotion-rollback.' + _sha({
@@ -165,7 +181,9 @@ def run_promotion_authority_benchmark(
         freeze_receipt_digest=candidate.freeze_receipt_digest,
         preregistered_scope_digest=candidate.structural_class_digest,
         champion_receipt_digest='r269.champion.' + _sha([
-            row.selected_prior_digest for row in champion
+            [row.passed, row.selected_prior_digest, row.physical_diagnostic_calls,
+             row.transfer_candidates_considered, row.scratch_candidates_considered]
+            for row in champion
         ]),
         challenger_receipt_digest='r269.challenger.' + _sha([
             [row.passed, row.physical_diagnostic_calls, row.scratch_candidates_considered]
@@ -199,14 +217,18 @@ def run_promotion_authority_benchmark(
     envelope = PromotionEvidenceAuthority(
         authority_root_digest, _VERIFIER_ISSUER
     ).adjudicate(candidate, evidence, attestation)
+    if not envelope.decision.promoted:
+        raise AssertionError(_rejection_message(envelope.decision, evidence))
 
     registry = AuthorityBoundPromotionRegistry(authority_root_digest)
     registry.activate_verified(envelope)
     final_signature = _signature(_FINAL_ROLES)
+    if final_signature.structural_class_digest != target_scope:
+        raise AssertionError('final governed reuse scope drift')
     final_diagnostic, final_terminal = _contexts(_FINAL_ROLES)
     governed = run_governed_meta_learning_episode(
         (learned,), final_signature, final_diagnostic, final_terminal,
-        _oracle(_FINAL_ROLES), _config(), promotion_registry=registry,
+        _oracle(_FINAL_ROLES), config, promotion_registry=registry,
     )
     governed_reuse_passed = bool(
         governed.passed
@@ -223,16 +245,19 @@ def run_promotion_authority_benchmark(
     try:
         run_governed_meta_learning_episode(
             (learned,), final_signature, final_diagnostic, final_terminal,
-            _oracle(_FINAL_ROLES), _config(), promotion_registry=registry,
+            _oracle(_FINAL_ROLES), config, promotion_registry=registry,
         )
     except ValueError:
         rollback_revoked = True
 
     semantic = {
-        'schema_version': 1,
+        'schema_version': 2,
         'milestone': 'R2.69',
         'capability': 'host-authority-bound-scoped-promotion-and-rollback',
         'candidate_artifact_digest': learned.portable_digest,
+        'source_adapter_type': learned.adapter_type,
+        'source_seed_prior_digest': seed_prior_digest,
+        'source_meta_episode_passed': bool(source_receipt.passed),
         'structural_class_digest': target_scope,
         'heldout_targets': len(_HELDOUT_ROLES),
         'champion_accepted_targets': champion_accepted,
@@ -241,6 +266,7 @@ def run_promotion_authority_benchmark(
         'search_work_advantage': search_advantage,
         'false_accepts': false_accepts,
         'promotion_accepted': bool(envelope.decision.promoted),
+        'promotion_reason': envelope.decision.reason,
         'governed_reuse_passed': governed_reuse_passed,
         'rollback_revoked': rollback_revoked,
         'trainable_parameter_count': 0,
@@ -249,7 +275,11 @@ def run_promotion_authority_benchmark(
     promotion_gate_pass = bool(
         champion_accepted == len(_HELDOUT_ROLES)
         and false_accepts == 0
-        and (oracle_advantage > 0 or search_advantage > 0)
+        and (
+            champion_accepted > challenger_accepted
+            or oracle_advantage > 0
+            or search_advantage > 0
+        )
         and envelope.decision.promoted
         and governed_reuse_passed
         and rollback_revoked
