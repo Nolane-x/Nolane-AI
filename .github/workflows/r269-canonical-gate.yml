@@ -1,0 +1,169 @@
+name: R2.69 Canonical Release Authority
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r269_*.py'
+      - 'benchmarks/kfigg/r269_*.py'
+      - 'tests/test_r269_*.py'
+      - 'R2_69_*.json'
+      - '.github/workflows/r269-*.yml'
+      - 'docs/superpowers/specs/2026-08-19-r269-autonomous-transfer-meta-learning-kernel-design.md'
+      - 'docs/superpowers/plans/2026-08-19-r269-autonomous-transfer-meta-learning-kernel.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+
+jobs:
+  canonical:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: freeze
+        name: Detect authoritative freeze
+        run: |
+          if [ -f R2_69_PRE_HOSTED_LOCK.json ]; then
+            echo 'frozen=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'frozen=false' >> "$GITHUB_OUTPUT"
+            echo 'R269_NOT_FROZEN: canonical authority remains intentionally inactive.'
+          fi
+
+      - name: Exact ancestry and PR integration identity
+        if: steps.freeze.outputs.frozen == 'true'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+          if [ -n "${EXPECTED_HEAD:-}" ]; then git merge-base --is-ancestor "$EXPECTED_HEAD" HEAD; fi
+          if [ -n "${EXPECTED_BASE:-}" ]; then git merge-base --is-ancestor "$EXPECTED_BASE" HEAD; fi
+
+      - uses: actions/setup-python@v5
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          python-version: '3.11'
+      - name: Install exact verifier dependencies
+        if: steps.freeze.outputs.frozen == 'true'
+        run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.11 complete R2.69 + protected R2.68
+        if: steps.freeze.outputs.frozen == 'true'
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+
+      - name: Verify lock blobs, evidence identity, governance and retired writers
+        if: steps.freeze.outputs.frozen == 'true'
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          EXPECTED_BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          import numpy as np
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+
+          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['schema_version'] >= 1
+          assert lock['milestone']=='R2.69'
+          assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
+          assert lock['source_authority_parent']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
+          assert lock['added_trainable_parameters']==0
+          assert lock['writers_retired'] is True
+          assert lock['w5_convergence_claimed'] is False
+          expected_head=os.environ.get('EXPECTED_HEAD','').strip()
+          expected_base=os.environ.get('EXPECTED_BASE','').strip()
+          if expected_head: assert lock['source_head_sha']==expected_head
+          if expected_base: assert lock['integration_base_sha']==expected_base
+
+          for path,expected in sorted(lock['frozen_git_blobs'].items()):
+              assert Path(path).is_file(), path
+              actual=subprocess.check_output(['git','hash-object',path],text=True).strip()
+              assert actual==expected,(path,actual,expected)
+
+          assert np.__version__=='2.4.6'
+          authored=run_benchmark()
+          external=run_external_transfer()
+          assert authored['authored_gate_pass'] is True
+          assert authored['false_accepts']==0 and authored['trainable_parameter_count']==0
+          assert external['all_gates_pass'] is True
+          assert external['source_from_authored_generator'] is False
+          assert external['source_exposure']==external['target_exposure']=='io_only'
+          assert external['source_oracle_accounting_exact'] is True
+          assert external['oracle_accounting_exact'] is True
+          assert external['negative_extra_physical_oracle_regret']<=1
+          assert external['false_accepts']==0 and external['trainable_parameter_count']==0
+          assert authored['semantic_result_digest']==lock['authored_semantic_digest']
+          assert external['semantic_result_digest']==lock['external_semantic_digest']
+
+          phase=json.loads(Path('R2_69_PHASE_A_RESULT.json').read_text())
+          ext_receipt=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text())
+          seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text())
+          world=json.loads(Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json').read_text())
+          assert phase==authored
+          assert ext_receipt['semantic_result_digest']==external['semantic_result_digest']
+          assert ext_receipt['all_gates_pass'] is True
+          assert seq['authored_benchmark_digest']==authored['semantic_result_digest']
+          assert seq['complete_authored_r269_green'] is True
+          assert world['milestone']=='R2.69'
+          assert world['final_bounded_release']=='ACCEPT'
+          assert world['w5_convergence_claimed'] is False
+          assert world['claim_boundary']==lock['claim_boundary']
+
+          forbidden=[]
+          for wf in ('r269-red-green.yml','r269-external-numpy-transfer.yml','r269-multi-prior-hardening.yml'):
+              text=Path('.github/workflows',wf).read_text()
+              if 'contents: write' in text:
+                  forbidden.append(wf)
+          assert not forbidden,('release writers not retired',forbidden)
+          assert not Path('.github/workflows/r269-authority-binding-migrate.yml').exists()
+          assert not Path('.github/workflows/r269-sync-current-main.yml').exists()
+          assert not Path('scripts/r269_integrate_sequential_meta.py').exists()
+          print('R269_CANONICAL_AUTHORITY_OK')
+          PY
+
+      - name: Cross-process hash-seed deterministic authored evidence
+        if: steps.freeze.outputs.frozen == 'true'
+        run: |
+          python - <<'PY'
+          import json,os,subprocess,sys
+          code="from benchmarks.kfigg.r269_meta_learning import run_benchmark; print(run_benchmark()['semantic_result_digest'])"
+          out=[]
+          for seed in ('1','777'):
+              env=dict(os.environ,PYTHONHASHSEED=seed,PYTHONPATH='.')
+              out.append(subprocess.check_output([sys.executable,'-c',code],env=env,text=True).strip())
+          assert out[0]==out[1],out
+          print('R269_HASHSEED_REPLAY='+out[0])
+          PY
+
+      - uses: actions/setup-python@v5
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          python-version: '3.13'
+      - name: Python 3.13 exact replay
+        if: steps.freeze.outputs.frozen == 'true'
+        run: |
+          python -m pip install pytest 'numpy==2.4.6'
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          assert run_benchmark()['semantic_result_digest']==lock['authored_semantic_digest']
+          assert run_external_transfer()['semantic_result_digest']==lock['external_semantic_digest']
+          print('R269_CROSS_PYTHON_CANONICAL_OK')
+          PY
