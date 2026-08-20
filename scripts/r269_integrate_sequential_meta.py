@@ -55,72 +55,63 @@ def patch_matcher() -> None:
 def patch_lazy_scratch_runtime() -> None:
     path = Path('cogcoder/r269_transfer_runtime.py')
     text = path.read_text(encoding='utf-8')
+    if 'def _scratch_information_floor(' in text:
+        compile(text, str(path), 'exec')
+        return
 
-    old_signature = "def _scratch_hypotheses(signature: PublicTaskSignature, config: MetaLearningConfig) -> list[_Hypothesis]:\n    rows: list[_Hypothesis] = []\n    seen: set[str] = set()\n"
-    new_signature = "def _scratch_hypotheses(\n    signature: PublicTaskSignature,\n    config: MetaLearningConfig,\n    *,\n    candidate_cap: int | None = None,\n) -> list[_Hypothesis]:\n    rows: list[_Hypothesis] = []\n    seen: set[str] = set()\n    cap = config.scratch_candidate_cap if candidate_cap is None else min(\n        config.scratch_candidate_cap, max(1, int(candidate_cap))\n    )\n"
-    if old_signature in text:
-        text = text.replace(old_signature, new_signature, 1)
-    elif new_signature not in text:
-        raise SystemExit('unexpected scratch generator signature boundary')
+    marker = """    return rows
 
-    old_cap = "        return len(rows) < config.scratch_candidate_cap\n"
-    new_cap = "        return len(rows) < cap\n"
-    if old_cap in text:
-        text = text.replace(old_cap, new_cap, 1)
-    elif new_cap not in text:
-        raise SystemExit('unexpected scratch generator cap boundary')
+
+def _predict(expr: Expr, context: Mapping[str, object]) -> tuple[bool, int | float | None]:
+"""
+    helper = """    return rows
+
+
+def _scratch_information_floor(
+    signature: PublicTaskSignature,
+    config: MetaLearningConfig,
+) -> list[_Hypothesis]:
+    \"\"\"Bounded shallow scratch sentinel used only for transfer-query safety.
+
+    It preserves generic scratch discrimination without materializing the full
+    bounded search frontier.  It is never scratch selection authority.
+    \"\"\"
+    floor_config = MetaLearningConfig(
+        max_diagnostic_queries=config.max_diagnostic_queries,
+        transfer_candidate_cap=config.transfer_candidate_cap,
+        scratch_candidate_cap=min(config.scratch_candidate_cap, 32),
+        scratch_max_depth=min(config.scratch_max_depth, 1),
+        min_scratch_partitions=config.min_scratch_partitions,
+    )
+    return _scratch_hypotheses(signature, floor_config)
+
+
+def _predict(expr: Expr, context: Mapping[str, object]) -> tuple[bool, int | float | None]:
+"""
+    if marker not in text:
+        raise SystemExit('scratch sentinel insertion boundary drifted')
+    text = text.replace(marker, helper, 1)
 
     old_init = """    transfer = _transfer_hypotheses_many(compatible, signature, config.transfer_candidate_cap)
     scratch = _scratch_hypotheses(signature, config)
     transfer_initial = len(transfer)
     scratch_initial = len(scratch)
     ledger = SharedObservationLedger(signature)
-    used: set[str] = set()
-    abandoned = False
-    contradictions = 0
-    quarantine = False
-    reused_count = 0
 """
     new_init = """    transfer = _transfer_hypotheses_many(compatible, signature, config.transfer_candidate_cap)
     transfer_initial = len(transfer)
-    scratch_full_materialized = not bool(transfer)
-    scratch_witness_cap = min(
-        config.scratch_candidate_cap,
-        max(8, 2 * config.min_scratch_partitions, 2 * len(signature.role_names)),
-    )
-    scratch = _scratch_hypotheses(
-        signature,
-        config,
-        candidate_cap=None if scratch_full_materialized else scratch_witness_cap,
+    scratch_materialized = not bool(transfer)
+    scratch = (
+        _scratch_hypotheses(signature, config)
+        if scratch_materialized
+        else _scratch_information_floor(signature, config)
     )
     scratch_initial = len(scratch)
     ledger = SharedObservationLedger(signature)
-    used: set[str] = set()
-    abandoned = False
-    contradictions = 0
-    quarantine = False
-    reused_count = 0
-
-    def materialize_full_scratch() -> None:
-        nonlocal scratch, scratch_initial, scratch_full_materialized
-        if scratch_full_materialized:
-            return
-        full = _scratch_hypotheses(signature, config)
-        # The witness pool is a deterministic prefix of the same generator.
-        # Count unique scratch hypotheses considered, not duplicate regeneration.
-        scratch_initial = max(scratch_initial, len(full))
-        for observation in ledger.observations:
-            if observation.phase != 'diagnostic' or observation.status != 'ok' or observation.observed is None:
-                continue
-            semantic = dict(zip(signature.role_names, observation.context_values, strict=True))
-            full = _filter(full, semantic, observation.observed)
-        scratch = full
-        scratch_full_materialized = True
 """
-    if old_init in text:
-        text = text.replace(old_init, new_init, 1)
-    elif new_init not in text:
-        raise SystemExit('unexpected transfer/scratch initialization boundary')
+    if old_init not in text:
+        raise SystemExit('episode initialization boundary drifted')
+    text = text.replace(old_init, new_init, 1)
 
     old_abandon = """            if not transfer and before_priors:
                 contradictions += 1
@@ -130,30 +121,48 @@ def patch_lazy_scratch_runtime() -> None:
                 # credit, not an extra oracle call.
                 reused_count = sum(observation.phase == 'diagnostic' for observation in ledger.observations)
         scratch = _filter(scratch, semantic, row.observed)
-
-    selected: _Hypothesis | None = None
 """
     new_abandon = """            if not transfer and before_priors:
                 contradictions += 1
                 abandoned = True
                 # All already purchased diagnostic observations are eligible for
                 # scratch continuation. This is the concrete shared-evidence
-                # credit, not an extra oracle call.
+                # credit, not an extra oracle call. Only now is full scratch
+                # materialized and all purchased diagnostic evidence replayed.
                 reused_count = sum(observation.phase == 'diagnostic' for observation in ledger.observations)
-                materialize_full_scratch()
+                full_scratch = _scratch_hypotheses(signature, config)
+                scratch_initial = len(full_scratch)
+                scratch = full_scratch
+                scratch_materialized = True
+                for observation in ledger.observations:
+                    if (
+                        observation.phase != 'diagnostic'
+                        or observation.status != 'ok'
+                        or observation.observed is None
+                    ):
+                        continue
+                    observed_context = dict(
+                        zip(signature.role_names, observation.context_values, strict=True)
+                    )
+                    scratch = _filter(scratch, observed_context, observation.observed)
+                continue
         scratch = _filter(scratch, semantic, row.observed)
-
-    if not (len(transfer) == 1 and ledger.physical_oracle_calls >= 1):
-        # A scratch answer is authoritative only against the complete bounded
-        # scratch pool. Successful transfer never pays this cost; fallback does.
-        materialize_full_scratch()
-
-    selected: _Hypothesis | None = None
 """
-    if old_abandon in text:
-        text = text.replace(old_abandon, new_abandon, 1)
-    elif new_abandon not in text:
-        raise SystemExit('unexpected negative-transfer fallback boundary')
+    if old_abandon not in text:
+        raise SystemExit('transfer abandonment boundary drifted')
+    text = text.replace(old_abandon, new_abandon, 1)
+
+    old_select = """    elif len(scratch) == 1 and ledger.physical_oracle_calls >= 1:
+        selected = scratch[0]
+        mode = 'scratch_after_transfer' if abandoned else 'scratch'
+"""
+    new_select = """    elif scratch_materialized and len(scratch) == 1 and ledger.physical_oracle_calls >= 1:
+        selected = scratch[0]
+        mode = 'scratch_after_transfer' if abandoned else 'scratch'
+"""
+    if old_select not in text:
+        raise SystemExit('scratch selection boundary drifted')
+    text = text.replace(old_select, new_select, 1)
 
     compile(text, str(path), 'exec')
     path.write_text(text, encoding='utf-8')
