@@ -1,0 +1,13 @@
+R2.69 PRE-HOSTED FREEZE REQUEST
+
+Prerequisites verified before request:
+- hosted sequential integration receipt is materialized and green on Python 3.11/3.13
+- independent external NumPy I/O-only transfer receipt is materialized and green
+- promotion authority is reattested on hardened source with governed reuse and rollback
+- Nolane World 0.8.0 W5 bounded adjudication receipt is content-addressed and ACCEPT
+- full W5 convergence remains false and is not claimed
+- active R2.69 evidence writers are retired/read-only
+- temporary fast-validation and sequential integration patcher are retired
+
+Expected World bounded receipt:
+r269.world-bounded.a5c8b4fd85ee08b536d2fb1933e45669175405a84f3ce372dfeaaca15940e4b9
