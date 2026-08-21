@@ -1,0 +1,37 @@
+{
+  "broad_dev": {
+    "baseline_solved": 136,
+    "baseline_steps": 7133,
+    "candidate_solved": 138,
+    "candidate_steps": 7120,
+    "episodes": 320,
+    "families": {
+      "causal_prerequisites": [25, 27],
+      "conditional_regimes": [47, 47],
+      "implicit_goal_regimes": [37, 37],
+      "regime_switch": [27, 27]
+    },
+    "indices": [820, 899]
+  },
+  "candidate": "Neural-R2.3-Ultra-Recursive-DAgger-Gated",
+  "candidate_physical_parameters": 79858099,
+  "delta_physical_parameters": 50487372,
+  "delta_sha256": "a016dd77d9d720a5bc3dd08760d0b8a36326a87a1e1af53cdc7bcc2f3a8e5e17",
+  "fresh_consumed": false,
+  "fresh_reserved_indices": [1080, 1099],
+  "hard_delegation_threshold": 0.20539641380310059,
+  "one_weight_sha256": "77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026",
+  "parent_physical_parameters": 29370727,
+  "reasoning_steps": 1,
+  "status": "FROZEN_BEFORE_FRESH",
+  "tensor_audit": {
+    "delta_serialized_tensor_elements": 50487372,
+    "delta_tensor_count": 69,
+    "expected_one_weight_tensor_elements": 79858099,
+    "one_weight_serialized_tensor_elements": 79858099,
+    "one_weight_tensor_count": 495,
+    "parent_serialized_tensor_elements": 29370727,
+    "parent_tensor_count": 426,
+    "pass": true
+  }
+}
