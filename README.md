@@ -1,6 +1,6 @@
 # Nolane AI — Experimental Compact Cognitive System
 
-> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active research boundary, accepted parent, draft milestones and promotion requirements, read [`CURRENT_STATUS.md`](CURRENT_STATUS.md). R2.67.1 is the accepted causal-correctness parent on `main` at `b789dd7a48f10f3afb1cf42ee62d3dc77dee200e`; canonical R2.68 is still a research draft and is not an AGI or frontier-equivalence claim.
+> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active accepted/draft boundary, current milestone authority and promotion requirements, read [`CURRENT_STATUS.md`](CURRENT_STATUS.md). Do not infer current milestone state from the historical sections below.
 
 Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, retrieval, epistemic verification, reusable skills, active experimentation and public-feedback replanning. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
