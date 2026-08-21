@@ -1,0 +1,15 @@
+{
+  "accounting_mode": "physical_unique_serialized_tensor_elements",
+  "candidate_physical_parameters": 79858099,
+  "delta_physical_parameters": 50487372,
+  "delta_sha256": "a016dd77d9d720a5bc3dd08760d0b8a36326a87a1e1af53cdc7bcc2f3a8e5e17",
+  "delta_tensor_count": 69,
+  "legacy_parent_effective_parameters": 78899404,
+  "note": "R2.3 budget authority is physical tensor count. The historical legacy-effective number is provenance only and is not added to the physical delta.",
+  "one_weight_serialized_tensor_elements": 79858099,
+  "one_weight_sha256": "77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026",
+  "one_weight_tensor_count": 495,
+  "parent_physical_parameters": 29370727,
+  "physical_ceiling": 80000000,
+  "status": "PASS"
+}

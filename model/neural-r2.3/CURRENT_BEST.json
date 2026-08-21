@@ -1,0 +1,38 @@
+{
+  "broad_dev": {
+    "baseline_solved": 136,
+    "baseline_steps": 7133,
+    "candidate_solved": 138,
+    "candidate_steps": 7120,
+    "episodes": 320,
+    "families": {
+      "causal_prerequisites": [25, 27],
+      "conditional_regimes": [47, 47],
+      "implicit_goal_regimes": [37, 37],
+      "regime_switch": [27, 27]
+    },
+    "indices": [820, 899]
+  },
+  "claim_boundary": "Evidence supports a small but repeatable neural-only improvement with no family regression across two untouched frozen fresh blocks. It does not establish AGI or frontier-model equivalence.",
+  "delta_sha256": "a016dd77d9d720a5bc3dd08760d0b8a36326a87a1e1af53cdc7bcc2f3a8e5e17",
+  "fresh": {
+    "baseline_solved": 59,
+    "baseline_steps": 3708,
+    "candidate_solved": 60,
+    "candidate_steps": 3708,
+    "episodes": 160,
+    "families": {
+      "causal_prerequisites": [7, 8],
+      "conditional_regimes": [19, 19],
+      "implicit_goal_regimes": [21, 21],
+      "regime_switch": [12, 12]
+    },
+    "gain_pp": 0.625
+  },
+  "hard_delegation_threshold": 0.20539641380310059,
+  "one_weight_sha256": "77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026",
+  "physical_delta_parameters": 50487372,
+  "physical_parameters": 79858099,
+  "status": "current_best_neural_candidate_passed_frozen_fresh",
+  "version": "Neural-R2.3-Ultra-Recursive-DAgger-Gated"
+}

@@ -1,0 +1,40 @@
+name: Neural R2.3 Ultra Recursive 80M Physical
+
+on:
+  push:
+    paths:
+      - 'model/neural-r2.3/**'
+      - '.github/workflows/neural-r23-ultra-core.yml'
+  pull_request:
+    paths:
+      - 'model/neural-r2.3/**'
+      - '.github/workflows/neural-r23-ultra-core.yml'
+  workflow_dispatch:
+
+jobs:
+  neural-contracts:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install neural test dependencies
+        run: |
+          python -m pip install -q pytest
+          python - <<'PY' || python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          import torch
+          print(torch.__version__)
+          PY
+      - name: Compile Neural R2.3
+        run: python -m py_compile model/neural-r2.3/r23/*.py model/neural-r2.3/scripts/*.py
+      - name: Verify Neural R2.3 release contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
+      - name: Run Neural R2.3 tests
+        env:
+          PYTHONPATH: model/neural-r2.3:model/neural-r2.1
+        run: python -m pytest -q model/neural-r2.3/tests
