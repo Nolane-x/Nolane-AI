@@ -36,6 +36,24 @@ jobs:
           test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
 
+      - name: Require hosted sequential integration authority
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          seq = json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
+          assert seq['schema_version'] >= 2
+          assert seq['milestone'] == 'R2.69'
+          assert seq['accepted_parent_sha'] == 'fda7f502185266fedb00886d5786c6d28cc0e0eb'
+          assert seq['complete_authored_r269_green'] is True
+          assert seq['protected_r268_green'] is True
+          assert seq['authored_gate_pass'] is True
+          assert seq['python_versions_verified'] == ['3.11', '3.13']
+          assert seq['false_accepts'] == 0
+          assert seq['trainable_parameter_count'] == 0
+          print('R269_SEQUENTIAL_AUTHORITY_BOUND=' + seq['authored_benchmark_digest'])
+          PY
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
