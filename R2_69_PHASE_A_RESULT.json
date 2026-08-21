@@ -1,0 +1,2545 @@
+{
+  "accepted_parent_sha": "fda7f502185266fedb00886d5786c6d28cc0e0eb",
+  "authored_gate_pass": true,
+  "capability": "autonomous-transfer-meta-learning-kernel",
+  "continued_scratch_correctness_preserved": true,
+  "false_accepts": 0,
+  "hard_source_portable_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+  "hard_source_verified": true,
+  "max_negative_transfer_diagnostic_regret": 1,
+  "median_cold_solved_diagnostic_calls": 2.0,
+  "median_tight_scratch_search_work": 64.0,
+  "median_transfer_diagnostic_calls": 1.0,
+  "median_transfer_search_work": 6.0,
+  "milestone": "R2.69",
+  "negative_cases": [
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "topology-xy-plus-x",
+        "observation_digests": [
+          "9013f058142c4f4a8687c5d9fd609b00c70b72069bd33ec4961359ed4ea4ca47",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "9de7d5c34adef8cc7f9d49bd25358d8d6ba24c65f7dc4304d3adec99ad60abc5",
+          "7d8c2aba6ff454f6676a4adb202b8c43cff028643df502a12aa758ef8719fcf3"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "topology-xy-plus-x",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "topology-xy-plus-x",
+        "observation_digests": [
+          "a5f042645d80aa8b14db077d3fe7bb435ed2aa0c5a75cc859779103f83780cb3",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "9de7d5c34adef8cc7f9d49bd25358d8d6ba24c65f7dc4304d3adec99ad60abc5",
+          "7d8c2aba6ff454f6676a4adb202b8c43cff028643df502a12aa758ef8719fcf3"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "topology-xy-plus-y",
+        "observation_digests": [
+          "186a86cf4d5870c473b23c2c1f810841165201f1a5db2b4b73ef47177b5592da",
+          "3e0e42d757194e7824f5c67988b1641df613b0e6b99261b703e744127392b9ae",
+          "05262e62f36afc9e67d8bbc5721ba6a266681b53eb57f82207c222cb21e6af85",
+          "90fbe15514b261a37a3d84cd50aef5ada00b1618edbdb1dcdd265705d8932c67"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "topology-xy-plus-y",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "topology-xy-plus-y",
+        "observation_digests": [
+          "106b4e359d678ebe82b36a2c521771abfe3b31ac49a497edd67c4755cbd99ab1",
+          "3e0e42d757194e7824f5c67988b1641df613b0e6b99261b703e744127392b9ae",
+          "05262e62f36afc9e67d8bbc5721ba6a266681b53eb57f82207c222cb21e6af85",
+          "90fbe15514b261a37a3d84cd50aef5ada00b1618edbdb1dcdd265705d8932c67"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "topology-x-plus-yy",
+        "observation_digests": [
+          "17331ca4449b9e228e77c1e85728adcb78f7aceeacc0c48da018dab7a74e118e",
+          "6cf8f3fd16e0239c48599e4cafb796874d66b614dd8514961b03f839c59d4c96",
+          "07866fb1acb49cd79b00e257324e8c1ef22de67140eec36f7123504024f0c022",
+          "2bfe4f557a5d16dba91791a104865b2a8ca0e88b3f00347092fa7fa1f445e754"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 1,
+      "name": "topology-x-plus-yy",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "topology-x-plus-yy",
+        "observation_digests": [
+          "819a13cb93df78ae4e261039a5c5882106ea2a0acf518086b4ff0a9c2247c6b5",
+          "42428802f5f5ea77357233bc5a93c216d55b0312776100198e974c20ec55d06a",
+          "52050d03bc0a22d2c1ea9c4daeed2b0b277f0a77fe05c8c5cec7d7d41ebb430f",
+          "dc755da6a3e06bb600b5b9cb9a59412cd78ca0949ee0e936408b1be58a1d9fc1",
+          "8130d1fac232f60f7ba1a7ef5026c9f8b7f8edd735c5c3dc487b9d46a7889507"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "topology-xx-minus-y",
+        "observation_digests": [
+          "712281870de4c32634f154cab2e58b990a51e8094a5068fecf5a1fcaee424ad6",
+          "48735fb0712d4eb0a9c21472ab19a98da8f17212c248392f91a67a6a4678f2e9",
+          "9bdfa0fd83d2429e8b1bfc582d68459a1e619a61e04bb206bceea0b66127a49c",
+          "159172275d7d89dacd2bdb68e6f584fe1abe8d47630dfb44ba40c391450a605c"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 1,
+      "name": "topology-xx-minus-y",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "topology-xx-minus-y",
+        "observation_digests": [
+          "c0ab226e573cb387627bbe0ff1e6161d87f034300e5a1e7b2942cf22e47e3671",
+          "5053bcd52ea4c13d7521911c3005c9276e82937506125cc8841af59280fcb62e",
+          "5c32bd98e6c2ffcb467f2e0616aedd14728c123a1a7c9e949fdb564b2d887d78",
+          "b31aaf7e0b1a1be2b50ed3ffec66e9f8320c93abd13dfb8a952d3ce27a65e13a",
+          "30a1850f3c67f2c8a00cd6510ca45d4d23456afdef2576dbdd58d849b6023446"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "terminal-contradiction-1",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "0570ae9b14877f2500c399e56a8026f5a6ee66179e6976b118dd920943387183"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": -1,
+      "name": "terminal-contradiction-1",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "terminal-contradiction-1",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "e13dd5a7622dcc03174230d418aedb49461a46220a6dc0629a04186efc0f589e"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "terminal-contradiction-2",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "1c055af6f8f366020eece5cb1a79b350ac61765e26b8e939b6db4ec35d277407"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": -1,
+      "name": "terminal-contradiction-2",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "terminal-contradiction-2",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "b3498e40378d19ace602ba70cf34c152993b5cc4d3bc983a91148c5500ecdbdb"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "terminal-contradiction--1",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "a0c45c40f738ff8b51c3aa8db6b7e57476647f128195ec7c2c39c309326560af"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": -1,
+      "name": "terminal-contradiction--1",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "terminal-contradiction--1",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "5016aa7bf389af30eb81e339a7d2445ae6bd39b635652e47f423b80051386f8b"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "invalid-oracle-nan",
+        "observation_digests": [
+          "f4c159606384df72ac6695dce0058ed386f5142b39e5e08eeb606365c0a4628a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 0,
+        "quarantine_action": false,
+        "reason": "invalid_oracle_output",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "invalid-oracle-nan",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "invalid-oracle-nan",
+        "observation_digests": [
+          "949ed862333e55be0d8faf47f2400c6bd87a1d23f45556b5ae144ee6171b0e54"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 0,
+        "quarantine_action": false,
+        "reason": "invalid_oracle_output",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "invalid-oracle-inf",
+        "observation_digests": [
+          "f4c159606384df72ac6695dce0058ed386f5142b39e5e08eeb606365c0a4628a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 0,
+        "quarantine_action": false,
+        "reason": "invalid_oracle_output",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "invalid-oracle-inf",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "invalid-oracle-inf",
+        "observation_digests": [
+          "949ed862333e55be0d8faf47f2400c6bd87a1d23f45556b5ae144ee6171b0e54"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 0,
+        "quarantine_action": false,
+        "reason": "invalid_oracle_output",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-0",
+        "observation_digests": [
+          "5c613f33e70a67f59ec1f38e339c138841816b9ec60fb473242199efaa46260f",
+          "ef06f8f78cb1e0056a922ad4d8c60f88859adb2bead7ceaf058964caf7eda086",
+          "eceaa88b899a7ab1a49bd7c95d42f3f796251f8cfca8dca8c33d07171ade7b94",
+          "8100d5f0218f204198244a9b5e7899e1167d07577d13c12c8eec96899782e977"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "cardinality-0",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-0",
+        "observation_digests": [
+          "5c613f33e70a67f59ec1f38e339c138841816b9ec60fb473242199efaa46260f",
+          "ef06f8f78cb1e0056a922ad4d8c60f88859adb2bead7ceaf058964caf7eda086",
+          "eceaa88b899a7ab1a49bd7c95d42f3f796251f8cfca8dca8c33d07171ade7b94",
+          "8100d5f0218f204198244a9b5e7899e1167d07577d13c12c8eec96899782e977"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-1",
+        "observation_digests": [
+          "7e3a2e346487d5248adb5030e24e1b77a85b498638a7c144bf2519afa51ed407",
+          "f4e75a7a2732206c1cb8425b7ea3b8a2aff8a48d6c1f03931e19f0ff3955f311",
+          "f96a95a39413807a0d90e270c03431e13b3f741160a4624fbed637fb12b267af",
+          "d5b250d9f54ed8346c9c0725034cc2d497e0a951f63d78c39b7732247648c359",
+          "30342de1a1a610391d447e9a3b47325998ec7fd8c49b656aed36e045f9fc9284"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "cardinality-1",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-1",
+        "observation_digests": [
+          "7e3a2e346487d5248adb5030e24e1b77a85b498638a7c144bf2519afa51ed407",
+          "f4e75a7a2732206c1cb8425b7ea3b8a2aff8a48d6c1f03931e19f0ff3955f311",
+          "f96a95a39413807a0d90e270c03431e13b3f741160a4624fbed637fb12b267af",
+          "d5b250d9f54ed8346c9c0725034cc2d497e0a951f63d78c39b7732247648c359",
+          "30342de1a1a610391d447e9a3b47325998ec7fd8c49b656aed36e045f9fc9284"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-2",
+        "observation_digests": [
+          "975092b5a9bccda3bf2b0c50ea651e1443da07c23e4aaabbbdc48d829cc94d6b",
+          "b02114f988103c481a6ea55ff1c1a9744baea895ee3c152ca3cb0774a4fefeff",
+          "a2edc6ad1ef5bafb01f3e34323636deca2db05e1aee799ff91e4b06c34c64373",
+          "acb08cfd910007b7668f12f13e84e70a7c1faffa1efaef067a79cceba3567029",
+          "ed111012c40d25373ef126963fef39192ebf96567fe18993436f286318fff79f"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "diagnostic_regret": 0,
+      "name": "cardinality-2",
+      "transfer_path": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "cardinality-2",
+        "observation_digests": [
+          "975092b5a9bccda3bf2b0c50ea651e1443da07c23e4aaabbbdc48d829cc94d6b",
+          "b02114f988103c481a6ea55ff1c1a9744baea895ee3c152ca3cb0774a4fefeff",
+          "a2edc6ad1ef5bafb01f3e34323636deca2db05e1aee799ff91e4b06c34c64373",
+          "acb08cfd910007b7668f12f13e84e70a7c1faffa1efaef067a79cceba3567029",
+          "ed111012c40d25373ef126963fef39192ebf96567fe18993436f286318fff79f"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      }
+    }
+  ],
+  "negative_targets": 12,
+  "negative_transfer_false_accepts": 0,
+  "positive_cases": [
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-x-y",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-add-x-y",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-x-y",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-x-y",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "896c0c7f5f5b03edb43526b5cfe86c5cd967c71b7bcc2ebe5b1fbec2498cf5f7",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-x-y",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-x-y",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "5455e599912c6965bace028c415a875960abce17266529f5b3ee5debc243f5b1",
+          "0b6a046cefca52644518b71af2b59ead377f2451d1f257f64ac5d13f694b20ec",
+          "3ca7ed73866387320911ee96de43e2b86615db419fab644560888259f2db4749"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-x-y",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-sub-x-y",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-x-y",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-sub-x-y",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "1ca05b49d35aff4b202de790ebc06d72abe90fdf3d208ac58858fc06fa35789c",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-x-y",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-sub-x-y",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "b2c4f2c37fe88987c1cd8c89e382a2b1756c7f43ebfc72145563e4a3561f4895",
+          "45c2c81462d42868162238a3ebf28efbe7e9e4104bf3fac006421a0fc42d65a5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-x-y",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-mul-x-y",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-x-y",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "4b5f88ebe5e44e7057efefb34a52a297d693cb7264d7bc66e953c054609efd24",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-mul-x-y",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "28859920039360f7a1d3b9a35ac53534a8593e97a41d9b4b2f0bef8c51ab07c5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-x-y",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-mul-x-y",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "4a16410fe2da1b087d596f744d3332c276e91b34ae2786ca6d449d07a535f62d",
+          "0d236d1895340eec8740232528f4c6f2bb4a1888952469bfe301ef0e84230cdd",
+          "7bf97dad67918627001d6310da596c6e438f8514920e7fb302ca35a1a42133c5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-left-right",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-add-left-right",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-left-right",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-left-right",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "896c0c7f5f5b03edb43526b5cfe86c5cd967c71b7bcc2ebe5b1fbec2498cf5f7",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-left-right",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-left-right",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "5455e599912c6965bace028c415a875960abce17266529f5b3ee5debc243f5b1",
+          "0b6a046cefca52644518b71af2b59ead377f2451d1f257f64ac5d13f694b20ec",
+          "3ca7ed73866387320911ee96de43e2b86615db419fab644560888259f2db4749"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-left-right",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-sub-left-right",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-left-right",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-sub-left-right",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "1ca05b49d35aff4b202de790ebc06d72abe90fdf3d208ac58858fc06fa35789c",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-left-right",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-sub-left-right",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "b2c4f2c37fe88987c1cd8c89e382a2b1756c7f43ebfc72145563e4a3561f4895",
+          "45c2c81462d42868162238a3ebf28efbe7e9e4104bf3fac006421a0fc42d65a5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-left-right",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-mul-left-right",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-left-right",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "4b5f88ebe5e44e7057efefb34a52a297d693cb7264d7bc66e953c054609efd24",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-mul-left-right",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "28859920039360f7a1d3b9a35ac53534a8593e97a41d9b4b2f0bef8c51ab07c5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-left-right",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-mul-left-right",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "4a16410fe2da1b087d596f744d3332c276e91b34ae2786ca6d449d07a535f62d",
+          "0d236d1895340eec8740232528f4c6f2bb4a1888952469bfe301ef0e84230cdd",
+          "7bf97dad67918627001d6310da596c6e438f8514920e7fb302ca35a1a42133c5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-u-v",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-add-u-v",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-u-v",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-u-v",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "896c0c7f5f5b03edb43526b5cfe86c5cd967c71b7bcc2ebe5b1fbec2498cf5f7",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-u-v",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-u-v",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "5455e599912c6965bace028c415a875960abce17266529f5b3ee5debc243f5b1",
+          "0b6a046cefca52644518b71af2b59ead377f2451d1f257f64ac5d13f694b20ec",
+          "3ca7ed73866387320911ee96de43e2b86615db419fab644560888259f2db4749"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-u-v",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-sub-u-v",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-u-v",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-sub-u-v",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "1ca05b49d35aff4b202de790ebc06d72abe90fdf3d208ac58858fc06fa35789c",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-u-v",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-sub-u-v",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "b2c4f2c37fe88987c1cd8c89e382a2b1756c7f43ebfc72145563e4a3561f4895",
+          "45c2c81462d42868162238a3ebf28efbe7e9e4104bf3fac006421a0fc42d65a5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-u-v",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-mul-u-v",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-u-v",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "4b5f88ebe5e44e7057efefb34a52a297d693cb7264d7bc66e953c054609efd24",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-mul-u-v",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "28859920039360f7a1d3b9a35ac53534a8593e97a41d9b4b2f0bef8c51ab07c5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-u-v",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-mul-u-v",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "4a16410fe2da1b087d596f744d3332c276e91b34ae2786ca6d449d07a535f62d",
+          "0d236d1895340eec8740232528f4c6f2bb4a1888952469bfe301ef0e84230cdd",
+          "7bf97dad67918627001d6310da596c6e438f8514920e7fb302ca35a1a42133c5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-north-south",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-add-north-south",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-north-south",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-north-south",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "896c0c7f5f5b03edb43526b5cfe86c5cd967c71b7bcc2ebe5b1fbec2498cf5f7",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-add-north-south",
+        "observation_digests": [
+          "5908c7a2283fcd21a975ed3bfa3bd017a9ffcd62a446081bf7b079163013ead7",
+          "881d8e9c05af2270ff6680008853c0558ebe75682cadd4cb9b53ffc13f6ec4ab",
+          "72f74016f4d67717dcdee247b3ce9a4f369a5c21f809d11b402e0578a0262488",
+          "f29ef5efa803e4d5ddd075a75dd8a20da9c1d2338f896546a86c24659135c034",
+          "0e5e0f532629c6f426b2c95ef08ab1cac91a6c94085703faa5db6b00147d2858"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-add-north-south",
+        "observation_digests": [
+          "8590af630578a044700ae483d89e017dcb15f4a54b974e76e58032276f2aa7a7",
+          "5455e599912c6965bace028c415a875960abce17266529f5b3ee5debc243f5b1",
+          "0b6a046cefca52644518b71af2b59ead377f2451d1f257f64ac5d13f694b20ec",
+          "3ca7ed73866387320911ee96de43e2b86615db419fab644560888259f2db4749"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-north-south",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-sub-north-south",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-north-south",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-sub-north-south",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "1ca05b49d35aff4b202de790ebc06d72abe90fdf3d208ac58858fc06fa35789c",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-sub-north-south",
+        "observation_digests": [
+          "aaa4ec455913e365755b48d4e619edde4b31b9e75d13d5750caa7c0c80beb4f5",
+          "7d242223a34e1ef69052b86b6319c9b4763d4fcbffd067cc80e061dac6ca2e22",
+          "18d43cdf9440508385895cea522962629be368fa6ac2b1a327361a14ee8b7966",
+          "3f68d03ff556442c10abb75c0ac19481950f6a208926b69022cd7cbbc3f3e2f4",
+          "69bfd0ccba70168c2b32cea63c35387f5195954bd439d43851bef3f62032c86b"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-sub-north-south",
+        "observation_digests": [
+          "097e1cc8e0471ea6aed8782a57a1b7b09b8479e210593ee717e541f39b1f586d",
+          "cafea41f2cd3faa991e9f7556b5afc2c1c22e56b01250f7dcac8066ab21849da",
+          "b2c4f2c37fe88987c1cd8c89e382a2b1756c7f43ebfc72145563e4a3561f4895",
+          "45c2c81462d42868162238a3ebf28efbe7e9e4104bf3fac006421a0fc42d65a5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-north-south",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "easy-mul-north-south",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-north-south",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "4b5f88ebe5e44e7057efefb34a52a297d693cb7264d7bc66e953c054609efd24",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 98,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "easy-mul-north-south",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "28859920039360f7a1d3b9a35ac53534a8593e97a41d9b4b2f0bef8c51ab07c5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": true,
+        "reason": "accepted_scratch_after_transfer",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "easy-mul-north-south",
+        "observation_digests": [
+          "2aa81bab9d591cb38e8e8579f3f616326b9d29113d81845078effcb244111772",
+          "a4606d7475baf3b0d1a25185982d6947af618b8814840947a71456b9a268c0d5",
+          "7f069399e09b80a6ef9cbbc9d1eaa14c8c0058bc029dcc23423d24451547ad5b",
+          "33f3018783548aa296397a5190cbbc9eec95f151a874992a2459942e2139aab7",
+          "4565703598bd109b4e117207fbe2d6ee71ac8aaa82dc68dcbafa0f36ad769cda"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "easy-mul-north-south",
+        "observation_digests": [
+          "05236da6c7df2b8f58a719060ed23c15b9d4684ce92c79e1c6c703f74439319e",
+          "4a16410fe2da1b087d596f744d3332c276e91b34ae2786ca6d449d07a535f62d",
+          "0d236d1895340eec8740232528f4c6f2bb4a1888952469bfe301ef0e84230cdd",
+          "7bf97dad67918627001d6310da596c6e438f8514920e7fb302ca35a1a42133c5"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-0",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-0",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-0",
+        "observation_digests": [
+          "66acc7a1991aeaff13d806c18bdeda12ec7eae4bf810d1090ab06e319d3400d9",
+          "5f7511f995c2681ffc3db8c19c0e986ce61f3c9f208838db3d26b8f4102a6af6",
+          "74c5f668d3a448adc2aac81ad5f8eea00b972900c40837009ea42947a2eb2c91",
+          "93b7818b9bfe7cc688162761aef5543db3033bf32989d495cc4cb40f90a7776e",
+          "02271f5e75418f8a962d38bec5fc6bd3ed64ace52b2255a05e452be09f3741bb",
+          "90aa067e1371ffc13a402bfd03cb9a920441100343dffa6b474b78b0aafa3f81"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-0",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-0",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-0",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0",
+          "525ab6469e544b0180387de8b1abf3489c1eadf0b8f2e8d23ddcef5cb0e6e4e6",
+          "64af7c295580c54ef12620a012fe1e13ad9a3fa191d0e8a32045a176fc60445a"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-1",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-1",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-1",
+        "observation_digests": [
+          "66acc7a1991aeaff13d806c18bdeda12ec7eae4bf810d1090ab06e319d3400d9",
+          "5f7511f995c2681ffc3db8c19c0e986ce61f3c9f208838db3d26b8f4102a6af6",
+          "74c5f668d3a448adc2aac81ad5f8eea00b972900c40837009ea42947a2eb2c91",
+          "93b7818b9bfe7cc688162761aef5543db3033bf32989d495cc4cb40f90a7776e",
+          "02271f5e75418f8a962d38bec5fc6bd3ed64ace52b2255a05e452be09f3741bb",
+          "90aa067e1371ffc13a402bfd03cb9a920441100343dffa6b474b78b0aafa3f81"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-1",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-1",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-1",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0",
+          "525ab6469e544b0180387de8b1abf3489c1eadf0b8f2e8d23ddcef5cb0e6e4e6",
+          "64af7c295580c54ef12620a012fe1e13ad9a3fa191d0e8a32045a176fc60445a"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-2",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-2",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-2",
+        "observation_digests": [
+          "66acc7a1991aeaff13d806c18bdeda12ec7eae4bf810d1090ab06e319d3400d9",
+          "5f7511f995c2681ffc3db8c19c0e986ce61f3c9f208838db3d26b8f4102a6af6",
+          "74c5f668d3a448adc2aac81ad5f8eea00b972900c40837009ea42947a2eb2c91",
+          "93b7818b9bfe7cc688162761aef5543db3033bf32989d495cc4cb40f90a7776e",
+          "02271f5e75418f8a962d38bec5fc6bd3ed64ace52b2255a05e452be09f3741bb",
+          "90aa067e1371ffc13a402bfd03cb9a920441100343dffa6b474b78b0aafa3f81"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-2",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": true,
+        "reason": "terminal_contradiction",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-2",
+        "observation_digests": [
+          "11f639c73cc4402a862813f63384d710b67b23c8a59f8df58d0d1e69b4ed9836",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-2",
+        "observation_digests": [
+          "51f5cc37304093bace3054a89fa55b5487d2469ec586aef65ebc7f7046966681",
+          "28df9f5842317a67fbbc99d4c090f846458f0c1f855538f3ea9a5b1bc55b04d0",
+          "525ab6469e544b0180387de8b1abf3489c1eadf0b8f2e8d23ddcef5cb0e6e4e6",
+          "64af7c295580c54ef12620a012fe1e13ad9a3fa191d0e8a32045a176fc60445a"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-3",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-3",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-3",
+        "observation_digests": [
+          "40b3a9811145a5636d3f9c3be17fd52fc1f5ded3797d23d66818a699eb8f890e",
+          "073e1bb2ffd43321855a36df8569403fc2a30819d0c47b20ace4361eb62e9693",
+          "a076cbbc9a1a6de767ea60cf835b1106f5a1d819ccc13685476c5f929833b3c3",
+          "28f3739c792acf21d05a10036bdef5d21773ebee95c0b0eb2f672e2c9182efaf",
+          "96f27cfd37da1573b36a3f236f68eae3626cbaebe27bc929991cfb3599732a56",
+          "b1629992be42f1d5adfce5e02c2e779e2a86da662b7107b6991d7eb0bf041427"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-3",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "41fd8d80807b95ead69312937e88a34dac71092941c218ceda73c60bb2a987c1"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 0,
+        "quarantine_action": true,
+        "reason": "diagnostic_ambiguity",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-3",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-3",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a",
+          "44777a91b9e722e2f7f87b4b823093e607e7abc5eeade400e0f82d7df398b809",
+          "9182792b56284e7dab291e085e6f341f3792c0a401471c03a558f7265b325452"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-4",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-4",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-4",
+        "observation_digests": [
+          "40b3a9811145a5636d3f9c3be17fd52fc1f5ded3797d23d66818a699eb8f890e",
+          "073e1bb2ffd43321855a36df8569403fc2a30819d0c47b20ace4361eb62e9693",
+          "a076cbbc9a1a6de767ea60cf835b1106f5a1d819ccc13685476c5f929833b3c3",
+          "28f3739c792acf21d05a10036bdef5d21773ebee95c0b0eb2f672e2c9182efaf",
+          "96f27cfd37da1573b36a3f236f68eae3626cbaebe27bc929991cfb3599732a56",
+          "b1629992be42f1d5adfce5e02c2e779e2a86da662b7107b6991d7eb0bf041427"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-4",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "41fd8d80807b95ead69312937e88a34dac71092941c218ceda73c60bb2a987c1"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 0,
+        "quarantine_action": true,
+        "reason": "diagnostic_ambiguity",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-4",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-4",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a",
+          "44777a91b9e722e2f7f87b4b823093e607e7abc5eeade400e0f82d7df398b809",
+          "9182792b56284e7dab291e085e6f341f3792c0a401471c03a558f7265b325452"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    },
+    {
+      "cold_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-5",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "name": "hard-linear-5",
+      "roomy_scratch": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-5",
+        "observation_digests": [
+          "40b3a9811145a5636d3f9c3be17fd52fc1f5ded3797d23d66818a699eb8f890e",
+          "073e1bb2ffd43321855a36df8569403fc2a30819d0c47b20ace4361eb62e9693",
+          "a076cbbc9a1a6de767ea60cf835b1106f5a1d819ccc13685476c5f929833b3c3",
+          "28f3739c792acf21d05a10036bdef5d21773ebee95c0b0eb2f672e2c9182efaf",
+          "96f27cfd37da1573b36a3f236f68eae3626cbaebe27bc929991cfb3599732a56",
+          "b1629992be42f1d5adfce5e02c2e779e2a86da662b7107b6991d7eb0bf041427"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 3,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_scratch",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 1000,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "shuffled_prior": {
+        "false_accepts": 0,
+        "mode": "scratch_after_transfer",
+        "name": "hard-linear-5",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "41fd8d80807b95ead69312937e88a34dac71092941c218ceda73c60bb2a987c1"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 2,
+        "physical_terminal_calls": 0,
+        "quarantine_action": true,
+        "reason": "diagnostic_ambiguity",
+        "reused_observations": 1,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+        "transfer_candidates_considered": 6,
+        "transfer_contradictions": 1
+      },
+      "source_prior_ablation": {
+        "false_accepts": 0,
+        "mode": "scratch",
+        "name": "hard-linear-5",
+        "observation_digests": [
+          "b5e75977425712124470096d824f810560029cc520cec5d3b79aa85f189ebde6",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a"
+        ],
+        "passed": false,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 1,
+        "quarantine_action": false,
+        "reason": "terminal_contradiction",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 64,
+        "selected_prior_digest": null,
+        "transfer_candidates_considered": 0,
+        "transfer_contradictions": 0
+      },
+      "transfer": {
+        "false_accepts": 0,
+        "mode": "transfer",
+        "name": "hard-linear-5",
+        "observation_digests": [
+          "dc8eafca2fcc60f123b9ce6444aec5471166c3c03209b837f714826c66236086",
+          "42dae81781ec2f6073eaf797049ccab57b9156fa5191223f6ce6cce85b09219a",
+          "44777a91b9e722e2f7f87b4b823093e607e7abc5eeade400e0f82d7df398b809",
+          "9182792b56284e7dab291e085e6f341f3792c0a401471c03a558f7265b325452"
+        ],
+        "passed": true,
+        "physical_diagnostic_calls": 1,
+        "physical_terminal_calls": 3,
+        "quarantine_action": false,
+        "reason": "accepted_transfer",
+        "reused_observations": 0,
+        "scratch_candidates_considered": 13,
+        "selected_prior_digest": "0013771c24cc7f3a8a09e44473fbcb1f498d04950d2fd54bfd13eebbb45a18ad",
+        "transfer_candidates_considered": 20,
+        "transfer_contradictions": 0
+      }
+    }
+  ],
+  "positive_targets": 18,
+  "positive_transfer_solved": 18,
+  "roomy_scratch_solved": 18,
+  "semantic_result_digest": "09a3f4613ba56d7d62f2592483be27639ca7e4afa64cc7cfdda4a14592029166",
+  "shuffled_prior_solved": 12,
+  "source_basis_sizes": [
+    2,
+    3,
+    4
+  ],
+  "source_portable_digests": [
+    "1f2192e1e82a586fe7b13a83810c0dfea53dae062100abced20a675a428d4037",
+    "669709a8d8290e1d0818183e7abb1276192b12355b26765065be92bc9b1c6625",
+    "a575941b53b64c8911167a43b2731696ce10e26506c9afa70b245680e4034cc6"
+  ],
+  "source_prior_ablation_advantage_removed_fraction": 1.0,
+  "source_prior_ablation_solved": 12,
+  "tight_cold_scratch_solved": 12,
+  "trainable_parameter_count": 0
+}

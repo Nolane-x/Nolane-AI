@@ -1,0 +1,27 @@
+{
+  "accepted_parent_sha": "fda7f502185266fedb00886d5786c6d28cc0e0eb",
+  "all_gates_pass": true,
+  "capability": "cross-python-external-black-box-meta-transfer",
+  "dependency": "numpy==2.4.6",
+  "false_accepts": 0,
+  "milestone": "R2.69",
+  "negative_extra_physical_oracle_regret": 0,
+  "oracle_accounting_exact": true,
+  "positive_targets": 3,
+  "python_versions_verified": [
+    "3.11",
+    "3.13"
+  ],
+  "roomy_scratch_solved": 3,
+  "schema_version": 2,
+  "semantic_result_digest": "2ac62930c9b31ee140794ff49d21d6031d1769a9771ddc7a84042289db1dce4f",
+  "source_exposure": "io_only",
+  "source_from_authored_generator": false,
+  "source_head_sha": "9c7535eaf1a6a666cf24bf40e7fcced669bc6f24",
+  "source_oracle_accounting_exact": true,
+  "source_tree_sha": "c729af2dadd5799f137f18a6a9c1a3bee8e50c07",
+  "target_exposure": "io_only",
+  "tight_scratch_solved": 1,
+  "trainable_parameter_count": 0,
+  "transfer_solved": 3
+}

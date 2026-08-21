@@ -1,0 +1,116 @@
+name: R2.69 External NumPy Meta-Transfer
+
+on:
+  push:
+    branches: [ r269-autonomous-transfer-meta-learning-kernel-gpt56sol ]
+    paths:
+      - 'benchmarks/kfigg/r269_external_numpy_transfer.py'
+      - 'tests/test_r269_external_numpy_transfer.py'
+      - 'cogcoder/r269_*.py'
+      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
+      - 'R2_69_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r269-external-numpy-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+
+jobs:
+  cross-python-external:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          fetch-depth: 0
+      - name: Refuse stale external verifier
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH} main
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+          test -f R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
+          test -f R2_69_EXTERNAL_TRANSFER.json
+
+      - name: Require hosted sequential integration authority
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
+          assert seq['schema_version']>=2
+          assert seq['milestone']=='R2.69'
+          assert seq['accepted_parent_sha']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
+          assert seq['complete_authored_r269_green'] is True
+          assert seq['protected_r268_green'] is True
+          assert seq['authored_gate_pass'] is True
+          assert seq['python_versions_verified']==['3.11','3.13']
+          assert seq['false_accepts']==0 and seq['trainable_parameter_count']==0
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.11 protected R2.68 and external black-box transfer
+        run: |
+          python -c "import numpy as np; assert np.__version__ == '2.4.6', np.__version__"
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_external_numpy_transfer.py
+      - name: Freeze Python 3.11 semantic replay in workspace
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          r=run_external_transfer()
+          assert r['all_gates_pass'] is True
+          assert r['source_external_callable']=='numpy.add'
+          assert r['source_from_authored_generator'] is False
+          assert r['source_exposure']==r['target_exposure']=='io_only'
+          assert r['source_oracle_accounting_exact'] is True and r['oracle_accounting_exact'] is True
+          assert r['negative_extra_physical_oracle_regret']<=1
+          assert r['false_accepts']==0 and r['trainable_parameter_count']==0
+          Path('/tmp/r269_external_311.json').write_text(json.dumps(r,sort_keys=True,separators=(',',':')),encoding='utf-8')
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.13 protected R2.68 and external black-box transfer
+        run: |
+          python -c "import numpy as np; assert np.__version__ == '2.4.6', np.__version__"
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_external_numpy_transfer.py
+      - name: Cross-Python replay and frozen receipt binding
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          first=json.loads(Path('/tmp/r269_external_311.json').read_text())
+          second=run_external_transfer()
+          frozen=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text(encoding='utf-8'))
+          assert json.dumps(first,sort_keys=True,separators=(',',':')) == json.dumps(second,sort_keys=True,separators=(',',':'))
+          assert second['all_gates_pass'] is True
+          assert frozen['schema_version']>=2 and frozen['milestone']=='R2.69'
+          assert frozen['dependency']=='numpy==2.4.6'
+          assert frozen['python_versions_verified']==['3.11','3.13']
+          assert frozen['semantic_result_digest']==second['semantic_result_digest']
+          assert frozen['source_exposure']==frozen['target_exposure']=='io_only'
+          assert frozen['source_from_authored_generator'] is False
+          assert frozen['source_oracle_accounting_exact'] is True and frozen['oracle_accounting_exact'] is True
+          assert frozen['negative_extra_physical_oracle_regret']<=1
+          assert frozen['false_accepts']==0 and frozen['trainable_parameter_count']==0
+          assert frozen['all_gates_pass'] is True
+          print('R269_EXTERNAL_RETIRED_VERIFIER_OK='+second['semantic_result_digest'])
+          PY
+      - name: Writer retired
+        run: echo 'External evidence writer is retired; this workflow is verification-only.'

@@ -1,0 +1,96 @@
+name: R2.69 RED GREEN
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r269_*.py'
+      - 'benchmarks/kfigg/r269_meta_learning.py'
+      - 'tests/test_r269_*.py'
+      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
+      - 'R2_69_PROMOTION_AUTHORITY.json'
+      - 'R2_69_EXTERNAL_TRANSFER.json'
+      - '.github/workflows/r269-red-green.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+
+jobs:
+  cross-python-integration:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: windows-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || env.BRANCH }}
+          fetch-depth: 0
+      - name: Refuse stale integration verifier
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH} main
+          CURRENT="$(git rev-parse HEAD)"
+          REMOTE="$(git rev-parse origin/${BRANCH})"
+          test "$CURRENT" = "$REMOTE"
+          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT" = "$EXPECTED_HEAD"; fi
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+          test -f R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.11 protected R2.68
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Python 3.11 complete authored R2.69
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
+      - name: Python 3.11 canonical authored benchmark and frozen sequential receipt
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          r=run_benchmark()
+          receipt=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
+          assert r['milestone']=='R2.69'
+          assert r['accepted_parent_sha']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
+          assert r['source_basis_sizes']==[2,3,4]
+          assert r['positive_transfer_solved']>=17
+          assert r['tight_cold_scratch_solved']<=12
+          assert r['roomy_scratch_solved']>=17
+          assert r['source_prior_ablation_advantage_removed_fraction']>=0.80
+          assert r['negative_targets']==12
+          assert r['negative_transfer_false_accepts']==0
+          assert r['continued_scratch_correctness_preserved'] is True
+          assert r['max_negative_transfer_diagnostic_regret']<=1
+          assert r['false_accepts']==0 and r['trainable_parameter_count']==0
+          assert r['authored_gate_pass'] is True
+          assert receipt['schema_version']>=2
+          assert receipt['protected_r268_green'] is True
+          assert receipt['complete_authored_r269_green'] is True
+          assert receipt['python_versions_verified']==['3.11','3.13']
+          assert receipt['authored_benchmark_digest']==r['semantic_result_digest']
+          assert receipt['false_accepts']==0 and receipt['trainable_parameter_count']==0
+          print('R269_AUTHORED_DIGEST='+r['semantic_result_digest'])
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.13 protected R2.68
+        run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+      - name: Python 3.13 complete authored R2.69
+        run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
+      - name: Writer retired
+        run: echo 'Sequential integration evidence writer is retired; this workflow is verification-only.'

@@ -1,0 +1,153 @@
+name: R2.69 Hosted Promotion Authority
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r269_scoped_promotion.py'
+      - 'cogcoder/r269_promotion_authority.py'
+      - 'cogcoder/r269_governed_runtime.py'
+      - 'cogcoder/r269_experience_compiler.py'
+      - 'cogcoder/r269_causal_basis_adapter.py'
+      - 'cogcoder/r269_meta_learning_kernel.py'
+      - 'cogcoder/r269_transfer_runtime.py'
+      - 'benchmarks/kfigg/r269_promotion_authority.py'
+      - 'tests/test_r269_promotion_*.py'
+      - 'tests/test_r269_governed_runtime.py'
+      - '.github/workflows/r269-promotion-authority.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+  VERIFIER_ISSUER: github.hosted.r269.promotion-verifier
+
+jobs:
+  verify-and-materialize:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || env.BRANCH }}
+          fetch-depth: 0
+
+      - name: Refuse stale promotion authority verifier
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          git fetch origin ${BRANCH}
+          CURRENT="$(git rev-parse HEAD)"
+          REMOTE="$(git rev-parse origin/${BRANCH})"
+          test "$CURRENT" = "$REMOTE"
+          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT" = "$EXPECTED_HEAD"; fi
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+
+      - name: Derive exact hosted authority and source-tree identities
+        id: identity
+        run: |
+          python - <<'PY' >> "$GITHUB_OUTPUT"
+          import hashlib,json,os,subprocess
+          workflow_blob=subprocess.check_output(
+              ['git','hash-object','.github/workflows/r269-promotion-authority.yml'], text=True
+          ).strip()
+          tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          root_payload={
+              'schema_version':1,
+              'repository':os.environ['GITHUB_REPOSITORY'],
+              'workflow_blob':workflow_blob,
+              'verifier_issuer':os.environ['VERIFIER_ISSUER'],
+          }
+          raw=json.dumps(root_payload,sort_keys=True,separators=(',',':')).encode()
+          authority_root=hashlib.sha256(raw).hexdigest()
+          source_tree_digest=hashlib.sha256(tree_sha.encode()).hexdigest()
+          run_identity=f"github-actions:{os.environ['GITHUB_RUN_ID']}:{os.environ['GITHUB_RUN_ATTEMPT']}"
+          print('authority_root='+authority_root)
+          print('source_tree_digest='+source_tree_digest)
+          print('run_identity='+run_identity)
+          print('workflow_blob='+workflow_blob)
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.11 protected lineage and promotion authority contracts
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r269_scoped_promotion.py \
+            tests/test_r269_promotion_registry.py \
+            tests/test_r269_promotion_evidence_authority.py \
+            tests/test_r269_promotion_authority_benchmark.py \
+            tests/test_r269_governed_runtime.py
+      - name: Materialize Python 3.11 receipt in runner workspace
+        env:
+          AUTHORITY_ROOT: ${{ steps.identity.outputs.authority_root }}
+          SOURCE_TREE_DIGEST: ${{ steps.identity.outputs.source_tree_digest }}
+          RUN_IDENTITY: ${{ steps.identity.outputs.run_identity }}
+          WORKFLOW_BLOB: ${{ steps.identity.outputs.workflow_blob }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          result=run_promotion_authority_benchmark(
+              authority_root_digest=os.environ['AUTHORITY_ROOT'],
+              hosted_run_identity=os.environ['RUN_IDENTITY'],
+              source_tree_digest=os.environ['SOURCE_TREE_DIGEST'],
+          )
+          assert result['promotion_gate_pass'] is True
+          assert result['false_accepts']==0
+          assert result['trainable_parameter_count']==0
+          result['verifier_workflow_blob']=os.environ['WORKFLOW_BLOB']
+          Path('/tmp/r269_promotion_311.json').write_text(
+              json.dumps(result,sort_keys=True,separators=(',',':'),allow_nan=False), encoding='utf-8'
+          )
+          print('R269_PROMOTION_311='+result['semantic_result_digest'])
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install pytest 'numpy==2.4.6'
+      - name: Python 3.13 promotion authority contracts
+        run: |
+          PYTHONPATH=. python -m pytest -q \
+            tests/test_r269_scoped_promotion.py \
+            tests/test_r269_promotion_registry.py \
+            tests/test_r269_promotion_evidence_authority.py \
+            tests/test_r269_promotion_authority_benchmark.py \
+            tests/test_r269_governed_runtime.py
+      - name: Cross-Python exact receipt verification only
+        env:
+          AUTHORITY_ROOT: ${{ steps.identity.outputs.authority_root }}
+          SOURCE_TREE_DIGEST: ${{ steps.identity.outputs.source_tree_digest }}
+          RUN_IDENTITY: ${{ steps.identity.outputs.run_identity }}
+          WORKFLOW_BLOB: ${{ steps.identity.outputs.workflow_blob }}
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json,os
+          from pathlib import Path
+          from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          first=json.loads(Path('/tmp/r269_promotion_311.json').read_text())
+          second=run_promotion_authority_benchmark(
+              authority_root_digest=os.environ['AUTHORITY_ROOT'],
+              hosted_run_identity=os.environ['RUN_IDENTITY'],
+              source_tree_digest=os.environ['SOURCE_TREE_DIGEST'],
+          )
+          second['verifier_workflow_blob']=os.environ['WORKFLOW_BLOB']
+          assert json.dumps(first,sort_keys=True,separators=(',',':')) == json.dumps(second,sort_keys=True,separators=(',',':'))
+          assert second['promotion_gate_pass'] is True
+          assert second['false_accepts']==0
+          assert second['trainable_parameter_count']==0
+          print('R269_PROMOTION_RETIRED_VERIFIER_OK='+second['semantic_result_digest'])
+          PY
+
+      - name: Writer retired
+        run: echo 'Hosted promotion receipt writer is retired; this workflow is verification-only.'

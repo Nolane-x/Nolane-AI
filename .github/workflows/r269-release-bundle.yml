@@ -1,0 +1,99 @@
+name: R2.69 COMPLETE Release Bundle
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'cogcoder/r269_*.py'
+      - 'benchmarks/kfigg/r269_*.py'
+      - 'tests/test_r269_*.py'
+      - 'scripts/r269_*.py'
+      - 'R2_69_*.json'
+      - '.github/workflows/r269-*.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  bundle:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: freeze
+        run: |
+          if [ -f R2_69_PRE_HOSTED_LOCK.json ]; then
+            echo 'frozen=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'frozen=false' >> "$GITHUB_OUTPUT"
+            echo 'R269_NOT_FROZEN: bundle intentionally inactive.'
+          fi
+      - uses: actions/setup-python@v5
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          python-version: '3.11'
+      - name: Reverify source evidence, hosted promotion and World authority
+        if: steps.freeze.outputs.frozen == 'true'
+        env:
+          BUNDLE_RUN_ID: ${{ github.run_id }}
+        run: |
+          python -m pip install pytest 'numpy==2.4.6'
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+          PYTHONPATH=. python - <<'PY'
+          import hashlib,json,os,subprocess
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
+          from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
+
+          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          assert lock['schema_version']>=4
+          authored=run_benchmark(); external=run_external_transfer()
+          assert authored['semantic_result_digest']==lock['authored_semantic_digest']
+          assert external['semantic_result_digest']==lock['external_semantic_digest']
+          assert authored['authored_gate_pass'] is True and authored['false_accepts']==0
+          assert external['all_gates_pass'] is True and external['false_accepts']==0
+
+          promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
+          assert promo['promotion_gate_pass'] is True
+          assert promo['semantic_result_digest']==lock['promotion_semantic_digest']
+          assert promo['authority_root_digest']==lock['promotion_authority_root_digest']
+          assert promo['hosted_attestation_digest']==lock['promotion_hosted_attestation_digest']
+          assert promo['authority_envelope_digest']==lock['promotion_authority_envelope_digest']
+          assert promo['verifier_workflow_blob']==lock['promotion_verifier_workflow_blob']
+          tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()
+          promotion=run_promotion_authority_benchmark(
+              authority_root_digest=lock['promotion_authority_root_digest'],
+              hosted_run_identity='github-actions:bundle:'+os.environ['BUNDLE_RUN_ID'],
+              source_tree_digest=hashlib.sha256(tree_sha.encode()).hexdigest(),
+          )
+          assert promotion['promotion_gate_pass'] is True
+          assert promotion['semantic_result_digest']==lock['promotion_semantic_digest']
+          assert promotion['false_accepts']==0 and promotion['trainable_parameter_count']==0
+
+          world=verify_world_receipt()
+          assert world['final_bounded_release']=='ACCEPT'
+          assert world['full_w5_gate_pass'] is False
+          assert world['w5_convergence_claimed'] is False
+          assert world['claim_boundary']==lock['claim_boundary']
+          assert world['receipt_digest']==lock['world_bounded_receipt_digest']
+          assert world['world_state_sha256']==lock['world_state_sha256']
+          assert world['world_gate_sha256']==lock['world_gate_sha256']
+          PY
+      - name: Build and independently verify deterministic COMPLETE ZIP
+        if: steps.freeze.outputs.frozen == 'true'
+        run: PYTHONPATH=. python scripts/r269_build_complete_bundle.py
+      - uses: actions/upload-artifact@v4
+        if: steps.freeze.outputs.frozen == 'true'
+        with:
+          name: Nolane-AI-R2.69-COMPLETE
+          path: |
+            release/Nolane-AI-R2.69-COMPLETE.zip
+            release/Nolane-AI-R2.69-COMPLETE.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
