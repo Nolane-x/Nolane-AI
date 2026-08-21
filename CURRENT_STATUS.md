@@ -40,7 +40,7 @@ R2.69 compiles verifier-backed R2.68 experience into identity-free portable prio
 
 The accepted R2.69 claim remains bounded: zero-trainable-parameter verifier-backed causal-experience transfer and sequential meta-learning over declared finite numeric structural classes, with shared target evidence, bounded negative-transfer regret, governed learned-prior reuse, promotion and rollback. Full Nolane World W5 remains false; convergence was not forced. R2.69 does **not** establish unrestricted cross-domain learning, arbitrary self-modification, AGI, human-level autonomy or frontier-model equivalence.
 
-`R2_69_POST_MERGE_ACCEPTANCE.json` is the post-merge acceptance receipt. The earlier `CURRENT_STATUS.md` blob is intentionally part of the historical schema-4 freeze; this accepted-status update is metadata-only and does not rewrite or relabel the frozen source/evidence lock.
+`research/R2_69_POST_MERGE_ACCEPTANCE.json` is the post-merge acceptance receipt. The earlier `CURRENT_STATUS.md` blob is intentionally part of the historical schema-4 freeze; this accepted-status update is metadata-only and does not rewrite or relabel the frozen source/evidence lock.
 
 PR #70 (`R2.68-T research — cross-task causal prior transfer`) remains independent research/falsifier lineage. Its bounded candidate-budget evidence is not an accepted parent for R2.69.
 
