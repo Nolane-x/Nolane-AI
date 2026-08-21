@@ -28,17 +28,21 @@ R2.68 (`proof-carrying adaptive causal basis`) was accepted through PR #99 and m
 
 Accepted R2.68 claim boundary remains bounded: variable-cardinality 2/3/4-probe proof-carrying causal-basis discovery under the trusted finite DSL, strict diagnostic/validation/terminal authority separation, replayable lower-basis and proper-subset proof ledgers, exact physical oracle accounting and zero added trainable parameters. It is not unrestricted causal reasoning, W5 convergence, frontier equivalence or AGI.
 
-## R2.69 — Autonomous Transfer & Meta-Learning Kernel — RESEARCH_DRAFT
+## R2.69 — Autonomous Transfer & Meta-Learning Kernel — ACCEPTED_BOUNDED
 
-Branch `r269-autonomous-transfer-meta-learning-kernel-gpt56sol` owns the post-R2.68 non-neural learning-to-learn milestone. PR #112 is its coordination/acceptance lineage.
+R2.69 was accepted through PR #112 and merged to `main` at `013ae2d374e3d8a83a802919b3796ecb77b8308a`. The merge commit has the same tree SHA (`63cbe4fe26c5f8b8cb456f2bb6fdcd4f4060a2e2`) as the exact pre-merge verified tree, so merge integration did not alter the frozen R2.69 source/evidence bytes.
 
-R2.69 compiles verifier-backed R2.68 experience into identity-free portable priors, matches priors from target public structure only, shares every purchased target observation between transfer and scratch reasoning, requires prior-guided probes to satisfy a scratch-information floor, reuses evidence after failed transfer, quarantines misleading priors, and records scoped meta-credit/capability gaps. Phase A adds `0` trainable parameters.
+The final schema-4 source/evidence lock was produced from source head `62b97450d1725effe48b37fdbcf4e57bc4b999f2`; the exact pre-merge verification head was `c2bf64c545f680dd6d9727acfed4aea99a6772ec`. Fresh hosted pre-merge gates on that exact tree were GREEN for R2.69 RED GREEN, Multi-Prior Hardening, Hosted Promotion Authority, Canonical Release Authority, COMPLETE Release Bundle, R1.9 Integrity and R2.0i Integrity, including Python 3.11/3.13 verification.
 
-The strong R2.69 claim is not earned by transfer accuracy alone. Promotion requires a matched heldout sequence showing a genuine reduction in fresh target oracle calls and proof-distinct search work versus cold scratch; source-prior and shuffled-prior ablations; bounded negative-transfer regret; zero false accepts; deterministic replay; external I/O-only transfer; protected R2.68 lineage; source/evidence freeze; Nolane World bounded adjudication without forced W5 convergence; COMPLETE release bundle; and exact-main post-merge verification.
+Post-merge exact-main authority was independently reverified in hosted run `32486386836`. That audit checked out the immutable merged `main` SHA `013ae2d374e3d8a83a802919b3796ecb77b8308a` directly, required `origin/main` to equal the same SHA, verified every frozen Git blob, reran protected R2.68 and full R2.69 tests on Python 3.11 and 3.13, replayed authored/external/Promotion/World evidence, rebuilt the deterministic COMPLETE bundle and uploaded the resulting artifact. Artifact id `9448053148` has outer SHA-256 `0c8f77808d719b5e2d39cf3decc507fc7bf22c36de449a0dd17f72b37749f44d`; the inner `Nolane-AI-R2.69-COMPLETE.zip` has SHA-256 `864d4b87cf1ee180b67bf1ef59639bffc5c52d44f04d7a56e59dc4d49323bdf8` and passed an independent ZIP integrity check.
 
-PR #70 (`R2.68-T research — cross-task causal prior transfer`) remains independent research/falsifier lineage. Its bounded candidate-budget evidence is not an accepted R2.69 capability and is not an accepted parent.
+R2.69 compiles verifier-backed R2.68 experience into identity-free portable priors, matches priors from target public structure only, shares purchased target evidence between transfer and scratch reasoning, applies a scratch-information admissibility floor, reuses evidence after failed transfer, quarantines misleading priors, supports sequential experience compilation under governed reuse, records scoped meta-credit/capability gaps, and uses host-attested scoped champion/challenger promotion with exact rollback. Phase A adds `0` trainable parameters and the frozen evidence records `0` false accepts.
 
-Until every R2.69 promotion condition is satisfied on one exact frozen source head, status is **RESEARCH_DRAFT / NOT_ACCEPTED**. Partial GREEN runs, local tests, authored-only measurements, and pre-freeze artifacts must not be cited as an accepted readiness increase.
+The accepted R2.69 claim remains bounded: zero-trainable-parameter verifier-backed causal-experience transfer and sequential meta-learning over declared finite numeric structural classes, with shared target evidence, bounded negative-transfer regret, governed learned-prior reuse, promotion and rollback. Full Nolane World W5 remains false; convergence was not forced. R2.69 does **not** establish unrestricted cross-domain learning, arbitrary self-modification, AGI, human-level autonomy or frontier-model equivalence.
+
+`R2_69_POST_MERGE_ACCEPTANCE.json` is the post-merge acceptance receipt. The earlier `CURRENT_STATUS.md` blob is intentionally part of the historical schema-4 freeze; this accepted-status update is metadata-only and does not rewrite or relabel the frozen source/evidence lock.
+
+PR #70 (`R2.68-T research — cross-task causal prior transfer`) remains independent research/falsifier lineage. Its bounded candidate-budget evidence is not an accepted parent for R2.69.
 
 ## Scientific boundary
 
