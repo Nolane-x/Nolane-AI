@@ -55,8 +55,21 @@ def patch_matcher() -> None:
 def patch_lazy_scratch_runtime() -> None:
     path = Path('cogcoder/r269_transfer_runtime.py')
     text = path.read_text(encoding='utf-8')
+
+    # The scratch sentinel is a dual-use admissibility gate, not an optimizer
+    # for transfer query choice. Letting its approximate partition balance rank
+    # transfer probes makes query order depend on the sentinel approximation and
+    # can overturn evidence adjudication between multiple compatible priors.
+    old_transfer_score = "            score = (max(transfer_parts.values()), max(scratch_parts.values()), -transfer_info, -scratch_info, key)\n"
+    new_transfer_score = "            score = (max(transfer_parts.values()), -transfer_info, key)\n"
+    if old_transfer_score in text:
+        text = text.replace(old_transfer_score, new_transfer_score, 1)
+    elif new_transfer_score not in text:
+        raise SystemExit('transfer query scoring boundary drifted')
+
     if 'def _scratch_information_floor(' in text:
         compile(text, str(path), 'exec')
+        path.write_text(text, encoding='utf-8')
         return
 
     marker = """    return rows
@@ -74,7 +87,8 @@ def _scratch_information_floor(
     \"\"\"Bounded shallow scratch sentinel used only for transfer-query safety.
 
     It preserves generic scratch discrimination without materializing the full
-    bounded search frontier.  It is never scratch selection authority.
+    bounded search frontier. It is an admissibility gate, never scratch
+    selection authority and never a transfer-query ranking objective.
     \"\"\"
     floor_config = MetaLearningConfig(
         max_diagnostic_queries=config.max_diagnostic_queries,
