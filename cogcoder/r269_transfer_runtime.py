@@ -425,7 +425,7 @@ def _choose_query(
         transfer_info = len(transfer_parts)
         scratch_info = len(scratch_parts)
         if len(transfer) > 1 and transfer_info > 1 and scratch_info >= min_scratch_partitions:
-            score = (max(transfer_parts.values()), max(scratch_parts.values()), -transfer_info, -scratch_info, key)
+            score = (max(transfer_parts.values()), -transfer_info, key)
             if transfer_best is None or score < transfer_best[0]:
                 transfer_best = (score, context, transfer_info, scratch_info)
         if len(scratch) > 1 and scratch_info > 1:

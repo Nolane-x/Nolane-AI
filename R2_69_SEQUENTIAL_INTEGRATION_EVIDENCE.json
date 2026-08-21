@@ -1,0 +1,17 @@
+{
+  "accepted_parent_sha": "fda7f502185266fedb00886d5786c6d28cc0e0eb",
+  "authored_benchmark_digest": "09a3f4613ba56d7d62f2592483be27639ca7e4afa64cc7cfdda4a14592029166",
+  "authored_gate_pass": true,
+  "capability": "authority-safe-sequential-meta-learning-integration",
+  "complete_authored_r269_green": true,
+  "false_accepts": 0,
+  "milestone": "R2.69",
+  "protected_r268_green": true,
+  "python_versions_verified": [
+    "3.11",
+    "3.13"
+  ],
+  "schema_version": 2,
+  "sequential_chain_contract": true,
+  "trainable_parameter_count": 0
+}
