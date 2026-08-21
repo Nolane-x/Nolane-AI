@@ -1,0 +1,27 @@
+{
+  "architecture": {
+    "attention_heads": 21,
+    "ff_mult": 2,
+    "latent_dim": 1344,
+    "reasoning_steps_release": 1,
+    "weight_sharing": "one recurrent reasoning cell reused across depth"
+  },
+  "delegation": {
+    "mode": "hard_fail_closed",
+    "target": "open only when parent is wrong and frozen proposal is correct",
+    "threshold": 0.20539641380310059
+  },
+  "parameter_accounting": "physical_unique_tensor_parameters",
+  "parent": "Neural-R2.1a-Causal-Evidence-Router",
+  "physical_candidate_parameters": 79858099,
+  "physical_delta_parameters": 50487372,
+  "physical_parameter_ceiling": 80000000,
+  "physical_parent_parameters": 29370727,
+  "status": "admitted_after_broad_dev_and_two_frozen_fresh_blocks",
+  "training": {
+    "cached_training_states": 11539,
+    "held_out_calibration_states": 4160,
+    "method": "expert plus on-policy DAgger distillation"
+  },
+  "version": "Neural-R2.3-Ultra-Recursive-DAgger-Gated"
+}
