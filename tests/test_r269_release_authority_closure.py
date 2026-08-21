@@ -153,5 +153,3 @@ def test_retired_promotion_workflow_is_verification_only_and_cannot_rewrite_rece
     assert 'git push origin' not in workflow
     assert "git add R2_69_PROMOTION_AUTHORITY.json" not in workflow
     assert 'Writer retired' in workflow
-
-# r269-user-authored-retrigger
