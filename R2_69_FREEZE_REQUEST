@@ -1,0 +1,14 @@
+R2.69 PRE-HOSTED REFREEZE REQUEST
+
+Reason:
+- post-freeze authority regression test was corrected to understand both pre-freeze and post-freeze lifecycle
+- that test is part of frozen_git_blobs, so the previous lock must not be reused after its blob changed
+- runtime, benchmark semantics, external receipt, promotion receipt, World receipt and trainable parameter count are unchanged
+- full protected + R2.69 suite must pass again before lock replacement
+- freeze writer must self-retire again after materializing the replacement schema-4 lock
+
+Refreeze source base:
+1dc882841fe271665246ba76bcccd7f147870b10
+
+Expected World bounded receipt:
+r269.world-bounded.a5c8b4fd85ee08b536d2fb1933e45669175405a84f3ce372dfeaaca15940e4b9
