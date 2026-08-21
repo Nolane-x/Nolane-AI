@@ -7,14 +7,14 @@ on:
       - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
       - 'tests/test_r269_*.py'
-      - 'scripts/r269_integrate_sequential_meta.py'
+      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
       - 'R2_69_PROMOTION_AUTHORITY.json'
       - 'R2_69_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r269-red-green.yml'
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 env:
   BRANCH: r269-autonomous-transfer-meta-learning-kernel-gpt56sol
@@ -33,7 +33,7 @@ jobs:
         with:
           ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.ref || env.BRANCH }}
           fetch-depth: 0
-      - name: Refuse stale integration writer
+      - name: Refuse stale integration verifier
         env:
           EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
@@ -44,8 +44,7 @@ jobs:
           test "$CURRENT" = "$REMOTE"
           if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT" = "$EXPECTED_HEAD"; fi
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
-      - name: Apply guarded sequential-meta source integration
-        run: python scripts/r269_integrate_sequential_meta.py
+          test -f R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
 
       - uses: actions/setup-python@v5
         with:
@@ -55,11 +54,14 @@ jobs:
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
       - name: Python 3.11 complete authored R2.69
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
-      - name: Python 3.11 canonical authored benchmark
+      - name: Python 3.11 canonical authored benchmark and frozen sequential receipt
         run: |
           PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           r=run_benchmark()
+          receipt=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
           assert r['milestone']=='R2.69'
           assert r['accepted_parent_sha']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
           assert r['source_basis_sizes']==[2,3,4]
@@ -71,9 +73,14 @@ jobs:
           assert r['negative_transfer_false_accepts']==0
           assert r['continued_scratch_correctness_preserved'] is True
           assert r['max_negative_transfer_diagnostic_regret']<=1
-          assert r['false_accepts']==0
-          assert r['trainable_parameter_count']==0
+          assert r['false_accepts']==0 and r['trainable_parameter_count']==0
           assert r['authored_gate_pass'] is True
+          assert receipt['schema_version']>=2
+          assert receipt['protected_r268_green'] is True
+          assert receipt['complete_authored_r269_green'] is True
+          assert receipt['python_versions_verified']==['3.11','3.13']
+          assert receipt['authored_benchmark_digest']==r['semantic_result_digest']
+          assert receipt['false_accepts']==0 and receipt['trainable_parameter_count']==0
           print('R269_AUTHORED_DIGEST='+r['semantic_result_digest'])
           PY
 
@@ -85,48 +92,5 @@ jobs:
         run: PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
       - name: Python 3.13 complete authored R2.69
         run: PYTHONPATH=. python -m pytest -q tests/test_r269_*.py --ignore=tests/test_r269_external_numpy_transfer.py
-
-      - name: Materialize deterministic integration evidence
-        run: |
-          PYTHONPATH=. python - <<'PY'
-          import json
-          from pathlib import Path
-          from benchmarks.kfigg.r269_meta_learning import run_benchmark
-          r=run_benchmark()
-          evidence={
-            'schema_version':2,
-            'milestone':'R2.69',
-            'capability':'authority-safe-sequential-meta-learning-integration',
-            'accepted_parent_sha':'fda7f502185266fedb00886d5786c6d28cc0e0eb',
-            'python_versions_verified':['3.11','3.13'],
-            'protected_r268_green':True,
-            'complete_authored_r269_green':True,
-            'sequential_chain_contract':True,
-            'authored_benchmark_digest':r['semantic_result_digest'],
-            'authored_gate_pass':r['authored_gate_pass'],
-            'false_accepts':r['false_accepts'],
-            'trainable_parameter_count':0,
-          }
-          Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').write_text(json.dumps(evidence,sort_keys=True,indent=2)+'\n')
-          PY
-      - name: Recheck exact branch before materialization push
-        env:
-          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-          git fetch origin ${BRANCH}
-          CURRENT_REMOTE="$(git rev-parse origin/${BRANCH})"
-          if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT_REMOTE" = "$EXPECTED_HEAD"; fi
-      - name: Commit verified sequential integration once
-        run: |
-          SOURCE_DIRTY="$(git diff --name-only -- cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py cogcoder/r269_transfer_runtime.py)"
-          RECEIPT_DIRTY="$(git status --porcelain -- R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json)"
-          if [ -z "$SOURCE_DIRTY" ] && [ -z "$RECEIPT_DIRTY" ]; then
-            echo 'Sequential meta-learning integration already materialized.'
-            exit 0
-          fi
-          git config user.name 'Nolane R2.69 verifier'
-          git config user.email 'actions@users.noreply.github.com'
-          git add cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py cogcoder/r269_transfer_runtime.py R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
-          git commit -m 'feat(r269): integrate verified sequential meta-learning'
-          git push origin HEAD:${BRANCH}
+      - name: Writer retired
+        run: echo 'Sequential integration evidence writer is retired; this workflow is verification-only.'
