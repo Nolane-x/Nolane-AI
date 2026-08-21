@@ -1,0 +1,53 @@
+{
+  "aggregate": {
+    "baseline_solved": 59,
+    "baseline_steps": 3708,
+    "candidate_solved": 60,
+    "candidate_steps": 3708,
+    "episodes": 160,
+    "families": {
+      "causal_prerequisites": [7, 8],
+      "conditional_regimes": [19, 19],
+      "implicit_goal_regimes": [21, 21],
+      "regime_switch": [12, 12]
+    },
+    "gain_pp": 0.625
+  },
+  "blocks": [
+    {
+      "baseline_solved": 29,
+      "baseline_steps": 1858,
+      "candidate_solved": 30,
+      "candidate_steps": 1858,
+      "episodes": 80,
+      "families": {
+        "causal_prerequisites": [5, 6],
+        "conditional_regimes": [10, 10],
+        "implicit_goal_regimes": [8, 8],
+        "regime_switch": [6, 6]
+      },
+      "indices": [1080, 1099]
+    },
+    {
+      "baseline_solved": 30,
+      "baseline_steps": 1850,
+      "candidate_solved": 30,
+      "candidate_steps": 1850,
+      "episodes": 80,
+      "families": {
+        "causal_prerequisites": [2, 2],
+        "conditional_regimes": [9, 9],
+        "implicit_goal_regimes": [13, 13],
+        "regime_switch": [6, 6]
+      },
+      "indices": [1100, 1119]
+    }
+  ],
+  "candidate": "Neural-R2.3-Ultra-Recursive-DAgger-Gated",
+  "claim_boundary": "Evidence supports a small but repeatable neural-only improvement with no family regression across two untouched frozen fresh blocks. It does not establish AGI or frontier-model equivalence.",
+  "delta_sha256": "a016dd77d9d720a5bc3dd08760d0b8a36326a87a1e1af53cdc7bcc2f3a8e5e17",
+  "one_weight_sha256": "77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026",
+  "status": "PASS_FROZEN_CONFIRMATORY_FRESH",
+  "threshold_modified_after_fresh": false,
+  "weights_modified_after_fresh": false
+}
