@@ -132,11 +132,10 @@ def test_postmerge_requires_exact_main_and_frozen_authority_lineage():
     assert "lock['exact_rollback_registry_required'] is True" in postmerge
 
 
-def test_evidence_writers_do_not_mistake_untracked_receipts_for_already_materialized():
+def test_active_evidence_writers_do_not_mistake_untracked_receipts_for_already_materialized():
     writers = {
         '.github/workflows/r269-red-green.yml': 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json',
         '.github/workflows/r269-external-numpy-transfer.yml': 'R2_69_EXTERNAL_TRANSFER.json',
-        '.github/workflows/r269-promotion-authority.yml': 'R2_69_PROMOTION_AUTHORITY.json',
     }
     for path, receipt in writers.items():
         workflow = _text(path)
@@ -144,5 +143,13 @@ def test_evidence_writers_do_not_mistake_untracked_receipts_for_already_material
         assert unsafe not in workflow, (path, 'git diff ignores untracked receipt files')
         assert f'git status --porcelain -- {receipt}' in workflow, (
             path,
-            'writer must inspect tracked and untracked receipt materialization',
+            'active writer must inspect tracked and untracked receipt materialization',
         )
+
+
+def test_retired_promotion_workflow_is_verification_only_and_cannot_rewrite_receipt():
+    workflow = _text('.github/workflows/r269-promotion-authority.yml')
+    assert 'contents: write' not in workflow
+    assert 'git push origin' not in workflow
+    assert "git add R2_69_PROMOTION_AUTHORITY.json" not in workflow
+    assert 'Writer retired' in workflow

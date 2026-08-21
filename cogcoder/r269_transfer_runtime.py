@@ -635,7 +635,12 @@ def run_meta_learning_episode(
                     )
                     scratch = _filter(scratch, observed_context, observation.observed)
                 continue
-        scratch = _filter(scratch, semantic, row.observed)
+        # The shallow scratch sentinel is a static information-floor reference,
+        # not posterior or selection authority. Filtering it by target evidence
+        # can collapse the floor after one query and incorrectly block further
+        # transfer adjudication. Only materialized scratch is evidence-filtered.
+        if scratch_materialized:
+            scratch = _filter(scratch, semantic, row.observed)
 
     selected: _Hypothesis | None = None
     mode = 'scratch'
