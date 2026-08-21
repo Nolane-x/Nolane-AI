@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 
@@ -10,8 +11,23 @@ def _text(path: str) -> str:
     return (ROOT / path).read_text(encoding='utf-8')
 
 
+def _optional_text(path: str) -> str | None:
+    target = ROOT / path
+    return target.read_text(encoding='utf-8') if target.is_file() else None
+
+
+def _lock() -> dict[str, object] | None:
+    path = ROOT / 'R2_69_PRE_HOSTED_LOCK.json'
+    if not path.is_file():
+        return None
+    value = json.loads(path.read_text(encoding='utf-8'))
+    assert isinstance(value, dict)
+    return value
+
+
 def test_freeze_canonical_bundle_and_postmerge_all_bind_promotion_authority():
-    freeze = _text('.github/workflows/r269-freeze-evidence.yml')
+    freeze = _optional_text('.github/workflows/r269-freeze-evidence.yml')
+    lock = _lock()
     canonical = _text('.github/workflows/r269-canonical-gate.yml')
     bundle = _text('.github/workflows/r269-release-bundle.yml')
     postmerge = _text('.github/workflows/r269-post-merge-release-bundle.yml')
@@ -24,7 +40,12 @@ def test_freeze_canonical_bundle_and_postmerge_all_bind_promotion_authority():
         '.github/workflows/r269-promotion-authority.yml',
     )
     for path in required_paths:
-        assert path in freeze, ('freeze missing promotion authority path', path)
+        if freeze is not None:
+            assert path in freeze, ('freeze missing promotion authority path', path)
+        else:
+            assert lock is not None and path in lock['frozen_git_blobs'], (
+                'post-freeze lock missing promotion authority blob', path
+            )
         assert path in builder, ('bundle builder missing promotion authority path', path)
 
     lock_fields = (
@@ -38,7 +59,10 @@ def test_freeze_canonical_bundle_and_postmerge_all_bind_promotion_authority():
         'exact_rollback_registry_required',
     )
     for field in lock_fields:
-        assert field in freeze, ('freeze missing promotion lock field', field)
+        if freeze is not None:
+            assert field in freeze, ('freeze missing promotion lock field', field)
+        else:
+            assert lock is not None and field in lock, ('post-freeze lock missing promotion field', field)
         assert field in canonical or field in builder, ('release verifier missing promotion lock field', field)
 
     for workflow, label in ((canonical, 'canonical'), (bundle, 'bundle'), (postmerge, 'postmerge')):
@@ -50,7 +74,8 @@ def test_freeze_canonical_bundle_and_postmerge_all_bind_promotion_authority():
 
 
 def test_world_bounded_adjudication_is_content_addressed_across_release_chain():
-    freeze = _text('.github/workflows/r269-freeze-evidence.yml')
+    freeze = _optional_text('.github/workflows/r269-freeze-evidence.yml')
+    lock = _lock()
     canonical = _text('.github/workflows/r269-canonical-gate.yml')
     bundle = _text('.github/workflows/r269-release-bundle.yml')
     postmerge = _text('.github/workflows/r269-post-merge-release-bundle.yml')
@@ -64,7 +89,12 @@ def test_world_bounded_adjudication_is_content_addressed_across_release_chain():
         'scripts/r269_world_adjudication.py',
     )
     for path in required_paths:
-        assert path in freeze, ('freeze missing World authority path', path)
+        if freeze is not None:
+            assert path in freeze, ('freeze missing World authority path', path)
+        else:
+            assert lock is not None and path in lock['frozen_git_blobs'], (
+                'post-freeze lock missing World authority blob', path
+            )
         assert path in builder, ('bundle missing World authority path', path)
 
     for field in (
@@ -73,7 +103,10 @@ def test_world_bounded_adjudication_is_content_addressed_across_release_chain():
         'world_state_sha256',
         'world_gate_sha256',
     ):
-        assert field in freeze, ('freeze missing World lock field', field)
+        if freeze is not None:
+            assert field in freeze, ('freeze missing World lock field', field)
+        else:
+            assert lock is not None and field in lock, ('post-freeze lock missing World field', field)
         assert field in canonical or field in builder, ('release verifier missing World lock field', field)
 
     for workflow, label in ((canonical, 'canonical'), (bundle, 'bundle'), (postmerge, 'postmerge')):
@@ -104,21 +137,35 @@ def test_complete_bundle_refuses_pre_world_lock_and_receipt_drift():
     assert "world.get('world_gate_sha256') != lock.get('world_gate_sha256')" in builder
 
 
-def test_freeze_requires_all_mutating_r269_verifiers_retired_before_lock():
-    freeze = _text('.github/workflows/r269-freeze-evidence.yml')
-    for workflow in (
+def test_freeze_lifecycle_requires_mutating_verifiers_retired_before_and_after_lock():
+    freeze = _optional_text('.github/workflows/r269-freeze-evidence.yml')
+    lock = _lock()
+    verifier_workflows = (
         'r269-red-green.yml',
         'r269-external-numpy-transfer.yml',
         'r269-promotion-authority.yml',
         'r269-multi-prior-hardening.yml',
-    ):
-        assert f"! grep -q 'contents: write' .github/workflows/{workflow}" in freeze
-    for temporary in (
+    )
+    temporary_workflows = (
         'r269-lazy-scratch-hotfix.yml',
         'r269-fast-validation.yml',
-    ):
-        assert f'test ! -f .github/workflows/{temporary}' in freeze
-    assert 'git rm R2_69_FREEZE_REQUEST .github/workflows/r269-freeze-evidence.yml' in freeze
+    )
+
+    if freeze is not None:
+        for workflow in verifier_workflows:
+            assert f"! grep -q 'contents: write' .github/workflows/{workflow}" in freeze
+        for temporary in temporary_workflows:
+            assert f'test ! -f .github/workflows/{temporary}' in freeze
+        assert 'git rm R2_69_FREEZE_REQUEST .github/workflows/r269-freeze-evidence.yml' in freeze
+        return
+
+    assert lock is not None and lock.get('writers_retired') is True
+    assert not (ROOT / '.github/workflows/r269-freeze-evidence.yml').exists()
+    assert not (ROOT / 'R2_69_FREEZE_REQUEST').exists()
+    for workflow in verifier_workflows:
+        assert 'contents: write' not in _text(f'.github/workflows/{workflow}'), workflow
+    for temporary in temporary_workflows:
+        assert not (ROOT / '.github/workflows' / temporary).exists(), temporary
 
 
 def test_postmerge_requires_exact_main_and_frozen_authority_lineage():
