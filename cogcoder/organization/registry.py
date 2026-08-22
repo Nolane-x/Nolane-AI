@@ -40,6 +40,21 @@ class AgentRegistry:
         self._rows[row.agent_id] = row
         return row
 
+    def set_checkpoint(self, agent_id: str, checkpoint_id: str | None) -> AgentIdentity:
+        old = self.get(agent_id)
+        row = replace(old, checkpoint_id=None if checkpoint_id is None else str(checkpoint_id))
+        self._rows[row.agent_id] = row
+        return row
+
+    def set_self_model_version(self, agent_id: str, self_model_version: str) -> AgentIdentity:
+        version = str(self_model_version).strip()
+        if not version:
+            raise ValueError('self-model version must be non-empty')
+        old = self.get(agent_id)
+        row = replace(old, self_model_version=version)
+        self._rows[row.agent_id] = row
+        return row
+
     def accept_neural_version(self, agent_id: str, neural_version: str) -> AgentIdentity:
         version = str(neural_version).strip()
         if not version:
