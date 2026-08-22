@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .events import EventLedger
 from .memory import MemoryFabric
@@ -24,6 +24,8 @@ class ContextCompiler:
         ledger: EventLedger,
         tasks: TaskGraph,
         evolution: 'SkillEvolutionEngine | None' = None,
+        requirements: Any = None,
+        planning: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -34,6 +36,8 @@ class ContextCompiler:
         self.ledger = ledger
         self.tasks = tasks
         self.evolution = evolution
+        self.requirements = requirements
+        self.planning = planning
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -63,40 +67,35 @@ class ContextCompiler:
             limit=self.max_memories,
         )
         events = [
-            row
-            for row in self.ledger.events_since(since_event_id)
-            if self._event_relevant(
-                row,
-                agent_id=identity.agent_id,
-                region=identity.region,
-                task_id=effective_task,
-            )
+            row for row in self.ledger.events_since(since_event_id)
+            if self._event_relevant(row, agent_id=identity.agent_id, region=identity.region, task_id=effective_task)
         ]
         if len(events) > self.max_events:
-            events = events[-self.max_events :]
+            events = events[-self.max_events:]
         skill_ids: tuple[str, ...] = ()
         if self.evolution is not None:
-            skill_ids = tuple(
-                row.skill_id
-                for row in self.evolution.skills_for(identity.agent_id, region=identity.region)
-            )
+            skill_ids = tuple(row.skill_id for row in self.evolution.skills_for(identity.agent_id, region=identity.region))
+
+        planning_version = 0 if self.planning is None else int(self.planning.graph.version)
+        plan_version = max(int(self.tasks.plan_version), planning_version)
+        artifacts: list[tuple[str, int]] = [('master-plan', plan_version)]
+        if self.requirements is not None:
+            artifacts.append(('requirements', int(self.requirements.graph.version)))
+
         return ContextCapsule(
             agent_id=identity.agent_id,
             task_id=effective_task,
-            plan_version=self.tasks.plan_version,
+            plan_version=plan_version,
             since_event_id=since_event_id,
             memories=tuple(memories),
             event_delta=tuple(events),
-            authoritative_artifacts=(('master-plan', self.tasks.plan_version),),
+            authoritative_artifacts=tuple(artifacts),
             tools=identity.tool_permissions,
             external_cores=identity.external_core_bindings,
             applicable_skill_ids=skill_ids,
             identity_summary=(
-                ('name', identity.name),
-                ('role', identity.role),
-                ('region', identity.region),
-                ('rank', identity.rank.value),
-                ('neural_version', identity.neural_version),
+                ('name', identity.name), ('role', identity.role), ('region', identity.region),
+                ('rank', identity.rank.value), ('neural_version', identity.neural_version),
                 ('self_model_version', identity.self_model_version),
             ),
             authority_boundary=identity.authority_scope,

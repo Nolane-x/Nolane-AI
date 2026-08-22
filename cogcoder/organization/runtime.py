@@ -11,7 +11,9 @@ from .events import EventLedger
 from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
 from .memory import MemoryFabric
+from .planning import PlanningControlPlane
 from .registry import AgentRegistry
+from .requirements import RequirementsControlPlane
 from .scheduler import WakeSleepScheduler
 from .self_model import SelfModelRegistry
 from .tasks import TaskGraph
@@ -35,6 +37,8 @@ class OrganizationRuntime:
         external_cores: ExternalCoreRegistry,
         self_models: SelfModelRegistry,
         central: CentralControlPlane | None = None,
+        requirements: RequirementsControlPlane | None = None,
+        planning: PlanningControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -47,12 +51,21 @@ class OrganizationRuntime:
         self.artifacts = artifacts
         self.external_cores = external_cores
         self.self_models = self_models
+        self.requirements = requirements or RequirementsControlPlane(
+            registry=self.registry, authority=self.authority, ledger=self.ledger,
+        )
+        self.planning = planning or PlanningControlPlane(
+            registry=self.registry, authority=self.authority, ledger=self.ledger,
+            tasks=self.tasks, requirements=self.requirements,
+        )
         self.context = ContextCompiler(
             registry=self.registry,
             memory=self.memory,
             ledger=self.ledger,
             tasks=self.tasks,
             evolution=self.evolution,
+            requirements=self.requirements,
+            planning=self.planning,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry,
@@ -115,13 +128,7 @@ class OrganizationRuntime:
             self_models=self_models,
         )
 
-    def central_intervene(
-        self,
-        *,
-        target_agent_id: str,
-        directive: str,
-        evidence_ids: tuple[str, ...],
-    ):
+    def central_intervene(self, *, target_agent_id: str, directive: str, evidence_ids: tuple[str, ...]):
         target = self.registry.get(target_agent_id)
         if not str(directive).strip():
             raise ValueError('Central intervention directive must be explicit')
@@ -135,77 +142,32 @@ class OrganizationRuntime:
             evidence_refs=tuple(str(value) for value in evidence_ids),
             priority=100,
             requires_ack=True,
-            payload={
-                'directive': str(directive),
-                'evidence_ids': [str(value) for value in evidence_ids],
-                'region_chief_id': target.region_chief_id,
-            },
+            payload={'directive': str(directive), 'evidence_ids': [str(value) for value in evidence_ids], 'region_chief_id': target.region_chief_id},
         )
         self.scheduler.notify_event(event)
         return event
 
-    def central_action(
-        self,
-        kind: EventKind,
-        *,
-        target_agent_id: str,
-        directive: str,
-        evidence_ids: tuple[str, ...],
-    ):
+    def central_action(self, kind: EventKind, *, target_agent_id: str, directive: str, evidence_ids: tuple[str, ...]):
         if kind not in {
-            EventKind.CENTRAL_QUESTION,
-            EventKind.CENTRAL_CORRECTION,
-            EventKind.CENTRAL_REDIRECT,
-            EventKind.CENTRAL_PAUSE,
-            EventKind.CENTRAL_ABORT,
-            EventKind.CENTRAL_REQUEST_EVIDENCE,
+            EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
+            EventKind.CENTRAL_REDIRECT, EventKind.CENTRAL_PAUSE,
+            EventKind.CENTRAL_ABORT, EventKind.CENTRAL_REQUEST_EVIDENCE,
         }:
             raise ValueError('unsupported explicit Central action')
+        evidence = tuple(str(value) for value in evidence_ids)
         if kind is EventKind.CENTRAL_QUESTION:
-            return self.central.question(
-                target_agent_id=target_agent_id,
-                directive=directive,
-                evidence_refs=tuple(str(value) for value in evidence_ids),
-            )
+            return self.central.question(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
         if kind is EventKind.CENTRAL_CORRECTION:
-            return self.central.correct(
-                target_agent_id=target_agent_id,
-                directive=directive,
-                evidence_refs=tuple(str(value) for value in evidence_ids),
-            )
+            return self.central.correct(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
         if kind is EventKind.CENTRAL_REDIRECT:
-            return self.central.redirect(
-                target_agent_id=target_agent_id,
-                directive=directive,
-                evidence_refs=tuple(str(value) for value in evidence_ids),
-            )
+            return self.central.redirect(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
         if kind is EventKind.CENTRAL_PAUSE:
-            return self.central.pause(
-                target_agent_id=target_agent_id,
-                directive=directive,
-                evidence_refs=tuple(str(value) for value in evidence_ids),
-            )
+            return self.central.pause(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
         if kind is EventKind.CENTRAL_ABORT:
-            return self.central.abort(
-                target_agent_id=target_agent_id,
-                directive=directive,
-                evidence_refs=tuple(str(value) for value in evidence_ids),
-            )
-        return self.central.request_evidence(
-            target_agent_id=target_agent_id,
-            directive=directive,
-            evidence_refs=tuple(str(value) for value in evidence_ids),
-        )
+            return self.central.abort(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
+        return self.central.request_evidence(target_agent_id=target_agent_id, directive=directive, evidence_refs=evidence)
 
-    def report_plan_gap(
-        self,
-        *,
-        source_agent_id: str,
-        task_id: str,
-        reason: str,
-        suggested_nodes: tuple[str, ...],
-        evidence_ids: tuple[str, ...],
-    ):
+    def report_plan_gap(self, *, source_agent_id: str, task_id: str, reason: str, suggested_nodes: tuple[str, ...], evidence_ids: tuple[str, ...]):
         event = self.tasks.propose_plan_gap(
             source_agent_id=source_agent_id,
             task_id=task_id,
@@ -216,13 +178,7 @@ class OrganizationRuntime:
         self.scheduler.notify_event(event)
         return event
 
-    def chief_direct_work(
-        self,
-        chief_agent_id: str,
-        task_id: str,
-        *,
-        output_artifact_ids: tuple[str, ...],
-    ) -> dict[str, Any]:
+    def chief_direct_work(self, chief_agent_id: str, task_id: str, *, output_artifact_ids: tuple[str, ...]) -> dict[str, Any]:
         chief = self.registry.get(chief_agent_id)
         if chief.rank is not AgentRank.CHIEF or not chief.direct_work_capable:
             raise PermissionError(f'{chief_agent_id} is not an authorized working Regional Chief')
@@ -233,18 +189,9 @@ class OrganizationRuntime:
             target_agent_id=chief.agent_id,
             region=chief.region,
             object_refs=tuple(output_artifact_ids),
-            payload={
-                'task_id': task_id,
-                'output_artifact_ids': list(output_artifact_ids),
-                'mode': 'direct_work',
-            },
+            payload={'task_id': task_id, 'output_artifact_ids': list(output_artifact_ids), 'mode': 'direct_work'},
         )
-        return {
-            'chief_agent_id': chief.agent_id,
-            'task_id': completed.task_id,
-            'event_id': event.event_id,
-            'output_artifact_ids': completed.output_artifact_ids,
-        }
+        return {'chief_agent_id': chief.agent_id, 'task_id': completed.task_id, 'event_id': event.event_id, 'output_artifact_ids': completed.output_artifact_ids}
 
     def checkpoint_agent(self, agent_id: str) -> str | None:
         anchor = self.ledger.latest_event_id()
@@ -269,6 +216,8 @@ class OrganizationRuntime:
             'artifacts': self.artifacts.to_state(),
             'external_cores': self.external_cores.to_state(),
             'self_models': self.self_models.to_state(),
+            'requirements': self.requirements.to_state(),
+            'planning': self.planning.to_state(),
             'central': self.central.to_state(),
         }
 
@@ -278,52 +227,31 @@ class OrganizationRuntime:
         ledger = EventLedger.from_state(state['ledger'])
         authority = AuthorityGraph.from_state(registry, state['authority'])
         memory = MemoryFabric.from_state(state['memory'])
-        tasks = TaskGraph.from_state(
-            state['tasks'],
-            ledger=ledger,
-            registry=registry,
-            authority=authority,
-        )
-        scheduler = WakeSleepScheduler.from_state(
-            registry=registry,
-            ledger=ledger,
-            state=state['scheduler'],
-        )
+        tasks = TaskGraph.from_state(state['tasks'], ledger=ledger, registry=registry, authority=authority)
+        scheduler = WakeSleepScheduler.from_state(registry=registry, ledger=ledger, state=state['scheduler'])
         evolution = SkillEvolutionEngine.from_state(state['evolution'])
-        verification = VerificationAuthority.from_state(
-            registry=registry,
-            ledger=ledger,
-            state=state['verification'],
-        )
+        verification = VerificationAuthority.from_state(registry=registry, ledger=ledger, state=state['verification'])
         artifacts = ArtifactStore.from_state(state.get('artifacts', {}))
         external_cores = ExternalCoreRegistry.from_state(state.get('external_cores', {}))
         self_models = SelfModelRegistry.from_state(registry, state.get('self_models', {}))
+        requirements = RequirementsControlPlane.from_state(
+            registry=registry, authority=authority, ledger=ledger, state=state.get('requirements', {}),
+        )
+        planning = PlanningControlPlane.from_state(
+            registry=registry, authority=authority, ledger=ledger, tasks=tasks,
+            requirements=requirements, state=state.get('planning', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
-                registry=registry,
-                ledger=ledger,
-                authority=authority,
-                tasks=tasks,
-                scheduler=scheduler,
-                artifacts=artifacts,
-                external_cores=external_cores,
-                self_models=self_models,
-                evolution=evolution,
-                verification=verification,
+                registry=registry, ledger=ledger, authority=authority, tasks=tasks,
+                scheduler=scheduler, artifacts=artifacts, external_cores=external_cores,
+                self_models=self_models, evolution=evolution, verification=verification,
                 state=state['central'],
             )
         return cls(
-            registry=registry,
-            ledger=ledger,
-            authority=authority,
-            memory=memory,
-            tasks=tasks,
-            scheduler=scheduler,
-            evolution=evolution,
-            verification=verification,
-            artifacts=artifacts,
-            external_cores=external_cores,
-            self_models=self_models,
-            central=central,
+            registry=registry, ledger=ledger, authority=authority, memory=memory,
+            tasks=tasks, scheduler=scheduler, evolution=evolution, verification=verification,
+            artifacts=artifacts, external_cores=external_cores, self_models=self_models,
+            central=central, requirements=requirements, planning=planning,
         )
