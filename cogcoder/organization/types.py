@@ -88,6 +88,17 @@ class EventKind(str, Enum):
     NEURAL_CANDIDATE_EVALUATED = 'neural_candidate_evaluated'
     NEURAL_PROMOTED = 'neural_promoted'
     NEURAL_ROLLBACK = 'neural_rollback'
+    TASK_LEASE_GRANTED = 'task_lease_granted'
+    TASK_LEASE_RENEWED = 'task_lease_renewed'
+    TASK_LEASE_REVOKED = 'task_lease_revoked'
+    COORDINATION_ACK = 'coordination_ack'
+    COORDINATION_ESCALATED = 'coordination_escalated'
+    CONFLICT_OPENED = 'conflict_opened'
+    CONFLICT_CLAIM_ADDED = 'conflict_claim_added'
+    CONFLICT_RESOLVED = 'conflict_resolved'
+    WAKE_RESERVED = 'wake_reserved'
+    WAKE_DEFERRED = 'wake_deferred'
+    STALE_AGENT_DETECTED = 'stale_agent_detected'
 
 
 def canonical_json(value: Any) -> str:
@@ -157,73 +168,44 @@ class AgentIdentity:
 
     def __post_init__(self) -> None:
         for value, label in (
-            (self.agent_id, 'agent_id'),
-            (self.name, 'name'),
-            (self.region, 'region'),
-            (self.role, 'role'),
-            (self.neural_version, 'neural_version'),
-            (self.memory_namespace, 'memory_namespace'),
-            (self.skill_namespace, 'skill_namespace'),
-            (self.specialization_version, 'specialization_version'),
-            (self.self_model_version, 'self_model_version'),
+            (self.agent_id, 'agent_id'), (self.name, 'name'), (self.region, 'region'),
+            (self.role, 'role'), (self.neural_version, 'neural_version'),
+            (self.memory_namespace, 'memory_namespace'), (self.skill_namespace, 'skill_namespace'),
+            (self.specialization_version, 'specialization_version'), (self.self_model_version, 'self_model_version'),
         ):
-            if not str(value).strip():
-                raise ValueError(f'{label} must be non-empty')
-        if not self.cognitive_capabilities:
-            raise ValueError('every permanent identity needs a cognitive capability floor')
-        if not self.authority_scope:
-            raise ValueError('every permanent identity needs an authority scope')
-        if not self.learning_capable:
-            raise ValueError('permanent identities must be learning capable')
+            if not str(value).strip(): raise ValueError(f'{label} must be non-empty')
+        if not self.cognitive_capabilities: raise ValueError('every permanent identity needs a cognitive capability floor')
+        if not self.authority_scope: raise ValueError('every permanent identity needs an authority scope')
+        if not self.learning_capable: raise ValueError('permanent identities must be learning capable')
         if self.rank in (AgentRank.CENTRAL, AgentRank.CHIEF) and not self.direct_work_capable:
             raise ValueError('Central and Regional Chiefs must be direct workers')
-        if self.rank is AgentRank.CENTRAL and self.region_chief_id is not None:
-            raise ValueError('Central cannot have a regional chief')
-        if self.rank is AgentRank.CHIEF and self.region_chief_id != self.agent_id:
-            raise ValueError('Regional Chief must identify itself as region chief')
+        if self.rank is AgentRank.CENTRAL and self.region_chief_id is not None: raise ValueError('Central cannot have a regional chief')
+        if self.rank is AgentRank.CHIEF and self.region_chief_id != self.agent_id: raise ValueError('Regional Chief must identify itself as region chief')
 
     def to_state(self) -> dict[str, Any]:
         return {
-            'agent_id': self.agent_id,
-            'name': self.name,
-            'region': self.region,
-            'role': self.role,
-            'rank': self.rank.value,
-            'neural_version': self.neural_version,
-            'parameter_accounting': self.parameter_accounting.to_state(),
-            'region_chief_id': self.region_chief_id,
-            'direct_work_capable': self.direct_work_capable,
-            'learning_capable': self.learning_capable,
-            'cognitive_capabilities': list(self.cognitive_capabilities),
-            'memory_namespace': self.memory_namespace,
-            'skill_namespace': self.skill_namespace,
-            'external_core_bindings': list(self.external_core_bindings),
-            'tool_permissions': list(self.tool_permissions),
-            'status': self.status.value,
-            'current_task': self.current_task,
-            'specialization_version': self.specialization_version,
-            'authority_scope': list(self.authority_scope),
-            'subscriptions': list(self.subscriptions),
-            'checkpoint_id': self.checkpoint_id,
+            'agent_id': self.agent_id, 'name': self.name, 'region': self.region, 'role': self.role,
+            'rank': self.rank.value, 'neural_version': self.neural_version,
+            'parameter_accounting': self.parameter_accounting.to_state(), 'region_chief_id': self.region_chief_id,
+            'direct_work_capable': self.direct_work_capable, 'learning_capable': self.learning_capable,
+            'cognitive_capabilities': list(self.cognitive_capabilities), 'memory_namespace': self.memory_namespace,
+            'skill_namespace': self.skill_namespace, 'external_core_bindings': list(self.external_core_bindings),
+            'tool_permissions': list(self.tool_permissions), 'status': self.status.value, 'current_task': self.current_task,
+            'specialization_version': self.specialization_version, 'authority_scope': list(self.authority_scope),
+            'subscriptions': list(self.subscriptions), 'checkpoint_id': self.checkpoint_id,
             'self_model_version': self.self_model_version,
         }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'AgentIdentity':
         return cls(
-            agent_id=str(state['agent_id']),
-            name=str(state['name']),
-            region=str(state['region']),
-            role=str(state['role']),
-            rank=AgentRank(str(state['rank'])),
-            neural_version=str(state['neural_version']),
+            agent_id=str(state['agent_id']), name=str(state['name']), region=str(state['region']), role=str(state['role']),
+            rank=AgentRank(str(state['rank'])), neural_version=str(state['neural_version']),
             parameter_accounting=ParameterAccounting.from_state(state['parameter_accounting']),
             region_chief_id=None if state.get('region_chief_id') is None else str(state['region_chief_id']),
-            direct_work_capable=bool(state['direct_work_capable']),
-            learning_capable=bool(state['learning_capable']),
+            direct_work_capable=bool(state['direct_work_capable']), learning_capable=bool(state['learning_capable']),
             cognitive_capabilities=tuple(str(row) for row in state['cognitive_capabilities']),
-            memory_namespace=str(state['memory_namespace']),
-            skill_namespace=str(state['skill_namespace']),
+            memory_namespace=str(state['memory_namespace']), skill_namespace=str(state['skill_namespace']),
             external_core_bindings=tuple(str(row) for row in state.get('external_core_bindings', ())),
             tool_permissions=tuple(str(row) for row in state.get('tool_permissions', ())),
             status=AgentStatus(str(state.get('status', AgentStatus.SLEEPING.value))),
@@ -258,49 +240,33 @@ class CognitiveEvent:
     @property
     def payload(self) -> dict[str, Any]:
         value = json.loads(self.payload_json)
-        if not isinstance(value, dict):
-            raise ValueError('event payload must decode to an object')
+        if not isinstance(value, dict): raise ValueError('event payload must decode to an object')
         return value
 
     def to_state(self) -> dict[str, Any]:
         return {
-            'event_id': self.event_id,
-            'sequence': self.sequence,
-            'kind': self.kind.value,
-            'source_agent_id': self.source_agent_id,
-            'target_agent_id': self.target_agent_id,
-            'region': self.region,
-            'payload_json': self.payload_json,
-            'digest': self.digest,
-            'scope': self.scope,
-            'causal_parent_ids': list(self.causal_parent_ids),
-            'object_refs': list(self.object_refs),
-            'evidence_refs': list(self.evidence_refs),
-            'priority': self.priority,
-            'requires_ack': self.requires_ack,
-            'status': self.status,
+            'event_id': self.event_id, 'sequence': self.sequence, 'kind': self.kind.value,
+            'source_agent_id': self.source_agent_id, 'target_agent_id': self.target_agent_id,
+            'region': self.region, 'payload_json': self.payload_json, 'digest': self.digest,
+            'scope': self.scope, 'causal_parent_ids': list(self.causal_parent_ids),
+            'object_refs': list(self.object_refs), 'evidence_refs': list(self.evidence_refs),
+            'priority': self.priority, 'requires_ack': self.requires_ack, 'status': self.status,
             'created_at_logical': self.created_at_logical,
         }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'CognitiveEvent':
         return cls(
-            event_id=str(state['event_id']),
-            sequence=int(state['sequence']),
-            kind=EventKind(str(state['kind'])),
+            event_id=str(state['event_id']), sequence=int(state['sequence']), kind=EventKind(str(state['kind'])),
             source_agent_id=str(state['source_agent_id']),
             target_agent_id=None if state.get('target_agent_id') is None else str(state['target_agent_id']),
-            region=None if state.get('region') is None else str(state['region']),
-            payload_json=str(state['payload_json']),
-            digest=str(state['digest']),
-            scope=str(state.get('scope', 'organization')),
+            region=None if state.get('region') is None else str(state['region']), payload_json=str(state['payload_json']),
+            digest=str(state['digest']), scope=str(state.get('scope', 'organization')),
             causal_parent_ids=tuple(str(row) for row in state.get('causal_parent_ids', ())),
             object_refs=tuple(str(row) for row in state.get('object_refs', ())),
             evidence_refs=tuple(str(row) for row in state.get('evidence_refs', ())),
-            priority=int(state.get('priority', 0)),
-            requires_ack=bool(state.get('requires_ack', False)),
-            status=str(state.get('status', 'emitted')),
-            created_at_logical=int(state.get('created_at_logical', state.get('sequence', 0))),
+            priority=int(state.get('priority', 0)), requires_ack=bool(state.get('requires_ack', False)),
+            status=str(state.get('status', 'emitted')), created_at_logical=int(state.get('created_at_logical', state.get('sequence', 0))),
         )
 
 
@@ -314,31 +280,17 @@ class EvidenceRecord:
     notes: str = ''
 
     def __post_init__(self) -> None:
-        if self.false_accepts < 0 or self.regressions < 0:
-            raise ValueError('evidence counters must be non-negative')
-        if not self.evidence_id or not self.verifier_agent_id:
-            raise ValueError('evidence identity must be explicit')
+        if self.false_accepts < 0 or self.regressions < 0: raise ValueError('evidence counters must be non-negative')
+        if not self.evidence_id or not self.verifier_agent_id: raise ValueError('evidence identity must be explicit')
 
     def to_state(self) -> dict[str, Any]:
-        return {
-            'evidence_id': self.evidence_id,
-            'verifier_agent_id': self.verifier_agent_id,
-            'passed': self.passed,
-            'false_accepts': self.false_accepts,
-            'regressions': self.regressions,
-            'notes': self.notes,
-        }
+        return {'evidence_id': self.evidence_id, 'verifier_agent_id': self.verifier_agent_id, 'passed': self.passed,
+                'false_accepts': self.false_accepts, 'regressions': self.regressions, 'notes': self.notes}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'EvidenceRecord':
-        return cls(
-            evidence_id=str(state['evidence_id']),
-            verifier_agent_id=str(state['verifier_agent_id']),
-            passed=bool(state['passed']),
-            false_accepts=int(state.get('false_accepts', 0)),
-            regressions=int(state.get('regressions', 0)),
-            notes=str(state.get('notes', '')),
-        )
+        return cls(str(state['evidence_id']), str(state['verifier_agent_id']), bool(state['passed']),
+                   int(state.get('false_accepts', 0)), int(state.get('regressions', 0)), str(state.get('notes', '')))
 
 
 @dataclass(frozen=True, slots=True)
@@ -361,45 +313,27 @@ class MemoryEntry:
     status_reason: str | None = None
 
     def __post_init__(self) -> None:
-        if not 0.0 <= float(self.confidence) <= 1.0:
-            raise ValueError('memory confidence must lie in [0, 1]')
+        if not 0.0 <= float(self.confidence) <= 1.0: raise ValueError('memory confidence must lie in [0, 1]')
 
     def to_state(self) -> dict[str, Any]:
-        return {
-            'memory_id': self.memory_id,
-            'sequence': self.sequence,
-            'scope': self.scope.value,
-            'text': self.text,
-            'owner_agent_id': self.owner_agent_id,
-            'region': self.region,
-            'task_id': self.task_id,
-            'tags': list(self.tags),
-            'parent_memory_id': self.parent_memory_id,
-            'promotion_receipt_id': self.promotion_receipt_id,
-            'status': self.status.value,
-            'evidence_ids': list(self.evidence_ids),
-            'confidence': self.confidence,
-            'dependencies': list(self.dependencies),
-            'supersedes': self.supersedes,
-            'status_reason': self.status_reason,
-        }
+        return {'memory_id': self.memory_id, 'sequence': self.sequence, 'scope': self.scope.value, 'text': self.text,
+                'owner_agent_id': self.owner_agent_id, 'region': self.region, 'task_id': self.task_id, 'tags': list(self.tags),
+                'parent_memory_id': self.parent_memory_id, 'promotion_receipt_id': self.promotion_receipt_id,
+                'status': self.status.value, 'evidence_ids': list(self.evidence_ids), 'confidence': self.confidence,
+                'dependencies': list(self.dependencies), 'supersedes': self.supersedes, 'status_reason': self.status_reason}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'MemoryEntry':
         return cls(
-            memory_id=str(state['memory_id']),
-            sequence=int(state['sequence']),
-            scope=MemoryScope(str(state['scope'])),
-            text=str(state['text']),
-            owner_agent_id=str(state['owner_agent_id']),
+            memory_id=str(state['memory_id']), sequence=int(state['sequence']), scope=MemoryScope(str(state['scope'])),
+            text=str(state['text']), owner_agent_id=str(state['owner_agent_id']),
             region=None if state.get('region') is None else str(state['region']),
             task_id=None if state.get('task_id') is None else str(state['task_id']),
             tags=tuple(str(row) for row in state.get('tags', ())),
             parent_memory_id=None if state.get('parent_memory_id') is None else str(state['parent_memory_id']),
             promotion_receipt_id=None if state.get('promotion_receipt_id') is None else str(state['promotion_receipt_id']),
             status=MemoryStatus(str(state.get('status', MemoryStatus.ACTIVE.value))),
-            evidence_ids=tuple(str(row) for row in state.get('evidence_ids', ())),
-            confidence=float(state.get('confidence', 1.0)),
+            evidence_ids=tuple(str(row) for row in state.get('evidence_ids', ())), confidence=float(state.get('confidence', 1.0)),
             dependencies=tuple(str(row) for row in state.get('dependencies', ())),
             supersedes=None if state.get('supersedes') is None else str(state['supersedes']),
             status_reason=None if state.get('status_reason') is None else str(state['status_reason']),
