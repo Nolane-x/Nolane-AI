@@ -18,6 +18,8 @@ class TaskRecord:
     leased_to: str | None = None
     completed_by: str | None = None
     output_artifact_ids: tuple[str, ...] = ()
+    aborted_by: str | None = None
+    abort_reason: str | None = None
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -28,6 +30,8 @@ class TaskRecord:
             'leased_to': self.leased_to,
             'completed_by': self.completed_by,
             'output_artifact_ids': list(self.output_artifact_ids),
+            'aborted_by': self.aborted_by,
+            'abort_reason': self.abort_reason,
         }
 
     @classmethod
@@ -40,6 +44,8 @@ class TaskRecord:
             leased_to=None if state.get('leased_to') is None else str(state['leased_to']),
             completed_by=None if state.get('completed_by') is None else str(state['completed_by']),
             output_artifact_ids=tuple(str(row) for row in state.get('output_artifact_ids', ())),
+            aborted_by=None if state.get('aborted_by') is None else str(state['aborted_by']),
+            abort_reason=None if state.get('abort_reason') is None else str(state['abort_reason']),
         )
 
 
@@ -83,6 +89,8 @@ class TaskGraph:
         old = self.get(task_id)
         if old.completed_by is not None:
             raise ValueError(f'task {task_id} is already completed')
+        if old.aborted_by is not None:
+            raise ValueError(f'task {task_id} is aborted')
         if old.leased_to is not None and old.leased_to != str(agent_id):
             raise ValueError(f'task {task_id} is already leased to {old.leased_to}')
         if self.registry is not None:
@@ -95,6 +103,8 @@ class TaskGraph:
 
     def complete(self, task_id: str, agent_id: str, *, output_artifact_ids: tuple[str, ...] = ()) -> TaskRecord:
         old = self.get(task_id)
+        if old.aborted_by is not None:
+            raise ValueError(f'task {task_id} is aborted')
         if old.leased_to != str(agent_id):
             raise PermissionError(f'agent {agent_id} does not own task lease {task_id}')
         row = replace(old, completed_by=str(agent_id), output_artifact_ids=tuple(str(x) for x in output_artifact_ids))
@@ -107,6 +117,32 @@ class TaskGraph:
             target_agent_id=str(agent_id),
             region=self.registry.get(agent_id).region if self.registry is not None else None,
             payload={'task_id': row.task_id, 'output_artifact_ids': list(row.output_artifact_ids)},
+        )
+        return row
+
+    def abort(self, task_id: str, actor_agent_id: str, *, reason: str) -> TaskRecord:
+        old = self.get(task_id)
+        actor = str(actor_agent_id)
+        if actor != 'nolane.central':
+            raise PermissionError('Part-II task abort authority belongs to Nolane Central')
+        if old.completed_by is not None:
+            raise ValueError(f'task {task_id} is already completed')
+        if old.aborted_by is not None:
+            raise ValueError(f'task {task_id} is already aborted')
+        reason = str(reason).strip()
+        if not reason:
+            raise ValueError('task abort reason must be explicit')
+        prior_lessee = old.leased_to
+        row = replace(old, leased_to=None, aborted_by=actor, abort_reason=reason)
+        self._tasks[row.task_id] = row
+        if self.registry is not None and prior_lessee is not None:
+            self.registry.bind_task(prior_lessee, None)
+        self.ledger.append(
+            EventKind.TASK_BLOCKED,
+            source_agent_id=actor,
+            target_agent_id=prior_lessee,
+            region=self.registry.get(prior_lessee).region if self.registry is not None and prior_lessee is not None else None,
+            payload={'task_id': row.task_id, 'reason': reason, 'status': 'aborted'},
         )
         return row
 
