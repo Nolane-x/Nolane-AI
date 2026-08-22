@@ -16,6 +16,7 @@ from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
 from .integration import IntegrationControlPlane
 from .memory import MemoryFabric
+from .operations import OperationsControlPlane
 from .planning import PlanningControlPlane
 from .registry import AgentRegistry
 from .requirements import RequirementsControlPlane
@@ -53,6 +54,7 @@ class OrganizationRuntime:
         debugging: DebugControlPlane | None = None,
         ui: UIControlPlane | None = None,
         assurance: AssuranceControlPlane | None = None,
+        operations: OperationsControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -65,10 +67,13 @@ class OrganizationRuntime:
         self.artifacts = artifacts
         self.external_cores = external_cores
         self.self_models = self_models
-        if self.authority.owner_of('frontend-ui-state') is None:
-            self.authority.claim_owner('frontend-ui-state', 'frontend.chief')
-        if self.authority.owner_of('ux-design-state') is None:
-            self.authority.claim_owner('ux-design-state', 'ux.chief')
+        for artifact_id, owner in (
+            ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
+            ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
+            ('reliability-state', 'reliability.chief'),
+        ):
+            if self.authority.owner_of(artifact_id) is None:
+                self.authority.claim_owner(artifact_id, owner)
         self.requirements = requirements or RequirementsControlPlane(
             registry=self.registry, authority=self.authority, ledger=self.ledger,
         )
@@ -102,11 +107,15 @@ class OrganizationRuntime:
             registry=self.registry, ledger=self.ledger, authority=self.authority,
             artifacts=self.artifacts, evolution=self.evolution, verification=self.verification,
         )
+        self.operations = operations or OperationsControlPlane(
+            registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
+            assurance=self.assurance,
+        )
         self.context = ContextCompiler(
             registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, requirements=self.requirements, planning=self.planning,
             architecture=self.architecture, integration=self.integration, coding=self.coding,
-            debugging=self.debugging, ui=self.ui, assurance=self.assurance,
+            debugging=self.debugging, ui=self.ui, assurance=self.assurance, operations=self.operations,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
@@ -126,6 +135,9 @@ class OrganizationRuntime:
         authority.claim_owner('verification-state', 'verification.chief')
         authority.claim_owner('frontend-ui-state', 'frontend.chief')
         authority.claim_owner('ux-design-state', 'ux.chief')
+        authority.claim_owner('data-state', 'data.chief')
+        authority.claim_owner('infrastructure-state', 'infrastructure.chief')
+        authority.claim_owner('reliability-state', 'reliability.chief')
 
         central_actions = (
             EventKind.CENTRAL_INTERVENTION, EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
@@ -228,7 +240,7 @@ class OrganizationRuntime:
             'adr': self.adr.to_state(), 'integration': self.integration.to_state(),
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
             'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
-            'central': self.central.to_state(),
+            'operations': self.operations.to_state(), 'central': self.central.to_state(),
         }
 
     @classmethod
@@ -236,10 +248,13 @@ class OrganizationRuntime:
         registry = AgentRegistry.from_state(state['registry'])
         ledger = EventLedger.from_state(state['ledger'])
         authority = AuthorityGraph.from_state(registry, state['authority'])
-        if authority.owner_of('frontend-ui-state') is None:
-            authority.claim_owner('frontend-ui-state', 'frontend.chief')
-        if authority.owner_of('ux-design-state') is None:
-            authority.claim_owner('ux-design-state', 'ux.chief')
+        for artifact_id, owner in (
+            ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
+            ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
+            ('reliability-state', 'reliability.chief'),
+        ):
+            if authority.owner_of(artifact_id) is None:
+                authority.claim_owner(artifact_id, owner)
         memory = MemoryFabric.from_state(state['memory'])
         tasks = TaskGraph.from_state(state['tasks'], ledger=ledger, registry=registry, authority=authority)
         scheduler = WakeSleepScheduler.from_state(registry=registry, ledger=ledger, state=state['scheduler'])
@@ -281,6 +296,10 @@ class OrganizationRuntime:
             registry=registry, ledger=ledger, authority=authority, artifacts=artifacts,
             evolution=evolution, verification=verification, state=state.get('assurance', {}),
         )
+        operations = OperationsControlPlane.from_state(
+            registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
+            state=state.get('operations', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -295,4 +314,5 @@ class OrganizationRuntime:
             external_cores=external_cores, self_models=self_models, central=central,
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
             integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
+            operations=operations,
         )
