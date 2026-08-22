@@ -10,6 +10,7 @@ from .blueprint import build_first_generation_blueprint
 from .central import CentralControlPlane
 from .coding import CodingControlPlane
 from .context import ContextCompiler
+from .debugging import DebugControlPlane
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
@@ -47,6 +48,7 @@ class OrganizationRuntime:
         adr: ADRDecisionLedger | None = None,
         integration: IntegrationControlPlane | None = None,
         coding: CodingControlPlane | None = None,
+        debugging: DebugControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -76,37 +78,23 @@ class OrganizationRuntime:
             registry=self.registry, authority=self.authority, architecture=self.architecture,
         )
         self.coding = coding or CodingControlPlane(
-            registry=self.registry,
-            ledger=self.ledger,
-            tasks=self.tasks,
-            evolution=self.evolution,
-            planning=self.planning,
-            architecture=self.architecture,
-            integration=self.integration,
+            registry=self.registry, ledger=self.ledger, tasks=self.tasks, evolution=self.evolution,
+            planning=self.planning, architecture=self.architecture, integration=self.integration,
+        )
+        self.debugging = debugging or DebugControlPlane(
+            registry=self.registry, ledger=self.ledger, tasks=self.tasks,
+            evolution=self.evolution, coding=self.coding,
         )
         self.context = ContextCompiler(
-            registry=self.registry,
-            memory=self.memory,
-            ledger=self.ledger,
-            tasks=self.tasks,
-            evolution=self.evolution,
-            requirements=self.requirements,
-            planning=self.planning,
-            architecture=self.architecture,
-            integration=self.integration,
-            coding=self.coding,
+            registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
+            evolution=self.evolution, requirements=self.requirements, planning=self.planning,
+            architecture=self.architecture, integration=self.integration, coding=self.coding,
+            debugging=self.debugging,
         )
         self.central = central or CentralControlPlane(
-            registry=self.registry,
-            ledger=self.ledger,
-            authority=self.authority,
-            tasks=self.tasks,
-            scheduler=self.scheduler,
-            artifacts=self.artifacts,
-            external_cores=self.external_cores,
-            self_models=self.self_models,
-            evolution=self.evolution,
-            verification=self.verification,
+            registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
+            scheduler=self.scheduler, artifacts=self.artifacts, external_cores=self.external_cores,
+            self_models=self.self_models, evolution=self.evolution, verification=self.verification,
         )
 
     @classmethod
@@ -121,12 +109,8 @@ class OrganizationRuntime:
         authority.claim_owner('verification-state', 'verification.chief')
 
         central_actions = (
-            EventKind.CENTRAL_INTERVENTION,
-            EventKind.CENTRAL_QUESTION,
-            EventKind.CENTRAL_CORRECTION,
-            EventKind.CENTRAL_REDIRECT,
-            EventKind.CENTRAL_PAUSE,
-            EventKind.CENTRAL_ABORT,
+            EventKind.CENTRAL_INTERVENTION, EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
+            EventKind.CENTRAL_REDIRECT, EventKind.CENTRAL_PAUSE, EventKind.CENTRAL_ABORT,
             EventKind.CENTRAL_REQUEST_EVIDENCE,
         )
         for identity in registry.identities():
@@ -144,17 +128,9 @@ class OrganizationRuntime:
         external_cores = build_default_external_core_registry(registry)
         self_models = SelfModelRegistry(registry)
         return cls(
-            registry=registry,
-            ledger=ledger,
-            authority=authority,
-            memory=memory,
-            tasks=tasks,
-            scheduler=scheduler,
-            evolution=evolution,
-            verification=verification,
-            artifacts=artifacts,
-            external_cores=external_cores,
-            self_models=self_models,
+            registry=registry, ledger=ledger, authority=authority, memory=memory, tasks=tasks,
+            scheduler=scheduler, evolution=evolution, verification=verification, artifacts=artifacts,
+            external_cores=external_cores, self_models=self_models,
         )
 
     def central_intervene(self, *, target_agent_id: str, directive: str, evidence_ids: tuple[str, ...]):
@@ -164,12 +140,8 @@ class OrganizationRuntime:
         if not evidence_ids:
             raise ValueError('Central intervention requires evidence ids')
         event = self.ledger.append(
-            EventKind.CENTRAL_INTERVENTION,
-            source_agent_id='nolane.central',
-            target_agent_id=target.agent_id,
-            region=target.region,
-            evidence_refs=tuple(str(value) for value in evidence_ids),
-            priority=100,
+            EventKind.CENTRAL_INTERVENTION, source_agent_id='nolane.central', target_agent_id=target.agent_id,
+            region=target.region, evidence_refs=tuple(str(value) for value in evidence_ids), priority=100,
             requires_ack=True,
             payload={'directive': str(directive), 'evidence_ids': [str(value) for value in evidence_ids], 'region_chief_id': target.region_chief_id},
         )
@@ -178,9 +150,8 @@ class OrganizationRuntime:
 
     def central_action(self, kind: EventKind, *, target_agent_id: str, directive: str, evidence_ids: tuple[str, ...]):
         if kind not in {
-            EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
-            EventKind.CENTRAL_REDIRECT, EventKind.CENTRAL_PAUSE,
-            EventKind.CENTRAL_ABORT, EventKind.CENTRAL_REQUEST_EVIDENCE,
+            EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION, EventKind.CENTRAL_REDIRECT,
+            EventKind.CENTRAL_PAUSE, EventKind.CENTRAL_ABORT, EventKind.CENTRAL_REQUEST_EVIDENCE,
         }:
             raise ValueError('unsupported explicit Central action')
         evidence = tuple(str(value) for value in evidence_ids)
@@ -198,11 +169,8 @@ class OrganizationRuntime:
 
     def report_plan_gap(self, *, source_agent_id: str, task_id: str, reason: str, suggested_nodes: tuple[str, ...], evidence_ids: tuple[str, ...]):
         event = self.tasks.propose_plan_gap(
-            source_agent_id=source_agent_id,
-            task_id=task_id,
-            reason=reason,
-            suggested_nodes=suggested_nodes,
-            evidence_ids=evidence_ids,
+            source_agent_id=source_agent_id, task_id=task_id, reason=reason,
+            suggested_nodes=suggested_nodes, evidence_ids=evidence_ids,
         )
         self.scheduler.notify_event(event)
         return event
@@ -213,11 +181,8 @@ class OrganizationRuntime:
             raise PermissionError(f'{chief_agent_id} is not an authorized working Regional Chief')
         completed = self.tasks.complete(task_id, chief.agent_id, output_artifact_ids=output_artifact_ids)
         event = self.ledger.append(
-            EventKind.CHIEF_DIRECT_WORK,
-            source_agent_id=chief.agent_id,
-            target_agent_id=chief.agent_id,
-            region=chief.region,
-            object_refs=tuple(output_artifact_ids),
+            EventKind.CHIEF_DIRECT_WORK, source_agent_id=chief.agent_id, target_agent_id=chief.agent_id,
+            region=chief.region, object_refs=tuple(output_artifact_ids),
             payload={'task_id': task_id, 'output_artifact_ids': list(output_artifact_ids), 'mode': 'direct_work'},
         )
         return {'chief_agent_id': chief.agent_id, 'task_id': completed.task_id, 'event_id': event.event_id, 'output_artifact_ids': completed.output_artifact_ids}
@@ -234,23 +199,15 @@ class OrganizationRuntime:
 
     def to_state(self) -> dict[str, Any]:
         return {
-            'registry': self.registry.to_state(),
-            'ledger': self.ledger.to_state(),
-            'authority': self.authority.to_state(),
-            'memory': self.memory.to_state(),
-            'tasks': self.tasks.to_state(),
-            'scheduler': self.scheduler.to_state(),
-            'evolution': self.evolution.to_state(),
-            'verification': self.verification.to_state(),
-            'artifacts': self.artifacts.to_state(),
-            'external_cores': self.external_cores.to_state(),
-            'self_models': self.self_models.to_state(),
-            'requirements': self.requirements.to_state(),
-            'planning': self.planning.to_state(),
-            'architecture': self.architecture.to_state(),
-            'adr': self.adr.to_state(),
-            'integration': self.integration.to_state(),
-            'coding': self.coding.to_state(),
+            'registry': self.registry.to_state(), 'ledger': self.ledger.to_state(),
+            'authority': self.authority.to_state(), 'memory': self.memory.to_state(),
+            'tasks': self.tasks.to_state(), 'scheduler': self.scheduler.to_state(),
+            'evolution': self.evolution.to_state(), 'verification': self.verification.to_state(),
+            'artifacts': self.artifacts.to_state(), 'external_cores': self.external_cores.to_state(),
+            'self_models': self.self_models.to_state(), 'requirements': self.requirements.to_state(),
+            'planning': self.planning.to_state(), 'architecture': self.architecture.to_state(),
+            'adr': self.adr.to_state(), 'integration': self.integration.to_state(),
+            'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
             'central': self.central.to_state(),
         }
 
@@ -284,14 +241,12 @@ class OrganizationRuntime:
             registry=registry, authority=authority, architecture=architecture, state=state.get('integration', {}),
         )
         coding = CodingControlPlane.from_state(
-            registry=registry,
-            ledger=ledger,
-            tasks=tasks,
-            evolution=evolution,
-            planning=planning,
-            architecture=architecture,
-            integration=integration,
-            state=state.get('coding', {}),
+            registry=registry, ledger=ledger, tasks=tasks, evolution=evolution, planning=planning,
+            architecture=architecture, integration=integration, state=state.get('coding', {}),
+        )
+        debugging = DebugControlPlane.from_state(
+            registry=registry, ledger=ledger, tasks=tasks, evolution=evolution,
+            coding=coding, state=state.get('debugging', {}),
         )
         central = None
         if 'central' in state:
@@ -302,9 +257,9 @@ class OrganizationRuntime:
                 state=state['central'],
             )
         return cls(
-            registry=registry, ledger=ledger, authority=authority, memory=memory,
-            tasks=tasks, scheduler=scheduler, evolution=evolution, verification=verification,
-            artifacts=artifacts, external_cores=external_cores, self_models=self_models,
-            central=central, requirements=requirements, planning=planning,
-            architecture=architecture, adr=adr, integration=integration, coding=coding,
+            registry=registry, ledger=ledger, authority=authority, memory=memory, tasks=tasks,
+            scheduler=scheduler, evolution=evolution, verification=verification, artifacts=artifacts,
+            external_cores=external_cores, self_models=self_models, central=central,
+            requirements=requirements, planning=planning, architecture=architecture, adr=adr,
+            integration=integration, coding=coding, debugging=debugging,
         )
