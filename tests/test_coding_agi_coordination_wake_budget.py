@@ -56,7 +56,14 @@ def test_direct_target_is_prioritized_and_active_agent_does_not_consume_new_slot
 
 
 def test_high_severity_mode_can_use_recorded_ceiling_eighteen():
-    agent_ids = [row.agent_id for row in OrganizationRuntime.first_generation().registry.identities()[:12]]
+    agent_ids = [
+        'requirements.chief', 'requirements.analysis.01',
+        'planning.chief', 'planning.task-graph.01',
+        'architecture.chief', 'architecture.component.01',
+        'coding.chief', 'coding.backend.01',
+        'debug.chief', 'debug.reproducer.01',
+        'verification.chief', 'verification.unit-property.01',
+    ]
     runtime, event = _fanout_runtime(agent_ids)
     runtime.coordination.set_budget(CoordinationBudget(high_severity_max_active_agents=18))
     rows = runtime.coordination.plan_wakes(event.event_id, mode='high_severity')
