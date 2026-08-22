@@ -191,7 +191,12 @@ class DebugProfileRegistry:
         )
 
     def to_state(self) -> dict[str, Any]:
-        return {'profiles': [x.to_state() for x in self.profiles()]}
+        rows: list[dict[str, Any]] = []
+        for profile in self.profiles():
+            row = profile.to_state()
+            row['accepted_neural_version'] = self.registry.get(profile.agent_id).neural_version
+            rows.append(row)
+        return {'profiles': rows}
 
     @classmethod
     def from_state(cls, registry: AgentRegistry, state: Mapping[str, Any]) -> 'DebugProfileRegistry':
