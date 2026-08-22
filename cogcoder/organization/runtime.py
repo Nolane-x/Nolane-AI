@@ -14,6 +14,7 @@ from .debugging import DebugControlPlane
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
+from .individual_evolution import IndividualEvolutionControlPlane
 from .integration import IntegrationControlPlane
 from .memory import MemoryFabric
 from .memory_context import MemoryContextControlPlane
@@ -60,6 +61,7 @@ class OrganizationRuntime:
         operations: OperationsControlPlane | None = None,
         research: ResearchControlPlane | None = None,
         memory_context: MemoryContextControlPlane | None = None,
+        individual_evolution: IndividualEvolutionControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -112,6 +114,10 @@ class OrganizationRuntime:
         self.assurance = assurance or AssuranceControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority,
             artifacts=self.artifacts, evolution=self.evolution, verification=self.verification,
+        )
+        self.individual_evolution = individual_evolution or IndividualEvolutionControlPlane(
+            registry=self.registry, events=self.ledger, evolution=self.evolution,
+            self_models=self.self_models, verification=self.verification, assurance=self.assurance,
         )
         self.operations = operations or OperationsControlPlane(
             registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
@@ -271,7 +277,9 @@ class OrganizationRuntime:
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
             'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
             'operations': self.operations.to_state(), 'research': self.research.to_state(),
-            'memory_context': self.memory_context.to_state(), 'central': self.central.to_state(),
+            'memory_context': self.memory_context.to_state(),
+            'individual_evolution': self.individual_evolution.to_state(),
+            'central': self.central.to_state(),
         }
 
     @classmethod
@@ -328,6 +336,10 @@ class OrganizationRuntime:
             registry=registry, ledger=ledger, authority=authority, artifacts=artifacts,
             evolution=evolution, verification=verification, state=state.get('assurance', {}),
         )
+        individual_evolution = IndividualEvolutionControlPlane.from_state(
+            registry=registry, events=ledger, evolution=evolution, self_models=self_models,
+            verification=verification, assurance=assurance, state=state.get('individual_evolution', {}),
+        )
         operations = OperationsControlPlane.from_state(
             registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
             state=state.get('operations', {}),
@@ -363,4 +375,5 @@ class OrganizationRuntime:
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
             integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
             operations=operations, research=research, memory_context=memory_context,
+            individual_evolution=individual_evolution,
         )

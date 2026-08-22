@@ -26,37 +26,27 @@ def test_candidate_skill_is_not_active_and_producer_cannot_self_verify():
     assert skill.scope is SkillScope.CANDIDATE
     assert skill.skill_id not in {row.skill_id for row in runtime.evolution.skills_for('coding.backend.01', region='core-coding')}
     with pytest.raises(PermissionError):
-        runtime.individual_evolution.verify_skill(
-            skill.skill_id, EvidenceRecord('EV-SELF-SKILL', 'coding.backend.01', True),
-        )
+        runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-SELF-SKILL', 'coding.backend.01', True))
 
 
 def test_skill_promotion_requires_progressively_stronger_external_evidence_and_cross_region_global_evidence():
     runtime = OrganizationRuntime.first_generation()
     skill = _candidate(runtime)
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('EV-V1', 'verification.unit-property.01', True),
-    )
+    runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-V1', 'coding.chief', True))
     personal = runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     assert personal.scope is SkillScope.PERSONAL
     with pytest.raises(PermissionError):
         runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.REGIONAL)
 
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('EV-V2', 'verification.fuzz-regression.01', True),
-    )
+    runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-V2', 'coding.core-algorithm.01', True))
     regional = runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.REGIONAL)
     assert regional.scope is SkillScope.REGIONAL
 
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('EV-V3-SAME', 'verification.spec-acceptance.01', True),
-    )
+    runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-V3-SAME', 'coding.systems.01', True))
     with pytest.raises(PermissionError):
         runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.GLOBAL)
 
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('EV-V4-CROSS', 'architecture.chief', True),
-    )
+    runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-V4-CROSS', 'architecture.chief', True))
     global_skill = runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.GLOBAL)
     assert global_skill.scope is SkillScope.GLOBAL
 
@@ -65,8 +55,7 @@ def test_dirty_skill_evidence_quarantines_candidate_instead_of_promoting_bad_lea
     runtime = OrganizationRuntime.first_generation()
     skill = _candidate(runtime)
     quarantined = runtime.individual_evolution.verify_skill(
-        skill.skill_id,
-        EvidenceRecord('EV-DIRTY', 'verification.fuzz-regression.01', False, false_accepts=1, regressions=1),
+        skill.skill_id, EvidenceRecord('EV-DIRTY', 'verification.fuzz-regression.01', False, false_accepts=1, regressions=1),
     )
     assert quarantined.quarantined is True
     with pytest.raises(PermissionError):
