@@ -420,3 +420,8 @@ class ContextCapsule:
     applicable_skill_ids: tuple[str, ...] = ()
     identity_summary: tuple[tuple[str, str], ...] = ()
     authority_boundary: tuple[str, ...] = ()
+    semantic_delta_digest: str | None = None
+    context_compilation_receipt_id: str | None = None
+    context_budget_units: int = 0
+    context_overload_ratio: float = 0.0
+    stale_context_warnings: tuple[str, ...] = ()

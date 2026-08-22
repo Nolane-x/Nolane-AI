@@ -16,6 +16,8 @@ from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
 from .integration import IntegrationControlPlane
 from .memory import MemoryFabric
+from .memory_context import MemoryContextControlPlane
+from .memory_context_adapter import MemoryAwareContextCompiler
 from .operations import OperationsControlPlane
 from .planning import PlanningControlPlane
 from .registry import AgentRegistry
@@ -57,6 +59,7 @@ class OrganizationRuntime:
         assurance: AssuranceControlPlane | None = None,
         operations: OperationsControlPlane | None = None,
         research: ResearchControlPlane | None = None,
+        memory_context: MemoryContextControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -73,6 +76,7 @@ class OrganizationRuntime:
             ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
             ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
             ('reliability-state', 'reliability.chief'), ('research-state', 'research.chief'),
+            ('memory-intelligence-state', 'memory.chief'),
         ):
             if self.authority.owner_of(artifact_id) is None:
                 self.authority.claim_owner(artifact_id, owner)
@@ -117,13 +121,30 @@ class OrganizationRuntime:
             registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
             assurance=self.assurance,
         )
-        self.context = ContextCompiler(
+        self.memory_context = memory_context or MemoryContextControlPlane(
+            registry=self.registry,
+            memory=self.memory,
+            events=self.ledger,
+            tasks=self.tasks,
+            scheduler=self.scheduler,
+            evolution=self.evolution,
+            requirements=self.requirements,
+            planning=self.planning,
+            architecture=self.architecture,
+        )
+        base_context = ContextCompiler(
             registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, requirements=self.requirements, planning=self.planning,
             architecture=self.architecture, integration=self.integration, coding=self.coding,
             debugging=self.debugging, ui=self.ui, assurance=self.assurance, operations=self.operations,
             research=self.research,
         )
+        self.context = MemoryAwareContextCompiler(
+            base_context=base_context,
+            memory_context=self.memory_context,
+            registry=self.registry,
+        )
+        self.memory_context.bind_base_context(self.context)
         self.central = central or CentralControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
             scheduler=self.scheduler, artifacts=self.artifacts, external_cores=self.external_cores,
@@ -146,6 +167,7 @@ class OrganizationRuntime:
         authority.claim_owner('infrastructure-state', 'infrastructure.chief')
         authority.claim_owner('reliability-state', 'reliability.chief')
         authority.claim_owner('research-state', 'research.chief')
+        authority.claim_owner('memory-intelligence-state', 'memory.chief')
 
         central_actions = (
             EventKind.CENTRAL_INTERVENTION, EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
@@ -249,7 +271,7 @@ class OrganizationRuntime:
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
             'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
             'operations': self.operations.to_state(), 'research': self.research.to_state(),
-            'central': self.central.to_state(),
+            'memory_context': self.memory_context.to_state(), 'central': self.central.to_state(),
         }
 
     @classmethod
@@ -261,6 +283,7 @@ class OrganizationRuntime:
             ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
             ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
             ('reliability-state', 'reliability.chief'), ('research-state', 'research.chief'),
+            ('memory-intelligence-state', 'memory.chief'),
         ):
             if authority.owner_of(artifact_id) is None:
                 authority.claim_owner(artifact_id, owner)
@@ -313,6 +336,18 @@ class OrganizationRuntime:
             registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
             state=state.get('research', {}),
         )
+        memory_context = MemoryContextControlPlane.from_state(
+            registry=registry,
+            memory=memory,
+            events=ledger,
+            tasks=tasks,
+            scheduler=scheduler,
+            evolution=evolution,
+            requirements=requirements,
+            planning=planning,
+            architecture=architecture,
+            state=state.get('memory_context', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -327,5 +362,5 @@ class OrganizationRuntime:
             external_cores=external_cores, self_models=self_models, central=central,
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
             integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
-            operations=operations, research=research,
+            operations=operations, research=research, memory_context=memory_context,
         )
