@@ -16,32 +16,45 @@ class WakeSleepScheduler:
         self._periodic_tokens: dict[str, int] = {}
 
     def sleep(self, agent_id: str, *, checkpoint_event_id: str | None = None) -> None:
-        self.registry.get(agent_id)
+        identity = self.registry.get(agent_id)
         if checkpoint_event_id is not None:
             self.ledger.get(checkpoint_event_id)
-        self._checkpoints[str(agent_id)] = checkpoint_event_id
+        checkpoint = self.ledger.append(
+            EventKind.AGENT_CHECKPOINTED,
+            source_agent_id=str(agent_id),
+            target_agent_id=str(agent_id),
+            region=identity.region,
+            causal_parent_ids=() if checkpoint_event_id is None else (checkpoint_event_id,),
+            payload={'previous_event_id': checkpoint_event_id, 'current_task': identity.current_task},
+        )
+        self._checkpoints[str(agent_id)] = checkpoint.event_id
+        self.registry.set_checkpoint(agent_id, checkpoint.event_id)
         self.registry.set_status(agent_id, AgentStatus.SLEEPING)
         self.ledger.append(
             EventKind.AGENT_SLEEP,
             source_agent_id=str(agent_id),
             target_agent_id=str(agent_id),
-            region=self.registry.get(agent_id).region,
-            payload={'checkpoint_event_id': checkpoint_event_id},
+            region=identity.region,
+            causal_parent_ids=(checkpoint.event_id,),
+            payload={'checkpoint_event_id': checkpoint.event_id},
         )
 
     def wake(self, agent_id: str, *, reason: str) -> None:
-        self.registry.get(agent_id)
+        identity = self.registry.get(agent_id)
         if not str(reason).strip():
             raise ValueError('wake reason must be explicit')
-        self.registry.set_status(agent_id, AgentStatus.ACTIVE)
-        self._wake_reasons.pop(str(agent_id), None)
+        self.registry.set_status(agent_id, AgentStatus.WAKING)
+        checkpoint = self._checkpoints.get(str(agent_id))
         self.ledger.append(
             EventKind.AGENT_WAKE,
             source_agent_id=str(agent_id),
             target_agent_id=str(agent_id),
-            region=self.registry.get(agent_id).region,
-            payload={'reason': str(reason), 'checkpoint_event_id': self._checkpoints.get(str(agent_id))},
+            region=identity.region,
+            causal_parent_ids=() if checkpoint is None else (checkpoint,),
+            payload={'reason': str(reason), 'checkpoint_event_id': checkpoint},
         )
+        self.registry.set_status(agent_id, AgentStatus.ACTIVE)
+        self._wake_reasons.pop(str(agent_id), None)
 
     def notify_event(self, event: CognitiveEvent) -> None:
         recipients: set[str] = set()
@@ -72,8 +85,8 @@ class WakeSleepScheduler:
         return tuple(sorted(self._wake_reasons.get(str(agent_id), ())))
 
     def checkpoint_for(self, agent_id: str) -> str | None:
-        self.registry.get(agent_id)
-        return self._checkpoints.get(str(agent_id))
+        identity = self.registry.get(agent_id)
+        return self._checkpoints.get(str(agent_id), identity.checkpoint_id)
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -97,4 +110,6 @@ class WakeSleepScheduler:
             str(key): int(value)
             for key, value in state.get('periodic_tokens', {}).items()
         }
+        for agent_id, checkpoint in scheduler._checkpoints.items():
+            registry.set_checkpoint(agent_id, checkpoint)
         return scheduler
