@@ -194,6 +194,7 @@ class MasterPlanGraph:
                 raise ValueError('risk references unknown plan node')
         visiting: set[str] = set()
         visited: set[str] = set()
+
         def visit(key: str) -> None:
             if key in visiting:
                 raise ValueError('plan dependency cycle detected')
@@ -204,6 +205,7 @@ class MasterPlanGraph:
                 visit(dep)
             visiting.remove(key)
             visited.add(key)
+
         for key in sorted(nodes):
             visit(key)
 
@@ -387,7 +389,7 @@ class PlanningControlPlane:
         for task_id in affected_tasks:
             self.tasks.get(task_id)
         old = self.graph.version
-        rev = self.graph.apply(actor_agent_id=actor_agent_id, reason=str(proposal.payload.get('reason', 'plan gap')), evidence_refs=evidence_refs, upserts=added_nodes)
+        rev = self.graph.apply(actor_agent_id=actor_agent_id, reason=str(proposal.payload.get('reason', 'plan gap')), evidence_refs=evidence_refs, upsert_nodes=added_nodes)
         self._delta(old, rev.version, affected_tasks)
         for task_id in affected_tasks:
             task = self.tasks.get(task_id)
