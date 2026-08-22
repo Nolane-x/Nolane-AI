@@ -1,0 +1,47 @@
+name: Coding AGI Requirements Planning Part III
+
+on:
+  push:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_requirements_*.py'
+      - 'tests/test_coding_agi_master_plan.py'
+      - 'tests/test_coding_agi_planning_*.py'
+      - 'tests/test_coding_agi_plan_reconciliation.py'
+      - 'docs/superpowers/specs/2026-08-22-requirements-planning-part3-design.md'
+      - 'docs/superpowers/plans/2026-08-22-requirements-planning-part3.md'
+      - '.github/workflows/coding-agi-requirements-planning-part3.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_requirements_*.py'
+      - 'tests/test_coding_agi_master_plan.py'
+      - 'tests/test_coding_agi_planning_*.py'
+      - 'tests/test_coding_agi_plan_reconciliation.py'
+      - '.github/workflows/coding-agi-requirements-planning-part3.yml'
+  workflow_dispatch:
+
+jobs:
+  requirements-planning:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: python -m py_compile cogcoder/organization/*.py
+      - name: Run Part III contracts and Part I regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_foundation_*.py
