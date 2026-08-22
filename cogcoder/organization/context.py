@@ -31,6 +31,7 @@ class ContextCompiler:
         coding: Any = None,
         debugging: Any = None,
         ui: Any = None,
+        assurance: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -48,6 +49,7 @@ class ContextCompiler:
         self.coding = coding
         self.debugging = debugging
         self.ui = ui
+        self.assurance = assurance
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -106,6 +108,8 @@ class ContextCompiler:
             artifacts.append(('debugging-state', self.debugging.digest))
         if self.ui is not None and identity.region in {'frontend-ui', 'ux-product-design'}:
             artifacts.append(('ui-state', self.ui.digest))
+        if self.assurance is not None and identity.region in {'verification-testing', 'security-adversarial'}:
+            artifacts.append(('assurance-state', self.assurance.digest))
 
         return ContextCapsule(
             agent_id=identity.agent_id,

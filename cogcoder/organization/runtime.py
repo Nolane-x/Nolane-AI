@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from .adr import ADRDecisionLedger
 from .architecture import ArchitectureControlPlane
 from .artifacts import ArtifactStore
+from .assurance import AssuranceControlPlane
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
 from .central import CentralControlPlane
@@ -51,6 +52,7 @@ class OrganizationRuntime:
         coding: UICodingControlPlane | None = None,
         debugging: DebugControlPlane | None = None,
         ui: UIControlPlane | None = None,
+        assurance: AssuranceControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -96,11 +98,15 @@ class OrganizationRuntime:
             artifacts=self.artifacts, authority=self.authority, planning=self.planning,
             architecture=self.architecture, coding=self.coding,
         )
+        self.assurance = assurance or AssuranceControlPlane(
+            registry=self.registry, ledger=self.ledger, authority=self.authority,
+            artifacts=self.artifacts, evolution=self.evolution, verification=self.verification,
+        )
         self.context = ContextCompiler(
             registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, requirements=self.requirements, planning=self.planning,
             architecture=self.architecture, integration=self.integration, coding=self.coding,
-            debugging=self.debugging, ui=self.ui,
+            debugging=self.debugging, ui=self.ui, assurance=self.assurance,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
@@ -221,7 +227,8 @@ class OrganizationRuntime:
             'planning': self.planning.to_state(), 'architecture': self.architecture.to_state(),
             'adr': self.adr.to_state(), 'integration': self.integration.to_state(),
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
-            'ui': self.ui.to_state(), 'central': self.central.to_state(),
+            'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
+            'central': self.central.to_state(),
         }
 
     @classmethod
@@ -270,6 +277,10 @@ class OrganizationRuntime:
             authority=authority, planning=planning, architecture=architecture, coding=coding,
             state=state.get('ui', {}),
         )
+        assurance = AssuranceControlPlane.from_state(
+            registry=registry, ledger=ledger, authority=authority, artifacts=artifacts,
+            evolution=evolution, verification=verification, state=state.get('assurance', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -283,5 +294,5 @@ class OrganizationRuntime:
             scheduler=scheduler, evolution=evolution, verification=verification, artifacts=artifacts,
             external_cores=external_cores, self_models=self_models, central=central,
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
-            integration=integration, coding=coding, debugging=debugging, ui=ui,
+            integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
         )
