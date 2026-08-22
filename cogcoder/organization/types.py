@@ -19,9 +19,13 @@ class AgentRank(str, Enum):
 
 class AgentStatus(str, Enum):
     SLEEPING = 'sleeping'
+    WAKING = 'waking'
     ACTIVE = 'active'
-    PAUSED = 'paused'
+    WAITING = 'waiting'
     BLOCKED = 'blocked'
+    CHECKPOINTING = 'checkpointing'
+    PAUSED = 'paused'
+    QUARANTINED = 'quarantined'
 
 
 class MemoryScope(str, Enum):
@@ -32,6 +36,15 @@ class MemoryScope(str, Enum):
     PRIVATE = 'private'
 
 
+class MemoryStatus(str, Enum):
+    ACTIVE = 'active'
+    STALE = 'stale'
+    SUPERSEDED = 'superseded'
+    CONTRADICTED = 'contradicted'
+    QUARANTINED = 'quarantined'
+    ARCHIVED = 'archived'
+
+
 class SkillScope(str, Enum):
     CANDIDATE = 'candidate'
     PERSONAL = 'personal'
@@ -40,23 +53,41 @@ class SkillScope(str, Enum):
 
 
 class EventKind(str, Enum):
-    CENTRAL_INTERVENTION = 'central_intervention'
+    TASK_ASSIGNED = 'task_assigned'
     TASK_STARTED = 'task_started'
-    TASK_COMPLETED = 'task_completed'
+    TASK_PROGRESS = 'task_progress'
     TASK_BLOCKED = 'task_blocked'
+    TASK_COMPLETED = 'task_completed'
     PLAN_GAP_DETECTED = 'plan_gap_detected'
+    PLAN_CHANGE_PROPOSED = 'plan_change_proposed'
     PLAN_AMENDED = 'plan_amended'
+    ARCHITECTURE_CONCERN = 'architecture_concern'
+    BUG_DISCOVERED = 'bug_discovered'
+    HYPOTHESIS_PROPOSED = 'hypothesis_proposed'
+    EVIDENCE_ADDED = 'evidence_added'
     TEST_FAILED = 'test_failed'
+    TEST_PASSED = 'test_passed'
     VERIFICATION_REJECTED = 'verification_rejected'
-    CHIEF_DIRECT_WORK = 'chief_direct_work'
-    MEMORY_PROMOTED = 'memory_promoted'
+    SKILL_CANDIDATE = 'skill_candidate'
     SKILL_PROMOTED = 'skill_promoted'
+    SKILL_REJECTED = 'skill_rejected'
     SKILL_QUARANTINED = 'skill_quarantined'
+    MEMORY_CONFLICT = 'memory_conflict'
+    MEMORY_PROMOTED = 'memory_promoted'
+    CENTRAL_INTERVENTION = 'central_intervention'
+    CENTRAL_QUESTION = 'central_question'
+    CENTRAL_CORRECTION = 'central_correction'
+    CENTRAL_REDIRECT = 'central_redirect'
+    CENTRAL_PAUSE = 'central_pause'
+    CENTRAL_ABORT = 'central_abort'
+    CENTRAL_REQUEST_EVIDENCE = 'central_request_evidence'
+    AGENT_CHECKPOINTED = 'agent_checkpointed'
+    AGENT_SLEEP = 'agent_sleep'
+    AGENT_WAKE = 'agent_wake'
+    CHIEF_DIRECT_WORK = 'chief_direct_work'
     NEURAL_CANDIDATE_EVALUATED = 'neural_candidate_evaluated'
     NEURAL_PROMOTED = 'neural_promoted'
     NEURAL_ROLLBACK = 'neural_rollback'
-    AGENT_SLEEP = 'agent_sleep'
-    AGENT_WAKE = 'agent_wake'
 
 
 def canonical_json(value: Any) -> str:
@@ -118,6 +149,11 @@ class AgentIdentity:
     tool_permissions: tuple[str, ...] = ()
     status: AgentStatus = AgentStatus.SLEEPING
     current_task: str | None = None
+    specialization_version: str = 'specialization-0.1'
+    authority_scope: tuple[str, ...] = ('task',)
+    subscriptions: tuple[str, ...] = ()
+    checkpoint_id: str | None = None
+    self_model_version: str = 'self-model-0.1'
 
     def __post_init__(self) -> None:
         for value, label in (
@@ -128,11 +164,15 @@ class AgentIdentity:
             (self.neural_version, 'neural_version'),
             (self.memory_namespace, 'memory_namespace'),
             (self.skill_namespace, 'skill_namespace'),
+            (self.specialization_version, 'specialization_version'),
+            (self.self_model_version, 'self_model_version'),
         ):
             if not str(value).strip():
                 raise ValueError(f'{label} must be non-empty')
         if not self.cognitive_capabilities:
             raise ValueError('every permanent identity needs a cognitive capability floor')
+        if not self.authority_scope:
+            raise ValueError('every permanent identity needs an authority scope')
         if not self.learning_capable:
             raise ValueError('permanent identities must be learning capable')
         if self.rank in (AgentRank.CENTRAL, AgentRank.CHIEF) and not self.direct_work_capable:
@@ -161,6 +201,11 @@ class AgentIdentity:
             'tool_permissions': list(self.tool_permissions),
             'status': self.status.value,
             'current_task': self.current_task,
+            'specialization_version': self.specialization_version,
+            'authority_scope': list(self.authority_scope),
+            'subscriptions': list(self.subscriptions),
+            'checkpoint_id': self.checkpoint_id,
+            'self_model_version': self.self_model_version,
         }
 
     @classmethod
@@ -183,6 +228,11 @@ class AgentIdentity:
             tool_permissions=tuple(str(row) for row in state.get('tool_permissions', ())),
             status=AgentStatus(str(state.get('status', AgentStatus.SLEEPING.value))),
             current_task=None if state.get('current_task') is None else str(state['current_task']),
+            specialization_version=str(state.get('specialization_version', 'specialization-0.1')),
+            authority_scope=tuple(str(row) for row in state.get('authority_scope', ('task',))),
+            subscriptions=tuple(str(row) for row in state.get('subscriptions', ())),
+            checkpoint_id=None if state.get('checkpoint_id') is None else str(state['checkpoint_id']),
+            self_model_version=str(state.get('self_model_version', 'self-model-0.1')),
         )
 
 
@@ -196,6 +246,14 @@ class CognitiveEvent:
     region: str | None
     payload_json: str
     digest: str
+    scope: str = 'organization'
+    causal_parent_ids: tuple[str, ...] = ()
+    object_refs: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    priority: int = 0
+    requires_ack: bool = False
+    status: str = 'emitted'
+    created_at_logical: int = 0
 
     @property
     def payload(self) -> dict[str, Any]:
@@ -214,6 +272,14 @@ class CognitiveEvent:
             'region': self.region,
             'payload_json': self.payload_json,
             'digest': self.digest,
+            'scope': self.scope,
+            'causal_parent_ids': list(self.causal_parent_ids),
+            'object_refs': list(self.object_refs),
+            'evidence_refs': list(self.evidence_refs),
+            'priority': self.priority,
+            'requires_ack': self.requires_ack,
+            'status': self.status,
+            'created_at_logical': self.created_at_logical,
         }
 
     @classmethod
@@ -227,6 +293,14 @@ class CognitiveEvent:
             region=None if state.get('region') is None else str(state['region']),
             payload_json=str(state['payload_json']),
             digest=str(state['digest']),
+            scope=str(state.get('scope', 'organization')),
+            causal_parent_ids=tuple(str(row) for row in state.get('causal_parent_ids', ())),
+            object_refs=tuple(str(row) for row in state.get('object_refs', ())),
+            evidence_refs=tuple(str(row) for row in state.get('evidence_refs', ())),
+            priority=int(state.get('priority', 0)),
+            requires_ack=bool(state.get('requires_ack', False)),
+            status=str(state.get('status', 'emitted')),
+            created_at_logical=int(state.get('created_at_logical', state.get('sequence', 0))),
         )
 
 
@@ -279,6 +353,16 @@ class MemoryEntry:
     tags: tuple[str, ...] = ()
     parent_memory_id: str | None = None
     promotion_receipt_id: str | None = None
+    status: MemoryStatus = MemoryStatus.ACTIVE
+    evidence_ids: tuple[str, ...] = ()
+    confidence: float = 1.0
+    dependencies: tuple[str, ...] = ()
+    supersedes: str | None = None
+    status_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        if not 0.0 <= float(self.confidence) <= 1.0:
+            raise ValueError('memory confidence must lie in [0, 1]')
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -292,6 +376,12 @@ class MemoryEntry:
             'tags': list(self.tags),
             'parent_memory_id': self.parent_memory_id,
             'promotion_receipt_id': self.promotion_receipt_id,
+            'status': self.status.value,
+            'evidence_ids': list(self.evidence_ids),
+            'confidence': self.confidence,
+            'dependencies': list(self.dependencies),
+            'supersedes': self.supersedes,
+            'status_reason': self.status_reason,
         }
 
     @classmethod
@@ -307,6 +397,12 @@ class MemoryEntry:
             tags=tuple(str(row) for row in state.get('tags', ())),
             parent_memory_id=None if state.get('parent_memory_id') is None else str(state['parent_memory_id']),
             promotion_receipt_id=None if state.get('promotion_receipt_id') is None else str(state['promotion_receipt_id']),
+            status=MemoryStatus(str(state.get('status', MemoryStatus.ACTIVE.value))),
+            evidence_ids=tuple(str(row) for row in state.get('evidence_ids', ())),
+            confidence=float(state.get('confidence', 1.0)),
+            dependencies=tuple(str(row) for row in state.get('dependencies', ())),
+            supersedes=None if state.get('supersedes') is None else str(state['supersedes']),
+            status_reason=None if state.get('status_reason') is None else str(state['status_reason']),
         )
 
 
@@ -319,3 +415,8 @@ class ContextCapsule:
     memories: tuple[MemoryEntry, ...]
     event_delta: tuple[CognitiveEvent, ...]
     authoritative_artifacts: tuple[tuple[str, int], ...] = ()
+    tools: tuple[str, ...] = ()
+    external_cores: tuple[str, ...] = ()
+    applicable_skill_ids: tuple[str, ...] = ()
+    identity_summary: tuple[tuple[str, str], ...] = ()
+    authority_boundary: tuple[str, ...] = ()
