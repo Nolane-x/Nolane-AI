@@ -40,6 +40,8 @@ Each `EphemeralIdentityManifest` contains:
 - `generation`
 - `created_token`
 - `expires_token`
+- `parent_lease_id`
+- `parent_lease_epoch`
 - `digest`
 
 The ID and digest are content-addressed. Retired IDs are never rebound.
@@ -93,7 +95,15 @@ Defines durable output and evaluation receipts:
 - `FoundryBenefitObservation`
 - `FoundryBenefitAssessment`
 
-Outputs are stored in `ArtifactStore` using the ephemeral ID as producer provenance. Verification requires a clean external permanent verifier. For engineering-authorizing use, the handoff must reference a Part-VIII `VERIFIED` assurance decision; `PENDING`, `REJECTED`, and `OVERRIDDEN` are not independent verification.
+Raw Foundry outputs are stored in `ArtifactStore` using the ephemeral ID as producer provenance. Foundry-level verification requires a clean external permanent verifier.
+
+Part VIII intentionally requires every assurance subject producer to be a permanent `AgentRegistry` identity. Part XIV preserves that invariant rather than weakening it. Engineering-authorizing handoff therefore uses a provenance bridge:
+1. the raw artifact remains authored by the ephemeral ID;
+2. the permanent sponsor creates a content-addressed `foundry-handoff` artifact whose metadata binds the raw artifact ID/digest, ephemeral ID, lease lineage, verification evidence, limitations, and target permanent agent;
+3. Part VIII registers and verifies the sponsor-produced handoff artifact, not the raw ephemeral artifact;
+4. Foundry authorizes the handoff only when the bridge subject has effective disposition `VERIFIED`.
+
+`PENDING`, `REJECTED`, and `OVERRIDDEN` are not independent verification. The sponsor bridge never erases the original ephemeral producer provenance.
 
 Failed/quarantined output remains provenance-visible but cannot be distilled into active memory or promoted skill.
 
@@ -105,14 +115,15 @@ Core API:
 - `approve_spawn(...) -> SpawnRequest`
 - `instantiate(...) -> EphemeralIdentityManifest`
 - `activate(ephemeral_id, actor_agent_id) -> FoundryLifecycleReceipt`
-- `consume(ephemeral_id, resource_kind, units, actor_agent_id) -> ResourceUsageReceipt`
+- `consume(ephemeral_id, resource_kind, units, actor_ephemeral_id) -> ResourceUsageReceipt`
 - `write_scratch(ephemeral_id, text, actor_ephemeral_id) -> ScratchEntry`
 - `emit_output(ephemeral_id, kind, content, evidence_refs) -> FoundryOutputReceipt`
 - `record_verification(output_id, evidence) -> FoundryVerificationReceipt`
-- `handoff(output_id, target_agent_id, assurance_decision_id=None) -> FoundryHandoffReceipt`
+- `prepare_handoff(output_id, target_agent_id) -> FoundryHandoffReceipt`
+- `authorize_handoff(handoff_id, assurance_decision_id) -> FoundryHandoffReceipt`
 - `distill_skill(handoff_id, target_agent_id, name, body) -> SkillRecord`
 - `retire(ephemeral_id, actor_agent_id, scratch_policy) -> FoundryLifecycleReceipt`
-- `assess_benefit(baseline_id, team_id) -> FoundryBenefitAssessment`
+- `assess_benefit(baseline_observation_id, team_observation_id) -> FoundryBenefitAssessment`
 
 ## Authority and containment
 1. Ephemeral workers never appear in `AgentRegistry`.
@@ -121,6 +132,7 @@ Core API:
 4. Cross-region changes use Part XIII structured proposal/conflict handoff rather than direct mutation.
 5. Sponsor authority does not grant global authority to the temporary worker.
 6. A Regional Chief cannot spawn outside its authorized task/region boundary.
+7. The sponsor-produced handoff bridge is an evidence/provenance wrapper, not a rewrite of the raw output producer.
 
 ## Task and lease semantics
 Foundry does not replace Part XIII permanent task leases. Each team is attached to a `parent_task_id` and stores the current permanent lease epoch when instantiated. Output/handoff created after that parent lease is revoked/reassigned is stale and cannot become authoritative or skill-distilled.
@@ -132,8 +144,9 @@ A temporary worker may discover a reusable technique, but Foundry never promotes
 
 Distillation requires:
 - non-terminal-success output;
-- clean permanent external verification;
+- clean permanent external Foundry verification;
 - non-stale parent lease lineage;
+- an authorized sponsor bridge with Part-VIII effective disposition `VERIFIED` when the handoff is engineering-authorizing;
 - handoff target matching the permanent skill owner;
 - no failed/quarantined Foundry state.
 
@@ -154,7 +167,7 @@ Different regimes are incomparable, not improvements.
 ## Snapshot and restart
 `FoundryControlPlane.to_state()` includes templates, spawn requests, manifests, lifecycle receipts, budgets, usage, scratch metadata, durable outputs, verification/handoff receipts, benefit observations, counters, and retired-ID tombstones.
 
-Restore validates every digest, sponsor ID, target permanent ID, artifact reference, lifecycle transition, counter, and budget invariant. Destroyed scratch entries restore as tombstones with no content.
+Restore validates every digest, sponsor ID, target permanent ID, artifact reference, bridge artifact reference, lifecycle transition, counter, and budget invariant. Destroyed scratch entries restore as tombstones with no content.
 
 Pre-Part-XIV runtime snapshots use `state.get('foundry', {})` and restore to an empty Foundry. Zero-ephemeral behavior remains the default.
 
@@ -172,8 +185,8 @@ Tests must prove before GREEN implementation:
 7. stale parent lease epoch blocks output handoff/distillation;
 8. scratch is isolated and destroyed content never restores;
 9. failed/quarantined work cannot write/promote permanent memory/skill;
-10. external verification is required and self/sponsor-only verification is insufficient for authorizing handoff;
-11. Part-VIII `OVERRIDDEN` is not equivalent to independently `VERIFIED`;
+10. clean external permanent verification is required and sponsor-only verification is insufficient for authorizing handoff;
+11. raw ephemeral artifact provenance survives; Part VIII verifies only the permanent sponsor bridge; `OVERRIDDEN` bridge disposition is not `VERIFIED`;
 12. skill distillation creates only a candidate for a permanent target and Part XII remains promotion authority;
 13. matched-budget benefit requires same regime and no worse false accepts/regressions;
 14. runtime snapshot round-trip is exact and old snapshots restore an empty Foundry;
