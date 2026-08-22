@@ -34,21 +34,37 @@ class EventLedger:
         target_agent_id: str | None = None,
         region: str | None = None,
         payload: Mapping[str, Any] | None = None,
+        scope: str = 'organization',
+        causal_parent_ids: tuple[str, ...] = (),
+        object_refs: tuple[str, ...] = (),
+        evidence_refs: tuple[str, ...] = (),
+        priority: int = 0,
+        requires_ack: bool = False,
+        status: str = 'emitted',
     ) -> CognitiveEvent:
         sequence = len(self._events) + 1
         event_id = f'evt-{sequence:08d}'
+        for parent_id in causal_parent_ids:
+            self.get(parent_id)
         payload_json = canonical_json(dict(payload or {}))
-        digest = canonical_digest(
-            {
-                'event_id': event_id,
-                'sequence': sequence,
-                'kind': EventKind(kind).value,
-                'source_agent_id': str(source_agent_id),
-                'target_agent_id': None if target_agent_id is None else str(target_agent_id),
-                'region': None if region is None else str(region),
-                'payload_json': payload_json,
-            }
-        )
+        envelope = {
+            'event_id': event_id,
+            'sequence': sequence,
+            'kind': EventKind(kind).value,
+            'source_agent_id': str(source_agent_id),
+            'target_agent_id': None if target_agent_id is None else str(target_agent_id),
+            'region': None if region is None else str(region),
+            'payload_json': payload_json,
+            'scope': str(scope),
+            'causal_parent_ids': list(causal_parent_ids),
+            'object_refs': list(object_refs),
+            'evidence_refs': list(evidence_refs),
+            'priority': int(priority),
+            'requires_ack': bool(requires_ack),
+            'status': str(status),
+            'created_at_logical': sequence,
+        }
+        digest = canonical_digest(envelope)
         row = CognitiveEvent(
             event_id=event_id,
             sequence=sequence,
@@ -58,6 +74,14 @@ class EventLedger:
             region=None if region is None else str(region),
             payload_json=payload_json,
             digest=digest,
+            scope=str(scope),
+            causal_parent_ids=tuple(str(value) for value in causal_parent_ids),
+            object_refs=tuple(str(value) for value in object_refs),
+            evidence_refs=tuple(str(value) for value in evidence_refs),
+            priority=int(priority),
+            requires_ack=bool(requires_ack),
+            status=str(status),
+            created_at_logical=sequence,
         )
         self._events.append(row)
         return row
