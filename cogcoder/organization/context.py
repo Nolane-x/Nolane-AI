@@ -1,13 +1,18 @@
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from .events import EventLedger
 from .memory import MemoryFabric
 from .registry import AgentRegistry
 from .tasks import TaskGraph
 from .types import ContextCapsule, EventKind
 
+if TYPE_CHECKING:
+    from .evolution import SkillEvolutionEngine
 
-_ADMIN_EVENT_KINDS = {EventKind.AGENT_SLEEP, EventKind.AGENT_WAKE}
+
+_ADMIN_EVENT_KINDS = {EventKind.AGENT_CHECKPOINTED, EventKind.AGENT_SLEEP, EventKind.AGENT_WAKE}
 
 
 class ContextCompiler:
@@ -18,6 +23,7 @@ class ContextCompiler:
         memory: MemoryFabric,
         ledger: EventLedger,
         tasks: TaskGraph,
+        evolution: 'SkillEvolutionEngine | None' = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -27,6 +33,7 @@ class ContextCompiler:
         self.memory = memory
         self.ledger = ledger
         self.tasks = tasks
+        self.evolution = evolution
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -67,6 +74,12 @@ class ContextCompiler:
         ]
         if len(events) > self.max_events:
             events = events[-self.max_events :]
+        skill_ids: tuple[str, ...] = ()
+        if self.evolution is not None:
+            skill_ids = tuple(
+                row.skill_id
+                for row in self.evolution.skills_for(identity.agent_id, region=identity.region)
+            )
         return ContextCapsule(
             agent_id=identity.agent_id,
             task_id=effective_task,
@@ -75,4 +88,16 @@ class ContextCompiler:
             memories=tuple(memories),
             event_delta=tuple(events),
             authoritative_artifacts=(('master-plan', self.tasks.plan_version),),
+            tools=identity.tool_permissions,
+            external_cores=identity.external_core_bindings,
+            applicable_skill_ids=skill_ids,
+            identity_summary=(
+                ('name', identity.name),
+                ('role', identity.role),
+                ('region', identity.region),
+                ('rank', identity.rank.value),
+                ('neural_version', identity.neural_version),
+                ('self_model_version', identity.self_model_version),
+            ),
+            authority_boundary=identity.authority_scope,
         )
