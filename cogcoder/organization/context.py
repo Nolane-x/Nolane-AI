@@ -33,6 +33,7 @@ class ContextCompiler:
         ui: Any = None,
         assurance: Any = None,
         operations: Any = None,
+        research: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -52,6 +53,7 @@ class ContextCompiler:
         self.ui = ui
         self.assurance = assurance
         self.operations = operations
+        self.research = research
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -119,6 +121,8 @@ class ContextCompiler:
                 artifacts.append(('infrastructure-state', self.operations.infrastructure.digest))
             elif identity.region == 'performance-reliability':
                 artifacts.append(('reliability-state', self.operations.reliability.digest))
+        if self.research is not None and identity.region == 'research-external':
+            artifacts.append(('research-state', self.research.digest))
 
         return ContextCapsule(
             agent_id=identity.agent_id,

@@ -20,6 +20,7 @@ from .operations import OperationsControlPlane
 from .planning import PlanningControlPlane
 from .registry import AgentRegistry
 from .requirements import RequirementsControlPlane
+from .research import ResearchControlPlane
 from .scheduler import WakeSleepScheduler
 from .self_model import SelfModelRegistry
 from .tasks import TaskGraph
@@ -55,6 +56,7 @@ class OrganizationRuntime:
         ui: UIControlPlane | None = None,
         assurance: AssuranceControlPlane | None = None,
         operations: OperationsControlPlane | None = None,
+        research: ResearchControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -70,7 +72,7 @@ class OrganizationRuntime:
         for artifact_id, owner in (
             ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
             ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
-            ('reliability-state', 'reliability.chief'),
+            ('reliability-state', 'reliability.chief'), ('research-state', 'research.chief'),
         ):
             if self.authority.owner_of(artifact_id) is None:
                 self.authority.claim_owner(artifact_id, owner)
@@ -111,11 +113,16 @@ class OrganizationRuntime:
             registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
             assurance=self.assurance,
         )
+        self.research = research or ResearchControlPlane(
+            registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
+            assurance=self.assurance,
+        )
         self.context = ContextCompiler(
             registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, requirements=self.requirements, planning=self.planning,
             architecture=self.architecture, integration=self.integration, coding=self.coding,
             debugging=self.debugging, ui=self.ui, assurance=self.assurance, operations=self.operations,
+            research=self.research,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
@@ -138,6 +145,7 @@ class OrganizationRuntime:
         authority.claim_owner('data-state', 'data.chief')
         authority.claim_owner('infrastructure-state', 'infrastructure.chief')
         authority.claim_owner('reliability-state', 'reliability.chief')
+        authority.claim_owner('research-state', 'research.chief')
 
         central_actions = (
             EventKind.CENTRAL_INTERVENTION, EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
@@ -240,7 +248,8 @@ class OrganizationRuntime:
             'adr': self.adr.to_state(), 'integration': self.integration.to_state(),
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
             'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
-            'operations': self.operations.to_state(), 'central': self.central.to_state(),
+            'operations': self.operations.to_state(), 'research': self.research.to_state(),
+            'central': self.central.to_state(),
         }
 
     @classmethod
@@ -251,7 +260,7 @@ class OrganizationRuntime:
         for artifact_id, owner in (
             ('frontend-ui-state', 'frontend.chief'), ('ux-design-state', 'ux.chief'),
             ('data-state', 'data.chief'), ('infrastructure-state', 'infrastructure.chief'),
-            ('reliability-state', 'reliability.chief'),
+            ('reliability-state', 'reliability.chief'), ('research-state', 'research.chief'),
         ):
             if authority.owner_of(artifact_id) is None:
                 authority.claim_owner(artifact_id, owner)
@@ -300,6 +309,10 @@ class OrganizationRuntime:
             registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
             state=state.get('operations', {}),
         )
+        research = ResearchControlPlane.from_state(
+            registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
+            state=state.get('research', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -314,5 +327,5 @@ class OrganizationRuntime:
             external_cores=external_cores, self_models=self_models, central=central,
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
             integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
-            operations=operations,
+            operations=operations, research=research,
         )
