@@ -1,0 +1,148 @@
+name: R2.69 Current-Main Integration Candidate
+
+on:
+  push:
+    branches: [ r269-current-main-integration-candidate-gpt56sol ]
+    paths:
+      - '.github/workflows/r269-current-main-integration-candidate.yml'
+
+permissions:
+  contents: write
+
+env:
+  BRANCH: r269-current-main-integration-candidate-gpt56sol
+  MAIN_SHA: 5d9498a371b6c0f082170fbe152ba7546c5a1f8c
+  SOURCE_AUTHORITY_PARENT: fda7f502185266fedb00886d5786c6d28cc0e0eb
+
+jobs:
+  verify-and-materialize:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.BRANCH }}
+          fetch-depth: 0
+      - name: Exact integration ancestry
+        run: |
+          set -euo pipefail
+          git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
+          git merge-base --is-ancestor "$MAIN_SHA" HEAD
+      - name: Apply guarded sequential-meta integration
+        run: python scripts/r269_integrate_sequential_meta.py
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Python 3.11 dependencies
+        run: |
+          python -m pip install pytest 'numpy==2.4.6'
+          python - <<'PY' || python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          import torch
+          print(torch.__version__)
+          PY
+      - name: Python 3.11 protected R2.68 and complete R2.69
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - name: Python 3.11 canonical authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          a=run_benchmark(); e=run_external_transfer()
+          assert a['authored_gate_pass'] is True and a['false_accepts']==0
+          assert e['all_gates_pass'] is True and e['false_accepts']==0
+          Path('/tmp/r269_authored_digest').write_text(a['semantic_result_digest'])
+          Path('/tmp/r269_external_digest').write_text(e['semantic_result_digest'])
+          print('AUTHORED_311='+a['semantic_result_digest'])
+          print('EXTERNAL_311='+e['semantic_result_digest'])
+          PY
+      - name: Python 3.11 Neural R2.1/2.1.1 verification
+        env:
+          PYTHONPATH: model/neural-r2.1
+        run: |
+          python -m py_compile model/neural-r2.1/cogcoder/*.py model/neural-r2.1/scripts/*.py
+          python model/neural-r2.1/scripts/verify_neural_r21.py
+          python -m pytest -q model/neural-r2.1/tests
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install Python 3.13 dependencies
+        run: |
+          python -m pip install pytest 'numpy==2.4.6'
+          python - <<'PY' || python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
+          import torch
+          print(torch.__version__)
+          PY
+      - name: Python 3.13 protected R2.68 and complete R2.69
+        run: |
+          PYTHONPATH=. python -m pytest -q tests/test_r268_*.py
+          PYTHONPATH=. python -m pytest -q tests/test_r269_*.py
+      - name: Python 3.13 cross-check authored and external evidence
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          a=run_benchmark(); e=run_external_transfer()
+          assert a['authored_gate_pass'] is True and a['false_accepts']==0
+          assert e['all_gates_pass'] is True and e['false_accepts']==0
+          assert a['semantic_result_digest']==Path('/tmp/r269_authored_digest').read_text()
+          assert e['semantic_result_digest']==Path('/tmp/r269_external_digest').read_text()
+          print('AUTHORED_313='+a['semantic_result_digest'])
+          print('EXTERNAL_313='+e['semantic_result_digest'])
+          PY
+      - name: Python 3.13 Neural R2.1/2.1.1 verification
+        env:
+          PYTHONPATH: model/neural-r2.1
+        run: |
+          python -m py_compile model/neural-r2.1/cogcoder/*.py model/neural-r2.1/scripts/*.py
+          python model/neural-r2.1/scripts/verify_neural_r21.py
+          python -m pytest -q model/neural-r2.1/tests
+
+      - name: Materialize integration receipt
+        run: |
+          PYTHONPATH=. python - <<'PY'
+          import json
+          from pathlib import Path
+          from benchmarks.kfigg.r269_meta_learning import run_benchmark
+          from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
+          a=run_benchmark(); e=run_external_transfer()
+          receipt={
+            'schema_version':1,
+            'milestone':'R2.69',
+            'capability':'current-main-integrated-transfer-meta-learning-candidate',
+            'source_authority_parent':'fda7f502185266fedb00886d5786c6d28cc0e0eb',
+            'integrated_main_sha':'5d9498a371b6c0f082170fbe152ba7546c5a1f8c',
+            'python_versions_verified':['3.11','3.13'],
+            'r268_protected_green':True,
+            'r269_complete_green':True,
+            'neural_r21_r211_green':True,
+            'sequential_meta_learning_materialized':True,
+            'authored_semantic_digest':a['semantic_result_digest'],
+            'external_semantic_digest':e['semantic_result_digest'],
+            'authored_gate_pass':a['authored_gate_pass'],
+            'external_gate_pass':e['all_gates_pass'],
+            'false_accepts':a['false_accepts']+e['false_accepts'],
+            'trainable_parameter_count_added_by_r269':0,
+          }
+          assert receipt['false_accepts']==0
+          Path('R2_69_CURRENT_MAIN_INTEGRATION_EVIDENCE.json').write_text(
+            json.dumps(receipt,sort_keys=True,indent=2)+'\n',encoding='utf-8'
+          )
+          PY
+      - name: Refuse stale candidate writer
+        run: |
+          git fetch origin ${BRANCH}
+          test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
+      - name: Commit verified integration candidate
+        run: |
+          git config user.name 'Nolane R2.69 integration verifier'
+          git config user.email 'actions@users.noreply.github.com'
+          git add cogcoder/r269_causal_basis_adapter.py cogcoder/r269_meta_learning_kernel.py R2_69_CURRENT_MAIN_INTEGRATION_EVIDENCE.json
+          if git diff --cached --quiet; then echo 'No materialization delta.'; exit 0; fi
+          git commit -m 'evidence(r269): verify exact current-main integration candidate'
+          git push origin HEAD:${BRANCH}
