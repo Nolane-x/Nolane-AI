@@ -6,11 +6,12 @@ from cogcoder.r256_operator_dsl import Binary, Field, evaluate_expr
 from cogcoder.r269_meta_learning_kernel import MetaLearningConfig, PublicTaskSignature, run_cold_scratch
 
 
-def test_roomy_scratch_can_express_balanced_four_role_program_in_declared_exact_domain():
+def test_depth_two_scratch_can_express_balanced_four_role_program_in_declared_exact_domain():
     names = ("a", "b", "c", "d")
     domain = (-3, -1, 2, 5)
     a, b, c, d = map(Field, names)
     target = Binary("sub", Binary("add", a, b), Binary("add", c, d))
+    assert target.depth == 2
     signature = PublicTaskSignature(
         role_names=names,
         numeric_domain="finite_integer",
@@ -20,7 +21,10 @@ def test_roomy_scratch_can_express_balanced_four_role_program_in_declared_exact_
         finite_integer_values=domain,
     )
     values = tuple(itertools.product(domain, repeat=4))
-    chosen = (values[1], values[9], values[23], values[41], values[66], values[97], values[138], values[173], values[201], values[228], values[254])
+    chosen = (
+        values[1], values[9], values[23], values[41], values[66], values[97],
+        values[138], values[173], values[201], values[228], values[254],
+    )
     contexts = tuple(dict(zip(names, row, strict=True)) for row in chosen)
     diagnostics, terminal = contexts[:8], contexts[8:]
     oracle = lambda row: (row["a"] + row["b"]) - (row["c"] + row["d"])
@@ -28,7 +32,7 @@ def test_roomy_scratch_can_express_balanced_four_role_program_in_declared_exact_
         max_diagnostic_queries=8,
         transfer_candidate_cap=256,
         scratch_candidate_cap=8192,
-        scratch_max_depth=3,
+        scratch_max_depth=2,
         min_scratch_partitions=2,
     )
 

@@ -49,6 +49,8 @@ def _diagnostics():
     return (
         {"x": 0, "y": 1}, {"x": 1, "y": 0}, {"x": 2, "y": 3},
         {"x": -2, "y": 4}, {"x": 5, "y": -1}, {"x": 3, "y": 7},
+        {"x": 8, "y": 13}, {"x": -9, "y": -4}, {"x": 1, "y": 11},
+        {"x": 17, "y": -6}, {"x": -15, "y": 2}, {"x": 23, "y": 5},
     )
 
 
@@ -56,21 +58,24 @@ def _terminal():
     return ({"x": 11, "y": 2}, {"x": -7, "y": 3}, {"x": 4, "y": 9})
 
 
-def test_related_prior_reduces_fresh_diagnostic_cost_against_cold_scratch():
+def test_related_prior_succeeds_under_budget_where_complete_cold_scratch_remains_ambiguous():
     oracle = lambda row: row["x"] - row["y"]
-    config = MetaLearningConfig(
+    tight = MetaLearningConfig(
         max_diagnostic_queries=4, transfer_candidate_cap=32, scratch_candidate_cap=220,
         scratch_max_depth=2, min_scratch_partitions=2,
     )
     transfer = run_meta_learning_episode(
-        (_prior(),), _signature(), _diagnostics(), _terminal(), oracle, config,
+        (_prior(),), _signature(), _diagnostics(), _terminal(), oracle, tight,
     )
-    scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, config)
+    scratch = run_cold_scratch(_signature(), _diagnostics(), _terminal(), oracle, tight)
 
     assert transfer.passed is True
     assert transfer.mode == "transfer"
-    assert scratch.passed is True
-    assert transfer.physical_diagnostic_calls < scratch.physical_diagnostic_calls
+    assert scratch.passed is False
+    assert scratch.reason == "diagnostic_ambiguity"
+    assert scratch.physical_terminal_calls == 0
+    assert transfer.physical_diagnostic_calls <= scratch.physical_diagnostic_calls
+    assert transfer.transfer_candidates_considered < scratch.scratch_candidates_considered
     assert transfer.false_accepts == scratch.false_accepts == 0
 
 
