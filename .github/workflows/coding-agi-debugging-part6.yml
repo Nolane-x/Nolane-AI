@@ -1,0 +1,42 @@
+name: Coding AGI Debugging Organization Part VI
+
+on:
+  push:
+    branches:
+      - feat/coding-agi-debugging-organization-part6-gpt56sol
+  pull_request:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_debug_*.py'
+      - '.github/workflows/coding-agi-debugging-part6.yml'
+
+jobs:
+  debugging-part6:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: python -m py_compile cogcoder/organization/*.py
+      - name: Run Part VI and prior organization regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py

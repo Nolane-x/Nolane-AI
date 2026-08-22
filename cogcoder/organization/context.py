@@ -29,6 +29,7 @@ class ContextCompiler:
         architecture: Any = None,
         integration: Any = None,
         coding: Any = None,
+        debugging: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -44,6 +45,7 @@ class ContextCompiler:
         self.architecture = architecture
         self.integration = integration
         self.coding = coding
+        self.debugging = debugging
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -93,6 +95,8 @@ class ContextCompiler:
             artifacts.append(('integration-state', int(self.integration.graph.version)))
         if self.coding is not None and identity.region == 'core-coding':
             artifacts.append(('coding-state', self.coding.digest))
+        if self.debugging is not None and identity.region == 'debugging-failure':
+            artifacts.append(('debugging-state', self.debugging.digest))
 
         return ContextCapsule(
             agent_id=identity.agent_id,
