@@ -1,0 +1,40 @@
+name: Coding AGI Foundation Part I
+
+on:
+  push:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_foundation_*.py'
+      - 'docs/coding-agi-organization/**'
+      - 'docs/superpowers/plans/2026-08-22-coding-agi-foundation-part1.md'
+      - '.github/workflows/coding-agi-foundation.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_foundation_*.py'
+      - 'docs/coding-agi-organization/**'
+      - 'docs/superpowers/plans/2026-08-22-coding-agi-foundation-part1.md'
+      - '.github/workflows/coding-agi-foundation.yml'
+  workflow_dispatch:
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: |
+          if [ -d cogcoder/organization ]; then
+            python -m py_compile cogcoder/organization/*.py
+          fi
+      - name: Run Coding AGI foundation contracts
+        run: python -m pytest -q tests/test_coding_agi_foundation_*.py
