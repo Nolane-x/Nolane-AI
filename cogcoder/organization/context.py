@@ -26,6 +26,8 @@ class ContextCompiler:
         evolution: 'SkillEvolutionEngine | None' = None,
         requirements: Any = None,
         planning: Any = None,
+        architecture: Any = None,
+        integration: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -38,6 +40,8 @@ class ContextCompiler:
         self.evolution = evolution
         self.requirements = requirements
         self.planning = planning
+        self.architecture = architecture
+        self.integration = integration
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -81,6 +85,10 @@ class ContextCompiler:
         artifacts: list[tuple[str, int]] = [('master-plan', plan_version)]
         if self.requirements is not None:
             artifacts.append(('requirements', int(self.requirements.graph.version)))
+        if self.architecture is not None:
+            artifacts.append(('architecture-graph', int(self.architecture.graph.version)))
+        if self.integration is not None:
+            artifacts.append(('integration-state', int(self.integration.graph.version)))
 
         return ContextCapsule(
             agent_id=identity.agent_id,

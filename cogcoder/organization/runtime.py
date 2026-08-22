@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .adr import ADRDecisionLedger
+from .architecture import ArchitectureControlPlane
 from .artifacts import ArtifactStore
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
@@ -10,6 +12,7 @@ from .context import ContextCompiler
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
 from .external_core import ExternalCoreRegistry, build_default_external_core_registry
+from .integration import IntegrationControlPlane
 from .memory import MemoryFabric
 from .planning import PlanningControlPlane
 from .registry import AgentRegistry
@@ -39,6 +42,9 @@ class OrganizationRuntime:
         central: CentralControlPlane | None = None,
         requirements: RequirementsControlPlane | None = None,
         planning: PlanningControlPlane | None = None,
+        architecture: ArchitectureControlPlane | None = None,
+        adr: ADRDecisionLedger | None = None,
+        integration: IntegrationControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -58,6 +64,15 @@ class OrganizationRuntime:
             registry=self.registry, authority=self.authority, ledger=self.ledger,
             tasks=self.tasks, requirements=self.requirements,
         )
+        self.architecture = architecture or ArchitectureControlPlane(
+            registry=self.registry, authority=self.authority, ledger=self.ledger,
+        )
+        self.adr = adr or ADRDecisionLedger(
+            registry=self.registry, authority=self.authority, architecture=self.architecture,
+        )
+        self.integration = integration or IntegrationControlPlane(
+            registry=self.registry, authority=self.authority, architecture=self.architecture,
+        )
         self.context = ContextCompiler(
             registry=self.registry,
             memory=self.memory,
@@ -66,6 +81,8 @@ class OrganizationRuntime:
             evolution=self.evolution,
             requirements=self.requirements,
             planning=self.planning,
+            architecture=self.architecture,
+            integration=self.integration,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry,
@@ -218,6 +235,9 @@ class OrganizationRuntime:
             'self_models': self.self_models.to_state(),
             'requirements': self.requirements.to_state(),
             'planning': self.planning.to_state(),
+            'architecture': self.architecture.to_state(),
+            'adr': self.adr.to_state(),
+            'integration': self.integration.to_state(),
             'central': self.central.to_state(),
         }
 
@@ -241,6 +261,15 @@ class OrganizationRuntime:
             registry=registry, authority=authority, ledger=ledger, tasks=tasks,
             requirements=requirements, state=state.get('planning', {}),
         )
+        architecture = ArchitectureControlPlane.from_state(
+            registry=registry, authority=authority, ledger=ledger, state=state.get('architecture', {}),
+        )
+        adr = ADRDecisionLedger.from_state(
+            registry=registry, authority=authority, architecture=architecture, state=state.get('adr', {}),
+        )
+        integration = IntegrationControlPlane.from_state(
+            registry=registry, authority=authority, architecture=architecture, state=state.get('integration', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -254,4 +283,5 @@ class OrganizationRuntime:
             tasks=tasks, scheduler=scheduler, evolution=evolution, verification=verification,
             artifacts=artifacts, external_cores=external_cores, self_models=self_models,
             central=central, requirements=requirements, planning=planning,
+            architecture=architecture, adr=adr, integration=integration,
         )
