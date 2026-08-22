@@ -28,6 +28,7 @@ class ContextCompiler:
         planning: Any = None,
         architecture: Any = None,
         integration: Any = None,
+        coding: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -42,6 +43,7 @@ class ContextCompiler:
         self.planning = planning
         self.architecture = architecture
         self.integration = integration
+        self.coding = coding
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -82,13 +84,15 @@ class ContextCompiler:
 
         planning_version = 0 if self.planning is None else int(self.planning.graph.version)
         plan_version = max(int(self.tasks.plan_version), planning_version)
-        artifacts: list[tuple[str, int]] = [('master-plan', plan_version)]
+        artifacts: list[tuple[str, Any]] = [('master-plan', plan_version)]
         if self.requirements is not None:
             artifacts.append(('requirements', int(self.requirements.graph.version)))
         if self.architecture is not None:
             artifacts.append(('architecture-graph', int(self.architecture.graph.version)))
         if self.integration is not None:
             artifacts.append(('integration-state', int(self.integration.graph.version)))
+        if self.coding is not None and identity.region == 'core-coding':
+            artifacts.append(('coding-state', self.coding.digest))
 
         return ContextCapsule(
             agent_id=identity.agent_id,

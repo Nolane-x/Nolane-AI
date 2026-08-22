@@ -8,6 +8,7 @@ from .artifacts import ArtifactStore
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
 from .central import CentralControlPlane
+from .coding import CodingControlPlane
 from .context import ContextCompiler
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
@@ -45,6 +46,7 @@ class OrganizationRuntime:
         architecture: ArchitectureControlPlane | None = None,
         adr: ADRDecisionLedger | None = None,
         integration: IntegrationControlPlane | None = None,
+        coding: CodingControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -73,6 +75,15 @@ class OrganizationRuntime:
         self.integration = integration or IntegrationControlPlane(
             registry=self.registry, authority=self.authority, architecture=self.architecture,
         )
+        self.coding = coding or CodingControlPlane(
+            registry=self.registry,
+            ledger=self.ledger,
+            tasks=self.tasks,
+            evolution=self.evolution,
+            planning=self.planning,
+            architecture=self.architecture,
+            integration=self.integration,
+        )
         self.context = ContextCompiler(
             registry=self.registry,
             memory=self.memory,
@@ -83,6 +94,7 @@ class OrganizationRuntime:
             planning=self.planning,
             architecture=self.architecture,
             integration=self.integration,
+            coding=self.coding,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry,
@@ -238,6 +250,7 @@ class OrganizationRuntime:
             'architecture': self.architecture.to_state(),
             'adr': self.adr.to_state(),
             'integration': self.integration.to_state(),
+            'coding': self.coding.to_state(),
             'central': self.central.to_state(),
         }
 
@@ -270,6 +283,16 @@ class OrganizationRuntime:
         integration = IntegrationControlPlane.from_state(
             registry=registry, authority=authority, architecture=architecture, state=state.get('integration', {}),
         )
+        coding = CodingControlPlane.from_state(
+            registry=registry,
+            ledger=ledger,
+            tasks=tasks,
+            evolution=evolution,
+            planning=planning,
+            architecture=architecture,
+            integration=integration,
+            state=state.get('coding', {}),
+        )
         central = None
         if 'central' in state:
             central = CentralControlPlane.from_state(
@@ -283,5 +306,5 @@ class OrganizationRuntime:
             tasks=tasks, scheduler=scheduler, evolution=evolution, verification=verification,
             artifacts=artifacts, external_cores=external_cores, self_models=self_models,
             central=central, requirements=requirements, planning=planning,
-            architecture=architecture, adr=adr, integration=integration,
+            architecture=architecture, adr=adr, integration=integration, coding=coding,
         )
