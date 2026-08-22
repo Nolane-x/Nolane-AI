@@ -2,14 +2,17 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from .artifacts import ArtifactStore
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
 from .context import ContextCompiler
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
+from .external_core import ExternalCoreRegistry, build_default_external_core_registry
 from .memory import MemoryFabric
 from .registry import AgentRegistry
 from .scheduler import WakeSleepScheduler
+from .self_model import SelfModelRegistry
 from .tasks import TaskGraph
 from .types import AgentRank, EventKind
 from .verification import VerificationAuthority
@@ -27,6 +30,9 @@ class OrganizationRuntime:
         scheduler: WakeSleepScheduler,
         evolution: SkillEvolutionEngine,
         verification: VerificationAuthority,
+        artifacts: ArtifactStore,
+        external_cores: ExternalCoreRegistry,
+        self_models: SelfModelRegistry,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -36,11 +42,15 @@ class OrganizationRuntime:
         self.scheduler = scheduler
         self.evolution = evolution
         self.verification = verification
+        self.artifacts = artifacts
+        self.external_cores = external_cores
+        self.self_models = self_models
         self.context = ContextCompiler(
             registry=self.registry,
             memory=self.memory,
             ledger=self.ledger,
             tasks=self.tasks,
+            evolution=self.evolution,
         )
 
     @classmethod
@@ -57,6 +67,8 @@ class OrganizationRuntime:
         for identity in registry.identities():
             if identity.rank is AgentRank.CHIEF:
                 ledger.subscribe(identity.agent_id, EventKind.CENTRAL_INTERVENTION, region=identity.region)
+                ledger.subscribe(identity.agent_id, EventKind.CENTRAL_CORRECTION, region=identity.region)
+                ledger.subscribe(identity.agent_id, EventKind.CENTRAL_REDIRECT, region=identity.region)
         ledger.subscribe('planning.chief', EventKind.PLAN_GAP_DETECTED)
 
         memory = MemoryFabric()
@@ -64,6 +76,9 @@ class OrganizationRuntime:
         scheduler = WakeSleepScheduler(registry=registry, ledger=ledger)
         evolution = SkillEvolutionEngine()
         verification = VerificationAuthority(registry=registry, ledger=ledger)
+        artifacts = ArtifactStore()
+        external_cores = build_default_external_core_registry(registry)
+        self_models = SelfModelRegistry(registry)
         return cls(
             registry=registry,
             ledger=ledger,
@@ -73,6 +88,9 @@ class OrganizationRuntime:
             scheduler=scheduler,
             evolution=evolution,
             verification=verification,
+            artifacts=artifacts,
+            external_cores=external_cores,
+            self_models=self_models,
         )
 
     def central_intervene(
@@ -92,11 +110,45 @@ class OrganizationRuntime:
             source_agent_id='nolane.central',
             target_agent_id=target.agent_id,
             region=target.region,
+            evidence_refs=tuple(str(value) for value in evidence_ids),
+            priority=100,
+            requires_ack=True,
             payload={
                 'directive': str(directive),
                 'evidence_ids': [str(value) for value in evidence_ids],
                 'region_chief_id': target.region_chief_id,
             },
+        )
+        self.scheduler.notify_event(event)
+        return event
+
+    def central_action(
+        self,
+        kind: EventKind,
+        *,
+        target_agent_id: str,
+        directive: str,
+        evidence_ids: tuple[str, ...],
+    ):
+        if kind not in {
+            EventKind.CENTRAL_QUESTION,
+            EventKind.CENTRAL_CORRECTION,
+            EventKind.CENTRAL_REDIRECT,
+            EventKind.CENTRAL_PAUSE,
+            EventKind.CENTRAL_ABORT,
+            EventKind.CENTRAL_REQUEST_EVIDENCE,
+        }:
+            raise ValueError('unsupported explicit Central action')
+        target = self.registry.get(target_agent_id)
+        event = self.ledger.append(
+            kind,
+            source_agent_id='nolane.central',
+            target_agent_id=target.agent_id,
+            region=target.region,
+            evidence_refs=tuple(str(value) for value in evidence_ids),
+            priority=100,
+            requires_ack=True,
+            payload={'directive': str(directive), 'region_chief_id': target.region_chief_id},
         )
         self.scheduler.notify_event(event)
         return event
@@ -136,6 +188,7 @@ class OrganizationRuntime:
             source_agent_id=chief.agent_id,
             target_agent_id=chief.agent_id,
             region=chief.region,
+            object_refs=tuple(output_artifact_ids),
             payload={
                 'task_id': task_id,
                 'output_artifact_ids': list(output_artifact_ids),
@@ -150,9 +203,9 @@ class OrganizationRuntime:
         }
 
     def checkpoint_agent(self, agent_id: str) -> str | None:
-        checkpoint = self.ledger.latest_event_id()
-        self.scheduler.sleep(agent_id, checkpoint_event_id=checkpoint)
-        return checkpoint
+        anchor = self.ledger.latest_event_id()
+        self.scheduler.sleep(agent_id, checkpoint_event_id=anchor)
+        return self.scheduler.checkpoint_for(agent_id)
 
     def wake_agent(self, agent_id: str, *, reason: str):
         checkpoint = self.scheduler.checkpoint_for(agent_id)
@@ -169,6 +222,9 @@ class OrganizationRuntime:
             'scheduler': self.scheduler.to_state(),
             'evolution': self.evolution.to_state(),
             'verification': self.verification.to_state(),
+            'artifacts': self.artifacts.to_state(),
+            'external_cores': self.external_cores.to_state(),
+            'self_models': self.self_models.to_state(),
         }
 
     @classmethod
@@ -194,6 +250,9 @@ class OrganizationRuntime:
             ledger=ledger,
             state=state['verification'],
         )
+        artifacts = ArtifactStore.from_state(state.get('artifacts', {}))
+        external_cores = ExternalCoreRegistry.from_state(state.get('external_cores', {}))
+        self_models = SelfModelRegistry.from_state(registry, state.get('self_models', {}))
         return cls(
             registry=registry,
             ledger=ledger,
@@ -203,4 +262,7 @@ class OrganizationRuntime:
             scheduler=scheduler,
             evolution=evolution,
             verification=verification,
+            artifacts=artifacts,
+            external_cores=external_cores,
+            self_models=self_models,
         )
