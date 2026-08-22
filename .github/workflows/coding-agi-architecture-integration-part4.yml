@@ -1,0 +1,46 @@
+name: Coding AGI Architecture Integration Part IV
+
+on:
+  push:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_architecture_*.py'
+      - 'tests/test_coding_agi_integration_*.py'
+      - 'docs/superpowers/specs/2026-08-22-architecture-integration-part4-design.md'
+      - 'docs/superpowers/plans/2026-08-22-architecture-integration-part4.md'
+      - '.github/workflows/coding-agi-architecture-integration-part4.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_architecture_*.py'
+      - 'tests/test_coding_agi_integration_*.py'
+      - '.github/workflows/coding-agi-architecture-integration-part4.yml'
+  workflow_dispatch:
+
+jobs:
+  architecture-integration:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: python -m py_compile cogcoder/organization/*.py
+      - name: Run Part IV and prior organization regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py
