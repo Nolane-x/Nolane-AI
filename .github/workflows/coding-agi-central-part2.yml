@@ -1,0 +1,41 @@
+name: Coding AGI Central Part II
+
+on:
+  push:
+    paths:
+      - 'cogcoder/organization/central*.py'
+      - 'cogcoder/organization/runtime.py'
+      - 'cogcoder/organization/tasks.py'
+      - 'cogcoder/organization/types.py'
+      - 'tests/test_coding_agi_central_*.py'
+      - '.github/workflows/coding-agi-central-part2.yml'
+  pull_request:
+    paths:
+      - 'cogcoder/organization/central*.py'
+      - 'cogcoder/organization/runtime.py'
+      - 'cogcoder/organization/tasks.py'
+      - 'cogcoder/organization/types.py'
+      - 'tests/test_coding_agi_central_*.py'
+      - '.github/workflows/coding-agi-central-part2.yml'
+  workflow_dispatch:
+
+jobs:
+  central:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: python -m py_compile cogcoder/organization/*.py
+      - name: Run Central Part II and Part I regressions
+        run: |
+          python -m pytest -q tests/test_coding_agi_central_*.py
+          python -m pytest -q tests/test_coding_agi_foundation_*.py
