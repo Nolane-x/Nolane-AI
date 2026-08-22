@@ -8,7 +8,6 @@ from .artifacts import ArtifactStore
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
 from .central import CentralControlPlane
-from .coding import CodingControlPlane
 from .context import ContextCompiler
 from .debugging import DebugControlPlane
 from .events import EventLedger
@@ -23,6 +22,8 @@ from .scheduler import WakeSleepScheduler
 from .self_model import SelfModelRegistry
 from .tasks import TaskGraph
 from .types import AgentRank, EventKind
+from .ui import UIControlPlane
+from .ui_coding import UICodingControlPlane
 from .verification import VerificationAuthority
 
 
@@ -47,8 +48,9 @@ class OrganizationRuntime:
         architecture: ArchitectureControlPlane | None = None,
         adr: ADRDecisionLedger | None = None,
         integration: IntegrationControlPlane | None = None,
-        coding: CodingControlPlane | None = None,
+        coding: UICodingControlPlane | None = None,
         debugging: DebugControlPlane | None = None,
+        ui: UIControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -61,6 +63,10 @@ class OrganizationRuntime:
         self.artifacts = artifacts
         self.external_cores = external_cores
         self.self_models = self_models
+        if self.authority.owner_of('frontend-ui-state') is None:
+            self.authority.claim_owner('frontend-ui-state', 'frontend.chief')
+        if self.authority.owner_of('ux-design-state') is None:
+            self.authority.claim_owner('ux-design-state', 'ux.chief')
         self.requirements = requirements or RequirementsControlPlane(
             registry=self.registry, authority=self.authority, ledger=self.ledger,
         )
@@ -77,7 +83,7 @@ class OrganizationRuntime:
         self.integration = integration or IntegrationControlPlane(
             registry=self.registry, authority=self.authority, architecture=self.architecture,
         )
-        self.coding = coding or CodingControlPlane(
+        self.coding = coding or UICodingControlPlane(
             registry=self.registry, ledger=self.ledger, tasks=self.tasks, evolution=self.evolution,
             planning=self.planning, architecture=self.architecture, integration=self.integration,
         )
@@ -85,11 +91,16 @@ class OrganizationRuntime:
             registry=self.registry, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, coding=self.coding,
         )
+        self.ui = ui or UIControlPlane(
+            registry=self.registry, ledger=self.ledger, tasks=self.tasks, evolution=self.evolution,
+            artifacts=self.artifacts, authority=self.authority, planning=self.planning,
+            architecture=self.architecture, coding=self.coding,
+        )
         self.context = ContextCompiler(
             registry=self.registry, memory=self.memory, ledger=self.ledger, tasks=self.tasks,
             evolution=self.evolution, requirements=self.requirements, planning=self.planning,
             architecture=self.architecture, integration=self.integration, coding=self.coding,
-            debugging=self.debugging,
+            debugging=self.debugging, ui=self.ui,
         )
         self.central = central or CentralControlPlane(
             registry=self.registry, ledger=self.ledger, authority=self.authority, tasks=self.tasks,
@@ -107,6 +118,8 @@ class OrganizationRuntime:
         authority.claim_owner('architecture-graph', 'architecture.chief')
         authority.claim_owner('integration-state', 'integration.chief')
         authority.claim_owner('verification-state', 'verification.chief')
+        authority.claim_owner('frontend-ui-state', 'frontend.chief')
+        authority.claim_owner('ux-design-state', 'ux.chief')
 
         central_actions = (
             EventKind.CENTRAL_INTERVENTION, EventKind.CENTRAL_QUESTION, EventKind.CENTRAL_CORRECTION,
@@ -208,7 +221,7 @@ class OrganizationRuntime:
             'planning': self.planning.to_state(), 'architecture': self.architecture.to_state(),
             'adr': self.adr.to_state(), 'integration': self.integration.to_state(),
             'coding': self.coding.to_state(), 'debugging': self.debugging.to_state(),
-            'central': self.central.to_state(),
+            'ui': self.ui.to_state(), 'central': self.central.to_state(),
         }
 
     @classmethod
@@ -216,6 +229,10 @@ class OrganizationRuntime:
         registry = AgentRegistry.from_state(state['registry'])
         ledger = EventLedger.from_state(state['ledger'])
         authority = AuthorityGraph.from_state(registry, state['authority'])
+        if authority.owner_of('frontend-ui-state') is None:
+            authority.claim_owner('frontend-ui-state', 'frontend.chief')
+        if authority.owner_of('ux-design-state') is None:
+            authority.claim_owner('ux-design-state', 'ux.chief')
         memory = MemoryFabric.from_state(state['memory'])
         tasks = TaskGraph.from_state(state['tasks'], ledger=ledger, registry=registry, authority=authority)
         scheduler = WakeSleepScheduler.from_state(registry=registry, ledger=ledger, state=state['scheduler'])
@@ -240,13 +257,18 @@ class OrganizationRuntime:
         integration = IntegrationControlPlane.from_state(
             registry=registry, authority=authority, architecture=architecture, state=state.get('integration', {}),
         )
-        coding = CodingControlPlane.from_state(
+        coding = UICodingControlPlane.from_state(
             registry=registry, ledger=ledger, tasks=tasks, evolution=evolution, planning=planning,
             architecture=architecture, integration=integration, state=state.get('coding', {}),
         )
         debugging = DebugControlPlane.from_state(
             registry=registry, ledger=ledger, tasks=tasks, evolution=evolution,
             coding=coding, state=state.get('debugging', {}),
+        )
+        ui = UIControlPlane.from_state(
+            registry=registry, ledger=ledger, tasks=tasks, evolution=evolution, artifacts=artifacts,
+            authority=authority, planning=planning, architecture=architecture, coding=coding,
+            state=state.get('ui', {}),
         )
         central = None
         if 'central' in state:
@@ -261,5 +283,5 @@ class OrganizationRuntime:
             scheduler=scheduler, evolution=evolution, verification=verification, artifacts=artifacts,
             external_cores=external_cores, self_models=self_models, central=central,
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
-            integration=integration, coding=coding, debugging=debugging,
+            integration=integration, coding=coding, debugging=debugging, ui=ui,
         )
