@@ -5,6 +5,7 @@ from typing import Any, Mapping
 from .artifacts import ArtifactStore
 from .authority import AuthorityGraph
 from .blueprint import build_first_generation_blueprint
+from .central import CentralControlPlane
 from .context import ContextCompiler
 from .events import EventLedger
 from .evolution import SkillEvolutionEngine
@@ -33,6 +34,7 @@ class OrganizationRuntime:
         artifacts: ArtifactStore,
         external_cores: ExternalCoreRegistry,
         self_models: SelfModelRegistry,
+        central: CentralControlPlane | None = None,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -52,6 +54,18 @@ class OrganizationRuntime:
             tasks=self.tasks,
             evolution=self.evolution,
         )
+        self.central = central or CentralControlPlane(
+            registry=self.registry,
+            ledger=self.ledger,
+            authority=self.authority,
+            tasks=self.tasks,
+            scheduler=self.scheduler,
+            artifacts=self.artifacts,
+            external_cores=self.external_cores,
+            self_models=self.self_models,
+            evolution=self.evolution,
+            verification=self.verification,
+        )
 
     @classmethod
     def first_generation(cls) -> 'OrganizationRuntime':
@@ -64,11 +78,19 @@ class OrganizationRuntime:
         authority.claim_owner('integration-state', 'integration.chief')
         authority.claim_owner('verification-state', 'verification.chief')
 
+        central_actions = (
+            EventKind.CENTRAL_INTERVENTION,
+            EventKind.CENTRAL_QUESTION,
+            EventKind.CENTRAL_CORRECTION,
+            EventKind.CENTRAL_REDIRECT,
+            EventKind.CENTRAL_PAUSE,
+            EventKind.CENTRAL_ABORT,
+            EventKind.CENTRAL_REQUEST_EVIDENCE,
+        )
         for identity in registry.identities():
             if identity.rank is AgentRank.CHIEF:
-                ledger.subscribe(identity.agent_id, EventKind.CENTRAL_INTERVENTION, region=identity.region)
-                ledger.subscribe(identity.agent_id, EventKind.CENTRAL_CORRECTION, region=identity.region)
-                ledger.subscribe(identity.agent_id, EventKind.CENTRAL_REDIRECT, region=identity.region)
+                for kind in central_actions:
+                    ledger.subscribe(identity.agent_id, kind, region=identity.region)
         ledger.subscribe('planning.chief', EventKind.PLAN_GAP_DETECTED)
 
         memory = MemoryFabric()
@@ -139,19 +161,41 @@ class OrganizationRuntime:
             EventKind.CENTRAL_REQUEST_EVIDENCE,
         }:
             raise ValueError('unsupported explicit Central action')
-        target = self.registry.get(target_agent_id)
-        event = self.ledger.append(
-            kind,
-            source_agent_id='nolane.central',
-            target_agent_id=target.agent_id,
-            region=target.region,
+        if kind is EventKind.CENTRAL_QUESTION:
+            return self.central.question(
+                target_agent_id=target_agent_id,
+                directive=directive,
+                evidence_refs=tuple(str(value) for value in evidence_ids),
+            )
+        if kind is EventKind.CENTRAL_CORRECTION:
+            return self.central.correct(
+                target_agent_id=target_agent_id,
+                directive=directive,
+                evidence_refs=tuple(str(value) for value in evidence_ids),
+            )
+        if kind is EventKind.CENTRAL_REDIRECT:
+            return self.central.redirect(
+                target_agent_id=target_agent_id,
+                directive=directive,
+                evidence_refs=tuple(str(value) for value in evidence_ids),
+            )
+        if kind is EventKind.CENTRAL_PAUSE:
+            return self.central.pause(
+                target_agent_id=target_agent_id,
+                directive=directive,
+                evidence_refs=tuple(str(value) for value in evidence_ids),
+            )
+        if kind is EventKind.CENTRAL_ABORT:
+            return self.central.abort(
+                target_agent_id=target_agent_id,
+                directive=directive,
+                evidence_refs=tuple(str(value) for value in evidence_ids),
+            )
+        return self.central.request_evidence(
+            target_agent_id=target_agent_id,
+            directive=directive,
             evidence_refs=tuple(str(value) for value in evidence_ids),
-            priority=100,
-            requires_ack=True,
-            payload={'directive': str(directive), 'region_chief_id': target.region_chief_id},
         )
-        self.scheduler.notify_event(event)
-        return event
 
     def report_plan_gap(
         self,
@@ -225,6 +269,7 @@ class OrganizationRuntime:
             'artifacts': self.artifacts.to_state(),
             'external_cores': self.external_cores.to_state(),
             'self_models': self.self_models.to_state(),
+            'central': self.central.to_state(),
         }
 
     @classmethod
@@ -253,6 +298,21 @@ class OrganizationRuntime:
         artifacts = ArtifactStore.from_state(state.get('artifacts', {}))
         external_cores = ExternalCoreRegistry.from_state(state.get('external_cores', {}))
         self_models = SelfModelRegistry.from_state(registry, state.get('self_models', {}))
+        central = None
+        if 'central' in state:
+            central = CentralControlPlane.from_state(
+                registry=registry,
+                ledger=ledger,
+                authority=authority,
+                tasks=tasks,
+                scheduler=scheduler,
+                artifacts=artifacts,
+                external_cores=external_cores,
+                self_models=self_models,
+                evolution=evolution,
+                verification=verification,
+                state=state['central'],
+            )
         return cls(
             registry=registry,
             ledger=ledger,
@@ -265,4 +325,5 @@ class OrganizationRuntime:
             artifacts=artifacts,
             external_cores=external_cores,
             self_models=self_models,
+            central=central,
         )
