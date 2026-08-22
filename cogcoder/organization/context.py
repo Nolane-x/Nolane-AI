@@ -32,6 +32,7 @@ class ContextCompiler:
         debugging: Any = None,
         ui: Any = None,
         assurance: Any = None,
+        operations: Any = None,
         max_memories: int = 128,
         max_events: int = 256,
     ) -> None:
@@ -50,6 +51,7 @@ class ContextCompiler:
         self.debugging = debugging
         self.ui = ui
         self.assurance = assurance
+        self.operations = operations
         self.max_memories = int(max_memories)
         self.max_events = int(max_events)
 
@@ -110,6 +112,13 @@ class ContextCompiler:
             artifacts.append(('ui-state', self.ui.digest))
         if self.assurance is not None and identity.region in {'verification-testing', 'security-adversarial'}:
             artifacts.append(('assurance-state', self.assurance.digest))
+        if self.operations is not None:
+            if identity.region == 'data-storage-migration':
+                artifacts.append(('data-state', self.operations.data.digest))
+            elif identity.region == 'infrastructure-release':
+                artifacts.append(('infrastructure-state', self.operations.infrastructure.digest))
+            elif identity.region == 'performance-reliability':
+                artifacts.append(('reliability-state', self.operations.reliability.digest))
 
         return ContextCapsule(
             agent_id=identity.agent_id,
