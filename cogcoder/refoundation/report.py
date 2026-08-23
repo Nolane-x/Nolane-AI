@@ -19,6 +19,7 @@ from .manifests import (
     build_component_manifests,
 )
 from .regions import build_region_manifests
+from .runtime_composition import build_semantic_runtime_composition
 from .runtime_state_map import RuntimeStateMapper
 
 
@@ -33,6 +34,7 @@ def build_bootstrap_report() -> dict[str, object]:
     tools = build_tool_catalog()
     external_cores = build_external_core_catalog()
     implementations = build_component_implementation_ledger()
+    semantic_composition = build_semantic_runtime_composition()
     runtime = CanonicalOrganization.first_generation()
     state_bundle = RuntimeStateMapper().bundle_state(runtime.to_state())
 
@@ -65,6 +67,16 @@ def build_bootstrap_report() -> dict[str, object]:
             "revision_map": component_revision_map(),
             "implementation_status_counts": dict(sorted(implementation_counts.items())),
         },
+        "semantic_runtime_composition": {
+            "lossless": semantic_composition.lossless,
+            "component_count": len(semantic_composition.nodes),
+            "state_section_count": len(semantic_composition.section_owners),
+            "unresolved_dependencies": list(semantic_composition.unresolved_dependencies()),
+            "unowned_state_sections": list(semantic_composition.unowned_state_sections),
+            "duplicate_state_sections": list(semantic_composition.duplicate_state_sections),
+            "topological_order": list(semantic_composition.topological_order()),
+            "digest": semantic_composition.digest,
+        },
         "active_facade_summary": {
             "count": len(facades),
             "clean": facade_parity.clean,
@@ -94,6 +106,7 @@ def build_bootstrap_report() -> dict[str, object]:
         "implementation_ledger": [implementations[key].to_state() for key in sorted(implementations)],
         "active_facades": [row.to_state() for row in facades],
         "composition_lock": lock.to_state(),
+        "semantic_runtime_graph": semantic_composition.to_state(),
         "bootstrap_parity": {
             **parity.payload(),
             "clean": parity.clean,
