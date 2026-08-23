@@ -156,6 +156,23 @@ def test_wave4_all_historical_pull_request_workflow_jobs_skip_refoundation_heads
     assert not offenders, f"historical PR workflow jobs missing refoundation-head isolation: {offenders!r}"
 
 
+def test_wave4_workflow_isolation_rewriter_preserves_existing_conditions_and_is_idempotent() -> None:
+    from nolane.repository.workflow_isolation import isolate_workflow_text
+
+    source = """name: sample\non:\n  pull_request:\n  push:\n\njobs:\n  plain:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo plain\n  conditional:\n    if: ${{ github.actor != 'blocked' }}\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo conditional\n  folded:\n    if: >-\n      github.repository_owner == 'Nolane-x' &&\n      github.event_name != 'workflow_dispatch'\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo folded\n"""
+    isolated = isolate_workflow_text(source)
+    blocks = _workflow_job_blocks(isolated)
+    assert set(blocks) == {"plain", "conditional", "folded"}
+    assert all("github.head_ref" in block and "refoundation/" in block for block in blocks.values())
+    assert "github.actor != 'blocked'" in blocks["conditional"]
+    assert "github.repository_owner == 'Nolane-x'" in blocks["folded"]
+    assert "github.event_name != 'workflow_dispatch'" in blocks["folded"]
+    assert isolate_workflow_text(isolated) == isolated
+
+    non_pr = "name: push-only\non:\n  push:\n\njobs:\n  test:\n    runs-on: ubuntu-latest\n"
+    assert isolate_workflow_text(non_pr) == non_pr
+
+
 def test_wave4_refoundation_workflow_gates_repository_audit_freshness() -> None:
     text = (ROOT / ".github" / "workflows" / REF_WORKFLOW).read_text(encoding="utf-8")
     assert "python -m nolane.repository.audit --check" in text
