@@ -204,3 +204,8 @@ def test_wave5_native_debt_reduces_only_the_two_promoted_facades() -> None:
 def test_wave5_legacy_source_paths_remain_present_as_compatibility_bridges() -> None:
     assert (ROOT / "cogcoder" / "organization" / "artifacts.py").is_file()
     assert (ROOT / "cogcoder" / "organization" / "verification.py").is_file()
+
+
+def test_wave5_acceptance_has_no_write_enabled_bootstrap_workflow() -> None:
+    bootstrap = ROOT / ".github" / "workflows" / "refoundation-wave5-bootstrap.yml"
+    assert not bootstrap.exists(), "temporary write-enabled Wave-5 bootstrap must be removed before acceptance"
