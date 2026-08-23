@@ -42,12 +42,12 @@ jobs:
         shell: bash
         run: |
           git add archive/INDEX.json CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md
-          git add .github/workflows/*.yml .github/workflows/*.yaml 2>/dev/null || true
+          git add .github/workflows/
           if git diff --cached --quiet; then
             echo 'No Wave 4 bootstrap changes to commit.'
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git commit -m 'refactor(refoundation): materialize historical quarantine census'
+          git commit -m 'refactor(refoundation): materialize historical workflow quarantine'
           git push origin HEAD:${GITHUB_HEAD_REF}
