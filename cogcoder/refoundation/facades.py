@@ -19,7 +19,7 @@ class FacadeBinding:
         if not self.component_id or not self.canonical_module or not self.legacy_module or not self.public_symbols:
             raise ValueError("facade binding requires component/module/symbol identity")
         if self.component_version != "0.0.0":
-            raise ValueError("Wave-1 facades must bootstrap at component version 0.0.0")
+            raise ValueError("Epoch-0 facades must bootstrap at component version 0.0.0")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -67,12 +67,12 @@ def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
         FacadeBinding("organization.central", "nolane.organization.central", "cogcoder.organization.central", ("CentralControlPlane",)),
         FacadeBinding("organization.runtime", "nolane.organization.runtime", "cogcoder.organization.runtime", ("OrganizationRuntime",)),
         FacadeBinding("external.artifacts", "nolane.external_core.artifacts", "cogcoder.organization.artifacts", ("ArtifactStore",)),
-        FacadeBinding("external.memory.fabric", "nolane.external_core.memory", "cogcoder.organization.memory", ("MemoryFabric",)),
-        FacadeBinding("external.memory.lifecycle", "nolane.external_core.memory_lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger",)),
-        FacadeBinding("external.memory.retrieval", "nolane.external_core.memory_retrieval", "cogcoder.organization.memory_retrieval", ("MemoryRetrievalBudget", "MemorySelectionReceipt")),
-        FacadeBinding("external.context.base", "nolane.external_core.context", "cogcoder.organization.context", ("ContextCompiler",)),
-        FacadeBinding("external.context.intelligence", "nolane.external_core.memory_context", "cogcoder.organization.memory_context", ("MemoryContextControlPlane",)),
-        FacadeBinding("external.skills", "nolane.external_core.skills", "cogcoder.organization.evolution", ("SkillEvolutionEngine",)),
+        FacadeBinding("external.memory.fabric", "nolane.memory.fabric", "cogcoder.organization.memory", ("MemoryFabric",)),
+        FacadeBinding("external.memory.lifecycle", "nolane.memory.lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger", "MemoryRelationGraph")),
+        FacadeBinding("external.memory.retrieval", "nolane.memory.retrieval", "cogcoder.organization.memory_retrieval", ("MemoryRetrievalBudget", "MemoryRetrievalEngine")),
+        FacadeBinding("external.context", "nolane.memory.context", "cogcoder.organization.memory_context", ("MemoryContextControlPlane",)),
+        FacadeBinding("external.experience", "nolane.memory.experience", "cogcoder.organization.experience", ("ExperienceLedger",)),
+        FacadeBinding("external.skills", "nolane.memory.skills", "cogcoder.organization.evolution", ("SkillEvolutionEngine",)),
         FacadeBinding("external.individual_evolution", "nolane.external_core.individual_evolution", "cogcoder.organization.individual_evolution", ("IndividualEvolutionControlPlane",)),
         FacadeBinding("external.verification", "nolane.external_core.verification", "cogcoder.organization.verification", ("VerificationAuthority",)),
         FacadeBinding("external.self_model", "nolane.external_core.self_model", "cogcoder.organization.self_model", ("SelfModelRegistry",)),
