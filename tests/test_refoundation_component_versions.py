@@ -9,7 +9,7 @@ from cogcoder.refoundation.manifests import build_component_manifests
 
 
 # Independent revision slots are architectural state, not a snapshot of one
-# migration wave.  This set records components whose implementation authority
+# migration wave. This set records components whose implementation authority
 # has actually moved far enough to advance its local Epoch-0 revision.
 ACCEPTED_REVISION_ONE_COMPONENTS = {
     "organization.identity",
@@ -25,6 +25,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "external.artifacts",
     "external.verification",
     "external.evidence",
+    "external.memory.fabric",
 }
 
 
@@ -47,9 +48,12 @@ def test_every_component_has_an_independent_revision_slot() -> None:
 def test_component_version_lookup_is_local_not_global() -> None:
     for component_id in ACCEPTED_REVISION_ONE_COMPONENTS:
         assert str(component_version(component_id)) == "0.0.1"
-    assert str(component_version("external.memory.fabric")) == "0.0.0"
+
+    # Independent components that have not yet migrated remain at their own
+    # local Epoch-0 revision even as adjacent components advance.
+    assert str(component_version("external.memory.lifecycle")) == "0.0.0"
     assert str(component_version("external.planning")) == "0.0.0"
-    assert str(next_component_version("external.memory.fabric")) == "0.0.1"
+    assert str(next_component_version("external.memory.lifecycle")) == "0.0.1"
     assert str(component_version("external.planning")) == "0.0.0"
 
 
