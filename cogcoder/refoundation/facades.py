@@ -58,7 +58,6 @@ class FacadeParityReport:
 
 def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
-        FacadeBinding("external.memory.fabric", "nolane.memory.fabric", "cogcoder.organization.memory", ("MemoryFabric",)),
         FacadeBinding("external.memory.lifecycle", "nolane.memory.lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger", "MemoryRelationGraph")),
         FacadeBinding("external.memory.retrieval", "nolane.memory.retrieval", "cogcoder.organization.memory_retrieval", ("MemoryRetrievalBudget", "MemoryRetrievalEngine")),
         FacadeBinding("external.context", "nolane.memory.context", "cogcoder.organization.memory_context", ("MemoryContextControlPlane",)),

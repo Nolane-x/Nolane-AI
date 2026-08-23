@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 31
+- `compatibility_facade`: 30
 - `frozen_asset`: 1
 - `historical_only`: 7
 - `legacy_internal`: 4
@@ -273,15 +273,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical write authority: `false`
 - Legacy/provenance sources: historical R2 mechanisms; no dedicated current organization implementation
 - Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
-
-### `external.memory.fabric`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.memory.fabric`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/memory.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.memory.lifecycle`
 

@@ -129,6 +129,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/types.py",),
         "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",
     ),
+    "external.memory.fabric": (
+        "nolane.memory.fabric",
+        ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
+        "Native scoped memory schema and fabric with preserved visibility, promotion, lifecycle-status mutation and state round-trip; historical memory/types surfaces bridge to canonical authority.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),

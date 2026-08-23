@@ -23,6 +23,7 @@ _COMPONENT_REVISIONS.update(
         "external.artifacts": 1,
         "external.verification": 1,
         "external.evidence": 1,
+        "external.memory.fabric": 1,
     }
 )
 

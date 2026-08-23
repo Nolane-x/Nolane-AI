@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any, Mapping
 
 from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.fabric import MemoryEntry, MemoryScope, MemoryStatus
 
 
 PHYSICAL_PARAMETER_CEILING = 100_000_000
@@ -28,23 +29,6 @@ class AgentStatus(str, Enum):
     CHECKPOINTING = 'checkpointing'
     PAUSED = 'paused'
     QUARANTINED = 'quarantined'
-
-
-class MemoryScope(str, Enum):
-    GLOBAL = 'global'
-    REGION = 'region'
-    PERSONAL = 'personal'
-    TASK = 'task'
-    PRIVATE = 'private'
-
-
-class MemoryStatus(str, Enum):
-    ACTIVE = 'active'
-    STALE = 'stale'
-    SUPERSEDED = 'superseded'
-    CONTRADICTED = 'contradicted'
-    QUARANTINED = 'quarantined'
-    ARCHIVED = 'archived'
 
 
 class SkillScope(str, Enum):
@@ -269,53 +253,6 @@ class CognitiveEvent:
             evidence_refs=tuple(str(row) for row in state.get('evidence_refs', ())),
             priority=int(state.get('priority', 0)), requires_ack=bool(state.get('requires_ack', False)),
             status=str(state.get('status', 'emitted')), created_at_logical=int(state.get('created_at_logical', state.get('sequence', 0))),
-        )
-
-
-@dataclass(frozen=True, slots=True)
-class MemoryEntry:
-    memory_id: str
-    sequence: int
-    scope: MemoryScope
-    text: str
-    owner_agent_id: str
-    region: str | None = None
-    task_id: str | None = None
-    tags: tuple[str, ...] = ()
-    parent_memory_id: str | None = None
-    promotion_receipt_id: str | None = None
-    status: MemoryStatus = MemoryStatus.ACTIVE
-    evidence_ids: tuple[str, ...] = ()
-    confidence: float = 1.0
-    dependencies: tuple[str, ...] = ()
-    supersedes: str | None = None
-    status_reason: str | None = None
-
-    def __post_init__(self) -> None:
-        if not 0.0 <= float(self.confidence) <= 1.0: raise ValueError('memory confidence must lie in [0, 1]')
-
-    def to_state(self) -> dict[str, Any]:
-        return {'memory_id': self.memory_id, 'sequence': self.sequence, 'scope': self.scope.value, 'text': self.text,
-                'owner_agent_id': self.owner_agent_id, 'region': self.region, 'task_id': self.task_id, 'tags': list(self.tags),
-                'parent_memory_id': self.parent_memory_id, 'promotion_receipt_id': self.promotion_receipt_id,
-                'status': self.status.value, 'evidence_ids': list(self.evidence_ids), 'confidence': self.confidence,
-                'dependencies': list(self.dependencies), 'supersedes': self.supersedes, 'status_reason': self.status_reason}
-
-    @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> 'MemoryEntry':
-        return cls(
-            memory_id=str(state['memory_id']), sequence=int(state['sequence']), scope=MemoryScope(str(state['scope'])),
-            text=str(state['text']), owner_agent_id=str(state['owner_agent_id']),
-            region=None if state.get('region') is None else str(state['region']),
-            task_id=None if state.get('task_id') is None else str(state['task_id']),
-            tags=tuple(str(row) for row in state.get('tags', ())),
-            parent_memory_id=None if state.get('parent_memory_id') is None else str(state['parent_memory_id']),
-            promotion_receipt_id=None if state.get('promotion_receipt_id') is None else str(state['promotion_receipt_id']),
-            status=MemoryStatus(str(state.get('status', MemoryStatus.ACTIVE.value))),
-            evidence_ids=tuple(str(row) for row in state.get('evidence_ids', ())), confidence=float(state.get('confidence', 1.0)),
-            dependencies=tuple(str(row) for row in state.get('dependencies', ())),
-            supersedes=None if state.get('supersedes') is None else str(state['supersedes']),
-            status_reason=None if state.get('status_reason') is None else str(state['status_reason']),
         )
 
 
