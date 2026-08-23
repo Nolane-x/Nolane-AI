@@ -86,10 +86,10 @@ def test_canonical_evaluation_facades_preserve_class_identity() -> None:
 
 
 def test_canonical_neural_boundary_keeps_checkpoint_authority_in_old_bridge() -> None:
-    from cogcoder.organization.execution_inference import R23ProductionInferenceAdapter as OldAdapter
-    from nolane.neural.inference_bridge import R23ProductionInferenceAdapter
+    from cogcoder.organization.execution_inference import R23InferenceBackend as OldAdapter
+    from nolane.neural.inference_bridge import R23InferenceBackend
 
-    assert R23ProductionInferenceAdapter is OldAdapter
+    assert R23InferenceBackend is OldAdapter
 
 
 def test_every_facade_declares_independent_component_version_and_source() -> None:
