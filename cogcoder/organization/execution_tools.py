@@ -263,13 +263,20 @@ class ExternalCoreExecutor:
         timeout_seconds: float = 30.0,
         max_output_chars: int = 200_000,
     ) -> CoreInvocationReceipt:
-        self.registry.get(agent_id)
+        identity = self.registry.get(agent_id)
         before = workspace.digest
-        if not self._is_authorized(agent_id, action.tool_id):
+        tool_authorized = self._is_authorized(agent_id, action.tool_id)
+        if not tool_authorized:
             return self._failure(
                 agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                 authorized=False, failure_kind='permission_denied',
                 message=f'{agent_id} is not authorized for {action.tool_id}', before=before,
+            )
+        if identity.current_task != str(task_id):
+            return self._failure(
+                agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
+                authorized=True, failure_kind='task_lease_required',
+                message='tool execution requires the agent current task lease', before=before,
             )
 
         if action.mutation_paths and self.code_claims is not None:
