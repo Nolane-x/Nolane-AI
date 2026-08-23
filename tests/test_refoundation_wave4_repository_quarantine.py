@@ -86,6 +86,42 @@ def test_wave4_archive_index_covers_every_ambiguous_historical_root_artifact() -
         assert row["archive_target"].startswith("archive/")
 
 
+def test_wave4_reference_audit_is_exhaustive_deterministic_and_fail_closed() -> None:
+    from nolane.repository.audit import build_archive_index
+
+    first = build_archive_index(ROOT)
+    second = build_archive_index(ROOT)
+    assert first == second
+    assert first["reference_audit_policy"] == "exact-plus-family-dynamic-fail-closed-v1"
+
+    entries = first["entries"]
+    assert entries
+    for row in entries:
+        audit = row["reference_audit"]
+        assert audit["decision"] in {"safe_to_move", "quarantined_in_place"}
+        assert audit["reference_count"] == len(audit["references"])
+        assert audit["blockers"] == sorted(set(audit["blockers"]))
+        for ref in audit["references"]:
+            assert ref["path"] != row["original_path"]
+            assert isinstance(ref["line"], int) and ref["line"] >= 1
+            assert ref["kind"] in {
+                "active_source",
+                "test",
+                "workflow",
+                "script",
+                "documentation",
+                "repository_metadata",
+            }
+        if row["category"] in {"historical_checkpoint_pointer", "legacy_weight_pointer"}:
+            assert audit["decision"] == "quarantined_in_place"
+            assert "protected_provenance_pointer" in audit["blockers"]
+        if audit["decision"] == "safe_to_move":
+            assert audit["reference_count"] == 0
+            assert not audit["blockers"]
+        else:
+            assert audit["blockers"] or audit["reference_count"] > 0
+
+
 def test_wave4_native_debt_is_exhaustive_against_implementation_ledger() -> None:
     from cogcoder.refoundation.implementation_status import (
         ImplementationStatus,
