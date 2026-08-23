@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import shutil
+import subprocess
+import tempfile
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .artifacts import ArtifactStore
@@ -395,6 +399,44 @@ class ExternalCoreExecutor:
         )
         return (artifact.artifact_id,), {'returncode': result.returncode, 'stderr': result.stderr}
 
+    @staticmethod
+    def _run_disposable_argv(
+        workspace: RepositoryWorkspace,
+        argv: tuple[str, ...],
+        *,
+        timeout_seconds: float,
+        max_output_chars: int,
+    ) -> tuple[int, str, str, bool]:
+        if timeout_seconds <= 0 or max_output_chars <= 0:
+            raise ValueError('subprocess bounds must be positive')
+        with tempfile.TemporaryDirectory(prefix='nolane-exec-') as tmp:
+            sandbox = Path(tmp) / 'repository'
+            shutil.copytree(
+                workspace.root,
+                sandbox,
+                symlinks=True,
+                ignore=shutil.ignore_patterns('.git'),
+            )
+            try:
+                proc = subprocess.run(
+                    list(argv),
+                    cwd=sandbox,
+                    text=True,
+                    capture_output=True,
+                    timeout=float(timeout_seconds),
+                    check=False,
+                )
+                return (
+                    int(proc.returncode),
+                    proc.stdout[:max_output_chars],
+                    proc.stderr[:max_output_chars],
+                    False,
+                )
+            except subprocess.TimeoutExpired as exc:
+                stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or '')
+                stderr = exc.stderr.decode() if isinstance(exc.stderr, bytes) else (exc.stderr or '')
+                return 124, stdout[:max_output_chars], stderr[:max_output_chars], True
+
     def _argv_tool(
         self,
         agent_id: str,
@@ -407,20 +449,32 @@ class ExternalCoreExecutor:
         if not isinstance(raw, (list, tuple)) or not raw:
             raise ValueError(f'{action.tool_id} requires non-empty argv list')
         argv = tuple(str(x) for x in raw)
-        result = workspace.run_argv(argv, timeout_seconds=timeout_seconds, max_output_chars=max_output_chars)
+        if any('\x00' in x for x in argv):
+            raise ValueError(f'{action.tool_id} argv contains invalid NUL')
+        returncode, stdout, stderr, timed_out = self._run_disposable_argv(
+            workspace,
+            argv,
+            timeout_seconds=timeout_seconds,
+            max_output_chars=max_output_chars,
+        )
         artifact = self.artifacts.put(
             kind='execution-command-output', producer_agent_id=agent_id,
-            content=canonical_json({'stdout': result.stdout, 'stderr': result.stderr}),
+            content=canonical_json({'stdout': stdout, 'stderr': stderr}),
             metadata={
                 'tool_id': action.tool_id, 'operation': action.operation,
-                'argv_digest': canonical_digest(list(argv)), 'returncode': result.returncode, 'timed_out': result.timed_out,
+                'argv_digest': canonical_digest(list(argv)), 'returncode': returncode,
+                'timed_out': timed_out, 'workspace_mode': 'disposable-copy',
             },
         )
-        if result.timed_out:
+        if timed_out:
             raise ExecutionToolFailure('timeout', f'{action.tool_id} timed out', (artifact.artifact_id,))
-        if result.returncode != 0:
-            raise ExecutionToolFailure('command_failed', f'{action.tool_id} returned {result.returncode}: {result.stderr}', (artifact.artifact_id,))
-        return (artifact.artifact_id,), {'returncode': result.returncode, 'timed_out': result.timed_out}
+        if returncode != 0:
+            raise ExecutionToolFailure('command_failed', f'{action.tool_id} returned {returncode}: {stderr}', (artifact.artifact_id,))
+        return (artifact.artifact_id,), {
+            'returncode': returncode,
+            'timed_out': timed_out,
+            'workspace_mode': 'disposable-copy',
+        }
 
     def _code_search(
         self,
