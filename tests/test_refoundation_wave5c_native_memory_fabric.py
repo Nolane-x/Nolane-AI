@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 import pytest
 
@@ -10,6 +11,9 @@ from cogcoder.refoundation.implementation_status import (
     ImplementationStatus,
     build_component_implementation_ledger,
 )
+
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def test_wave5c_memory_fabric_is_canonical_native_and_versioned() -> None:
@@ -203,3 +207,8 @@ def test_wave5c_debt_reduces_only_memory_fabric_facade() -> None:
     assert ledger["external.memory.lifecycle"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.memory.retrieval"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
+
+
+def test_wave5c_acceptance_has_no_write_enabled_bootstrap_workflow() -> None:
+    bootstrap = ROOT / ".github" / "workflows" / "refoundation-wave5c-bootstrap.yml"
+    assert not bootstrap.exists(), "temporary write-enabled Wave-5C bootstrap must be removed before acceptance"
