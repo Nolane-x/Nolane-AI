@@ -25,6 +25,11 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/coordination_delivery.py": "nolane/organization/coordination_delivery.py",
     "cogcoder/organization/coordination_conflicts.py": "nolane/organization/coordination_conflicts.py",
     "cogcoder/organization/coordination.py": "nolane/organization/coordination.py",
+    "cogcoder/organization/central.py": "nolane/organization/central.py",
+    "cogcoder/organization/central_access.py": "nolane/organization/central_access.py",
+    "cogcoder/organization/central_conflicts.py": "nolane/organization/central_conflicts.py",
+    "cogcoder/organization/central_resources.py": "nolane/organization/central_resources.py",
+    "cogcoder/organization/central_state.py": "nolane/organization/central_state.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 

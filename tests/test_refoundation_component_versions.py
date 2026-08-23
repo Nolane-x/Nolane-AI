@@ -18,6 +18,7 @@ WAVE2_NATIVE_REVISIONS = {
     "organization.coordination.delivery": 1,
     "organization.coordination.conflicts": 1,
     "organization.coordination": 1,
+    "organization.central": 1,
 }
 
 

@@ -98,6 +98,17 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/coordination.py",),
         "Native bounded coordination composition over canonical task, lifecycle, lease, delivery and conflict primitives.",
     ),
+    "organization.central": (
+        "nolane.organization.central",
+        (
+            "cogcoder/organization/central.py",
+            "cogcoder/organization/central_access.py",
+            "cogcoder/organization/central_conflicts.py",
+            "cogcoder/organization/central_resources.py",
+            "cogcoder/organization/central_state.py",
+        ),
+        "Native Nolane Central aggregate plus access, conflict, resource and world-state authority; historical Central modules are compatibility bridges preserving public class identity.",
+    ),
     "organization.runtime": (
         "nolane.runtime",
         ("cogcoder/organization/runtime.py", "cogcoder/organization/runtime_core.py"),
