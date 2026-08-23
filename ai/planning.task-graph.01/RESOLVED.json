@@ -1,0 +1,68 @@
+{
+  "accepted_neural_version": "NUC-0.1+planning.task-graph.01-delta-0.1",
+  "agent_id": "planning.task-graph.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "task-dag",
+      "critical-path-engine",
+      "risk-graph",
+      "progress-reconciler"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "task-dag",
+      "critical-path-engine",
+      "risk-graph",
+      "progress-reconciler"
+    ],
+    "private_bindings": [],
+    "private_version": "planning.task-graph.01-EXT-0.0.0",
+    "regional_bindings": [
+      "task-dag",
+      "critical-path-engine",
+      "risk-graph",
+      "progress-reconciler"
+    ],
+    "regional_version": "REGION-EXT-planning-program-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/planning.task-graph.01",
+  "name": "Task Graph Planner",
+  "neural_core": {
+    "private_version": "planning.task-graph.01-delta-0.1",
+    "regional_version": "REGION-planning-program-0.1",
+    "resolved_version": "NUC-0.1+REGION-planning-program-0.1+planning.task-graph.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 20000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 76000000
+  },
+  "rank": "senior_specialist",
+  "region": "planning-program",
+  "region_chief_id": "planning.chief",
+  "role": "task decomposition and dependency planning",
+  "skill_namespace": "skills/personal/planning.task-graph.01"
+}

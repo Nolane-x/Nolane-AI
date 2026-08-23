@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 0,
+  "region_id": "requirements-product",
+  "chief_id": "requirements.chief",
+  "neural_overlay_version": "REGION-requirements-product-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-requirements-product-0.1",
+  "external_core_bindings": ["requirements-graph","acceptance-criteria-engine","constraint-ledger"],
+  "members": ["requirements.chief","requirements.analysis.01","requirements.acceptance.01"]
+}

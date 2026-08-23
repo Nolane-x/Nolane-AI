@@ -1,0 +1,76 @@
+{
+  "accepted_neural_version": "NUC-0.1+nolane.central-delta-0.1",
+  "agent_id": "nolane.central",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "global-project-graph",
+      "resource-arbiter",
+      "direct-intervention-channel"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "browser",
+      "lsp",
+      "ast",
+      "compiler",
+      "test-runner",
+      "plan-graph",
+      "architecture-graph",
+      "repo-graph",
+      "knowledge-graph",
+      "browser-automation",
+      "runtime-observation",
+      "research",
+      "agent-control",
+      "resource-control"
+    ],
+    "private_bindings": [
+      "global-project-graph",
+      "resource-arbiter",
+      "direct-intervention-channel"
+    ],
+    "private_version": "CENTRAL-EXT-0.1",
+    "regional_bindings": [],
+    "regional_version": null,
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/nolane.central",
+  "name": "Nolane Central",
+  "neural_core": {
+    "private_version": "nolane.central-delta-0.1",
+    "regional_version": null,
+    "resolved_version": "NUC-0.1+nolane.central-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 40000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 96000000
+  },
+  "rank": "central",
+  "region": "global-command",
+  "region_chief_id": null,
+  "role": "Global Coding AGI Coordinator and Direct Worker",
+  "skill_namespace": "skills/personal/nolane.central"
+}

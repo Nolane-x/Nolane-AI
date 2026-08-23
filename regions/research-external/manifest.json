@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 12,
+  "region_id": "research-external",
+  "chief_id": "research.chief",
+  "neural_overlay_version": "REGION-research-external-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-research-external-0.1",
+  "external_core_bindings": ["web-retrieval","github-research","docs-index","paper-index","package-registry","provenance-store"],
+  "members": ["research.chief","research.repo-archaeology.01","research.docs-api.01","research.prior-art.01"]
+}

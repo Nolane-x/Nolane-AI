@@ -1,0 +1,71 @@
+{
+  "accepted_neural_version": "NUC-0.1+verification.spec-acceptance.01-delta-0.1",
+  "agent_id": "verification.spec-acceptance.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "private_bindings": [],
+    "private_version": "verification.spec-acceptance.01-EXT-0.0.0",
+    "regional_bindings": [
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "regional_version": "REGION-EXT-verification-testing-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/verification.spec-acceptance.01",
+  "name": "Specification Acceptance Verifier",
+  "neural_core": {
+    "private_version": "verification.spec-acceptance.01-delta-0.1",
+    "regional_version": "REGION-verification-testing-0.1",
+    "resolved_version": "NUC-0.1+REGION-verification-testing-0.1+verification.spec-acceptance.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 8000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 64000000
+  },
+  "rank": "specialist",
+  "region": "verification-testing",
+  "region_chief_id": "verification.chief",
+  "role": "specification and acceptance verification",
+  "skill_namespace": "skills/personal/verification.spec-acceptance.01"
+}

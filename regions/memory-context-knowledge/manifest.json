@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 14,
+  "region_id": "memory-context-knowledge",
+  "chief_id": "memory.chief",
+  "neural_overlay_version": "REGION-memory-context-knowledge-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-memory-context-knowledge-0.1",
+  "external_core_bindings": ["vector-retrieval","knowledge-graph","temporal-memory","skill-store","context-compiler","semantic-diff"],
+  "members": ["memory.chief","memory.context-compiler.01","memory.knowledge-graph.01","memory.lifecycle.01"]
+}

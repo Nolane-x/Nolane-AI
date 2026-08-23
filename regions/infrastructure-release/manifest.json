@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 10,
+  "region_id": "infrastructure-release",
+  "chief_id": "infrastructure.chief",
+  "neural_overlay_version": "REGION-infrastructure-release-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-infrastructure-release-0.1",
+  "external_core_bindings": ["ci-engine","container-runtime","deployment-controller","observability-stack","release-packager"],
+  "members": ["infrastructure.chief","infrastructure.ci-env.01","infrastructure.deployment.01","infrastructure.observability-release.01"]
+}

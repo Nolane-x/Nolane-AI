@@ -1,0 +1,71 @@
+{
+  "accepted_neural_version": "NUC-0.1+verification.chief-delta-0.1",
+  "agent_id": "verification.chief",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "private_bindings": [],
+    "private_version": "verification.chief-EXT-0.0.0",
+    "regional_bindings": [
+      "fresh-sandbox",
+      "property-testing",
+      "fuzzer",
+      "integration-runner",
+      "acceptance-harness"
+    ],
+    "regional_version": "REGION-EXT-verification-testing-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/verification.chief",
+  "name": "Verification Chief",
+  "neural_core": {
+    "private_version": "verification.chief-delta-0.1",
+    "regional_version": "REGION-verification-testing-0.1",
+    "resolved_version": "NUC-0.1+REGION-verification-testing-0.1+verification.chief-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 34000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 90000000
+  },
+  "rank": "chief",
+  "region": "verification-testing",
+  "region_chief_id": "verification.chief",
+  "role": "Verification / Testing Chief",
+  "skill_namespace": "skills/personal/verification.chief"
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 6,
+  "region_id": "debugging-failure",
+  "chief_id": "debug.chief",
+  "neural_overlay_version": "REGION-debugging-failure-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-debugging-failure-0.1",
+  "external_core_bindings": ["runtime-tracer","stack-graph","coverage-graph","state-diff","crash-analyzer","git-bisect","failure-minimizer"],
+  "members": ["debug.chief","debug.reproducer.01","debug.runtime-trace.01","debug.static-root-cause.01","debug.concurrency-state.01","debug.regression-bisect.01"]
+}

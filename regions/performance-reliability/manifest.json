@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 11,
+  "region_id": "performance-reliability",
+  "chief_id": "reliability.chief",
+  "neural_overlay_version": "REGION-performance-reliability-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-performance-reliability-0.1",
+  "external_core_bindings": ["cpu-profiler","memory-profiler","race-detector","recovery-simulator","resilience-harness"],
+  "members": ["reliability.chief","reliability.performance.01","reliability.concurrency.01","reliability.recovery.01"]
+}

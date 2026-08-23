@@ -1,0 +1,65 @@
+{
+  "accepted_neural_version": "NUC-0.1+ux.flow.01-delta-0.1",
+  "agent_id": "ux.flow.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "interaction-model",
+      "design-token-graph",
+      "accessibility-tree"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "interaction-model",
+      "design-token-graph",
+      "accessibility-tree"
+    ],
+    "private_bindings": [],
+    "private_version": "ux.flow.01-EXT-0.0.0",
+    "regional_bindings": [
+      "interaction-model",
+      "design-token-graph",
+      "accessibility-tree"
+    ],
+    "regional_version": "REGION-EXT-ux-product-design-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/ux.flow.01",
+  "name": "UX Flow Architect",
+  "neural_core": {
+    "private_version": "ux.flow.01-delta-0.1",
+    "regional_version": "REGION-ux-product-design-0.1",
+    "resolved_version": "NUC-0.1+REGION-ux-product-design-0.1+ux.flow.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 20000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 76000000
+  },
+  "rank": "senior_specialist",
+  "region": "ux-product-design",
+  "region_chief_id": "ux.chief",
+  "role": "interaction and information flow",
+  "skill_namespace": "skills/personal/ux.flow.01"
+}

@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 2,
+  "region_id": "architecture-system",
+  "chief_id": "architecture.chief",
+  "neural_overlay_version": "REGION-architecture-system-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-architecture-system-0.1",
+  "external_core_bindings": ["architecture-graph","interface-contract-engine","change-impact-graph","adr-ledger"],
+  "members": ["architecture.chief","architecture.component.01","architecture.api-interface.01","architecture.change-impact.01","architecture.system-boundary.01"]
+}

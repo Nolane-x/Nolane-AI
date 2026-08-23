@@ -1,0 +1,16 @@
+{
+  "schema_version": "ai-first-core-v1",
+  "scope": "global",
+  "core_id": "shared-external-core",
+  "version": "EXT-0.1",
+  "capabilities": [
+    {"id": "filesystem", "kind": "tool"},
+    {"id": "git", "kind": "tool"},
+    {"id": "terminal", "kind": "tool"},
+    {"id": "code-search", "kind": "tool"},
+    {"id": "memory", "kind": "tool"},
+    {"id": "task-graph", "kind": "tool"},
+    {"id": "event-ledger", "kind": "tool"},
+    {"id": "evidence-store", "kind": "tool"}
+  ]
+}
