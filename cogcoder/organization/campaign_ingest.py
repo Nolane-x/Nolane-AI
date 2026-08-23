@@ -79,6 +79,15 @@ class CampaignIngestor:
                 raise ValueError('duplicate campaign ingest receipt')
             self._receipts[row.receipt_id] = row
 
+    def get_receipt(self, receipt_id: str) -> CampaignIngestReceipt:
+        try:
+            return self._receipts[str(receipt_id)]
+        except KeyError as exc:
+            raise KeyError(f'unknown campaign ingest receipt: {receipt_id}') from exc
+
+    def receipts(self) -> tuple[CampaignIngestReceipt, ...]:
+        return tuple(self._receipts[key] for key in sorted(self._receipts))
+
     def _complete_rows(self, campaign_id: str, mode: EvaluationMode):
         campaign = self.campaigns.get(campaign_id)
         rows = self.runs.receipts_for(campaign_id, mode)
@@ -213,7 +222,7 @@ class CampaignIngestor:
         return row
 
     def to_state(self) -> dict[str, Any]:
-        return {'receipts': [self._receipts[k].to_state() for k in sorted(self._receipts)]}
+        return {'receipts': [row.to_state() for row in self.receipts()]}
 
     @classmethod
     def from_state(cls, *, state: Mapping[str, Any], **kwargs: Any) -> 'CampaignIngestor':
