@@ -10,6 +10,7 @@ from typing import Any
 from cogcoder.organization.types import canonical_digest
 
 from .census import CensusKind, RepositoryCensus, SourceCensusRecord
+from .facades import build_active_facade_bindings
 from .manifests import FIRST_GENERATION_SNAPSHOT
 from .migration import LegacyDisposition, ReviewDepth
 
@@ -42,13 +43,9 @@ class GitTreeEntry:
 
 def _run_git(repo_root: Path, *args: str) -> str:
     completed = subprocess.run(
-        ["git", *args],
-        cwd=repo_root,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        encoding="utf-8",
+        ["git", *args], cwd=repo_root, check=True,
+        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        text=True, encoding="utf-8",
     )
     return completed.stdout
 
@@ -59,7 +56,7 @@ def _kind_for_path(path: str) -> CensusKind:
         return CensusKind.WORKFLOW
     if path.startswith("tests/") or "/tests/" in path or Path(path).name.startswith("test_"):
         return CensusKind.TEST
-    if path.startswith("docs/") or lower.endswith(('.md', '.rst')):
+    if path.startswith("docs/") or lower.endswith((".md", ".rst")):
         return CensusKind.DOCUMENTATION
     if path.startswith("model/"):
         return CensusKind.MODEL
@@ -69,21 +66,34 @@ def _kind_for_path(path: str) -> CensusKind:
         name = Path(path).name
         historical_prefixes = ("r2", "_r2", "arc_")
         return CensusKind.HISTORICAL_SOURCE if name.startswith(historical_prefixes) else CensusKind.SOURCE
-    if lower.endswith(('.json', '.jsonl', '.lock', '.csv', '.tsv')):
+    if lower.endswith((".json", ".jsonl", ".lock", ".csv", ".tsv")):
         return CensusKind.RESULT
-    if lower.endswith(('.yml', '.yaml', '.toml', '.ini', '.cfg')):
+    if lower.endswith((".yml", ".yaml", ".toml", ".ini", ".cfg")):
         return CensusKind.MANIFEST
     if lower.endswith(".py"):
         return CensusKind.SOURCE
     return CensusKind.OTHER
 
 
+def _module_to_path(module: str) -> str:
+    return module.replace(".", "/") + ".py"
+
+
+def _active_facade_destinations() -> dict[str, str]:
+    return {
+        _module_to_path(binding.legacy_module): _module_to_path(binding.canonical_module)
+        for binding in build_active_facade_bindings()
+    }
+
+
 def _bootstrap_disposition(path: str) -> tuple[LegacyDisposition, ReviewDepth, str | None]:
-    # Wave 1 is intentionally conservative: exact inventory coverage is not a
-    # semantic review. Active organization modules are known compatibility
-    # inputs, while all other material remains KEEP until a later census wave.
+    # Exact canonical facade binding is stronger than family mapping, but still
+    # not deletion permission.  The legacy file remains live compatibility code.
+    destination = _active_facade_destinations().get(path)
+    if destination is not None:
+        return LegacyDisposition.COMPATIBILITY, ReviewDepth.CONTRACT_REVIEWED, destination
     if path.startswith("cogcoder/organization/"):
-        return LegacyDisposition.COMPATIBILITY, ReviewDepth.FAMILY_MAPPED, "nolane canonical compatibility namespace"
+        return LegacyDisposition.COMPATIBILITY, ReviewDepth.FAMILY_MAPPED, None
     return LegacyDisposition.KEEP, ReviewDepth.UNREVIEWED, None
 
 
@@ -127,11 +137,8 @@ class GitSnapshotInventory:
             size = None if size_text.strip() == "-" else int(size_text.strip())
             rows.append(
                 GitTreeEntry(
-                    path=path,
-                    mode=mode,
-                    object_type=object_type,
-                    object_sha=object_sha,
-                    size_bytes=size,
+                    path=path, mode=mode, object_type=object_type,
+                    object_sha=object_sha, size_bytes=size,
                 )
             )
         ordered = tuple(sorted(rows, key=lambda row: row.path))
