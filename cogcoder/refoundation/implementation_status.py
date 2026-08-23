@@ -119,6 +119,16 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/foundry.py", "cogcoder/organization/foundry_profiles.py", "cogcoder/organization/foundry_resources.py"),
         "Canonical non-agent Work Unit API over accepted bounded Foundry lifecycle/resource/evidence implementation.",
     ),
+    "external.artifacts": (
+        "nolane.external_core.artifacts",
+        ("cogcoder/organization/artifacts.py",),
+        "Native content-addressed artifact records/store with deterministic evidence ordering, metadata encoding and state round-trip; historical artifact module is a compatibility bridge.",
+    ),
+    "external.verification": (
+        "nolane.external_core.verification",
+        ("cogcoder/organization/verification.py",),
+        "Native bounded candidate evaluation, promotion and rollback authority over canonical identity/event primitives; historical verification module is a compatibility bridge.",
+    ),
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
