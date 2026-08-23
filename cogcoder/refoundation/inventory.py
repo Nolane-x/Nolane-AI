@@ -15,6 +15,11 @@ from .manifests import FIRST_GENERATION_SNAPSHOT
 from .migration import LegacyDisposition, ReviewDepth
 
 
+_CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
+    "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
+}
+
+
 @dataclass(frozen=True, slots=True)
 class GitTreeEntry:
     path: str
@@ -86,10 +91,23 @@ def _active_facade_destinations() -> dict[str, str]:
     }
 
 
+def _canonical_destinations() -> dict[str, str]:
+    """Return migration destinations without conflating native code and facades."""
+    destinations = _active_facade_destinations()
+    for source, destination in _CANONICAL_NATIVE_DESTINATIONS.items():
+        existing = destinations.get(source)
+        if existing is not None and existing != destination:
+            raise ValueError(
+                f"canonical destination conflict for {source}: facade={existing}, native={destination}"
+            )
+        destinations[source] = destination
+    return destinations
+
+
 def _bootstrap_disposition(path: str) -> tuple[LegacyDisposition, ReviewDepth, str | None]:
-    # Exact canonical facade binding is stronger than family mapping, but still
-    # not deletion permission.  The legacy file remains live compatibility code.
-    destination = _active_facade_destinations().get(path)
+    # Exact canonical binding is stronger than family mapping, but still not
+    # deletion permission. Legacy files remain live compatibility/evidence code.
+    destination = _canonical_destinations().get(path)
     if destination is not None:
         return LegacyDisposition.COMPATIBILITY, ReviewDepth.CONTRACT_REVIEWED, destination
     if path.startswith("cogcoder/organization/"):
