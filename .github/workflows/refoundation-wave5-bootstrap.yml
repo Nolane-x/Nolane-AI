@@ -1,0 +1,49 @@
+name: Refoundation Wave 5 Native-Debt Bootstrap
+
+on:
+  pull_request:
+    branches:
+      - refoundation/epoch0-wave4-historical-quarantine
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5-native-foundations' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Materialize native-debt projections
+        run: python -m nolane.repository.audit --write
+      - name: Prove historical archive index did not drift
+        run: git diff --exit-code -- archive/INDEX.json
+      - name: Verify Wave 5 native evidence contracts before commit
+        run: |
+          python -m nolane.repository.audit --check
+          python -m pytest -q tests/test_refoundation_wave5_native_evidence_foundations.py
+      - name: Commit generated native-debt views only
+        shell: bash
+        run: |
+          git add CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md
+          if git diff --cached --quiet; then
+            echo 'No Wave 5 generated debt changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor(refoundation): materialize Wave 5 native debt'
+          git push origin HEAD:${GITHUB_HEAD_REF}
