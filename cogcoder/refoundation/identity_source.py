@@ -7,13 +7,13 @@ from cogcoder.organization.events import EventLedger
 from cogcoder.organization.external_core import build_default_external_core_registry
 from cogcoder.organization.memory import MemoryFabric
 from cogcoder.organization.registry import AgentRegistry
-from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.scheduler import WakeSleepScheduler
 from cogcoder.organization.self_model import SelfModelRegistry
 from cogcoder.organization.tasks import TaskGraph
 from cogcoder.organization.types import AgentIdentity, AgentRank, EventKind
 from cogcoder.organization.verification import VerificationAuthority
 
+from .accepted_runtime import AcceptedOrganizationRuntime
 from .manifests import AgentManifest, build_bootstrap_agent_manifests
 
 
@@ -63,13 +63,13 @@ def build_canonical_agent_identities(
 
 def build_manifest_driven_runtime(
     manifests: tuple[AgentManifest, ...] | None = None,
-) -> OrganizationRuntime:
-    """Build the accepted runtime implementation from canonical identity manifests.
+) -> AcceptedOrganizationRuntime:
+    """Build the accepted implementation through the Epoch-0 compatibility membrane.
 
-    The behavioral implementation is still the accepted organization runtime;
-    only permanent-identity authority has moved to the canonical manifest layer.
-    This is the first non-facade cutover and is intentionally required to match
-    ``OrganizationRuntime.first_generation()`` byte-for-byte at serialized state.
+    Permanent-identity authority comes from canonical manifests. Runtime
+    behavior remains the accepted implementation during zero-loss migration,
+    but callers in the refoundation layer no longer import the historical
+    runtime inheritance chain directly.
     """
 
     registry = AgentRegistry(build_canonical_agent_identities(manifests))
@@ -93,7 +93,7 @@ def build_manifest_driven_runtime(
     external_cores = build_default_external_core_registry(registry)
     self_models = SelfModelRegistry(registry)
 
-    return OrganizationRuntime(
+    return AcceptedOrganizationRuntime(
         registry=registry,
         ledger=ledger,
         authority=authority,
