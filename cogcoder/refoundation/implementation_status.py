@@ -50,9 +50,23 @@ class ComponentImplementationRecord:
 
 _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "organization.identity": (
-        "nolane.organization.manifests",
-        ("cogcoder/organization/blueprint.py", "cogcoder/organization/types.py"),
-        "Canonical 67-identity source of truth; legacy blueprint retained only as parity oracle.",
+        "nolane.organization.identity",
+        (
+            "cogcoder/organization/registry.py",
+            "cogcoder/organization/blueprint.py",
+            "cogcoder/organization/types.py",
+        ),
+        "Canonical 67-identity manifest authority plus native AgentRegistry implementation; historical registry is a compatibility bridge and blueprint remains a parity oracle.",
+    ),
+    "organization.authority": (
+        "nolane.organization.authority",
+        ("cogcoder/organization/authority.py",),
+        "Native ownership, block, override and fail-closed write authority; historical module bridges to canonical class identity.",
+    ),
+    "organization.events": (
+        "nolane.organization.events",
+        ("cogcoder/organization/events.py",),
+        "Native causal event ledger, subscriptions, delivery and state round-trip; historical module bridges to canonical class identity.",
     ),
     "organization.runtime": (
         "nolane.runtime",
