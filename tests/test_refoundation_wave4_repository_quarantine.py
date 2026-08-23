@@ -215,3 +215,8 @@ def test_wave4_refoundation_workflow_gates_repository_audit_freshness() -> None:
     assert "CURRENT/**" in text
     assert "archive/**" in text
     assert "nolane/repository/**" in text
+
+
+def test_wave4_acceptance_has_no_write_enabled_bootstrap_workflow() -> None:
+    bootstrap = ROOT / ".github" / "workflows" / "refoundation-wave4-bootstrap.yml"
+    assert not bootstrap.exists(), "temporary write-enabled Wave-4 bootstrap must be removed before acceptance"
