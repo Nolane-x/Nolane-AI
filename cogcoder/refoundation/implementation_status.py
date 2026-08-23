@@ -1,0 +1,148 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import Enum
+
+from .facades import build_active_facade_bindings
+from .manifests import build_component_manifests
+
+
+class ImplementationStatus(str, Enum):
+    CANONICAL_NATIVE = "canonical_native"
+    COMPATIBILITY_FACADE = "compatibility_facade"
+    LEGACY_INTERNAL = "legacy_internal"
+    FROZEN_ASSET = "frozen_asset"
+    HISTORICAL_ONLY = "historical_only"
+
+
+@dataclass(frozen=True, slots=True)
+class ComponentImplementationRecord:
+    component_id: str
+    component_version: str
+    status: ImplementationStatus
+    canonical_module: str | None
+    legacy_sources: tuple[str, ...]
+    canonical_write_authority: bool
+    notes: str
+
+    def __post_init__(self) -> None:
+        if not self.component_id.strip() or not self.component_version.strip() or not self.notes.strip():
+            raise ValueError("implementation record requires component/version/notes")
+        if self.status is ImplementationStatus.CANONICAL_NATIVE and self.canonical_module is None:
+            raise ValueError("canonical-native implementation requires canonical module")
+        if self.status is ImplementationStatus.HISTORICAL_ONLY and self.canonical_write_authority:
+            raise ValueError("historical-only component cannot hold canonical write authority")
+        if self.canonical_write_authority and self.status is not ImplementationStatus.CANONICAL_NATIVE:
+            raise ValueError("canonical write authority requires canonical-native implementation")
+
+
+_NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
+    "organization.identity": (
+        "nolane.organization.manifests",
+        ("cogcoder/organization/blueprint.py", "cogcoder/organization/types.py"),
+        "Canonical 67-identity source of truth; legacy blueprint retained only as parity oracle.",
+    ),
+    "organization.runtime": (
+        "nolane.runtime",
+        ("cogcoder/organization/runtime.py", "cogcoder/organization/runtime_core.py"),
+        "Canonical authority wrapper over accepted implementation with manifest identity, MasterPlanGraph and LeaseCoordinator boundaries.",
+    ),
+    "organization.temporary_work_units": (
+        "cogcoder.refoundation.temporary_work_units",
+        ("cogcoder/organization/foundry.py",),
+        "Canonical non-agent ontology adapter preserving bounded Foundry work-unit lineage.",
+    ),
+}
+
+_HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
+    "external.knowledge": ("historical R2 mechanisms; no dedicated current organization implementation",),
+    "external.epistemic": ("historical R2 mechanisms; no dedicated current organization implementation",),
+    "external.cognitive_library": ("historical reusable cognitive mechanisms; extraction not yet accepted",),
+    "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
+    "external.causal": ("historical bounded causal programs; not a current dedicated organization component",),
+    "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),
+    "external.transfer_meta": ("historical transfer/meta-learning mechanisms; extraction not yet accepted",),
+}
+
+_FROZEN_ASSET: dict[str, tuple[str, ...]] = {
+    "neural.shared": ("model/neural-r2.3",),
+}
+
+_LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
+    "core.canonical_digest": ("cogcoder/organization/types.py",),
+    "schemas.identity": ("cogcoder/organization/types.py",),
+    "organization.coordination.leases": ("cogcoder/organization/coordination_leases.py",),
+    "organization.coordination.delivery": ("cogcoder/organization/coordination_delivery.py",),
+    "organization.coordination.conflicts": ("cogcoder/organization/coordination_conflicts.py",),
+    "external.evidence": ("cogcoder/organization/types.py", "cogcoder/organization/verification.py"),
+    "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
+    "external.coding.patches": ("cogcoder/organization/coding.py",),
+}
+
+
+def build_component_implementation_ledger() -> dict[str, ComponentImplementationRecord]:
+    components = {row.component_id: row for row in build_component_manifests()}
+    facades = {row.component_id: row for row in build_active_facade_bindings()}
+    unknown_facades = sorted(set(facades) - set(components))
+    if unknown_facades:
+        raise ValueError(f"active facade references undeclared components: {unknown_facades!r}")
+
+    ledger: dict[str, ComponentImplementationRecord] = {}
+    for component_id, manifest in components.items():
+        if component_id in _NATIVE:
+            module, legacy_sources, notes = _NATIVE[component_id]
+            row = ComponentImplementationRecord(
+                component_id=component_id,
+                component_version=str(manifest.version),
+                status=ImplementationStatus.CANONICAL_NATIVE,
+                canonical_module=module,
+                legacy_sources=legacy_sources,
+                canonical_write_authority=True,
+                notes=notes,
+            )
+        elif component_id in _HISTORICAL_ONLY:
+            row = ComponentImplementationRecord(
+                component_id=component_id,
+                component_version=str(manifest.version),
+                status=ImplementationStatus.HISTORICAL_ONLY,
+                canonical_module=None,
+                legacy_sources=_HISTORICAL_ONLY[component_id],
+                canonical_write_authority=False,
+                notes="Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.",
+            )
+        elif component_id in _FROZEN_ASSET:
+            row = ComponentImplementationRecord(
+                component_id=component_id,
+                component_version=str(manifest.version),
+                status=ImplementationStatus.FROZEN_ASSET,
+                canonical_module=None,
+                legacy_sources=_FROZEN_ASSET[component_id],
+                canonical_write_authority=False,
+                notes="Accepted frozen neural asset with separate runtime adapter and checkpoint authority.",
+            )
+        elif component_id in facades:
+            facade = facades[component_id]
+            row = ComponentImplementationRecord(
+                component_id=component_id,
+                component_version=str(manifest.version),
+                status=ImplementationStatus.COMPATIBILITY_FACADE,
+                canonical_module=facade.canonical_module,
+                legacy_sources=(facade.legacy_module.replace(".", "/") + ".py",),
+                canonical_write_authority=False,
+                notes="Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.",
+            )
+        else:
+            row = ComponentImplementationRecord(
+                component_id=component_id,
+                component_version=str(manifest.version),
+                status=ImplementationStatus.LEGACY_INTERNAL,
+                canonical_module=None,
+                legacy_sources=_LEGACY_SOURCE_HINTS.get(component_id, ()),
+                canonical_write_authority=False,
+                notes="Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.",
+            )
+        ledger[component_id] = row
+
+    if set(ledger) != set(components):
+        raise ValueError("implementation ledger must cover every canonical component exactly once")
+    return ledger
