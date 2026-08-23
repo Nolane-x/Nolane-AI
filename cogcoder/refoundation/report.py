@@ -13,6 +13,7 @@ from .manifests import (
     build_bootstrap_agent_manifests,
     build_component_manifests,
 )
+from .regions import build_region_manifests
 
 
 def build_bootstrap_report() -> dict[str, object]:
@@ -21,6 +22,7 @@ def build_bootstrap_report() -> dict[str, object]:
     facades = build_active_facade_bindings()
     lock = build_wave1_composition_lock()
     agents = build_bootstrap_agent_manifests()
+    regions = build_region_manifests()
     components = build_component_manifests()
     rank_counts: dict[str, int] = {}
     for row in agents:
@@ -36,12 +38,17 @@ def build_bootstrap_report() -> dict[str, object]:
             "bootstrap_parity_clean": parity.clean,
             "bootstrap_parity_digest": parity.digest,
         },
+        "region_summary": {
+            "count": len(regions),
+            "covered_noncentral_identities": sum(len(row.permanent_agent_ids) for row in regions),
+        },
         "active_facade_summary": {
             "count": len(facades),
             "clean": facade_parity.clean,
             "parity_digest": facade_parity.digest,
         },
         "agents": [row.to_state() for row in agents],
+        "regions": [row.to_state() for row in regions],
         "components": [row.to_state() for row in components],
         "active_facades": [row.to_state() for row in facades],
         "composition_lock": lock.to_state(),
