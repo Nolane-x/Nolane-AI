@@ -25,11 +25,7 @@ class RuntimeStateBinding:
 
 
 def build_runtime_state_bindings() -> tuple[RuntimeStateBinding, ...]:
-    """Total ownership map for the current OrganizationRuntime.to_state shape.
-
-    Multiple historical sections may be owned by one canonical component, but
-    every legacy section has exactly one owner and its raw state is retained.
-    """
+    """Total ownership map for the current OrganizationRuntime.to_state shape."""
 
     return (
         RuntimeStateBinding("registry", "organization.identity"),
@@ -102,6 +98,57 @@ class RuntimeStateEnvelope:
             raise ValueError("runtime state envelope digest mismatch")
 
 
+@dataclass(frozen=True, slots=True)
+class CanonicalStateBundle:
+    """Canonical owner projection with exact legacy rollback material."""
+
+    owners: Mapping[str, Mapping[str, Any]]
+    section_owners: Mapping[str, str]
+    legacy_state_digest: str
+    digest: str
+
+    @property
+    def lossless(self) -> bool:
+        sections = [section for payload in self.owners.values() for section in payload]
+        return len(sections) == len(set(sections)) == len(self.section_owners) and set(sections) == set(self.section_owners)
+
+    def owner_state(self, canonical_owner: str) -> Mapping[str, Any]:
+        try:
+            return self.owners[str(canonical_owner)]
+        except KeyError as exc:
+            raise KeyError(f"canonical state bundle has no owner: {canonical_owner}") from exc
+
+    def restore_legacy_state(self) -> dict[str, Any]:
+        if not self.lossless:
+            raise ValueError("cannot restore a non-lossless canonical state bundle")
+        restored: dict[str, Any] = {}
+        for owner in sorted(self.owners):
+            for legacy_section, state in self.owners[owner].items():
+                if legacy_section in restored:
+                    raise ValueError(f"duplicate legacy section in canonical state bundle: {legacy_section}")
+                restored[legacy_section] = state
+        if canonical_digest(restored) != self.legacy_state_digest:
+            raise ValueError("restored legacy state digest mismatch")
+        return restored
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "owners": {
+                owner: {section: self.owners[owner][section] for section in sorted(self.owners[owner])}
+                for owner in sorted(self.owners)
+            },
+            "section_owners": dict(sorted(self.section_owners.items())),
+            "legacy_state_digest": self.legacy_state_digest,
+        }
+
+    def __post_init__(self) -> None:
+        if not self.lossless:
+            raise ValueError("canonical state bundle must cover every section exactly once")
+        if canonical_digest(self.payload()) != self.digest:
+            raise ValueError("canonical state bundle digest mismatch")
+        self.restore_legacy_state()
+
+
 class RuntimeStateMapper:
     def __init__(self, bindings: tuple[RuntimeStateBinding, ...] | None = None) -> None:
         rows = bindings or build_runtime_state_bindings()
@@ -111,7 +158,7 @@ class RuntimeStateMapper:
                 raise ValueError(f"duplicate runtime state binding: {row.legacy_section}")
             self._bindings[row.legacy_section] = row
 
-    def map_state(self, state: Mapping[str, Any]) -> RuntimeStateEnvelope:
+    def _validate_total_map(self, state: Mapping[str, Any]) -> dict[str, Any]:
         raw = {str(key): value for key, value in state.items()}
         unknown = tuple(sorted(set(raw) - set(self._bindings)))
         missing = tuple(sorted(set(self._bindings) - set(raw)))
@@ -122,7 +169,10 @@ class RuntimeStateMapper:
             if missing:
                 details.append(f"missing={missing}")
             raise ValueError("unmapped runtime state sections: " + ", ".join(details))
+        return raw
 
+    def map_state(self, state: Mapping[str, Any]) -> RuntimeStateEnvelope:
+        raw = self._validate_total_map(state)
         sections: dict[str, Mapping[str, Any]] = {}
         for key in sorted(raw):
             binding = self._bindings[key]
@@ -147,4 +197,27 @@ class RuntimeStateMapper:
             legacy_state_digest=payload0["legacy_state_digest"],
             sections=sections,
             digest=canonical_digest(payload0),
+        )
+
+    def bundle_state(self, state: Mapping[str, Any]) -> CanonicalStateBundle:
+        raw = self._validate_total_map(state)
+        owners: dict[str, dict[str, Any]] = {}
+        section_owners: dict[str, str] = {}
+        for section in sorted(raw):
+            owner = self._bindings[section].canonical_owner
+            owners.setdefault(owner, {})[section] = raw[section]
+            section_owners[section] = owner
+        payload = {
+            "owners": {
+                owner: {section: owners[owner][section] for section in sorted(owners[owner])}
+                for owner in sorted(owners)
+            },
+            "section_owners": dict(sorted(section_owners.items())),
+            "legacy_state_digest": canonical_digest(raw),
+        }
+        return CanonicalStateBundle(
+            owners=owners,
+            section_owners=section_owners,
+            legacy_state_digest=payload["legacy_state_digest"],
+            digest=canonical_digest(payload),
         )
