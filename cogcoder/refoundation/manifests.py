@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from ._component_specs import COMPONENT_SPECS
+from .component_versions import component_version
 from .organization_spec import build_canonical_identity_states
 from .versioning import ComponentVersion
 
@@ -167,11 +168,10 @@ def build_bootstrap_agent_manifests() -> tuple[AgentManifest, ...]:
 
 
 def build_component_manifests() -> tuple[ComponentManifest, ...]:
-    version = ComponentVersion(0, 0, 0)
     rows = tuple(
         ComponentManifest(
             component_id=component_id,
-            version=version,
+            version=component_version(component_id),
             layer=layer,
             responsibility=responsibility,
             state_schema=state_schema,
