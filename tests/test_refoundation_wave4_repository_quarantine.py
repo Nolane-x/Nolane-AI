@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
 REF_WORKFLOW = "refoundation-epoch0-wave1.yml"
+_JOB_HEADER = re.compile(r"^  ([A-Za-z0-9_.-]+):\s*$")
 
 
 def _historical_root_candidates() -> tuple[Path, ...]:
@@ -26,6 +28,25 @@ def _historical_root_candidates() -> tuple[Path, ...]:
 
 def _load_json(path: Path):
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _workflow_job_blocks(text: str) -> dict[str, str]:
+    lines = text.splitlines()
+    try:
+        jobs_index = next(index for index, line in enumerate(lines) if line.strip() == "jobs:" and not line.startswith(" "))
+    except StopIteration:
+        return {}
+    blocks: dict[str, list[str]] = {}
+    current: str | None = None
+    for line in lines[jobs_index + 1 :]:
+        match = _JOB_HEADER.match(line)
+        if match:
+            current = match.group(1)
+            blocks[current] = [line]
+            continue
+        if current is not None:
+            blocks[current].append(line)
+    return {name: "\n".join(rows) for name, rows in blocks.items()}
 
 
 def test_wave4_current_and_archive_authority_files_exist() -> None:
@@ -116,7 +137,7 @@ def test_wave4_repository_audit_materialization_is_fresh_and_deterministic(tmp_p
     assert stale_paths(source_root=ROOT, output_root=ROOT) == ()
 
 
-def test_wave4_all_historical_pull_request_workflows_skip_refoundation_heads() -> None:
+def test_wave4_all_historical_pull_request_workflow_jobs_skip_refoundation_heads() -> None:
     workflows = ROOT / ".github" / "workflows"
     offenders: list[str] = []
     for path in sorted((*workflows.glob("*.yml"), *workflows.glob("*.yaml"))):
@@ -125,18 +146,14 @@ def test_wave4_all_historical_pull_request_workflows_skip_refoundation_heads() -
         text = path.read_text(encoding="utf-8")
         if "pull_request:" not in text:
             continue
-        isolated = (
-            "github.head_ref" in text
-            and "refoundation/" in text
-            and (
-                "REF0_PR_ISOLATION" in text
-                or "REFOUNDATION_PR_ISOLATION" in text
-                or "startsWith(github.head_ref" in text
-            )
-        )
-        if not isolated:
-            offenders.append(path.name)
-    assert not offenders, f"historical PR workflows missing refoundation-head isolation: {offenders!r}"
+        blocks = _workflow_job_blocks(text)
+        if not blocks:
+            offenders.append(f"{path.name}:<no-jobs-parsed>")
+            continue
+        for job_name, block in blocks.items():
+            if "github.head_ref" not in block or "refoundation/" not in block:
+                offenders.append(f"{path.name}:{job_name}")
+    assert not offenders, f"historical PR workflow jobs missing refoundation-head isolation: {offenders!r}"
 
 
 def test_wave4_refoundation_workflow_gates_repository_audit_freshness() -> None:
