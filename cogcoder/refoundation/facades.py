@@ -58,7 +58,6 @@ class FacadeParityReport:
 
 def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
-        FacadeBinding("external.artifacts", "nolane.external_core.artifacts", "cogcoder.organization.artifacts", ("ArtifactStore",)),
         FacadeBinding("external.memory.fabric", "nolane.memory.fabric", "cogcoder.organization.memory", ("MemoryFabric",)),
         FacadeBinding("external.memory.lifecycle", "nolane.memory.lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger", "MemoryRelationGraph")),
         FacadeBinding("external.memory.retrieval", "nolane.memory.retrieval", "cogcoder.organization.memory_retrieval", ("MemoryRetrievalBudget", "MemoryRetrievalEngine")),
@@ -66,7 +65,6 @@ def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
         FacadeBinding("external.experience", "nolane.memory.experience", "cogcoder.organization.experience", ("ExperienceLedger",)),
         FacadeBinding("external.skills", "nolane.memory.skills", "cogcoder.organization.evolution", ("SkillEvolutionEngine",)),
         FacadeBinding("external.individual_evolution", "nolane.external_core.individual_evolution", "cogcoder.organization.individual_evolution", ("IndividualEvolutionControlPlane",)),
-        FacadeBinding("external.verification", "nolane.external_core.verification", "cogcoder.organization.verification", ("VerificationAuthority",)),
         FacadeBinding("external.self_model", "nolane.external_core.self_model", "cogcoder.organization.self_model", ("SelfModelRegistry",)),
         FacadeBinding("external.requirements", "nolane.external_core.requirements", "cogcoder.organization.requirements", ("RequirementsControlPlane",)),
         FacadeBinding("external.planning", "nolane.external_core.planning", "cogcoder.organization.planning", ("PlanningControlPlane",)),
