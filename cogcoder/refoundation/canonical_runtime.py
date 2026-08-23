@@ -3,14 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
+from cogcoder.organization.coordination_leases import TaskLeaseReceipt
 from cogcoder.organization.planning import Milestone, PlanNode, PlanRevision, PlanRisk
 from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.tasks import TaskRecord
-from cogcoder.organization.coordination_leases import TaskLeaseReceipt
 from cogcoder.organization.types import AgentIdentity, canonical_digest
 
 from .identity_source import build_manifest_driven_runtime
 from .manifests import build_bootstrap_agent_manifests
+from .temporary_work_units import TemporaryWorkUnitManifest
+from .work_units import TemporaryWorkUnitBudget, TemporaryWorkUnitRequest, TemporaryWorkUnitService
 
 
 _IMMUTABLE_IDENTITY_FIELDS: tuple[str, ...] = (
@@ -54,10 +56,11 @@ class CanonicalOrganization:
     """Canonical public runtime boundary for Refoundation.
 
     The accepted organization implementation remains the execution engine, but
-    callers no longer receive raw plan/lease write objects. MasterPlanGraph is
-    authoritative for plan revisions; LeaseCoordinator is authoritative for
-    task lease epochs, heartbeat, revoke and completion. TaskGraph is retained
-    as the execution projection and historical state carrier.
+    callers no longer receive raw plan/lease write objects or Foundry spawn
+    semantics. MasterPlanGraph is authoritative for plan revisions,
+    LeaseCoordinator for task leases, and Foundry is exposed only as bounded
+    non-agent Temporary Work Units. TaskGraph remains the execution projection
+    and historical state carrier.
     """
 
     _runtime: OrganizationRuntime
@@ -209,6 +212,57 @@ class CanonicalOrganization:
     def detect_stale_task_leases(self, current_token: int):
         return self._runtime.coordination.leases.detect_stale(current_token)
 
+    def _work_unit_service(self) -> TemporaryWorkUnitService:
+        return TemporaryWorkUnitService(self._runtime.foundry)
+
+    def request_work_unit(
+        self,
+        *,
+        sponsor_agent_id: str,
+        parent_task_id: str | None,
+        template_id: str,
+        mission: str,
+        team_id: str,
+        budget: TemporaryWorkUnitBudget,
+        requested_tools: tuple[str, ...] = (),
+        requested_external_cores: tuple[str, ...] = (),
+        allowed_artifact_kinds: tuple[str, ...] = (),
+        current_token: int = 0,
+    ) -> TemporaryWorkUnitRequest:
+        return self._work_unit_service().request(
+            sponsor_agent_id=sponsor_agent_id,
+            parent_task_id=parent_task_id,
+            template_id=template_id,
+            mission=mission,
+            team_id=team_id,
+            budget=budget,
+            requested_tools=requested_tools,
+            requested_external_cores=requested_external_cores,
+            allowed_artifact_kinds=allowed_artifact_kinds,
+            current_token=current_token,
+        )
+
+    def approve_work_unit(self, request_id: str, *, actor_agent_id: str) -> TemporaryWorkUnitRequest:
+        return self._work_unit_service().approve(request_id, actor_agent_id=actor_agent_id)
+
+    def instantiate_work_unit(self, request_id: str, *, current_token: int) -> TemporaryWorkUnitManifest:
+        return self._work_unit_service().instantiate(request_id, current_token=current_token)
+
+    def work_unit_requests(self) -> tuple[TemporaryWorkUnitRequest, ...]:
+        return self._work_unit_service().requests()
+
+    def work_units(self) -> tuple[TemporaryWorkUnitManifest, ...]:
+        return self._work_unit_service().manifests()
+
+    def activate_work_unit(self, work_unit_id: str, *, actor_agent_id: str):
+        return self._work_unit_service().activate(work_unit_id, actor_agent_id=actor_agent_id)
+
+    def begin_work_unit_verification(self, work_unit_id: str, *, actor_agent_id: str):
+        return self._work_unit_service().begin_verification(work_unit_id, actor_agent_id=actor_agent_id)
+
+    def quarantine_work_unit(self, work_unit_id: str, *, actor_agent_id: str, reason: str):
+        return self._work_unit_service().quarantine(work_unit_id, actor_agent_id=actor_agent_id, reason=reason)
+
     def to_state(self) -> dict[str, Any]:
         # Preserve the accepted serialized runtime contract during Epoch 0.
         return self._runtime.to_state()
@@ -220,6 +274,8 @@ class CanonicalOrganization:
             "plan_authority": "MasterPlanGraph",
             "lease_authority": "LeaseCoordinator",
             "task_graph_role": "execution_projection",
+            "temporary_work_unit_authority": "TemporaryWorkUnitService",
+            "temporary_work_units_are_permanent_agents": False,
             "accepted_runtime_state_digest": self.state_digest,
         }
         return {**payload, "digest": canonical_digest(payload)}
