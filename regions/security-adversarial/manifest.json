@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 8,
+  "region_id": "security-adversarial",
+  "chief_id": "security.chief",
+  "neural_overlay_version": "REGION-security-adversarial-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-security-adversarial-0.1",
+  "external_core_bindings": ["threat-model","security-scanner","attack-harness","supply-chain-auditor"],
+  "members": ["security.chief","security.threat-model.01","security.supply-chain.01","security.adversarial.01"]
+}

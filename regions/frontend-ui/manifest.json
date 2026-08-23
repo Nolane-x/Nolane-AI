@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 4,
+  "region_id": "frontend-ui",
+  "chief_id": "frontend.chief",
+  "neural_overlay_version": "REGION-frontend-ui-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-frontend-ui-0.1",
+  "external_core_bindings": ["browser-runtime","dom-tree","cssom","playwright","visual-diff"],
+  "members": ["frontend.chief","frontend.logic.01","frontend.component.01","frontend.browser-runtime.01"]
+}

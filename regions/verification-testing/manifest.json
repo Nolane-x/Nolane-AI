@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 7,
+  "region_id": "verification-testing",
+  "chief_id": "verification.chief",
+  "neural_overlay_version": "REGION-verification-testing-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-verification-testing-0.1",
+  "external_core_bindings": ["fresh-sandbox","property-testing","fuzzer","integration-runner","acceptance-harness"],
+  "members": ["verification.chief","verification.unit-property.01","verification.integration-e2e.01","verification.spec-acceptance.01","verification.fuzz-regression.01"]
+}

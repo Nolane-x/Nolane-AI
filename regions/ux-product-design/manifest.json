@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 5,
+  "region_id": "ux-product-design",
+  "chief_id": "ux.chief",
+  "neural_overlay_version": "REGION-ux-product-design-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-ux-product-design-0.1",
+  "external_core_bindings": ["interaction-model","design-token-graph","accessibility-tree"],
+  "members": ["ux.chief","ux.flow.01","ux.visual-accessibility.01"]
+}

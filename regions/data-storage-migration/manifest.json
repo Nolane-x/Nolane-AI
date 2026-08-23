@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 9,
+  "region_id": "data-storage-migration",
+  "chief_id": "data.chief",
+  "neural_overlay_version": "REGION-data-storage-migration-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-data-storage-migration-0.1",
+  "external_core_bindings": ["schema-graph","migration-planner","consistency-checker","storage-profiler"],
+  "members": ["data.chief","data.schema-migration.01","data.persistence.01","data.cache-consistency.01"]
+}

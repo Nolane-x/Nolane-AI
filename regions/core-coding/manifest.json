@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 3,
+  "region_id": "core-coding",
+  "chief_id": "coding.chief",
+  "neural_overlay_version": "REGION-core-coding-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-core-coding-0.1",
+  "external_core_bindings": ["lsp","ast","symbol-graph","compiler","patch-engine","worktree-manager","test-selection"],
+  "members": ["coding.chief","coding.core-algorithm.01","coding.backend.01","coding.systems.01","coding.refactor.01","coding.api-interface.01","coding.build-dependency.01"]
+}

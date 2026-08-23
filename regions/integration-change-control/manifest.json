@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 13,
+  "region_id": "integration-change-control",
+  "chief_id": "integration.chief",
+  "neural_overlay_version": "REGION-integration-change-control-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-integration-change-control-0.1",
+  "external_core_bindings": ["merge-graph","compatibility-matrix","change-control-ledger","integration-sandbox"],
+  "members": ["integration.chief","integration.merge.01","integration.compatibility.01","integration.change-control.01"]
+}

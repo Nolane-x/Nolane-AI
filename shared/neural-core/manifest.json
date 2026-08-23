@@ -1,0 +1,21 @@
+{
+  "schema_version": "ai-first-core-v1",
+  "scope": "global",
+  "core_id": "shared-neural-core",
+  "version": "NUC-0.1",
+  "physical_parameters": 56000000,
+  "cognitive_capabilities": [
+    "goal_understanding",
+    "task_decomposition",
+    "local_planning",
+    "causal_reasoning",
+    "memory_use",
+    "tool_use",
+    "uncertainty",
+    "evidence_handling",
+    "communication",
+    "self_evaluation",
+    "skill_induction",
+    "learning_from_feedback"
+  ]
+}

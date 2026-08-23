@@ -1,0 +1,11 @@
+{
+  "schema_version": "ai-first-region-v1",
+  "order": 1,
+  "region_id": "planning-program",
+  "chief_id": "planning.chief",
+  "neural_overlay_version": "REGION-planning-program-0.1",
+  "neural_overlay_physical_parameters": 0,
+  "external_version": "REGION-EXT-planning-program-0.1",
+  "external_core_bindings": ["task-dag","critical-path-engine","risk-graph","progress-reconciler"],
+  "members": ["planning.chief","planning.task-graph.01","planning.milestone.01","planning.dependency-risk.01","planning.audit.01"]
+}
