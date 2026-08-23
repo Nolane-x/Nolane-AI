@@ -32,6 +32,7 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/central_state.py": "nolane/organization/central_state.py",
     "cogcoder/organization/artifacts.py": "nolane/external_core/artifacts.py",
     "cogcoder/organization/verification.py": "nolane/external_core/verification.py",
+    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 
