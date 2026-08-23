@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import subprocess
+import sys
 
 from cogcoder.organization.execution_tools import CoreInvocationReceipt, ExternalCoreExecutor
 from cogcoder.organization.execution_types import ToolAction
@@ -75,4 +76,27 @@ def test_authorized_filesystem_read_creates_output_and_coding_tool_receipt(tmp_p
     assert runtime.artifacts.get(receipt.output_artifact_ids[0]).content == 'base\n'
     assert receipt.mirrored_tool_receipt_id is not None
     assert runtime.coding.patches.get_tool_receipt(receipt.mirrored_tool_receipt_id).success is True
+    workspace.close()
+
+
+def test_terminal_command_runs_in_disposable_copy_and_cannot_mutate_source_workspace(tmp_path):
+    runtime = OrganizationRuntime.first_generation()
+    runtime.tasks.add_task('task-terminal', title='bounded terminal', plan_node_id='P1')
+    runtime.tasks.lease('task-terminal', 'coding.backend.01')
+    workspace = _workspace(tmp_path)
+
+    receipt = _executor(runtime).invoke(
+        agent_id='coding.backend.01',
+        task_id='task-terminal',
+        workspace=workspace,
+        action=ToolAction.from_arguments(
+            'terminal',
+            'run',
+            {'argv': [sys.executable, '-c', "open('app.txt','w').write('bypass\\n')"]},
+        ),
+    )
+
+    assert receipt.success is True
+    assert workspace.read_text('app.txt') == 'base\n'
+    assert receipt.before_workspace_digest == receipt.after_workspace_digest
     workspace.close()
