@@ -8,17 +8,22 @@ from cogcoder.refoundation.component_versions import (
 from cogcoder.refoundation.manifests import build_component_manifests
 
 
-WAVE2_NATIVE_REVISIONS = {
-    "organization.identity": 1,
-    "organization.authority": 1,
-    "organization.events": 1,
-    "organization.tasks": 1,
-    "organization.lifecycle": 1,
-    "organization.coordination.leases": 1,
-    "organization.coordination.delivery": 1,
-    "organization.coordination.conflicts": 1,
-    "organization.coordination": 1,
-    "organization.central": 1,
+# Independent revision slots are architectural state, not a snapshot of one
+# migration wave.  This set records components whose implementation authority
+# has actually moved far enough to advance its local Epoch-0 revision.
+ACCEPTED_REVISION_ONE_COMPONENTS = {
+    "organization.identity",
+    "organization.authority",
+    "organization.events",
+    "organization.tasks",
+    "organization.lifecycle",
+    "organization.coordination.leases",
+    "organization.coordination.delivery",
+    "organization.coordination.conflicts",
+    "organization.coordination",
+    "organization.central",
+    "external.artifacts",
+    "external.verification",
 }
 
 
@@ -26,14 +31,20 @@ def test_every_component_has_an_independent_revision_slot() -> None:
     manifests = build_component_manifests()
     revisions = component_revision_map()
     assert set(revisions) == {row.component_id for row in manifests}
-    for component_id, revision in revisions.items():
-        assert revision == WAVE2_NATIVE_REVISIONS.get(component_id, 0)
+
+    expected = {
+        component_id: 1 if component_id in ACCEPTED_REVISION_ONE_COMPONENTS else 0
+        for component_id in revisions
+    }
+    assert revisions == expected
+
     for row in manifests:
-        assert str(row.version) == f"0.0.{WAVE2_NATIVE_REVISIONS.get(row.component_id, 0)}"
+        assert str(row.version) == str(component_version(row.component_id))
+        assert row.version.revision == revisions[row.component_id]
 
 
 def test_component_version_lookup_is_local_not_global() -> None:
-    for component_id in WAVE2_NATIVE_REVISIONS:
+    for component_id in ACCEPTED_REVISION_ONE_COMPONENTS:
         assert str(component_version(component_id)) == "0.0.1"
     assert str(component_version("external.memory.fabric")) == "0.0.0"
     assert str(component_version("external.planning")) == "0.0.0"
