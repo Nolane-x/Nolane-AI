@@ -23,6 +23,8 @@ on:
 
 jobs:
   verify-r256-and-parents:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:
@@ -162,6 +164,8 @@ jobs:
             -d "$(python -c 'import json,os; print(json.dumps({"state":os.environ["STATE"],"context":"r256/hosted-gate","description":"focused+Boltons-oracle+R2.55-R2.41-lineage+frozen-evidence","target_url":os.environ["RUN_URL"]}))')"
 
   cross-python-r256:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:

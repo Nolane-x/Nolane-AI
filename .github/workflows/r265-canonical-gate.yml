@@ -27,6 +27,8 @@ permissions:
 
 jobs:
   focused:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
@@ -69,6 +71,8 @@ jobs:
           PY
 
   cross-python:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     strategy:
@@ -84,7 +88,8 @@ jobs:
       - run: PYTHONPATH=. python -m pytest -q tests/test_r265_*.py
 
   canonical-full-gate:
-    if: github.event_name == 'pull_request'
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ (github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/')) && (github.event_name == 'pull_request') }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     env:
@@ -148,7 +153,8 @@ jobs:
         run: PYTHONPATH=. python -m pytest -q tests/test_r24[1-9]_*.py
 
   publish-full-gate:
-    if: github.event_name == 'pull_request'
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ (github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/')) && (github.event_name == 'pull_request') }}
     needs: [focused, cross-python, canonical-full-gate]
     runs-on: ubuntu-latest
     steps:

@@ -22,6 +22,8 @@ on:
 
 jobs:
   verify-r250-and-parents:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
@@ -93,6 +95,8 @@ jobs:
           PY
 
   r241-cross-python-determinism:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     strategy:

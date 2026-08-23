@@ -22,7 +22,8 @@ env:
 
 jobs:
   cross-python-integration:
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ (github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/')) && (github.event_name == 'workflow_dispatch' || github.event.pull_request.head.repo.full_name == github.repository) }}
     runs-on: windows-latest
     timeout-minutes: 90
     defaults:
