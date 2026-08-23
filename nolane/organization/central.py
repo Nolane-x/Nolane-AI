@@ -11,6 +11,19 @@ from .central_resources import CentralResourceArbiter, ResourceAllocationReceipt
 from .central_state import CentralCapabilityMap, CentralWorldState, build_world_state
 
 
+# Part II is stacked on the Part-I snapshot schema. Until the shared event
+# vocabulary receives its own schema migration, Central organizational actions
+# preserve the accepted runtime aliases of CENTRAL_INTERVENTION and carry the
+# specific action subtype in immutable event payloads.
+for _name in (
+    'CENTRAL_RESOURCE_ALLOCATED', 'CENTRAL_RESOURCE_RELEASED',
+    'CENTRAL_CONFLICT_OPENED', 'CENTRAL_CONFLICT_RESOLVED',
+    'CENTRAL_DIRECT_WORK', 'CENTRAL_CORE_LEASE_GRANTED', 'CENTRAL_CORE_LEASE_REVOKED',
+):
+    if not hasattr(EventKind, _name):
+        setattr(EventKind, _name, EventKind.CENTRAL_INTERVENTION)
+
+
 DEFAULT_CENTRAL_RESOURCE_CAPACITY = {
     'compute': 1_000,
     'agent_slots': 16,
