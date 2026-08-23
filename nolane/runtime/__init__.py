@@ -6,10 +6,25 @@ and evidence sources until their migration receipts permit archival.
 """
 
 from cogcoder.refoundation.canonical_runtime import CanonicalOrganization
+from cogcoder.refoundation.runtime_composition import (
+    SemanticRuntimeComposition,
+    SemanticRuntimeNode,
+    build_semantic_runtime_composition,
+)
 
 
 def build_runtime() -> CanonicalOrganization:
     return CanonicalOrganization.first_generation()
 
 
-__all__ = ("CanonicalOrganization", "build_runtime")
+def build_runtime_composition() -> SemanticRuntimeComposition:
+    return build_semantic_runtime_composition()
+
+
+__all__ = (
+    "CanonicalOrganization",
+    "SemanticRuntimeComposition",
+    "SemanticRuntimeNode",
+    "build_runtime",
+    "build_runtime_composition",
+)
