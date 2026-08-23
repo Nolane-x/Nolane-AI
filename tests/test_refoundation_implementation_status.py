@@ -8,9 +8,9 @@ from cogcoder.refoundation.manifests import build_component_manifests
 
 
 # These are the accepted native implementation owners at the current
-# refoundation head.  The contract is intentionally wave-independent: future
+# refoundation head. The contract is intentionally wave-independent: future
 # native cutovers extend this authority set instead of preserving a stale
-# Wave-2 worldview.
+# migration-wave worldview.
 ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "organization.identity",
     "organization.authority",
@@ -27,6 +27,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.artifacts",
     "external.verification",
     "external.evidence",
+    "external.memory.fabric",
 }
 
 
@@ -43,7 +44,10 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     ledger = build_component_implementation_ledger()
     for component_id in ACCEPTED_CANONICAL_NATIVE_COMPONENTS:
         assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.memory.fabric"].status is ImplementationStatus.COMPATIBILITY_FACADE
+
+    # Adjacent manifest-backed components remain explicit facades until their
+    # own cutover receipts are accepted.
+    assert ledger["external.memory.lifecycle"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.planning"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
 
