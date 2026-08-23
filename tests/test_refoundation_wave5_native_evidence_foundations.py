@@ -163,7 +163,7 @@ def test_wave5_native_verification_preserves_rejection_promotion_rollback_and_ev
     assert rollback.restored_version == original_version
     assert registry.get(agent_id).neural_version == original_version
 
-    event_kinds = tuple(row.kind.value for row in events.records())
+    event_kinds = tuple(row.kind.value for row in events.events_since(None))
     assert event_kinds == (
         "neural_candidate_evaluated",
         "neural_candidate_evaluated",
