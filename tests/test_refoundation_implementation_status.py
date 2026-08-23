@@ -11,6 +11,12 @@ WAVE2_NATIVE_VERSIONS = {
     "organization.identity": "0.0.1",
     "organization.authority": "0.0.1",
     "organization.events": "0.0.1",
+    "organization.tasks": "0.0.1",
+    "organization.lifecycle": "0.0.1",
+    "organization.coordination.leases": "0.0.1",
+    "organization.coordination.delivery": "0.0.1",
+    "organization.coordination.conflicts": "0.0.1",
+    "organization.coordination": "0.0.1",
 }
 
 
@@ -25,9 +31,8 @@ def test_every_component_has_exactly_one_implementation_status_record() -> None:
 
 def test_manifest_presence_never_implies_migration_completion() -> None:
     ledger = build_component_implementation_ledger()
-    assert ledger["organization.identity"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["organization.authority"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["organization.events"].status is ImplementationStatus.CANONICAL_NATIVE
+    for component_id in WAVE2_NATIVE_VERSIONS:
+        assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["organization.runtime"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.memory.fabric"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.planning"].status is ImplementationStatus.COMPATIBILITY_FACADE
@@ -61,6 +66,12 @@ def test_only_explicit_native_components_claim_canonical_write_authority() -> No
         "organization.identity",
         "organization.authority",
         "organization.events",
+        "organization.tasks",
+        "organization.lifecycle",
+        "organization.coordination.leases",
+        "organization.coordination.delivery",
+        "organization.coordination.conflicts",
+        "organization.coordination",
         "organization.runtime",
         "organization.temporary_work_units",
     }

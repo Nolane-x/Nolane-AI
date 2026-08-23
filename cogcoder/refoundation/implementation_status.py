@@ -68,6 +68,36 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/events.py",),
         "Native causal event ledger, subscriptions, delivery and state round-trip; historical module bridges to canonical class identity.",
     ),
+    "organization.tasks": (
+        "nolane.organization.tasks",
+        ("cogcoder/organization/tasks.py",),
+        "Native task DAG, task mutation and execution projection; historical tasks module is a compatibility bridge.",
+    ),
+    "organization.lifecycle": (
+        "nolane.organization.lifecycle",
+        ("cogcoder/organization/scheduler.py",),
+        "Native persistent wake/sleep/checkpoint lifecycle; historical scheduler module is a compatibility bridge.",
+    ),
+    "organization.coordination.leases": (
+        "nolane.organization.coordination_leases",
+        ("cogcoder/organization/coordination_leases.py",),
+        "Native lease epoch, fencing, heartbeat and stale-agent authority.",
+    ),
+    "organization.coordination.delivery": (
+        "nolane.organization.coordination_delivery",
+        ("cogcoder/organization/coordination_delivery.py",),
+        "Native causal delivery and acknowledgement authority.",
+    ),
+    "organization.coordination.conflicts": (
+        "nolane.organization.coordination_conflicts",
+        ("cogcoder/organization/coordination_conflicts.py",),
+        "Native artifact-authority conflict packet, claim and resolution authority.",
+    ),
+    "organization.coordination": (
+        "nolane.organization.coordination",
+        ("cogcoder/organization/coordination.py",),
+        "Native bounded coordination composition over canonical task, lifecycle, lease, delivery and conflict primitives.",
+    ),
     "organization.runtime": (
         "nolane.runtime",
         ("cogcoder/organization/runtime.py", "cogcoder/organization/runtime_core.py"),
@@ -97,9 +127,6 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
 _LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
     "core.canonical_digest": ("cogcoder/organization/types.py",),
     "schemas.identity": ("cogcoder/organization/types.py",),
-    "organization.coordination.leases": ("cogcoder/organization/coordination_leases.py",),
-    "organization.coordination.delivery": ("cogcoder/organization/coordination_delivery.py",),
-    "organization.coordination.conflicts": ("cogcoder/organization/coordination_conflicts.py",),
     "external.evidence": ("cogcoder/organization/types.py", "cogcoder/organization/verification.py"),
     "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
     "external.coding.patches": ("cogcoder/organization/coding.py",),
@@ -118,32 +145,53 @@ def build_component_implementation_ledger() -> dict[str, ComponentImplementation
         if component_id in _NATIVE:
             module, legacy_sources, notes = _NATIVE[component_id]
             row = ComponentImplementationRecord(
-                component_id, str(manifest.version), ImplementationStatus.CANONICAL_NATIVE,
-                module, legacy_sources, True, notes,
+                component_id,
+                str(manifest.version),
+                ImplementationStatus.CANONICAL_NATIVE,
+                module,
+                legacy_sources,
+                True,
+                notes,
             )
         elif component_id in _HISTORICAL_ONLY:
             row = ComponentImplementationRecord(
-                component_id, str(manifest.version), ImplementationStatus.HISTORICAL_ONLY,
-                None, _HISTORICAL_ONLY[component_id], False,
+                component_id,
+                str(manifest.version),
+                ImplementationStatus.HISTORICAL_ONLY,
+                None,
+                _HISTORICAL_ONLY[component_id],
+                False,
                 "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.",
             )
         elif component_id in _FROZEN_ASSET:
             row = ComponentImplementationRecord(
-                component_id, str(manifest.version), ImplementationStatus.FROZEN_ASSET,
-                None, _FROZEN_ASSET[component_id], False,
+                component_id,
+                str(manifest.version),
+                ImplementationStatus.FROZEN_ASSET,
+                None,
+                _FROZEN_ASSET[component_id],
+                False,
                 "Accepted frozen neural asset with separate runtime adapter and checkpoint authority.",
             )
         elif component_id in facades:
             facade = facades[component_id]
             row = ComponentImplementationRecord(
-                component_id, str(manifest.version), ImplementationStatus.COMPATIBILITY_FACADE,
-                facade.canonical_module, (facade.legacy_module.replace(".", "/") + ".py",), False,
+                component_id,
+                str(manifest.version),
+                ImplementationStatus.COMPATIBILITY_FACADE,
+                facade.canonical_module,
+                (facade.legacy_module.replace(".", "/") + ".py",),
+                False,
                 "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.",
             )
         else:
             row = ComponentImplementationRecord(
-                component_id, str(manifest.version), ImplementationStatus.LEGACY_INTERNAL,
-                None, _LEGACY_SOURCE_HINTS.get(component_id, ()), False,
+                component_id,
+                str(manifest.version),
+                ImplementationStatus.LEGACY_INTERNAL,
+                None,
+                _LEGACY_SOURCE_HINTS.get(component_id, ()),
+                False,
                 "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.",
             )
         ledger[component_id] = row

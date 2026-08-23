@@ -13,6 +13,12 @@ _COMPONENT_REVISIONS.update(
         "organization.identity": 1,
         "organization.authority": 1,
         "organization.events": 1,
+        "organization.tasks": 1,
+        "organization.lifecycle": 1,
+        "organization.coordination.leases": 1,
+        "organization.coordination.delivery": 1,
+        "organization.coordination.conflicts": 1,
+        "organization.coordination": 1,
     }
 )
 

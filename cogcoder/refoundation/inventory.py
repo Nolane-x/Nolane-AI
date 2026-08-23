@@ -19,6 +19,12 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/registry.py": "nolane/organization/identity.py",
     "cogcoder/organization/authority.py": "nolane/organization/authority.py",
     "cogcoder/organization/events.py": "nolane/organization/events.py",
+    "cogcoder/organization/tasks.py": "nolane/organization/tasks.py",
+    "cogcoder/organization/scheduler.py": "nolane/organization/lifecycle.py",
+    "cogcoder/organization/coordination_leases.py": "nolane/organization/coordination_leases.py",
+    "cogcoder/organization/coordination_delivery.py": "nolane/organization/coordination_delivery.py",
+    "cogcoder/organization/coordination_conflicts.py": "nolane/organization/coordination_conflicts.py",
+    "cogcoder/organization/coordination.py": "nolane/organization/coordination.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 
@@ -51,9 +57,13 @@ class GitTreeEntry:
 
 def _run_git(repo_root: Path, *args: str) -> str:
     completed = subprocess.run(
-        ["git", *args], cwd=repo_root, check=True,
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-        text=True, encoding="utf-8",
+        ["git", *args],
+        cwd=repo_root,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        encoding="utf-8",
     )
     return completed.stdout
 
@@ -108,8 +118,6 @@ def _canonical_destinations() -> dict[str, str]:
 
 
 def _bootstrap_disposition(path: str) -> tuple[LegacyDisposition, ReviewDepth, str | None]:
-    # Exact canonical binding is stronger than family mapping, but still not
-    # deletion permission. Legacy files remain live compatibility/evidence code.
     destination = _canonical_destinations().get(path)
     if destination is not None:
         return LegacyDisposition.COMPATIBILITY, ReviewDepth.CONTRACT_REVIEWED, destination
@@ -158,8 +166,11 @@ class GitSnapshotInventory:
             size = None if size_text.strip() == "-" else int(size_text.strip())
             rows.append(
                 GitTreeEntry(
-                    path=path, mode=mode, object_type=object_type,
-                    object_sha=object_sha, size_bytes=size,
+                    path=path,
+                    mode=mode,
+                    object_type=object_type,
+                    object_sha=object_sha,
+                    size_bytes=size,
                 )
             )
         ordered = tuple(sorted(rows, key=lambda row: row.path))
@@ -194,7 +205,11 @@ class GitSnapshotInventory:
         return {**self.payload(), "digest": self.digest}
 
 
-def write_snapshot(repo_root: str | Path, output: str | Path, snapshot_sha: str = FIRST_GENERATION_SNAPSHOT) -> Path:
+def write_snapshot(
+    repo_root: str | Path,
+    output: str | Path,
+    snapshot_sha: str = FIRST_GENERATION_SNAPSHOT,
+) -> Path:
     inventory = GitSnapshotInventory.capture(repo_root, snapshot_sha)
     census = inventory.to_census()
     payload = {
@@ -204,7 +219,10 @@ def write_snapshot(repo_root: str | Path, output: str | Path, snapshot_sha: str 
         "destructive_migration_enabled": False,
     }
     target = Path(output)
-    target.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n", encoding="utf-8")
+    target.write_text(
+        json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
     return target
 
 
