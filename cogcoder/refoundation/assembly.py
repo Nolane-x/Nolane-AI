@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import canonical_digest
 
+from .accepted_runtime import AcceptedOrganizationRuntime
 from .compatibility import BootstrapParityReport, build_bootstrap_parity_report
 from .composition import CompositionLock, build_wave1_composition_lock
 from .facades import FacadeParityReport, validate_active_facades
@@ -21,10 +21,12 @@ class CanonicalRuntimeAssembly:
 
     It binds exact permanent identities, 15 regions, component composition,
     compatibility parity, reversible state ownership and plan/lease authority
-    reconciliation before any destructive migration is allowed.
+    reconciliation before any destructive migration is allowed. Access to the
+    accepted historical runtime crosses only the Refoundation compatibility
+    membrane; this evidence view never becomes a second runtime authority.
     """
 
-    legacy_runtime: OrganizationRuntime
+    legacy_runtime: AcceptedOrganizationRuntime
     source_snapshot_sha: str
     agent_manifests: tuple[AgentManifest, ...]
     region_manifests: tuple[RegionManifest, ...]
@@ -69,7 +71,7 @@ class CanonicalRuntimeAssembly:
             raise ValueError("canonical runtime assembly digest mismatch")
 
     @classmethod
-    def from_accepted_runtime(cls, runtime: OrganizationRuntime) -> "CanonicalRuntimeAssembly":
+    def from_accepted_runtime(cls, runtime: AcceptedOrganizationRuntime) -> "CanonicalRuntimeAssembly":
         agents = build_bootstrap_agent_manifests()
         regions = build_region_manifests()
         lock = build_wave1_composition_lock()
