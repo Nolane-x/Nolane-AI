@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from cogcoder.organization.blueprint import build_first_generation_blueprint
+from cogcoder.refoundation.component_versions import component_revision_map
 from cogcoder.refoundation.composition import build_wave1_composition_lock
 from cogcoder.refoundation.manifests import (
     FIRST_GENERATION_SNAPSHOT,
@@ -82,11 +83,13 @@ def test_every_first_generation_identity_stays_below_100m_parameters() -> None:
         assert row.parameter_accounting["total_physical_parameters"] < 100_000_000
 
 
-def test_all_canonical_components_bootstrap_at_0_0_0() -> None:
+def test_all_canonical_components_have_local_patch_versions() -> None:
     components = build_component_manifests()
+    revisions = component_revision_map()
     assert len(components) >= 50
     assert len({row.component_id for row in components}) == len(components)
-    assert all(row.version == ComponentVersion(0, 0, 0) for row in components)
+    assert set(revisions) == {row.component_id for row in components}
+    assert all(row.version == ComponentVersion(0, 0, revisions[row.component_id]) for row in components)
 
 
 def test_component_versions_are_strict_component_local_revisions() -> None:
@@ -103,8 +106,9 @@ def test_component_versions_are_strict_component_local_revisions() -> None:
 def test_composition_lock_resolves_every_dependency_and_is_acyclic() -> None:
     lock = build_wave1_composition_lock()
     ids = set(lock.components)
+    revisions = component_revision_map()
     assert ids == {row.component_id for row in build_component_manifests()}
-    assert all(version == "0.0.0" for version in lock.components.values())
+    assert all(version == f"0.0.{revisions[component_id]}" for component_id, version in lock.components.items())
     assert lock.unresolved_dependencies() == ()
     assert set(lock.topological_order()) == ids
 
@@ -160,8 +164,9 @@ def test_active_legacy_runtime_layers_are_explicitly_preserved_in_wave1() -> Non
 
 
 def test_component_manifest_distinguishes_software_neural_and_state_versions() -> None:
+    revisions = component_revision_map()
     for component in build_component_manifests():
-        assert str(component.version) == "0.0.0"
+        assert str(component.version) == f"0.0.{revisions[component.component_id]}"
         assert component.state_schema
         assert component.version_identity == "component_version"
 
