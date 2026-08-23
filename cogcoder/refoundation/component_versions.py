@@ -20,6 +20,8 @@ _COMPONENT_REVISIONS.update(
         "organization.coordination.conflicts": 1,
         "organization.coordination": 1,
         "organization.central": 1,
+        "external.artifacts": 1,
+        "external.verification": 1,
     }
 )
 
