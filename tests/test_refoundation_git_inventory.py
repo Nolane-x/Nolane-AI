@@ -37,7 +37,7 @@ def test_active_facade_sources_receive_exact_canonical_destinations() -> None:
     census = GitSnapshotInventory.capture(Path.cwd(), FIRST_GENERATION_SNAPSHOT).to_census()
 
     assert census.get("cogcoder/organization/runtime.py").canonical_destination == "nolane/organization/runtime.py"
-    assert census.get("cogcoder/organization/memory.py").canonical_destination == "nolane/external_core/memory.py"
+    assert census.get("cogcoder/organization/memory.py").canonical_destination == "nolane/memory/fabric.py"
     assert census.get("cogcoder/organization/execution_inference.py").canonical_destination == "nolane/neural/inference_bridge.py"
     assert census.get("cogcoder/organization/evaluation_claims.py").canonical_destination == "nolane/evaluation/claims.py"
 
