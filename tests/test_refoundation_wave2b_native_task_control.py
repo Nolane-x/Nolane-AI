@@ -166,13 +166,13 @@ def test_native_delivery_coordinator_preserves_causal_order_ack_and_round_trip()
     registry, events, _ = _substrate()
     delivery = DeliveryCoordinator(registry=registry, events=events)
     parent = events.append(
-        EventKind.PROGRESS,
+        EventKind.TASK_PROGRESS,
         source_agent_id="coding.backend.01",
         target_agent_id="coding.chief",
         requires_ack=True,
     )
     child = events.append(
-        EventKind.PROGRESS,
+        EventKind.TASK_PROGRESS,
         source_agent_id="coding.backend.01",
         target_agent_id="coding.chief",
         causal_parent_ids=(parent.event_id,),
