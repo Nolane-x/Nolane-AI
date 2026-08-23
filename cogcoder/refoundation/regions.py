@@ -3,9 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any
 
-from cogcoder.organization.blueprint import build_first_generation_blueprint
-from cogcoder.organization.types import AgentRank, canonical_digest
+from cogcoder.organization.types import canonical_digest
 
+from .manifests import build_bootstrap_agent_manifests
 from .versioning import ComponentVersion
 
 
@@ -33,8 +33,8 @@ class RegionManifest:
         expected_specialists = set(self.permanent_agent_ids) - {self.chief_agent_id}
         if set(self.specialist_agent_ids) != expected_specialists:
             raise ValueError("region specialist ids must be exactly permanent ids minus chief")
-        if not self.specialist_agent_ids:
-            raise ValueError("region requires permanent specialists")
+        if len(self.specialist_agent_ids) < 2:
+            raise ValueError("region requires at least two permanent specialists")
         if not self.external_core_surface:
             raise ValueError("region external-core surface must be explicit")
         if len(set(self.external_core_surface)) != len(self.external_core_surface):
@@ -64,10 +64,10 @@ def _finalize(row: RegionManifest) -> RegionManifest:
 
 
 def build_region_manifests() -> tuple[RegionManifest, ...]:
-    identities = build_first_generation_blueprint()
+    manifests = build_bootstrap_agent_manifests()
     grouped: dict[str, list[Any]] = {}
-    for identity in identities:
-        if identity.rank is AgentRank.CENTRAL:
+    for identity in manifests:
+        if identity.rank == "central":
             continue
         grouped.setdefault(identity.region, []).append(identity)
 
@@ -78,13 +78,11 @@ def build_region_manifests() -> tuple[RegionManifest, ...]:
     seen_agent_ids: set[str] = set()
     for region_id in sorted(grouped):
         members = grouped[region_id]
-        chiefs = [row for row in members if row.rank is AgentRank.CHIEF]
+        chiefs = [row for row in members if row.rank == "chief"]
         if len(chiefs) != 1:
             raise ValueError(f"region {region_id} must have exactly one Chief")
         chief = chiefs[0]
         specialists = [row for row in members if row.agent_id != chief.agent_id]
-        if len(specialists) < 2:
-            raise ValueError(f"region {region_id} must have at least two permanent specialists")
 
         core_surfaces = {tuple(row.external_core_bindings) for row in members}
         if len(core_surfaces) != 1:
