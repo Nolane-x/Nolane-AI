@@ -15,11 +15,12 @@ REFUNDATION_EPOCH = "REFOUNDATION-0"
 
 @dataclass(frozen=True, slots=True)
 class AgentManifest:
-    """Zero-loss bootstrap view of one permanent first-generation identity.
+    """Lossless versioned definition of one permanent organization identity.
 
-    Epoch 0 derives these manifests from the accepted blueprint and proves
-    field-for-field parity before a later wave flips source-of-truth authority
-    from ``blueprint.py`` to persisted per-agent manifests.
+    ``identity_state`` is intentionally isomorphic to ``AgentIdentity.to_state``.
+    Refoundation metadata lives beside that state instead of replacing any of
+    its fields, so manifest authority can be adopted without dropping hidden
+    runtime identity semantics.
     """
 
     agent_id: str
@@ -29,6 +30,7 @@ class AgentManifest:
     rank: str
     neural_version: str
     parameter_accounting: Mapping[str, int]
+    region_chief_id: str | None
     direct_work_capable: bool
     learning_capable: bool
     cognitive_capabilities: tuple[str, ...]
@@ -36,6 +38,13 @@ class AgentManifest:
     skill_namespace: str
     external_core_bindings: tuple[str, ...]
     tool_permissions: tuple[str, ...]
+    status: str
+    current_task: str | None
+    specialization_version: str
+    authority_scope: tuple[str, ...]
+    subscriptions: tuple[str, ...]
+    checkpoint_id: str | None
+    self_model_version: str
     agent_definition_version: str = "0.0.0"
     permanent: bool = True
 
@@ -50,8 +59,15 @@ class AgentManifest:
             raise ValueError("first-generation permanent identity must remain below 100M physical parameters")
         if not self.memory_namespace or not self.skill_namespace:
             raise ValueError("permanent identity requires memory and skill namespaces")
+        if not self.cognitive_capabilities or not self.authority_scope:
+            raise ValueError("permanent identity requires cognitive and authority floors")
+        if self.rank == "central" and self.region_chief_id is not None:
+            raise ValueError("Central cannot have a Regional Chief")
+        if self.rank == "chief" and self.region_chief_id != self.agent_id:
+            raise ValueError("Regional Chief must identify itself as region chief")
 
-    def to_state(self) -> dict[str, Any]:
+    def identity_state(self) -> dict[str, Any]:
+        """Return the exact legacy ``AgentIdentity`` serialization contract."""
         return {
             "agent_id": self.agent_id,
             "name": self.name,
@@ -60,6 +76,7 @@ class AgentManifest:
             "rank": self.rank,
             "neural_version": self.neural_version,
             "parameter_accounting": dict(self.parameter_accounting),
+            "region_chief_id": self.region_chief_id,
             "direct_work_capable": self.direct_work_capable,
             "learning_capable": self.learning_capable,
             "cognitive_capabilities": list(self.cognitive_capabilities),
@@ -67,6 +84,18 @@ class AgentManifest:
             "skill_namespace": self.skill_namespace,
             "external_core_bindings": list(self.external_core_bindings),
             "tool_permissions": list(self.tool_permissions),
+            "status": self.status,
+            "current_task": self.current_task,
+            "specialization_version": self.specialization_version,
+            "authority_scope": list(self.authority_scope),
+            "subscriptions": list(self.subscriptions),
+            "checkpoint_id": self.checkpoint_id,
+            "self_model_version": self.self_model_version,
+        }
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            **self.identity_state(),
             "agent_definition_version": self.agent_definition_version,
             "permanent": self.permanent,
         }
@@ -116,6 +145,7 @@ def build_bootstrap_agent_manifests() -> tuple[AgentManifest, ...]:
                 rank=identity.rank.value,
                 neural_version=identity.neural_version,
                 parameter_accounting=identity.parameter_accounting.to_state(),
+                region_chief_id=identity.region_chief_id,
                 direct_work_capable=identity.direct_work_capable,
                 learning_capable=identity.learning_capable,
                 cognitive_capabilities=identity.cognitive_capabilities,
@@ -123,8 +153,17 @@ def build_bootstrap_agent_manifests() -> tuple[AgentManifest, ...]:
                 skill_namespace=identity.skill_namespace,
                 external_core_bindings=identity.external_core_bindings,
                 tool_permissions=identity.tool_permissions,
+                status=identity.status.value,
+                current_task=identity.current_task,
+                specialization_version=identity.specialization_version,
+                authority_scope=identity.authority_scope,
+                subscriptions=identity.subscriptions,
+                checkpoint_id=identity.checkpoint_id,
+                self_model_version=identity.self_model_version,
             )
         )
+    if len(rows) != 67 or len({row.agent_id for row in rows}) != 67:
+        raise ValueError("canonical permanent manifest set must contain exactly 67 unique identities")
     return tuple(rows)
 
 
