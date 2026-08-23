@@ -103,6 +103,21 @@ def test_every_ai_has_source_and_resolved_dossier_and_generated_views_are_fresh(
         assert resolved_md.read_text(encoding="utf-8") == render_resolved_markdown(resolve_ai(profile.agent_id))
 
 
+def test_materializer_is_complete_deterministic_and_idempotent(tmp_path: Path) -> None:
+    from nolane.ai.materialize import stale_paths, write_materialized
+
+    first = write_materialized(tmp_path)
+    assert len(first) == 134
+    assert stale_paths(tmp_path) == ()
+    second = write_materialized(tmp_path)
+    assert second == ()
+
+    resolved_json = tuple(tmp_path.glob("ai/*/RESOLVED.json"))
+    resolved_md = tuple(tmp_path.glob("ai/*/RESOLVED.md"))
+    assert len(resolved_json) == 67
+    assert len(resolved_md) == 67
+
+
 def test_global_regional_and_individual_version_scopes_are_isolated() -> None:
     from nolane.ai.catalog import load_profiles
     from nolane.ai.resolver import resolve_all
