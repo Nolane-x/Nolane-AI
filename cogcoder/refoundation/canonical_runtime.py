@@ -5,12 +5,13 @@ from typing import Any, Mapping
 
 from cogcoder.organization.coordination_leases import TaskLeaseReceipt
 from cogcoder.organization.planning import Milestone, PlanNode, PlanRevision, PlanRisk
-from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.tasks import TaskRecord
 from cogcoder.organization.types import AgentIdentity, canonical_digest
 
+from .accepted_runtime import AcceptedOrganizationRuntime, restore_accepted_runtime
 from .identity_source import build_manifest_driven_runtime
 from .manifests import build_bootstrap_agent_manifests
+from .runtime_composition import SemanticRuntimeComposition, build_semantic_runtime_composition
 from .temporary_work_units import TemporaryWorkUnitManifest
 from .work_units import TemporaryWorkUnitBudget, TemporaryWorkUnitRequest, TemporaryWorkUnitService
 
@@ -35,7 +36,7 @@ _IMMUTABLE_IDENTITY_FIELDS: tuple[str, ...] = (
 )
 
 
-def _validate_registry_definition(runtime: OrganizationRuntime) -> None:
+def _validate_registry_definition(runtime: AcceptedOrganizationRuntime) -> None:
     expected = {row.agent_id: row.identity_state() for row in build_bootstrap_agent_manifests()}
     actual = {row.agent_id: row.to_state() for row in runtime.registry.identities()}
     if set(actual) != set(expected):
@@ -55,21 +56,22 @@ def _validate_registry_definition(runtime: OrganizationRuntime) -> None:
 class CanonicalOrganization:
     """Canonical public runtime boundary for Refoundation.
 
-    The accepted organization implementation remains the execution engine, but
-    callers no longer receive raw plan/lease write objects or Foundry spawn
-    semantics. MasterPlanGraph is authoritative for plan revisions,
-    LeaseCoordinator for task leases, and Foundry is exposed only as bounded
-    non-agent Temporary Work Units. TaskGraph remains the execution projection
-    and historical state carrier.
+    The accepted implementation remains behind a single compatibility
+    membrane during Epoch 0. Public writes use semantic authorities:
+    MasterPlanGraph for plan revisions, LeaseCoordinator for task leases, and
+    TemporaryWorkUnitService for bounded non-agent work units. TaskGraph is an
+    execution projection and historical state carrier, not a competing source
+    of plan or lease truth.
     """
 
-    _runtime: OrganizationRuntime
+    _runtime: AcceptedOrganizationRuntime
     identity_source: str = "canonical-manifests"
 
     def __post_init__(self) -> None:
         if self.identity_source != "canonical-manifests":
             raise ValueError("canonical runtime identity authority must be canonical manifests")
         _validate_registry_definition(self._runtime)
+        build_semantic_runtime_composition()
 
     @classmethod
     def first_generation(cls) -> "CanonicalOrganization":
@@ -77,7 +79,7 @@ class CanonicalOrganization:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "CanonicalOrganization":
-        return cls(OrganizationRuntime.from_state(state))
+        return cls(restore_accepted_runtime(state))
 
     @property
     def plan_revision(self) -> int:
@@ -86,6 +88,10 @@ class CanonicalOrganization:
     @property
     def state_digest(self) -> str:
         return canonical_digest(self._runtime.to_state())
+
+    @property
+    def composition(self) -> SemanticRuntimeComposition:
+        return build_semantic_runtime_composition()
 
     def identities(self) -> tuple[AgentIdentity, ...]:
         return self._runtime.registry.identities()
@@ -134,7 +140,6 @@ class CanonicalOrganization:
         )
 
     def add_task(self, task_id: str, *, title: str, plan_node_id: str) -> TaskRecord:
-        # Canonical task creation cannot invent an independent plan namespace.
         self._runtime.planning.graph.get(plan_node_id)
         row = self._runtime.tasks.add_task(task_id, title=title, plan_node_id=plan_node_id)
         self._runtime.planning.link_task(row.task_id, plan_node_id)
@@ -264,10 +269,10 @@ class CanonicalOrganization:
         return self._work_unit_service().quarantine(work_unit_id, actor_agent_id=actor_agent_id, reason=reason)
 
     def to_state(self) -> dict[str, Any]:
-        # Preserve the accepted serialized runtime contract during Epoch 0.
         return self._runtime.to_state()
 
     def canonical_metadata(self) -> dict[str, Any]:
+        composition = self.composition
         payload = {
             "identity_source": self.identity_source,
             "permanent_identity_count": len(self.identities()),
@@ -276,6 +281,8 @@ class CanonicalOrganization:
             "task_graph_role": "execution_projection",
             "temporary_work_unit_authority": "TemporaryWorkUnitService",
             "temporary_work_units_are_permanent_agents": False,
+            "runtime_composition_authority": "SemanticRuntimeComposition",
+            "runtime_composition_digest": composition.digest,
             "accepted_runtime_state_digest": self.state_digest,
         }
         return {**payload, "digest": canonical_digest(payload)}
