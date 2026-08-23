@@ -1,0 +1,89 @@
+from __future__ import annotations
+
+import inspect
+
+import pytest
+
+from cogcoder.refoundation.component_versions import component_version
+from cogcoder.refoundation.implementation_status import (
+    ImplementationStatus,
+    build_component_implementation_ledger,
+)
+
+
+def test_wave5b_external_evidence_is_canonical_native_and_versioned() -> None:
+    ledger = build_component_implementation_ledger()
+    row = ledger["external.evidence"]
+
+    assert row.status is ImplementationStatus.CANONICAL_NATIVE
+    assert row.canonical_module == "nolane.external_core.evidence"
+    assert row.canonical_write_authority is True
+    assert row.component_version == "0.0.1"
+    assert str(component_version("external.evidence")) == "0.0.1"
+
+
+def test_wave5b_legacy_evidence_imports_bridge_to_canonical_class_identity() -> None:
+    from cogcoder.organization import EvidenceRecord as PackageEvidenceRecord
+    from cogcoder.organization.types import EvidenceRecord as LegacyEvidenceRecord
+    from nolane.external_core.evidence import EvidenceRecord
+
+    assert PackageEvidenceRecord is EvidenceRecord
+    assert LegacyEvidenceRecord is EvidenceRecord
+    assert EvidenceRecord.__module__ == "nolane.external_core.evidence"
+
+
+def test_wave5b_canonical_evidence_has_no_reverse_import_to_historical_owner() -> None:
+    import nolane.external_core.evidence as evidence
+
+    source = inspect.getsource(evidence)
+    assert "cogcoder.organization.types" not in source
+
+
+def test_wave5b_evidence_record_preserves_validation_and_state_round_trip() -> None:
+    from nolane.external_core.evidence import EvidenceRecord
+
+    row = EvidenceRecord(
+        evidence_id="evidence-0001",
+        verifier_agent_id="verification.chief",
+        passed=True,
+        false_accepts=0,
+        regressions=0,
+        notes="bounded verification passed",
+    )
+    assert row.to_state() == {
+        "evidence_id": "evidence-0001",
+        "verifier_agent_id": "verification.chief",
+        "passed": True,
+        "false_accepts": 0,
+        "regressions": 0,
+        "notes": "bounded verification passed",
+    }
+    assert EvidenceRecord.from_state(row.to_state()) == row
+
+    with pytest.raises(ValueError, match="evidence counters must be non-negative"):
+        EvidenceRecord("evidence-neg", "verification.chief", False, false_accepts=-1)
+    with pytest.raises(ValueError, match="evidence identity must be explicit"):
+        EvidenceRecord("", "verification.chief", False)
+
+
+def test_wave5b_native_debt_reduces_only_legacy_internal_evidence_record() -> None:
+    ledger = build_component_implementation_ledger()
+    counts: dict[str, int] = {}
+    non_native = []
+    for row in ledger.values():
+        if row.status is ImplementationStatus.CANONICAL_NATIVE:
+            continue
+        non_native.append(row)
+        counts[row.status.value] = counts.get(row.status.value, 0) + 1
+
+    assert len(non_native) == 43
+    assert counts == {
+        "compatibility_facade": 31,
+        "frozen_asset": 1,
+        "historical_only": 7,
+        "legacy_internal": 4,
+    }
+    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
+    assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
+    assert ledger["external.coding.claims"].status is ImplementationStatus.LEGACY_INTERNAL
+    assert ledger["external.coding.patches"].status is ImplementationStatus.LEGACY_INTERNAL
