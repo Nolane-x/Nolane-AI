@@ -26,6 +26,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "organization.temporary_work_units",
     "external.artifacts",
     "external.verification",
+    "external.evidence",
 }
 
 

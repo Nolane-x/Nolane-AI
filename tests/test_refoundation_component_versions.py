@@ -24,6 +24,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "organization.central",
     "external.artifacts",
     "external.verification",
+    "external.evidence",
 }
 
 

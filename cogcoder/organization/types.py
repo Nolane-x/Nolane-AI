@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
+from nolane.external_core.evidence import EvidenceRecord
+
 
 PHYSICAL_PARAMETER_CEILING = 100_000_000
 
@@ -268,29 +270,6 @@ class CognitiveEvent:
             priority=int(state.get('priority', 0)), requires_ack=bool(state.get('requires_ack', False)),
             status=str(state.get('status', 'emitted')), created_at_logical=int(state.get('created_at_logical', state.get('sequence', 0))),
         )
-
-
-@dataclass(frozen=True, slots=True)
-class EvidenceRecord:
-    evidence_id: str
-    verifier_agent_id: str
-    passed: bool
-    false_accepts: int = 0
-    regressions: int = 0
-    notes: str = ''
-
-    def __post_init__(self) -> None:
-        if self.false_accepts < 0 or self.regressions < 0: raise ValueError('evidence counters must be non-negative')
-        if not self.evidence_id or not self.verifier_agent_id: raise ValueError('evidence identity must be explicit')
-
-    def to_state(self) -> dict[str, Any]:
-        return {'evidence_id': self.evidence_id, 'verifier_agent_id': self.verifier_agent_id, 'passed': self.passed,
-                'false_accepts': self.false_accepts, 'regressions': self.regressions, 'notes': self.notes}
-
-    @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> 'EvidenceRecord':
-        return cls(str(state['evidence_id']), str(state['verifier_agent_id']), bool(state['passed']),
-                   int(state.get('false_accepts', 0)), int(state.get('regressions', 0)), str(state.get('notes', '')))
 
 
 @dataclass(frozen=True, slots=True)

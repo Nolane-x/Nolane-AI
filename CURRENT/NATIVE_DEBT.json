@@ -221,18 +221,6 @@
       "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
     },
     {
-      "canonical_module": null,
-      "canonical_write_authority": false,
-      "component_id": "external.evidence",
-      "component_version": "0.0.0",
-      "implementation_status": "legacy_internal",
-      "legacy_sources": [
-        "cogcoder/organization/types.py",
-        "cogcoder/organization/verification.py"
-      ],
-      "notes": "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet."
-    },
-    {
       "canonical_module": "nolane.external_core.execution",
       "canonical_write_authority": false,
       "component_id": "external.execution.control",
@@ -490,7 +478,7 @@
     "compatibility_facade": 31,
     "frozen_asset": 1,
     "historical_only": 7,
-    "legacy_internal": 5
+    "legacy_internal": 4
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",

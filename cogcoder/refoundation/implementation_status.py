@@ -124,6 +124,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/artifacts.py",),
         "Native content-addressed artifact records/store with deterministic evidence ordering, metadata encoding and state round-trip; historical artifact module is a compatibility bridge.",
     ),
+    "external.evidence": (
+        "nolane.external_core.evidence",
+        ("cogcoder/organization/types.py",),
+        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
@@ -148,7 +153,6 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
 _LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
     "core.canonical_digest": ("cogcoder/organization/types.py",),
     "schemas.identity": ("cogcoder/organization/types.py",),
-    "external.evidence": ("cogcoder/organization/types.py", "cogcoder/organization/verification.py"),
     "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
     "external.coding.patches": ("cogcoder/organization/coding.py",),
 }

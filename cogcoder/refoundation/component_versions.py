@@ -22,6 +22,7 @@ _COMPONENT_REVISIONS.update(
         "organization.central": 1,
         "external.artifacts": 1,
         "external.verification": 1,
+        "external.evidence": 1,
     }
 )
 
