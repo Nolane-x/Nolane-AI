@@ -12,6 +12,12 @@ WAVE2_NATIVE_REVISIONS = {
     "organization.identity": 1,
     "organization.authority": 1,
     "organization.events": 1,
+    "organization.tasks": 1,
+    "organization.lifecycle": 1,
+    "organization.coordination.leases": 1,
+    "organization.coordination.delivery": 1,
+    "organization.coordination.conflicts": 1,
+    "organization.coordination": 1,
 }
 
 
@@ -26,9 +32,8 @@ def test_every_component_has_an_independent_revision_slot() -> None:
 
 
 def test_component_version_lookup_is_local_not_global() -> None:
-    assert str(component_version("organization.identity")) == "0.0.1"
-    assert str(component_version("organization.authority")) == "0.0.1"
-    assert str(component_version("organization.events")) == "0.0.1"
+    for component_id in WAVE2_NATIVE_REVISIONS:
+        assert str(component_version(component_id)) == "0.0.1"
     assert str(component_version("external.memory.fabric")) == "0.0.0"
     assert str(component_version("external.planning")) == "0.0.0"
     assert str(next_component_version("external.memory.fabric")) == "0.0.1"
