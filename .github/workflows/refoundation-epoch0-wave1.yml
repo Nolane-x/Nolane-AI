@@ -32,16 +32,20 @@ jobs:
         run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
       - name: Run Refoundation Epoch 0 contracts
         run: python -m pytest -q tests/test_refoundation_*.py
-      - name: Generate exact pinned repository census
+      - name: Generate exact pinned repository census and canonical bootstrap report
         run: |
           python -m cogcoder.refoundation.inventory \
             --snapshot 1a8f333f72dd02abacf1a1bd6e2288c1025521de \
             --output refoundation-repo-snapshot-${{ matrix.python-version }}.json
-      - name: Upload pinned census evidence
+          python -m cogcoder.refoundation.report \
+            --output refoundation-bootstrap-${{ matrix.python-version }}.json
+      - name: Upload Refoundation Epoch 0 evidence
         uses: actions/upload-artifact@v4
         with:
-          name: refoundation-repo-snapshot-py${{ matrix.python-version }}
-          path: refoundation-repo-snapshot-${{ matrix.python-version }}.json
+          name: refoundation-epoch0-wave1-py${{ matrix.python-version }}
+          path: |
+            refoundation-repo-snapshot-${{ matrix.python-version }}.json
+            refoundation-bootstrap-${{ matrix.python-version }}.json
           if-no-files-found: error
       - name: Run all organization, campaign, and execution regressions
         run: |
