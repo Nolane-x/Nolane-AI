@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -49,6 +50,24 @@ def test_r23_backend_rejects_wrong_checkpoint_hash_before_model_load(tmp_path):
     metadata.write_text(json.dumps({'one_weight_sha256': '0' * 64, 'version': 'Neural-R2.3-Ultra-Recursive-DAgger-Gated'}))
 
     with pytest.raises(ValueError, match='checkpoint digest'):
+        R23InferenceBackend.from_checkpoint(
+            checkpoint_path=checkpoint,
+            metadata_path=metadata,
+            model_root=tmp_path,
+        )
+
+
+def test_r23_backend_rejects_forged_metadata_even_when_it_matches_forged_checkpoint(tmp_path):
+    checkpoint = tmp_path / 'r23.pt'
+    checkpoint.write_bytes(b'forged-but-self-consistent')
+    forged_digest = hashlib.sha256(checkpoint.read_bytes()).hexdigest()
+    metadata = tmp_path / 'CURRENT_BEST.json'
+    metadata.write_text(json.dumps({
+        'one_weight_sha256': forged_digest,
+        'version': 'Neural-R2.3-Ultra-Recursive-DAgger-Gated',
+    }))
+
+    with pytest.raises(ValueError, match='accepted R2.3 metadata'):
         R23InferenceBackend.from_checkpoint(
             checkpoint_path=checkpoint,
             metadata_path=metadata,
