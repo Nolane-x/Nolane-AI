@@ -1,0 +1,82 @@
+name: Nolane-AI Refoundation Epoch 0
+
+on:
+  pull_request:
+    paths:
+      - 'cogcoder/refoundation/**'
+      - 'nolane/**'
+      - 'tests/test_refoundation_*.py'
+      - 'docs/refoundation/**'
+      - '.github/workflows/refoundation-epoch0-wave1.yml'
+
+concurrency:
+  group: refoundation-epoch0-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  refoundation-epoch0:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile accepted organization and canonical refoundation namespaces
+        run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+      - name: Run Refoundation Epoch 0 contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Generate zero-loss evidence bundle
+        run: |
+          python -m cogcoder.refoundation.inventory \
+            --snapshot 1a8f333f72dd02abacf1a1bd6e2288c1025521de \
+            --output refoundation-repo-snapshot-${{ matrix.python-version }}.json
+          python -m cogcoder.refoundation.report \
+            --output refoundation-bootstrap-${{ matrix.python-version }}.json
+          python -m cogcoder.refoundation.agent_manifest_export \
+            --output-dir refoundation-agent-manifests-${{ matrix.python-version }}
+      - name: Upload Refoundation Epoch 0 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: refoundation-epoch0-py${{ matrix.python-version }}
+          path: |
+            refoundation-repo-snapshot-${{ matrix.python-version }}.json
+            refoundation-bootstrap-${{ matrix.python-version }}.json
+            refoundation-agent-manifests-${{ matrix.python-version }}/
+          if-no-files-found: error
+      - name: Run all organization, campaign, and execution regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_execution_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+      - name: Verify frozen Neural R2.3 metadata contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
