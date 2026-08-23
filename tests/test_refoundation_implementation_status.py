@@ -7,17 +7,27 @@ from cogcoder.refoundation.implementation_status import (
 from cogcoder.refoundation.manifests import build_component_manifests
 
 
+WAVE2_NATIVE_VERSIONS = {
+    "organization.identity": "0.0.1",
+    "organization.authority": "0.0.1",
+    "organization.events": "0.0.1",
+}
+
+
 def test_every_component_has_exactly_one_implementation_status_record() -> None:
     components = {row.component_id for row in build_component_manifests()}
     ledger = build_component_implementation_ledger()
     assert set(ledger) == components
     assert all(ledger[key].component_id == key for key in ledger)
-    assert all(ledger[key].component_version == "0.0.0" for key in ledger)
+    for key in ledger:
+        assert ledger[key].component_version == WAVE2_NATIVE_VERSIONS.get(key, "0.0.0")
 
 
 def test_manifest_presence_never_implies_migration_completion() -> None:
     ledger = build_component_implementation_ledger()
     assert ledger["organization.identity"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["organization.authority"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["organization.events"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["organization.runtime"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.memory.fabric"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.planning"].status is ImplementationStatus.COMPATIBILITY_FACADE
@@ -49,6 +59,8 @@ def test_only_explicit_native_components_claim_canonical_write_authority() -> No
     writers = {key for key, row in ledger.items() if row.canonical_write_authority}
     assert writers == {
         "organization.identity",
+        "organization.authority",
+        "organization.events",
         "organization.runtime",
         "organization.temporary_work_units",
     }

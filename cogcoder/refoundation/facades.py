@@ -58,9 +58,6 @@ class FacadeParityReport:
 
 def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
-        FacadeBinding("organization.identity", "nolane.organization.identity", "cogcoder.organization.registry", ("AgentRegistry",)),
-        FacadeBinding("organization.authority", "nolane.organization.authority", "cogcoder.organization.authority", ("AuthorityGraph",)),
-        FacadeBinding("organization.events", "nolane.organization.events", "cogcoder.organization.events", ("EventLedger",)),
         FacadeBinding("organization.tasks", "nolane.organization.tasks", "cogcoder.organization.tasks", ("TaskGraph",)),
         FacadeBinding("organization.lifecycle", "nolane.organization.lifecycle", "cogcoder.organization.scheduler", ("WakeSleepScheduler",)),
         FacadeBinding("organization.coordination", "nolane.organization.coordination", "cogcoder.organization.coordination", ("CoordinationControlPlane",)),

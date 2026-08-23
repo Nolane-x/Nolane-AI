@@ -4,9 +4,17 @@ from ._component_specs import COMPONENT_SPECS
 from .versioning import ComponentVersion
 
 
-# Each component owns its own patch-level revision counter.  Epoch 0 resets all
-# components to 0.0.0; later changes increment only the affected entries.
+# Each component owns its own patch-level revision counter. Epoch 0 bootstraps
+# every component at 0.0.0; accepted native extractions advance only the
+# components whose implementation authority actually moved.
 _COMPONENT_REVISIONS: dict[str, int] = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}
+_COMPONENT_REVISIONS.update(
+    {
+        "organization.identity": 1,
+        "organization.authority": 1,
+        "organization.events": 1,
+    }
+)
 
 
 def component_revision_map() -> dict[str, int]:

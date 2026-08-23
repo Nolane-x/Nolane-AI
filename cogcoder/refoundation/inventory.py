@@ -16,6 +16,9 @@ from .migration import LegacyDisposition, ReviewDepth
 
 
 _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
+    "cogcoder/organization/registry.py": "nolane/organization/identity.py",
+    "cogcoder/organization/authority.py": "nolane/organization/authority.py",
+    "cogcoder/organization/events.py": "nolane/organization/events.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 
