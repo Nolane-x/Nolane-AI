@@ -3,6 +3,8 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
+import re
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -16,6 +18,29 @@ ROOT = Path(__file__).resolve().parents[2]
 COMPONENT_VERSION = "0.0.0"
 ARCHIVE_SCHEMA_VERSION = "nolane-repository-history-v1"
 DEBT_SCHEMA_VERSION = "nolane-native-debt-v1"
+REFERENCE_AUDIT_POLICY = "exact-plus-family-dynamic-fail-closed-v1"
+
+_SCAN_PRUNE_DIRS = {
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".ruff_cache",
+    ".venv",
+    "__pycache__",
+    "archive",
+    "node_modules",
+}
+_MAX_REFERENCE_SCAN_BYTES = 5 * 1024 * 1024
+_DYNAMIC_FAMILY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "historical_r_series",
+        re.compile(r"(?:R\d[^\s'\"`]*[?*[]|(?:glob|rglob)\([^\n)]*R\d)", re.IGNORECASE),
+    ),
+    (
+        "legacy_weight_pointer",
+        re.compile(r"CURRENT_ONE_WEIGHT_[^\s'\"`]*[?*[]", re.IGNORECASE),
+    ),
+)
 
 
 def _historical_root_candidates(root: Path) -> tuple[Path, ...]:
@@ -60,9 +85,109 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _reference_kind(relative: Path) -> str:
+    parts = relative.parts
+    if len(parts) >= 3 and parts[0] == ".github" and parts[1] == "workflows":
+        return "workflow"
+    if parts and parts[0] == "tests":
+        return "test"
+    if parts and parts[0] in {"cogcoder", "nolane"}:
+        return "active_source"
+    if parts and parts[0] in {"scripts", "tools"}:
+        return "script"
+    if relative.suffix.lower() in {".sh", ".bash", ".ps1", ".bat", ".cmd"}:
+        return "script"
+    if (parts and parts[0] == "docs") or relative.suffix.lower() in {".md", ".rst"}:
+        return "documentation"
+    return "repository_metadata"
+
+
+def _iter_reference_text(root: Path, candidate_names: set[str]):
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(name for name in dirnames if name not in _SCAN_PRUNE_DIRS)
+        base = Path(dirpath)
+        for filename in sorted(filenames):
+            path = base / filename
+            relative = path.relative_to(root)
+            if len(relative.parts) == 1 and relative.name in candidate_names:
+                continue
+            try:
+                if path.stat().st_size > _MAX_REFERENCE_SCAN_BYTES:
+                    continue
+                raw = path.read_bytes()
+            except OSError:
+                continue
+            if b"\x00" in raw:
+                continue
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                continue
+            yield relative, text
+
+
+def _build_reference_audits(root: Path, candidates: tuple[Path, ...]) -> dict[str, dict[str, Any]]:
+    names = {path.name for path in candidates}
+    exact: dict[str, list[dict[str, Any]]] = {name: [] for name in names}
+    dynamic_categories: set[str] = set()
+    if names:
+        exact_pattern = re.compile("|".join(re.escape(name) for name in sorted(names, key=lambda item: (-len(item), item))))
+    else:
+        exact_pattern = None
+
+    for relative, text in _iter_reference_text(root, names):
+        kind = _reference_kind(relative)
+        for line_number, line in enumerate(text.splitlines(), start=1):
+            if exact_pattern is not None:
+                matched_names = sorted({match.group(0) for match in exact_pattern.finditer(line)})
+                for name in matched_names:
+                    exact[name].append(
+                        {
+                            "path": relative.as_posix(),
+                            "line": line_number,
+                            "kind": kind,
+                        }
+                    )
+            for category, pattern in _DYNAMIC_FAMILY_PATTERNS:
+                if pattern.search(line):
+                    dynamic_categories.add(category)
+
+    audits: dict[str, dict[str, Any]] = {}
+    for path in candidates:
+        category, _ = _classification(path.name)
+        references = sorted(
+            exact[path.name],
+            key=lambda row: (row["path"], row["line"], row["kind"]),
+        )
+        blockers: set[str] = set()
+        if category in {"historical_checkpoint_pointer", "legacy_weight_pointer"}:
+            blockers.add("protected_provenance_pointer")
+        if references:
+            blockers.add("active_references_present")
+        if category in dynamic_categories:
+            blockers.add("family_dynamic_reference_present")
+
+        # The Master Spec's no-delete gate requires an accepted migration receipt,
+        # rollback/provenance closure, and cleared active references before relocation.
+        # Wave 4 intentionally has no accepted per-file move receipts yet, so an
+        # otherwise reference-clean file stays fail-closed rather than being guessed safe.
+        if not blockers:
+            blockers.add("migration_receipt_missing")
+
+        audits[path.name] = {
+            "decision": "quarantined_in_place" if blockers else "safe_to_move",
+            "reference_count": len(references),
+            "references": references,
+            "blockers": sorted(blockers),
+        }
+    return audits
+
+
 def build_archive_index(root: Path = ROOT) -> dict[str, Any]:
+    candidates = _historical_root_candidates(root)
+    reference_audits = _build_reference_audits(root, candidates)
     entries: list[dict[str, Any]] = []
-    for path in _historical_root_candidates(root):
+    for path in candidates:
         category, reason = _classification(path.name)
         entries.append(
             {
@@ -74,12 +199,14 @@ def build_archive_index(root: Path = ROOT) -> dict[str, Any]:
                 "move_status": "quarantined_in_place",
                 "delete_allowed": False,
                 "reason": reason,
+                "reference_audit": reference_audits[path.name],
             }
         )
     return {
         "schema_version": ARCHIVE_SCHEMA_VERSION,
         "component_version": COMPONENT_VERSION,
         "policy": "fail_closed_zero_loss",
+        "reference_audit_policy": REFERENCE_AUDIT_POLICY,
         "entries": entries,
     }
 
@@ -213,8 +340,13 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     archive = build_archive_index()
     debt = build_native_debt()
+    quarantined = sum(
+        1 for row in archive["entries"] if row["reference_audit"]["decision"] == "quarantined_in_place"
+    )
+    safe = len(archive["entries"]) - quarantined
     print(
         f"Repository audit fresh: {len(archive['entries'])} historical root artifacts; "
+        f"{quarantined} quarantined / {safe} safe-to-move; "
         f"{len(debt['components'])} non-native component records."
     )
     return 0
