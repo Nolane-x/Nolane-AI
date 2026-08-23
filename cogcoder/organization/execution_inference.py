@@ -11,6 +11,10 @@ from .execution_types import AgentDecisionReceipt, ExecutionAction, ExecutionCou
 from .types import AgentIdentity, ContextCapsule, canonical_digest
 
 
+ACCEPTED_R23_CHECKPOINT_SHA256 = '77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026'
+ACCEPTED_R23_VERSION = 'Neural-R2.3-Ultra-Recursive-DAgger-Gated'
+
+
 class AgentInferenceBackend(Protocol):
     backend_id: str
     checkpoint_digest: str
@@ -154,11 +158,14 @@ class R23InferenceBackend:
             raise FileNotFoundError(f'R2.3 checkpoint not found: {checkpoint}')
         metadata = json.loads(metadata_file.read_text(encoding='utf-8'))
         expected = str(metadata.get('one_weight_sha256', '')).strip().lower()
+        version = str(metadata.get('version', '')).strip()
         if len(expected) != 64:
             raise ValueError('accepted R2.3 metadata lacks checkpoint digest')
         observed = cls._sha256(checkpoint)
         if observed != expected:
             raise ValueError(f'checkpoint digest mismatch: {observed} != {expected}')
+        if expected != ACCEPTED_R23_CHECKPOINT_SHA256 or version != ACCEPTED_R23_VERSION:
+            raise ValueError('accepted R2.3 metadata authority mismatch')
 
         root = Path(model_root).resolve()
         root_text = str(root)
