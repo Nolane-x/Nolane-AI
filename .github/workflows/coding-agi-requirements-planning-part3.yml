@@ -23,6 +23,8 @@ on:
 
 jobs:
   requirements-planning:
+    # REF0-CI-ISOLATION: refoundation PRs use the dedicated Refoundation regression gate.
+    if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
