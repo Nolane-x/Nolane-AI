@@ -6,6 +6,7 @@ from pathlib import Path
 
 from .compatibility import build_bootstrap_parity_report
 from .composition import build_wave1_composition_lock
+from .facades import build_active_facade_bindings, validate_active_facades
 from .manifests import (
     FIRST_GENERATION_SNAPSHOT,
     REFUNDATION_EPOCH,
@@ -16,6 +17,8 @@ from .manifests import (
 
 def build_bootstrap_report() -> dict[str, object]:
     parity = build_bootstrap_parity_report()
+    facade_parity = validate_active_facades()
+    facades = build_active_facade_bindings()
     lock = build_wave1_composition_lock()
     agents = build_bootstrap_agent_manifests()
     components = build_component_manifests()
@@ -33,13 +36,24 @@ def build_bootstrap_report() -> dict[str, object]:
             "bootstrap_parity_clean": parity.clean,
             "bootstrap_parity_digest": parity.digest,
         },
+        "active_facade_summary": {
+            "count": len(facades),
+            "clean": facade_parity.clean,
+            "parity_digest": facade_parity.digest,
+        },
         "agents": [row.to_state() for row in agents],
         "components": [row.to_state() for row in components],
+        "active_facades": [row.to_state() for row in facades],
         "composition_lock": lock.to_state(),
         "bootstrap_parity": {
             **parity.payload(),
             "clean": parity.clean,
             "digest": parity.digest,
+        },
+        "active_facade_parity": {
+            **facade_parity.payload(),
+            "clean": facade_parity.clean,
+            "digest": facade_parity.digest,
         },
     }
 
