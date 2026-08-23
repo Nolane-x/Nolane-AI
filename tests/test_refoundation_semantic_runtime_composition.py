@@ -40,20 +40,21 @@ def test_semantic_runtime_composition_has_no_historical_part_or_r_names() -> Non
         assert not any(token in value for token in forbidden)
 
 
-def test_canonical_runtime_crosses_accepted_runtime_through_one_bridge() -> None:
+def test_canonical_namespaces_cross_accepted_runtime_through_one_bridge() -> None:
     root = Path(__file__).resolve().parents[1]
     bridge = root / "cogcoder" / "refoundation" / "accepted_runtime.py"
-    canonical = root / "cogcoder" / "refoundation" / "canonical_runtime.py"
-    identity_source = root / "cogcoder" / "refoundation" / "identity_source.py"
-
-    bridge_text = bridge.read_text(encoding="utf-8")
-    canonical_text = canonical.read_text(encoding="utf-8")
-    identity_text = identity_source.read_text(encoding="utf-8")
-
     legacy_import = "from cogcoder.organization.runtime import OrganizationRuntime"
-    assert legacy_import in bridge_text
-    assert legacy_import not in canonical_text
-    assert legacy_import not in identity_text
+
+    direct_importers: list[str] = []
+    for package in (root / "cogcoder" / "refoundation", root / "nolane"):
+        for path in package.rglob("*.py"):
+            if legacy_import in path.read_text(encoding="utf-8"):
+                direct_importers.append(path.relative_to(root).as_posix())
+
+    assert direct_importers == [bridge.relative_to(root).as_posix()]
+
+    canonical_text = (root / "cogcoder" / "refoundation" / "canonical_runtime.py").read_text(encoding="utf-8")
+    identity_text = (root / "cogcoder" / "refoundation" / "identity_source.py").read_text(encoding="utf-8")
     assert "from .accepted_runtime import AcceptedOrganizationRuntime" in canonical_text
     assert "from .accepted_runtime import AcceptedOrganizationRuntime" in identity_text
 
