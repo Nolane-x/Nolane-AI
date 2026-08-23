@@ -33,9 +33,11 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def replace_once(path: str, old: str, new: str) -> None:
+          def ensure_replaced(path: str, old: str, new: str) -> None:
               target = Path(path)
               text = target.read_text(encoding='utf-8')
+              if new in text:
+                  return
               count = text.count(old)
               if count != 1:
                   raise SystemExit(f'{path}: expected exactly one replacement target, found {count}')
@@ -43,21 +45,23 @@ jobs:
 
           types_path = Path('cogcoder/organization/types.py')
           text = types_path.read_text(encoding='utf-8')
+          canonical_import = 'from nolane.external_core.evidence import EvidenceRecord\n'
           import_anchor = 'from typing import Any, Mapping\n'
-          if 'from nolane.external_core.evidence import EvidenceRecord\n' not in text:
+          if canonical_import not in text:
               if text.count(import_anchor) != 1:
                   raise SystemExit('types.py: typing import anchor not unique')
-              text = text.replace(
-                  import_anchor,
-                  import_anchor + '\nfrom nolane.external_core.evidence import EvidenceRecord\n',
-                  1,
-              )
-          old_block = '''@dataclass(frozen=True, slots=True)\nclass EvidenceRecord:\n    evidence_id: str\n    verifier_agent_id: str\n    passed: bool\n    false_accepts: int = 0\n    regressions: int = 0\n    notes: str = ''\n\n    def __post_init__(self) -> None:\n        if self.false_accepts < 0 or self.regressions < 0: raise ValueError('evidence counters must be non-negative')\n        if not self.evidence_id or not self.verifier_agent_id: raise ValueError('evidence identity must be explicit')\n\n    def to_state(self) -> dict[str, Any]:\n        return {'evidence_id': self.evidence_id, 'verifier_agent_id': self.verifier_agent_id, 'passed': self.passed,\n                'false_accepts': self.false_accepts, 'regressions': self.regressions, 'notes': self.notes}\n\n    @classmethod\n    def from_state(cls, state: Mapping[str, Any]) -> 'EvidenceRecord':\n        return cls(str(state['evidence_id']), str(state['verifier_agent_id']), bool(state['passed']),\n                   int(state.get('false_accepts', 0)), int(state.get('regressions', 0)), str(state.get('notes', '')))\n\n\n'''
-          if old_block not in text:
-              raise SystemExit('types.py: historical EvidenceRecord block not found exactly')
-          types_path.write_text(text.replace(old_block, '', 1), encoding='utf-8')
+              text = text.replace(import_anchor, import_anchor + '\n' + canonical_import, 1)
 
-          replace_once(
+          old_block = '''@dataclass(frozen=True, slots=True)\nclass EvidenceRecord:\n    evidence_id: str\n    verifier_agent_id: str\n    passed: bool\n    false_accepts: int = 0\n    regressions: int = 0\n    notes: str = ''\n\n    def __post_init__(self) -> None:\n        if self.false_accepts < 0 or self.regressions < 0: raise ValueError('evidence counters must be non-negative')\n        if not self.evidence_id or not self.verifier_agent_id: raise ValueError('evidence identity must be explicit')\n\n    def to_state(self) -> dict[str, Any]:\n        return {'evidence_id': self.evidence_id, 'verifier_agent_id': self.verifier_agent_id, 'passed': self.passed,\n                'false_accepts': self.false_accepts, 'regressions': self.regressions, 'notes': self.notes}\n\n    @classmethod\n    def from_state(cls, state: Mapping[str, Any]) -> 'EvidenceRecord':\n        return cls(str(state['evidence_id']), str(state['verifier_agent_id']), bool(state['passed']),\n                   int(state.get('false_accepts', 0)), int(state.get('regressions', 0)), str(state.get('notes', '')))\n\n\n'''
+          if old_block in text:
+              text = text.replace(old_block, '', 1)
+          elif 'class EvidenceRecord:' in text:
+              raise SystemExit('types.py: unexpected local EvidenceRecord implementation remains')
+          if canonical_import not in text:
+              raise SystemExit('types.py: canonical EvidenceRecord import missing after cutover')
+          types_path.write_text(text, encoding='utf-8')
+
+          ensure_replaced(
               'cogcoder/refoundation/component_versions.py',
               '        "external.verification": 1,\n',
               '        "external.verification": 1,\n        "external.evidence": 1,\n',
@@ -66,26 +70,31 @@ jobs:
           implementation_path = Path('cogcoder/refoundation/implementation_status.py')
           implementation = implementation_path.read_text(encoding='utf-8')
           native_anchor = '''    "external.artifacts": (\n        "nolane.external_core.artifacts",\n        ("cogcoder/organization/artifacts.py",),\n        "Native content-addressed artifact records/store with deterministic evidence ordering, metadata encoding and state round-trip; historical artifact module is a compatibility bridge.",\n    ),\n'''
-          evidence_native = native_anchor + '''    "external.evidence": (\n        "nolane.external_core.evidence",\n        ("cogcoder/organization/types.py",),\n        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",\n    ),\n'''
-          if implementation.count(native_anchor) != 1:
-              raise SystemExit('implementation_status.py: artifact native anchor not unique')
-          implementation = implementation.replace(native_anchor, evidence_native, 1)
+          evidence_block = '''    "external.evidence": (\n        "nolane.external_core.evidence",\n        ("cogcoder/organization/types.py",),\n        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",\n    ),\n'''
+          if evidence_block not in implementation:
+              if implementation.count(native_anchor) != 1:
+                  raise SystemExit('implementation_status.py: artifact native anchor not unique')
+              implementation = implementation.replace(native_anchor, native_anchor + evidence_block, 1)
           legacy_line = '    "external.evidence": ("cogcoder/organization/types.py", "cogcoder/organization/verification.py"),\n'
-          if implementation.count(legacy_line) != 1:
-              raise SystemExit('implementation_status.py: evidence legacy hint not unique')
-          implementation = implementation.replace(legacy_line, '', 1)
+          if legacy_line in implementation:
+              implementation = implementation.replace(legacy_line, '', 1)
+          if evidence_block not in implementation or legacy_line in implementation:
+              raise SystemExit('implementation_status.py: evidence authority cutover incomplete')
           implementation_path.write_text(implementation, encoding='utf-8')
 
-          replace_once(
+          for path in (
               'tests/test_refoundation_component_versions.py',
-              '    "external.verification",\n',
-              '    "external.verification",\n    "external.evidence",\n',
-          )
-          replace_once(
               'tests/test_refoundation_implementation_status.py',
-              '    "external.verification",\n',
-              '    "external.verification",\n    "external.evidence",\n',
-          )
+          ):
+              target = Path(path)
+              value = target.read_text(encoding='utf-8')
+              marker = '    "external.evidence",\n'
+              if marker not in value:
+                  anchor = '    "external.verification",\n'
+                  if value.count(anchor) != 1:
+                      raise SystemExit(f'{path}: external.verification set anchor not unique')
+                  value = value.replace(anchor, anchor + marker, 1)
+                  target.write_text(value, encoding='utf-8')
           PY
       - name: Materialize native-debt projections
         run: python -m nolane.repository.audit --write
