@@ -179,26 +179,23 @@ def test_wave5_native_verification_preserves_rejection_promotion_rollback_and_ev
     assert restored.to_state() == authority.to_state()
 
 
-def test_wave5_native_debt_reduces_only_the_two_promoted_facades() -> None:
+def test_wave5_native_pair_remains_out_of_native_debt_after_later_waves() -> None:
     ledger = build_component_implementation_ledger()
-    counts: dict[str, int] = {}
-    non_native = []
-    for row in ledger.values():
-        if row.status is ImplementationStatus.CANONICAL_NATIVE:
-            continue
-        non_native.append(row)
-        counts[row.status.value] = counts.get(row.status.value, 0) + 1
-
-    assert len(non_native) == 44
-    assert counts == {
-        "compatibility_facade": 31,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 5,
+    non_native_ids = {
+        component_id
+        for component_id, row in ledger.items()
+        if row.status is not ImplementationStatus.CANONICAL_NATIVE
     }
+
+    assert "external.artifacts" not in non_native_ids
+    assert "external.verification" not in non_native_ids
+    assert ledger["external.artifacts"].canonical_write_authority
+    assert ledger["external.verification"].canonical_write_authority
+
+    # These boundaries were intentionally left for later extraction in Wave 5A
+    # and must not be accidentally promoted by unrelated migrations.
     assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
     assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
-    assert ledger["external.evidence"].status is ImplementationStatus.LEGACY_INTERNAL
 
 
 def test_wave5_legacy_source_paths_remain_present_as_compatibility_bridges() -> None:
