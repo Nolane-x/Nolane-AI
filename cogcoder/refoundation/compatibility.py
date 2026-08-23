@@ -36,53 +36,24 @@ class BootstrapParityReport:
             raise ValueError("bootstrap parity report digest mismatch")
 
 
-def _manifest_contract(row) -> dict[str, Any]:
-    return {
-        "name": row.name,
-        "region": row.region,
-        "role": row.role,
-        "rank": row.rank,
-        "neural_version": row.neural_version,
-        "parameter_accounting": dict(row.parameter_accounting),
-        "direct_work_capable": row.direct_work_capable,
-        "learning_capable": row.learning_capable,
-        "cognitive_capabilities": row.cognitive_capabilities,
-        "memory_namespace": row.memory_namespace,
-        "skill_namespace": row.skill_namespace,
-        "external_core_bindings": row.external_core_bindings,
-        "tool_permissions": row.tool_permissions,
-    }
-
-
-def _source_contract(row) -> dict[str, Any]:
-    return {
-        "name": row.name,
-        "region": row.region,
-        "role": row.role,
-        "rank": row.rank.value,
-        "neural_version": row.neural_version,
-        "parameter_accounting": row.parameter_accounting.to_state(),
-        "direct_work_capable": row.direct_work_capable,
-        "learning_capable": row.learning_capable,
-        "cognitive_capabilities": row.cognitive_capabilities,
-        "memory_namespace": row.memory_namespace,
-        "skill_namespace": row.skill_namespace,
-        "external_core_bindings": row.external_core_bindings,
-        "tool_permissions": row.tool_permissions,
-    }
-
-
 def build_bootstrap_parity_report() -> BootstrapParityReport:
+    """Compare canonical manifests against the entire accepted identity state.
+
+    Legacy blueprint data is now a parity oracle only. The canonical manifest
+    builder does not import or call it; this report proves the independent
+    source retained every serialized AgentIdentity field.
+    """
+
     source = {row.agent_id: row for row in build_first_generation_blueprint()}
     manifests = {row.agent_id: row for row in build_bootstrap_agent_manifests()}
     missing = tuple(sorted(set(source) - set(manifests)))
     extra = tuple(sorted(set(manifests) - set(source)))
     mismatches: list[str] = []
     for agent_id in sorted(set(source) & set(manifests)):
-        expected = _source_contract(source[agent_id])
-        actual = _manifest_contract(manifests[agent_id])
-        for field in sorted(expected):
-            if expected[field] != actual[field]:
+        expected = source[agent_id].to_state()
+        actual = manifests[agent_id].identity_state()
+        for field in sorted(set(expected) | set(actual)):
+            if expected.get(field) != actual.get(field):
                 mismatches.append(f"{agent_id}:{field}")
 
     payload = {
