@@ -9,11 +9,14 @@ def test_legacy_runtime_class_identity_remains_compatible() -> None:
     assert OrganizationRuntime is LegacyOrganizationRuntime
 
 
-def test_public_nolane_runtime_factory_is_manifest_driven() -> None:
+def test_public_nolane_runtime_factory_is_manifest_driven_and_authority_wrapped() -> None:
     public = build_first_generation_runtime()
     direct = build_manifest_driven_runtime()
     legacy = LegacyOrganizationRuntime.first_generation()
 
     assert public.to_state() == direct.to_state()
     assert public.to_state() == legacy.to_state()
-    assert len(public.registry.identities()) == 67
+    assert len(public.identities()) == 67
+    assert public.identity_source == "canonical-manifests"
+    assert not hasattr(public, "tasks")
+    assert not hasattr(public, "planning")
