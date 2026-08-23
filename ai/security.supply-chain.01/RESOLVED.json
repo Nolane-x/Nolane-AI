@@ -1,0 +1,68 @@
+{
+  "accepted_neural_version": "NUC-0.1+security.supply-chain.01-delta-0.1",
+  "agent_id": "security.supply-chain.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "threat-model",
+      "security-scanner",
+      "attack-harness",
+      "supply-chain-auditor"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "threat-model",
+      "security-scanner",
+      "attack-harness",
+      "supply-chain-auditor"
+    ],
+    "private_bindings": [],
+    "private_version": "security.supply-chain.01-EXT-0.0.0",
+    "regional_bindings": [
+      "threat-model",
+      "security-scanner",
+      "attack-harness",
+      "supply-chain-auditor"
+    ],
+    "regional_version": "REGION-EXT-security-adversarial-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/security.supply-chain.01",
+  "name": "Supply Chain Security Agent",
+  "neural_core": {
+    "private_version": "security.supply-chain.01-delta-0.1",
+    "regional_version": "REGION-security-adversarial-0.1",
+    "resolved_version": "NUC-0.1+REGION-security-adversarial-0.1+security.supply-chain.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 8000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 64000000
+  },
+  "rank": "specialist",
+  "region": "security-adversarial",
+  "region_chief_id": "security.chief",
+  "role": "dependency and supply-chain security",
+  "skill_namespace": "skills/personal/security.supply-chain.01"
+}

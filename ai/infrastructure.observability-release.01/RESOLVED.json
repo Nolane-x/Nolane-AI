@@ -1,0 +1,71 @@
+{
+  "accepted_neural_version": "NUC-0.1+infrastructure.observability-release.01-delta-0.1",
+  "agent_id": "infrastructure.observability-release.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "ci-engine",
+      "container-runtime",
+      "deployment-controller",
+      "observability-stack",
+      "release-packager"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "ci-engine",
+      "container-runtime",
+      "deployment-controller",
+      "observability-stack",
+      "release-packager"
+    ],
+    "private_bindings": [],
+    "private_version": "infrastructure.observability-release.01-EXT-0.0.0",
+    "regional_bindings": [
+      "ci-engine",
+      "container-runtime",
+      "deployment-controller",
+      "observability-stack",
+      "release-packager"
+    ],
+    "regional_version": "REGION-EXT-infrastructure-release-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/infrastructure.observability-release.01",
+  "name": "Observability & Release Agent",
+  "neural_core": {
+    "private_version": "infrastructure.observability-release.01-delta-0.1",
+    "regional_version": "REGION-infrastructure-release-0.1",
+    "resolved_version": "NUC-0.1+REGION-infrastructure-release-0.1+infrastructure.observability-release.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 8000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 64000000
+  },
+  "rank": "specialist",
+  "region": "infrastructure-release",
+  "region_chief_id": "infrastructure.chief",
+  "role": "observability and release packaging",
+  "skill_namespace": "skills/personal/infrastructure.observability-release.01"
+}

@@ -1,0 +1,74 @@
+{
+  "accepted_neural_version": "NUC-0.1+research.chief-delta-0.1",
+  "agent_id": "research.chief",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "web-retrieval",
+      "github-research",
+      "docs-index",
+      "paper-index",
+      "package-registry",
+      "provenance-store"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "web-retrieval",
+      "github-research",
+      "docs-index",
+      "paper-index",
+      "package-registry",
+      "provenance-store"
+    ],
+    "private_bindings": [],
+    "private_version": "research.chief-EXT-0.0.0",
+    "regional_bindings": [
+      "web-retrieval",
+      "github-research",
+      "docs-index",
+      "paper-index",
+      "package-registry",
+      "provenance-store"
+    ],
+    "regional_version": "REGION-EXT-research-external-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/research.chief",
+  "name": "Research Chief",
+  "neural_core": {
+    "private_version": "research.chief-delta-0.1",
+    "regional_version": "REGION-research-external-0.1",
+    "resolved_version": "NUC-0.1+REGION-research-external-0.1+research.chief-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 34000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 90000000
+  },
+  "rank": "chief",
+  "region": "research-external",
+  "region_chief_id": "research.chief",
+  "role": "Research / External Intelligence Chief",
+  "skill_namespace": "skills/personal/research.chief"
+}

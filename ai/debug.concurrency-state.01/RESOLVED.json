@@ -1,0 +1,77 @@
+{
+  "accepted_neural_version": "NUC-0.1+debug.concurrency-state.01-delta-0.1",
+  "agent_id": "debug.concurrency-state.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "runtime-tracer",
+      "stack-graph",
+      "coverage-graph",
+      "state-diff",
+      "crash-analyzer",
+      "git-bisect",
+      "failure-minimizer"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "runtime-tracer",
+      "stack-graph",
+      "coverage-graph",
+      "state-diff",
+      "crash-analyzer",
+      "git-bisect",
+      "failure-minimizer"
+    ],
+    "private_bindings": [],
+    "private_version": "debug.concurrency-state.01-EXT-0.0.0",
+    "regional_bindings": [
+      "runtime-tracer",
+      "stack-graph",
+      "coverage-graph",
+      "state-diff",
+      "crash-analyzer",
+      "git-bisect",
+      "failure-minimizer"
+    ],
+    "regional_version": "REGION-EXT-debugging-failure-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/debug.concurrency-state.01",
+  "name": "Concurrency & State Debugger",
+  "neural_core": {
+    "private_version": "debug.concurrency-state.01-delta-0.1",
+    "regional_version": "REGION-debugging-failure-0.1",
+    "resolved_version": "NUC-0.1+REGION-debugging-failure-0.1+debug.concurrency-state.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 20000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 76000000
+  },
+  "rank": "senior_specialist",
+  "region": "debugging-failure",
+  "region_chief_id": "debug.chief",
+  "role": "race, deadlock and state diagnosis",
+  "skill_namespace": "skills/personal/debug.concurrency-state.01"
+}

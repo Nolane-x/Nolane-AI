@@ -1,0 +1,68 @@
+{
+  "accepted_neural_version": "NUC-0.1+architecture.api-interface.01-delta-0.1",
+  "agent_id": "architecture.api-interface.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "architecture-graph",
+      "interface-contract-engine",
+      "change-impact-graph",
+      "adr-ledger"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "architecture-graph",
+      "interface-contract-engine",
+      "change-impact-graph",
+      "adr-ledger"
+    ],
+    "private_bindings": [],
+    "private_version": "architecture.api-interface.01-EXT-0.0.0",
+    "regional_bindings": [
+      "architecture-graph",
+      "interface-contract-engine",
+      "change-impact-graph",
+      "adr-ledger"
+    ],
+    "regional_version": "REGION-EXT-architecture-system-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/architecture.api-interface.01",
+  "name": "API & Interface Architect",
+  "neural_core": {
+    "private_version": "architecture.api-interface.01-delta-0.1",
+    "regional_version": "REGION-architecture-system-0.1",
+    "resolved_version": "NUC-0.1+REGION-architecture-system-0.1+architecture.api-interface.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 8000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 64000000
+  },
+  "rank": "specialist",
+  "region": "architecture-system",
+  "region_chief_id": "architecture.chief",
+  "role": "interface and API architecture",
+  "skill_namespace": "skills/personal/architecture.api-interface.01"
+}

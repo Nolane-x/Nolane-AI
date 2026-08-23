@@ -1,0 +1,77 @@
+{
+  "accepted_neural_version": "NUC-0.1+coding.refactor.01-delta-0.1",
+  "agent_id": "coding.refactor.01",
+  "authority_scope": [
+    "task"
+  ],
+  "external_core": {
+    "effective_bindings": [
+      "lsp",
+      "ast",
+      "symbol-graph",
+      "compiler",
+      "patch-engine",
+      "worktree-manager",
+      "test-selection"
+    ],
+    "effective_tool_permissions": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store",
+      "lsp",
+      "ast",
+      "symbol-graph",
+      "compiler",
+      "patch-engine",
+      "worktree-manager",
+      "test-selection"
+    ],
+    "private_bindings": [],
+    "private_version": "coding.refactor.01-EXT-0.0.0",
+    "regional_bindings": [
+      "lsp",
+      "ast",
+      "symbol-graph",
+      "compiler",
+      "patch-engine",
+      "worktree-manager",
+      "test-selection"
+    ],
+    "regional_version": "REGION-EXT-core-coding-0.1",
+    "shared_capabilities": [
+      "filesystem",
+      "git",
+      "terminal",
+      "code-search",
+      "memory",
+      "task-graph",
+      "event-ledger",
+      "evidence-store"
+    ],
+    "shared_version": "EXT-0.1"
+  },
+  "memory_namespace": "agent/coding.refactor.01",
+  "name": "Refactoring Coder",
+  "neural_core": {
+    "private_version": "coding.refactor.01-delta-0.1",
+    "regional_version": "REGION-core-coding-0.1",
+    "resolved_version": "NUC-0.1+REGION-core-coding-0.1+coding.refactor.01-delta-0.1",
+    "shared_version": "NUC-0.1"
+  },
+  "parameter_accounting": {
+    "local_physical_parameters": 8000000,
+    "regional_physical_parameters": 0,
+    "shared_physical_parameters": 56000000,
+    "total_physical_parameters": 64000000
+  },
+  "rank": "specialist",
+  "region": "core-coding",
+  "region_chief_id": "coding.chief",
+  "role": "large-scale refactoring",
+  "skill_namespace": "skills/personal/coding.refactor.01"
+}
