@@ -1,0 +1,54 @@
+name: Coding AGI Real Repository Evaluation Campaign
+
+on:
+  push:
+    branches:
+      - feat/real-repository-evaluation-campaign-core-gpt56sol
+  pull_request:
+    paths:
+      - 'cogcoder/organization/**'
+      - 'tests/test_coding_agi_campaign_*.py'
+      - '.github/workflows/coding-agi-evaluation-campaign.yml'
+
+jobs:
+  evaluation-campaign:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile organization package
+        run: python -m py_compile cogcoder/organization/*.py
+      - name: Run campaign and prior organization regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
