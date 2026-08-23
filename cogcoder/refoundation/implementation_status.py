@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any
 
 from .facades import build_active_facade_bindings
 from .manifests import build_component_manifests
@@ -35,6 +36,17 @@ class ComponentImplementationRecord:
         if self.canonical_write_authority and self.status is not ImplementationStatus.CANONICAL_NATIVE:
             raise ValueError("canonical write authority requires canonical-native implementation")
 
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "component_id": self.component_id,
+            "component_version": self.component_version,
+            "status": self.status.value,
+            "canonical_module": self.canonical_module,
+            "legacy_sources": list(self.legacy_sources),
+            "canonical_write_authority": self.canonical_write_authority,
+            "notes": self.notes,
+        }
+
 
 _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "organization.identity": (
@@ -48,9 +60,9 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         "Canonical authority wrapper over accepted implementation with manifest identity, MasterPlanGraph and LeaseCoordinator boundaries.",
     ),
     "organization.temporary_work_units": (
-        "cogcoder.refoundation.temporary_work_units",
-        ("cogcoder/organization/foundry.py",),
-        "Canonical non-agent ontology adapter preserving bounded Foundry work-unit lineage.",
+        "nolane.work_units",
+        ("cogcoder/organization/foundry.py", "cogcoder/organization/foundry_profiles.py", "cogcoder/organization/foundry_resources.py"),
+        "Canonical non-agent Work Unit API over accepted bounded Foundry lifecycle/resource/evidence implementation.",
     ),
 }
 
@@ -92,54 +104,33 @@ def build_component_implementation_ledger() -> dict[str, ComponentImplementation
         if component_id in _NATIVE:
             module, legacy_sources, notes = _NATIVE[component_id]
             row = ComponentImplementationRecord(
-                component_id=component_id,
-                component_version=str(manifest.version),
-                status=ImplementationStatus.CANONICAL_NATIVE,
-                canonical_module=module,
-                legacy_sources=legacy_sources,
-                canonical_write_authority=True,
-                notes=notes,
+                component_id, str(manifest.version), ImplementationStatus.CANONICAL_NATIVE,
+                module, legacy_sources, True, notes,
             )
         elif component_id in _HISTORICAL_ONLY:
             row = ComponentImplementationRecord(
-                component_id=component_id,
-                component_version=str(manifest.version),
-                status=ImplementationStatus.HISTORICAL_ONLY,
-                canonical_module=None,
-                legacy_sources=_HISTORICAL_ONLY[component_id],
-                canonical_write_authority=False,
-                notes="Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.",
+                component_id, str(manifest.version), ImplementationStatus.HISTORICAL_ONLY,
+                None, _HISTORICAL_ONLY[component_id], False,
+                "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.",
             )
         elif component_id in _FROZEN_ASSET:
             row = ComponentImplementationRecord(
-                component_id=component_id,
-                component_version=str(manifest.version),
-                status=ImplementationStatus.FROZEN_ASSET,
-                canonical_module=None,
-                legacy_sources=_FROZEN_ASSET[component_id],
-                canonical_write_authority=False,
-                notes="Accepted frozen neural asset with separate runtime adapter and checkpoint authority.",
+                component_id, str(manifest.version), ImplementationStatus.FROZEN_ASSET,
+                None, _FROZEN_ASSET[component_id], False,
+                "Accepted frozen neural asset with separate runtime adapter and checkpoint authority.",
             )
         elif component_id in facades:
             facade = facades[component_id]
             row = ComponentImplementationRecord(
-                component_id=component_id,
-                component_version=str(manifest.version),
-                status=ImplementationStatus.COMPATIBILITY_FACADE,
-                canonical_module=facade.canonical_module,
-                legacy_sources=(facade.legacy_module.replace(".", "/") + ".py",),
-                canonical_write_authority=False,
-                notes="Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.",
+                component_id, str(manifest.version), ImplementationStatus.COMPATIBILITY_FACADE,
+                facade.canonical_module, (facade.legacy_module.replace(".", "/") + ".py",), False,
+                "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.",
             )
         else:
             row = ComponentImplementationRecord(
-                component_id=component_id,
-                component_version=str(manifest.version),
-                status=ImplementationStatus.LEGACY_INTERNAL,
-                canonical_module=None,
-                legacy_sources=_LEGACY_SOURCE_HINTS.get(component_id, ()),
-                canonical_write_authority=False,
-                notes="Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.",
+                component_id, str(manifest.version), ImplementationStatus.LEGACY_INTERNAL,
+                None, _LEGACY_SOURCE_HINTS.get(component_id, ()), False,
+                "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.",
             )
         ledger[component_id] = row
 
