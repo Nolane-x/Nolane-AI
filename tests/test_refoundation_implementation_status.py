@@ -17,6 +17,7 @@ WAVE2_NATIVE_VERSIONS = {
     "organization.coordination.delivery": "0.0.1",
     "organization.coordination.conflicts": "0.0.1",
     "organization.coordination": "0.0.1",
+    "organization.central": "0.0.1",
 }
 
 
@@ -72,6 +73,7 @@ def test_only_explicit_native_components_claim_canonical_write_authority() -> No
         "organization.coordination.delivery",
         "organization.coordination.conflicts",
         "organization.coordination",
+        "organization.central",
         "organization.runtime",
         "organization.temporary_work_units",
     }
