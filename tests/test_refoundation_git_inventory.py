@@ -33,13 +33,26 @@ def test_generated_census_has_one_record_for_every_pinned_tracked_leaf() -> None
     assert len(census.records()) == len(inventory.entries)
 
 
+def test_active_facade_sources_receive_exact_canonical_destinations() -> None:
+    census = GitSnapshotInventory.capture(Path.cwd(), FIRST_GENERATION_SNAPSHOT).to_census()
+
+    assert census.get("cogcoder/organization/runtime.py").canonical_destination == "nolane/organization/runtime.py"
+    assert census.get("cogcoder/organization/memory.py").canonical_destination == "nolane/external_core/memory.py"
+    assert census.get("cogcoder/organization/execution_inference.py").canonical_destination == "nolane/neural/inference_bridge.py"
+    assert census.get("cogcoder/organization/evaluation_claims.py").canonical_destination == "nolane/evaluation/claims.py"
+
+
+def test_unfacaded_legacy_source_remains_non_destructive() -> None:
+    census = GitSnapshotInventory.capture(Path.cwd(), FIRST_GENERATION_SNAPSHOT).to_census()
+    row = census.get("cogcoder/organization/runtime_part15.py")
+    assert not row.as_legacy_path_record().destructive_action_allowed
+
+
 def test_generated_inventory_is_zero_loss_fail_closed_by_default() -> None:
     inventory = GitSnapshotInventory.capture(Path.cwd(), FIRST_GENERATION_SNAPSHOT)
     census = inventory.to_census()
 
     for record in census.records():
-        # Inventory coverage is not permission to delete. Classification and
-        # parity/migration/history receipts remain separate requirements.
         assert not record.as_legacy_path_record().destructive_action_allowed
 
 
