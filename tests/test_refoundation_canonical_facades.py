@@ -1,13 +1,12 @@
 from __future__ import annotations
 
 
-def test_canonical_organization_facades_preserve_class_identity() -> None:
+def test_canonical_organization_facades_preserve_class_identity_except_runtime() -> None:
     from cogcoder.organization.authority import AuthorityGraph as OldAuthorityGraph
     from cogcoder.organization.central import CentralControlPlane as OldCentralControlPlane
     from cogcoder.organization.coordination import CoordinationControlPlane as OldCoordinationControlPlane
     from cogcoder.organization.events import EventLedger as OldEventLedger
     from cogcoder.organization.registry import AgentRegistry as OldAgentRegistry
-    from cogcoder.organization.runtime import OrganizationRuntime as OldOrganizationRuntime
     from cogcoder.organization.tasks import TaskGraph as OldTaskGraph
 
     from nolane.organization.authority import AuthorityGraph
@@ -15,7 +14,6 @@ def test_canonical_organization_facades_preserve_class_identity() -> None:
     from nolane.organization.coordination import CoordinationControlPlane
     from nolane.organization.events import EventLedger
     from nolane.organization.identity import AgentRegistry
-    from nolane.organization.runtime import OrganizationRuntime
     from nolane.organization.tasks import TaskGraph
 
     assert AuthorityGraph is OldAuthorityGraph
@@ -23,8 +21,17 @@ def test_canonical_organization_facades_preserve_class_identity() -> None:
     assert CoordinationControlPlane is OldCoordinationControlPlane
     assert EventLedger is OldEventLedger
     assert AgentRegistry is OldAgentRegistry
-    assert OrganizationRuntime is OldOrganizationRuntime
     assert TaskGraph is OldTaskGraph
+
+
+def test_organization_runtime_namespace_is_canonical_not_raw_compatibility() -> None:
+    from cogcoder.refoundation.canonical_runtime import CanonicalOrganization
+    from cogcoder.refoundation.facades import build_active_facade_bindings
+    from nolane.organization.runtime import OrganizationRuntime, build_first_generation_runtime
+
+    assert OrganizationRuntime is CanonicalOrganization
+    assert isinstance(build_first_generation_runtime(), CanonicalOrganization)
+    assert "organization.runtime" not in {row.component_id for row in build_active_facade_bindings()}
 
 
 def test_canonical_external_core_facades_preserve_class_identity() -> None:
@@ -92,12 +99,11 @@ def test_canonical_neural_boundary_keeps_checkpoint_authority_in_old_bridge() ->
     assert R23InferenceBackend is OldAdapter
 
 
-def test_every_facade_declares_independent_component_version_and_source() -> None:
+def test_every_compatibility_facade_declares_independent_component_version_and_source() -> None:
     import nolane.evaluation.scaling as evaluation_scaling
     import nolane.external_core.memory as memory
     import nolane.external_core.execution as execution
-    import nolane.organization.runtime as runtime
 
-    for module in (evaluation_scaling, memory, execution, runtime):
+    for module in (evaluation_scaling, memory, execution):
         assert module.COMPONENT_VERSION == "0.0.0"
         assert module.MIGRATED_FROM.startswith("cogcoder.organization.")
