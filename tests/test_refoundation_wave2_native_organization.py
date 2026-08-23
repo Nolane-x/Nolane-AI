@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 
 from cogcoder.organization.blueprint import build_first_generation_blueprint
 from cogcoder.refoundation.component_versions import component_version
@@ -9,6 +10,8 @@ from cogcoder.refoundation.implementation_status import (
     ImplementationStatus,
     build_component_implementation_ledger,
 )
+from cogcoder.refoundation.inventory import GitSnapshotInventory
+from cogcoder.refoundation.manifests import FIRST_GENERATION_SNAPSHOT
 
 
 def test_identity_authority_events_are_native_and_independently_versioned() -> None:
@@ -34,6 +37,13 @@ def test_native_trio_is_not_registered_as_compatibility_facades() -> None:
         "organization.authority",
         "organization.events",
     }.isdisjoint(facade_ids)
+
+
+def test_native_trio_keeps_exact_legacy_to_canonical_migration_destinations() -> None:
+    census = GitSnapshotInventory.capture(Path.cwd(), FIRST_GENERATION_SNAPSHOT).to_census()
+    assert census.get("cogcoder/organization/registry.py").canonical_destination == "nolane/organization/identity.py"
+    assert census.get("cogcoder/organization/authority.py").canonical_destination == "nolane/organization/authority.py"
+    assert census.get("cogcoder/organization/events.py").canonical_destination == "nolane/organization/events.py"
 
 
 def test_legacy_modules_bridge_to_canonical_class_authority() -> None:
