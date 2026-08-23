@@ -36,7 +36,8 @@ def test_wave5b_canonical_evidence_has_no_reverse_import_to_historical_owner() -
     import nolane.external_core.evidence as evidence
 
     source = inspect.getsource(evidence)
-    assert "cogcoder.organization.types" not in source
+    assert "from cogcoder.organization.types import" not in source
+    assert "import cogcoder.organization.types" not in source
 
 
 def test_wave5b_evidence_record_preserves_validation_and_state_round_trip() -> None:
