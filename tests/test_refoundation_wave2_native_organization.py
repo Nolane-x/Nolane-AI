@@ -129,16 +129,16 @@ def test_native_event_ledger_preserves_causal_digest_delivery_and_round_trip() -
     from nolane.organization.events import EventLedger
 
     ledger = EventLedger()
-    ledger.subscribe("coding.chief", EventKind.BUG_DISCOVERY, region="core-coding")
+    ledger.subscribe("coding.chief", EventKind.BUG_DISCOVERED, region="core-coding")
     first = ledger.append(
-        EventKind.BUG_DISCOVERY,
+        EventKind.BUG_DISCOVERED,
         source_agent_id="debug.reproducer.01",
         region="core-coding",
         payload={"bug": "wave2"},
         evidence_refs=("evidence-wave2",),
     )
     second = ledger.append(
-        EventKind.PROGRESS,
+        EventKind.TASK_PROGRESS,
         source_agent_id="coding.chief",
         target_agent_id="nolane.central",
         causal_parent_ids=(first.event_id,),
