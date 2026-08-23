@@ -3,8 +3,21 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
+from cogcoder.organization.types import EventKind
 from nolane.external_core.invokable import ExternalCoreRegistry
 from nolane.organization.identity import AgentRegistry
+
+
+# Historical Central actions were schema-preserving aliases rather than new
+# EventKind enum values. Preserve that compatibility exactly during ownership
+# migration so accepted state/event serialization remains unchanged.
+for _name in (
+    'CENTRAL_RESOURCE_ALLOCATED', 'CENTRAL_RESOURCE_RELEASED',
+    'CENTRAL_CONFLICT_OPENED', 'CENTRAL_CONFLICT_RESOLVED',
+    'CENTRAL_DIRECT_WORK', 'CENTRAL_CORE_LEASE_GRANTED', 'CENTRAL_CORE_LEASE_REVOKED',
+):
+    if not hasattr(EventKind, _name):
+        setattr(EventKind, _name, EventKind.CENTRAL_INTERVENTION)
 
 
 _DIRECT_CENTRAL_CORE_OWNERS = {'nolane.central', 'global-command', 'shared-governed-core'}
