@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 33
+- `compatibility_facade`: 31
 - `frozen_asset`: 1
 - `historical_only`: 7
 - `legacy_internal`: 5
@@ -101,15 +101,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `nolane.external_core.architecture`
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/architecture.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `external.artifacts`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.external_core.artifacts`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/artifacts.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.assurance`
@@ -389,15 +380,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `nolane.external_core.ui_ux`
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/ui.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `external.verification`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.external_core.verification`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/verification.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `neural.inference_bridge`

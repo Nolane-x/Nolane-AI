@@ -111,17 +111,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.artifacts",
-      "canonical_write_authority": false,
-      "component_id": "external.artifacts",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/artifacts.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.external_core.assurance",
       "canonical_write_authority": false,
       "component_id": "external.assurance",
@@ -464,17 +453,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.verification",
-      "canonical_write_authority": false,
-      "component_id": "external.verification",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/verification.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.neural.inference_bridge",
       "canonical_write_authority": false,
       "component_id": "neural.inference_bridge",
@@ -509,7 +487,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 33,
+    "compatibility_facade": 31,
     "frozen_asset": 1,
     "historical_only": 7,
     "legacy_internal": 5
