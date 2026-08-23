@@ -4,6 +4,7 @@ from pathlib import Path
 
 
 LEGACY_DUPLICATE_GATES = (
+    ".github/workflows/coding-agi-central-part2.yml",
     ".github/workflows/coding-agi-assurance-part8.yml",
     ".github/workflows/coding-agi-coding-part5.yml",
     ".github/workflows/coding-agi-multi-agent-coordination-part13.yml",
