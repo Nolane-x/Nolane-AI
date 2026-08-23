@@ -230,9 +230,14 @@ class EvaluationCampaignControlPlane:
             'tasks': self.tasks.to_state(),
             'campaigns': [row.to_state() for row in self.campaigns()],
         }
-        if self.runs is not None: state['runs'] = self.runs.to_state()
-        if self.contamination is not None: state['contamination'] = self.contamination.to_state()
-        if self.reproduction is not None: state['reproduction'] = self.reproduction.to_state()
+        if self.runs is not None:
+            state['runs'] = self.runs.to_state()
+        if self.contamination is not None:
+            state['contamination'] = self.contamination.to_state()
+        if self.reproduction is not None:
+            state['reproduction'] = self.reproduction.to_state()
+        if self.ingestor is not None:
+            state['ingestor'] = self.ingestor.to_state()
         return state
 
     @classmethod
@@ -267,9 +272,10 @@ class EvaluationCampaignControlPlane:
             result.reproduction = CampaignReproductionLedger.from_state(
                 registry=registry, artifacts=artifacts, campaigns=result, state=state.get('reproduction', {}),
             )
-            result.ingestor = CampaignIngestor(
+            result.ingestor = CampaignIngestor.from_state(
                 registry=registry, artifacts=artifacts, evaluation=evaluation,
                 repositories=result.repositories, tasks=result.tasks, campaigns=result,
                 runs=result.runs, contamination=result.contamination,
+                state=state.get('ingestor', {}),
             )
         return result
