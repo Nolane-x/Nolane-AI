@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 
-def test_memory_fabric_facade_preserves_accepted_class_identity() -> None:
+def test_memory_fabric_bridge_preserves_accepted_class_identity() -> None:
     from cogcoder.organization.memory import MemoryFabric as LegacyMemoryFabric
     from nolane.memory.fabric import MemoryFabric
     assert MemoryFabric is LegacyMemoryFabric
@@ -57,14 +57,14 @@ def test_memory_public_modules_have_independent_component_ownership() -> None:
     import nolane.memory.skills as skills
 
     expected = {
-        fabric: "external.memory.fabric",
-        lifecycle: "external.memory.lifecycle",
-        retrieval: "external.memory.retrieval",
-        context: "external.context",
-        experience: "external.experience",
-        skills: "external.skills",
+        fabric: ("external.memory.fabric", "0.0.1"),
+        lifecycle: ("external.memory.lifecycle", "0.0.0"),
+        retrieval: ("external.memory.retrieval", "0.0.0"),
+        context: ("external.context", "0.0.0"),
+        experience: ("external.experience", "0.0.0"),
+        skills: ("external.skills", "0.0.0"),
     }
-    for module, component_id in expected.items():
+    for module, (component_id, component_version) in expected.items():
         assert module.COMPONENT_ID == component_id
-        assert module.COMPONENT_VERSION == "0.0.0"
+        assert module.COMPONENT_VERSION == component_version
         assert module.MIGRATED_FROM.startswith("cogcoder.organization.")
