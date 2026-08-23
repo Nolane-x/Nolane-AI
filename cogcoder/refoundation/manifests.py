@@ -3,9 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cogcoder.organization.blueprint import build_first_generation_blueprint
-
 from ._component_specs import COMPONENT_SPECS
+from .organization_spec import build_canonical_identity_states
 from .versioning import ComponentVersion
 
 
@@ -66,8 +65,35 @@ class AgentManifest:
         if self.rank == "chief" and self.region_chief_id != self.agent_id:
             raise ValueError("Regional Chief must identify itself as region chief")
 
+    @classmethod
+    def from_identity_state(cls, state: Mapping[str, Any]) -> "AgentManifest":
+        return cls(
+            agent_id=str(state["agent_id"]),
+            name=str(state["name"]),
+            region=str(state["region"]),
+            role=str(state["role"]),
+            rank=str(state["rank"]),
+            neural_version=str(state["neural_version"]),
+            parameter_accounting=dict(state["parameter_accounting"]),
+            region_chief_id=None if state.get("region_chief_id") is None else str(state["region_chief_id"]),
+            direct_work_capable=bool(state["direct_work_capable"]),
+            learning_capable=bool(state["learning_capable"]),
+            cognitive_capabilities=tuple(str(value) for value in state["cognitive_capabilities"]),
+            memory_namespace=str(state["memory_namespace"]),
+            skill_namespace=str(state["skill_namespace"]),
+            external_core_bindings=tuple(str(value) for value in state.get("external_core_bindings", ())),
+            tool_permissions=tuple(str(value) for value in state.get("tool_permissions", ())),
+            status=str(state["status"]),
+            current_task=None if state.get("current_task") is None else str(state["current_task"]),
+            specialization_version=str(state["specialization_version"]),
+            authority_scope=tuple(str(value) for value in state["authority_scope"]),
+            subscriptions=tuple(str(value) for value in state.get("subscriptions", ())),
+            checkpoint_id=None if state.get("checkpoint_id") is None else str(state["checkpoint_id"]),
+            self_model_version=str(state["self_model_version"]),
+        )
+
     def identity_state(self) -> dict[str, Any]:
-        """Return the exact legacy ``AgentIdentity`` serialization contract."""
+        """Return the exact accepted ``AgentIdentity`` serialization contract."""
         return {
             "agent_id": self.agent_id,
             "name": self.name,
@@ -134,37 +160,10 @@ class ComponentManifest:
 
 
 def build_bootstrap_agent_manifests() -> tuple[AgentManifest, ...]:
-    rows: list[AgentManifest] = []
-    for identity in build_first_generation_blueprint():
-        rows.append(
-            AgentManifest(
-                agent_id=identity.agent_id,
-                name=identity.name,
-                region=identity.region,
-                role=identity.role,
-                rank=identity.rank.value,
-                neural_version=identity.neural_version,
-                parameter_accounting=identity.parameter_accounting.to_state(),
-                region_chief_id=identity.region_chief_id,
-                direct_work_capable=identity.direct_work_capable,
-                learning_capable=identity.learning_capable,
-                cognitive_capabilities=identity.cognitive_capabilities,
-                memory_namespace=identity.memory_namespace,
-                skill_namespace=identity.skill_namespace,
-                external_core_bindings=identity.external_core_bindings,
-                tool_permissions=identity.tool_permissions,
-                status=identity.status.value,
-                current_task=identity.current_task,
-                specialization_version=identity.specialization_version,
-                authority_scope=identity.authority_scope,
-                subscriptions=identity.subscriptions,
-                checkpoint_id=identity.checkpoint_id,
-                self_model_version=identity.self_model_version,
-            )
-        )
+    rows = tuple(AgentManifest.from_identity_state(state) for state in build_canonical_identity_states())
     if len(rows) != 67 or len({row.agent_id for row in rows}) != 67:
         raise ValueError("canonical permanent manifest set must contain exactly 67 unique identities")
-    return tuple(rows)
+    return rows
 
 
 def build_component_manifests() -> tuple[ComponentManifest, ...]:
