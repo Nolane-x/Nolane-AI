@@ -65,7 +65,6 @@ def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
         FacadeBinding("organization.lifecycle", "nolane.organization.lifecycle", "cogcoder.organization.scheduler", ("WakeSleepScheduler",)),
         FacadeBinding("organization.coordination", "nolane.organization.coordination", "cogcoder.organization.coordination", ("CoordinationControlPlane",)),
         FacadeBinding("organization.central", "nolane.organization.central", "cogcoder.organization.central", ("CentralControlPlane",)),
-        FacadeBinding("organization.runtime", "nolane.organization.runtime", "cogcoder.organization.runtime", ("OrganizationRuntime",)),
         FacadeBinding("external.artifacts", "nolane.external_core.artifacts", "cogcoder.organization.artifacts", ("ArtifactStore",)),
         FacadeBinding("external.memory.fabric", "nolane.memory.fabric", "cogcoder.organization.memory", ("MemoryFabric",)),
         FacadeBinding("external.memory.lifecycle", "nolane.memory.lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger", "MemoryRelationGraph")),
