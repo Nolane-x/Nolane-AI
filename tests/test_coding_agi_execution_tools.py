@@ -36,6 +36,25 @@ def _executor(runtime):
     )
 
 
+def test_executor_rejects_authorized_tool_without_current_task_lease(tmp_path):
+    runtime = OrganizationRuntime.first_generation()
+    runtime.tasks.add_task('task-no-lease', title='read without lease', plan_node_id='P1')
+    workspace = _workspace(tmp_path)
+
+    receipt = _executor(runtime).invoke(
+        agent_id='coding.backend.01',
+        task_id='task-no-lease',
+        workspace=workspace,
+        action=ToolAction.from_arguments('filesystem', 'read_text', {'path': 'app.txt'}),
+    )
+
+    assert receipt.success is False
+    assert receipt.authorized is True
+    assert receipt.failure_kind == 'task_lease_required'
+    assert runtime.artifacts.get(receipt.evidence_artifact_id).kind == 'execution-core-failure'
+    workspace.close()
+
+
 def test_unauthorized_core_fails_closed_and_preserves_failure_receipt(tmp_path):
     runtime = OrganizationRuntime.first_generation()
     runtime.tasks.add_task('task-1', title='read repository', plan_node_id='P1')
