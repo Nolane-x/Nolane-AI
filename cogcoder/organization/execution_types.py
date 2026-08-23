@@ -22,6 +22,13 @@ class ToolAction:
     arguments_json: str
     mutation_paths: tuple[str, ...] = ()
 
+    @staticmethod
+    def _required_mutation_paths(tool_id: str, operation: str, arguments: Mapping[str, Any]) -> tuple[str, ...]:
+        if str(tool_id) == 'filesystem' and str(operation) in {'write_text', 'append_text'}:
+            path = str(arguments.get('path', '')).strip()
+            return () if not path else (path,)
+        return ()
+
     def __post_init__(self) -> None:
         if not self.tool_id.strip() or not self.operation.strip():
             raise ValueError('tool action requires tool id and operation')
@@ -33,6 +40,9 @@ class ToolAction:
         for path in self.mutation_paths:
             if not str(path).strip():
                 raise ValueError('mutation paths must be explicit')
+        required = self._required_mutation_paths(self.tool_id, self.operation, value)
+        if required and tuple(self.mutation_paths) != required:
+            raise ValueError('filesystem mutation scope must be derived from operation arguments')
 
     @property
     def arguments(self) -> dict[str, Any]:
@@ -50,11 +60,20 @@ class ToolAction:
         *,
         mutation_paths: tuple[str, ...] = (),
     ) -> 'ToolAction':
+        tool = str(tool_id)
+        op = str(operation)
+        args = dict(arguments)
+        required = cls._required_mutation_paths(tool, op, args)
+        declared = tuple(str(x) for x in mutation_paths)
+        if required:
+            if declared and declared != required:
+                raise ValueError('declared mutation scope conflicts with filesystem operation path')
+            declared = required
         return cls(
-            tool_id=str(tool_id),
-            operation=str(operation),
-            arguments_json=canonical_json(dict(arguments)),
-            mutation_paths=tuple(str(x) for x in mutation_paths),
+            tool_id=tool,
+            operation=op,
+            arguments_json=canonical_json(args),
+            mutation_paths=declared,
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -67,11 +86,21 @@ class ToolAction:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ToolAction':
+        arguments_json = str(state['arguments_json'])
+        value = json.loads(arguments_json)
+        if not isinstance(value, dict):
+            raise ValueError('tool action arguments must decode to an object')
+        tool = str(state['tool_id'])
+        operation = str(state['operation'])
+        required = cls._required_mutation_paths(tool, operation, value)
+        stored = tuple(str(x) for x in state.get('mutation_paths', ()))
+        if required and stored != required:
+            raise ValueError('snapshot omits or corrupts authoritative filesystem mutation scope')
         return cls(
-            tool_id=str(state['tool_id']),
-            operation=str(state['operation']),
-            arguments_json=str(state['arguments_json']),
-            mutation_paths=tuple(str(x) for x in state.get('mutation_paths', ())),
+            tool_id=tool,
+            operation=operation,
+            arguments_json=arguments_json,
+            mutation_paths=stored,
         )
 
 
