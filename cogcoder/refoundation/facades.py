@@ -60,7 +60,6 @@ def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
         FacadeBinding("external.context", "nolane.memory.context", "cogcoder.organization.memory_context", ("MemoryContextControlPlane",)),
         FacadeBinding("external.individual_evolution", "nolane.external_core.individual_evolution", "cogcoder.organization.individual_evolution", ("IndividualEvolutionControlPlane",)),
-        FacadeBinding("external.planning", "nolane.external_core.planning", "cogcoder.organization.planning", ("PlanningControlPlane",)),
         FacadeBinding("external.architecture", "nolane.external_core.architecture", "cogcoder.organization.architecture", ("ArchitectureControlPlane",)),
         FacadeBinding("external.integration", "nolane.external_core.integration", "cogcoder.organization.integration", ("IntegrationControlPlane",)),
         FacadeBinding("external.coding.control", "nolane.external_core.coding", "cogcoder.organization.coding", ("CodingControlPlane",)),
