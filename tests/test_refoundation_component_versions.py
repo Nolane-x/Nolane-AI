@@ -33,6 +33,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "external.memory.fabric",
     "external.memory.lifecycle",
     "external.memory.retrieval",
+    "external.knowledge",
 }
 
 
