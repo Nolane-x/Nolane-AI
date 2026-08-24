@@ -42,6 +42,7 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/knowledge_store.py": "nolane/memory/knowledge.py",
     "cogcoder/knowledge_ledger.py": "nolane/memory/knowledge.py",
     "cogcoder/knowledge_adapters.py": "nolane/memory/knowledge.py",
+    "cogcoder/epistemic_workspace.py": "nolane/external_core/epistemic.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 

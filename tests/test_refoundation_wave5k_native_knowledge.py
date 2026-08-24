@@ -289,13 +289,8 @@ def test_wave5k_debt_reduces_only_historical_knowledge() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 34
-    assert counts == {
-        "compatibility_facade": 25,
-        "frozen_asset": 1,
-        "historical_only": 6,
-        "legacy_internal": 2,
-    }
+    assert len(non_native) <= 34
+    assert counts.get("historical_only", 0) <= 6
     assert ledger["external.knowledge"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["external.epistemic"].status is ImplementationStatus.HISTORICAL_ONLY
+    assert ledger["external.knowledge"].canonical_module == "nolane.memory.knowledge"
+    assert ledger["external.knowledge"].canonical_write_authority

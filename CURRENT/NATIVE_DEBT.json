@@ -199,17 +199,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": null,
-      "canonical_write_authority": false,
-      "component_id": "external.epistemic",
-      "component_version": "0.0.0",
-      "implementation_status": "historical_only",
-      "legacy_sources": [
-        "historical R2 mechanisms; no dedicated current organization implementation"
-      ],
-      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
-    },
-    {
       "canonical_module": "nolane.external_core.execution",
       "canonical_write_authority": false,
       "component_id": "external.execution.control",
@@ -378,7 +367,7 @@
   "counts_by_status": {
     "compatibility_facade": 25,
     "frozen_asset": 1,
-    "historical_only": 6,
+    "historical_only": 5,
     "legacy_internal": 2
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",

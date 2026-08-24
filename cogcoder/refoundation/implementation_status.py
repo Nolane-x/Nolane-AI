@@ -179,6 +179,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native provenance-aware deterministic Knowledge fabric reconstructed from the dedicated R2 types/store/ledger/adapters lineage; historical modules bridge exact public identities while R2.54 Cognitive Retrieval remains outside this ownership boundary.",
     ),
+    "external.epistemic": (
+        "nolane.external_core.epistemic",
+        ("cogcoder/epistemic_workspace.py",),
+        "Native version-aware evidence workspace with fail-closed provenance, source/version supersession, corroboration, contested beliefs, conflicts and narrow missing-query generation; historical R2.2 module bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
@@ -187,7 +192,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.epistemic": ("historical R2 mechanisms; no dedicated current organization implementation",),
     "external.cognitive_library": ("historical reusable cognitive mechanisms; extraction not yet accepted",),
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
     "external.causal": ("historical bounded causal programs; not a current dedicated organization component",),
