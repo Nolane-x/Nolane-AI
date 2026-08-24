@@ -26,6 +26,7 @@ _COMPONENT_REVISIONS.update(
         "external.verification": 1,
         "external.evidence": 1,
         "external.experience": 1,
+        "external.self_model": 1,
         "external.memory.fabric": 1,
         "external.memory.lifecycle": 1,
         "external.memory.retrieval": 1,

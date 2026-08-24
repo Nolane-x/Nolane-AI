@@ -30,6 +30,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.verification",
     "external.evidence",
     "external.experience",
+    "external.self_model",
     "external.memory.fabric",
     "external.memory.lifecycle",
     "external.memory.retrieval",

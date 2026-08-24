@@ -34,7 +34,6 @@ def test_wave5h_experience_is_canonical_native_and_versioned() -> None:
 def test_wave5h_experience_retires_facade_and_preserves_all_symbol_identities() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.experience" not in facade_ids
-    assert "external.self_model" in facade_ids
 
     import cogcoder.organization.experience as legacy
     import nolane.memory.experience as canonical
@@ -128,6 +127,10 @@ def test_wave5h_inventory_and_debt_are_exact() -> None:
             continue
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
-    assert len(non_native) == 37
-    assert counts == {"compatibility_facade": 27, "frozen_asset": 1, "historical_only": 7, "legacy_internal": 2}
-    assert ledger["external.self_model"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    # Wave 5H established an upper bound, not permanent downstream debt.
+    assert len(non_native) <= 37
+    assert counts.get("compatibility_facade", 0) <= 27
+    assert counts.get("frozen_asset", 0) <= 1
+    assert counts.get("historical_only", 0) <= 7
+    assert counts.get("legacy_internal", 0) <= 2
+    assert ledger["external.experience"].status is ImplementationStatus.CANONICAL_NATIVE

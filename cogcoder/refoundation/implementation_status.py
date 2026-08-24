@@ -144,6 +144,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/experience.py",),
         "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",
     ),
+    "external.self_model": (
+        "nolane.external_core.self_model",
+        ("cogcoder/organization/self_model.py",),
+        "Native evidence-gated permanent-agent self-model registry with preserved initialization, revision and state semantics; historical module bridges both public object identities.",
+    ),
     "external.memory.fabric": (
         "nolane.memory.fabric",
         ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
