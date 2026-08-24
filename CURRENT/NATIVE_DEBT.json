@@ -89,17 +89,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.architecture",
-      "canonical_write_authority": false,
-      "component_id": "external.architecture",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/architecture.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.external_core.assurance",
       "canonical_write_authority": false,
       "component_id": "external.assurance",
@@ -343,7 +332,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 23,
+    "compatibility_facade": 22,
     "frozen_asset": 1,
     "historical_only": 5,
     "legacy_internal": 2
