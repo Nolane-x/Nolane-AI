@@ -192,9 +192,8 @@ def test_wave5_native_pair_remains_out_of_native_debt_after_later_waves() -> Non
     assert ledger["external.artifacts"].canonical_write_authority
     assert ledger["external.verification"].canonical_write_authority
 
-    # These boundaries were intentionally left for later extraction in Wave 5A
-    # and must not be accidentally promoted by unrelated migrations.
-    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
+    # Wave 5A keeps asserting only still-unmigrated adjacent schema debt;
+    # later accepted primitive cutovers must not make this historical contract stale.
     assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
 
 
