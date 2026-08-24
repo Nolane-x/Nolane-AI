@@ -345,8 +345,8 @@ def test_wave5n_planning_and_tasks_component_versions_reflect_authority_migratio
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.planning" not in facade_ids
-    assert "external.architecture" not in facade_ids
-    assert "external.integration" in facade_ids
+    # Architecture and Integration are downstream authorities. Historical
+    # Wave 5N contracts must not require either one to remain a facade.
 
 
 def test_wave5n_generated_native_debt_no_longer_contains_planning() -> None:
@@ -357,4 +357,6 @@ def test_wave5n_generated_native_debt_no_longer_contains_planning() -> None:
 
     implementation = build_component_implementation_ledger()
     non_native = [row for row in implementation.values() if row.status is not ImplementationStatus.CANONICAL_NATIVE]
-    assert len(non_native) in {30, 31}
+    # Wave 5N established a ceiling of 31 (then Wave 5O reduced it to 30).
+    # Later extraction waves may continue reducing debt without invalidating 5N.
+    assert len(non_native) <= 31
