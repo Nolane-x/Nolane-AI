@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from cogcoder.organization.types import EventKind
 
@@ -10,8 +10,9 @@ from .events import EventLedger
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.tasks"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.tasks"
+PLAN_REVISION_AUTHORITY = "external.planning"
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,7 +56,7 @@ class TaskRecord:
 
 
 class TaskGraph:
-    """Canonical task DAG and execution projection."""
+    """Canonical task DAG with a read-only projection of Planning revision authority."""
 
     def __init__(
         self,
@@ -69,7 +70,53 @@ class TaskGraph:
         self.authority = authority
         self._tasks: dict[str, TaskRecord] = {}
         self._plan_nodes: list[str] = []
-        self.plan_version = 1
+        self._plan_version = 0
+        self._plan_revision_authority: str | None = PLAN_REVISION_AUTHORITY
+        self._loaded_legacy_plan_revision = False
+        self._planning_amendment_handler: Callable[..., Any] | None = None
+
+    @property
+    def plan_version(self) -> int:
+        return self._plan_version
+
+    def _bind_planning_authority(
+        self,
+        handler: Callable[..., Any],
+        *,
+        canonical_version: int,
+        canonical_nodes: tuple[str, ...],
+    ) -> None:
+        canonical_version = int(canonical_version)
+        if canonical_version < 0:
+            raise ValueError("plan revision cannot be negative")
+        if self._loaded_legacy_plan_revision:
+            if self._plan_version == canonical_version:
+                pass
+            elif self._plan_version == 1 and canonical_version == 0:
+                self._plan_version = 0
+            else:
+                raise ValueError(
+                    f"legacy plan revision mismatch: task projection={self._plan_version}, planning={canonical_version}"
+                )
+            self._loaded_legacy_plan_revision = False
+            self._plan_revision_authority = PLAN_REVISION_AUTHORITY
+        elif self._plan_version != canonical_version:
+            raise ValueError(
+                f"plan revision authority mismatch: task projection={self._plan_version}, planning={canonical_version}"
+            )
+        self._planning_amendment_handler = handler
+        self._plan_nodes = list(dict.fromkeys(str(node) for node in canonical_nodes if str(node).strip()))
+
+    def _project_plan_revision(self, version: int, plan_nodes: tuple[str, ...]) -> None:
+        version = int(version)
+        if version < self._plan_version:
+            raise ValueError(
+                f"plan revision projection cannot move backwards: {self._plan_version} -> {version}"
+            )
+        self._plan_version = version
+        self._plan_revision_authority = PLAN_REVISION_AUTHORITY
+        self._loaded_legacy_plan_revision = False
+        self._plan_nodes = list(dict.fromkeys(str(node) for node in plan_nodes if str(node).strip()))
 
     def add_task(self, task_id: str, *, title: str, plan_node_id: str) -> TaskRecord:
         task_id = str(task_id)
@@ -247,33 +294,12 @@ class TaskGraph:
         *,
         added_nodes: tuple[str, ...],
     ):
-        proposal = self.ledger.get(proposal_event_id)
-        if proposal.kind is not EventKind.PLAN_GAP_DETECTED:
-            raise ValueError("plan amendment must reference a plan-gap event")
-        if self.authority is not None:
-            self.authority.require_write(actor_agent_id, "master-plan")
-        elif str(actor_agent_id) != "planning.chief":
-            raise PermissionError("only Planning Chief may authoritatively amend the master plan")
-        nodes = tuple(str(node) for node in added_nodes if str(node).strip())
-        if not nodes:
-            raise ValueError("plan amendment must add at least one node")
-        for node in nodes:
-            if node not in self._plan_nodes:
-                self._plan_nodes.append(node)
-        self.plan_version += 1
-        payload = proposal.payload
-        return self.ledger.append(
-            EventKind.PLAN_AMENDED,
-            source_agent_id=str(actor_agent_id),
-            target_agent_id=proposal.source_agent_id,
-            region="planning-program",
-            payload={
-                "proposal_event_id": proposal.event_id,
-                "task_id": payload.get("task_id"),
-                "added_nodes": list(nodes),
-                "affected_tasks": [payload.get("task_id")] if payload.get("task_id") else [],
-                "plan_version": self.plan_version,
-            },
+        if self._planning_amendment_handler is None:
+            raise RuntimeError("Planning authority is not bound")
+        return self._planning_amendment_handler(
+            actor_agent_id=str(actor_agent_id),
+            proposal_event_id=str(proposal_event_id),
+            added_nodes=tuple(str(node) for node in added_nodes),
         )
 
     def plan_nodes(self) -> tuple[str, ...]:
@@ -284,6 +310,7 @@ class TaskGraph:
             "tasks": [row.to_state() for row in self.tasks()],
             "plan_nodes": list(self._plan_nodes),
             "plan_version": self.plan_version,
+            "plan_revision_authority": PLAN_REVISION_AUTHORITY,
         }
 
     @classmethod
@@ -301,7 +328,14 @@ class TaskGraph:
             for row in (TaskRecord.from_state(value) for value in state.get("tasks", ()))
         }
         graph._plan_nodes = [str(value) for value in state.get("plan_nodes", ())]
-        graph.plan_version = int(state.get("plan_version", 1))
+        marker = state.get("plan_revision_authority")
+        if marker is not None and str(marker) != PLAN_REVISION_AUTHORITY:
+            raise ValueError(f"unknown plan revision authority: {marker}")
+        graph._plan_revision_authority = None if marker is None else PLAN_REVISION_AUTHORITY
+        graph._loaded_legacy_plan_revision = marker is None
+        graph._plan_version = int(state.get("plan_version", 1 if marker is None else 0))
+        if graph._plan_version < 0:
+            raise ValueError("plan revision cannot be negative")
         return graph
 
 
@@ -311,4 +345,5 @@ __all__ = (
     "COMPONENT_ID",
     "COMPONENT_VERSION",
     "MIGRATED_FROM",
+    "PLAN_REVISION_AUTHORITY",
 )
