@@ -36,6 +36,7 @@ _COMPONENT_REVISIONS.update(
         "external.requirements": 1,
         "external.planning": 1,
         "external.architecture": 1,
+        "external.integration": 1,
     }
 )
 
