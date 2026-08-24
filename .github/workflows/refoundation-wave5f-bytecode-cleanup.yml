@@ -48,7 +48,28 @@ jobs:
           print(f'Removed {len(offenders)} tracked Python bytecode files.')
           PY
       - name: Verify repository hygiene contract
-        run: python -m pytest -q tests/test_refoundation_wave5f_repository_hygiene.py
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import subprocess
+
+          raw = subprocess.run(
+              ['git', 'ls-files', '-z'],
+              check=True,
+              capture_output=True,
+          ).stdout
+          tracked = [value.decode('utf-8') for value in raw.split(b'\0') if value]
+          offenders = sorted(
+              path
+              for path in tracked
+              if path.endswith('.pyc') or '/__pycache__/' in f'/{path}'
+          )
+          if offenders:
+              raise SystemExit('tracked Python bytecode remains: ' + '; '.join(offenders))
+          print('Repository hygiene clean: no tracked Python bytecode remains.')
+          PY
       - name: Prove staged cleanup contains bytecode paths only
         shell: bash
         run: |
