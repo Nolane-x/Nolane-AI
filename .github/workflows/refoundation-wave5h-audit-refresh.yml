@@ -29,13 +29,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Install focused test dependency
+        run: python -m pip install -q pytest
+
       - name: Fail closed on one-shot carrier ancestry
         id: gate
         shell: bash
         run: |
           set -euo pipefail
           parent="$(git rev-parse HEAD^)"
-          if [[ "$parent" == "0a74d79713ddab64b3b21667a494fd5e920e4a77" ]]; then
+          if [[ "$parent" == "8e07003284dcb5e138c798880a4dde11d76ed3d1" ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
