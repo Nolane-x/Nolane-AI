@@ -394,7 +394,7 @@ def test_wave5m_canonical_requirements_has_no_historical_requirements_reverse_im
     assert offenders == [], "canonical Requirements reverse-imports historical Requirements authority: " + "; ".join(offenders)
 
 
-def test_wave5m_requirements_component_is_native_revision_one_and_removed_from_facades() -> None:
+def test_wave5m_requirements_component_stays_native_after_later_cutovers() -> None:
     row = build_component_implementation_ledger()["external.requirements"]
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.requirements"
@@ -403,30 +403,23 @@ def test_wave5m_requirements_component_is_native_revision_one_and_removed_from_f
     assert row.component_version == "0.0.1"
     assert str(component_version("external.requirements")) == "0.0.1"
 
+    # The Wave 5M receipt owns only the Requirements cutover. Later waves may
+    # legitimately remove neighboring facades without invalidating this proof.
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.requirements" not in facade_ids
-    for neighboring_facade in ("external.context", "external.planning", "external.architecture"):
-        assert neighboring_facade in facade_ids
 
 
-def test_wave5m_native_debt_reduces_only_requirements() -> None:
+def test_wave5m_requirements_never_reenters_native_debt_after_later_cutovers() -> None:
     ledger = build_component_implementation_ledger()
-    counts: dict[str, int] = {}
-    non_native = []
-    for row in ledger.values():
-        if row.status is ImplementationStatus.CANONICAL_NATIVE:
-            continue
-        non_native.append(row)
-        counts[row.status.value] = counts.get(row.status.value, 0) + 1
+    non_native = [
+        row for row in ledger.values()
+        if row.status is not ImplementationStatus.CANONICAL_NATIVE
+    ]
+    non_native_ids = {row.component_id for row in non_native}
 
-    assert len(non_native) == 32
-    assert counts == {
-        "compatibility_facade": 24,
-        "frozen_asset": 1,
-        "historical_only": 5,
-        "legacy_internal": 2,
-    }
+    # Wave 5M accepted a 32-component debt frontier. Future native cutovers may
+    # only reduce that global number; they must never make Requirements debt again.
+    assert len(non_native) <= 32
+    assert "external.requirements" not in non_native_ids
     assert ledger["external.requirements"].status is ImplementationStatus.CANONICAL_NATIVE
-    for unchanged in ("external.context", "external.planning", "external.architecture"):
-        assert ledger[unchanged].status is ImplementationStatus.COMPATIBILITY_FACADE
-        assert not ledger[unchanged].canonical_write_authority
+    assert ledger["external.requirements"].canonical_write_authority
