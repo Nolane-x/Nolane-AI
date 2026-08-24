@@ -36,6 +36,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.memory.lifecycle",
     "external.memory.retrieval",
     "external.knowledge",
+    "external.epistemic",
 }
 
 
@@ -62,7 +63,6 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
     ledger = build_component_implementation_ledger()
     for component_id in (
-        "external.epistemic",
         "external.cognitive_library",
         "external.capability_acquisition",
         "external.causal",
