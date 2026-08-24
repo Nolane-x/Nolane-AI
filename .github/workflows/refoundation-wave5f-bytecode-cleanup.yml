@@ -1,0 +1,82 @@
+name: Refoundation Wave 5F Bytecode Cleanup
+
+on:
+  pull_request:
+    branches:
+      - refoundation/epoch0-wave5e-native-memory-retrieval
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5f-native-canonical-digest' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Remove tracked Python bytecode only
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import subprocess
+
+          raw = subprocess.run(
+              ['git', 'ls-files', '-z'],
+              check=True,
+              capture_output=True,
+          ).stdout
+          tracked = [value.decode('utf-8') for value in raw.split(b'\0') if value]
+          offenders = sorted(
+              path
+              for path in tracked
+              if path.endswith('.pyc') or '/__pycache__/' in f'/{path}'
+          )
+          if not offenders:
+              print('No tracked Python bytecode remains.')
+              raise SystemExit(0)
+          for path in offenders:
+              subprocess.run(['git', 'rm', '-f', '--', path], check=True)
+          print(f'Removed {len(offenders)} tracked Python bytecode files.')
+          PY
+      - name: Verify repository hygiene contract
+        run: python -m pytest -q tests/test_refoundation_wave5f_repository_hygiene.py
+      - name: Prove staged cleanup contains bytecode paths only
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+
+          staged = subprocess.run(
+              ['git', 'diff', '--cached', '--name-only', '-z'],
+              check=True,
+              capture_output=True,
+          ).stdout
+          paths = [value.decode('utf-8') for value in staged.split(b'\0') if value]
+          bad = [
+              path for path in paths
+              if not (path.endswith('.pyc') or '/__pycache__/' in f'/{path}')
+          ]
+          if bad:
+              raise SystemExit('cleanup staged non-bytecode paths: ' + ', '.join(bad))
+          print(f'Cleanup staged {len(paths)} bytecode deletions only.')
+          PY
+      - name: Commit bytecode cleanup
+        shell: bash
+        run: |
+          if git diff --cached --quiet; then
+            echo 'No bytecode cleanup commit required.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'chore(refoundation): remove generated Python bytecode'
+          git push origin HEAD:${GITHUB_HEAD_REF}
