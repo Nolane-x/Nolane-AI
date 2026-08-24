@@ -61,11 +61,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     ),
     "organization.identity": (
         "nolane.organization.identity",
-        (
-            "cogcoder/organization/registry.py",
-            "cogcoder/organization/blueprint.py",
-            "cogcoder/organization/types.py",
-        ),
+        ("cogcoder/organization/registry.py", "cogcoder/organization/blueprint.py", "cogcoder/organization/types.py"),
         "Canonical 67-identity manifest authority plus native AgentRegistry implementation; historical registry is a compatibility bridge and blueprint remains a parity oracle.",
     ),
     "organization.authority": (
@@ -81,7 +77,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "organization.tasks": (
         "nolane.organization.tasks",
         ("cogcoder/organization/tasks.py",),
-        "Native task DAG, task mutation and execution projection; historical tasks module is a compatibility bridge.",
+        "Native task DAG and execution projection; plan revision is now a read-only projection of external.planning authority, while the historical tasks module remains a compatibility bridge.",
     ),
     "organization.lifecycle": (
         "nolane.organization.lifecycle",
@@ -171,12 +167,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     ),
     "external.knowledge": (
         "nolane.memory.knowledge",
-        (
-            "cogcoder/knowledge_types.py",
-            "cogcoder/knowledge_store.py",
-            "cogcoder/knowledge_ledger.py",
-            "cogcoder/knowledge_adapters.py",
-        ),
+        ("cogcoder/knowledge_types.py", "cogcoder/knowledge_store.py", "cogcoder/knowledge_ledger.py", "cogcoder/knowledge_adapters.py"),
         "Native provenance-aware deterministic Knowledge fabric reconstructed from the dedicated R2 types/store/ledger/adapters lineage; historical modules bridge exact public identities while R2.54 Cognitive Retrieval remains outside this ownership boundary.",
     ),
     "external.epistemic": (
@@ -188,6 +179,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         "nolane.external_core.requirements",
         ("cogcoder/organization/requirements.py",),
         "Native evidence-bearing requirement graph, revision and Requirements Chief authority with deterministic digest/state semantics; historical organization module bridges exact public object identities.",
+    ),
+    "external.planning": (
+        "nolane.external_core.planning",
+        ("cogcoder/organization/planning.py",),
+        "Native evidence-bearing master plan graph and Planning authority with deterministic revision, rollback, gap, task-link and delta semantics; TaskGraph receives a read-only revision projection and historical Planning bridges exact public identities.",
     ),
     "external.verification": (
         "nolane.external_core.verification",
