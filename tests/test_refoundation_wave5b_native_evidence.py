@@ -82,9 +82,8 @@ def test_wave5b_evidence_remains_out_of_native_debt_after_later_waves() -> None:
     assert "external.evidence" not in non_native_ids
     assert ledger["external.evidence"].canonical_write_authority
 
-    # These boundaries were intentionally left for later extraction in Wave 5B
-    # and unrelated migrations must not silently promote them.
-    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
+    # Wave 5B keeps asserting only boundaries that are still intentionally
+    # unmigrated; later accepted primitive cutovers must not stale this contract.
     assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
     assert ledger["external.coding.claims"].status is ImplementationStatus.LEGACY_INTERNAL
     assert ledger["external.coding.patches"].status is ImplementationStatus.LEGACY_INTERNAL
