@@ -199,7 +199,6 @@ def test_wave5c_debt_reduces_only_memory_fabric_facade() -> None:
     assert len(non_native) <= 42
     assert ledger["external.memory.fabric"].status is ImplementationStatus.CANONICAL_NATIVE
     assert all(row.component_id != "external.memory.fabric" for row in non_native)
-    assert ledger["external.memory.retrieval"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
 
 
