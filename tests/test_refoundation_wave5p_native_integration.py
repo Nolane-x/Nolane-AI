@@ -143,5 +143,5 @@ def test_wave5p_current_status_tracks_actual_refoundation_head() -> None:
     status = (root / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
 
     assert "Wave 5P" in status
-    assert "native Integration" in status
+    assert "`external.integration` -> native `nolane.external_core.integration`" in status
     assert "Active work:\n- Wave 4" not in status
