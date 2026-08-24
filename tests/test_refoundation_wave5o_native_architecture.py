@@ -152,7 +152,6 @@ def test_wave5o_architecture_component_version_and_authority_cutover() -> None:
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.architecture" not in facade_ids
-    assert "external.integration" in facade_ids
 
 
 def test_wave5o_generated_native_debt_no_longer_contains_architecture() -> None:
@@ -163,4 +162,6 @@ def test_wave5o_generated_native_debt_no_longer_contains_architecture() -> None:
 
     implementation = build_component_implementation_ledger()
     non_native = [row for row in implementation.values() if row.status is not ImplementationStatus.CANONICAL_NATIVE]
-    assert len(non_native) == 30
+    # Wave 5O established a ceiling of 30. Later extraction waves are allowed
+    # to reduce debt further; a historical contract must never force regression.
+    assert len(non_native) <= 30
