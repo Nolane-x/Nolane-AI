@@ -1,0 +1,90 @@
+name: Refoundation Wave 5K Authority Carrier
+
+on:
+  push:
+    branches:
+      - refoundation/epoch0-wave5k-native-knowledge
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refoundation-wave5k-authority
+  cancel-in-progress: false
+
+env:
+  PYTHONDONTWRITEBYTECODE: "1"
+  EXPECTED_PARENT: "54b1efb1c99a9b4ce652efd33502a00148f4ad5d"
+  TARGET_BRANCH: "refoundation/epoch0-wave5k-native-knowledge"
+
+jobs:
+  materialize-audit:
+    if: github.repository == 'Nolane-x/Nolane-AI'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Fail closed unless this is the exact carrier commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "${GITHUB_REF_NAME}" = "${TARGET_BRANCH}"
+          actual_parent="$(git rev-parse HEAD^)"
+          test "${actual_parent}" = "${EXPECTED_PARENT}"
+          mapfile -t changed < <(git diff --name-only "${EXPECTED_PARENT}" HEAD)
+          test "${#changed[@]}" -eq 1
+          test "${changed[0]}" = ".github/workflows/refoundation-wave5k-authority.yml"
+
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+
+      - name: Prove Wave 5K targeted GREEN before authority write
+        run: python -m pytest -q tests/test_refoundation_wave5k_native_knowledge.py
+
+      - name: Materialize and verify official repository audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m nolane.repository.audit --write
+          python -m nolane.repository.audit --check
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          payload = json.loads(Path("CURRENT/NATIVE_DEBT.json").read_text(encoding="utf-8"))
+          assert len(payload["components"]) == 34, len(payload["components"])
+          assert payload["counts_by_status"] == {
+              "compatibility_facade": 25,
+              "frozen_asset": 1,
+              "historical_only": 6,
+              "legacy_internal": 2,
+          }, payload["counts_by_status"]
+          assert all(row["component_id"] != "external.knowledge" for row in payload["components"])
+          PY
+
+      - name: Commit only audit-owned projections
+        shell: bash
+        run: |
+          set -euo pipefail
+          allowed='^(CURRENT/NATIVE_DEBT\.json|CURRENT/NATIVE_DEBT\.md|archive/INDEX\.json)$'
+          mapfile -t dirty < <(git diff --name-only)
+          test "${#dirty[@]}" -ge 2
+          printf '%s\n' "${dirty[@]}" | grep -Ev "${allowed}" && exit 1 || true
+          printf '%s\n' "${dirty[@]}" | grep -Fx 'CURRENT/NATIVE_DEBT.json'
+          printf '%s\n' "${dirty[@]}" | grep -Fx 'CURRENT/NATIVE_DEBT.md'
+
+          git add -- CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md archive/INDEX.json
+          mapfile -t staged < <(git diff --cached --name-only)
+          test "${#staged[@]}" -ge 2
+          printf '%s\n' "${staged[@]}" | grep -Ev "${allowed}" && exit 1 || true
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore(refoundation): refresh Wave 5K audit authority"
+          git push origin "HEAD:${TARGET_BRANCH}"
