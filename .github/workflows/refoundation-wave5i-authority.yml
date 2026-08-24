@@ -1,0 +1,135 @@
+name: Refoundation Wave 5I Authority
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - refoundation/epoch0-wave5h-native-experience
+
+permissions:
+  contents: write
+
+jobs:
+  authority:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5i-native-self-model' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+
+      - name: Fail closed on one-shot ancestry
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse HEAD^)"
+          if [[ "$parent" == "53adb5d557af9a6e2cc541c935c359a72ed65e50" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "Carrier already consumed or ancestry changed; refusing mutation."
+          fi
+
+      - name: Apply exact Self-model authority cutover
+        if: steps.gate.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one anchor, found {count}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "cogcoder/refoundation/facades.py",
+              '        FacadeBinding("external.self_model", "nolane.external_core.self_model", "cogcoder.organization.self_model", ("SelfModelRegistry",)),\n',
+              "",
+          )
+          replace_once(
+              "cogcoder/refoundation/component_versions.py",
+              '        "external.experience": 1,\n        "external.memory.fabric": 1,\n',
+              '        "external.experience": 1,\n        "external.self_model": 1,\n        "external.memory.fabric": 1,\n',
+          )
+          replace_once(
+              "cogcoder/refoundation/implementation_status.py",
+              '''    "external.experience": (\n        "nolane.memory.experience",\n        ("cogcoder/organization/experience.py",),\n        "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",\n    ),\n    "external.memory.fabric": (\n''',
+              '''    "external.experience": (\n        "nolane.memory.experience",\n        ("cogcoder/organization/experience.py",),\n        "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",\n    ),\n    "external.self_model": (\n        "nolane.external_core.self_model",\n        ("cogcoder/organization/self_model.py",),\n        "Native evidence-gated permanent-agent self-model registry with preserved initialization, revision and state semantics; historical module bridges both public object identities.",\n    ),\n    "external.memory.fabric": (\n''',
+          )
+          replace_once(
+              "cogcoder/refoundation/inventory.py",
+              '    "cogcoder/organization/experience.py": "nolane/memory/experience.py",\n    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",\n',
+              '    "cogcoder/organization/experience.py": "nolane/memory/experience.py",\n    "cogcoder/organization/self_model.py": "nolane/external_core/self_model.py",\n    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",\n',
+          )
+          replace_once(
+              "tests/test_refoundation_component_versions.py",
+              '    "external.experience",\n    "external.memory.fabric",\n',
+              '    "external.experience",\n    "external.self_model",\n    "external.memory.fabric",\n',
+          )
+          replace_once(
+              "tests/test_refoundation_implementation_status.py",
+              '    "external.experience",\n    "external.memory.fabric",\n',
+              '    "external.experience",\n    "external.self_model",\n    "external.memory.fabric",\n',
+          )
+          PY
+
+      - name: Regenerate repository audit projections
+        if: steps.gate.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m nolane.repository.audit --write
+          git diff --exit-code -- archive/INDEX.json
+          python -m nolane.repository.audit --check
+
+      - name: Run all Refoundation contracts
+        if: steps.gate.outputs.apply == 'true'
+        run: python -m pytest -q tests/test_refoundation_*.py
+
+      - name: Verify exact mutation scope and commit
+        if: steps.gate.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          changed="$(git diff --name-only | sort)"
+          expected=$'CURRENT/NATIVE_DEBT.json\nCURRENT/NATIVE_DEBT.md\ncogcoder/refoundation/component_versions.py\ncogcoder/refoundation/facades.py\ncogcoder/refoundation/implementation_status.py\ncogcoder/refoundation/inventory.py\ntests/test_refoundation_component_versions.py\ntests/test_refoundation_implementation_status.py'
+          if [[ "$changed" != "$expected" ]]; then
+            echo "Unexpected mutation scope:"
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            CURRENT/NATIVE_DEBT.json \
+            CURRENT/NATIVE_DEBT.md \
+            cogcoder/refoundation/component_versions.py \
+            cogcoder/refoundation/facades.py \
+            cogcoder/refoundation/implementation_status.py \
+            cogcoder/refoundation/inventory.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py
+          git diff --cached --name-only | sort
+          git commit -m "refoundation(wave5i): accept native self-model authority"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
