@@ -1,0 +1,89 @@
+name: Refoundation Wave 5H Audit Refresh
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - refoundation/epoch0-wave5g-native-identity-schemas
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5h-native-experience' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    env:
+      PYTHONDONTWRITEBYTECODE: '1'
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fail closed on one-shot carrier ancestry
+        id: gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse HEAD^)"
+          if [[ "$parent" == "0a74d79713ddab64b3b21667a494fd5e920e4a77" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "Refresh already consumed or ancestry changed; refusing mutation."
+          fi
+
+      - name: Regenerate deterministic repository audit projections
+        if: steps.gate.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m nolane.repository.audit --write
+          git diff --exit-code -- archive/INDEX.json
+          changed="$(git diff --name-only | sort)"
+          expected=$'CURRENT/NATIVE_DEBT.json\nCURRENT/NATIVE_DEBT.md'
+          if [[ "$changed" != "$expected" ]]; then
+            echo "Unexpected generated changes:"
+            printf '%s\n' "$changed"
+            exit 1
+          fi
+          python -m nolane.repository.audit --check
+
+      - name: Verify focused Wave 5H contracts
+        if: steps.gate.outputs.apply == 'true'
+        run: >-
+          python -m pytest -q
+          tests/test_refoundation_wave5h_native_experience.py
+          tests/test_refoundation_component_versions.py
+          tests/test_refoundation_implementation_status.py
+          tests/test_refoundation_wave5g_native_identity_schemas.py
+          tests/test_refoundation_wave5h_bootstrap_cleanup.py
+          tests/test_refoundation_wave5f_repository_hygiene.py
+
+      - name: Commit only generated debt projections
+        if: steps.gate.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md
+          staged="$(git diff --cached --name-only | sort)"
+          expected=$'CURRENT/NATIVE_DEBT.json\nCURRENT/NATIVE_DEBT.md'
+          if [[ "$staged" != "$expected" ]]; then
+            echo "Unexpected staged paths:"
+            printf '%s\n' "$staged"
+            exit 1
+          fi
+          git commit -m "refoundation(wave5h): refresh native debt projections"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
