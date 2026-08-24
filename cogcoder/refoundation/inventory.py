@@ -38,6 +38,10 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/memory.py": "nolane/memory/fabric.py",
     "cogcoder/organization/memory_lifecycle.py": "nolane/memory/lifecycle.py",
     "cogcoder/organization/memory_retrieval.py": "nolane/memory/retrieval.py",
+    "cogcoder/knowledge_types.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_store.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_ledger.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_adapters.py": "nolane/memory/knowledge.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 
