@@ -8,7 +8,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 - `compatibility_facade`: 25
 - `frozen_asset`: 1
-- `historical_only`: 7
+- `historical_only`: 6
 - `legacy_internal`: 2
 
 ## Components
@@ -246,15 +246,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/external_core.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `external.knowledge`
-
-- Component version: `0.0.0`
-- Status: `historical_only`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: historical R2 mechanisms; no dedicated current organization implementation
-- Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
 
 ### `external.operations`
 
