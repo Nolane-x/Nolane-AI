@@ -1,0 +1,239 @@
+name: Refoundation Wave 5F Canonical Digest Bootstrap
+
+on:
+  pull_request:
+    branches:
+      - refoundation/epoch0-wave5e-native-memory-retrieval
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5f-native-canonical-digest' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Apply deterministic Wave 5F authority cutover
+        shell: bash
+        run: |
+          python - <<'PY'
+          from __future__ import annotations
+
+          import ast
+          from pathlib import Path
+
+          ROOT = Path('.')
+          TARGET = {'canonical_json', 'canonical_digest'}
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one replacement anchor, found {count}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          def insert_after_once(path: str, anchor: str, addition: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              if addition in text:
+                  return
+              count = text.count(anchor)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one insertion anchor, found {count}')
+              target.write_text(text.replace(anchor, anchor + addition, 1), encoding='utf-8')
+
+          def remove_all_exact(path: Path, exact: str) -> None:
+              text = path.read_text(encoding='utf-8')
+              if exact in text:
+                  path.write_text(text.replace(exact, ''), encoding='utf-8')
+
+          # Reverse implementation ownership for only canonical_json/canonical_digest.
+          types_path = Path('cogcoder/organization/types.py')
+          text = types_path.read_text(encoding='utf-8')
+          bridge = 'from nolane.core.canonical_digest import canonical_digest, canonical_json\n'
+          if bridge not in text:
+              anchor = 'from typing import Any, Mapping\n\n'
+              if text.count(anchor) != 1:
+                  raise SystemExit('types.py: typing import anchor not unique')
+              text = text.replace(anchor, anchor + bridge + '\n', 1)
+
+          old_functions = '''\ndef canonical_json(value: Any) -> str:\n    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)\n\n\ndef canonical_digest(value: Any) -> str:\n    return hashlib.sha256(canonical_json(value).encode('utf-8')).hexdigest()\n\n'''
+          if old_functions in text:
+              text = text.replace(old_functions, '\n', 1)
+          elif 'def canonical_json(value: Any)' in text or 'def canonical_digest(value: Any)' in text:
+              raise SystemExit('types.py: digest helper definitions changed shape; refusing broad rewrite')
+          if 'hashlib.' not in text:
+              text = text.replace('import hashlib\n', '', 1)
+          types_path.write_text(text, encoding='utf-8')
+
+          # AST-aware import edge cutover in active canonical/refoundation namespaces.
+          def alias_text(alias: ast.alias) -> str:
+              return alias.name if alias.asname is None else f'{alias.name} as {alias.asname}'
+
+          def rewrite_digest_imports(path: Path) -> bool:
+              source = path.read_text(encoding='utf-8')
+              tree = ast.parse(source, filename=str(path))
+              lines = source.splitlines(keepends=True)
+              changes: list[tuple[int, int, str]] = []
+              for node in ast.walk(tree):
+                  if not isinstance(node, ast.ImportFrom) or node.module != 'cogcoder.organization.types':
+                      continue
+                  moved = [alias for alias in node.names if alias.name in TARGET]
+                  if not moved:
+                      continue
+                  remaining = [alias for alias in node.names if alias.name not in TARGET]
+                  first_line = lines[node.lineno - 1]
+                  indent = first_line[: len(first_line) - len(first_line.lstrip())]
+                  replacement = (
+                      indent
+                      + 'from nolane.core.canonical_digest import '
+                      + ', '.join(alias_text(alias) for alias in moved)
+                      + '\n'
+                  )
+                  if remaining:
+                      replacement += (
+                          indent
+                          + 'from cogcoder.organization.types import '
+                          + ', '.join(alias_text(alias) for alias in remaining)
+                          + '\n'
+                      )
+                  changes.append((node.lineno - 1, node.end_lineno or node.lineno, replacement))
+
+              for start, end, replacement in sorted(changes, reverse=True):
+                  lines[start:end] = [replacement]
+              if changes:
+                  path.write_text(''.join(lines), encoding='utf-8')
+              return bool(changes)
+
+          changed_import_files: list[str] = []
+          for source_root in (Path('nolane'), Path('cogcoder/refoundation')):
+              for path in sorted(source_root.rglob('*.py')):
+                  if rewrite_digest_imports(path):
+                      changed_import_files.append(path.as_posix())
+
+          # Fail closed if any active reverse import remains.
+          offenders: list[str] = []
+          for source_root in (Path('nolane'), Path('cogcoder/refoundation')):
+              for path in sorted(source_root.rglob('*.py')):
+                  tree = ast.parse(path.read_text(encoding='utf-8'), filename=str(path))
+                  for node in ast.walk(tree):
+                      if isinstance(node, ast.ImportFrom) and node.module == 'cogcoder.organization.types':
+                          moved = TARGET.intersection(alias.name for alias in node.names)
+                          if moved:
+                              offenders.append(f'{path}:{node.lineno}:{sorted(moved)}')
+          if offenders:
+              raise SystemExit('digest reverse imports remain: ' + '; '.join(offenders))
+          print(f'Cut over digest imports in {len(changed_import_files)} active files.')
+
+          # Advance only core.canonical_digest local revision.
+          insert_after_once(
+              'cogcoder/refoundation/component_versions.py',
+              '    {\n',
+              '        "core.canonical_digest": 1,\n',
+          )
+
+          # Record canonical-native symbol authority; do not claim whole-file types.py migration.
+          impl = Path('cogcoder/refoundation/implementation_status.py')
+          text = impl.read_text(encoding='utf-8')
+          core_block = '''    "core.canonical_digest": (\n        "nolane.core.canonical_digest",\n        ("cogcoder/organization/types.py",),\n        "Native canonical JSON serialization and SHA-256 content identity; mixed historical types module bridges the two helper identities while unrelated schemas remain explicit debt.",\n    ),\n'''
+          if core_block not in text:
+              anchor = '_NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {\n'
+              if text.count(anchor) != 1:
+                  raise SystemExit('implementation_status.py: _NATIVE anchor not unique')
+              text = text.replace(anchor, anchor + core_block, 1)
+          text = text.replace('    "core.canonical_digest": ("cogcoder/organization/types.py",),\n', '', 1)
+          impl.write_text(text, encoding='utf-8')
+
+          # Cross-wave accepted revision/native-owner sets advance this primitive only.
+          for path_string, set_name in (
+              ('tests/test_refoundation_component_versions.py', 'ACCEPTED_REVISION_ONE_COMPONENTS'),
+              ('tests/test_refoundation_implementation_status.py', 'ACCEPTED_CANONICAL_NATIVE_COMPONENTS'),
+          ):
+              path = Path(path_string)
+              text = path.read_text(encoding='utf-8')
+              marker = '    "core.canonical_digest",\n'
+              set_anchor = f'{set_name} = {{\n'
+              start = text.find(set_anchor)
+              if start < 0:
+                  raise SystemExit(f'{path_string}: accepted set anchor missing')
+              end = text.find('}\n', start)
+              if end < 0:
+                  raise SystemExit(f'{path_string}: accepted set terminator missing')
+              if marker not in text[start:end]:
+                  text = text[: start + len(set_anchor)] + marker + text[start + len(set_anchor):]
+              path.write_text(text, encoding='utf-8')
+
+          # Earlier wave tests keep proving their own owners without freezing digest debt.
+          stale = '    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL\n'
+          for path in sorted(Path('tests').glob('test_refoundation_wave5*.py')):
+              if path.name == 'test_refoundation_wave5f_native_canonical_digest.py':
+                  continue
+              remove_all_exact(path, stale)
+
+          # Wave 5E debt proof becomes monotonic while retaining Retrieval and Context invariants.
+          wave5e = Path('tests/test_refoundation_wave5e_native_memory_retrieval.py')
+          text = wave5e.read_text(encoding='utf-8')
+          text = text.replace('    assert len(non_native) == 40\n', '    assert len(non_native) <= 40\n')
+          old_counts = '''    assert counts == {\n        "compatibility_facade": 28,\n        "frozen_asset": 1,\n        "historical_only": 7,\n        "legacy_internal": 4,\n    }\n'''
+          new_counts = '''    assert ledger["external.memory.retrieval"].status is ImplementationStatus.CANONICAL_NATIVE\n    assert all(row.component_id != "external.memory.retrieval" for row in non_native)\n'''
+          if old_counts in text:
+              text = text.replace(old_counts, new_counts, 1)
+          elif new_counts not in text:
+              raise SystemExit('Wave 5E debt invariant block is neither old nor updated')
+          wave5e.write_text(text, encoding='utf-8')
+          PY
+      - name: Compile cutover state
+        run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+      - name: Materialize native-debt projections
+        run: python -m nolane.repository.audit --write
+      - name: Prove historical archive index did not drift
+        run: git diff --exit-code -- archive/INDEX.json
+      - name: Verify Wave 5F targeted contracts
+        run: |
+          python -m nolane.repository.audit --check
+          python -m pytest -q \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py \
+            tests/test_refoundation_git_inventory.py \
+            tests/test_refoundation_facade_registry.py \
+            tests/test_refoundation_wave5e_native_memory_retrieval.py \
+            tests/test_refoundation_wave5f_native_canonical_digest.py
+      - name: Commit deterministic Wave 5F cutover
+        shell: bash
+        run: |
+          git add \
+            cogcoder/organization/types.py \
+            cogcoder/refoundation \
+            nolane \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py \
+            tests/test_refoundation_wave5c_native_memory_fabric.py \
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py \
+            tests/test_refoundation_wave5e_native_memory_retrieval.py \
+            CURRENT/NATIVE_DEBT.json \
+            CURRENT/NATIVE_DEBT.md
+          if git diff --cached --quiet; then
+            echo 'No Wave 5F cutover changes to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'refactor(refoundation): cut over native canonical digest authority'
+          git push origin HEAD:${GITHUB_HEAD_REF}
