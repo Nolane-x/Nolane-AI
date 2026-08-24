@@ -42,13 +42,13 @@ def test_wave5j_skills_are_canonical_native_and_versioned() -> None:
     assert str(component_version("external.skills")) == "0.0.1"
 
 
-def test_wave5j_skills_leave_facades_without_advancing_context_or_knowledge() -> None:
+def test_wave5j_skills_leave_context_facade_untouched() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.skills" not in facade_ids
     assert "external.context" in facade_ids
     ledger = build_component_implementation_ledger()
+    assert ledger["external.skills"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["external.knowledge"].status is ImplementationStatus.HISTORICAL_ONLY
 
 
 def test_wave5j_skill_objects_and_scope_bridge_to_canonical_identity() -> None:
@@ -192,7 +192,7 @@ def test_wave5j_inventory_preserves_dedicated_skill_destination_without_conflati
     assert census.get("cogcoder/organization/types.py").canonical_destination != "nolane/memory/skills.py"
 
 
-def test_wave5j_debt_reduces_only_skills_facade() -> None:
+def test_wave5j_debt_invariants_are_monotonic_after_skills_cutover() -> None:
     ledger = build_component_implementation_ledger()
     counts: dict[str, int] = {}
     non_native = []
@@ -202,12 +202,14 @@ def test_wave5j_debt_reduces_only_skills_facade() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 35
-    assert counts == {
-        "compatibility_facade": 25,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 2,
-    }
+    # Wave 5J accepted 35 non-native records with 25 compatibility facades,
+    # 7 historical-only records, 2 legacy internals and 1 frozen asset. Later
+    # native waves may only reduce these buckets; this predecessor contract must
+    # not freeze future accepted migrations at the Wave 5J snapshot forever.
+    assert len(non_native) <= 35
+    assert counts.get("compatibility_facade", 0) <= 25
+    assert counts.get("historical_only", 0) <= 7
+    assert counts.get("legacy_internal", 0) <= 2
+    assert counts.get("frozen_asset", 0) <= 1
+    assert ledger["external.skills"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["external.knowledge"].status is ImplementationStatus.HISTORICAL_ONLY
