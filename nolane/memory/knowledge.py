@@ -10,7 +10,8 @@ from typing import Protocol, Sequence
 
 COMPONENT_ID = "external.knowledge"
 COMPONENT_VERSION = "0.0.1"
-MIGRATED_FROM = (
+MIGRATED_FROM = "cogcoder.knowledge_types"
+MIGRATED_SOURCES = (
     "cogcoder/knowledge_types.py",
     "cogcoder/knowledge_store.py",
     "cogcoder/knowledge_ledger.py",
@@ -154,16 +155,7 @@ class InMemoryKnowledgeStore:
             semantic = _cos(query_ngrams, ngrams)
             raw = lexical + 2.0 * semantic
             utility = raw + 0.25 * float(document.trust_score)
-            scored.append(
-                (
-                    utility,
-                    lexical,
-                    semantic,
-                    float(document.trust_score),
-                    chunk_id,
-                    row,
-                )
-            )
+            scored.append((utility, lexical, semantic, float(document.trust_score), chunk_id, row))
         scored.sort(key=lambda value: (-value[0], -value[3], value[4]))
         top = scored[:k]
         maximum_raw = max([value[0] for value in top] or [1.0])
@@ -209,10 +201,7 @@ class CompositeKnowledgeStore:
                 previous.chunk_id,
             ):
                 best[row.content_sha256] = row
-        return sorted(
-            best.values(),
-            key=lambda row: (-row.score, -row.trust_score, row.chunk_id),
-        )[:k]
+        return sorted(best.values(), key=lambda row: (-row.score, -row.trust_score, row.chunk_id))[:k]
 
 
 _CLAIM = re.compile(r"^\s*(.+?)\s+--([^>-]+)-->\s+(.+?)\s*$")
@@ -261,14 +250,7 @@ class EvidenceLedger:
         for (subject, relation), values in sorted(self._claims.items()):
             objects = tuple(dict.fromkeys(value[0] for value in values))
             if len(objects) > 1:
-                output.append(
-                    Conflict(
-                        subject,
-                        relation,
-                        objects,
-                        tuple(value[1] for value in values),
-                    )
-                )
+                output.append(Conflict(subject, relation, objects, tuple(value[1] for value in values)))
         return output
 
     def working_set(self, *, max_chunks: int = 8, max_chars: int = 6000) -> list[EvidenceChunk]:
