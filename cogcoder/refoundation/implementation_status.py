@@ -190,6 +190,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/architecture.py",),
         "Native evidence-bearing Architecture graph and control plane with deterministic revisions, canonical digests, atomic dependency validation, exact state restoration and owner-gated writes; historical Architecture bridges exact public identities.",
     ),
+    "external.integration": (
+        "nolane.external_core.integration",
+        ("cogcoder/organization/integration.py",),
+        "Native evidence-gated Integration candidate graph and control plane with deterministic dependency ordering, stale-architecture protection, compatibility/dependency/conflict gates, canonical receipt digests and exact state restoration; historical Integration bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
