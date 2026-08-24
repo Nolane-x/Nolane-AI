@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cogcoder.organization.types import AgentStatus, EventKind
+from nolane.schemas.identity import AgentStatus
+from cogcoder.organization.types import EventKind
 
 from .central_access import CentralCoreAccessPolicy, CoreLease
 from .central_conflicts import CentralConflictPacket, CentralConflictRegistry

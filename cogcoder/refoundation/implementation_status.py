@@ -54,6 +54,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/types.py",),
         "Native canonical JSON serialization and SHA-256 content identity; mixed historical types module bridges the two helper identities while unrelated schemas remain explicit debt.",
     ),
+    "schemas.identity": (
+        "nolane.schemas.identity",
+        ("cogcoder/organization/types.py",),
+        "Native permanent identity rank/status/parameter/namespace schema unit; mixed historical types module bridges exact objects while event/context/skill schemas remain separate debt.",
+    ),
     "organization.identity": (
         "nolane.organization.identity",
         (
@@ -171,7 +176,6 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
 }
 
 _LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
-    "schemas.identity": ("cogcoder/organization/types.py",),
     "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
     "external.coding.patches": ("cogcoder/organization/coding.py",),
 }

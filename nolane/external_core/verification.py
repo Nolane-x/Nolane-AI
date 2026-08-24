@@ -3,7 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cogcoder.organization.types import EventKind, PHYSICAL_PARAMETER_CEILING
+from nolane.schemas.identity import PHYSICAL_PARAMETER_CEILING
+from cogcoder.organization.types import EventKind
 from nolane.organization.events import EventLedger
 from nolane.organization.identity import AgentRegistry
 

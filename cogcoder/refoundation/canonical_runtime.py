@@ -7,7 +7,7 @@ from cogcoder.organization.coordination_leases import TaskLeaseReceipt
 from cogcoder.organization.planning import Milestone, PlanNode, PlanRevision, PlanRisk
 from cogcoder.organization.tasks import TaskRecord
 from nolane.core.canonical_digest import canonical_digest
-from cogcoder.organization.types import AgentIdentity
+from nolane.schemas.identity import AgentIdentity
 
 from .accepted_runtime import AcceptedOrganizationRuntime, restore_accepted_runtime
 from .identity_source import build_manifest_driven_runtime

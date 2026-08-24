@@ -417,24 +417,13 @@
         "model/neural-r2.3"
       ],
       "notes": "Accepted frozen neural asset with separate runtime adapter and checkpoint authority."
-    },
-    {
-      "canonical_module": null,
-      "canonical_write_authority": false,
-      "component_id": "schemas.identity",
-      "component_version": "0.0.0",
-      "implementation_status": "legacy_internal",
-      "legacy_sources": [
-        "cogcoder/organization/types.py"
-      ],
-      "notes": "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet."
     }
   ],
   "counts_by_status": {
     "compatibility_facade": 28,
     "frozen_asset": 1,
     "historical_only": 7,
-    "legacy_internal": 3
+    "legacy_internal": 2
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",

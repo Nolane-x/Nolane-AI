@@ -12,6 +12,7 @@ from cogcoder.refoundation.manifests import build_component_manifests
 # native cutovers extend this authority set instead of preserving a stale
 # migration-wave worldview.
 ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
+    "schemas.identity",
     "core.canonical_digest",
     "organization.identity",
     "organization.authority",

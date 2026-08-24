@@ -10,7 +10,8 @@ from cogcoder.organization.registry import AgentRegistry
 from cogcoder.organization.scheduler import WakeSleepScheduler
 from cogcoder.organization.self_model import SelfModelRegistry
 from cogcoder.organization.tasks import TaskGraph
-from cogcoder.organization.types import AgentIdentity, AgentRank, EventKind
+from nolane.schemas.identity import AgentIdentity, AgentRank
+from cogcoder.organization.types import EventKind
 from cogcoder.organization.verification import VerificationAuthority
 
 from .accepted_runtime import AcceptedOrganizationRuntime

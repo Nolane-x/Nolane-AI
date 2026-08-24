@@ -109,11 +109,6 @@ def test_wave5f_debt_reduces_only_core_digest_legacy_internal_record() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 39
-    assert counts == {
-        "compatibility_facade": 28,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 3,
-    }
-    assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
+    assert len(non_native) <= 39
+    assert ledger["core.canonical_digest"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert all(row.component_id != "core.canonical_digest" for row in non_native)

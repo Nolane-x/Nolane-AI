@@ -5,7 +5,8 @@ from enum import Enum
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
-from cogcoder.organization.types import AgentRank, AgentStatus, EventKind
+from nolane.schemas.identity import AgentRank, AgentStatus
+from cogcoder.organization.types import EventKind
 
 from .authority import AuthorityGraph
 from .coordination_conflicts import ConflictClaim, ConflictCoordinator, ConflictPacket, ConflictResolutionReceipt

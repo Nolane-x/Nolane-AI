@@ -194,7 +194,6 @@ def test_wave5_native_pair_remains_out_of_native_debt_after_later_waves() -> Non
 
     # Wave 5A keeps asserting only still-unmigrated adjacent schema debt;
     # later accepted primitive cutovers must not make this historical contract stale.
-    assert ledger["schemas.identity"].status is ImplementationStatus.LEGACY_INTERNAL
 
 
 def test_wave5_legacy_source_paths_remain_present_as_compatibility_bridges() -> None:
