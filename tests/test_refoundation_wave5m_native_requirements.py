@@ -16,8 +16,8 @@ from cogcoder.refoundation.implementation_status import (
 
 
 class _Registry:
-    def __init__(self, known: tuple[str, ...] = ("requirements.chief", "coding.backend.01")) -> None:
-        self.known = set(known)
+    def __init__(self) -> None:
+        self.known = {"requirements.chief", "coding.backend.01"}
         self.lookups: list[str] = []
 
     def get(self, agent_id: str) -> object:
@@ -97,7 +97,7 @@ def test_wave5m_legacy_requirements_is_exact_public_object_bridge() -> None:
     import cogcoder.organization.requirements as legacy
     import nolane.external_core.requirements as canonical
 
-    names = (
+    for name in (
         "AcceptanceCriterion",
         "RequirementKind",
         "RequirementStatus",
@@ -105,8 +105,7 @@ def test_wave5m_legacy_requirements_is_exact_public_object_bridge() -> None:
         "RequirementRevision",
         "RequirementGraph",
         "RequirementsControlPlane",
-    )
-    for name in names:
+    ):
         assert getattr(legacy, name) is getattr(canonical, name)
 
 
@@ -135,7 +134,6 @@ def test_wave5m_requirement_contracts_round_trip_with_stable_enum_values() -> No
 
     criterion = _criterion()
     assert AcceptanceCriterion.from_state(criterion.to_state()) == criterion
-
     node = RequirementNode(
         "req-contract",
         "Contract",
@@ -148,7 +146,7 @@ def test_wave5m_requirement_contracts_round_trip_with_stable_enum_values() -> No
     assert RequirementNode.from_state(node.to_state()) == node
 
 
-def test_wave5m_requirement_node_validation_fails_closed() -> None:
+def test_wave5m_requirement_validation_fails_closed() -> None:
     from nolane.external_core.requirements import AcceptanceCriterion, RequirementKind, RequirementNode
 
     with pytest.raises(ValueError, match="non-empty"):
@@ -180,7 +178,6 @@ def test_wave5m_requirement_graph_rejects_unknown_dependency_and_cycles() -> Non
             evidence_refs=("ev-1",),
             upserts=(_node("req-a", dependencies=("req-missing",)),),
         )
-
     with pytest.raises(ValueError, match="dependency cycle"):
         graph.apply(
             actor_agent_id="requirements.chief",
@@ -196,18 +193,16 @@ def test_wave5m_requirement_graph_rejects_unknown_dependency_and_cycles() -> Non
 def test_wave5m_requirement_graph_is_deterministic_evidence_bearing_and_round_trippable() -> None:
     from nolane.external_core.requirements import RequirementGraph
 
-    first = RequirementGraph()
-    second = RequirementGraph()
+    first, second = RequirementGraph(), RequirementGraph()
     a = _node("req-a")
     b = _node("req-b", dependencies=("req-a",))
-
-    revision_a = first.apply(
+    left = first.apply(
         actor_agent_id="requirements.chief",
         reason="establish requirements",
         evidence_refs=("ev-2", "ev-1"),
         upserts=(b, a),
     )
-    revision_b = second.apply(
+    right = second.apply(
         actor_agent_id="requirements.chief",
         reason="establish requirements",
         evidence_refs=("ev-2", "ev-1"),
@@ -215,24 +210,18 @@ def test_wave5m_requirement_graph_is_deterministic_evidence_bearing_and_round_tr
     )
 
     assert tuple(row.requirement_id for row in first.nodes()) == ("req-a", "req-b")
-    assert revision_a.changed_requirement_ids == ("req-a", "req-b")
-    assert revision_a.graph_digest == revision_b.graph_digest
+    assert left.changed_requirement_ids == ("req-a", "req-b")
+    assert left.graph_digest == right.graph_digest
     assert first.digest == second.digest
-    assert revision_a.version == 1
-    assert revision_a.parent_version is None
-    assert revision_a.evidence_refs == ("ev-2", "ev-1")
+    assert left.version == 1 and left.parent_version is None
+    assert left.evidence_refs == ("ev-2", "ev-1")
 
     restored = RequirementGraph.from_state(first.to_state())
     assert restored.to_state() == first.to_state()
     assert restored.digest == first.digest
 
     with pytest.raises(ValueError, match="reason, evidence and at least one mutation"):
-        first.apply(
-            actor_agent_id="requirements.chief",
-            reason="",
-            evidence_refs=("ev",),
-            upserts=(a,),
-        )
+        first.apply(actor_agent_id="requirements.chief", reason="", evidence_refs=("ev",), upserts=(a,))
     with pytest.raises(ValueError, match="reason, evidence and at least one mutation"):
         first.apply(
             actor_agent_id="requirements.chief",
@@ -242,7 +231,7 @@ def test_wave5m_requirement_graph_is_deterministic_evidence_bearing_and_round_tr
         )
 
 
-def test_wave5m_requirement_graph_rejects_tampered_revision_digest_and_sequence() -> None:
+def test_wave5m_requirement_graph_rejects_tampered_persistence() -> None:
     from nolane.external_core.requirements import RequirementGraph
 
     graph = RequirementGraph()
@@ -252,26 +241,22 @@ def test_wave5m_requirement_graph_rejects_tampered_revision_digest_and_sequence(
         evidence_refs=("ev",),
         upserts=(_node(),),
     )
-
-    tampered_digest = copy.deepcopy(graph.to_state())
-    tampered_digest["revisions"][-1]["graph_digest"] = "tampered"
+    bad_digest = copy.deepcopy(graph.to_state())
+    bad_digest["revisions"][-1]["graph_digest"] = "tampered"
     with pytest.raises(ValueError, match="graph digest mismatch"):
-        RequirementGraph.from_state(tampered_digest)
+        RequirementGraph.from_state(bad_digest)
 
-    tampered_sequence = copy.deepcopy(graph.to_state())
-    tampered_sequence["revisions"][-1]["version"] = 2
+    bad_sequence = copy.deepcopy(graph.to_state())
+    bad_sequence["revisions"][-1]["version"] = 2
     with pytest.raises(ValueError, match="non-canonical requirement revision sequence"):
-        RequirementGraph.from_state(tampered_sequence)
+        RequirementGraph.from_state(bad_sequence)
 
 
 def test_wave5m_requirements_control_plane_enforces_authority_and_emits_change_event() -> None:
     from nolane.external_core.requirements import RequirementsControlPlane
 
-    registry = _Registry()
-    authority = _Authority()
-    ledger = _Ledger()
+    registry, authority, ledger = _Registry(), _Authority(), _Ledger()
     control = RequirementsControlPlane(registry=registry, authority=authority, ledger=ledger)
-
     revision = control.apply_revision(
         actor_agent_id="requirements.chief",
         reason="accepted requirement",
@@ -281,7 +266,6 @@ def test_wave5m_requirements_control_plane_enforces_authority_and_emits_change_e
     assert revision.version == 1
     assert registry.lookups == ["requirements.chief"]
     assert authority.calls == [("requirements.chief", "requirements")]
-
     event = ledger.events[-1]
     assert event["source_agent_id"] == "requirements.chief"
     assert event["target_agent_id"] == "requirements.chief"
@@ -294,9 +278,7 @@ def test_wave5m_requirements_control_plane_enforces_authority_and_emits_change_e
         "reason": "accepted requirement",
     }
 
-    denied = RequirementsControlPlane(
-        registry=_Registry(), authority=_Authority(allowed=False), ledger=_Ledger()
-    )
+    denied = RequirementsControlPlane(registry=_Registry(), authority=_Authority(allowed=False), ledger=_Ledger())
     with pytest.raises(PermissionError, match="write denied"):
         denied.apply_revision(
             actor_agent_id="requirements.chief",
@@ -310,43 +292,41 @@ def test_wave5m_requirements_control_plane_enforces_authority_and_emits_change_e
 def test_wave5m_requirements_proposals_preserve_routing_and_action_semantics() -> None:
     from nolane.external_core.requirements import RequirementsControlPlane
 
-    registry = _Registry()
-    authority = _Authority()
-    ledger = _Ledger()
-    control = RequirementsControlPlane(registry=registry, authority=authority, ledger=ledger)
+    control = RequirementsControlPlane(registry=_Registry(), authority=_Authority(), ledger=_Ledger())
     control.apply_revision(
         actor_agent_id="requirements.chief",
         reason="seed",
         evidence_refs=("ev-seed",),
         upserts=(_node("req-proposal"),),
     )
-    ledger.events.clear()
+    control.ledger.events.clear()
 
-    ambiguity = control.propose_ambiguity(
-        source_agent_id="coding.backend.01",
-        requirement_id="req-proposal",
-        question="Which compatibility target is authoritative?",
-        evidence_refs=("ev-a",),
+    events = (
+        control.propose_ambiguity(
+            source_agent_id="coding.backend.01",
+            requirement_id="req-proposal",
+            question="Which compatibility target is authoritative?",
+            evidence_refs=("ev-a",),
+        ),
+        control.propose_change(
+            source_agent_id="coding.backend.01",
+            requirement_id="req-proposal",
+            proposal="Clarify the compatibility target.",
+            evidence_refs=("ev-b",),
+        ),
+        control.propose_acceptance_gap(
+            source_agent_id="coding.backend.01",
+            requirement_id="req-proposal",
+            gap="No rollback criterion exists.",
+            evidence_refs=("ev-c",),
+        ),
     )
-    change = control.propose_change(
-        source_agent_id="coding.backend.01",
-        requirement_id="req-proposal",
-        proposal="Clarify the compatibility target.",
-        evidence_refs=("ev-b",),
-    )
-    gap = control.propose_acceptance_gap(
-        source_agent_id="coding.backend.01",
-        requirement_id="req-proposal",
-        gap="No rollback criterion exists.",
-        evidence_refs=("ev-c",),
-    )
-
-    assert [row["payload"]["requirements_action"] for row in (ambiguity, change, gap)] == [
+    assert [row["payload"]["requirements_action"] for row in events] == [
         "ambiguity",
         "change_proposed",
         "acceptance_gap",
     ]
-    for event, evidence in zip((ambiguity, change, gap), (("ev-a",), ("ev-b",), ("ev-c",))):
+    for event, evidence in zip(events, (("ev-a",), ("ev-b",), ("ev-c",))):
         assert event["source_agent_id"] == "coding.backend.01"
         assert event["target_agent_id"] == "requirements.chief"
         assert event["region"] == "requirements-product"
@@ -370,12 +350,10 @@ def test_wave5m_requirements_proposals_preserve_routing_and_action_semantics() -
         )
 
 
-def test_wave5m_control_plane_state_round_trip_preserves_requirement_authority_state() -> None:
+def test_wave5m_control_plane_state_round_trip_preserves_authoritative_state() -> None:
     from nolane.external_core.requirements import RequirementsControlPlane
 
-    registry = _Registry()
-    authority = _Authority()
-    ledger = _Ledger()
+    registry, authority, ledger = _Registry(), _Authority(), _Ledger()
     control = RequirementsControlPlane(registry=registry, authority=authority, ledger=ledger)
     control.apply_revision(
         actor_agent_id="requirements.chief",
@@ -394,7 +372,7 @@ def test_wave5m_control_plane_state_round_trip_preserves_requirement_authority_s
     assert restored.graph.digest == control.graph.digest
 
 
-def test_wave5m_canonical_requirements_does_not_reverse_import_historical_requirements_implementation() -> None:
+def test_wave5m_canonical_requirements_has_no_historical_requirements_reverse_import() -> None:
     import nolane.external_core.requirements as requirements
 
     source_path = Path(requirements.__file__).resolve()
@@ -420,7 +398,7 @@ def test_wave5m_requirements_component_is_native_revision_one_and_removed_from_f
     row = build_component_implementation_ledger()["external.requirements"]
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.requirements"
-    assert row.legacy_sources == ("cogcoder.organization.requirements",)
+    assert row.legacy_sources == ("cogcoder/organization/requirements.py",)
     assert row.canonical_write_authority
     assert row.component_version == "0.0.1"
     assert str(component_version("external.requirements")) == "0.0.1"
