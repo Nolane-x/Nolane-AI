@@ -59,7 +59,7 @@ def test_memory_public_modules_have_independent_component_ownership() -> None:
     expected = {
         fabric: ("external.memory.fabric", "0.0.1"),
         lifecycle: ("external.memory.lifecycle", "0.0.1"),
-        retrieval: ("external.memory.retrieval", "0.0.0"),
+        retrieval: ("external.memory.retrieval", "0.0.1"),
         context: ("external.context", "0.0.0"),
         experience: ("external.experience", "0.0.0"),
         skills: ("external.skills", "0.0.0"),

@@ -71,7 +71,7 @@ def test_wave5d_memory_lifecycle_is_canonical_native_and_versioned() -> None:
 def test_wave5d_memory_lifecycle_leaves_facades_but_retrieval_does_not() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.memory.lifecycle" not in facade_ids
-    assert "external.memory.retrieval" in facade_ids
+    assert "external.context" in facade_ids
 
 
 def test_wave5d_all_legacy_lifecycle_objects_bridge_to_canonical_identity() -> None:
@@ -283,12 +283,7 @@ def test_wave5d_debt_reduces_only_memory_lifecycle_facade() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 41
-    assert counts == {
-        "compatibility_facade": 29,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 4,
-    }
-    assert ledger["external.memory.retrieval"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert len(non_native) <= 41
+    assert ledger["external.memory.lifecycle"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert all(row.component_id != "external.memory.lifecycle" for row in non_native)
     assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL

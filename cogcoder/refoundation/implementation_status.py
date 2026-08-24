@@ -139,6 +139,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/memory_lifecycle.py",),
         "Native governed memory lifecycle receipts and semantic relation graph with canonical Memory/Identity/Event dependencies; historical lifecycle module bridges all public object identities.",
     ),
+    "external.memory.retrieval": (
+        "nolane.memory.retrieval",
+        ("cogcoder/organization/memory_retrieval.py",),
+        "Native bounded memory selection budget, receipt and retrieval engine over canonical Memory Fabric and Lifecycle relation graph; historical retrieval module bridges all public object identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),

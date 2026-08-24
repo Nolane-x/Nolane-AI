@@ -30,7 +30,6 @@ def test_wave5c_memory_fabric_is_canonical_native_and_versioned() -> None:
 def test_wave5c_memory_fabric_is_removed_from_active_facades_only() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.memory.fabric" not in facade_ids
-    assert "external.memory.retrieval" in facade_ids
 
 
 def test_wave5c_legacy_memory_schema_and_fabric_bridge_to_canonical_identity() -> None:

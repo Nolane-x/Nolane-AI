@@ -25,6 +25,7 @@ _COMPONENT_REVISIONS.update(
         "external.evidence": 1,
         "external.memory.fabric": 1,
         "external.memory.lifecycle": 1,
+        "external.memory.retrieval": 1,
     }
 )
 

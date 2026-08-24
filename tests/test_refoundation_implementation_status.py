@@ -29,6 +29,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.evidence",
     "external.memory.fabric",
     "external.memory.lifecycle",
+    "external.memory.retrieval",
 }
 
 
@@ -48,7 +49,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
 
     # Adjacent manifest-backed components remain explicit facades until their
     # own cutover receipts are accepted.
-    assert ledger["external.memory.retrieval"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.planning"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
 
