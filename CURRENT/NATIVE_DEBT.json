@@ -287,17 +287,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.planning",
-      "canonical_write_authority": false,
-      "component_id": "external.planning",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/planning.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.external_core.research",
       "canonical_write_authority": false,
       "component_id": "external.research",
@@ -354,7 +343,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 24,
+    "compatibility_facade": 23,
     "frozen_asset": 1,
     "historical_only": 5,
     "legacy_internal": 2
