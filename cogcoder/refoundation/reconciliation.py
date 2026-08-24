@@ -7,7 +7,7 @@ from typing import Any, Mapping
 from cogcoder.organization.coordination_leases import LeaseCoordinator
 from cogcoder.organization.planning import PlanningControlPlane
 from cogcoder.organization.tasks import TaskGraph
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 
 class CanonicalAuthorityTarget(str, Enum):

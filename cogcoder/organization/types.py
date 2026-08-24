@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import hashlib
 import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
+
+from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 from nolane.external_core.evidence import EvidenceRecord
 from nolane.memory.fabric import MemoryEntry, MemoryScope, MemoryStatus
@@ -86,13 +87,6 @@ class EventKind(str, Enum):
     WAKE_DEFERRED = 'wake_deferred'
     STALE_AGENT_DETECTED = 'stale_agent_detected'
 
-
-def canonical_json(value: Any) -> str:
-    return json.dumps(value, sort_keys=True, separators=(',', ':'), ensure_ascii=False)
-
-
-def canonical_digest(value: Any) -> str:
-    return hashlib.sha256(canonical_json(value).encode('utf-8')).hexdigest()
 
 
 @dataclass(frozen=True, slots=True)

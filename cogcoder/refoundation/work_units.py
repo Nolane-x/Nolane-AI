@@ -6,7 +6,7 @@ from typing import Any
 from cogcoder.organization.foundry import FoundryControlPlane
 from cogcoder.organization.foundry_profiles import SpawnRequest
 from cogcoder.organization.foundry_resources import FoundryBudget
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .temporary_work_units import TemporaryWorkUnitManifest
 

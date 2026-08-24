@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .census import CensusKind, RepositoryCensus, SourceCensusRecord
 from .facades import build_active_facade_bindings

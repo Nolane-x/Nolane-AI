@@ -12,6 +12,7 @@ from cogcoder.refoundation.manifests import build_component_manifests
 # migration wave. This set records components whose implementation authority
 # has actually moved far enough to advance its local Epoch-0 revision.
 ACCEPTED_REVISION_ONE_COMPONENTS = {
+    "core.canonical_digest",
     "organization.identity",
     "organization.authority",
     "organization.events",

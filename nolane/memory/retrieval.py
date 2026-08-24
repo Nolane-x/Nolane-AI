@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from math import ceil
 from typing import Any, Mapping
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 from nolane.memory.fabric import MemoryEntry, MemoryFabric, MemoryStatus
 from nolane.memory.lifecycle import MemoryRelationGraph
 

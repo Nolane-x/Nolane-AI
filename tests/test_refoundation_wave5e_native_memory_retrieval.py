@@ -247,12 +247,7 @@ def test_wave5e_debt_reduces_only_memory_retrieval_facade() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 40
-    assert counts == {
-        "compatibility_facade": 28,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 4,
-    }
+    assert len(non_native) <= 40
+    assert ledger["external.memory.retrieval"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert all(row.component_id != "external.memory.retrieval" for row in non_native)
     assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL

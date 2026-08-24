@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from cogcoder.organization.blueprint import build_first_generation_blueprint
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .manifests import build_bootstrap_agent_manifests
 

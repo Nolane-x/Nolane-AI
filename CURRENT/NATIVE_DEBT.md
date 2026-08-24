@@ -9,18 +9,9 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - `compatibility_facade`: 28
 - `frozen_asset`: 1
 - `historical_only`: 7
-- `legacy_internal`: 4
+- `legacy_internal`: 3
 
 ## Components
-
-### `core.canonical_digest`
-
-- Component version: `0.0.0`
-- Status: `legacy_internal`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/types.py
-- Notes: Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.
 
 ### `evaluation.campaign`
 

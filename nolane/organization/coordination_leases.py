@@ -4,7 +4,8 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Mapping
 
-from cogcoder.organization.types import AgentRank, EventKind, canonical_digest
+from nolane.core.canonical_digest import canonical_digest
+from cogcoder.organization.types import AgentRank, EventKind
 
 from .events import EventLedger
 from .identity import AgentRegistry

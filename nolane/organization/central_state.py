@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cogcoder.organization.types import canonical_digest, canonical_json
+from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 from .identity import AgentRegistry
 

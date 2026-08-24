@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 from nolane.memory.fabric import MemoryFabric, MemoryStatus
 from nolane.organization.events import EventLedger
 from nolane.organization.identity import AgentRegistry

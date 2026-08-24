@@ -286,4 +286,3 @@ def test_wave5d_debt_reduces_only_memory_lifecycle_facade() -> None:
     assert len(non_native) <= 41
     assert ledger["external.memory.lifecycle"].status is ImplementationStatus.CANONICAL_NATIVE
     assert all(row.component_id != "external.memory.lifecycle" for row in non_native)
-    assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL

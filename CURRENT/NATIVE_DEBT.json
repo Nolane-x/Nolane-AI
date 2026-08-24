@@ -1,17 +1,6 @@
 {
   "components": [
     {
-      "canonical_module": null,
-      "canonical_write_authority": false,
-      "component_id": "core.canonical_digest",
-      "component_version": "0.0.0",
-      "implementation_status": "legacy_internal",
-      "legacy_sources": [
-        "cogcoder/organization/types.py"
-      ],
-      "notes": "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet."
-    },
-    {
       "canonical_module": "nolane.evaluation.campaign",
       "canonical_write_authority": false,
       "component_id": "evaluation.campaign",
@@ -445,7 +434,7 @@
     "compatibility_facade": 28,
     "frozen_asset": 1,
     "historical_only": 7,
-    "legacy_internal": 4
+    "legacy_internal": 3
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",
