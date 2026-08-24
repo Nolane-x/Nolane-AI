@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import inspect
+import ast
 from pathlib import Path
 
 import pytest
@@ -46,8 +46,22 @@ def test_wave5h_experience_retires_facade_and_preserves_all_symbol_identities() 
 
 def test_wave5h_canonical_experience_has_no_historical_owner_reverse_import() -> None:
     import nolane.memory.experience as experience
-    source = inspect.getsource(experience)
-    assert "cogcoder.organization.experience" not in source
+
+    source_path = Path(experience.__file__).resolve()
+    tree = ast.parse(source_path.read_text(encoding="utf-8"), filename=str(source_path))
+    offenders: list[str] = []
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                if alias.name == "cogcoder.organization.experience":
+                    offenders.append(f"import:{node.lineno}:{alias.name}")
+        elif isinstance(node, ast.ImportFrom):
+            module = node.module or ""
+            if module == "cogcoder.organization.experience":
+                offenders.append(f"from:{node.lineno}:{module}")
+            elif module == "cogcoder.organization" and any(alias.name == "experience" for alias in node.names):
+                offenders.append(f"from:{node.lineno}:{module}.experience")
+    assert offenders == [], "canonical Experience reverse-imports its historical owner: " + "; ".join(offenders)
 
 
 def test_wave5h_experience_preserves_record_attribution_and_restore_behavior() -> None:
