@@ -35,6 +35,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.epistemic",
     "external.requirements",
     "external.planning",
+    "external.architecture",
 }
 
 
@@ -52,12 +53,10 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     for component_id in ACCEPTED_CANONICAL_NATIVE_COMPONENTS:
         assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
 
-    for component_id in (
-        "external.context",
-        "external.architecture",
-    ):
-        assert ledger[component_id].status is ImplementationStatus.COMPATIBILITY_FACADE
-        assert not ledger[component_id].canonical_write_authority
+    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert not ledger["external.context"].canonical_write_authority
+    assert ledger["external.architecture"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["external.architecture"].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
