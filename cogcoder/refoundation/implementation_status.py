@@ -169,6 +169,16 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/memory_retrieval.py",),
         "Native bounded memory selection budget, receipt and retrieval engine over canonical Memory Fabric and Lifecycle relation graph; historical retrieval module bridges all public object identities.",
     ),
+    "external.knowledge": (
+        "nolane.memory.knowledge",
+        (
+            "cogcoder/knowledge_types.py",
+            "cogcoder/knowledge_store.py",
+            "cogcoder/knowledge_ledger.py",
+            "cogcoder/knowledge_adapters.py",
+        ),
+        "Native provenance-aware deterministic Knowledge fabric reconstructed from the dedicated R2 types/store/ledger/adapters lineage; historical modules bridge exact public identities while R2.54 Cognitive Retrieval remains outside this ownership boundary.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
@@ -177,7 +187,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.knowledge": ("historical R2 mechanisms; no dedicated current organization implementation",),
     "external.epistemic": ("historical R2 mechanisms; no dedicated current organization implementation",),
     "external.cognitive_library": ("historical reusable cognitive mechanisms; extraction not yet accepted",),
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
