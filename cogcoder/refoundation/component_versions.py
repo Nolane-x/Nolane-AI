@@ -32,6 +32,7 @@ _COMPONENT_REVISIONS.update(
         "external.memory.lifecycle": 1,
         "external.memory.retrieval": 1,
         "external.knowledge": 1,
+        "external.epistemic": 1,
     }
 )
 
