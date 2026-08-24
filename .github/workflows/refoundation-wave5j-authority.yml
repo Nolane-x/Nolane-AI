@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           parent="$(git rev-parse HEAD^)"
-          if [[ "$parent" == "ae0bbd3698845817f61247db1779d11a04d563b8" ]]; then
+          if [[ "$parent" == "ac74ea6af6cd9f18143d886fb23ec993b80d7e53" ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
