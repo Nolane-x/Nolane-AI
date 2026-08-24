@@ -42,17 +42,18 @@ def test_auditor_declares_master_plan_and_lease_coordinator_as_cutover_targets()
     assert report.destructive_cutover_allowed is False
 
 
-def test_fresh_legacy_runtime_exposes_historical_plan_clock_offset_without_mutation() -> None:
+def test_fresh_runtime_projects_the_single_master_plan_revision_clock() -> None:
     *_, tasks, planning, leases = _substrate()
     report = RefoundationAuthorityAuditor(tasks=tasks, planning=planning, leases=leases).audit()
 
-    # TaskGraph historically bootstraps plan_version at 1 while MasterPlanGraph
-    # has zero accepted revisions. Wave 2 records this instead of guessing that
-    # the two integers mean the same thing.
-    assert report.task_graph_plan_version == 1
+    # Wave 5N retires the historical TaskGraph bootstrap offset. A fresh
+    # TaskGraph is now a read-only projection of the authoritative
+    # MasterPlanGraph revision clock, so both surfaces start at revision zero.
+    assert report.task_graph_plan_version == 0
     assert report.master_plan_revision == 0
-    assert report.plan_clock_aligned is False
-    assert "historical_plan_clock_offset" in report.finding_codes
+    assert report.plan_clock_aligned is True
+    assert "historical_plan_clock_offset" not in report.finding_codes
+    assert "plan_clock_drift" not in report.finding_codes
 
 
 def test_direct_taskgraph_lease_is_detected_when_coordinator_has_no_receipt() -> None:
