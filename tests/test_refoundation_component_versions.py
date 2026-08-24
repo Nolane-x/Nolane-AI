@@ -27,6 +27,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "external.artifacts",
     "external.verification",
     "external.evidence",
+    "external.experience",
     "external.memory.fabric",
     "external.memory.lifecycle",
     "external.memory.retrieval",
