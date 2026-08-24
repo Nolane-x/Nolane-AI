@@ -34,6 +34,7 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/verification.py": "nolane/external_core/verification.py",
     "cogcoder/organization/experience.py": "nolane/memory/experience.py",
     "cogcoder/organization/self_model.py": "nolane/external_core/self_model.py",
+    "cogcoder/organization/evolution.py": "nolane/memory/skills.py",
     "cogcoder/organization/memory.py": "nolane/memory/fabric.py",
     "cogcoder/organization/memory_lifecycle.py": "nolane/memory/lifecycle.py",
     "cogcoder/organization/memory_retrieval.py": "nolane/memory/retrieval.py",

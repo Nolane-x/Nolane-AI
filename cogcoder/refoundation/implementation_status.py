@@ -149,6 +149,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/self_model.py",),
         "Native evidence-gated permanent-agent self-model registry with preserved initialization, revision and state semantics; historical module bridges both public object identities.",
     ),
+    "external.skills": (
+        "nolane.memory.skills",
+        ("cogcoder/organization/evolution.py", "cogcoder/organization/types.py"),
+        "Native skill scope, deterministic skill records and evidence-governed promotion/quarantine/visibility engine; historical evolution and mixed types surfaces bridge exact canonical identities without whole-file types ownership.",
+    ),
     "external.memory.fabric": (
         "nolane.memory.fabric",
         ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
