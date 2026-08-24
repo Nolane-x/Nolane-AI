@@ -185,6 +185,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/planning.py",),
         "Native evidence-bearing master plan graph and Planning authority with deterministic revision, rollback, gap, task-link and delta semantics; TaskGraph receives a read-only revision projection and historical Planning bridges exact public identities.",
     ),
+    "external.architecture": (
+        "nolane.external_core.architecture",
+        ("cogcoder/organization/architecture.py",),
+        "Native evidence-bearing Architecture graph and control plane with deterministic revisions, canonical digests, atomic dependency validation, exact state restoration and owner-gated writes; historical Architecture bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
