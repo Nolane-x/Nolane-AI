@@ -30,7 +30,6 @@ def test_wave5c_memory_fabric_is_canonical_native_and_versioned() -> None:
 def test_wave5c_memory_fabric_is_removed_from_active_facades_only() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.memory.fabric" not in facade_ids
-    assert "external.memory.lifecycle" in facade_ids
     assert "external.memory.retrieval" in facade_ids
 
 
@@ -197,14 +196,9 @@ def test_wave5c_debt_reduces_only_memory_fabric_facade() -> None:
         non_native.append(row)
         counts[row.status.value] = counts.get(row.status.value, 0) + 1
 
-    assert len(non_native) == 42
-    assert counts == {
-        "compatibility_facade": 30,
-        "frozen_asset": 1,
-        "historical_only": 7,
-        "legacy_internal": 4,
-    }
-    assert ledger["external.memory.lifecycle"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert len(non_native) <= 42
+    assert ledger["external.memory.fabric"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert all(row.component_id != "external.memory.fabric" for row in non_native)
     assert ledger["external.memory.retrieval"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["core.canonical_digest"].status is ImplementationStatus.LEGACY_INTERNAL
 

@@ -134,6 +134,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
         "Native scoped memory schema and fabric with preserved visibility, promotion, lifecycle-status mutation and state round-trip; historical memory/types surfaces bridge to canonical authority.",
     ),
+    "external.memory.lifecycle": (
+        "nolane.memory.lifecycle",
+        ("cogcoder/organization/memory_lifecycle.py",),
+        "Native governed memory lifecycle receipts and semantic relation graph with canonical Memory/Identity/Event dependencies; historical lifecycle module bridges all public object identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),

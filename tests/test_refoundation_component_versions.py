@@ -26,6 +26,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "external.verification",
     "external.evidence",
     "external.memory.fabric",
+    "external.memory.lifecycle",
 }
 
 
@@ -51,9 +52,9 @@ def test_component_version_lookup_is_local_not_global() -> None:
 
     # Independent components that have not yet migrated remain at their own
     # local Epoch-0 revision even as adjacent components advance.
-    assert str(component_version("external.memory.lifecycle")) == "0.0.0"
+    assert str(component_version("external.memory.retrieval")) == "0.0.0"
     assert str(component_version("external.planning")) == "0.0.0"
-    assert str(next_component_version("external.memory.lifecycle")) == "0.0.1"
+    assert str(next_component_version("external.memory.retrieval")) == "0.0.1"
     assert str(component_version("external.planning")) == "0.0.0"
 
 
