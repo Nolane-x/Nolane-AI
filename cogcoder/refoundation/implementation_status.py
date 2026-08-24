@@ -139,6 +139,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/types.py",),
         "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",
     ),
+    "external.experience": (
+        "nolane.memory.experience",
+        ("cogcoder/organization/experience.py",),
+        "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",
+    ),
     "external.memory.fabric": (
         "nolane.memory.fabric",
         ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
