@@ -33,6 +33,7 @@ _COMPONENT_REVISIONS.update(
         "external.memory.retrieval": 1,
         "external.knowledge": 1,
         "external.epistemic": 1,
+        "external.requirements": 1,
     }
 )
 
