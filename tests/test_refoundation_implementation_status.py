@@ -56,8 +56,14 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
 
     # Adjacent manifest-backed components remain explicit facades until their
     # own cutover receipts are accepted.
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["external.planning"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    for component_id in (
+        "external.context",
+        "external.requirements",
+        "external.planning",
+        "external.architecture",
+    ):
+        assert ledger[component_id].status is ImplementationStatus.COMPATIBILITY_FACADE
+        assert not ledger[component_id].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
