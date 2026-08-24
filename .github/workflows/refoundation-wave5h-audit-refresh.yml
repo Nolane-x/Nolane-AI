@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
@@ -38,7 +38,7 @@ jobs:
         run: |
           set -euo pipefail
           parent="$(git rev-parse HEAD^)"
-          if [[ "$parent" == "8e07003284dcb5e138c798880a4dde11d76ed3d1" ]]; then
+          if [[ "$parent" == "a8c8325f680de9d39dcc14e67686d5700be438f4" ]]; then
             echo "apply=true" >> "$GITHUB_OUTPUT"
           else
             echo "apply=false" >> "$GITHUB_OUTPUT"
