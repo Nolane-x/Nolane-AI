@@ -65,6 +65,8 @@ jobs:
               target.write_text(text.replace(anchor, anchor + addition, 1), encoding='utf-8')
 
           # Remove exactly the five accepted top-level identity definitions from mixed types.py.
+          # ClassDef.lineno starts at `class`, not at decorators, so decorated classes must
+          # remove their decorator span as part of the same semantic definition.
           types_path = Path('cogcoder/organization/types.py')
           source = types_path.read_text(encoding='utf-8')
           tree = ast.parse(source, filename=str(types_path))
@@ -78,7 +80,10 @@ jobs:
                       spans.append((node.lineno - 1, node.end_lineno or node.lineno, 'PHYSICAL_PARAMETER_CEILING'))
                       found.add('PHYSICAL_PARAMETER_CEILING')
               elif isinstance(node, ast.ClassDef) and node.name in TARGET:
-                  spans.append((node.lineno - 1, node.end_lineno or node.lineno, node.name))
+                  start_line = min(
+                      [node.lineno, *(decorator.lineno for decorator in node.decorator_list)]
+                  )
+                  spans.append((start_line - 1, node.end_lineno or node.lineno, node.name))
                   found.add(node.name)
           if found != TARGET:
               raise SystemExit(f'types.py identity definition set mismatch: found={sorted(found)} expected={sorted(TARGET)}')
