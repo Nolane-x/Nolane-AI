@@ -184,6 +184,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/epistemic_workspace.py",),
         "Native version-aware evidence workspace with fail-closed provenance, source/version supersession, corroboration, contested beliefs, conflicts and narrow missing-query generation; historical R2.2 module bridges exact public identities.",
     ),
+    "external.requirements": (
+        "nolane.external_core.requirements",
+        ("cogcoder/organization/requirements.py",),
+        "Native evidence-bearing requirement graph, revision and Requirements Chief authority with deterministic digest/state semantics; historical organization module bridges exact public object identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
