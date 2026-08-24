@@ -17,19 +17,7 @@ from nolane.schemas.identity import (
 
 from nolane.external_core.evidence import EvidenceRecord
 from nolane.memory.fabric import MemoryEntry, MemoryScope, MemoryStatus
-
-
-
-
-
-
-
-
-class SkillScope(str, Enum):
-    CANDIDATE = 'candidate'
-    PERSONAL = 'personal'
-    REGIONAL = 'regional'
-    GLOBAL = 'global'
+from nolane.memory.skills import SkillScope
 
 
 class EventKind(str, Enum):
@@ -79,11 +67,6 @@ class EventKind(str, Enum):
     WAKE_RESERVED = 'wake_reserved'
     WAKE_DEFERRED = 'wake_deferred'
     STALE_AGENT_DETECTED = 'stale_agent_detected'
-
-
-
-
-
 
 
 @dataclass(frozen=True, slots=True)
