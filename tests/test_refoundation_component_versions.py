@@ -34,6 +34,7 @@ ACCEPTED_REVISION_ONE_COMPONENTS = {
     "external.memory.lifecycle",
     "external.memory.retrieval",
     "external.knowledge",
+    "external.epistemic",
 }
 
 
