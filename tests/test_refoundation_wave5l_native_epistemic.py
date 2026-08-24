@@ -142,24 +142,30 @@ def test_wave5l_inventory_maps_only_dedicated_r22_epistemic_lineage() -> None:
     assert census.get("cogcoder/epistemic_workspace.py").canonical_destination == "nolane/external_core/epistemic.py"
 
 
-def test_wave5l_debt_reduces_only_historical_epistemic() -> None:
-    ledger = build_component_implementation_ledger()
-    counts: dict[str, int] = {}
-    non_native = []
-    for row in ledger.values():
-        if row.status is ImplementationStatus.CANONICAL_NATIVE:
-            continue
-        non_native.append(row)
-        counts[row.status.value] = counts.get(row.status.value, 0) + 1
+def test_wave5l_epistemic_never_regresses_back_into_native_debt() -> None:
+    """Protect the Wave 5L cutover without freezing later-wave progress.
 
-    assert len(non_native) == 33
-    assert counts == {
-        "compatibility_facade": 25,
-        "frozen_asset": 1,
-        "historical_only": 5,
-        "legacy_internal": 2,
+    A predecessor wave owns the invariant it established, not the repository's
+    forever-changing aggregate debt count.  Later accepted native cutovers must
+    be free to reduce debt without rewriting this historical acceptance test.
+    """
+
+    ledger = build_component_implementation_ledger()
+    non_native_ids = {
+        component_id
+        for component_id, row in ledger.items()
+        if row.status is not ImplementationStatus.CANONICAL_NATIVE
     }
-    assert ledger["external.knowledge"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.cognitive_library"].status is ImplementationStatus.HISTORICAL_ONLY
-    assert ledger["external.causal"].status is ImplementationStatus.HISTORICAL_ONLY
-    assert ledger["external.experimentation"].status is ImplementationStatus.HISTORICAL_ONLY
+
+    assert "external.epistemic" not in non_native_ids
+    epistemic = ledger["external.epistemic"]
+    assert epistemic.status is ImplementationStatus.CANONICAL_NATIVE
+    assert epistemic.canonical_module == "nolane.external_core.epistemic"
+    assert epistemic.canonical_write_authority
+    assert epistemic.component_version == "0.0.1"
+
+    # Wave 5L was stacked after Wave 5K.  A later wave may migrate additional
+    # components, but it must never demote already accepted predecessor owners.
+    knowledge = ledger["external.knowledge"]
+    assert knowledge.status is ImplementationStatus.CANONICAL_NATIVE
+    assert knowledge.canonical_write_authority
