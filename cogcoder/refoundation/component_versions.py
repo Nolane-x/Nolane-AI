@@ -6,7 +6,7 @@ from .versioning import ComponentVersion
 
 # Each component owns its own patch-level revision counter. Epoch 0 bootstraps
 # every component at 0.0.0; accepted native extractions advance only the
-# components whose implementation authority actually moved.
+# components whose implementation authority or accepted local semantics moved.
 _COMPONENT_REVISIONS: dict[str, int] = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}
 _COMPONENT_REVISIONS.update(
     {
@@ -15,7 +15,7 @@ _COMPONENT_REVISIONS.update(
         "organization.identity": 1,
         "organization.authority": 1,
         "organization.events": 1,
-        "organization.tasks": 1,
+        "organization.tasks": 2,
         "organization.lifecycle": 1,
         "organization.coordination.leases": 1,
         "organization.coordination.delivery": 1,
@@ -34,6 +34,7 @@ _COMPONENT_REVISIONS.update(
         "external.knowledge": 1,
         "external.epistemic": 1,
         "external.requirements": 1,
+        "external.planning": 1,
     }
 )
 
