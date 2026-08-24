@@ -1,0 +1,149 @@
+name: Refoundation Wave 5H Bootstrap
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    branches:
+      - refoundation/epoch0-wave5g-native-identity-schemas
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    if: >-
+      github.head_ref == 'refoundation/epoch0-wave5h-native-experience' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact PR head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 2
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fail closed on bootstrap carrier ancestry
+        id: ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          parent="$(git rev-parse HEAD^)"
+          if [[ "$parent" == "e2da70c47535e5e371ea7d392339eb0fa1ad777e" ]]; then
+            echo "apply=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "apply=false" >> "$GITHUB_OUTPUT"
+            echo "Bootstrap already consumed or head ancestry changed; refusing mutation."
+          fi
+
+      - name: Apply deterministic Wave 5H metadata cutover
+        if: steps.ancestry.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one exact anchor, found {count}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          replace_once(
+              "cogcoder/refoundation/facades.py",
+              '        FacadeBinding("external.experience", "nolane.memory.experience", "cogcoder.organization.experience", ("ExperienceLedger",)),\n',
+              "",
+          )
+
+          replace_once(
+              "cogcoder/refoundation/component_versions.py",
+              '        "external.evidence": 1,\n        "external.memory.fabric": 1,\n',
+              '        "external.evidence": 1,\n        "external.experience": 1,\n        "external.memory.fabric": 1,\n',
+          )
+
+          replace_once(
+              "cogcoder/refoundation/implementation_status.py",
+              '''    "external.evidence": (\n        "nolane.external_core.evidence",\n        ("cogcoder/organization/types.py",),\n        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",\n    ),\n    "external.memory.fabric": (\n''',
+              '''    "external.evidence": (\n        "nolane.external_core.evidence",\n        ("cogcoder/organization/types.py",),\n        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",\n    ),\n    "external.experience": (\n        "nolane.memory.experience",\n        ("cogcoder/organization/experience.py",),\n        "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",\n    ),\n    "external.memory.fabric": (\n''',
+          )
+
+          replace_once(
+              "cogcoder/refoundation/inventory.py",
+              '    "cogcoder/organization/verification.py": "nolane/external_core/verification.py",\n    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",\n',
+              '    "cogcoder/organization/verification.py": "nolane/external_core/verification.py",\n    "cogcoder/organization/experience.py": "nolane/memory/experience.py",\n    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",\n',
+          )
+
+          for path in (
+              "tests/test_refoundation_component_versions.py",
+              "tests/test_refoundation_implementation_status.py",
+          ):
+              replace_once(
+                  path,
+                  '    "external.evidence",\n    "external.memory.fabric",\n',
+                  '    "external.evidence",\n    "external.experience",\n    "external.memory.fabric",\n',
+              )
+
+          replace_once(
+              "tests/test_refoundation_wave5g_native_identity_schemas.py",
+              '''    assert len(non_native) == 38\n    assert counts == {\n        "compatibility_facade": 28,\n        "frozen_asset": 1,\n        "historical_only": 7,\n        "legacy_internal": 2,\n    }\n    assert ledger["external.coding.claims"].status is ImplementationStatus.LEGACY_INTERNAL\n    assert ledger["external.coding.patches"].status is ImplementationStatus.LEGACY_INTERNAL\n''',
+              '''    # Wave 5G established an upper bound, not a permanent debt snapshot.\n    # Later accepted native cutovers may monotonically reduce any debt class.\n    assert len(non_native) <= 38\n    assert counts.get("compatibility_facade", 0) <= 28\n    assert counts.get("frozen_asset", 0) <= 1\n    assert counts.get("historical_only", 0) <= 7\n    assert counts.get("legacy_internal", 0) <= 2\n    assert ledger["schemas.identity"].status is ImplementationStatus.CANONICAL_NATIVE\n''',
+          )
+          PY
+
+      - name: Install project
+        if: steps.ancestry.outputs.apply == 'true'
+        run: python -m pip install -e .
+
+      - name: Verify repository audit and generated index stability
+        if: steps.ancestry.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m nolane.repository.audit --write
+          git diff --exit-code -- archive/INDEX.json
+
+      - name: Run Wave 5H focused contracts
+        if: steps.ancestry.outputs.apply == 'true'
+        run: >-
+          python -m pytest -q
+          tests/test_refoundation_wave5h_native_experience.py
+          tests/test_refoundation_component_versions.py
+          tests/test_refoundation_implementation_status.py
+          tests/test_refoundation_wave5g_native_identity_schemas.py
+          tests/test_refoundation_wave5f_repository_hygiene.py
+
+      - name: Commit only explicit Wave 5H cutover files
+        if: steps.ancestry.outputs.apply == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- \
+            cogcoder/refoundation/facades.py \
+            cogcoder/refoundation/component_versions.py \
+            cogcoder/refoundation/implementation_status.py \
+            cogcoder/refoundation/inventory.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py \
+            tests/test_refoundation_wave5g_native_identity_schemas.py
+          if git diff --cached --quiet; then
+            echo "No staged cutover changes; refusing empty bootstrap commit."
+            exit 1
+          fi
+          unexpected="$(git status --porcelain --untracked-files=all | grep -vE '^M  (cogcoder/refoundation/(facades|component_versions|implementation_status|inventory)\.py|tests/test_refoundation_(component_versions|implementation_status|wave5g_native_identity_schemas)\.py)$' || true)"
+          if [[ -n "$unexpected" ]]; then
+            echo "Unexpected repository changes detected:"
+            echo "$unexpected"
+            exit 1
+          fi
+          git commit -m "refoundation(wave5h): accept native experience authority"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
