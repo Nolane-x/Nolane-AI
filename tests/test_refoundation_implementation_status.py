@@ -37,6 +37,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.memory.retrieval",
     "external.knowledge",
     "external.epistemic",
+    "external.requirements",
 }
 
 
@@ -58,7 +59,6 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     # own cutover receipts are accepted.
     for component_id in (
         "external.context",
-        "external.requirements",
         "external.planning",
         "external.architecture",
     ):
