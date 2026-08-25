@@ -4,8 +4,8 @@ from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Mapping
 
-from cogcoder.organization.compatibility import CompatibilityAssessment, CompatibilityClass
 from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.compatibility import CompatibilityAssessment, CompatibilityClass
 
 COMPONENT_ID = "external.integration"
 COMPONENT_VERSION = "0.0.1"
