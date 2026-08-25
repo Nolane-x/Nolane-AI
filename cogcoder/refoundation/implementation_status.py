@@ -195,6 +195,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/integration.py",),
         "Native evidence-gated Integration candidate graph and control plane with deterministic dependency ordering, stale-architecture protection, compatibility/dependency/conflict gates, canonical receipt digests and exact state restoration; historical Integration bridges exact public identities.",
     ),
+    "external.invokable_cores": (
+        "nolane.external_core.invokable",
+        ("cogcoder/organization/external_core.py",),
+        "Native invokable-core schema and registry over canonical AgentRegistry authority with deterministic state round-trip and fail-closed conflicting registration; historical External Core module bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
