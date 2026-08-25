@@ -135,7 +135,9 @@ def test_wave5p_generated_native_debt_no_longer_contains_integration() -> None:
 
     implementation = build_component_implementation_ledger()
     non_native = [row for row in implementation.values() if row.status is not ImplementationStatus.CANONICAL_NATIVE]
-    assert len(non_native) == 29
+    # Wave 5P established a ceiling of 29. Later extraction waves are allowed
+    # to reduce debt further; a historical contract must never force regression.
+    assert len(non_native) <= 29
 
 
 def test_wave5p_current_status_tracks_actual_refoundation_head() -> None:
