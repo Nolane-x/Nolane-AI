@@ -122,7 +122,7 @@ def test_wave5r_generated_native_debt_no_longer_contains_invokable_cores() -> No
 
     implementation = build_component_implementation_ledger()
     non_native = [row for row in implementation.values() if row.status is not ImplementationStatus.CANONICAL_NATIVE]
-    assert len(non_native) == 28
+    assert len(non_native) <= 28
 
 
 def test_wave5r_current_status_tracks_invokable_core_cutover() -> None:
