@@ -44,10 +44,13 @@ def test_coder_plan_gap_requires_planning_authority_then_returns_context_delta()
         evidence_ids=('CODE-88',),
     )
     assert proposal.kind is EventKind.PLAN_GAP_DETECTED
-    assert runtime.tasks.plan_version == 1
+    # Wave 5N established MasterPlanGraph as the only mutable revision clock.
+    # A gap proposal is evidence, not a plan mutation.
+    assert runtime.tasks.plan_version == 0
 
     with pytest.raises(PermissionError):
         runtime.tasks.apply_plan_amendment('coding.backend.01', proposal.event_id, added_nodes=('P-41-migration',))
+    assert runtime.tasks.plan_version == 0
 
     amendment = runtime.tasks.apply_plan_amendment(
         'planning.chief',
@@ -55,7 +58,7 @@ def test_coder_plan_gap_requires_planning_authority_then_returns_context_delta()
         added_nodes=('P-41-migration', 'P-41-rollback'),
     )
     assert amendment.kind is EventKind.PLAN_AMENDED
-    assert runtime.tasks.plan_version == 2
+    assert runtime.tasks.plan_version == 1
 
     capsule = runtime.context.compile('coding.backend.01', task_id='T-184', since_event_id=proposal.event_id)
     assert amendment in capsule.event_delta
