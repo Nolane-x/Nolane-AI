@@ -38,6 +38,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.architecture",
     "external.integration",
     "external.invokable_cores",
+    "external.execution.workspace",
 }
 
 
@@ -63,6 +64,8 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     assert ledger["external.integration"].canonical_write_authority
     assert ledger["external.invokable_cores"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.invokable_cores"].canonical_write_authority
+    assert ledger["external.execution.workspace"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["external.execution.workspace"].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
