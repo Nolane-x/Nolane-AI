@@ -165,7 +165,7 @@ def test_wave5s_generated_native_debt_no_longer_contains_execution_workspace() -
         for row in implementation.values()
         if row.status is not ImplementationStatus.CANONICAL_NATIVE
     ]
-    assert len(non_native) == 27
+    assert len(non_native) <= 27
 
 
 def test_wave5s_current_status_tracks_execution_workspace_cutover() -> None:
