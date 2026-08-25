@@ -3,6 +3,9 @@ from __future__ import annotations
 import ast
 import json
 from pathlib import Path
+import subprocess
+
+import pytest
 
 from cogcoder.refoundation.component_versions import component_version
 from cogcoder.refoundation.facades import build_active_facade_bindings
@@ -10,13 +13,10 @@ from cogcoder.refoundation.implementation_status import (
     ImplementationStatus,
     build_component_implementation_ledger,
 )
-from nolane.core.canonical_digest import canonical_digest
 
 
 _PUBLIC_SYMBOLS = (
-    "WorkspaceReceipt",
     "WorkspaceCommandResult",
-    "CommandRunner",
     "RepositoryWorkspace",
 )
 
@@ -75,57 +75,67 @@ def test_wave5s_canonical_execution_workspace_has_no_reverse_authority_import() 
     )
 
 
-class _RecordingRunner:
-    def __init__(self) -> None:
-        self.calls: list[tuple[list[str], Path]] = []
-
-    def run(self, command: list[str], *, cwd: Path):
-        from nolane.external_core.execution_workspace import WorkspaceCommandResult
-
-        self.calls.append((list(command), cwd))
-        return WorkspaceCommandResult(exit_code=0, stdout="ok", stderr="")
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.strip()
 
 
-def test_wave5s_workspace_prepare_run_cleanup_preserves_accepted_behavior(tmp_path: Path) -> None:
+def _accepted_repository(tmp_path: Path) -> tuple[Path, str]:
+    source = tmp_path / "source"
+    source.mkdir()
+    subprocess.run(["git", "init", str(source)], check=True, text=True, capture_output=True)
+    _git(source, "config", "user.email", "wave5s@example.invalid")
+    _git(source, "config", "user.name", "Wave 5S")
+    (source / "payload.txt").write_text("accepted-workspace-payload\n", encoding="utf-8")
+    _git(source, "add", "payload.txt")
+    _git(source, "commit", "-m", "accepted fixture")
+    return source, _git(source, "rev-parse", "HEAD")
+
+
+def test_wave5s_workspace_git_worktree_behavior_is_preserved(tmp_path: Path) -> None:
     from nolane.external_core.execution_workspace import RepositoryWorkspace
 
-    source_root = tmp_path / "source"
-    source_root.mkdir()
-    (source_root / "payload.txt").write_text("accepted-workspace-payload", encoding="utf-8")
-    work_root = tmp_path / "work"
-    work_root.mkdir()
-    runner = _RecordingRunner()
-    workspace = RepositoryWorkspace(
-        source_root=source_root,
-        command_runner=runner,
-        work_root=work_root,
+    source, revision = _accepted_repository(tmp_path)
+    target = tmp_path / "isolated" / "repo"
+    workspace = RepositoryWorkspace.create(
+        source_repo=source,
+        revision=revision,
+        workspace_root=target,
     )
 
-    receipt = workspace.prepare(request_id="request-17", task_id="task-5s")
-    workspace_root = Path(receipt.workspace_root)
-    expected_workspace_id = canonical_digest(
-        {
-            "request_id": "request-17",
-            "source_root": str(source_root.resolve()),
-            "task_id": "task-5s",
-        }
-    )[:20]
+    assert workspace.source_repo == source.resolve()
+    assert workspace.root == target.resolve()
+    assert workspace.base_revision == revision
+    assert workspace.read_text("payload.txt") == "accepted-workspace-payload\n"
 
-    assert workspace.source_root == source_root.resolve()
-    assert receipt.workspace_id == expected_workspace_id
-    assert receipt.source_root == str(source_root.resolve())
-    assert workspace_root.parent.parent == work_root.resolve()
-    assert (workspace_root / "payload.txt").read_text(encoding="utf-8") == "accepted-workspace-payload"
+    initial_digest = workspace.digest
+    workspace.write_text("nested/new.txt", "alpha")
+    workspace.append_text("nested/new.txt", "-beta")
+    assert workspace.read_text("nested/new.txt") == "alpha-beta"
+    assert workspace.digest != initial_digest
 
-    result = workspace.run(receipt, command=["python", "-V"])
-    assert result.exit_code == 0
-    assert result.stdout == "ok"
+    with pytest.raises(PermissionError, match="path escapes isolated workspace"):
+        workspace.resolve_repo_path("../escape.txt")
+
+    result = workspace.run_argv(
+        ["python", "-c", "print('wave5s-workspace-ok')"],
+        timeout_seconds=10.0,
+        max_output_chars=1_000,
+    )
+    assert result.argv == ("python", "-c", "print('wave5s-workspace-ok')")
+    assert result.returncode == 0
+    assert result.stdout.strip() == "wave5s-workspace-ok"
     assert result.stderr == ""
-    assert runner.calls == [(["python", "-V"], workspace_root)]
+    assert not result.timed_out
 
-    parent = workspace_root.parent
-    workspace.cleanup(receipt)
-    assert not parent.exists()
+    workspace.close()
+    assert not target.exists()
+    with pytest.raises(RuntimeError, match="repository workspace is closed"):
+        workspace.read_text("payload.txt")
 
 
 def test_wave5s_execution_workspace_component_version_and_authority_cutover() -> None:
