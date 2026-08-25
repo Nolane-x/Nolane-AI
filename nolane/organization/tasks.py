@@ -126,8 +126,6 @@ class TaskGraph:
             raise ValueError("task title and plan node must be non-empty")
         row = TaskRecord(task_id=task_id, title=str(title), plan_node_id=str(plan_node_id))
         self._tasks[task_id] = row
-        if row.plan_node_id not in self._plan_nodes:
-            self._plan_nodes.append(row.plan_node_id)
         return row
 
     def get(self, task_id: str) -> TaskRecord:
