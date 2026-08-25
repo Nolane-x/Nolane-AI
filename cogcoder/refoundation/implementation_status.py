@@ -205,6 +205,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/execution_workspace.py",),
         "Native isolated Git-worktree workspace authority over canonical digest identity with bounded command execution, path confinement and exact historical object bridge.",
     ),
+    "external.coding.claims": (
+        "nolane.external_core.coding_claims",
+        ("cogcoder/organization/code_claims.py",),
+        "Native exclusive source-mutation claim scope, conflict detection, release/abort authority and fail-closed snapshot restoration; historical code-claims module bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
@@ -225,7 +230,6 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
 }
 
 _LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
-    "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
     "external.coding.patches": ("cogcoder/organization/coding.py",),
 }
 
