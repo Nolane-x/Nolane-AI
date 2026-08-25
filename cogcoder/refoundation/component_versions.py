@@ -37,6 +37,7 @@ _COMPONENT_REVISIONS.update(
         "external.planning": 1,
         "external.architecture": 1,
         "external.integration": 1,
+        "external.invokable_cores": 1,
     }
 )
 
