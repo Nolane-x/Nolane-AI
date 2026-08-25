@@ -243,17 +243,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.invokable",
-      "canonical_write_authority": false,
-      "component_id": "external.invokable_cores",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/external_core.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.external_core.operations",
       "canonical_write_authority": false,
       "component_id": "external.operations",
@@ -321,7 +310,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 21,
+    "compatibility_facade": 20,
     "frozen_asset": 1,
     "historical_only": 5,
     "legacy_internal": 2
