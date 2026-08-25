@@ -41,6 +41,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.integration": 1,
     "external.invokable_cores": 1,
     "external.execution.workspace": 1,
+    "external.coding.claims": 1,
 }
 ACCEPTED_REVISION_ONE_COMPONENTS = {
     component_id for component_id, revision in ACCEPTED_COMPONENT_REVISIONS.items() if revision == 1
@@ -77,6 +78,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.invokable_cores")) == "0.0.2"
     assert str(component_version("external.execution.workspace")) == "0.0.1"
     assert str(next_component_version("external.execution.workspace")) == "0.0.2"
+    assert str(component_version("external.coding.claims")) == "0.0.1"
+    assert str(next_component_version("external.coding.claims")) == "0.0.2"
     assert str(component_version("organization.tasks")) == "0.0.2"
     assert str(next_component_version("organization.tasks")) == "0.0.3"
 
