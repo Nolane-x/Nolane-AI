@@ -75,9 +75,7 @@ jobs:
             refoundation-agent-manifests-${{ matrix.python-version }}/
           if-no-files-found: error
       - name: Run all organization, campaign, and execution regressions
-        shell: bash
         run: |
-          set -o pipefail
           python -m pytest -q \
             tests/test_coding_agi_campaign_*.py \
             tests/test_coding_agi_execution_*.py \
@@ -102,14 +100,6 @@ jobs:
             tests/test_coding_agi_planning_*.py \
             tests/test_coding_agi_plan_reconciliation.py \
             tests/test_coding_agi_architecture_*.py \
-            tests/test_coding_agi_integration_*.py \
-            2>&1 | tee regression-py${{ matrix.python-version }}.log
-      - name: Upload regression diagnostics
-        if: failure()
-        uses: actions/upload-artifact@v4
-        with:
-          name: refoundation-regression-diagnostics-py${{ matrix.python-version }}
-          path: regression-py${{ matrix.python-version }}.log
-          if-no-files-found: warn
+            tests/test_coding_agi_integration_*.py
       - name: Verify frozen Neural R2.3 metadata contracts
         run: python model/neural-r2.3/scripts/verify_neural_r23.py
