@@ -24,18 +24,21 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5Q: Compatibility implementation moved under `nolane.external_core.compatibility` as a native internal Architecture/Integration boundary while preserving the historical import bridge.
 - Wave 5R candidate: `external.invokable_cores` -> native `nolane.external_core.invokable`
 - Wave 5S candidate: `external.execution.workspace` -> native `nolane.external_core.execution_workspace`
+- Wave 5T candidate: `external.coding.claims` -> native `nolane.external_core.coding_claims`
 
 The core requirements-to-integration chain remains:
 
 `Requirements -> Planning -> Architecture -> Integration`
 
-Wave 5R opened the next dependency-safe extraction front with invokable-core schema/registry authority depending only on canonical `organization.identity`. Wave 5S continues that front by moving the isolated Git-worktree execution workspace under canonical authority. The workspace now depends on native `core.canonical_digest`; historical `cogcoder.organization.execution_workspace` is an exact-object import/provenance bridge rather than executable ownership.
+Wave 5R opened the next dependency-safe extraction front with invokable-core schema/registry authority depending only on canonical `organization.identity`. Wave 5S moved the isolated Git-worktree execution workspace under canonical authority. Wave 5T now moves exclusive source-mutation claim authority under canonical ownership before attempting the execution executor boundary. Historical `cogcoder.organization.execution_workspace` and `cogcoder.organization.code_claims` are exact-object import/provenance bridges rather than executable ownership.
+
+The executor is intentionally not marked native in Wave 5T. Its manifest requires `external.coding.claims`, which is resolved here, while the actual implementation also carries hidden coupling to coding-patch receipt mirroring and shared execution action types. Those edges must be retargeted or separated before `external.execution.executor` can truthfully claim canonical authority.
 
 ## Repository authority and remaining debt
 
 `CURRENT/REPOSITORY_AUTHORITY.md` defines repository precedence and quarantine semantics. `archive/INDEX.json` is the generated root-history census. `CURRENT/NATIVE_DEBT.json` / `.md` expose every canonical component that is not yet `canonical_native`, so extraction can continue independently using local `0.0.N` component versions.
 
-Wave 5S removes only `external.execution.workspace` from the Wave 5R debt set. The generated debt projection therefore contains 27 remaining non-native component records: 19 compatibility facades, 5 historical-only boundaries, 2 legacy-internal boundaries, and 1 frozen neural asset. Execution executor/control, context, assurance, coding, operations, research, UI/UX, evaluation, neural inference, historical-only capability boundaries, and internal coding ownership remain explicit debt until their own parity-tested extraction waves are accepted.
+Wave 5T removes only `external.coding.claims` from the Wave 5S debt set. The generated debt projection therefore contains 26 remaining non-native component records: 19 compatibility facades, 5 historical-only boundaries, 1 legacy-internal boundary, and 1 frozen neural asset. Execution executor/control, coding patches/control, context, assurance, operations, research, UI/UX, evaluation, neural inference and historical-only capability boundaries remain explicit debt until their own parity-tested extraction waves are accepted.
 
 The dependency graph and the actual import graph must both be clean before a boundary is cut over. In particular, Assurance and Individual Evolution currently expose hidden legacy import coupling beyond their high-level manifest edges; those surfaces must be retargeted or decomposed before authority migration rather than moved cosmetically.
 
