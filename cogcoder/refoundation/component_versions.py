@@ -38,6 +38,7 @@ _COMPONENT_REVISIONS.update(
         "external.architecture": 1,
         "external.integration": 1,
         "external.invokable_cores": 1,
+        "external.execution.workspace": 1,
     }
 )
 
