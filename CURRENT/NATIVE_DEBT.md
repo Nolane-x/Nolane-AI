@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 21
+- `compatibility_facade`: 20
 - `frozen_asset`: 1
 - `historical_only`: 5
 - `legacy_internal`: 2
@@ -209,15 +209,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `nolane.external_core.individual_evolution`
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/individual_evolution.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `external.invokable_cores`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.external_core.invokable`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/external_core.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.operations`
