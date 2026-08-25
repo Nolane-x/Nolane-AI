@@ -200,6 +200,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/external_core.py",),
         "Native invokable-core schema and registry over canonical AgentRegistry authority with deterministic state round-trip and fail-closed conflicting registration; historical External Core module bridges exact public identities.",
     ),
+    "external.execution.workspace": (
+        "nolane.external_core.execution_workspace",
+        ("cogcoder/organization/execution_workspace.py",),
+        "Native isolated Git-worktree workspace authority over canonical digest identity with bounded command execution, path confinement and exact historical object bridge.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
