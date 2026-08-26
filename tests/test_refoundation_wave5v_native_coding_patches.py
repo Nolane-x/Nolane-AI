@@ -78,6 +78,7 @@ def test_wave5v_patch_scope_status_claim_coverage_and_path_validation_are_preser
         agent_id="coding.impl.1",
         task_id="task-5v",
         directory_prefixes=("src/pkg",),
+        symbol_ids=("A.run",),
     )
     patches = CodingPatchLedger(claims)
     patch = patches.register_patch(
