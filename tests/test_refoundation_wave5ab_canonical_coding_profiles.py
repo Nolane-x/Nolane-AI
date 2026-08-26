@@ -121,15 +121,27 @@ def test_wave5ab_coding_profile_value_objects_preserve_validation_and_fail_close
         profiles.CodingAssignmentReceipt.from_state(corrupt)
 
 
-def test_wave5ab_is_prerequisite_only_and_does_not_retire_coding_control_debt() -> None:
+def test_wave5ab_prerequisite_does_not_pin_later_coding_control_authority() -> None:
     ledger = build_component_implementation_ledger()
-    assert ledger["external.coding.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    control_status = ledger["external.coding.control"].status
+    assert control_status in {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.CANONICAL_NATIVE,
+    }
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {row["component_id"] for row in state["components"]}
-    assert "external.coding.control" in ids
-    assert len(state["components"]) == 21
+    if control_status is ImplementationStatus.CANONICAL_NATIVE:
+        assert "external.coding.control" not in ids
+        assert ledger["external.coding.control"].canonical_write_authority
+    else:
+        assert "external.coding.control" in ids
+        assert not ledger["external.coding.control"].canonical_write_authority
+
+    # Wave 5AB established the 21-record ceiling; accepted downstream native
+    # cutovers may only reduce that debt and must never force it back upward.
+    assert len(state["components"]) <= 21
 
 
 def test_wave5ab_current_status_tracks_canonical_coding_profile_prerequisite() -> None:

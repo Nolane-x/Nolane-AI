@@ -79,13 +79,12 @@ def test_wave5b_evidence_remains_out_of_native_debt_after_later_waves() -> None:
         if row.status is not ImplementationStatus.CANONICAL_NATIVE
     }
 
+    # Historical Wave 5B guards only the Evidence authority it established.
+    # It must not freeze the migration state of unrelated downstream components.
+    evidence = ledger["external.evidence"]
     assert "external.evidence" not in non_native_ids
-    assert ledger["external.evidence"].canonical_write_authority
-
-    # Historical Wave 5B must not pin primitives as legacy forever. It only
-    # keeps asserting a downstream boundary that is still intentionally open.
-    assert ledger["external.coding.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert not ledger["external.coding.control"].canonical_write_authority
+    assert evidence.status is ImplementationStatus.CANONICAL_NATIVE
+    assert evidence.canonical_write_authority
 
 
 def test_wave5b_acceptance_has_no_write_enabled_bootstrap_workflow() -> None:

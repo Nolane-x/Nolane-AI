@@ -122,17 +122,6 @@
       "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
     },
     {
-      "canonical_module": "nolane.external_core.coding",
-      "canonical_write_authority": false,
-      "component_id": "external.coding.control",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/coding.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": null,
       "canonical_write_authority": false,
       "component_id": "external.cognitive_library",
@@ -233,7 +222,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 15,
+    "compatibility_facade": 14,
     "frozen_asset": 1,
     "historical_only": 5
   },

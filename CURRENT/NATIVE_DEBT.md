@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 15
+- `compatibility_facade`: 14
 - `frozen_asset`: 1
 - `historical_only`: 5
 
@@ -110,15 +110,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical write authority: `false`
 - Legacy/provenance sources: historical bounded causal programs; not a current dedicated organization component
 - Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
-
-### `external.coding.control`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.external_core.coding`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/coding.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.cognitive_library`
 
