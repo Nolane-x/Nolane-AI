@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Iterable, Mapping
 
-from cogcoder.organization.types import EventKind
+from nolane.organization.events import EventKind
 from nolane.core.canonical_digest import canonical_digest
 
 
