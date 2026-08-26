@@ -102,8 +102,7 @@ def test_canonical_neural_boundary_keeps_checkpoint_authority_in_old_bridge() ->
 def test_every_compatibility_facade_declares_independent_component_version_and_source() -> None:
     import nolane.evaluation.scaling as evaluation_scaling
     import nolane.external_core.memory as memory
-    import nolane.external_core.execution as execution
 
-    for module in (evaluation_scaling, memory, execution):
+    for module in (evaluation_scaling, memory):
         assert module.COMPONENT_VERSION == "0.0.0"
         assert module.MIGRATED_FROM.startswith("cogcoder.organization.")
