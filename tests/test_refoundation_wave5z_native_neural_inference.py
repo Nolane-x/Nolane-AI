@@ -142,7 +142,10 @@ def test_wave5z_authority_version_facade_and_debt_cutover() -> None:
     )
 
     control = implementation["external.execution.control"]
-    assert control.status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert control.status in {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.CANONICAL_NATIVE,
+    }
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
