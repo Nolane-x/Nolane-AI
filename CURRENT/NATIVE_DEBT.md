@@ -9,7 +9,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - `compatibility_facade`: 19
 - `frozen_asset`: 1
 - `historical_only`: 5
-- `legacy_internal`: 1
 
 ## Components
 
@@ -120,15 +119,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/coding.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `external.coding.patches`
-
-- Component version: `0.0.0`
-- Status: `legacy_internal`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/coding.py
-- Notes: Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet.
 
 ### `external.cognitive_library`
 
