@@ -65,7 +65,6 @@ def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
         FacadeBinding("external.assurance", "nolane.external_core.assurance", "cogcoder.organization.assurance", ("AssuranceControlPlane",)),
         FacadeBinding("external.operations", "nolane.external_core.operations", "cogcoder.organization.operations", ("OperationsControlPlane",)),
         FacadeBinding("external.research", "nolane.external_core.research", "cogcoder.organization.research", ("ResearchControlPlane",)),
-        FacadeBinding("external.execution.control", "nolane.external_core.execution", "cogcoder.organization.execution", ("OrganizationExecutionControlPlane",)),
         FacadeBinding("evaluation.scaling", "nolane.evaluation.scaling", "cogcoder.organization.evaluation", ("EvaluationScalingControlPlane",)),
         FacadeBinding("evaluation.regimes", "nolane.evaluation.regimes", "cogcoder.organization.evaluation_regimes", ("BenchmarkRegimeRegistry",)),
         FacadeBinding("evaluation.evidence", "nolane.evaluation.evidence", "cogcoder.organization.evaluation_evidence", ("EvaluationEvidenceLedger",)),
