@@ -64,6 +64,16 @@ jobs:
               '        "organization.events": 1,',
               '        "organization.events": 2,',
           )
+          replace_once(
+              'tests/test_refoundation_component_versions.py',
+              '    "organization.events": 1,',
+              '    "organization.events": 2,',
+          )
+          replace_once(
+              'tests/test_refoundation_wave2_native_organization.py',
+              '        assert row.component_version == "0.0.1"\n        assert str(component_version(component_id)) == "0.0.1"',
+              '        version = component_version(component_id)\n        assert row.component_version == str(version)\n        assert version.major == 0 and version.minor == 0\n        # Wave 2 established the native revision floor; later waves may advance it locally.\n        assert version.revision >= 1',
+          )
 
           replace_once(
               'cogcoder/refoundation/implementation_status.py',
@@ -117,6 +127,8 @@ jobs:
           nolane/organization/coordination_leases.py
           nolane/organization/lifecycle.py
           nolane/organization/tasks.py
+          tests/test_refoundation_component_versions.py
+          tests/test_refoundation_wave2_native_organization.py
           EOF
           )"
           printf 'Changed files:\n%s\n' "$actual"
@@ -176,7 +188,9 @@ jobs:
             nolane/organization/coordination_delivery.py \
             nolane/organization/coordination_leases.py \
             nolane/organization/lifecycle.py \
-            nolane/organization/tasks.py
+            nolane/organization/tasks.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave2_native_organization.py
           git diff --cached --check
           git commit -m 'refoundation: complete Wave 5X schema authority hygiene'
           git push origin HEAD:refoundation/epoch0-wave5x-canonical-event-context-schemas
