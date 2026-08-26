@@ -64,16 +64,24 @@ def test_wave5x_event_component_revision_records_schema_authority_hardening() ->
     assert str(next_component_version("organization.events")) == "0.0.3"
 
 
-def test_wave5x_is_prerequisite_only_and_does_not_falsely_retire_context_debt() -> None:
+def test_wave5x_prerequisite_contract_remains_monotonic_after_later_cutovers() -> None:
     ledger = build_component_implementation_ledger()
     assert ledger["organization.events"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["neural.inference_bridge"].status is ImplementationStatus.COMPATIBILITY_FACADE
+
+    inference = ledger["neural.inference_bridge"]
+    assert inference.status in {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.CANONICAL_NATIVE,
+    }
+    if inference.status is ImplementationStatus.CANONICAL_NATIVE:
+        assert inference.canonical_module == "nolane.neural.inference_bridge"
+        assert inference.canonical_write_authority
+
     assert ledger["external.execution.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {row["component_id"] for row in state["components"]}
-    assert "neural.inference_bridge" in ids
     assert "external.execution.control" in ids
     assert len(state["components"]) <= 24
 
