@@ -31,6 +31,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5X prerequisite: canonical event/context schema authority -> `nolane.organization.events` + `nolane.external_core.context`
 - Wave 5Y candidate: `external.context` -> native `nolane.memory.context` semantic closure
 - Wave 5Z candidate: `neural.inference_bridge` -> native `nolane.neural.inference_bridge`
+- Wave 5AA candidate: `external.execution.control` -> native `nolane.external_core.execution`
 
 The core requirements-to-integration chain remains:
 
@@ -50,11 +51,13 @@ Wave 5Y retires the `external.context` compatibility boundary by moving the base
 
 Wave 5Z retires the `neural.inference_bridge` compatibility boundary by moving `AgentInferenceBackend`, `CognitiveStateEncoder`, deterministic fixture inference and the hash-gated R2.3 adapter under canonical `nolane.neural.inference_bridge` ownership. The canonical bridge imports only canonical digest, context, execution-schema and identity authorities; historical `cogcoder.organization.execution_inference` is now an exact public-object bridge. `external.execution.control` remains the next separate compatibility boundary rather than being mixed into this cutover. The generated projection therefore moves from 23 to 22 non-native component records.
 
+Wave 5AA retires `external.execution.control` by moving execution-session state, step and terminal receipts, budget/lease/backend enforcement, terminal evidence creation and the `OrganizationExecutionControlPlane` itself under canonical `nolane.external_core.execution` ownership. The canonical control plane now imports native artifact, inference, executor, execution-schema/workspace, invokable-core, identity, task and canonical digest authorities directly. Historical `cogcoder.organization.execution` is an exact semantic public-object bridge. The generated native-debt projection therefore moves from 22 to 21 non-native component records while coding, debugging, UI, assurance, operations, research, individual-evolution and evaluation boundaries remain explicit debt.
+
 ## Repository authority and remaining debt
 
 `CURRENT/REPOSITORY_AUTHORITY.md` defines repository precedence and quarantine semantics. `archive/INDEX.json` is the generated root-history census. `CURRENT/NATIVE_DEBT.json` / `.md` expose every canonical semantic component that is not yet `canonical_native`, so extraction can continue independently using local `0.0.N` component versions.
 
-Wave 5V reduced generated native debt to 25 remaining non-native component records. Wave 5W retires exactly `external.execution.executor`, reducing that debt from 25 to 24 while leaving `external.execution.control` and all unrelated compatibility/historical/frozen boundaries unchanged. Wave 5Y reduces the projection to 23; Wave 5Z retires exactly `neural.inference_bridge`, reducing it to 22 while `external.execution.control` remains explicit debt.
+Wave 5V reduced generated native debt to 25 remaining non-native component records. Wave 5W retires exactly `external.execution.executor`, reducing that debt from 25 to 24 while leaving `external.execution.control` and all unrelated compatibility/historical/frozen boundaries unchanged. Wave 5Y reduces the projection to 23; Wave 5Z retires exactly `neural.inference_bridge`, reducing it to 22. Wave 5AA retires exactly `external.execution.control`, reducing the projection to 21 non-native component records.
 
 The dependency graph and the actual import graph must both be clean before a boundary is cut over. In particular, Assurance and Individual Evolution currently expose hidden legacy import coupling beyond their high-level manifest edges; those surfaces must be retargeted or decomposed before authority migration rather than moved cosmetically.
 
