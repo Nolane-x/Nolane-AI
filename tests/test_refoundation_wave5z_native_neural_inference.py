@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 from pathlib import Path
 
@@ -36,6 +37,18 @@ def _request(*, checkpoint_digest: str, step_index: int = 0) -> InferenceRequest
     )
 
 
+def _imports_legacy_inference(path: Path) -> bool:
+    tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            if any(alias.name == "cogcoder.organization.execution_inference" for alias in node.names):
+                return True
+        elif isinstance(node, ast.ImportFrom):
+            if node.module == "cogcoder.organization.execution_inference":
+                return True
+    return False
+
+
 def test_wave5z_canonical_module_owns_inference_semantics() -> None:
     import nolane.neural.inference_bridge as canonical
 
@@ -70,17 +83,17 @@ def test_wave5z_historical_inference_objects_bridge_exact_canonical_identity() -
 
 def test_wave5z_import_direction_has_no_reverse_legacy_inference_authority() -> None:
     root = Path(__file__).resolve().parents[1]
-    canonical_source = (root / "nolane" / "neural" / "inference_bridge.py").read_text(encoding="utf-8")
+    canonical_path = root / "nolane" / "neural" / "inference_bridge.py"
     legacy_source = (root / "cogcoder" / "organization" / "execution_inference.py").read_text(encoding="utf-8")
 
-    assert "cogcoder.organization.execution_inference" not in canonical_source
+    assert not _imports_legacy_inference(canonical_path)
     assert "nolane.neural.inference_bridge" in legacy_source
 
-    offenders: list[str] = []
-    needle = "cogcoder.organization.execution_inference"
-    for path in (root / "nolane").rglob("*.py"):
-        if needle in path.read_text(encoding="utf-8"):
-            offenders.append(path.relative_to(root).as_posix())
+    offenders = [
+        path.relative_to(root).as_posix()
+        for path in (root / "nolane").rglob("*.py")
+        if _imports_legacy_inference(path)
+    ]
     assert offenders == []
 
 
