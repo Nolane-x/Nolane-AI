@@ -135,17 +135,6 @@
     {
       "canonical_module": null,
       "canonical_write_authority": false,
-      "component_id": "external.coding.patches",
-      "component_version": "0.0.0",
-      "implementation_status": "legacy_internal",
-      "legacy_sources": [
-        "cogcoder/organization/coding.py"
-      ],
-      "notes": "Semantic component is active/internal or composition-only, but no dedicated canonical source module is accepted yet."
-    },
-    {
-      "canonical_module": null,
-      "canonical_write_authority": false,
       "component_id": "external.cognitive_library",
       "component_version": "0.0.0",
       "implementation_status": "historical_only",
@@ -290,8 +279,7 @@
   "counts_by_status": {
     "compatibility_facade": 19,
     "frozen_asset": 1,
-    "historical_only": 5,
-    "legacy_internal": 1
+    "historical_only": 5
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",
