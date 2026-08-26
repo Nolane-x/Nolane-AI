@@ -232,17 +232,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.neural.inference_bridge",
-      "canonical_write_authority": false,
-      "component_id": "neural.inference_bridge",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/execution_inference.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": null,
       "canonical_write_authority": false,
       "component_id": "neural.shared",
@@ -255,7 +244,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 17,
+    "compatibility_facade": 16,
     "frozen_asset": 1,
     "historical_only": 5
   },
