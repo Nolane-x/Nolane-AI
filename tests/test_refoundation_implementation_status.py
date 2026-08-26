@@ -43,6 +43,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.execution.executor",
     "external.coding.claims",
     "external.coding.patches",
+    "neural.inference_bridge",
 }
 
 
@@ -76,6 +77,8 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     assert ledger["external.coding.claims"].canonical_write_authority
     assert ledger["external.coding.patches"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.coding.patches"].canonical_write_authority
+    assert ledger["neural.inference_bridge"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["neural.inference_bridge"].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
@@ -94,7 +97,9 @@ def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> 
 def test_frozen_neural_asset_is_not_conflated_with_runtime_adapter() -> None:
     ledger = build_component_implementation_ledger()
     assert ledger["neural.shared"].status is ImplementationStatus.FROZEN_ASSET
-    assert ledger["neural.inference_bridge"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert ledger["neural.inference_bridge"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["neural.inference_bridge"].canonical_module == "nolane.neural.inference_bridge"
+    assert ledger["neural.inference_bridge"].canonical_write_authority
 
 
 def test_only_explicit_native_components_claim_canonical_write_authority() -> None:
