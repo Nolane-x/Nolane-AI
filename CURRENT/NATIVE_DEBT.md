@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 17
+- `compatibility_facade`: 16
 - `frozen_asset`: 1
 - `historical_only`: 5
 
@@ -199,15 +199,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `nolane.external_core.ui_ux`
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/ui.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `neural.inference_bridge`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.neural.inference_bridge`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/execution_inference.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `neural.shared`
