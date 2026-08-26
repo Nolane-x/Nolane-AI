@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from nolane.schemas.identity import AgentStatus
-from cogcoder.organization.types import CognitiveEvent, EventKind
+from nolane.organization.events import CognitiveEvent, EventKind
 
 from .events import EventLedger
 from .identity import AgentRegistry

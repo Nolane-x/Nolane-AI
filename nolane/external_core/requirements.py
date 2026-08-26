@@ -13,9 +13,9 @@ COMPONENT_VERSION = "0.0.1"
 MIGRATED_FROM = "cogcoder.organization.requirements"
 
 
-# Preserve the historical Part-I event wire schema. These semantic names are
-# aliases over the accepted event value; requirements_action remains the
-# discriminator carried in the payload until EventKind itself is refounded.
+# Preserve the historical Part-I event wire schema after Wave 5X moved EventKind
+# authority into nolane.organization.events. These semantic names remain aliases over
+# the accepted event value; requirements_action remains the payload discriminator.
 for _name in (
     "REQUIREMENT_AMBIGUITY",
     "REQUIREMENT_CHANGE_PROPOSED",

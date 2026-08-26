@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Callable, Mapping
 
-from cogcoder.organization.types import EventKind
+from nolane.organization.events import EventKind
 
 from .authority import AuthorityGraph
 from .events import EventLedger

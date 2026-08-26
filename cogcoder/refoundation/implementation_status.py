@@ -72,7 +72,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "organization.events": (
         "nolane.organization.events",
         ("cogcoder/organization/events.py",),
-        "Native causal event ledger, subscriptions, delivery and state round-trip; historical module bridges to canonical class identity.",
+        "Native EventKind/CognitiveEvent schema authority plus causal event ledger, subscriptions, delivery and state round-trip; historical events and mixed types surfaces bridge exact canonical identities.",
     ),
     "organization.tasks": (
         "nolane.organization.tasks",

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from nolane.schemas.identity import AgentStatus
-from cogcoder.organization.types import EventKind
+from nolane.organization.events import EventKind
 
 from .central_access import CentralCoreAccessPolicy, CoreLease
 from .central_conflicts import CentralConflictPacket, CentralConflictRegistry
@@ -12,10 +12,9 @@ from .central_resources import CentralResourceArbiter, ResourceAllocationReceipt
 from .central_state import CentralCapabilityMap, CentralWorldState, build_world_state
 
 
-# Part II is stacked on the Part-I snapshot schema. Until the shared event
-# vocabulary receives its own schema migration, Central organizational actions
-# preserve the accepted runtime aliases of CENTRAL_INTERVENTION and carry the
-# specific action subtype in immutable event payloads.
+# Wave 5X moved shared event schema authority into nolane.organization.events.
+# Central organizational actions still preserve the accepted historical wire aliases
+# of CENTRAL_INTERVENTION and carry the specific action subtype in immutable payloads.
 for _name in (
     'CENTRAL_RESOURCE_ALLOCATED', 'CENTRAL_RESOURCE_RELEASED',
     'CENTRAL_CONFLICT_OPENED', 'CENTRAL_CONFLICT_RESOLVED',

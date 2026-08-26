@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.schemas.identity import AgentRank, AgentStatus
-from cogcoder.organization.types import EventKind
+from nolane.organization.events import EventKind
 
 from .authority import AuthorityGraph
 from .coordination_conflicts import ConflictClaim, ConflictCoordinator, ConflictPacket, ConflictResolutionReceipt

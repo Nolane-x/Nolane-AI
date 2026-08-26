@@ -26,8 +26,11 @@ def test_identity_authority_events_are_native_and_independently_versioned() -> N
         assert row.status is ImplementationStatus.CANONICAL_NATIVE
         assert row.canonical_module == module
         assert row.canonical_write_authority is True
-        assert row.component_version == "0.0.1"
-        assert str(component_version(component_id)) == "0.0.1"
+        version = component_version(component_id)
+        assert row.component_version == str(version)
+        assert version.major == 0 and version.minor == 0
+        # Wave 2 established the native revision floor; later waves may advance it locally.
+        assert version.revision >= 1
 
 
 def test_native_trio_is_not_registered_as_compatibility_facades() -> None:

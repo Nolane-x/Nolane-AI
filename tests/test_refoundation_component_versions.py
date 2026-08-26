@@ -16,7 +16,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "core.canonical_digest": 1,
     "organization.identity": 1,
     "organization.authority": 1,
-    "organization.events": 1,
+    "organization.events": 2,
     "organization.tasks": 2,
     "organization.lifecycle": 1,
     "organization.coordination.leases": 1,
