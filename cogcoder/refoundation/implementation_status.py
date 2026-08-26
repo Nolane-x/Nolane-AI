@@ -231,6 +231,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/coding_patches.py",),
         "Native patch candidates, claim-covered source scopes, content-addressed tool invocation receipts and fail-closed patch-ledger restoration over canonical coding-claim and digest authority; historical coding-patches module bridges exact public identities.",
     ),
+    "neural.inference_bridge": (
+        "nolane.neural.inference_bridge",
+        ("cogcoder/organization/execution_inference.py",),
+        "Native versioned context-to-neural inference adapter over canonical execution schemas, context, identity and digest authority; historical execution-inference module bridges exact public identities while execution control remains a separate compatibility boundary.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
