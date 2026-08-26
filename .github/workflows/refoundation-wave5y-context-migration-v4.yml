@@ -43,14 +43,16 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
-          def patch(path: str, replacements: tuple[tuple[str, str], ...]) -> None:
+          def patch(path: str, replacements) -> None:
               file = Path(path)
               text = file.read_text(encoding='utf-8')
-              for old, new in replacements:
+              for row in replacements:
+                  old, new = row[0], row[1]
+                  expected = row[2] if len(row) == 3 else 1
                   count = text.count(old)
-                  if count != 1:
-                      raise SystemExit(f'{path}: expected one match for {old!r}, found {count}')
-                  text = text.replace(old, new, 1)
+                  if count != expected:
+                      raise SystemExit(f'{path}: expected {expected} match(es) for {old!r}, found {count}')
+                  text = text.replace(old, new, expected)
               file.write_text(text, encoding='utf-8')
 
           patch('tests/test_refoundation_memory_public_layout.py', (
@@ -69,8 +71,7 @@ jobs:
           ))
           patch('tests/test_refoundation_wave5j_native_skills.py', (
               ('    assert "external.context" in facade_ids\n', ''),
-              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE\n', ''),
-              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE', ''),
+              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE\n', '', 2),
           ))
           patch('tests/test_refoundation_wave5w_native_execution_executor.py', (
               ('    assert len(non_native) == 24\n', '    assert len(non_native) <= 24\n'),
