@@ -40,6 +40,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.invokable_cores",
     "external.execution.workspace",
     "external.coding.claims",
+    "external.coding.patches",
 }
 
 
@@ -69,6 +70,8 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     assert ledger["external.execution.workspace"].canonical_write_authority
     assert ledger["external.coding.claims"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.coding.claims"].canonical_write_authority
+    assert ledger["external.coding.patches"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["external.coding.patches"].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
