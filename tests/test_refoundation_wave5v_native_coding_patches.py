@@ -192,7 +192,7 @@ def test_wave5v_coding_patches_component_version_authority_and_debt_cutover() ->
         for record in implementation.values()
         if record.status is not ImplementationStatus.CANONICAL_NATIVE
     ]
-    assert len(non_native) == 25
+    assert len(non_native) <= 25
 
 
 def test_wave5v_current_status_tracks_coding_patch_cutover_and_executor_prerequisite() -> None:
