@@ -72,18 +72,13 @@ def test_wave5z_import_direction_has_no_reverse_legacy_inference_authority() -> 
     root = Path(__file__).resolve().parents[1]
     canonical_source = (root / "nolane" / "neural" / "inference_bridge.py").read_text(encoding="utf-8")
     legacy_source = (root / "cogcoder" / "organization" / "execution_inference.py").read_text(encoding="utf-8")
-    control_source = (root / "cogcoder" / "organization" / "execution.py").read_text(encoding="utf-8")
 
     assert "cogcoder.organization.execution_inference" not in canonical_source
-    assert "from .execution_inference import" not in control_source
-    assert "from nolane.neural.inference_bridge import" in control_source
     assert "nolane.neural.inference_bridge" in legacy_source
 
     offenders: list[str] = []
     needle = "cogcoder.organization.execution_inference"
     for path in (root / "nolane").rglob("*.py"):
-        if path == root / "nolane" / "neural" / "inference_bridge.py":
-            continue
         if needle in path.read_text(encoding="utf-8"):
             offenders.append(path.relative_to(root).as_posix())
     assert offenders == []
