@@ -236,6 +236,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/coding_patches.py",),
         "Native patch candidates, claim-covered source scopes, content-addressed tool invocation receipts and fail-closed patch-ledger restoration over canonical coding-claim and digest authority; historical coding-patches module bridges exact public identities.",
     ),
+    "external.coding.control": (
+        "nolane.external_core.coding",
+        ("cogcoder/organization/coding.py",),
+        "Native coding assignment, source-claim, patch-readiness and personal-skill control plane over canonical profile, claim, patch, planning, architecture, skill, identity, task, event and digest authorities; historical coding module bridges exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),

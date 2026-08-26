@@ -44,6 +44,7 @@ _COMPONENT_REVISIONS.update(
         "external.execution.control": 1,
         "external.coding.claims": 1,
         "external.coding.patches": 1,
+        "external.coding.control": 1,
         "neural.inference_bridge": 1,
     }
 )
