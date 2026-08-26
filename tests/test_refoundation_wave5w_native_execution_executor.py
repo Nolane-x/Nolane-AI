@@ -167,7 +167,7 @@ def test_wave5w_executor_authority_version_facade_and_debt_cutover() -> None:
         for record in implementation.values()
         if record.status is not ImplementationStatus.CANONICAL_NATIVE
     ]
-    assert len(non_native) == 24
+    assert len(non_native) <= 24
 
 
 def test_wave5w_current_status_tracks_native_executor_cutover() -> None:

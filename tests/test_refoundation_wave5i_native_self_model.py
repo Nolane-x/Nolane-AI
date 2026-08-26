@@ -73,7 +73,6 @@ def test_wave5i_self_model_leaves_facades_without_advancing_adjacent_components(
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.self_model" not in facade_ids
     assert "external.individual_evolution" in facade_ids
-    assert "external.context" in facade_ids
 
 
 def test_wave5i_historical_self_model_objects_bridge_to_canonical_identity() -> None:
@@ -233,4 +232,3 @@ def test_wave5i_debt_reduces_only_self_model_facade() -> None:
     assert counts.get("legacy_internal", 0) <= 2
     assert ledger["external.self_model"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.individual_evolution"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE

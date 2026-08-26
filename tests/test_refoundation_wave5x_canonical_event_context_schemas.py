@@ -67,14 +67,12 @@ def test_wave5x_event_component_revision_records_schema_authority_hardening() ->
 def test_wave5x_is_prerequisite_only_and_does_not_falsely_retire_context_debt() -> None:
     ledger = build_component_implementation_ledger()
     assert ledger["organization.events"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["neural.inference_bridge"].status is ImplementationStatus.COMPATIBILITY_FACADE
     assert ledger["external.execution.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {row["component_id"] for row in state["components"]}
-    assert "external.context" in ids
     assert "neural.inference_bridge" in ids
     assert "external.execution.control" in ids
     assert len(state["components"]) <= 24

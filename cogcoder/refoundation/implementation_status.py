@@ -200,6 +200,17 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/external_core.py",),
         "Native invokable-core schema and registry over canonical AgentRegistry authority with deterministic state round-trip and fail-closed conflicting registration; historical External Core module bridges exact public identities.",
     ),
+    "external.context": (
+        "nolane.memory.context",
+        (
+            "cogcoder/organization/context.py",
+            "cogcoder/organization/context_intelligence.py",
+            "cogcoder/organization/memory_profiles.py",
+            "cogcoder/organization/memory_context.py",
+            "cogcoder/organization/memory_context_adapter.py",
+        ),
+        "Native bounded base context compiler, semantic delta/continuity intelligence, Memory/Context profile routing, contradiction-repair control plane and memory-aware adapter over canonical event, identity, memory, lifecycle, retrieval, skill, task and digest authorities; historical context modules bridge exact semantic public identities.",
+    ),
     "external.execution.workspace": (
         "nolane.external_core.execution_workspace",
         ("cogcoder/organization/execution_workspace.py",),

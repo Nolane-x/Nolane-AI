@@ -37,6 +37,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.planning",
     "external.architecture",
     "external.integration",
+    "external.context",
     "external.invokable_cores",
     "external.execution.workspace",
     "external.execution.executor",
@@ -59,8 +60,8 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     for component_id in ACCEPTED_CANONICAL_NATIVE_COMPONENTS:
         assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
 
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
-    assert not ledger["external.context"].canonical_write_authority
+    assert ledger["external.context"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["external.context"].canonical_write_authority
     assert ledger["external.architecture"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.architecture"].canonical_write_authority
     assert ledger["external.integration"].status is ImplementationStatus.CANONICAL_NATIVE

@@ -49,7 +49,6 @@ def test_wave5e_memory_retrieval_is_canonical_native_and_versioned() -> None:
 def test_wave5e_memory_retrieval_leaves_active_facades() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.memory.retrieval" not in facade_ids
-    assert "external.context" in facade_ids
 
 
 def test_wave5e_all_legacy_retrieval_objects_bridge_to_canonical_identity() -> None:
@@ -250,4 +249,3 @@ def test_wave5e_debt_reduces_only_memory_retrieval_facade() -> None:
     assert len(non_native) <= 40
     assert ledger["external.memory.retrieval"].status is ImplementationStatus.CANONICAL_NATIVE
     assert all(row.component_id != "external.memory.retrieval" for row in non_native)
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE

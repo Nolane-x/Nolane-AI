@@ -71,7 +71,6 @@ def test_wave5d_memory_lifecycle_is_canonical_native_and_versioned() -> None:
 def test_wave5d_memory_lifecycle_leaves_facades_but_retrieval_does_not() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.memory.lifecycle" not in facade_ids
-    assert "external.context" in facade_ids
 
 
 def test_wave5d_all_legacy_lifecycle_objects_bridge_to_canonical_identity() -> None:

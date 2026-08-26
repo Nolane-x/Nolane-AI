@@ -29,6 +29,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5V candidate: `external.coding.patches` -> native `nolane.external_core.coding_patches`
 - Wave 5W candidate: `external.execution.executor` -> native `nolane.external_core.execution_executor`
 - Wave 5X prerequisite: canonical event/context schema authority -> `nolane.organization.events` + `nolane.external_core.context`
+- Wave 5Y candidate: `external.context` -> native `nolane.memory.context` semantic closure
 
 The core requirements-to-integration chain remains:
 
@@ -43,6 +44,8 @@ Wave 5V moves patch candidates, source-scope normalization, claim coverage, patc
 Wave 5W moves the fail-closed external-core executor, content-addressed core invocation receipts, bounded filesystem/Git/search/subprocess dispatch, task-lease enforcement, source-mutation claim checks and mirrored coding-tool receipts from historical `cogcoder.organization.execution_tools` to canonical `nolane.external_core.execution_executor`. The canonical executor now imports canonical artifact, identity, invokable-core, execution-schema/workspace, coding-claim/patch and digest authorities directly. Historical `cogcoder.organization.execution_tools` is an exact public-object bridge; `external.execution.control` remains a separate compatibility facade and is not claimed by Wave 5W.
 
 Wave 5X establishes canonical event/context schema authority without falsely retiring semantic component debt. `EventKind` and `CognitiveEvent` are now owned by `nolane.organization.events`; `ContextCapsule` is owned by `nolane.external_core.context`; historical `cogcoder.organization.types` preserves exact object bridges. Canonical `nolane` modules no longer reverse-import these shared schemas from the mixed historical types module. `external.context`, `neural.inference_bridge`, and `external.execution.control` remain explicit non-native boundaries until their own dependency-safe cutovers. The projection therefore remains at 24 non-native component records.
+
+Wave 5Y retires the `external.context` compatibility boundary by moving the base `ContextCompiler`, bounded context-intelligence/continuity/delta receipts, Memory/Context profile routing, contradiction-repair control plane and memory-aware adapter under canonical ownership. `ContextCapsule` remains owned by `nolane.external_core.context`; the five historical organization context modules are exact semantic public-object bridges. Canonical context code contains no reverse import of those historical context authorities. The generated native-debt projection therefore moves from 24 to 23 records while `neural.inference_bridge` and `external.execution.control` remain explicit compatibility boundaries. The resulting projection has 23 non-native component records.
 
 ## Repository authority and remaining debt
 

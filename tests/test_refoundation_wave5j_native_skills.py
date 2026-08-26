@@ -45,10 +45,8 @@ def test_wave5j_skills_are_canonical_native_and_versioned() -> None:
 def test_wave5j_skills_leave_context_facade_untouched() -> None:
     facade_ids = {row.component_id for row in build_active_facade_bindings()}
     assert "external.skills" not in facade_ids
-    assert "external.context" in facade_ids
     ledger = build_component_implementation_ledger()
     assert ledger["external.skills"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
 
 def test_wave5j_skill_objects_and_scope_bridge_to_canonical_identity() -> None:
@@ -212,4 +210,3 @@ def test_wave5j_debt_invariants_are_monotonic_after_skills_cutover() -> None:
     assert counts.get("legacy_internal", 0) <= 2
     assert counts.get("frozen_asset", 0) <= 1
     assert ledger["external.skills"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE
