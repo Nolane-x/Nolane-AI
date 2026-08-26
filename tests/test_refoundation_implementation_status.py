@@ -45,6 +45,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.coding.claims",
     "external.coding.patches",
     "external.coding.control",
+    "external.debugging",
     "neural.inference_bridge",
 }
 
@@ -74,6 +75,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         "external.coding.claims",
         "external.coding.patches",
         "external.coding.control",
+        "external.debugging",
         "neural.inference_bridge",
     ):
         assert ledger[component_id].canonical_write_authority

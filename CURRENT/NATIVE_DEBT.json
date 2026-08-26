@@ -133,17 +133,6 @@
       "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
     },
     {
-      "canonical_module": "nolane.external_core.debugging",
-      "canonical_write_authority": false,
-      "component_id": "external.debugging",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/debugging.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": null,
       "canonical_write_authority": false,
       "component_id": "external.experimentation",
@@ -222,7 +211,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 14,
+    "compatibility_facade": 13,
     "frozen_asset": 1,
     "historical_only": 5
   },

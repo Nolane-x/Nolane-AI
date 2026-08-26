@@ -47,6 +47,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.coding.claims": 1,
     "external.coding.patches": 1,
     "external.coding.control": 1,
+    "external.debugging": 1,
     "neural.inference_bridge": 1,
 }
 ACCEPTED_REVISION_ONE_COMPONENTS = {
@@ -94,6 +95,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.coding.patches")) == "0.0.2"
     assert str(component_version("external.coding.control")) == "0.0.1"
     assert str(next_component_version("external.coding.control")) == "0.0.2"
+    assert str(component_version("external.debugging")) == "0.0.1"
+    assert str(next_component_version("external.debugging")) == "0.0.2"
     assert str(component_version("neural.inference_bridge")) == "0.0.1"
     assert str(next_component_version("neural.inference_bridge")) == "0.0.2"
     assert str(component_version("organization.tasks")) == "0.0.2"
