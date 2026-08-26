@@ -155,17 +155,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.external_core.execution",
-      "canonical_write_authority": false,
-      "component_id": "external.execution.control",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/execution.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": null,
       "canonical_write_authority": false,
       "component_id": "external.experimentation",
@@ -244,7 +233,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 16,
+    "compatibility_facade": 15,
     "frozen_asset": 1,
     "historical_only": 5
   },
