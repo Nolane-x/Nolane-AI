@@ -82,10 +82,10 @@ def test_wave5b_evidence_remains_out_of_native_debt_after_later_waves() -> None:
     assert "external.evidence" not in non_native_ids
     assert ledger["external.evidence"].canonical_write_authority
 
-    # Wave 5B asserts only debt that still belongs to its unresolved downstream
-    # surface. Later accepted primitive cutovers must be free to retire their
-    # own debt without staling this historical evidence contract.
-    assert ledger["external.coding.patches"].status is ImplementationStatus.LEGACY_INTERNAL
+    # Historical Wave 5B must not pin primitives as legacy forever. It only
+    # keeps asserting a downstream boundary that is still intentionally open.
+    assert ledger["external.coding.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    assert not ledger["external.coding.control"].canonical_write_authority
 
 
 def test_wave5b_acceptance_has_no_write_enabled_bootstrap_workflow() -> None:
