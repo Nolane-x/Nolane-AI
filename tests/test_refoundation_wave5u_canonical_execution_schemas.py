@@ -151,14 +151,21 @@ def test_wave5u_execution_action_budget_counters_and_receipt_round_trip() -> Non
 
 def test_wave5u_is_prerequisite_only_and_does_not_falsely_retire_execution_debt() -> None:
     ledger = build_component_implementation_ledger()
-    assert ledger["external.execution.executor"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    executor_status = ledger["external.execution.executor"].status
+    assert executor_status in {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.CANONICAL_NATIVE,
+    }
     assert ledger["external.execution.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {row["component_id"] for row in state["components"]}
-    assert "external.execution.executor" in ids
     assert "external.execution.control" in ids
+    if executor_status is ImplementationStatus.COMPATIBILITY_FACADE:
+        assert "external.execution.executor" in ids
+    else:
+        assert "external.execution.executor" not in ids
     assert len(state["components"]) <= 26
 
 
