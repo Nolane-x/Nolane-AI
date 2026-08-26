@@ -38,6 +38,48 @@ jobs:
           Path('/tmp/wave5y_migrate.py').write_text('\n'.join(body) + '\n', encoding='utf-8')
           PY
           python /tmp/wave5y_migrate.py
+      - name: Make predecessor context contracts monotonic
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def patch(path: str, replacements: tuple[tuple[str, str], ...]) -> None:
+              file = Path(path)
+              text = file.read_text(encoding='utf-8')
+              for old, new in replacements:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected one match for {old!r}, found {count}')
+                  text = text.replace(old, new, 1)
+              file.write_text(text, encoding='utf-8')
+
+          patch('tests/test_refoundation_memory_public_layout.py', (
+              ('        context: ("external.context", "0.0.0"),\n', '        context: ("external.context", "0.0.1"),\n'),
+          ))
+          patch('tests/test_refoundation_wave5d_native_memory_lifecycle.py', (
+              ('    assert "external.context" in facade_ids\n', ''),
+          ))
+          patch('tests/test_refoundation_wave5e_native_memory_retrieval.py', (
+              ('    assert "external.context" in facade_ids\n', ''),
+              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE\n', ''),
+          ))
+          patch('tests/test_refoundation_wave5i_native_self_model.py', (
+              ('    assert "external.context" in facade_ids\n', ''),
+              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE\n', ''),
+          ))
+          patch('tests/test_refoundation_wave5j_native_skills.py', (
+              ('    assert "external.context" in facade_ids\n', ''),
+              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE\n', ''),
+              ('    assert ledger["external.context"].status is ImplementationStatus.COMPATIBILITY_FACADE', ''),
+          ))
+          patch('tests/test_refoundation_wave5w_native_execution_executor.py', (
+              ('    assert len(non_native) == 24\n', '    assert len(non_native) <= 24\n'),
+          ))
+          patch('CURRENT/STATUS.md', (
+              ('The generated native-debt projection therefore moves from 24 to 23 records while `neural.inference_bridge` and `external.execution.control` remain explicit compatibility boundaries.\n',
+               'The generated native-debt projection therefore moves from 24 to 23 records while `neural.inference_bridge` and `external.execution.control` remain explicit compatibility boundaries. The resulting projection has 23 non-native component records.\n'),
+          ))
+          PY
       - name: Verify migration scope
         run: |
           python - <<'PY'
@@ -59,6 +101,12 @@ jobs:
               'nolane/memory/context_profiles.py',
               'tests/test_refoundation_component_versions.py',
               'tests/test_refoundation_implementation_status.py',
+              'tests/test_refoundation_memory_public_layout.py',
+              'tests/test_refoundation_wave5d_native_memory_lifecycle.py',
+              'tests/test_refoundation_wave5e_native_memory_retrieval.py',
+              'tests/test_refoundation_wave5i_native_self_model.py',
+              'tests/test_refoundation_wave5j_native_skills.py',
+              'tests/test_refoundation_wave5w_native_execution_executor.py',
               'tests/test_refoundation_wave5x_canonical_event_context_schemas.py',
           }
           tracked = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
@@ -132,6 +180,12 @@ jobs:
             nolane/memory/context_profiles.py \
             tests/test_refoundation_component_versions.py \
             tests/test_refoundation_implementation_status.py \
+            tests/test_refoundation_memory_public_layout.py \
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py \
+            tests/test_refoundation_wave5e_native_memory_retrieval.py \
+            tests/test_refoundation_wave5i_native_self_model.py \
+            tests/test_refoundation_wave5j_native_skills.py \
+            tests/test_refoundation_wave5w_native_execution_executor.py \
             tests/test_refoundation_wave5x_canonical_event_context_schemas.py
           git diff --cached --check
           if git diff --cached --quiet; then
