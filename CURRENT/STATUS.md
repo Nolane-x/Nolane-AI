@@ -26,6 +26,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5S candidate: `external.execution.workspace` -> native `nolane.external_core.execution_workspace`
 - Wave 5T candidate: `external.coding.claims` -> native `nolane.external_core.coding_claims`
 - Wave 5U prerequisite: canonical execution schemas -> `nolane.external_core.execution_types`
+- Wave 5V candidate: `external.coding.patches` -> native `nolane.external_core.coding_patches`
 
 The core requirements-to-integration chain remains:
 
@@ -35,13 +36,15 @@ Wave 5R opened the next dependency-safe extraction front with invokable-core sch
 
 Wave 5U moves the shared execution schemas (`ToolAction`, `ExecutionAction`, execution budgets/counters, inference requests, and decision receipts) from historical `cogcoder.organization.execution_types` to canonical `nolane.external_core.execution_types`, with canonical JSON/digest authority and exact historical object identity preserved. This is a prerequisite extraction rather than a semantic debt retirement: `external.execution.executor` and `external.execution.control` remain compatibility facades.
 
-The executor is intentionally not marked native yet. Its manifest dependency on `external.coding.claims` is resolved by Wave 5T and its shared action-schema dependency is resolved by Wave 5U, but the implementation still carries coupling to coding-patch receipt mirroring. That edge must be retargeted or separated before `external.execution.executor` can truthfully claim canonical authority.
+Wave 5V moves patch candidates, source-scope normalization, claim coverage, patch status, tool invocation receipts and patch-ledger snapshot authority from historical `cogcoder.organization.coding_patches` to canonical `nolane.external_core.coding_patches`. The canonical patch layer depends only on canonical coding claims and canonical digest identity; historical coding-patches imports preserve exact public object identity.
+
+The executor is intentionally not marked native in Wave 5V. Its manifest claim dependency is native from Wave 5T, its shared action schema is canonical from Wave 5U, and its mirrored coding-patch receipt dependency is canonical from Wave 5V. Those prerequisite blockers are now resolved, so the executor becomes the next dependency-safe cutover, but its own implementation still requires direct-import retargeting, exact historical bridge preservation and parity evidence before canonical authority can be claimed.
 
 ## Repository authority and remaining debt
 
 `CURRENT/REPOSITORY_AUTHORITY.md` defines repository precedence and quarantine semantics. `archive/INDEX.json` is the generated root-history census. `CURRENT/NATIVE_DEBT.json` / `.md` expose every canonical semantic component that is not yet `canonical_native`, so extraction can continue independently using local `0.0.N` component versions.
 
-Wave 5T removed only `external.coding.claims` from the Wave 5S debt set. Wave 5U canonicalizes shared execution schemas without introducing or retiring a semantic component record, so the generated debt projection remains at 26 non-native component records: 19 compatibility facades, 5 historical-only boundaries, 1 legacy-internal boundary, and 1 frozen neural asset. Execution executor/control, coding patches/control, context, assurance, operations, research, UI/UX, evaluation, neural inference and historical-only capability boundaries remain explicit debt until their own parity-tested extraction waves are accepted.
+Wave 5V retires `external.coding.patches`, the last legacy-internal component record in the Wave 5U debt set. The generated debt projection therefore contains 25 remaining non-native component records: 19 compatibility facades, 5 historical-only boundaries, and 1 frozen neural asset. Execution executor/control, coding control, context, assurance, operations, research, UI/UX, evaluation, neural inference and historical-only capability boundaries remain explicit debt until their own parity-tested extraction waves are accepted.
 
 The dependency graph and the actual import graph must both be clean before a boundary is cut over. In particular, Assurance and Individual Evolution currently expose hidden legacy import coupling beyond their high-level manifest edges; those surfaces must be retargeted or decomposed before authority migration rather than moved cosmetically.
 
