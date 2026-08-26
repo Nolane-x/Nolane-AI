@@ -241,6 +241,16 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/coding.py",),
         "Native coding assignment, source-claim, patch-readiness and personal-skill control plane over canonical profile, claim, patch, planning, architecture, skill, identity, task, event and digest authorities; historical coding module bridges exact semantic public identities.",
     ),
+    "external.debugging": (
+        "nolane.external_core.debugging",
+        (
+            "cogcoder/organization/debugging.py",
+            "cogcoder/organization/debug_evidence.py",
+            "cogcoder/organization/debug_hypotheses.py",
+            "cogcoder/organization/debug_profiles.py",
+        ),
+        "Native failure-case, reproduction/evidence, root-cause hypothesis, profile routing, coding handoff, resolution and personal-skill debugging authority over canonical coding, skills, identity, task, event and digest authorities; historical debugging modules bridge exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
