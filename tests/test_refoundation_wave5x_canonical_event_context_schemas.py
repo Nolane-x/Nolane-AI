@@ -77,12 +77,17 @@ def test_wave5x_prerequisite_contract_remains_monotonic_after_later_cutovers() -
         assert inference.canonical_module == "nolane.neural.inference_bridge"
         assert inference.canonical_write_authority
 
-    assert ledger["external.execution.control"].status is ImplementationStatus.COMPATIBILITY_FACADE
+    control = ledger["external.execution.control"]
+    assert control.status in {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.CANONICAL_NATIVE,
+    }
+    if control.status is ImplementationStatus.CANONICAL_NATIVE:
+        assert control.canonical_module == "nolane.external_core.execution"
+        assert control.canonical_write_authority
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
-    ids = {row["component_id"] for row in state["components"]}
-    assert "external.execution.control" in ids
     assert len(state["components"]) <= 24
 
 
