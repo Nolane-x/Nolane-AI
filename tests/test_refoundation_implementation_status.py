@@ -39,6 +39,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.integration",
     "external.invokable_cores",
     "external.execution.workspace",
+    "external.execution.executor",
     "external.coding.claims",
     "external.coding.patches",
 }
@@ -68,6 +69,8 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     assert ledger["external.invokable_cores"].canonical_write_authority
     assert ledger["external.execution.workspace"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.execution.workspace"].canonical_write_authority
+    assert ledger["external.execution.executor"].status is ImplementationStatus.CANONICAL_NATIVE
+    assert ledger["external.execution.executor"].canonical_write_authority
     assert ledger["external.coding.claims"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.coding.claims"].canonical_write_authority
     assert ledger["external.coding.patches"].status is ImplementationStatus.CANONICAL_NATIVE
