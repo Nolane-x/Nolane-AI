@@ -221,6 +221,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/execution_tools.py",),
         "Native fail-closed external-core executor over canonical artifact, identity, invokable-core, execution-schema/workspace, coding-claim/patch and digest authorities; historical execution-tools module bridges exact public identities.",
     ),
+    "external.execution.control": (
+        "nolane.external_core.execution",
+        ("cogcoder/organization/execution.py",),
+        "Native bounded execution-session control plane over canonical inference, executor, workspace, artifact, identity, task and execution-schema authorities; historical execution module bridges exact semantic public identities.",
+    ),
     "external.coding.claims": (
         "nolane.external_core.coding_claims",
         ("cogcoder/organization/code_claims.py",),
@@ -234,7 +239,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
-        "Native versioned context-to-neural inference adapter over canonical execution schemas, context, identity and digest authority; historical execution-inference module bridges exact public identities while execution control remains a separate compatibility boundary.",
+        "Native versioned context-to-neural inference adapter over canonical execution schemas, context, identity and digest authority; historical execution-inference module bridges exact public identities while execution control is independently versioned.",
     ),
     "external.verification": (
         "nolane.external_core.verification",
