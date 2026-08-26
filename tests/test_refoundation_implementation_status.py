@@ -41,6 +41,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.invokable_cores",
     "external.execution.workspace",
     "external.execution.executor",
+    "external.execution.control",
     "external.coding.claims",
     "external.coding.patches",
     "neural.inference_bridge",
@@ -61,24 +62,19 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     for component_id in ACCEPTED_CANONICAL_NATIVE_COMPONENTS:
         assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
 
-    assert ledger["external.context"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.context"].canonical_write_authority
-    assert ledger["external.architecture"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.architecture"].canonical_write_authority
-    assert ledger["external.integration"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.integration"].canonical_write_authority
-    assert ledger["external.invokable_cores"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.invokable_cores"].canonical_write_authority
-    assert ledger["external.execution.workspace"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.execution.workspace"].canonical_write_authority
-    assert ledger["external.execution.executor"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.execution.executor"].canonical_write_authority
-    assert ledger["external.coding.claims"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.coding.claims"].canonical_write_authority
-    assert ledger["external.coding.patches"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.coding.patches"].canonical_write_authority
-    assert ledger["neural.inference_bridge"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["neural.inference_bridge"].canonical_write_authority
+    for component_id in (
+        "external.context",
+        "external.architecture",
+        "external.integration",
+        "external.invokable_cores",
+        "external.execution.workspace",
+        "external.execution.executor",
+        "external.execution.control",
+        "external.coding.claims",
+        "external.coding.patches",
+        "neural.inference_bridge",
+    ):
+        assert ledger[component_id].canonical_write_authority
 
 
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
