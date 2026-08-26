@@ -4,8 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from nolane.schemas.identity import PHYSICAL_PARAMETER_CEILING
-from cogcoder.organization.types import EventKind
-from nolane.organization.events import EventLedger
+from nolane.organization.events import EventKind, EventLedger
 from nolane.organization.identity import AgentRegistry
 
 
