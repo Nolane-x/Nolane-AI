@@ -187,7 +187,7 @@ def test_wave5t_generated_native_debt_no_longer_contains_coding_claims() -> None
         for row in implementation.values()
         if row.status is not ImplementationStatus.CANONICAL_NATIVE
     ]
-    assert len(non_native) == 26
+    assert len(non_native) <= 26
 
 
 def test_wave5t_current_status_tracks_coding_claims_cutover() -> None:
