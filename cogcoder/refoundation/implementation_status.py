@@ -210,6 +210,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/code_claims.py",),
         "Native exclusive source-mutation claim scope, conflict detection, release/abort authority and fail-closed snapshot restoration; historical code-claims module bridges exact public identities.",
     ),
+    "external.coding.patches": (
+        "nolane.external_core.coding_patches",
+        ("cogcoder/organization/coding_patches.py",),
+        "Native patch candidates, claim-covered source scopes, content-addressed tool invocation receipts and fail-closed patch-ledger restoration over canonical coding-claim and digest authority; historical coding-patches module bridges exact public identities.",
+    ),
     "external.verification": (
         "nolane.external_core.verification",
         ("cogcoder/organization/verification.py",),
@@ -229,9 +234,7 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
     "neural.shared": ("model/neural-r2.3",),
 }
 
-_LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
-    "external.coding.patches": ("cogcoder/organization/coding.py",),
-}
+_LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {}
 
 
 def build_component_implementation_ledger() -> dict[str, ComponentImplementationRecord]:
