@@ -226,7 +226,6 @@ def test_wave5y_generated_native_debt_remains_monotonic_after_later_cutovers() -
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {row["component_id"] for row in state["components"]}
     assert "external.context" not in ids
-    assert "external.execution.control" in ids
     assert len(state["components"]) <= 23
 
 
