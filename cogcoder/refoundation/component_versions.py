@@ -46,6 +46,7 @@ _COMPONENT_REVISIONS.update(
         "external.coding.patches": 1,
         "external.coding.control": 1,
         "external.debugging": 1,
+        "external.ui_ux": 1,
         "neural.inference_bridge": 1,
     }
 )

@@ -251,6 +251,17 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native failure-case, reproduction/evidence, root-cause hypothesis, profile routing, coding handoff, resolution and personal-skill debugging authority over canonical coding, skills, identity, task, event and digest authorities; historical debugging modules bridge exact semantic public identities.",
     ),
+    "external.ui_ux": (
+        "nolane.external_core.ui_ux",
+        (
+            "cogcoder/organization/ui.py",
+            "cogcoder/organization/ui_coding.py",
+            "cogcoder/organization/ui_design.py",
+            "cogcoder/organization/ui_observations.py",
+            "cogcoder/organization/ui_profiles.py",
+        ),
+        "Native UI/UX assignment, cross-region coding grant, render observation, authoritative UX flow, quality/readiness and personal-skill control authority over canonical coding, artifacts, skills, identity, authority, events and digest dependencies; historical UI modules bridge exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
