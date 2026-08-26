@@ -40,6 +40,7 @@ _COMPONENT_REVISIONS.update(
         "external.invokable_cores": 1,
         "external.execution.workspace": 1,
         "external.coding.claims": 1,
+        "external.coding.patches": 1,
     }
 )
 
