@@ -1,5 +1,5 @@
-from cogcoder.organization.memory_context import *
-from cogcoder.organization.memory_context import MemoryContextControlPlane
+from nolane.memory.context import *
+from nolane.memory.context import MemoryContextControlPlane
 
 COMPONENT_ID = "external.context.intelligence"
 COMPONENT_VERSION = "0.0.0"
