@@ -41,6 +41,7 @@ _COMPONENT_REVISIONS.update(
         "external.invokable_cores": 1,
         "external.execution.workspace": 1,
         "external.execution.executor": 1,
+        "external.execution.control": 1,
         "external.coding.claims": 1,
         "external.coding.patches": 1,
         "neural.inference_bridge": 1,
