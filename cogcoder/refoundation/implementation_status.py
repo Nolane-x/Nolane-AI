@@ -205,6 +205,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/execution_workspace.py",),
         "Native isolated Git-worktree workspace authority over canonical digest identity with bounded command execution, path confinement and exact historical object bridge.",
     ),
+    "external.execution.executor": (
+        "nolane.external_core.execution_executor",
+        ("cogcoder/organization/execution_tools.py",),
+        "Native fail-closed external-core executor over canonical artifact, identity, invokable-core, execution-schema/workspace, coding-claim/patch and digest authorities; historical execution-tools module bridges exact public identities.",
+    ),
     "external.coding.claims": (
         "nolane.external_core.coding_claims",
         ("cogcoder/organization/code_claims.py",),
