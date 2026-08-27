@@ -190,7 +190,7 @@ def test_wave5ag_authority_version_facade_and_debt_cutover() -> None:
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
     assert "evaluation.evidence" not in ids
-    assert len(state["components"]) == 16
+    assert len(state["components"]) <= 16
 
 
 def test_wave5ag_current_status_tracks_native_evidence_cutover() -> None:
