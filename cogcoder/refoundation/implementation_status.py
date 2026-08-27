@@ -267,6 +267,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/evaluation_regimes.py",),
         "Native benchmark regime, budget, freshness, provenance and evaluation-mode registry authority over canonical digest identity; historical evaluation-regimes module bridges exact public identities.",
     ),
+    "evaluation.evidence": (
+        "nolane.evaluation.evidence",
+        ("cogcoder/organization/evaluation_evidence.py",),
+        "Native evaluation observation, matched-budget comparison, organization-superiority, ablation and evidence-ledger authority over canonical regime, identity, verification-evidence and digest dependencies; historical evaluation-evidence module bridges exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
