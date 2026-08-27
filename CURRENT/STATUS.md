@@ -41,6 +41,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5AH candidate: `evaluation.stress` -> native `nolane.evaluation.stress`
 - Wave 5AI candidate: `evaluation.claims` -> native `nolane.evaluation.claims`
 - Wave 5AJ candidate: `evaluation.parameters` -> native `nolane.evaluation.parameters`
+- Wave 5AK candidate: `evaluation.release` -> native `nolane.evaluation.release`
 
 The core requirements-to-integration chain remains:
 
@@ -79,6 +80,8 @@ Wave 5AH retires `evaluation.stress` by moving long-horizon stress scenarios, ob
 Wave 5AI retires `evaluation.claims` by moving claim classification, immutable claim/readiness receipts and the claim-boundary control engine under native `nolane.evaluation.claims` ownership. The canonical claims layer resolves evaluation evidence, benchmark regimes, long-horizon stress, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_claims` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 15 to 14 non-native component records.
 
 Wave 5AJ retires `evaluation.parameters` by moving physical/logical parameter-footprint accounting, scaling proposal receipts, evidence-governed efficiency checks and scaling-decision authority under native `nolane.evaluation.parameters` ownership. The canonical parameters layer resolves evaluation evidence, benchmark provenance, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_parameters` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 14 to 13 non-native component records and unblocks a truthful later `evaluation.release` cutover.
+
+Wave 5AK retires `evaluation.release` by moving release receipts, aggregate evaluation provenance, reproduction receipts and external-reproducibility validation under native `nolane.evaluation.release` ownership. The canonical release layer resolves artifacts, evaluation evidence, parameter accounting, benchmark regimes, stress evidence, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_release` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 13 to 12 non-native component records.
 
 ## Repository authority and remaining debt
 
