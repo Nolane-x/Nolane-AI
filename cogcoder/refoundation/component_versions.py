@@ -49,6 +49,7 @@ _COMPONENT_REVISIONS.update(
         "external.ui_ux": 1,
         "evaluation.regimes": 1,
         "evaluation.evidence": 1,
+        "evaluation.stress": 1,
         "neural.inference_bridge": 1,
     }
 )
