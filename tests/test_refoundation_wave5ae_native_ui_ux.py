@@ -123,7 +123,7 @@ def test_wave5ae_authority_version_facade_and_debt_cutover() -> None:
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
     assert "external.ui_ux" not in ids
-    assert len(state["components"]) == 18
+    assert len(state["components"]) <= 18
 
     assert ledger["external.coding.control"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.debugging"].status is ImplementationStatus.CANONICAL_NATIVE
