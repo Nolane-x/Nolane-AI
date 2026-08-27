@@ -48,6 +48,7 @@ _COMPONENT_REVISIONS.update(
         "external.debugging": 1,
         "external.ui_ux": 1,
         "evaluation.regimes": 1,
+        "evaluation.evidence": 1,
         "neural.inference_bridge": 1,
     }
 )
