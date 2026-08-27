@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
-from cogcoder.organization.types import EventKind
+from nolane.organization.events import EventKind
 from nolane.external_core.invokable import ExternalCoreRegistry
 from nolane.organization.identity import AgentRegistry
 

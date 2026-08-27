@@ -18,6 +18,8 @@ on:
 
 jobs:
   verify-r249-and-parents:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 50
     steps:

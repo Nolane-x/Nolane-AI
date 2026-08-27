@@ -49,13 +49,19 @@ class ComponentImplementationRecord:
 
 
 _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
+    "core.canonical_digest": (
+        "nolane.core.canonical_digest",
+        ("cogcoder/organization/types.py",),
+        "Native canonical JSON serialization and SHA-256 content identity; mixed historical types module bridges the two helper identities while unrelated schemas remain explicit debt.",
+    ),
+    "schemas.identity": (
+        "nolane.schemas.identity",
+        ("cogcoder/organization/types.py",),
+        "Native permanent identity rank/status/parameter/namespace schema unit; mixed historical types module bridges exact objects while event/context/skill schemas remain separate debt.",
+    ),
     "organization.identity": (
         "nolane.organization.identity",
-        (
-            "cogcoder/organization/registry.py",
-            "cogcoder/organization/blueprint.py",
-            "cogcoder/organization/types.py",
-        ),
+        ("cogcoder/organization/registry.py", "cogcoder/organization/blueprint.py", "cogcoder/organization/types.py"),
         "Canonical 67-identity manifest authority plus native AgentRegistry implementation; historical registry is a compatibility bridge and blueprint remains a parity oracle.",
     ),
     "organization.authority": (
@@ -66,12 +72,12 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "organization.events": (
         "nolane.organization.events",
         ("cogcoder/organization/events.py",),
-        "Native causal event ledger, subscriptions, delivery and state round-trip; historical module bridges to canonical class identity.",
+        "Native EventKind/CognitiveEvent schema authority plus causal event ledger, subscriptions, delivery and state round-trip; historical events and mixed types surfaces bridge exact canonical identities.",
     ),
     "organization.tasks": (
         "nolane.organization.tasks",
         ("cogcoder/organization/tasks.py",),
-        "Native task DAG, task mutation and execution projection; historical tasks module is a compatibility bridge.",
+        "Native task DAG and execution projection; plan revision is now a read-only projection of external.planning authority, while the historical tasks module remains a compatibility bridge.",
     ),
     "organization.lifecycle": (
         "nolane.organization.lifecycle",
@@ -119,11 +125,171 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/foundry.py", "cogcoder/organization/foundry_profiles.py", "cogcoder/organization/foundry_resources.py"),
         "Canonical non-agent Work Unit API over accepted bounded Foundry lifecycle/resource/evidence implementation.",
     ),
+    "external.artifacts": (
+        "nolane.external_core.artifacts",
+        ("cogcoder/organization/artifacts.py",),
+        "Native content-addressed artifact records/store with deterministic evidence ordering, metadata encoding and state round-trip; historical artifact module is a compatibility bridge.",
+    ),
+    "external.evidence": (
+        "nolane.external_core.evidence",
+        ("cogcoder/organization/types.py",),
+        "Native verification evidence primitive with preserved historical import identity and state semantics; mixed historical types module bridges to canonical class authority.",
+    ),
+    "external.experience": (
+        "nolane.memory.experience",
+        ("cogcoder/organization/experience.py",),
+        "Native identity-owned experience and evidence-governed attribution ledger over canonical Identity, Events, Evidence and digest primitives; historical experience module bridges all public object identities.",
+    ),
+    "external.self_model": (
+        "nolane.external_core.self_model",
+        ("cogcoder/organization/self_model.py",),
+        "Native evidence-gated permanent-agent self-model registry with preserved initialization, revision and state semantics; historical module bridges both public object identities.",
+    ),
+    "external.skills": (
+        "nolane.memory.skills",
+        ("cogcoder/organization/evolution.py", "cogcoder/organization/types.py"),
+        "Native skill scope, deterministic skill records and evidence-governed promotion/quarantine/visibility engine; historical evolution and mixed types surfaces bridge exact canonical identities without whole-file types ownership.",
+    ),
+    "external.memory.fabric": (
+        "nolane.memory.fabric",
+        ("cogcoder/organization/memory.py", "cogcoder/organization/types.py"),
+        "Native scoped memory schema and fabric with preserved visibility, promotion, lifecycle-status mutation and state round-trip; historical memory/types surfaces bridge to canonical authority.",
+    ),
+    "external.memory.lifecycle": (
+        "nolane.memory.lifecycle",
+        ("cogcoder/organization/memory_lifecycle.py",),
+        "Native governed memory lifecycle receipts and semantic relation graph with canonical Memory/Identity/Event dependencies; historical lifecycle module bridges all public object identities.",
+    ),
+    "external.memory.retrieval": (
+        "nolane.memory.retrieval",
+        ("cogcoder/organization/memory_retrieval.py",),
+        "Native bounded memory selection budget, receipt and retrieval engine over canonical Memory Fabric and Lifecycle relation graph; historical retrieval module bridges all public object identities.",
+    ),
+    "external.knowledge": (
+        "nolane.memory.knowledge",
+        ("cogcoder/knowledge_types.py", "cogcoder/knowledge_store.py", "cogcoder/knowledge_ledger.py", "cogcoder/knowledge_adapters.py"),
+        "Native provenance-aware deterministic Knowledge fabric reconstructed from the dedicated R2 types/store/ledger/adapters lineage; historical modules bridge exact public identities while R2.54 Cognitive Retrieval remains outside this ownership boundary.",
+    ),
+    "external.epistemic": (
+        "nolane.external_core.epistemic",
+        ("cogcoder/epistemic_workspace.py",),
+        "Native version-aware evidence workspace with fail-closed provenance, source/version supersession, corroboration, contested beliefs, conflicts and narrow missing-query generation; historical R2.2 module bridges exact public identities.",
+    ),
+    "external.requirements": (
+        "nolane.external_core.requirements",
+        ("cogcoder/organization/requirements.py",),
+        "Native evidence-bearing requirement graph, revision and Requirements Chief authority with deterministic digest/state semantics; historical organization module bridges exact public object identities.",
+    ),
+    "external.planning": (
+        "nolane.external_core.planning",
+        ("cogcoder/organization/planning.py",),
+        "Native evidence-bearing master plan graph and Planning authority with deterministic revision, rollback, gap, task-link and delta semantics; TaskGraph receives a read-only revision projection and historical Planning bridges exact public identities.",
+    ),
+    "external.architecture": (
+        "nolane.external_core.architecture",
+        ("cogcoder/organization/architecture.py",),
+        "Native evidence-bearing Architecture graph and control plane with deterministic revisions, canonical digests, atomic dependency validation, exact state restoration and owner-gated writes; historical Architecture bridges exact public identities.",
+    ),
+    "external.integration": (
+        "nolane.external_core.integration",
+        ("cogcoder/organization/integration.py",),
+        "Native evidence-gated Integration candidate graph and control plane with deterministic dependency ordering, stale-architecture protection, compatibility/dependency/conflict gates, canonical receipt digests and exact state restoration; historical Integration bridges exact public identities.",
+    ),
+    "external.invokable_cores": (
+        "nolane.external_core.invokable",
+        ("cogcoder/organization/external_core.py",),
+        "Native invokable-core schema and registry over canonical AgentRegistry authority with deterministic state round-trip and fail-closed conflicting registration; historical External Core module bridges exact public identities.",
+    ),
+    "external.context": (
+        "nolane.memory.context",
+        (
+            "cogcoder/organization/context.py",
+            "cogcoder/organization/context_intelligence.py",
+            "cogcoder/organization/memory_profiles.py",
+            "cogcoder/organization/memory_context.py",
+            "cogcoder/organization/memory_context_adapter.py",
+        ),
+        "Native bounded base context compiler, semantic delta/continuity intelligence, Memory/Context profile routing, contradiction-repair control plane and memory-aware adapter over canonical event, identity, memory, lifecycle, retrieval, skill, task and digest authorities; historical context modules bridge exact semantic public identities.",
+    ),
+    "external.execution.workspace": (
+        "nolane.external_core.execution_workspace",
+        ("cogcoder/organization/execution_workspace.py",),
+        "Native isolated Git-worktree workspace authority over canonical digest identity with bounded command execution, path confinement and exact historical object bridge.",
+    ),
+    "external.execution.executor": (
+        "nolane.external_core.execution_executor",
+        ("cogcoder/organization/execution_tools.py",),
+        "Native fail-closed external-core executor over canonical artifact, identity, invokable-core, execution-schema/workspace, coding-claim/patch and digest authorities; historical execution-tools module bridges exact public identities.",
+    ),
+    "external.execution.control": (
+        "nolane.external_core.execution",
+        ("cogcoder/organization/execution.py",),
+        "Native bounded execution-session control plane over canonical inference, executor, workspace, artifact, identity, task and execution-schema authorities; historical execution module bridges exact semantic public identities.",
+    ),
+    "external.coding.claims": (
+        "nolane.external_core.coding_claims",
+        ("cogcoder/organization/code_claims.py",),
+        "Native exclusive source-mutation claim scope, conflict detection, release/abort authority and fail-closed snapshot restoration; historical code-claims module bridges exact public identities.",
+    ),
+    "external.coding.patches": (
+        "nolane.external_core.coding_patches",
+        ("cogcoder/organization/coding_patches.py",),
+        "Native patch candidates, claim-covered source scopes, content-addressed tool invocation receipts and fail-closed patch-ledger restoration over canonical coding-claim and digest authority; historical coding-patches module bridges exact public identities.",
+    ),
+    "external.coding.control": (
+        "nolane.external_core.coding",
+        ("cogcoder/organization/coding.py",),
+        "Native coding assignment, source-claim, patch-readiness and personal-skill control plane over canonical profile, claim, patch, planning, architecture, skill, identity, task, event and digest authorities; historical coding module bridges exact semantic public identities.",
+    ),
+    "external.debugging": (
+        "nolane.external_core.debugging",
+        (
+            "cogcoder/organization/debugging.py",
+            "cogcoder/organization/debug_evidence.py",
+            "cogcoder/organization/debug_hypotheses.py",
+            "cogcoder/organization/debug_profiles.py",
+        ),
+        "Native failure-case, reproduction/evidence, root-cause hypothesis, profile routing, coding handoff, resolution and personal-skill debugging authority over canonical coding, skills, identity, task, event and digest authorities; historical debugging modules bridge exact semantic public identities.",
+    ),
+    "external.ui_ux": (
+        "nolane.external_core.ui_ux",
+        (
+            "cogcoder/organization/ui.py",
+            "cogcoder/organization/ui_coding.py",
+            "cogcoder/organization/ui_design.py",
+            "cogcoder/organization/ui_observations.py",
+            "cogcoder/organization/ui_profiles.py",
+        ),
+        "Native UI/UX assignment, cross-region coding grant, render observation, authoritative UX flow, quality/readiness and personal-skill control authority over canonical coding, artifacts, skills, identity, authority, events and digest dependencies; historical UI modules bridge exact semantic public identities.",
+    ),
+    "evaluation.regimes": (
+        "nolane.evaluation.regimes",
+        ("cogcoder/organization/evaluation_regimes.py",),
+        "Native benchmark regime, budget, freshness, provenance and evaluation-mode registry authority over canonical digest identity; historical evaluation-regimes module bridges exact public identities.",
+    ),
+    "evaluation.evidence": (
+        "nolane.evaluation.evidence",
+        ("cogcoder/organization/evaluation_evidence.py",),
+        "Native evaluation observation, matched-budget comparison, organization-superiority, ablation and evidence-ledger authority over canonical regime, identity, verification-evidence and digest dependencies; historical evaluation-evidence module bridges exact semantic public identities.",
+    ),
+    "evaluation.stress": (
+        "nolane.evaluation.stress",
+        ("cogcoder/organization/evaluation_stress.py",),
+        "Native long-horizon stress scenario, observation, suite-assessment and ledger authority over canonical identity, verification-evidence and digest dependencies; historical evaluation-stress module bridges exact semantic public identities.",
+    ),
+    "neural.inference_bridge": (
+        "nolane.neural.inference_bridge",
+        ("cogcoder/organization/execution_inference.py",),
+        "Native versioned context-to-neural inference adapter over canonical execution schemas, context, identity and digest authority; historical execution-inference module bridges exact public identities while execution control is independently versioned.",
+    ),
+    "external.verification": (
+        "nolane.external_core.verification",
+        ("cogcoder/organization/verification.py",),
+        "Native bounded candidate evaluation, promotion and rollback authority over canonical identity/event primitives; historical verification module is a compatibility bridge.",
+    ),
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.knowledge": ("historical R2 mechanisms; no dedicated current organization implementation",),
-    "external.epistemic": ("historical R2 mechanisms; no dedicated current organization implementation",),
     "external.cognitive_library": ("historical reusable cognitive mechanisms; extraction not yet accepted",),
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
     "external.causal": ("historical bounded causal programs; not a current dedicated organization component",),
@@ -135,13 +301,7 @@ _FROZEN_ASSET: dict[str, tuple[str, ...]] = {
     "neural.shared": ("model/neural-r2.3",),
 }
 
-_LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {
-    "core.canonical_digest": ("cogcoder/organization/types.py",),
-    "schemas.identity": ("cogcoder/organization/types.py",),
-    "external.evidence": ("cogcoder/organization/types.py", "cogcoder/organization/verification.py"),
-    "external.coding.claims": ("cogcoder/organization/coding_claims.py",),
-    "external.coding.patches": ("cogcoder/organization/coding.py",),
-}
+_LEGACY_SOURCE_HINTS: dict[str, tuple[str, ...]] = {}
 
 
 def build_component_implementation_ledger() -> dict[str, ComponentImplementationRecord]:

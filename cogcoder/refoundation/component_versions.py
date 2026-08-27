@@ -6,20 +6,51 @@ from .versioning import ComponentVersion
 
 # Each component owns its own patch-level revision counter. Epoch 0 bootstraps
 # every component at 0.0.0; accepted native extractions advance only the
-# components whose implementation authority actually moved.
+# components whose implementation authority or accepted local semantics moved.
 _COMPONENT_REVISIONS: dict[str, int] = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}
 _COMPONENT_REVISIONS.update(
     {
+        "core.canonical_digest": 1,
+        "schemas.identity": 1,
         "organization.identity": 1,
         "organization.authority": 1,
-        "organization.events": 1,
-        "organization.tasks": 1,
+        "organization.events": 2,
+        "organization.tasks": 2,
         "organization.lifecycle": 1,
         "organization.coordination.leases": 1,
         "organization.coordination.delivery": 1,
         "organization.coordination.conflicts": 1,
         "organization.coordination": 1,
         "organization.central": 1,
+        "external.artifacts": 1,
+        "external.verification": 1,
+        "external.evidence": 1,
+        "external.experience": 1,
+        "external.self_model": 1,
+        "external.skills": 1,
+        "external.memory.fabric": 1,
+        "external.memory.lifecycle": 1,
+        "external.memory.retrieval": 1,
+        "external.knowledge": 1,
+        "external.epistemic": 1,
+        "external.requirements": 1,
+        "external.planning": 1,
+        "external.architecture": 1,
+        "external.integration": 1,
+        "external.context": 1,
+        "external.invokable_cores": 1,
+        "external.execution.workspace": 1,
+        "external.execution.executor": 1,
+        "external.execution.control": 1,
+        "external.coding.claims": 1,
+        "external.coding.patches": 1,
+        "external.coding.control": 1,
+        "external.debugging": 1,
+        "external.ui_ux": 1,
+        "evaluation.regimes": 1,
+        "evaluation.evidence": 1,
+        "evaluation.stress": 1,
+        "neural.inference_bridge": 1,
     }
 )
 

@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'CURRENT/**'
+      - 'archive/**'
       - 'shared/**'
       - 'regions/**'
       - 'ai/**'
       - 'cogcoder/refoundation/**'
       - 'nolane/**'
+      - 'nolane/repository/**'
       - 'tests/test_refoundation_*.py'
       - 'docs/refoundation/**'
       - 'docs/superpowers/specs/*refoundation*'
@@ -39,6 +41,17 @@ jobs:
         run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
       - name: Verify 67 AI resolved dossiers are fresh
         run: python -m nolane.ai.materialize --check
+      - name: Verify repository quarantine audit is fresh
+        run: python -m nolane.repository.audit --check
+      - name: Upload Wave 5O generated audit carrier
+        uses: actions/upload-artifact@v4
+        with:
+          name: refoundation-wave5o-audit-py${{ matrix.python-version }}
+          path: |
+            CURRENT/NATIVE_DEBT.json
+            CURRENT/NATIVE_DEBT.md
+            archive/INDEX.json
+          if-no-files-found: error
       - name: Run Refoundation Epoch 0 contracts
         run: python -m pytest -q tests/test_refoundation_*.py
       - name: Generate zero-loss evidence bundle

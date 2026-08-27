@@ -40,8 +40,12 @@ def test_task_control_components_are_native_and_independently_versioned() -> Non
         assert row.status is ImplementationStatus.CANONICAL_NATIVE
         assert row.canonical_module == module
         assert row.canonical_write_authority
-        assert row.component_version == "0.0.1"
-        assert str(component_version(component_id)) == "0.0.1"
+        version = component_version(component_id)
+        assert row.component_version == str(version)
+        # Wave 2b proved each task-control component advanced beyond bootstrap.
+        # Later accepted local semantic migrations may increment an individual
+        # component without invalidating the Wave 2b extraction receipt.
+        assert version.revision >= 1
 
 
 def test_task_lifecycle_coordination_are_not_compatibility_facades() -> None:

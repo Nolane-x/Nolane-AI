@@ -4,7 +4,7 @@ import importlib
 from dataclasses import dataclass
 from typing import Any
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 
 @dataclass(frozen=True, slots=True)
@@ -58,35 +58,11 @@ class FacadeParityReport:
 
 def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
-        FacadeBinding("external.artifacts", "nolane.external_core.artifacts", "cogcoder.organization.artifacts", ("ArtifactStore",)),
-        FacadeBinding("external.memory.fabric", "nolane.memory.fabric", "cogcoder.organization.memory", ("MemoryFabric",)),
-        FacadeBinding("external.memory.lifecycle", "nolane.memory.lifecycle", "cogcoder.organization.memory_lifecycle", ("MemoryLifecycleLedger", "MemoryRelationGraph")),
-        FacadeBinding("external.memory.retrieval", "nolane.memory.retrieval", "cogcoder.organization.memory_retrieval", ("MemoryRetrievalBudget", "MemoryRetrievalEngine")),
-        FacadeBinding("external.context", "nolane.memory.context", "cogcoder.organization.memory_context", ("MemoryContextControlPlane",)),
-        FacadeBinding("external.experience", "nolane.memory.experience", "cogcoder.organization.experience", ("ExperienceLedger",)),
-        FacadeBinding("external.skills", "nolane.memory.skills", "cogcoder.organization.evolution", ("SkillEvolutionEngine",)),
         FacadeBinding("external.individual_evolution", "nolane.external_core.individual_evolution", "cogcoder.organization.individual_evolution", ("IndividualEvolutionControlPlane",)),
-        FacadeBinding("external.verification", "nolane.external_core.verification", "cogcoder.organization.verification", ("VerificationAuthority",)),
-        FacadeBinding("external.self_model", "nolane.external_core.self_model", "cogcoder.organization.self_model", ("SelfModelRegistry",)),
-        FacadeBinding("external.requirements", "nolane.external_core.requirements", "cogcoder.organization.requirements", ("RequirementsControlPlane",)),
-        FacadeBinding("external.planning", "nolane.external_core.planning", "cogcoder.organization.planning", ("PlanningControlPlane",)),
-        FacadeBinding("external.architecture", "nolane.external_core.architecture", "cogcoder.organization.architecture", ("ArchitectureControlPlane",)),
-        FacadeBinding("external.integration", "nolane.external_core.integration", "cogcoder.organization.integration", ("IntegrationControlPlane",)),
-        FacadeBinding("external.coding.control", "nolane.external_core.coding", "cogcoder.organization.coding", ("CodingControlPlane",)),
-        FacadeBinding("external.debugging", "nolane.external_core.debugging", "cogcoder.organization.debugging", ("DebugControlPlane",)),
-        FacadeBinding("external.ui_ux", "nolane.external_core.ui_ux", "cogcoder.organization.ui", ("UIControlPlane",)),
         FacadeBinding("external.assurance", "nolane.external_core.assurance", "cogcoder.organization.assurance", ("AssuranceControlPlane",)),
         FacadeBinding("external.operations", "nolane.external_core.operations", "cogcoder.organization.operations", ("OperationsControlPlane",)),
         FacadeBinding("external.research", "nolane.external_core.research", "cogcoder.organization.research", ("ResearchControlPlane",)),
-        FacadeBinding("external.invokable_cores", "nolane.external_core.invokable", "cogcoder.organization.external_core", ("ExternalCoreRegistry",)),
-        FacadeBinding("external.execution.control", "nolane.external_core.execution", "cogcoder.organization.execution", ("OrganizationExecutionControlPlane",)),
-        FacadeBinding("external.execution.workspace", "nolane.external_core.execution_workspace", "cogcoder.organization.execution_workspace", ("RepositoryWorkspace",)),
-        FacadeBinding("external.execution.executor", "nolane.external_core.execution_executor", "cogcoder.organization.execution_tools", ("ExternalCoreExecutor",)),
-        FacadeBinding("neural.inference_bridge", "nolane.neural.inference_bridge", "cogcoder.organization.execution_inference", ("R23InferenceBackend",)),
         FacadeBinding("evaluation.scaling", "nolane.evaluation.scaling", "cogcoder.organization.evaluation", ("EvaluationScalingControlPlane",)),
-        FacadeBinding("evaluation.regimes", "nolane.evaluation.regimes", "cogcoder.organization.evaluation_regimes", ("BenchmarkRegimeRegistry",)),
-        FacadeBinding("evaluation.evidence", "nolane.evaluation.evidence", "cogcoder.organization.evaluation_evidence", ("EvaluationEvidenceLedger",)),
-        FacadeBinding("evaluation.stress", "nolane.evaluation.stress", "cogcoder.organization.evaluation_stress", ("LongHorizonStressLedger",)),
         FacadeBinding("evaluation.parameters", "nolane.evaluation.parameters", "cogcoder.organization.evaluation_parameters", ("ParameterScalingAuthority",)),
         FacadeBinding("evaluation.release", "nolane.evaluation.release", "cogcoder.organization.evaluation_release", ("EvaluationReleaseLedger",)),
         FacadeBinding("evaluation.claims", "nolane.evaluation.claims", "cogcoder.organization.evaluation_claims", ("ClaimBoundaryEngine",)),

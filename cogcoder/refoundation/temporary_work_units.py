@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from cogcoder.organization.foundry_profiles import EphemeralIdentityManifest
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 
 @dataclass(frozen=True, slots=True)

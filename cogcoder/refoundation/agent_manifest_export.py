@@ -4,7 +4,7 @@ import argparse
 import json
 from pathlib import Path
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .manifests import FIRST_GENERATION_SNAPSHOT, build_bootstrap_agent_manifests
 

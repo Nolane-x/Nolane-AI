@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .census import CensusKind, RepositoryCensus, SourceCensusRecord
 from .facades import build_active_facade_bindings
@@ -30,6 +30,21 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/organization/central_conflicts.py": "nolane/organization/central_conflicts.py",
     "cogcoder/organization/central_resources.py": "nolane/organization/central_resources.py",
     "cogcoder/organization/central_state.py": "nolane/organization/central_state.py",
+    "cogcoder/organization/artifacts.py": "nolane/external_core/artifacts.py",
+    "cogcoder/organization/verification.py": "nolane/external_core/verification.py",
+    "cogcoder/organization/experience.py": "nolane/memory/experience.py",
+    "cogcoder/organization/self_model.py": "nolane/external_core/self_model.py",
+    "cogcoder/organization/evolution.py": "nolane/memory/skills.py",
+    "cogcoder/organization/memory.py": "nolane/memory/fabric.py",
+    "cogcoder/organization/memory_lifecycle.py": "nolane/memory/lifecycle.py",
+    "cogcoder/organization/memory_retrieval.py": "nolane/memory/retrieval.py",
+    "cogcoder/knowledge_types.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_store.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_ledger.py": "nolane/memory/knowledge.py",
+    "cogcoder/knowledge_adapters.py": "nolane/memory/knowledge.py",
+    "cogcoder/epistemic_workspace.py": "nolane/external_core/epistemic.py",
+    "cogcoder/organization/execution.py": "nolane/external_core/execution.py",
+    "cogcoder/organization/execution_inference.py": "nolane/neural/inference_bridge.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",
 }
 

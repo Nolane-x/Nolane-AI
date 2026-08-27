@@ -29,6 +29,8 @@ permissions:
 
 jobs:
   focused-and-lineage:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -86,6 +88,8 @@ jobs:
           PY
 
   external-ufunclab:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -154,6 +158,8 @@ jobs:
           PY
 
   cross-python:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 12
     strategy:

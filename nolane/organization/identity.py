@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any, Iterable, Mapping
 
-from cogcoder.organization.types import AgentIdentity, AgentStatus
+from nolane.schemas.identity import AgentIdentity, AgentStatus
 
 COMPONENT_ID = "organization.identity"
 COMPONENT_VERSION = "0.0.1"

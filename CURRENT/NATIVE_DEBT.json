@@ -1,0 +1,177 @@
+{
+  "components": [
+    {
+      "canonical_module": "nolane.evaluation.campaign",
+      "canonical_write_authority": false,
+      "component_id": "evaluation.campaign",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/campaign.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.evaluation.claims",
+      "canonical_write_authority": false,
+      "component_id": "evaluation.claims",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/evaluation_claims.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.evaluation.parameters",
+      "canonical_write_authority": false,
+      "component_id": "evaluation.parameters",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/evaluation_parameters.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.evaluation.release",
+      "canonical_write_authority": false,
+      "component_id": "evaluation.release",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/evaluation_release.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.evaluation.scaling",
+      "canonical_write_authority": false,
+      "component_id": "evaluation.scaling",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/evaluation.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.external_core.assurance",
+      "canonical_write_authority": false,
+      "component_id": "external.assurance",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/assurance.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "external.capability_acquisition",
+      "component_version": "0.0.0",
+      "implementation_status": "historical_only",
+      "legacy_sources": [
+        "historical capability-acquisition mechanisms; extraction not yet accepted"
+      ],
+      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "external.causal",
+      "component_version": "0.0.0",
+      "implementation_status": "historical_only",
+      "legacy_sources": [
+        "historical bounded causal programs; not a current dedicated organization component"
+      ],
+      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "external.cognitive_library",
+      "component_version": "0.0.0",
+      "implementation_status": "historical_only",
+      "legacy_sources": [
+        "historical reusable cognitive mechanisms; extraction not yet accepted"
+      ],
+      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "external.experimentation",
+      "component_version": "0.0.0",
+      "implementation_status": "historical_only",
+      "legacy_sources": [
+        "historical active experimentation mechanisms; extraction not yet accepted"
+      ],
+      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
+    },
+    {
+      "canonical_module": "nolane.external_core.individual_evolution",
+      "canonical_write_authority": false,
+      "component_id": "external.individual_evolution",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/individual_evolution.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.external_core.operations",
+      "canonical_write_authority": false,
+      "component_id": "external.operations",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/operations.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": "nolane.external_core.research",
+      "canonical_write_authority": false,
+      "component_id": "external.research",
+      "component_version": "0.0.0",
+      "implementation_status": "compatibility_facade",
+      "legacy_sources": [
+        "cogcoder/organization/research.py"
+      ],
+      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "external.transfer_meta",
+      "component_version": "0.0.0",
+      "implementation_status": "historical_only",
+      "legacy_sources": [
+        "historical transfer/meta-learning mechanisms; extraction not yet accepted"
+      ],
+      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
+    },
+    {
+      "canonical_module": null,
+      "canonical_write_authority": false,
+      "component_id": "neural.shared",
+      "component_version": "0.0.0",
+      "implementation_status": "frozen_asset",
+      "legacy_sources": [
+        "model/neural-r2.3"
+      ],
+      "notes": "Accepted frozen neural asset with separate runtime adapter and checkpoint authority."
+    }
+  ],
+  "counts_by_status": {
+    "compatibility_facade": 9,
+    "frozen_asset": 1,
+    "historical_only": 5
+  },
+  "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
+  "repository_quarantine_version": "0.0.0",
+  "schema_version": "nolane-native-debt-v1"
+}

@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from cogcoder.organization.types import canonical_digest
+from nolane.core.canonical_digest import canonical_digest
 
 from .manifests import build_component_manifests
 from .runtime_state_map import build_runtime_state_bindings
