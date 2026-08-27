@@ -1,0 +1,198 @@
+name: Refoundation Wave 5AL Authority Carrier
+
+on:
+  push:
+    branches:
+      - refoundation/epoch0-wave5al-native-evaluation-scaling
+
+permissions:
+  contents: write
+
+jobs:
+  cutover:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation/epoch0-wave5al-native-evaluation-scaling
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+
+      - name: Materialize native evaluation scaling authority
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          legacy_path = Path('cogcoder/organization/evaluation.py')
+          canonical_path = Path('nolane/evaluation/scaling.py')
+          source = legacy_path.read_text(encoding='utf-8')
+
+          replacements = {
+              'from .artifacts import ArtifactStore': 'from nolane.external_core.artifacts import ArtifactStore',
+              'from .evaluation_claims import ClaimBoundaryEngine': 'from nolane.evaluation.claims import ClaimBoundaryEngine',
+              'from .evaluation_evidence import EvaluationEvidenceLedger': 'from nolane.evaluation.evidence import EvaluationEvidenceLedger',
+              'from .evaluation_parameters import ParameterScalingAuthority': 'from nolane.evaluation.parameters import ParameterScalingAuthority',
+              'from .evaluation_regimes import BenchmarkRegimeRegistry': 'from nolane.evaluation.regimes import BenchmarkRegimeRegistry',
+              'from .evaluation_release import EvaluationReleaseLedger': 'from nolane.evaluation.release import EvaluationReleaseLedger',
+              'from .evaluation_stress import LongHorizonStressLedger': 'from nolane.evaluation.stress import LongHorizonStressLedger',
+              'from .registry import AgentRegistry': 'from nolane.organization.identity import AgentRegistry',
+          }
+          for old, new in replacements.items():
+              if source.count(old) != 1:
+                  raise SystemExit(f'expected exactly one scaling import anchor: {old!r}')
+              source = source.replace(old, new)
+
+          source = source.rstrip() + '''\n\n\nCOMPONENT_ID = "evaluation.scaling"\nCOMPONENT_VERSION = "0.0.1"\nMIGRATED_FROM = "cogcoder.organization.evaluation"\n'''
+          canonical_path.write_text(source, encoding='utf-8')
+
+          bridge = '''from nolane.evaluation.scaling import EvaluationScalingControlPlane\n\n__all__ = ("EvaluationScalingControlPlane",)\n'''
+          legacy_path.write_text(bridge, encoding='utf-8')
+
+          versions = Path('cogcoder/refoundation/component_versions.py')
+          text = versions.read_text(encoding='utf-8')
+          anchor = '        "evaluation.release": 1,\n        "neural.inference_bridge": 1,'
+          replacement = '        "evaluation.release": 1,\n        "evaluation.scaling": 1,\n        "neural.inference_bridge": 1,'
+          if text.count(anchor) != 1:
+              raise SystemExit('component version anchor drift')
+          versions.write_text(text.replace(anchor, replacement), encoding='utf-8')
+
+          facades = Path('cogcoder/refoundation/facades.py')
+          text = facades.read_text(encoding='utf-8')
+          line = '        FacadeBinding("evaluation.scaling", "nolane.evaluation.scaling", "cogcoder.organization.evaluation", ("EvaluationScalingControlPlane",)),\n'
+          if text.count(line) != 1:
+              raise SystemExit('evaluation.scaling facade anchor drift')
+          facades.write_text(text.replace(line, ''), encoding='utf-8')
+
+          status_path = Path('cogcoder/refoundation/implementation_status.py')
+          text = status_path.read_text(encoding='utf-8')
+          anchor = '''    "evaluation.release": (\n        "nolane.evaluation.release",\n        ("cogcoder/organization/evaluation_release.py",),\n        "Native evaluation-release, reproduction-receipt and external-reproducibility ledger authority over canonical artifacts, evidence, parameters, regimes, stress, identity and digest dependencies; historical evaluation-release module bridges exact semantic public identities.",\n    ),\n    "neural.inference_bridge": ('''
+          replacement = '''    "evaluation.release": (\n        "nolane.evaluation.release",\n        ("cogcoder/organization/evaluation_release.py",),\n        "Native evaluation-release, reproduction-receipt and external-reproducibility ledger authority over canonical artifacts, evidence, parameters, regimes, stress, identity and digest dependencies; historical evaluation-release module bridges exact semantic public identities.",\n    ),\n    "evaluation.scaling": (\n        "nolane.evaluation.scaling",\n        ("cogcoder/organization/evaluation.py",),\n        "Native evaluation-scaling composition authority over canonical artifacts, claims, evidence, parameters, regimes, release, stress and organization identity dependencies; historical evaluation module bridges exact control-plane identity.",\n    ),\n    "neural.inference_bridge": ('''
+          if text.count(anchor) != 1:
+              raise SystemExit('implementation ledger anchor drift')
+          status_path.write_text(text.replace(anchor, replacement), encoding='utf-8')
+
+          inventory = Path('cogcoder/refoundation/inventory.py')
+          text = inventory.read_text(encoding='utf-8')
+          anchor = '    "cogcoder/organization/evaluation_release.py": "nolane/evaluation/release.py",\n'
+          replacement = anchor + '    "cogcoder/organization/evaluation.py": "nolane/evaluation/scaling.py",\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('inventory anchor drift')
+          inventory.write_text(text.replace(anchor, replacement), encoding='utf-8')
+
+          current = Path('CURRENT/STATUS.md')
+          text = current.read_text(encoding='utf-8')
+          anchor = '- Wave 5AK candidate: `evaluation.release` -> native `nolane.evaluation.release`\n'
+          replacement = anchor + '- Wave 5AL candidate: `evaluation.scaling` -> native `nolane.evaluation.scaling`\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('CURRENT status lineage anchor drift')
+          text = text.replace(anchor, replacement)
+          narrative = 'Wave 5AK retires `evaluation.release` by moving release receipts, aggregate evaluation provenance, reproduction receipts and external-reproducibility validation under native `nolane.evaluation.release` ownership. The canonical release layer resolves artifacts, evaluation evidence, parameter accounting, benchmark regimes, stress evidence, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_release` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 13 to 12 non-native component records.\n'
+          addition = narrative + '\nWave 5AL retires `evaluation.scaling` by moving the evaluation-scaling composition control plane, empty-state semantics and snapshot reconstruction under native `nolane.evaluation.scaling` ownership. The canonical scaling layer composes artifacts, claims, evidence, parameters, regimes, release, stress and organization identity only through canonical `nolane` authorities; historical `cogcoder.organization.evaluation` becomes an exact control-plane bridge. The generated native-debt projection therefore moves from 12 to 11 non-native component records.\n'
+          if text.count(narrative) != 1:
+              raise SystemExit('CURRENT status narrative anchor drift')
+          current.write_text(text.replace(narrative, addition), encoding='utf-8')
+          PY
+
+      - name: Compile and materialize repository audit
+        run: |
+          python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+          python -m nolane.ai.materialize --check
+          python -m nolane.repository.audit --write
+          python -m nolane.repository.audit --check
+
+      - name: Verify Wave 5AL and full Refoundation contracts
+        run: |
+          python -m pytest -q tests/test_refoundation_wave5al_native_evaluation_scaling.py
+          python -m pytest -q tests/test_refoundation_*.py
+
+      - name: Verify broad regressions and frozen Neural metadata
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_execution_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+          python model/neural-r2.3/scripts/verify_neural_r23.py
+
+      - name: Fail closed on unexpected diff scope
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+          allowed = {
+              'nolane/evaluation/scaling.py',
+              'cogcoder/organization/evaluation.py',
+              'cogcoder/refoundation/component_versions.py',
+              'cogcoder/refoundation/facades.py',
+              'cogcoder/refoundation/implementation_status.py',
+              'cogcoder/refoundation/inventory.py',
+              'CURRENT/NATIVE_DEBT.json',
+              'CURRENT/NATIVE_DEBT.md',
+              'archive/INDEX.json',
+              'CURRENT/STATUS.md',
+          }
+          changed = set(subprocess.check_output(['git', 'diff', '--name-only'], text=True).splitlines())
+          unexpected = sorted(changed - allowed)
+          if unexpected:
+              raise SystemExit(f'unexpected Wave 5AL diff: {unexpected}')
+          required = {
+              'nolane/evaluation/scaling.py',
+              'cogcoder/organization/evaluation.py',
+              'cogcoder/refoundation/component_versions.py',
+              'cogcoder/refoundation/facades.py',
+              'cogcoder/refoundation/implementation_status.py',
+              'cogcoder/refoundation/inventory.py',
+              'CURRENT/NATIVE_DEBT.json',
+              'CURRENT/NATIVE_DEBT.md',
+              'CURRENT/STATUS.md',
+          }
+          missing = sorted(required - changed)
+          if missing:
+              raise SystemExit(f'missing expected Wave 5AL diff: {missing}')
+          PY
+
+      - name: Commit accepted authority cutover
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add \
+            nolane/evaluation/scaling.py \
+            cogcoder/organization/evaluation.py \
+            cogcoder/refoundation/component_versions.py \
+            cogcoder/refoundation/facades.py \
+            cogcoder/refoundation/implementation_status.py \
+            cogcoder/refoundation/inventory.py \
+            CURRENT/NATIVE_DEBT.json \
+            CURRENT/NATIVE_DEBT.md \
+            archive/INDEX.json \
+            CURRENT/STATUS.md
+          git commit -m "refactor(refoundation): native evaluation scaling authority"
+          git push origin HEAD:refoundation/epoch0-wave5al-native-evaluation-scaling
