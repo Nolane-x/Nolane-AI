@@ -122,7 +122,9 @@ def test_wave5ad_authority_version_facade_and_debt_cutover() -> None:
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
     assert "external.debugging" not in ids
-    assert len(state["components"]) == 19
+    # Wave 5AD established the 19-record ceiling. Downstream accepted native
+    # cutovers may reduce debt further, but must never reintroduce debugging.
+    assert len(state["components"]) <= 19
 
     assert ledger["external.coding.control"].status is ImplementationStatus.CANONICAL_NATIVE
     assert ledger["external.evidence"].status is ImplementationStatus.CANONICAL_NATIVE
