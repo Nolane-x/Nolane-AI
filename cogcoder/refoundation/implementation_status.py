@@ -272,6 +272,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/evaluation_evidence.py",),
         "Native evaluation observation, matched-budget comparison, organization-superiority, ablation and evidence-ledger authority over canonical regime, identity, verification-evidence and digest dependencies; historical evaluation-evidence module bridges exact semantic public identities.",
     ),
+    "evaluation.stress": (
+        "nolane.evaluation.stress",
+        ("cogcoder/organization/evaluation_stress.py",),
+        "Native long-horizon stress scenario, observation, suite-assessment and ledger authority over canonical identity, verification-evidence and digest dependencies; historical evaluation-stress module bridges exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
