@@ -45,6 +45,7 @@ _CANONICAL_NATIVE_DESTINATIONS: dict[str, str] = {
     "cogcoder/epistemic_workspace.py": "nolane/external_core/epistemic.py",
     "cogcoder/organization/evaluation_claims.py": "nolane/evaluation/claims.py",
     "cogcoder/organization/evaluation_parameters.py": "nolane/evaluation/parameters.py",
+    "cogcoder/organization/evaluation_release.py": "nolane/evaluation/release.py",
     "cogcoder/organization/execution.py": "nolane/external_core/execution.py",
     "cogcoder/organization/execution_inference.py": "nolane/neural/inference_bridge.py",
     "cogcoder/organization/runtime.py": "nolane/runtime/__init__.py",

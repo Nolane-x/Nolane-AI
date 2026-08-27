@@ -287,6 +287,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/evaluation_parameters.py",),
         "Native physical/logical parameter-footprint accounting and evidence-governed scaling proposal/decision authority over canonical evaluation evidence, regimes, identity and digest dependencies; historical evaluation-parameters module bridges exact semantic public identities.",
     ),
+    "evaluation.release": (
+        "nolane.evaluation.release",
+        ("cogcoder/organization/evaluation_release.py",),
+        "Native evaluation-release, reproduction-receipt and external-reproducibility ledger authority over canonical artifacts, evidence, parameters, regimes, stress, identity and digest dependencies; historical evaluation-release module bridges exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
