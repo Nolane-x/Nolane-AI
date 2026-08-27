@@ -53,6 +53,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.claims": 1,
         "evaluation.parameters": 1,
         "evaluation.release": 1,
+        "evaluation.scaling": 1,
         "neural.inference_bridge": 1,
     }
 )

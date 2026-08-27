@@ -42,6 +42,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5AI candidate: `evaluation.claims` -> native `nolane.evaluation.claims`
 - Wave 5AJ candidate: `evaluation.parameters` -> native `nolane.evaluation.parameters`
 - Wave 5AK candidate: `evaluation.release` -> native `nolane.evaluation.release`
+- Wave 5AL candidate: `evaluation.scaling` -> native `nolane.evaluation.scaling`
 
 The core requirements-to-integration chain remains:
 
@@ -82,6 +83,8 @@ Wave 5AI retires `evaluation.claims` by moving claim classification, immutable c
 Wave 5AJ retires `evaluation.parameters` by moving physical/logical parameter-footprint accounting, scaling proposal receipts, evidence-governed efficiency checks and scaling-decision authority under native `nolane.evaluation.parameters` ownership. The canonical parameters layer resolves evaluation evidence, benchmark provenance, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_parameters` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 14 to 13 non-native component records and unblocks a truthful later `evaluation.release` cutover.
 
 Wave 5AK retires `evaluation.release` by moving release receipts, aggregate evaluation provenance, reproduction receipts and external-reproducibility validation under native `nolane.evaluation.release` ownership. The canonical release layer resolves artifacts, evaluation evidence, parameter accounting, benchmark regimes, stress evidence, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_release` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 13 to 12 non-native component records.
+
+Wave 5AL retires `evaluation.scaling` by moving the evaluation-scaling composition control plane, empty-state semantics and snapshot reconstruction under native `nolane.evaluation.scaling` ownership. The canonical scaling layer composes artifacts, claims, evidence, parameters, regimes, release, stress and organization identity only through canonical `nolane` authorities; historical `cogcoder.organization.evaluation` becomes an exact control-plane bridge. The generated native-debt projection therefore moves from 12 to 11 non-native component records.
 
 ## Repository authority and remaining debt
 

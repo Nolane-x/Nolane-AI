@@ -6,7 +6,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 6
+- `compatibility_facade`: 5
 - `frozen_asset`: 1
 - `historical_only`: 5
 
@@ -19,15 +19,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `nolane.evaluation.campaign`
 - Canonical write authority: `false`
 - Legacy/provenance sources: cogcoder/organization/campaign.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
-
-### `evaluation.scaling`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.evaluation.scaling`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/evaluation.py
 - Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.assurance`
