@@ -50,6 +50,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "evaluation.regimes",
     "evaluation.evidence",
     "evaluation.stress",
+    "evaluation.claims",
     "neural.inference_bridge",
 }
 
@@ -84,6 +85,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         "evaluation.regimes",
         "evaluation.evidence",
         "evaluation.stress",
+        "evaluation.claims",
         "neural.inference_bridge",
     ):
         assert ledger[component_id].canonical_write_authority
