@@ -45,17 +45,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.evaluation.regimes",
-      "canonical_write_authority": false,
-      "component_id": "evaluation.regimes",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/evaluation_regimes.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.evaluation.release",
       "canonical_write_authority": false,
       "component_id": "evaluation.release",
@@ -200,7 +189,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 12,
+    "compatibility_facade": 11,
     "frozen_asset": 1,
     "historical_only": 5
   },
