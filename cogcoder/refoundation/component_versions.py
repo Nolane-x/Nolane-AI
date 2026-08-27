@@ -51,6 +51,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.evidence": 1,
         "evaluation.stress": 1,
         "evaluation.claims": 1,
+        "evaluation.parameters": 1,
         "neural.inference_bridge": 1,
     }
 )
