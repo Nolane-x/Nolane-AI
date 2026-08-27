@@ -262,6 +262,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native UI/UX assignment, cross-region coding grant, render observation, authoritative UX flow, quality/readiness and personal-skill control authority over canonical coding, artifacts, skills, identity, authority, events and digest dependencies; historical UI modules bridge exact semantic public identities.",
     ),
+    "evaluation.regimes": (
+        "nolane.evaluation.regimes",
+        ("cogcoder/organization/evaluation_regimes.py",),
+        "Native benchmark regime, budget, freshness, provenance and evaluation-mode registry authority over canonical digest identity; historical evaluation-regimes module bridges exact public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
