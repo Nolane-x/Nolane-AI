@@ -100,9 +100,11 @@ def test_canonical_neural_boundary_keeps_checkpoint_authority_in_old_bridge() ->
 
 
 def test_every_compatibility_facade_declares_independent_component_version_and_source() -> None:
-    import nolane.evaluation.scaling as evaluation_scaling
-    import nolane.external_core.memory as memory
+    import importlib
 
-    for module in (evaluation_scaling, memory):
-        assert module.COMPONENT_VERSION == "0.0.0"
-        assert module.MIGRATED_FROM.startswith("cogcoder.organization.")
+    from cogcoder.refoundation.facades import build_active_facade_bindings
+
+    for binding in build_active_facade_bindings():
+        module = importlib.import_module(binding.canonical_module)
+        assert module.COMPONENT_VERSION == binding.component_version
+        assert module.MIGRATED_FROM == binding.legacy_module
