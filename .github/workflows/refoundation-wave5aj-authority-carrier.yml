@@ -10,7 +10,6 @@ permissions:
 
 jobs:
   cutover:
-    if: github.event.head_commit.message != 'refactor(refoundation): native evaluation parameters authority'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
