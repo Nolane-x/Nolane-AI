@@ -41,8 +41,6 @@ jobs:
         run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
       - name: Verify 67 AI resolved dossiers are fresh
         run: python -m nolane.ai.materialize --check
-      - name: Materialize Wave 5O repository audit projections
-        run: python -m nolane.repository.audit --write
       - name: Verify repository quarantine audit is fresh
         run: python -m nolane.repository.audit --check
       - name: Upload Wave 5O generated audit carrier
