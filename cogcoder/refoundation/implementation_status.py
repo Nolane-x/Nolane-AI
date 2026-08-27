@@ -277,6 +277,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/evaluation_stress.py",),
         "Native long-horizon stress scenario, observation, suite-assessment and ledger authority over canonical identity, verification-evidence and digest dependencies; historical evaluation-stress module bridges exact semantic public identities.",
     ),
+    "evaluation.claims": (
+        "nolane.evaluation.claims",
+        ("cogcoder/organization/evaluation_claims.py",),
+        "Native claim-classification, claim assessment, readiness-gate and claim-boundary authority over canonical evaluation evidence, regimes, stress, identity and digest dependencies; historical evaluation-claims module bridges exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),

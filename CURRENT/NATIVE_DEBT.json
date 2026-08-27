@@ -12,17 +12,6 @@
       "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
     },
     {
-      "canonical_module": "nolane.evaluation.claims",
-      "canonical_write_authority": false,
-      "component_id": "evaluation.claims",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/evaluation_claims.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.evaluation.parameters",
       "canonical_write_authority": false,
       "component_id": "evaluation.parameters",
@@ -167,7 +156,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 9,
+    "compatibility_facade": 8,
     "frozen_asset": 1,
     "historical_only": 5
   },

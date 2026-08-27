@@ -39,6 +39,7 @@ The downstream Refoundation lineage is continuing semantic ownership extraction 
 - Wave 5AF candidate: `evaluation.regimes` -> native `nolane.evaluation.regimes`
 - Wave 5AG candidate: `evaluation.evidence` -> native `nolane.evaluation.evidence`
 - Wave 5AH candidate: `evaluation.stress` -> native `nolane.evaluation.stress`
+- Wave 5AI candidate: `evaluation.claims` -> native `nolane.evaluation.claims`
 
 The core requirements-to-integration chain remains:
 
@@ -73,6 +74,8 @@ Wave 5AF retires `evaluation.regimes` by moving benchmark-domain, evidence-prove
 Wave 5AG retires `evaluation.evidence` by moving evaluation observations, canonical digest validation, matched-budget comparisons, organization-superiority assessments, controlled ablation assessments and evidence-ledger snapshot authority under native `nolane.evaluation.evidence` ownership. The canonical evidence layer resolves benchmark regimes, organization identity, verification evidence and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_evidence` is an exact semantic public-object bridge. The generated native-debt projection therefore moves from 17 to 16 non-native component records while evaluation stress/parameters/release/claims/scaling/campaign and the remaining External Core/historical/frozen boundaries stay explicit debt.
 
 Wave 5AH retires `evaluation.stress` by moving long-horizon stress scenarios, observations, required-scenario suite assessments and deterministic stress-ledger snapshot authority under native `nolane.evaluation.stress` ownership. The canonical stress layer resolves organization identity, verification evidence and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_stress` is an exact semantic public-object bridge. The generated native-debt projection therefore moves from 16 to 15 non-native component records while evaluation parameters/release/claims/scaling/campaign and the remaining External Core/historical/frozen boundaries stay explicit debt.
+
+Wave 5AI retires `evaluation.claims` by moving claim classification, immutable claim/readiness receipts and the claim-boundary control engine under native `nolane.evaluation.claims` ownership. The canonical claims layer resolves evaluation evidence, benchmark regimes, long-horizon stress, organization identity and canonical digest only through `nolane` authorities; historical `cogcoder.organization.evaluation_claims` becomes an exact semantic public-object bridge. The generated native-debt projection therefore moves from 15 to 14 non-native component records.
 
 ## Repository authority and remaining debt
 
