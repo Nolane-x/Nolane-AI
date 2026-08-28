@@ -72,13 +72,16 @@ class ExperimentProbe:
 
     @property
     def probe_id(self) -> str:
-        return _digest(
-            "xprobe:",
-            {
+        # Preserve R2.60 plain-probe hash ordering for exact deterministic
+        # tie parity while extending semantic identity for interventions.
+        if self.intervention is None:
+            payload: object = list(self.args)
+        else:
+            payload = {
                 "args": list(self.args),
-                "intervention": self.intervention.to_state() if self.intervention is not None else None,
-            },
-        )
+                "intervention": self.intervention.to_state(),
+            }
+        return _digest("xprobe:", payload)
 
     def to_state(self) -> dict[str, object]:
         return {

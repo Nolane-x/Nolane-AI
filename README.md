@@ -8,7 +8,7 @@ Nolane AI is an experimental compact cognitive system built around a small neura
 
 The A1 Refoundation is moving executable and semantic ownership into the canonical `nolane` namespaces while preserving historical R-series evidence as read-only provenance. `CURRENT/` is the repository authority surface; archived R-series delivery/release/status files do not override it.
 
-Wave 5AV makes `external.causal` canonical-native at `nolane.external_core.causal`, with bounded positional interventions, complementary causal-program structure discovery and an evidence-bound deterministic causal-program ledger. After this cutover there are **3 semantic cutovers** remaining: `external.capability_acquisition`, `external.experimentation`, and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
+Wave 5AW makes `external.experimentation` canonical-native at `nolane.external_core.experimentation`, with content-addressed probes/hypotheses, deterministic R2.60-parity version-space selection, hard oracle budgets, pure shadow execution, independent verification and an evidence-bound deterministic experiment ledger. After this cutover there are **2 semantic cutovers** remaining: `external.capability_acquisition` and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
 
 Use these files when reading the repository today:
 

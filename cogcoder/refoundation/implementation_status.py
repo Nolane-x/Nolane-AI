@@ -179,6 +179,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native bounded positional intervention identity, complementary causal-program structure discovery and evidence-bound deterministic causal-program ledger over canonical Cognitive Library and Evidence authority; R2.58/R2.62 remain historical parity and provenance oracles.",
     ),
+    "external.experimentation": (
+        "nolane.external_core.experimentation",
+        ("cogcoder/r260_active_repository_probes.py",),
+        "Native content-addressed active-probe and finite version-space experiment authority with deterministic R2.60-parity selection, hard oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic ledger authority over canonical Causal/Evidence boundaries; R2.60 remains a historical parity/provenance oracle and R2.61 expansion remains outside this ownership boundary.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),
@@ -378,7 +383,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
-    "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),
     "external.transfer_meta": ("historical transfer/meta-learning mechanisms; extraction not yet accepted",),
 }
 

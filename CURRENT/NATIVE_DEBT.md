@@ -7,7 +7,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 ## Counts
 
 - `frozen_asset`: 1
-- `historical_only`: 3
+- `historical_only`: 2
 
 ## Components
 
@@ -18,15 +18,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `none`
 - Canonical write authority: `false`
 - Legacy/provenance sources: historical capability-acquisition mechanisms; extraction not yet accepted
-- Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
-
-### `external.experimentation`
-
-- Component version: `0.0.0`
-- Status: `historical_only`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: historical active experimentation mechanisms; extraction not yet accepted
 - Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
 
 ### `external.transfer_meta`

@@ -137,9 +137,16 @@ def test_wave5aw_probe_selection_matches_r260_partition_oracle_and_is_order_inva
 def test_wave5aw_noninformative_and_budget_paths_abstain_without_oracle_calls() -> None:
     native = _native()
     probes = _probe_grid(native, (-1, 0, 1))
-    left = _hypothesis(native, probes, lambda x, y: x + y, display_name="left")
-    right = _hypothesis(native, probes, lambda x, y: y + x, display_name="right")
+    extra = native.ExperimentProbe((7, 11))
+    hypothesis_domain = (*probes, extra)
+    left = _hypothesis(native, hypothesis_domain, lambda x, y: x + y, display_name="left")
+    right = native.ExperimentHypothesis(
+        tuple((probe.probe_id, sum(probe.args)) for probe in probes)
+        + ((extra.probe_id, 999),),
+        display_name="right",
+    )
 
+    # Distinct globally, indistinguishable under the allowed probes.
     selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
     assert selection.status == "abstain"
     assert selection.reason == "no_informative_probe"
