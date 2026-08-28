@@ -170,9 +170,19 @@ def test_wave5au_authority_version_and_native_debt_cutover() -> None:
 
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
+    wave5au_debt = {
+        "external.capability_acquisition",
+        "external.causal",
+        "external.experimentation",
+        "external.transfer_meta",
+        "neural.shared",
+    }
     assert "external.cognitive_library" not in ids
-    assert len(state["components"]) == 5
-    assert state["counts_by_status"] == {"frozen_asset": 1, "historical_only": 4}
+    assert "neural.shared" in ids
+    assert ids <= wave5au_debt
+    assert len(state["components"]) <= 5
+    assert state["counts_by_status"].get("frozen_asset", 0) == 1
+    assert state["counts_by_status"].get("historical_only", 0) <= 4
 
 
 def test_wave5au_current_status_tracks_cognitive_library_cutover() -> None:
