@@ -25,17 +25,6 @@
     {
       "canonical_module": null,
       "canonical_write_authority": false,
-      "component_id": "external.cognitive_library",
-      "component_version": "0.0.0",
-      "implementation_status": "historical_only",
-      "legacy_sources": [
-        "historical reusable cognitive mechanisms; extraction not yet accepted"
-      ],
-      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
-    },
-    {
-      "canonical_module": null,
-      "canonical_write_authority": false,
       "component_id": "external.experimentation",
       "component_version": "0.0.0",
       "implementation_status": "historical_only",
@@ -69,7 +58,7 @@
   ],
   "counts_by_status": {
     "frozen_asset": 1,
-    "historical_only": 5
+    "historical_only": 4
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",
