@@ -8,7 +8,11 @@ from cogcoder.refoundation.facades import build_active_facade_bindings, validate
 from cogcoder.refoundation.implementation_status import ImplementationStatus, build_component_implementation_ledger
 
 
-_EXPECTED_INTENTIONAL_DEBT = {
+# Wave 5AR established this as the complete set of debt categories that were
+# intentionally allowed to remain at executable-debt closure. Later native
+# extraction waves may remove members from this set, but may never introduce
+# a new non-native component or change one to a different debt class.
+_WAVE5AR_INTENTIONAL_DEBT_CEILING = {
     "external.capability_acquisition": "historical_only",
     "external.causal": "historical_only",
     "external.cognitive_library": "historical_only",
@@ -44,11 +48,12 @@ def _imports(path: Path) -> set[str]:
     return result
 
 
-def test_wave5ar_generated_debt_is_exactly_the_intentional_non_executable_set() -> None:
+def test_wave5ar_generated_debt_stays_within_the_intentional_non_executable_set() -> None:
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     actual = {row["component_id"]: row["implementation_status"] for row in state["components"]}
-    assert actual == _EXPECTED_INTENTIONAL_DEBT
-    assert state["counts_by_status"] == {"frozen_asset": 1, "historical_only": 5}
+    assert actual.items() <= _WAVE5AR_INTENTIONAL_DEBT_CEILING.items()
+    assert state["counts_by_status"].get("frozen_asset", 0) == 1
+    assert state["counts_by_status"].get("historical_only", 0) <= 5
 
 
 def test_wave5ar_has_zero_active_or_legacy_executable_facades() -> None:

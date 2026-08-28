@@ -107,8 +107,12 @@ def test_wave5aq_research_authority_version_facade_and_debt_cutover() -> None:
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
     assert "external.research" not in ids
-    assert len(state["components"]) == 6
-    assert state["counts_by_status"] == {"frozen_asset": 1, "historical_only": 5}
+    # Wave 5AQ established a six-record upper bound. Later native cutovers may
+    # monotonically retire more debt, so this historical contract must not
+    # pin CURRENT to the exact Wave-5AQ snapshot forever.
+    assert len(state["components"]) <= 6
+    assert state["counts_by_status"].get("frozen_asset", 0) == 1
+    assert state["counts_by_status"].get("historical_only", 0) <= 5
 
 
 def test_wave5aq_current_status_tracks_research_cutover() -> None:

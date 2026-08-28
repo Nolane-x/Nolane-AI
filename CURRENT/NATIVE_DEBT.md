@@ -7,7 +7,7 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 ## Counts
 
 - `frozen_asset`: 1
-- `historical_only`: 5
+- `historical_only`: 4
 
 ## Components
 
@@ -27,15 +27,6 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 - Canonical module: `none`
 - Canonical write authority: `false`
 - Legacy/provenance sources: historical bounded causal programs; not a current dedicated organization component
-- Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
-
-### `external.cognitive_library`
-
-- Component version: `0.0.0`
-- Status: `historical_only`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: historical reusable cognitive mechanisms; extraction not yet accepted
 - Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
 
 ### `external.experimentation`

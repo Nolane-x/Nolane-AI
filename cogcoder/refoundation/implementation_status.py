@@ -162,6 +162,15 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native Operations readiness, twelve-profile routing, data migration/persistence/consistency, reproducible build/release/observability and reliability/performance authority over canonical artifacts, assurance, skills, identity and digest dependencies; historical Operations modules bridge exact semantic public identities.",
     ),
+    "external.cognitive_library": (
+        "nolane.external_core.cognitive_library",
+        (
+            "cogcoder/r253_operator_catalog.py",
+            "cogcoder/r256_operator_dsl.py",
+            "cogcoder/r257_vocabulary.py",
+        ),
+        "Native typed operator catalog, bounded expression DSL, learned abstraction vocabulary and deterministic cognitive-library snapshot authority; R2.53/R2.56/R2.57 remain historical parity and provenance oracles.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),
@@ -360,7 +369,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.cognitive_library": ("historical reusable cognitive mechanisms; extraction not yet accepted",),
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
     "external.causal": ("historical bounded causal programs; not a current dedicated organization component",),
     "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),
