@@ -94,8 +94,8 @@
 
 **Files:**
 - Create: `.github/workflows/r210-copy-edit.yml`
-- Create: `R2_10_DELIVERY.md`
-- Create: `R2_10_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_10_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_10_RELEASE_MANIFEST.json`
 - Modify: `README.md`
 
 - [ ] Run R2.8+R2.9+R2.10 focused regression and compileall.

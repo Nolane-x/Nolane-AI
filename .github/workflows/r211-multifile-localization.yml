@@ -9,7 +9,7 @@ on:
       - 'scripts/*r211*.py'
       - 'tests/test_r211_*.py'
       - 'research/R2_11_*'
-      - 'R2_11_*'
+      - 'archive/root-history/historical_r_series/R2_11_*'
       - 'docs/superpowers/specs/2026-08-15-r211-*'
       - 'docs/superpowers/plans/2026-08-15-r211-*'
       - '.github/workflows/r211-multifile-localization.yml'

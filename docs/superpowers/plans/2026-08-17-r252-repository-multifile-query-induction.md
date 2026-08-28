@@ -80,8 +80,8 @@
 - Create: `.github/workflows/r252-repository-multifile-query.yml`
 - Create: `research/R2_52_PHASE_A_RESULT.json`
 - Create: `research/R2_52_VERIFY_RESULT.json`
-- Create: `R2_51_TO_R2_52_EVOLUTION.md`
-- Create: `R2_52_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_51_TO_R2_52_EVOLUTION.md`
+- Create: `archive/root-history/historical_r_series/R2_52_DELIVERY.md`
 
 **Interfaces:**
 - CI verifies R2.52 focused/frozen gates, R2.51→R2.41 parent lineage, and Python 3.11/3.13 focused determinism.
@@ -96,7 +96,7 @@
 
 **Files:**
 - Create: `research/R2_52_WORLD_FINAL.json`
-- Create: `R2_52_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_52_RELEASE_MANIFEST.json`
 - Create/modify: `.github/workflows/r252-release-bundle.yml`
 
 **Interfaces:**

@@ -9,7 +9,7 @@ on:
       - 'scripts/*r29*.py'
       - 'tests/test_r29_*.py'
       - 'research/R2_9_*'
-      - 'R2_9_*'
+      - 'archive/root-history/historical_r_series/R2_9_*'
       - 'docs/superpowers/specs/2026-08-15-r29-*'
       - 'docs/superpowers/plans/2026-08-15-r29-*'
       - '.github/workflows/r29-patch-search.yml'

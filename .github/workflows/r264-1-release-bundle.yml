@@ -4,8 +4,8 @@ on:
   push:
     branches: [main, r264-frontier-fairness-hotfix-gpt56sol]
     paths:
-      - 'R2_64_1_*.json'
-      - 'R2_64_1_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_64_1_*.json'
+      - 'archive/root-history/historical_r_series/R2_64_1_DELIVERY.md'
       - 'cogcoder/r264_unified_adaptive_repository_search.py'
       - 'cogcoder/r264_unified_adaptive_repository_search_base.py'
       - 'cogcoder/r264_frontier_fairness_hotfix.py'
@@ -39,10 +39,10 @@ jobs:
           import json, subprocess
           from pathlib import Path
           required = [
-              'R2_64_1_TDD_RED.json', 'R2_64_1_PRE_HOSTED_LOCK.json',
-              'R2_64_1_PHASE_A_RESULT.json', 'R2_64_1_HOSTED_VERIFICATION.json',
-              'R2_64_1_WORLD_FINAL.json', 'R2_64_1_RELEASE_MANIFEST.json',
-              'R2_64_1_DELIVERY.md',
+              'archive/root-history/historical_r_series/R2_64_1_TDD_RED.json', 'archive/root-history/historical_r_series/R2_64_1_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_64_1_PHASE_A_RESULT.json', 'archive/root-history/historical_r_series/R2_64_1_HOSTED_VERIFICATION.json',
+              'archive/root-history/historical_r_series/R2_64_1_WORLD_FINAL.json', 'archive/root-history/historical_r_series/R2_64_1_RELEASE_MANIFEST.json',
+              'archive/root-history/historical_r_series/R2_64_1_DELIVERY.md',
               'cogcoder/r264_unified_adaptive_repository_search.py',
               'cogcoder/r264_unified_adaptive_repository_search_base.py',
               'cogcoder/r264_frontier_fairness_hotfix.py',
@@ -50,14 +50,14 @@ jobs:
           ]
           for path in required:
               assert Path(path).is_file(), path
-          lock=json.loads(Path('R2_64_1_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_PRE_HOSTED_LOCK.json').read_text())
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
-          red=json.loads(Path('R2_64_1_TDD_RED.json').read_text())
-          verify=json.loads(Path('R2_64_1_HOSTED_VERIFICATION.json').read_text())
-          world=json.loads(Path('R2_64_1_WORLD_FINAL.json').read_text())
-          manifest=json.loads(Path('R2_64_1_RELEASE_MANIFEST.json').read_text())
+          red=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_TDD_RED.json').read_text())
+          verify=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_HOSTED_VERIFICATION.json').read_text())
+          world=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_RELEASE_MANIFEST.json').read_text())
           assert red['status'] == 'HOSTED_TDD_RED_CONFIRMED'
           assert verify['status'] == 'VERIFIED_BOUNDED_CORRECTNESS_HOTFIX'
           assert verify['canonical_hosted_verification']['hosted_relevant_tests_total'] == 247
@@ -79,7 +79,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r264_1_frontier_fairness import run_benchmark
-          expected=json.loads(Path('R2_64_1_PHASE_A_RESULT.json').read_text())
+          expected=json.loads(Path('archive/root-history/historical_r_series/R2_64_1_PHASE_A_RESULT.json').read_text())
           actual=run_benchmark()
           assert actual == expected
           print('R2641_PHASE_A_RELEASE_EXACT_OK')
@@ -92,10 +92,10 @@ jobs:
           import numpy as np
           from benchmarks.kfigg.r264_unified_adaptive_repository_search import run_benchmark
           from research.r264_external_unified_transfer import run_external_transfer
-          assert run_benchmark() == json.loads(Path('R2_64_PHASE_A_RESULT.json').read_text())
+          assert run_benchmark() == json.loads(Path('archive/root-history/historical_r_series/R2_64_PHASE_A_RESULT.json').read_text())
           assert np.__version__ == '2.4.6'
           actual=run_external_transfer(np.square, source_id='numpy.square', source_version=np.__version__)
-          assert actual == json.loads(Path('R2_64_EXTERNAL_TRANSFER.json').read_text())
+          assert actual == json.loads(Path('archive/root-history/historical_r_series/R2_64_EXTERNAL_TRANSFER.json').read_text())
           print('R264_INHERITED_RELEASE_EXACT_OK')
           PY
       - name: Run R2.64.1 and protected lineage
@@ -123,9 +123,9 @@ jobs:
           python - <<'PY'
           import zipfile
           required={
-              'R2_64_1_TDD_RED.json','R2_64_1_PRE_HOSTED_LOCK.json','R2_64_1_PHASE_A_RESULT.json',
-              'R2_64_1_HOSTED_VERIFICATION.json','R2_64_1_WORLD_FINAL.json','R2_64_1_RELEASE_MANIFEST.json',
-              'R2_64_1_DELIVERY.md','cogcoder/r264_unified_adaptive_repository_search.py',
+              'archive/root-history/historical_r_series/R2_64_1_TDD_RED.json','archive/root-history/historical_r_series/R2_64_1_PRE_HOSTED_LOCK.json','archive/root-history/historical_r_series/R2_64_1_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_64_1_HOSTED_VERIFICATION.json','archive/root-history/historical_r_series/R2_64_1_WORLD_FINAL.json','archive/root-history/historical_r_series/R2_64_1_RELEASE_MANIFEST.json',
+              'archive/root-history/historical_r_series/R2_64_1_DELIVERY.md','cogcoder/r264_unified_adaptive_repository_search.py',
               'cogcoder/r264_unified_adaptive_repository_search_base.py','cogcoder/r264_frontier_fairness_hotfix.py',
               'benchmarks/kfigg/r264_1_frontier_fairness.py'
           }

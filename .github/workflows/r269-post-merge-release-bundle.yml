@@ -8,7 +8,7 @@ on:
       - 'benchmarks/kfigg/r269_*.py'
       - 'tests/test_r269_*.py'
       - 'scripts/r269_*.py'
-      - 'R2_69_*.json'
+      - 'archive/root-history/historical_r_series/R2_69_*.json'
       - '.github/workflows/r269-*.yml'
 
 permissions:
@@ -30,11 +30,11 @@ jobs:
           set -euo pipefail
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
-          test -f R2_69_PRE_HOSTED_LOCK.json
+          test -f archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json
           python - <<'PY'
           import json,subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           head=subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip()
           assert lock['schema_version']>=4
           assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
@@ -67,7 +67,7 @@ jobs:
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           authored=run_benchmark(); external=run_external_transfer()
           assert authored['authored_gate_pass'] is True
           assert authored['semantic_result_digest']==lock['authored_semantic_digest']
@@ -76,7 +76,7 @@ jobs:
           assert authored['false_accepts']==external['false_accepts']==0
           assert authored['trainable_parameter_count']==external['trainable_parameter_count']==0
 
-          promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
+          promo=json.loads(Path('archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json').read_text())
           assert promo['promotion_gate_pass'] is True
           assert promo['semantic_result_digest']==lock['promotion_semantic_digest']
           assert promo['authority_root_digest']==lock['promotion_authority_root_digest']
@@ -120,7 +120,7 @@ jobs:
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert run_benchmark()['semantic_result_digest']==lock['authored_semantic_digest']
           assert run_external_transfer()['semantic_result_digest']==lock['external_semantic_digest']
           tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()

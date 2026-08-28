@@ -35,7 +35,7 @@
 
 ## Task 2 — Authored causal benchmark
 
-**Files:** `tests/test_r265_patch_primitive_benchmark.py`, `benchmarks/kfigg/r265_patch_primitive_induction.py`, later `R2_65_PHASE_A_RESULT.json`.
+**Files:** `tests/test_r265_patch_primitive_benchmark.py`, `benchmarks/kfigg/r265_patch_primitive_induction.py`, later `archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json`.
 
 - [ ] Write benchmark contract before benchmark module exists and record hosted RED.
 - [ ] Cover at least six source→target binop primitive families with structural/file variation.
@@ -47,7 +47,7 @@
 
 ## Task 3 — External callable-I/O transfer
 
-**Files:** `tests/test_r265_external_patch_primitive_transfer.py`, `research/r265_external_patch_primitive_transfer.py`, later `R2_65_EXTERNAL_TRANSFER.json`.
+**Files:** `tests/test_r265_external_patch_primitive_transfer.py`, `research/r265_external_patch_primitive_transfer.py`, later `archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json`.
 
 - [ ] Write external contract before harness implementation and record hosted RED.
 - [ ] Use pinned NumPy 2.4.6 `numpy.multiply` via callable I/O only.
@@ -60,7 +60,7 @@
 
 ## Task 4 — Freeze and canonical verification
 
-**Files:** `R2_65_TDD_RED.json`, `R2_65_PRE_HOSTED_LOCK.json`, canonical workflow update.
+**Files:** `R2_65_TDD_RED.json`, `archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json`, canonical workflow update.
 
 - [ ] Harden identity/provenance/evidence boundaries before lock.
 - [ ] Freeze production, benchmark, transfer and tests by Git blob SHA.
@@ -70,7 +70,7 @@
 
 ## Task 5 — World, readiness and release
 
-**Files:** `R2_65_HOSTED_VERIFICATION.json`, `R2_65_WORLD_FINAL.json`, `R2_65_DELIVERY.md`, `R2_65_RELEASE_MANIFEST.json`, `R2_READINESS_RECALIBRATION.md`, `.github/workflows/r265-release-bundle.yml`.
+**Files:** `archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json`, `archive/root-history/historical_r_series/R2_65_WORLD_FINAL.json`, `archive/root-history/historical_r_series/R2_65_DELIVERY.md`, `archive/root-history/historical_r_series/R2_65_RELEASE_MANIFEST.json`, `archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md`, `.github/workflows/r265-release-bundle.yml`.
 
 - [ ] Submit fresh canonical verifier plus an explicit surviving challenger to Nolane World 0.8.0.
 - [ ] Preserve fail-closed W5 state unless genuine convergence occurs.

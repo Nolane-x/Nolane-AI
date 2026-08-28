@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "R2_49_DELIVERY.md"
-      - "R2_49_RELEASE_MANIFEST.json"
-      - "R2_43_TO_R2_49_EVOLUTION.md"
+      - "archive/root-history/historical_r_series/R2_49_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_49_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_43_TO_R2_49_EVOLUTION.md"
       - "research/R2_49_*.json"
       - ".github/workflows/r249-release-bundle.yml"
   workflow_dispatch:
@@ -27,7 +27,7 @@ jobs:
           from pathlib import Path
           phase=json.loads(Path('research/R2_49_PHASE_A_RESULT.json').read_text())
           verify=json.loads(Path('research/R2_49_VERIFY_RESULT.json').read_text())
-          manifest=json.loads(Path('R2_49_RELEASE_MANIFEST.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_49_RELEASE_MANIFEST.json').read_text())
           assert phase['accepted'] is True
           assert phase['decision']=='ACCEPTED_BOUNDED_CAPABILITY'
           assert phase['engineering_readiness']==39.0

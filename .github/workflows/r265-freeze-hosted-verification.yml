@@ -5,9 +5,9 @@ on:
   push:
     branches: [r265-verified-patch-language-induction-gpt56sol]
     paths:
-      - 'R2_65_PRE_HOSTED_LOCK.json'
-      - 'R2_65_PHASE_A_RESULT.json'
-      - 'R2_65_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r265-freeze-hosted-verification.yml'
   workflow_dispatch:
 
@@ -35,14 +35,14 @@ jobs:
           import numpy as np
           from benchmarks.kfigg.r265_patch_primitive_induction import run_benchmark
           from research.r265_external_patch_primitive_transfer import run_external_transfer
-          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
               assert actual == expected, (path, actual, expected)
           phase=run_benchmark()
           external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
-          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
           print('R265_FROZEN_EVIDENCE_OK')
           PY
       - name: Run focused and protected lineage; freeze receipt
@@ -55,7 +55,7 @@ jobs:
           import json, os, re, subprocess
           from pathlib import Path
 
-          if Path('R2_65_HOSTED_VERIFICATION.json').exists():
+          if Path('archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json').exists():
               print('R265_HOSTED_RECEIPT_ALREADY_FROZEN')
               raise SystemExit(0)
 
@@ -88,9 +88,9 @@ jobs:
               counts[label]=sum(matches)
 
           parent_total=sum(value for key, value in counts.items() if key != 'R2.65')
-          phase=json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          external=json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
-          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          phase=json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
           receipt={
               'schema_version':1,
               'milestone':'R2.65 Verified Patch Primitive Induction',
@@ -120,18 +120,18 @@ jobs:
               'added_trainable_parameters':0,
               'claim_boundary':'Hosted branch verification establishes exact bounded R2.65 closed-grammar primitive-induction evidence and protected lineage, not open-ended patch-language invention, broad autonomy, W5 convergence, or AGI.'
           }
-          Path('R2_65_HOSTED_VERIFICATION.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
+          Path('archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
           print('R265_HOSTED_RECEIPT_READY', counts, parent_total)
           PY
       - name: Commit hosted receipt if newly frozen
         run: |
           set -euo pipefail
-          if [ ! -f R2_65_HOSTED_VERIFICATION.json ]; then
+          if [ ! -f archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json ]; then
             exit 0
           fi
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add R2_65_HOSTED_VERIFICATION.json
+          git add archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json
           if git diff --cached --quiet; then
             echo R265_HOSTED_RECEIPT_UNCHANGED
           else

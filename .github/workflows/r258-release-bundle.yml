@@ -4,22 +4,22 @@ on:
   push:
     branches: [main]
     paths:
-      - 'R2_58_DELIVERY.md'
-      - 'R2_58_EXTERNAL_TRANSFER.json'
-      - 'R2_58_VERIFY_RESULT.json'
-      - 'R2_58_WORLD_FINAL.json'
-      - 'R2_58_RELEASE_MANIFEST.json'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_58_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_58_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_58_VERIFY_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_58_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_58_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - '.github/workflows/r258-release-bundle.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'R2_58_DELIVERY.md'
-      - 'R2_58_EXTERNAL_TRANSFER.json'
-      - 'R2_58_VERIFY_RESULT.json'
-      - 'R2_58_WORLD_FINAL.json'
-      - 'R2_58_RELEASE_MANIFEST.json'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_58_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_58_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_58_VERIFY_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_58_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_58_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - '.github/workflows/r258-release-bundle.yml'
   workflow_dispatch:
 
@@ -45,11 +45,11 @@ jobs:
           PYTHONPATH=. python - <<'PY'
           import json
           from pathlib import Path
-          phase=json.loads(Path('R2_58_PHASE_A_RESULT.json').read_text())
-          external=json.loads(Path('R2_58_EXTERNAL_TRANSFER.json').read_text())
-          verify=json.loads(Path('R2_58_VERIFY_RESULT.json').read_text())
-          world=json.loads(Path('R2_58_WORLD_FINAL.json').read_text())
-          manifest=json.loads(Path('R2_58_RELEASE_MANIFEST.json').read_text())
+          phase=json.loads(Path('archive/root-history/historical_r_series/R2_58_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('archive/root-history/historical_r_series/R2_58_EXTERNAL_TRANSFER.json').read_text())
+          verify=json.loads(Path('archive/root-history/historical_r_series/R2_58_VERIFY_RESULT.json').read_text())
+          world=json.loads(Path('archive/root-history/historical_r_series/R2_58_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_58_RELEASE_MANIFEST.json').read_text())
           assert phase['discovered'] == phase['configurations'] == 3
           assert phase['no_seed_failures'] == phase['seeded_successes'] == 3
           assert phase['probe_validation_exact'] == phase['probe_validation_cases'] == 12

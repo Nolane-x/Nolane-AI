@@ -8,7 +8,7 @@ on:
       - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
       - 'tests/test_r261_expansion_novelty_proof.py'
       - 'tests/test_r261_expansion_proof_benchmark.py'
-      - 'R2_61_EXPANSION_PROOF_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json'
       - '.github/workflows/r261-expansion-proof.yml'
   pull_request:
     paths:
@@ -16,7 +16,7 @@ on:
       - 'benchmarks/kfigg/r261_expansion_proof_audit.py'
       - 'tests/test_r261_expansion_novelty_proof.py'
       - 'tests/test_r261_expansion_proof_benchmark.py'
-      - 'R2_61_EXPANSION_PROOF_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json'
       - '.github/workflows/r261-expansion-proof.yml'
   workflow_dispatch:
 
@@ -55,7 +55,7 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          frozen = Path('R2_61_EXPANSION_PROOF_RESULT.json')
+          frozen = Path('archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json')
           if frozen.exists():
               actual = json.loads(Path('R2_61_EXPANSION_PROOF_RECOMPUTED.json').read_text())
               expected = json.loads(frozen.read_text())

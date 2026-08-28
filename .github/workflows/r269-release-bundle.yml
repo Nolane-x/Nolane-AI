@@ -8,7 +8,7 @@ on:
       - 'benchmarks/kfigg/r269_*.py'
       - 'tests/test_r269_*.py'
       - 'scripts/r269_*.py'
-      - 'R2_69_*.json'
+      - 'archive/root-history/historical_r_series/R2_69_*.json'
       - '.github/workflows/r269-*.yml'
   workflow_dispatch:
 
@@ -27,7 +27,7 @@ jobs:
           fetch-depth: 0
       - id: freeze
         run: |
-          if [ -f R2_69_PRE_HOSTED_LOCK.json ]; then
+          if [ -f archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json ]; then
             echo 'frozen=true' >> "$GITHUB_OUTPUT"
           else
             echo 'frozen=false' >> "$GITHUB_OUTPUT"
@@ -53,7 +53,7 @@ jobs:
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version']>=4
           authored=run_benchmark(); external=run_external_transfer()
           assert authored['semantic_result_digest']==lock['authored_semantic_digest']
@@ -61,7 +61,7 @@ jobs:
           assert authored['authored_gate_pass'] is True and authored['false_accepts']==0
           assert external['all_gates_pass'] is True and external['false_accepts']==0
 
-          promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
+          promo=json.loads(Path('archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json').read_text())
           assert promo['promotion_gate_pass'] is True
           assert promo['semantic_result_digest']==lock['promotion_semantic_digest']
           assert promo['authority_root_digest']==lock['promotion_authority_root_digest']

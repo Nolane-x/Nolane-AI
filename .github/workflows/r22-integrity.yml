@@ -1,7 +1,5 @@
 name: R2.2 Integrity
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 jobs:
   integrity:
@@ -11,7 +9,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Validate R2.2 provenance
+      - name: Validate frozen R2.2 provenance
         run: python scripts/verify_r22_release.py
-      - name: Compile current R2.2 source
+      - name: Compile frozen R2.2 verification surface
         run: python -m compileall -q cogcoder/epistemic_workspace.py cogcoder/epistemic_program.py cogcoder/r22_runtime.py cogcoder/kfigg22.py scripts/evaluate_r22.py scripts/verify_r22_release.py

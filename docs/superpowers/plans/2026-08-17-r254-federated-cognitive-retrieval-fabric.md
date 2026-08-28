@@ -64,7 +64,7 @@
 - [ ] Run benchmark tests and confirm GREEN.
 
 ### Task 7: Evidence, CI, and release
-**Files:** Create `research/R2_54_PHASE_A_RESULT.json`, `research/R2_54_VERIFY_RESULT.json`, `R2_54_DELIVERY.md`, `R2_54_RELEASE_MANIFEST.json`, `.github/workflows/r254-federated-cognitive-retrieval.yml`, `.github/workflows/r254-release-bundle.yml`.
+**Files:** Create `research/R2_54_PHASE_A_RESULT.json`, `research/R2_54_VERIFY_RESULT.json`, `archive/root-history/historical_r_series/R2_54_DELIVERY.md`, `archive/root-history/historical_r_series/R2_54_RELEASE_MANIFEST.json`, `.github/workflows/r254-federated-cognitive-retrieval.yml`, `.github/workflows/r254-release-bundle.yml`.
 - [ ] Run focused R2.54 tests and protected parent lineage.
 - [ ] Recompute frozen benchmark evidence from a clean process.
 - [ ] Run Nolane World adversarial audit and preserve non-convergence if present.

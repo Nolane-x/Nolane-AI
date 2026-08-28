@@ -8,7 +8,7 @@ on:
       - 'benchmarks/kfigg/r258_*.py'
       - 'research/r258_*.py'
       - 'tests/test_r258_*.py'
-      - 'R2_58_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_58_PHASE_A_RESULT.json'
       - 'docs/superpowers/specs/2026-08-18-r258-autonomous-intervention-discovery-design.md'
       - 'docs/superpowers/plans/2026-08-18-r258-autonomous-intervention-discovery.md'
       - '.github/workflows/r258-autonomous-intervention-discovery.yml'
@@ -19,7 +19,7 @@ on:
       - 'benchmarks/kfigg/r258_*.py'
       - 'research/r258_*.py'
       - 'tests/test_r258_*.py'
-      - 'R2_58_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_58_PHASE_A_RESULT.json'
       - '.github/workflows/r258-autonomous-intervention-discovery.yml'
   workflow_dispatch:
 
@@ -51,7 +51,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r258_autonomous_intervention_discovery import run_benchmark
-          expected = json.loads(Path('R2_58_PHASE_A_RESULT.json').read_text())
+          expected = json.loads(Path('archive/root-history/historical_r_series/R2_58_PHASE_A_RESULT.json').read_text())
           actual = run_benchmark()
           assert actual == expected, (actual, expected)
           print(json.dumps(actual, indent=2, sort_keys=True))
@@ -128,13 +128,13 @@ jobs:
           assert result['oracle_calls_total'] > result['oracle_calls_during_discovery']
           assert result['synthesis_candidates_considered'] > 0
           assert result['trainable_parameter_count'] == 0
-          Path('R2_58_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          Path('archive/root-history/historical_r_series/R2_58_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
           PY
       - name: Upload external transfer evidence
         uses: actions/upload-artifact@v4
         with:
           name: R2.58-ufunclab-autonomous-intervention-transfer
-          path: R2_58_EXTERNAL_TRANSFER.json
+          path: archive/root-history/historical_r_series/R2_58_EXTERNAL_TRANSFER.json
       - name: Publish external transfer commit status
         if: success()
         env:

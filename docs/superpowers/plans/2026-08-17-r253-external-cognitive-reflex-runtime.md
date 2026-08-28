@@ -106,7 +106,7 @@
 **Files:**
 - Create: `research/R2_53_PHASE_A_RESULT.json`
 - Create: `.github/workflows/r253-external-cognitive-reflex.yml`
-- Later create after clean CI: `R2_53_DELIVERY.md`, `R2_53_RELEASE_MANIFEST.json`, `research/R2_53_VERIFY_RESULT.json`, `R2_52_TO_R2_53_EVOLUTION.md`.
+- Later create after clean CI: `archive/root-history/historical_r_series/R2_53_DELIVERY.md`, `archive/root-history/historical_r_series/R2_53_RELEASE_MANIFEST.json`, `research/R2_53_VERIFY_RESULT.json`, `archive/root-history/historical_r_series/R2_52_TO_R2_53_EVOLUTION.md`.
 
 **Interfaces:**
 - Consumes: all R2.53 capability files.

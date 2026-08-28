@@ -8,8 +8,8 @@ on:
       - "benchmarks/kfigg/r243_*.py"
       - "tests/test_r243_*.py"
       - "research/R2_43_*.json"
-      - "R2_43_DELIVERY.md"
-      - "R2_43_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_43_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_43_RELEASE_MANIFEST.json"
       - "docs/superpowers/plans/2026-08-17-r243-cross-family-composition.md"
       - ".github/workflows/r243-cross-family-composition.yml"
   pull_request:
@@ -18,8 +18,8 @@ on:
       - "benchmarks/kfigg/r243_*.py"
       - "tests/test_r243_*.py"
       - "research/R2_43_*.json"
-      - "R2_43_DELIVERY.md"
-      - "R2_43_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_43_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_43_RELEASE_MANIFEST.json"
       - "docs/superpowers/plans/2026-08-17-r243-cross-family-composition.md"
       - ".github/workflows/r243-cross-family-composition.yml"
 

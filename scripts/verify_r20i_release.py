@@ -30,7 +30,7 @@ def find_controller() -> Path:
 
 def main() -> None:
     parser=argparse.ArgumentParser();parser.add_argument('--metadata-only',action='store_true');args=parser.parse_args()
-    manifest=load_json(ROOT/'CURRENT_ONE_WEIGHT_R2_0I.json');current=load_json(ROOT/'research/R2_0_CURRENT_BEST.json')
+    manifest=load_json(ROOT/'archive/root-history/legacy_weight_pointer/CURRENT_ONE_WEIGHT_R2_0I.json');current=load_json(ROOT/'research/R2_0_CURRENT_BEST.json')
     current_params=current.get('neural_effective_parameters',current.get('effective_parameters'))
     current_sha=current.get('deployment_weight_sha256',current.get('one_weight_sha256'))
     fresh=current.get('fresh') if isinstance(current.get('fresh'),dict) else None

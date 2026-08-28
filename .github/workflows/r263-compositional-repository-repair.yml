@@ -29,7 +29,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_63_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_63_PRE_HOSTED_LOCK.json').read_text())
           assert lock['parent_release_commit'] == '02f3d2f6dc16dbb82b0dd1cef111546173b4767e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           for path, expected in lock['frozen_git_blobs'].items():
@@ -60,7 +60,7 @@ jobs:
           assert s['target_output_leakage_into_generation'] is False
           assert s['unique_accepted_content_digests'] == 6
           Path('R2_63_PHASE_A_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
-          frozen=Path('R2_63_PHASE_A_RESULT.json')
+          frozen=Path('archive/root-history/historical_r_series/R2_63_PHASE_A_RESULT.json')
           if frozen.exists():
               assert result == json.loads(frozen.read_text())
               print('R263_PHASE_A_EXACT_OK')
@@ -135,7 +135,7 @@ jobs:
           assert result['verification_exact'] == result['verification_cases'] == 256
           assert result['trainable_parameter_count'] == 0
           Path('R2_63_EXTERNAL_TRANSFER_RECOMPUTED.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
-          frozen=Path('R2_63_EXTERNAL_TRANSFER.json')
+          frozen=Path('archive/root-history/historical_r_series/R2_63_EXTERNAL_TRANSFER.json')
           if frozen.exists():
               assert result == json.loads(frozen.read_text())
               print('R263_EXTERNAL_EXACT_OK')

@@ -61,7 +61,7 @@
 - [ ] Write a failing frozen benchmark test requiring success across three renamings plus one argument-order permutation, zero false accepts, causal no-seed failure/seeded success, and zero trainable parameters.
 - [ ] Verify RED.
 - [ ] Implement the benchmark with opaque role maps and frozen contexts/budgets.
-- [ ] Verify GREEN and freeze the deterministic result to `R2_58_PHASE_A_RESULT.json` only after repeat-run equality.
+- [ ] Verify GREEN and freeze the deterministic result to `archive/root-history/historical_r_series/R2_58_PHASE_A_RESULT.json` only after repeat-run equality.
 
 ### Task 4: External I/O-only transfer
 
@@ -81,9 +81,9 @@
 
 **Files:**
 - Create: `.github/workflows/r258-autonomous-intervention-discovery.yml`
-- Create: `R2_57_TO_R2_58_EVOLUTION.md`
-- Create after hosted evidence: `R2_58_DELIVERY.md`, `R2_58_VERIFY_RESULT.json`, `R2_58_WORLD_FINAL.json`, `R2_58_RELEASE_MANIFEST.json`.
-- Modify: `R2_READINESS_RECALIBRATION.md` only if independent hosted evidence passes.
+- Create: `archive/root-history/historical_r_series/R2_57_TO_R2_58_EVOLUTION.md`
+- Create after hosted evidence: `archive/root-history/historical_r_series/R2_58_DELIVERY.md`, `archive/root-history/historical_r_series/R2_58_VERIFY_RESULT.json`, `archive/root-history/historical_r_series/R2_58_WORLD_FINAL.json`, `archive/root-history/historical_r_series/R2_58_RELEASE_MANIFEST.json`.
+- Modify: `archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md` only if independent hosted evidence passes.
 
 **Interfaces:**
 - Hosted CI installs pinned ufunclab and runs R2.58 plus protected parent regressions.

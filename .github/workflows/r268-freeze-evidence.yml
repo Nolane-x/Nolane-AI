@@ -133,14 +133,14 @@ jobs:
 
           phase_text=json.dumps(phase,indent=2,sort_keys=True)+'\n'
           external_text=json.dumps(external,indent=2,sort_keys=True)+'\n'
-          Path('R2_68_PHASE_A_RESULT.json').write_text(phase_text)
-          Path('R2_68_EXTERNAL_TRANSFER.json').write_text(external_text)
+          Path('archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json').write_text(phase_text)
+          Path('archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json').write_text(external_text)
           fixed=[
             'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
             'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
             '.github/workflows/r268-red-green.yml','.github/workflows/r268-external-transfer.yml','.github/workflows/r268-canonical-gate.yml','.github/workflows/r268-freeze-evidence.yml','.github/workflows/r268-release-bundle.yml','.github/workflows/r268-post-merge-release-bundle.yml',
             'docs/superpowers/specs/2026-08-19-r268-proof-carrying-adaptive-causal-basis-design.md','docs/superpowers/plans/2026-08-19-r268-proof-carrying-adaptive-causal-basis.md','docs/superpowers/specs/2026-08-19-r268-semantic-alias-proposal-budget-hardening.md',
-            'R2_68_PHASE_A_RESULT.json','R2_68_EXTERNAL_TRANSFER.json',
+            'archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json','archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json',
           ]
           tests=sorted(str(p) for p in Path('tests').glob('test_r268_*.py'))
           frozen_paths=tuple(dict.fromkeys(fixed+tests))
@@ -214,7 +214,7 @@ jobs:
             },
             'frozen_git_blobs':blobs,
           }
-          Path('R2_68_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock,indent=2,sort_keys=True)+'\n')
+          Path('archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json').write_text(json.dumps(lock,indent=2,sort_keys=True)+'\n')
           print('R268_FRESH_LOCK_WRITTEN',len(blobs),lock['source_freeze_head'])
           PY
       - name: Verify freeze delta is evidence-only
@@ -223,7 +223,7 @@ jobs:
           python - <<'PY'
           import subprocess
           from pathlib import Path
-          allowed={'R2_68_EXTERNAL_TRANSFER.json','R2_68_PHASE_A_RESULT.json','R2_68_PRE_HOSTED_LOCK.json'}
+          allowed={'archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json','archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json','archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json'}
           tracked=set(subprocess.check_output(['git','diff','--name-only'],text=True).splitlines())
           cached=set(subprocess.check_output(['git','diff','--cached','--name-only'],text=True).splitlines())
           untracked=set(subprocess.check_output(['git','ls-files','--others','--exclude-standard'],text=True).splitlines())
@@ -231,8 +231,8 @@ jobs:
           print('R268_EVIDENCE_DELTA',sorted(changed))
           assert changed, 'freeze must materialize or refresh at least one evidence record'
           assert changed<=allowed,(sorted(changed),sorted(allowed))
-          assert 'R2_68_PRE_HOSTED_LOCK.json' in changed,sorted(changed)
-          found={p.name for p in Path('.').glob('R2_68_*.json')}
+          assert 'archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json' in changed,sorted(changed)
+          found={p.name for p in Path('.').glob('archive/root-history/historical_r_series/R2_68_*.json')}
           print('R268_EVIDENCE_NAMESPACE',sorted(found))
           assert found==allowed,(sorted(found),sorted(allowed))
           for name in allowed:
@@ -243,6 +243,6 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add R2_68_PHASE_A_RESULT.json R2_68_EXTERNAL_TRANSFER.json R2_68_PRE_HOSTED_LOCK.json
+          git add archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json
           git commit -m 'evidence: freeze R2.68 proof-carrying authority boundary'
           git push origin HEAD:r268-proof-carrying-adaptive-causal-basis-gpt56sol

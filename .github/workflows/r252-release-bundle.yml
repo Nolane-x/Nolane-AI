@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "R2_52_DELIVERY.md"
-      - "R2_52_RELEASE_MANIFEST.json"
-      - "R2_51_TO_R2_52_EVOLUTION.md"
+      - "archive/root-history/historical_r_series/R2_52_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_52_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_51_TO_R2_52_EVOLUTION.md"
       - "research/R2_52_*.json"
       - ".github/workflows/r252-release-bundle.yml"
   workflow_dispatch:
@@ -25,7 +25,7 @@ jobs:
           python - <<'PY'
           import json
           v=json.load(open('research/R2_52_VERIFY_RESULT.json'))
-          m=json.load(open('R2_52_RELEASE_MANIFEST.json'))
+          m=json.load(open('archive/root-history/historical_r_series/R2_52_RELEASE_MANIFEST.json'))
           p=json.load(open('research/R2_52_PHASE_A_RESULT.json'))
           w=json.load(open('research/R2_52_WORLD_FINAL.json'))
           assert v['decision']=='accepted_bounded_capability'

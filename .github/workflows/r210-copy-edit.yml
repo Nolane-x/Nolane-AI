@@ -9,7 +9,7 @@ on:
       - 'scripts/*r210*.py'
       - 'tests/test_r210_*.py'
       - 'research/R2_10_*'
-      - 'R2_10_*'
+      - 'archive/root-history/historical_r_series/R2_10_*'
       - 'docs/superpowers/specs/2026-08-15-r210-*'
       - 'docs/superpowers/plans/2026-08-15-r210-*'
       - '.github/workflows/r210-copy-edit.yml'

@@ -230,8 +230,8 @@ Include a no-collision forced-search-miss case that must remain minimality-incon
 **Files:**
 - Modify: `.github/workflows/r268-red-green.yml`
 - Create: `.github/workflows/r268-canonical-gate.yml`
-- Create: `R2_68_PRE_HOSTED_LOCK.json` only after source/protocol freeze
-- Create: `R2_68_PHASE_A_RESULT.json` only from hosted recomputation
+- Create: `archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json` only after source/protocol freeze
+- Create: `archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json` only from hosted recomputation
 
 **Interfaces:**
 - Produces hosted evidence, not new runtime semantics.
@@ -257,7 +257,7 @@ Lock parent commit, source/test/benchmark blobs, proof-authority invariants, par
 **Files:**
 - Create: `research/r268_external_transfer.py`
 - Create: `tests/test_r268_external_transfer.py`
-- Create: `R2_68_EXTERNAL_TRANSFER.json`
+- Create: `archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json`
 - Create: `.github/workflows/r268-external-transfer.yml`
 - Create: `R2_68_DELIVERY.md`
 

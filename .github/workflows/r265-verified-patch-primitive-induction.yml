@@ -8,7 +8,7 @@ on:
       - 'tests/test_r265_*.py'
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
-      - 'R2_65_*.json'
+      - 'archive/root-history/historical_r_series/R2_65_*.json'
       - '.github/workflows/r265-verified-patch-primitive-induction.yml'
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ on:
       - 'tests/test_r265_*.py'
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
-      - 'R2_65_*.json'
+      - 'archive/root-history/historical_r_series/R2_65_*.json'
       - '.github/workflows/r265-verified-patch-primitive-induction.yml'
   workflow_dispatch:
 

@@ -88,8 +88,8 @@
 
 **Files:**
 - Create: `.github/workflows/r257-verified-vocabulary-growth.yml`
-- Create after clean hosted acceptance: `R2_57_PHASE_A_RESULT.json`, `R2_57_EXTERNAL_TRANSFER.json`, `R2_57_VERIFY_RESULT.json`, `R2_57_WORLD_FINAL.json`, `R2_57_DELIVERY.md`, `R2_56_TO_R2_57_EVOLUTION.md`, `R2_57_RELEASE_MANIFEST.json`.
-- Modify: `R2_READINESS_RECALIBRATION.md` only after evidence exists.
+- Create after clean hosted acceptance: `archive/root-history/historical_r_series/R2_57_PHASE_A_RESULT.json`, `archive/root-history/historical_r_series/R2_57_EXTERNAL_TRANSFER.json`, `archive/root-history/historical_r_series/R2_57_VERIFY_RESULT.json`, `archive/root-history/historical_r_series/R2_57_WORLD_FINAL.json`, `archive/root-history/historical_r_series/R2_57_DELIVERY.md`, `archive/root-history/historical_r_series/R2_56_TO_R2_57_EVOLUTION.md`, `archive/root-history/historical_r_series/R2_57_RELEASE_MANIFEST.json`.
+- Modify: `archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md` only after evidence exists.
 - Create: `.github/workflows/r257-release-bundle.yml`.
 
 **Interfaces:**

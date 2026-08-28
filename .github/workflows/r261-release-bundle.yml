@@ -8,9 +8,9 @@ on:
       - 'benchmarks/kfigg/r261_*.py'
       - 'research/r261_*.py'
       - 'tests/test_r261_*.py'
-      - 'R2_61_*.json'
-      - 'R2_61_*.md'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_61_*.json'
+      - 'archive/root-history/historical_r_series/R2_61_*.md'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - 'docs/superpowers/specs/2026-08-18-r261-version-space-expansion-design.md'
       - '.github/workflows/r261-release-bundle.yml'
   pull_request:
@@ -20,9 +20,9 @@ on:
       - 'benchmarks/kfigg/r261_*.py'
       - 'research/r261_*.py'
       - 'tests/test_r261_*.py'
-      - 'R2_61_*.json'
-      - 'R2_61_*.md'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_61_*.json'
+      - 'archive/root-history/historical_r_series/R2_61_*.md'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - 'docs/superpowers/specs/2026-08-18-r261-version-space-expansion-design.md'
       - '.github/workflows/r261-release-bundle.yml'
   workflow_dispatch:
@@ -62,16 +62,16 @@ jobs:
               'tests/test_r261_external_version_space_expansion.py',
               'tests/test_r261_expansion_novelty_proof.py',
               'tests/test_r261_expansion_proof_benchmark.py',
-              'R2_61_TDD_RED.json',
-              'R2_61_PRE_HOSTED_LOCK.json',
-              'R2_61_PHASE_A_RESULT.json',
-              'R2_61_EXPANSION_PROOF_RESULT.json',
-              'R2_61_EXTERNAL_TRANSFER.json',
-              'R2_61_VERIFY_RESULT.json',
-              'R2_61_WORLD_FINAL.json',
-              'R2_61_DELIVERY.md',
-              'R2_61_RELEASE_MANIFEST.json',
-              'R2_READINESS_RECALIBRATION.md',
+              'archive/root-history/historical_r_series/R2_61_TDD_RED.json',
+              'archive/root-history/historical_r_series/R2_61_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_61_VERIFY_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_WORLD_FINAL.json',
+              'archive/root-history/historical_r_series/R2_61_DELIVERY.md',
+              'archive/root-history/historical_r_series/R2_61_RELEASE_MANIFEST.json',
+              'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md',
           ]
           missing = [path for path in required if not Path(path).is_file()]
           assert not missing, missing
@@ -83,7 +83,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock = json.loads(Path('R2_61_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_61_PRE_HOSTED_LOCK.json').read_text())
           assert lock['production_source_changes_after_lock_forbidden'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
@@ -101,9 +101,9 @@ jobs:
           from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
           from research.r261_external_version_space_expansion import run_external_transfer
 
-          phase_expected = json.loads(Path('R2_61_PHASE_A_RESULT.json').read_text())
-          proof_expected = json.loads(Path('R2_61_EXPANSION_PROOF_RESULT.json').read_text())
-          external_expected = json.loads(Path('R2_61_EXTERNAL_TRANSFER.json').read_text())
+          phase_expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json').read_text())
+          proof_expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json').read_text())
+          external_expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_EXTERNAL_TRANSFER.json').read_text())
           phase_actual = run_frozen_heldout()
           proof_actual = run_expansion_novelty_audit()
           external_actual = run_external_transfer(np.remainder, source_id='numpy.remainder', source_version=np.__version__)
@@ -121,11 +121,11 @@ jobs:
           python - <<'PY'
           import json
           from pathlib import Path
-          verify = json.loads(Path('R2_61_VERIFY_RESULT.json').read_text())
-          world = json.loads(Path('R2_61_WORLD_FINAL.json').read_text())
-          manifest = json.loads(Path('R2_61_RELEASE_MANIFEST.json').read_text())
-          readiness = Path('R2_READINESS_RECALIBRATION.md').read_text()
-          delivery = Path('R2_61_DELIVERY.md').read_text()
+          verify = json.loads(Path('archive/root-history/historical_r_series/R2_61_VERIFY_RESULT.json').read_text())
+          world = json.loads(Path('archive/root-history/historical_r_series/R2_61_WORLD_FINAL.json').read_text())
+          manifest = json.loads(Path('archive/root-history/historical_r_series/R2_61_RELEASE_MANIFEST.json').read_text())
+          readiness = Path('archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md').read_text()
+          delivery = Path('archive/root-history/historical_r_series/R2_61_DELIVERY.md').read_text()
 
           assert verify['status'] == 'HOSTED_VERIFICATION_PASS'
           assert verify['canonical_full_gate']['conclusion'] == 'success'
@@ -168,15 +168,15 @@ jobs:
               'benchmarks/kfigg/r261_version_space_expansion_transfer.py',
               'benchmarks/kfigg/r261_expansion_proof_audit.py',
               'research/r261_external_version_space_expansion.py',
-              'R2_61_PRE_HOSTED_LOCK.json',
-              'R2_61_PHASE_A_RESULT.json',
-              'R2_61_EXPANSION_PROOF_RESULT.json',
-              'R2_61_EXTERNAL_TRANSFER.json',
-              'R2_61_VERIFY_RESULT.json',
-              'R2_61_WORLD_FINAL.json',
-              'R2_61_DELIVERY.md',
-              'R2_61_RELEASE_MANIFEST.json',
-              'R2_READINESS_RECALIBRATION.md',
+              'archive/root-history/historical_r_series/R2_61_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_61_VERIFY_RESULT.json',
+              'archive/root-history/historical_r_series/R2_61_WORLD_FINAL.json',
+              'archive/root-history/historical_r_series/R2_61_DELIVERY.md',
+              'archive/root-history/historical_r_series/R2_61_RELEASE_MANIFEST.json',
+              'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md',
           }
           with ZipFile('Nolane-AI-R2.61-COMPLETE.zip') as zf:
               names = set(zf.namelist())

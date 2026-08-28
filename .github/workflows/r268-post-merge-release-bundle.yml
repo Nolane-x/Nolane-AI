@@ -4,8 +4,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'R2_68_*.json'
-      - 'R2_68_*.md'
+      - 'archive/root-history/historical_r_series/R2_68_*.json'
+      - 'archive/root-history/historical_r_series/R2_68_*.md'
       - 'cogcoder/r268_*.py'
       - 'cogcoder/_r268_*.py'
       - 'benchmarks/kfigg/r268_*.py'
@@ -39,7 +39,7 @@ jobs:
           PYTHONPATH=. python - <<'PY'
           import json,subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_68_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version']==3
           assert lock['milestone']=='R2.68'
           assert lock['parent_release_commit']=='b789dd7a48f10f3afb1cf42ee62d3dc77dee200e'
@@ -79,9 +79,9 @@ jobs:
           phase=run_benchmark(); external=run_external_transfer(np.linalg.det,source_id='numpy:numpy.linalg.det',source_version=np.__version__)
           phase_text=json.dumps(phase,indent=2,sort_keys=True)+'\n'
           external_text=json.dumps(external,indent=2,sort_keys=True)+'\n'
-          assert Path('R2_68_PHASE_A_RESULT.json').read_text()==phase_text
-          assert Path('R2_68_EXTERNAL_TRANSFER.json').read_text()==external_text
-          lock=json.loads(Path('R2_68_PRE_HOSTED_LOCK.json').read_text())
+          assert Path('archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json').read_text()==phase_text
+          assert Path('archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json').read_text()==external_text
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json').read_text())
           cp=json.dumps(phase,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           ce=json.dumps(external,sort_keys=True,separators=(',',':'),allow_nan=False).encode()
           assert hashlib.sha256(cp).hexdigest()==lock['authored_evidence']['sha256_canonical_json']
@@ -128,7 +128,7 @@ jobs:
           python - <<'PY'
           import zipfile
           required={
-            'R2_68_PRE_HOSTED_LOCK.json','R2_68_PHASE_A_RESULT.json','R2_68_EXTERNAL_TRANSFER.json',
+            'archive/root-history/historical_r_series/R2_68_PRE_HOSTED_LOCK.json','archive/root-history/historical_r_series/R2_68_PHASE_A_RESULT.json','archive/root-history/historical_r_series/R2_68_EXTERNAL_TRANSFER.json',
             'cogcoder/r268_adaptive_causal_basis.py','cogcoder/_r268_runtime.py','cogcoder/_r268_proof.py','cogcoder/_r268_search.py','cogcoder/_r268_types.py',
             'benchmarks/kfigg/r268_adaptive_causal_basis.py','research/r268_external_transfer.py',
             '.github/workflows/r268-red-green.yml','.github/workflows/r268-external-transfer.yml',

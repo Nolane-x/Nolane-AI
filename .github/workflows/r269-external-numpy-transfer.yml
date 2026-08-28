@@ -7,8 +7,8 @@ on:
       - 'benchmarks/kfigg/r269_external_numpy_transfer.py'
       - 'tests/test_r269_external_numpy_transfer.py'
       - 'cogcoder/r269_*.py'
-      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
-      - 'R2_69_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
+      - 'archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r269-external-numpy-transfer.yml'
   workflow_dispatch:
 
@@ -35,15 +35,15 @@ jobs:
           test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
           test "$(git rev-parse origin/${BRANCH})" = "$GITHUB_SHA"
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
-          test -f R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
-          test -f R2_69_EXTERNAL_TRANSFER.json
+          test -f archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
+          test -f archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json
 
       - name: Require hosted sequential integration authority
         run: |
           PYTHONPATH=. python - <<'PY'
           import json
           from pathlib import Path
-          seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
+          seq=json.loads(Path('archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
           assert seq['schema_version']>=2
           assert seq['milestone']=='R2.69'
           assert seq['accepted_parent_sha']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
@@ -97,7 +97,7 @@ jobs:
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           first=json.loads(Path('/tmp/r269_external_311.json').read_text())
           second=run_external_transfer()
-          frozen=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text(encoding='utf-8'))
+          frozen=json.loads(Path('archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json').read_text(encoding='utf-8'))
           assert json.dumps(first,sort_keys=True,separators=(',',':')) == json.dumps(second,sort_keys=True,separators=(',',':'))
           assert second['all_gates_pass'] is True
           assert frozen['schema_version']>=2 and frozen['milestone']=='R2.69'

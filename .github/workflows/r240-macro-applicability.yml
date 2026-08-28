@@ -10,7 +10,7 @@ on:
       - "benchmarks/kfigg/r240_*.py"
       - "tests/test_r240_*.py"
       - "research/R2_40_*.json"
-      - "R2_40_*.md"
+      - "archive/root-history/historical_r_series/R2_40_*.md"
       - ".github/workflows/r240-macro-applicability.yml"
   workflow_dispatch:
 

@@ -4,7 +4,7 @@ on:
   push:
     branches: [r265-verified-patch-language-induction-gpt56sol]
     paths:
-      - 'R2_65_*.json'
+      - 'archive/root-history/historical_r_series/R2_65_*.json'
       - 'cogcoder/r265_*.py'
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
@@ -40,9 +40,9 @@ jobs:
           from pathlib import Path
 
           required = (
-              'R2_65_PRE_HOSTED_LOCK.json',
-              'R2_65_PHASE_A_RESULT.json',
-              'R2_65_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json',
               'cogcoder/r265_verified_patch_primitive_induction.py',
               'benchmarks/kfigg/r265_patch_primitive_induction.py',
               'research/r265_external_patch_primitive_transfer.py',
@@ -59,7 +59,7 @@ jobs:
           for path in required:
               assert Path(path).is_file(), path
 
-          lock = json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version'] >= 6
           assert lock['parent_release_commit'] == 'f8a28627dc34f6db4fafca629df3b64d668b05c8'
           assert lock['production_source_changes_after_lock_forbidden'] is True
@@ -90,8 +90,8 @@ jobs:
               source_id='numpy.multiply',
               source_version=np.__version__,
           )
-          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           print('R265_RELEASE_EVIDENCE_EXACT_OK')
@@ -122,9 +122,9 @@ jobs:
           python - <<'PY'
           import zipfile
           required = {
-              'R2_65_PRE_HOSTED_LOCK.json',
-              'R2_65_PHASE_A_RESULT.json',
-              'R2_65_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json',
               'cogcoder/r265_verified_patch_primitive_induction.py',
               'benchmarks/kfigg/r265_patch_primitive_induction.py',
               'research/r265_external_patch_primitive_transfer.py',

@@ -4,18 +4,18 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'R2_66_HOSTED_VERIFICATION.json'
-      - 'R2_66_WORLD_FINAL.json'
-      - 'R2_66_RELEASE_MANIFEST.json'
-      - 'R2_66_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_66_HOSTED_VERIFICATION.json'
+      - 'archive/root-history/historical_r_series/R2_66_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_66_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_66_DELIVERY.md'
       - '.github/workflows/r266-release-authority-gate.yml'
   push:
     branches: [release-r266-postmerge-gpt56sol]
     paths:
-      - 'R2_66_HOSTED_VERIFICATION.json'
-      - 'R2_66_WORLD_FINAL.json'
-      - 'R2_66_RELEASE_MANIFEST.json'
-      - 'R2_66_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_66_HOSTED_VERIFICATION.json'
+      - 'archive/root-history/historical_r_series/R2_66_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_66_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_66_DELIVERY.md'
       - '.github/workflows/r266-release-authority-gate.yml'
   workflow_dispatch:
 
@@ -47,7 +47,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version'] >= 4
           assert lock['parent_release_commit'] == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1'
           assert lock['production_source_changes_after_lock_forbidden'] is True
@@ -83,10 +83,10 @@ jobs:
           import json, subprocess
           from pathlib import Path
 
-          lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
-          hosted=json.loads(Path('R2_66_HOSTED_VERIFICATION.json').read_text())
-          world=json.loads(Path('R2_66_WORLD_FINAL.json').read_text())
-          manifest=json.loads(Path('R2_66_RELEASE_MANIFEST.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json').read_text())
+          hosted=json.loads(Path('archive/root-history/historical_r_series/R2_66_HOSTED_VERIFICATION.json').read_text())
+          world=json.loads(Path('archive/root-history/historical_r_series/R2_66_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_66_RELEASE_MANIFEST.json').read_text())
 
           assert lock['schema_version'] >= 4
           assert lock['parent_release_commit'] == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1'
@@ -137,8 +137,8 @@ jobs:
               source_id='WarrenWeckesser/ufunclab:ufunclab.step',
               source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
           )
-          assert phase == json.loads(Path('R2_66_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_66_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_66_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_66_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           assert external['false_accepts'] == 0

@@ -11,8 +11,8 @@ on:
       - 'tests/test_r221_*.py'
       - 'research/R2_20_PHASE_A_RESULT.json'
       - 'research/R2_21_*.json'
-      - 'R2_21_DELIVERY.md'
-      - 'R2_21_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_21_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_21_RELEASE_MANIFEST.json'
       - '.github/workflows/r221-confidence-adaptive-evidence.yml'
   workflow_dispatch:
 

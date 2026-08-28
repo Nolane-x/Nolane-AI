@@ -8,18 +8,18 @@ from pathlib import Path
 
 from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
-LOCK = Path('R2_69_PRE_HOSTED_LOCK.json')
+LOCK = Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json')
 OUT = Path('release/Nolane-AI-R2.69-COMPLETE.zip')
 SHA = Path('release/Nolane-AI-R2.69-COMPLETE.zip.sha256')
 PREFIX = 'Nolane-AI-R2.69/'
 REQUIRED = {
-    'R2_69_PRE_HOSTED_LOCK.json',
-    'R2_69_PHASE_A_RESULT.json',
-    'R2_69_EXTERNAL_TRANSFER.json',
-    'R2_69_PROMOTION_AUTHORITY.json',
-    'R2_69_WORLD_BOUNDED_ADJUDICATION.json',
-    'R2_69_WORLD_STATE_SNAPSHOT.json',
-    'R2_69_WORLD_GATE_SNAPSHOT.json',
+    'archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json',
+    'archive/root-history/historical_r_series/R2_69_PHASE_A_RESULT.json',
+    'archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json',
+    'archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json',
+    'archive/root-history/historical_r_series/R2_69_WORLD_BOUNDED_ADJUDICATION.json',
+    'archive/root-history/historical_r_series/R2_69_WORLD_STATE_SNAPSHOT.json',
+    'archive/root-history/historical_r_series/R2_69_WORLD_GATE_SNAPSHOT.json',
     'cogcoder/r269_scoped_promotion.py',
     'cogcoder/r269_promotion_authority.py',
     'cogcoder/r269_governed_runtime.py',
@@ -78,7 +78,7 @@ def verify_lock() -> dict[str, object]:
     for path, expected in sorted(blobs.items()):
         if not Path(path).is_file() or _git_blob(path) != expected:
             raise RuntimeError(f'frozen blob mismatch: {path}')
-    promotion = json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
+    promotion = json.loads(Path('archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json').read_text())
     if promotion.get('promotion_gate_pass') is not True:
         raise RuntimeError('promotion authority receipt is not accepted')
     if promotion.get('semantic_result_digest') != lock.get('promotion_semantic_digest'):

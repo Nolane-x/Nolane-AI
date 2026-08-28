@@ -9,7 +9,7 @@ on:
       - "tests/test_r254_*.py"
       - "research/r254_external_transfer.py"
       - "research/R2_54_PHASE_A_RESULT.json"
-      - "R2_53_TO_R2_54_EVOLUTION.md"
+      - "archive/root-history/historical_r_series/R2_53_TO_R2_54_EVOLUTION.md"
       - "docs/superpowers/specs/2026-08-17-r254-*.md"
       - "docs/superpowers/plans/2026-08-17-r254-*.md"
       - ".github/workflows/r254-federated-cognitive-retrieval.yml"

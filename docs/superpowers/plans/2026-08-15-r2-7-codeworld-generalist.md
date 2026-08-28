@@ -94,9 +94,9 @@
 ### Task 6: Delivery and claim boundary
 
 **Files:**
-- Create: `R2_7_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_7_DELIVERY.md`
 - Create: `research/R2_7_PHASE_A_RESULT.json`
-- Create: `R2_7_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_7_RELEASE_MANIFEST.json`
 
 - [x] Record exact parameter count, hashes and internal transfer metrics.
 - [x] State that Phase A is a compact controller milestone, not external coding proof.

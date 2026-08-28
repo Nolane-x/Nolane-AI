@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "R2_54_DELIVERY.md"
-      - "R2_54_RELEASE_MANIFEST.json"
-      - "R2_53_TO_R2_54_EVOLUTION.md"
+      - "archive/root-history/historical_r_series/R2_54_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_54_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_53_TO_R2_54_EVOLUTION.md"
       - "research/R2_54_*.json"
       - ".github/workflows/r254-release-bundle.yml"
   workflow_dispatch:
@@ -28,7 +28,7 @@ jobs:
           v=json.load(open('research/R2_54_VERIFY_RESULT.json'))
           w=json.load(open('research/R2_54_WORLD_FINAL.json'))
           e=json.load(open('research/R2_54_EXTERNAL_TRANSFER.json'))
-          m=json.load(open('R2_54_RELEASE_MANIFEST.json'))
+          m=json.load(open('archive/root-history/historical_r_series/R2_54_RELEASE_MANIFEST.json'))
           assert p['decision']=='ACCEPTED_BOUNDED_CAPABILITY' and p['all_gates_pass'] is True
           assert p['focused_tests']=='24/24' and p['protected_lineage'].startswith('125/125')
           s=p['summary']; assert s['episodes']==10 and s['exact']==10 and s['false_accepts']==0

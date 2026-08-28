@@ -4,9 +4,9 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "R2_51_DELIVERY.md"
-      - "R2_51_RELEASE_MANIFEST.json"
-      - "R2_50_TO_R2_51_EVOLUTION.md"
+      - "archive/root-history/historical_r_series/R2_51_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_51_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_50_TO_R2_51_EVOLUTION.md"
       - "research/R2_51_*.json"
       - ".github/workflows/r251-release-bundle.yml"
   workflow_dispatch:
@@ -25,7 +25,7 @@ jobs:
           python - <<'PY'
           import json
           v=json.load(open('research/R2_51_VERIFY_RESULT.json'))
-          m=json.load(open('R2_51_RELEASE_MANIFEST.json'))
+          m=json.load(open('archive/root-history/historical_r_series/R2_51_RELEASE_MANIFEST.json'))
           assert v['decision']=='accepted_bounded_capability'
           assert v['all_required_steps_success'] is True
           assert v['integrity_workflows_success'] is True
