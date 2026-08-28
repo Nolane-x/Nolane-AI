@@ -93,3 +93,28 @@ def test_wave5aw_ledger_is_idempotent_across_nonsemantic_hypothesis_renames() ->
 
     assert renamed_record == first_record
     assert len(ledger.records) == 1
+
+
+def test_wave5aw_restored_receipt_rejects_tampered_content_address() -> None:
+    selection = _probes((-1, 0, 1))
+    verification = _probes((-2, 2))
+    domain = tuple({probe.probe_id: probe for probe in (*selection, *verification)}.values())
+    space = VersionSpace(
+        (
+            _hypothesis(domain, lambda x, y: x + y, display_name="add"),
+            _hypothesis(domain, lambda x, y: x - y, display_name="subtract"),
+        )
+    )
+    receipt = run_shadow_experiment(
+        space,
+        selection,
+        lambda probe: probe.args[0] + probe.args[1],
+        verification_probes=verification,
+        max_selection_oracle_calls=1,
+    )
+    assert receipt.status == "accept"
+
+    tampered = receipt.to_state()
+    tampered["experiment_id"] = "xexp:" + ("0" * 64)
+    with pytest.raises(ValueError, match="experiment id"):
+        ShadowExperimentReceipt.from_state(tampered)
