@@ -25,6 +25,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.artifacts",
     "external.assurance",
     "external.individual_evolution",
+    "external.operations",
     "external.verification",
     "external.evidence",
     "external.experience",
@@ -78,6 +79,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
     for component_id in (
         "external.assurance",
         "external.individual_evolution",
+        "external.operations",
         "external.context",
         "external.architecture",
         "external.integration",

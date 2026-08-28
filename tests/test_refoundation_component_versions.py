@@ -27,6 +27,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.artifacts": 1,
     "external.assurance": 1,
     "external.individual_evolution": 1,
+    "external.operations": 1,
     "external.verification": 1,
     "external.evidence": 1,
     "external.experience": 1,

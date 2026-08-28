@@ -142,6 +142,17 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native individual-evolution lineage, profile, learning, self-model, neural challenger and longitudinal benchmark authority over canonical assurance, verification, identity, skill, experience, self-model, evidence and digest dependencies; historical individual-evolution/profile modules bridge exact semantic public identities.",
     ),
+    "external.operations": (
+        "nolane.external_core.operations",
+        (
+            "cogcoder/organization/operations.py",
+            "cogcoder/organization/operations_profiles.py",
+            "cogcoder/organization/data_operations.py",
+            "cogcoder/organization/infrastructure_operations.py",
+            "cogcoder/organization/reliability_operations.py",
+        ),
+        "Native Operations readiness, twelve-profile routing, data migration/persistence/consistency, reproducible build/release/observability and reliability/performance authority over canonical artifacts, assurance, skills, identity and digest dependencies; historical Operations modules bridge exact semantic public identities.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),
