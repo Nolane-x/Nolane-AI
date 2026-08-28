@@ -1,17 +1,6 @@
 {
   "components": [
     {
-      "canonical_module": "nolane.evaluation.campaign",
-      "canonical_write_authority": false,
-      "component_id": "evaluation.campaign",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/campaign.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": "nolane.external_core.assurance",
       "canonical_write_authority": false,
       "component_id": "external.assurance",
@@ -123,7 +112,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 5,
+    "compatibility_facade": 4,
     "frozen_asset": 1,
     "historical_only": 5
   },

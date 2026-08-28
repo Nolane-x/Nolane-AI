@@ -95,3 +95,11 @@ Wave 5V reduced generated native debt to 25 remaining non-native component recor
 The dependency graph and the actual import graph must both be clean before a boundary is cut over. In particular, Assurance and Individual Evolution currently expose hidden legacy import coupling beyond their high-level manifest edges; those surfaces must be retargeted or decomposed before authority migration rather than moved cosmetically.
 
 No current status statement implies that all runtime or External Core surfaces are already native. Compatibility, determinism, evidence, repository quarantine, and the 67 permanent first-generation AI identity constraints remain fail-closed throughout Refoundation.
+
+## Wave 5AM — native evaluation campaign cluster
+
+- `evaluation.campaign` now owns the complete seven-module campaign semantic closure under `nolane.evaluation`.
+- Historical `cogcoder.organization.campaign*` modules are exact-object compatibility bridges only.
+- Component revision advances to `0.0.1`; active facade authority is retired.
+- Repository native debt decreases from 11 to 10 non-native component records.
+

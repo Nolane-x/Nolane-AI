@@ -297,6 +297,19 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/evaluation.py",),
         "Native evaluation-scaling composition authority over canonical artifacts, claims, evidence, parameters, regimes, release, stress and organization identity dependencies; historical evaluation module bridges exact control-plane identity.",
     ),
+    "evaluation.campaign": (
+        "nolane.evaluation.campaign",
+        (
+            "cogcoder/organization/campaign.py",
+            "cogcoder/organization/campaign_repository.py",
+            "cogcoder/organization/campaign_tasks.py",
+            "cogcoder/organization/campaign_contamination.py",
+            "cogcoder/organization/campaign_runner.py",
+            "cogcoder/organization/campaign_reproduction.py",
+            "cogcoder/organization/campaign_ingest.py",
+        ),
+        "Native seven-module evaluation-campaign authority over frozen repository snapshots, task manifests/partitions, contamination checks, run receipts, reproduction evidence and canonical scaling ingestion; all historical campaign modules bridge exact semantic public identities.",
+    ),
     "neural.inference_bridge": (
         "nolane.neural.inference_bridge",
         ("cogcoder/organization/execution_inference.py",),
