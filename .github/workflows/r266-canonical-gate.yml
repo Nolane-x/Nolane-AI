@@ -4,7 +4,7 @@ on:
   push:
     branches: [r266-learned-contextual-composition-gpt56sol]
     paths:
-      - 'R2_66_*.json'
+      - 'archive/root-history/historical_r_series/R2_66_*.json'
       - 'cogcoder/r266_*.py'
       - 'cogcoder/_r266_*.py'
       - 'tests/test_r266_*.py'
@@ -14,7 +14,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'R2_66_*.json'
+      - 'archive/root-history/historical_r_series/R2_66_*.json'
       - 'cogcoder/r266_*.py'
       - 'cogcoder/_r266_*.py'
       - 'tests/test_r266_*.py'
@@ -44,7 +44,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock_path = Path('R2_66_PRE_HOSTED_LOCK.json')
+          lock_path = Path('archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json')
           if not lock_path.exists():
               raise SystemExit('R2.66 lock not frozen yet')
           lock = json.loads(lock_path.read_text())
@@ -99,7 +99,7 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json').read_text())
           assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_release_commit'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_release_commit'])
           assert lock['production_source_changes_after_lock_forbidden'] is True
           for path, expected in lock['frozen_git_blobs'].items():
@@ -121,8 +121,8 @@ jobs:
               source_id='WarrenWeckesser/ufunclab:ufunclab.step',
               source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
           )
-          assert phase == json.loads(Path('R2_66_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_66_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_66_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_66_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           print('R266_EXACT_EVIDENCE_OK')

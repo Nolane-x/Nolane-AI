@@ -516,9 +516,9 @@ git commit -m 'test: harden R2.67 independent authority blockers'
 ### Task 8: Freeze evidence, run protected lineage, and build COMPLETE release
 
 **Files:**
-- Create: `R2_67_PHASE_A_RESULT.json`
-- Create: `R2_67_EXTERNAL_TRANSFER.json`
-- Create: `R2_67_PRE_HOSTED_LOCK.json`
+- Create: `archive/root-history/historical_r_series/R2_67_PHASE_A_RESULT.json`
+- Create: `archive/root-history/historical_r_series/R2_67_EXTERNAL_TRANSFER.json`
+- Create: `archive/root-history/historical_r_series/R2_67_PRE_HOSTED_LOCK.json`
 - Create: `.github/workflows/r267-canonical-gate.yml`
 - Create: `.github/workflows/r267-freeze-evidence.yml`
 - Create: `.github/workflows/r267-release-bundle.yml`

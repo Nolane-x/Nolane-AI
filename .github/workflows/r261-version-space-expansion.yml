@@ -9,7 +9,7 @@ on:
       - '.github/workflows/r261-version-space-expansion.yml'
       - 'benchmarks/kfigg/r261_*.py'
       - 'research/r261_*.py'
-      - 'R2_61_*.json'
+      - 'archive/root-history/historical_r_series/R2_61_*.json'
   pull_request:
     branches: [main]
     paths:
@@ -18,7 +18,7 @@ on:
       - '.github/workflows/r261-version-space-expansion.yml'
       - 'benchmarks/kfigg/r261_*.py'
       - 'research/r261_*.py'
-      - 'R2_61_*.json'
+      - 'archive/root-history/historical_r_series/R2_61_*.json'
   workflow_dispatch:
 
 permissions:
@@ -83,7 +83,7 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-          lock = json.loads(Path('R2_61_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_61_PRE_HOSTED_LOCK.json').read_text())
           assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_main_sha'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_main_sha'])
           for path, expected in lock['frozen_git_blobs'].items():
               actual = subprocess.check_output(['git', 'hash-object', path], text=True).strip()
@@ -97,7 +97,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r261_version_space_expansion_transfer import run_frozen_heldout
-          expected = json.loads(Path('R2_61_PHASE_A_RESULT.json').read_text())
+          expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json').read_text())
           actual = run_frozen_heldout()
           assert actual == expected, (actual, expected)
           print('R261_PHASE_A_EXACT_OK')
@@ -109,7 +109,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r261_expansion_proof_audit import run_expansion_novelty_audit
-          expected = json.loads(Path('R2_61_EXPANSION_PROOF_RESULT.json').read_text())
+          expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_EXPANSION_PROOF_RESULT.json').read_text())
           actual = run_expansion_novelty_audit()
           assert actual == expected, (actual, expected)
           print('R261_EXPANSION_PROOF_EXACT_OK')
@@ -122,7 +122,7 @@ jobs:
           from pathlib import Path
           import numpy as np
           from research.r261_external_version_space_expansion import run_external_transfer
-          expected = json.loads(Path('R2_61_EXTERNAL_TRANSFER.json').read_text())
+          expected = json.loads(Path('archive/root-history/historical_r_series/R2_61_EXTERNAL_TRANSFER.json').read_text())
           actual = run_external_transfer(np.remainder, source_id='numpy.remainder', source_version=np.__version__)
           assert actual == expected, (actual, expected)
           print('R261_EXTERNAL_EXACT_OK')

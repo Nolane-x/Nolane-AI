@@ -137,8 +137,8 @@ jobs:
           )
           assert external['oracle_accounting_exact'] is True
 
-          phase_path = Path('R2_67_1_PHASE_A_RESULT.json')
-          external_path = Path('R2_67_1_EXTERNAL_TRANSFER.json')
+          phase_path = Path('archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json')
+          external_path = Path('archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json')
           phase_path.write_text(json.dumps(phase, indent=2, sort_keys=True) + '\n')
           external_path.write_text(json.dumps(external, indent=2, sort_keys=True) + '\n')
 
@@ -170,8 +170,8 @@ jobs:
               '.github/workflows/r267-1-release-bundle.yml',
               '.github/workflows/r267-1-post-merge-release-bundle.yml',
               'docs/superpowers/specs/2026-08-19-r267-1-genuine-causal-necessity-hotfix.md',
-              'R2_67_1_PHASE_A_RESULT.json',
-              'R2_67_1_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json',
           )
           for path in frozen_paths:
               assert Path(path).is_file(), path
@@ -239,7 +239,7 @@ jobs:
               },
               'frozen_git_blobs': blobs,
           }
-          Path('R2_67_1_PRE_HOSTED_LOCK.json').write_text(
+          Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json').write_text(
               json.dumps(lock, indent=2, sort_keys=True) + '\n'
           )
           print('R267_1_FRESH_LOCK_WRITTEN', len(blobs), lock['source_freeze_head'])
@@ -249,13 +249,13 @@ jobs:
           set -euo pipefail
           changed="$(git status --short | awk '{print $2}' | sort)"
           printf '%s\n' "$changed"
-          expected="$(printf '%s\n' R2_67_1_EXTERNAL_TRANSFER.json R2_67_1_PHASE_A_RESULT.json R2_67_1_PRE_HOSTED_LOCK.json | sort)"
+          expected="$(printf '%s\n' archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json | sort)"
           test "$changed" = "$expected"
       - name: Commit fresh frozen records
         run: |
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add R2_67_1_PHASE_A_RESULT.json R2_67_1_EXTERNAL_TRANSFER.json R2_67_1_PRE_HOSTED_LOCK.json
+          git add archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json
           git commit -m 'evidence: freeze corrected R2.67.1 authority boundary'
           git push origin HEAD:r267-1-genuine-causal-necessity-hotfix-gpt56sol

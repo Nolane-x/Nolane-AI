@@ -4,7 +4,7 @@
   "bundle_bytes": 40482,
   "bundle_file_count": 31,
   "bundle_files": [
-    "R2_18_DELIVERY.md",
+    "archive/root-history/historical_r_series/R2_18_DELIVERY.md",
     "benchmarks/kfigg/r218_cross_domain_transfer.py",
     "cogcoder/r218_library_governor.py",
     "cogcoder/r218_periodic_invariant.py",

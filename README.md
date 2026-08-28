@@ -1,12 +1,12 @@
 # Nolane AI — Experimental Compact Cognitive System
 
-> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active accepted/draft boundary, current milestone authority and promotion requirements, read [`CURRENT_STATUS.md`](CURRENT_STATUS.md). Do not infer current milestone state from the historical sections below.
+> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active accepted/draft boundary, current milestone authority and promotion requirements, read [`archive/root-history/legacy_current_status/CURRENT_STATUS.md`](archive/root-history/legacy_current_status/CURRENT_STATUS.md). Do not infer current milestone state from the historical sections below.
 
 Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, retrieval, epistemic verification, reusable skills, active experimentation and public-feedback replanning. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
 ## Active coding research track — historical context, not current status authority
 
-The repository contains an experimental coding-generalization lineage beyond the older R2.4 system. The entries below document historical gates and claim boundaries; they are not a substitute for `CURRENT_STATUS.md`.
+The repository contains an experimental coding-generalization lineage beyond the older R2.4 system. The entries below document historical gates and claim boundaries; they are not a substitute for `archive/root-history/legacy_current_status/CURRENT_STATUS.md`.
 
 - **R2.7 CodeWorld Phase A:** adds a 622,147-parameter coding-loop controller, producing **79,401,400** effective neural parameters. Its internal language×task-pair curriculum is a workflow-policy gate only, not evidence of general repository coding performance.
 - **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
@@ -70,7 +70,7 @@ Successful GitHub Actions runs:
 
 ## Verification
 
-- `CURRENT_STATUS.md` — authoritative short operational status for current accepted/draft boundaries.
+- `archive/root-history/legacy_current_status/CURRENT_STATUS.md` — authoritative short operational status for current accepted/draft boundaries.
 - `research/R2_4_STATUS.json` — accepted R2.4 historical state and exact metrics.
 - `research/R2_4_PRE_DEV_LOCK.md` — protocol/source lock before stage 2.
 - `research/R2_4_STAGE3_FREEZE.md` — source freeze before stage 3.

@@ -75,7 +75,7 @@
 
 **Files:**
 - Create: `research/R2_14_PHASE_A_RESULT.json`
-- Create: `R2_14_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_14_DELIVERY.md`
 - Modify: `README.md` only if outcome/claim boundary needs recording.
 
 - [ ] Run the frozen heldout once.
@@ -87,7 +87,7 @@
 
 **Files:**
 - Create: `.github/workflows/r214-active-program-disambiguation.yml`
-- Create: `R2_14_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_14_RELEASE_MANIFEST.json`
 
 - [ ] Run R2.14 focused tests, current root `tests/`, and compileall.
 - [ ] Verify frozen source hashes and no R2.13 history rewrite.

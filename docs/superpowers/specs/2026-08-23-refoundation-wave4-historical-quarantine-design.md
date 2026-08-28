@@ -38,9 +38,9 @@ Artifacts still referenced by tests, workflows, release reproduction, checkpoint
 A root file is an ambiguous historical candidate when its name matches one of these current Wave-4 families:
 
 - `R<digit>...` historical R-series delivery/release/recovery/readiness/evidence material;
-- `CURRENT_ONE_WEIGHT_*` legacy current-weight pointers;
-- root `CURRENT_STATUS.md` (superseded architecturally by `CURRENT/STATUS.md`);
-- `CHECKPOINT_MANIFEST.json` when it is a historical checkpoint pointer rather than current architecture law.
+- `archive/root-history/legacy_weight_pointer/CURRENT_ONE_WEIGHT_*` legacy current-weight pointers;
+- root `archive/root-history/legacy_current_status/CURRENT_STATUS.md` (superseded architecturally by `CURRENT/STATUS.md`);
+- `archive/root-history/historical_checkpoint_pointer/CHECKPOINT_MANIFEST.json` when it is a historical checkpoint pointer rather than current architecture law.
 
 The audit module must enumerate candidates from the filesystem, not from a hand-maintained finite list, then require complete index coverage.
 

@@ -8,8 +8,8 @@ on:
       - "benchmarks/kfigg/r241_*.py"
       - "tests/test_r241_*.py"
       - "research/R2_41_*.json"
-      - "R2_41_DELIVERY.md"
-      - "R2_41_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_41_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_41_RELEASE_MANIFEST.json"
       - ".github/workflows/r241-multi-macro-competition.yml"
   pull_request:
     paths:
@@ -17,8 +17,8 @@ on:
       - "benchmarks/kfigg/r241_*.py"
       - "tests/test_r241_*.py"
       - "research/R2_41_*.json"
-      - "R2_41_DELIVERY.md"
-      - "R2_41_RELEASE_MANIFEST.json"
+      - "archive/root-history/historical_r_series/R2_41_DELIVERY.md"
+      - "archive/root-history/historical_r_series/R2_41_RELEASE_MANIFEST.json"
       - ".github/workflows/r241-multi-macro-competition.yml"
 
 jobs:

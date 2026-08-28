@@ -196,10 +196,10 @@ Commit message: `test(r269): add sequential meta-learning benchmark`.
 - Create: `.github/workflows/r269-canonical.yml`
 - Create: `.github/workflows/r269-release-bundle.yml`
 - Create: `.github/workflows/r269-post-merge-release-bundle.yml`
-- Create after source freeze: `R2_69_PHASE_A_RESULT.json`
-- Create after source freeze: `R2_69_PRE_HOSTED_LOCK.json`
+- Create after source freeze: `archive/root-history/historical_r_series/R2_69_PHASE_A_RESULT.json`
+- Create after source freeze: `archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json`
 - Create: `R2_69_DELIVERY.md`
-- Modify: `CURRENT_STATUS.md`
+- Modify: `archive/root-history/legacy_current_status/CURRENT_STATUS.md`
 
 **Interfaces:**
 - RED workflow runs R2.68 protected safety first, then R2.69 contract tests on Python 3.11/3.13.

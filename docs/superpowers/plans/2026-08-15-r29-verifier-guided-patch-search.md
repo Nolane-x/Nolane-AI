@@ -80,8 +80,8 @@
 
 **Files:**
 - Create: `.github/workflows/r29-patch-search.yml`
-- Create: `R2_9_DELIVERY.md`
-- Create: `R2_9_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_9_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_9_RELEASE_MANIFEST.json`
 - Modify: `README.md`
 
 **Interfaces:**

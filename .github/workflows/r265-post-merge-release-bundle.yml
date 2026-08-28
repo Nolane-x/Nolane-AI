@@ -6,12 +6,12 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/r265-post-merge-release-bundle.yml'
-      - 'R2_65_HOSTED_VERIFICATION.json'
-      - 'R2_65_WORLD_FINAL.json'
-      - 'R2_65_RELEASE_MANIFEST.json'
-      - 'R2_65_DELIVERY.md'
-      - 'R2_64_1_TO_R2_65_EVOLUTION.md'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json'
+      - 'archive/root-history/historical_r_series/R2_65_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_65_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_65_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_64_1_TO_R2_65_EVOLUTION.md'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
   workflow_dispatch:
 
 permissions:
@@ -36,13 +36,13 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
-          hosted=json.loads(Path('R2_65_HOSTED_VERIFICATION.json').read_text())
-          world=json.loads(Path('R2_65_WORLD_FINAL.json').read_text())
-          manifest=json.loads(Path('R2_65_RELEASE_MANIFEST.json').read_text())
-          delivery=Path('R2_65_DELIVERY.md').read_text()
-          evolution=Path('R2_64_1_TO_R2_65_EVOLUTION.md').read_text()
-          readiness=Path('R2_READINESS_RECALIBRATION.md').read_text()
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
+          hosted=json.loads(Path('archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json').read_text())
+          world=json.loads(Path('archive/root-history/historical_r_series/R2_65_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_65_RELEASE_MANIFEST.json').read_text())
+          delivery=Path('archive/root-history/historical_r_series/R2_65_DELIVERY.md').read_text()
+          evolution=Path('archive/root-history/historical_r_series/R2_64_1_TO_R2_65_EVOLUTION.md').read_text()
+          readiness=Path('archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md').read_text()
 
           assert lock['schema_version'] == 8
           assert lock['parent_release_commit'] == 'f8a28627dc34f6db4fafca629df3b64d668b05c8'
@@ -86,8 +86,8 @@ jobs:
           from research.r265_external_patch_primitive_transfer import run_external_transfer
           phase=run_benchmark()
           external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
-          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           print('R265_POST_MERGE_EXACT_EVIDENCE_OK')

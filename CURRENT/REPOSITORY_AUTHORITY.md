@@ -26,7 +26,7 @@ Neither state authorizes deletion. Wave 4 records `delete_allowed=false` for all
 
 ## Misleading legacy CURRENT names
 
-Root-level `CURRENT_STATUS.md` and `CURRENT_ONE_WEIGHT_*` names predate the A1 Refoundation authority model. Their names are preserved as historical/checkpoint provenance while quarantined, but they do not outrank `CURRENT/STATUS.md`, `CURRENT/NEURAL_CORE.md`, or accepted checkpoint evidence contracts.
+Root-level `archive/root-history/legacy_current_status/CURRENT_STATUS.md` and `archive/root-history/legacy_weight_pointer/CURRENT_ONE_WEIGHT_*` names predate the A1 Refoundation authority model. Their names are preserved as historical/checkpoint provenance while quarantined, but they do not outrank `CURRENT/STATUS.md`, `CURRENT/NEURAL_CORE.md`, or accepted checkpoint evidence contracts.
 
 ## Repository audit
 
@@ -56,3 +56,9 @@ Future extraction waves remove entries only by changing the canonical implementa
 Refoundation PRs use `.github/workflows/refoundation-epoch0-wave1.yml` as their repository-refoundation regression gate. Historical workflows retain their normal push/schedule/manual/ordinary-PR behavior, but must not consume runners for `refoundation/*` PR heads.
 
 This is routing isolation only; historical evidence gates are not deleted or weakened for their intended contexts.
+
+## Repository surface closure
+
+Wave 5AS converts the Wave-4 quarantine plan into a physical repository boundary. Historical root artifacts are expected to live under `archive/root-history/` after verified relocation. A `moved` receipt means the archive target exists byte-for-byte at the recorded SHA-256 and the active repository contains no bare reference that still requires the former root path. `quarantined_in_place` remains valid only for a newly discovered or not-yet-migrated historical artifact.
+
+Historical release integrity workflows do not outrank current architecture authority. A frozen release verifier whose contract hashes historical source must be scoped to its historical/manual verification context rather than automatically treating later `main` evolution as release corruption.

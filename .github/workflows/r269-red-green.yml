@@ -7,9 +7,9 @@ on:
       - 'cogcoder/r269_*.py'
       - 'benchmarks/kfigg/r269_meta_learning.py'
       - 'tests/test_r269_*.py'
-      - 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
-      - 'R2_69_PROMOTION_AUTHORITY.json'
-      - 'R2_69_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'
+      - 'archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json'
+      - 'archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r269-red-green.yml'
   workflow_dispatch:
 
@@ -45,7 +45,7 @@ jobs:
           test "$CURRENT" = "$REMOTE"
           if [ -n "${EXPECTED_HEAD:-}" ]; then test "$CURRENT" = "$EXPECTED_HEAD"; fi
           git merge-base --is-ancestor "$SOURCE_AUTHORITY_PARENT" HEAD
-          test -f R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
+          test -f archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json
 
       - uses: actions/setup-python@v5
         with:
@@ -62,7 +62,7 @@ jobs:
           from pathlib import Path
           from benchmarks.kfigg.r269_meta_learning import run_benchmark
           r=run_benchmark()
-          receipt=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
+          receipt=json.loads(Path('archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text(encoding='utf-8'))
           assert r['milestone']=='R2.69'
           assert r['accepted_parent_sha']=='fda7f502185266fedb00886d5786c6d28cc0e0eb'
           assert r['source_basis_sizes']==[2,3,4]

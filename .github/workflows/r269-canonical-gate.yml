@@ -8,7 +8,7 @@ on:
       - 'benchmarks/kfigg/r269_*.py'
       - 'tests/test_r269_*.py'
       - 'scripts/r269_*.py'
-      - 'R2_69_*.json'
+      - 'archive/root-history/historical_r_series/R2_69_*.json'
       - '.github/workflows/r269-*.yml'
       - 'docs/superpowers/specs/2026-08-19-r269-autonomous-transfer-meta-learning-kernel-design.md'
       - 'docs/superpowers/plans/2026-08-19-r269-autonomous-transfer-meta-learning-kernel.md'
@@ -33,7 +33,7 @@ jobs:
       - id: freeze
         name: Detect authoritative freeze
         run: |
-          if [ -f R2_69_PRE_HOSTED_LOCK.json ]; then
+          if [ -f archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json ]; then
             echo 'frozen=true' >> "$GITHUB_OUTPUT"
           else
             echo 'frozen=false' >> "$GITHUB_OUTPUT"
@@ -80,7 +80,7 @@ jobs:
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
 
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version']>=4
           assert lock['milestone']=='R2.69'
           assert lock['status']=='PRE_HOSTED_SOURCE_AND_EVIDENCE_LOCK'
@@ -103,7 +103,7 @@ jobs:
               for line in raw.splitlines():
                   if line.strip(): changed.add(line.split('\t')[-1])
               allowed={
-                  'R2_69_PHASE_A_RESULT.json','R2_69_PRE_HOSTED_LOCK.json',
+                  'archive/root-history/historical_r_series/R2_69_PHASE_A_RESULT.json','archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json',
                   'R2_69_FREEZE_REQUEST','.github/workflows/r269-freeze-evidence.yml',
               }
               assert changed.issubset(allowed),('post-freeze source drift',sorted(changed-allowed))
@@ -129,10 +129,10 @@ jobs:
           assert authored['semantic_result_digest']==lock['authored_semantic_digest']
           assert external['semantic_result_digest']==lock['external_semantic_digest']
 
-          phase=json.loads(Path('R2_69_PHASE_A_RESULT.json').read_text())
-          ext_receipt=json.loads(Path('R2_69_EXTERNAL_TRANSFER.json').read_text())
-          seq=json.loads(Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text())
-          promo=json.loads(Path('R2_69_PROMOTION_AUTHORITY.json').read_text())
+          phase=json.loads(Path('archive/root-history/historical_r_series/R2_69_PHASE_A_RESULT.json').read_text())
+          ext_receipt=json.loads(Path('archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json').read_text())
+          seq=json.loads(Path('archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json').read_text())
+          promo=json.loads(Path('archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json').read_text())
           assert phase==authored
           assert ext_receipt['semantic_result_digest']==external['semantic_result_digest']
           assert ext_receipt['all_gates_pass'] is True
@@ -215,7 +215,7 @@ jobs:
           from benchmarks.kfigg.r269_external_numpy_transfer import run_external_transfer
           from benchmarks.kfigg.r269_promotion_authority import run_promotion_authority_benchmark
           from scripts.r269_world_adjudication import verify_receipt as verify_world_receipt
-          lock=json.loads(Path('R2_69_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json').read_text())
           assert run_benchmark()['semantic_result_digest']==lock['authored_semantic_digest']
           assert run_external_transfer()['semantic_result_digest']==lock['external_semantic_digest']
           tree_sha=subprocess.check_output(['git','rev-parse','HEAD^{tree}'],text=True).strip()

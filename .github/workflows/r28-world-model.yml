@@ -9,7 +9,7 @@ on:
       - 'scripts/*r28*.py'
       - 'tests/test_r28_*.py'
       - 'research/R2_8_*'
-      - 'R2_8_*'
+      - 'archive/root-history/historical_r_series/R2_8_*'
       - 'docs/superpowers/specs/2026-08-15-r28-*'
       - 'docs/superpowers/plans/2026-08-15-r28-*'
       - '.github/workflows/r28-world-model.yml'

@@ -9,7 +9,7 @@ on:
       - 'scripts/run_r214_program_identification.py'
       - 'tests/test_r214_*.py'
       - 'research/R2_14_*.json'
-      - 'R2_14_*'
+      - 'archive/root-history/historical_r_series/R2_14_*'
       - '.github/workflows/r214-active-program-disambiguation.yml'
   workflow_dispatch:
 

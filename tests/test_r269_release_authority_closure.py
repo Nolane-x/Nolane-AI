@@ -17,7 +17,7 @@ def _optional_text(path: str) -> str | None:
 
 
 def _lock() -> dict[str, object] | None:
-    path = ROOT / 'R2_69_PRE_HOSTED_LOCK.json'
+    path = ROOT / 'archive/root-history/historical_r_series/R2_69_PRE_HOSTED_LOCK.json'
     if not path.is_file():
         return None
     value = json.loads(path.read_text(encoding='utf-8'))
@@ -34,7 +34,7 @@ def test_freeze_canonical_bundle_and_postmerge_all_bind_promotion_authority():
     builder = _text('scripts/r269_build_complete_bundle.py')
 
     required_paths = (
-        'R2_69_PROMOTION_AUTHORITY.json',
+        'archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json',
         'cogcoder/r269_promotion_authority.py',
         'benchmarks/kfigg/r269_promotion_authority.py',
         '.github/workflows/r269-promotion-authority.yml',
@@ -83,9 +83,9 @@ def test_world_bounded_adjudication_is_content_addressed_across_release_chain():
     verifier = _text('scripts/r269_world_adjudication.py')
 
     required_paths = (
-        'R2_69_WORLD_BOUNDED_ADJUDICATION.json',
-        'R2_69_WORLD_STATE_SNAPSHOT.json',
-        'R2_69_WORLD_GATE_SNAPSHOT.json',
+        'archive/root-history/historical_r_series/R2_69_WORLD_BOUNDED_ADJUDICATION.json',
+        'archive/root-history/historical_r_series/R2_69_WORLD_STATE_SNAPSHOT.json',
+        'archive/root-history/historical_r_series/R2_69_WORLD_GATE_SNAPSHOT.json',
         'scripts/r269_world_adjudication.py',
     )
     for path in required_paths:
@@ -181,9 +181,9 @@ def test_postmerge_requires_exact_main_and_frozen_authority_lineage():
 
 def test_retired_evidence_workflows_are_verification_only_and_cannot_rewrite_receipts():
     workflows = {
-        '.github/workflows/r269-red-green.yml': 'R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json',
-        '.github/workflows/r269-external-numpy-transfer.yml': 'R2_69_EXTERNAL_TRANSFER.json',
-        '.github/workflows/r269-promotion-authority.yml': 'R2_69_PROMOTION_AUTHORITY.json',
+        '.github/workflows/r269-red-green.yml': 'archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json',
+        '.github/workflows/r269-external-numpy-transfer.yml': 'archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json',
+        '.github/workflows/r269-promotion-authority.yml': 'archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json',
     }
     for path, receipt in workflows.items():
         workflow = _text(path)

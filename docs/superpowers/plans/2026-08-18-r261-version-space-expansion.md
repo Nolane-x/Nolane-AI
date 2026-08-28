@@ -91,7 +91,7 @@ Workflow installs pytest and runs only `tests/test_r261_*.py` on `r261-version-s
 
 - [ ] **Step 4: Run hosted RED**
 
-Expected: test collection/import fails specifically because `cogcoder.r261_version_space_expansion` does not yet exist. Record run/job IDs in `R2_61_TDD_RED.json` only after seeing the failure.
+Expected: test collection/import fails specifically because `cogcoder.r261_version_space_expansion` does not yet exist. Record run/job IDs in `archive/root-history/historical_r_series/R2_61_TDD_RED.json` only after seeing the failure.
 
 ---
 
@@ -165,7 +165,7 @@ Expected: all R2.61 focused tests PASS, including zero false accepts in negative
 **Files:**
 - Create: `benchmarks/kfigg/r261_version_space_expansion_transfer.py`
 - Create: `tests/test_r261_version_space_expansion_benchmark.py`
-- Create after frozen run: `R2_61_PHASE_A_RESULT.json`
+- Create after frozen run: `archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json`
 
 **Interfaces:**
 - Produces `run_frozen_heldout() -> dict`.
@@ -188,7 +188,7 @@ Include at least one unexpressible target, one exhausted expansion budget, one o
 
 - [ ] **Step 5: Freeze exact JSON**
 
-Write exact deterministic result to `R2_61_PHASE_A_RESULT.json` only after a green run.
+Write exact deterministic result to `archive/root-history/historical_r_series/R2_61_PHASE_A_RESULT.json` only after a green run.
 
 ---
 
@@ -197,7 +197,7 @@ Write exact deterministic result to `R2_61_PHASE_A_RESULT.json` only after a gre
 **Files:**
 - Create: `research/r261_external_version_space_expansion.py`
 - Create: `tests/test_r261_external_version_space_expansion.py`
-- Create after hosted run: `R2_61_EXTERNAL_TRANSFER.json`
+- Create after hosted run: `archive/root-history/historical_r_series/R2_61_EXTERNAL_TRANSFER.json`
 
 **Interfaces:**
 - Produces `run_external_transfer(oracle, source_id, source_version) -> dict`.
@@ -220,8 +220,8 @@ Assert R2.60 baseline abstains out-of-space; R2.61 generates the correct candida
 
 **Files:**
 - Update: `.github/workflows/r261-version-space-expansion.yml`
-- Create: `R2_61_PRE_HOSTED_LOCK.json`
-- Create after success: `R2_61_VERIFY_RESULT.json`
+- Create: `archive/root-history/historical_r_series/R2_61_PRE_HOSTED_LOCK.json`
+- Create after success: `archive/root-history/historical_r_series/R2_61_VERIFY_RESULT.json`
 
 - [ ] **Step 1: Freeze source blob SHAs and parent release**
 
@@ -240,10 +240,10 @@ Do not claim pass counts or readiness movement before hosted logs confirm them.
 ### Task 7: Nolane World audit, release evidence, bundle, and integration
 
 **Files:**
-- Create: `R2_61_WORLD_FINAL.json`
-- Create: `R2_61_DELIVERY.md`
-- Create: `R2_61_RELEASE_MANIFEST.json`
-- Modify: `R2_READINESS_RECALIBRATION.md`
+- Create: `archive/root-history/historical_r_series/R2_61_WORLD_FINAL.json`
+- Create: `archive/root-history/historical_r_series/R2_61_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_61_RELEASE_MANIFEST.json`
+- Modify: `archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md`
 - Create: `.github/workflows/r261-release-bundle.yml`
 
 - [ ] **Step 1: Run a fresh Nolane World 0.8.0 W5 world**

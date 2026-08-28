@@ -24,7 +24,7 @@ jobs:
             .gitmodules
             .gitattributes
             README.md
-            CHECKPOINT_MANIFEST.json
-            CURRENT_ONE_WEIGHT_R2_0I.json
+            archive/root-history/historical_checkpoint_pointer/CHECKPOINT_MANIFEST.json
+            archive/root-history/legacy_weight_pointer/CURRENT_ONE_WEIGHT_R2_0I.json
             RELEASE_MANIFEST_R2_0I.json
-            R2_4_DELIVERY.md
+            archive/root-history/historical_r_series/R2_4_DELIVERY.md

@@ -8,9 +8,9 @@ on:
       - 'benchmarks/kfigg/r259_*.py'
       - 'research/r259_*.py'
       - 'tests/test_r259_*.py'
-      - 'R2_59_PHASE_A_RESULT.json'
-      - 'R2_59_PRE_HOSTED_LOCK.json'
-      - 'R2_58_TO_R2_59_EVOLUTION.md'
+      - 'archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_59_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_58_TO_R2_59_EVOLUTION.md'
       - 'docs/superpowers/specs/2026-08-18-r259-budgeted-semantic-intervention-index-design.md'
       - 'docs/superpowers/plans/2026-08-18-r259-budgeted-semantic-intervention-index.md'
       - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
@@ -21,9 +21,9 @@ on:
       - 'benchmarks/kfigg/r259_*.py'
       - 'research/r259_*.py'
       - 'tests/test_r259_*.py'
-      - 'R2_59_PHASE_A_RESULT.json'
-      - 'R2_59_PRE_HOSTED_LOCK.json'
-      - 'R2_58_TO_R2_59_EVOLUTION.md'
+      - 'archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_59_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_58_TO_R2_59_EVOLUTION.md'
       - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
   workflow_dispatch:
 
@@ -49,7 +49,7 @@ jobs:
           python - <<'PY'
           import hashlib, json
           from pathlib import Path
-          lock = json.loads(Path('R2_59_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_59_PRE_HOSTED_LOCK.json').read_text())
           for path, expected in lock['frozen_source_sha256'].items():
               actual = hashlib.sha256(Path(path).read_bytes()).hexdigest()
               assert actual == expected, (path, actual, expected)
@@ -63,7 +63,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r259_budgeted_semantic_intervention_index import run_benchmark
-          expected = json.loads(Path('R2_59_PHASE_A_RESULT.json').read_text())
+          expected = json.loads(Path('archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json').read_text())
           actual = run_benchmark()
           assert actual == expected, (actual, expected)
           assert actual['discovered'] == actual['configurations'] == 3
@@ -147,13 +147,13 @@ jobs:
           assert result['total_synthesis_candidates'] <= 15000
           assert result['synthesis_reduction_ratio'] >= 8.0
           assert result['trainable_parameter_count'] == 0
-          Path('R2_59_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
+          Path('archive/root-history/historical_r_series/R2_59_EXTERNAL_TRANSFER.json').write_text(json.dumps(result, indent=2, sort_keys=True) + '\n')
           PY
       - name: Upload external transfer evidence
         uses: actions/upload-artifact@v4
         with:
           name: R2.59-ufunclab-budgeted-semantic-index-transfer
-          path: R2_59_EXTERNAL_TRANSFER.json
+          path: archive/root-history/historical_r_series/R2_59_EXTERNAL_TRANSFER.json
       - name: Publish external status
         if: success()
         env:

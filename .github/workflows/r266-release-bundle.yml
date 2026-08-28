@@ -4,7 +4,7 @@ on:
   push:
     branches: [r266-learned-contextual-composition-gpt56sol]
     paths:
-      - 'R2_66_*.json'
+      - 'archive/root-history/historical_r_series/R2_66_*.json'
       - 'cogcoder/r266_*.py'
       - 'cogcoder/_r266_*.py'
       - 'tests/test_r266_*.py'
@@ -41,9 +41,9 @@ jobs:
           import json, subprocess
           from pathlib import Path
           required = (
-              'R2_66_PRE_HOSTED_LOCK.json',
-              'R2_66_PHASE_A_RESULT.json',
-              'R2_66_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_66_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_66_EXTERNAL_TRANSFER.json',
               'cogcoder/_r266_contextual_composition_core.py',
               'cogcoder/r266_learned_contextual_composition.py',
               'benchmarks/kfigg/r266_learned_contextual_composition.py',
@@ -64,7 +64,7 @@ jobs:
           )
           for path in required:
               assert Path(path).is_file(), path
-          lock=json.loads(Path('R2_66_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json').read_text())
           assert lock['schema_version'] >= 4
           assert lock['parent_release_commit'] == '768e500d6b3e8d1d8ec747e37aae6302ab6747d1'
           assert lock['production_source_changes_after_lock_forbidden'] is True
@@ -100,8 +100,8 @@ jobs:
               source_id='WarrenWeckesser/ufunclab:ufunclab.step',
               source_commit='f1fbe6769850823a1976ccc28d14cd966130b645',
           )
-          assert phase == json.loads(Path('R2_66_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_66_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_66_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_66_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           print('R266_RELEASE_EVIDENCE_EXACT_OK')
@@ -133,9 +133,9 @@ jobs:
           python - <<'PY'
           import zipfile
           required = {
-              'R2_66_PRE_HOSTED_LOCK.json',
-              'R2_66_PHASE_A_RESULT.json',
-              'R2_66_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_66_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_66_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_66_EXTERNAL_TRANSFER.json',
               'cogcoder/_r266_contextual_composition_core.py',
               'cogcoder/r266_learned_contextual_composition.py',
               'benchmarks/kfigg/r266_learned_contextual_composition.py',

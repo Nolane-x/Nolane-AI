@@ -117,7 +117,7 @@ R2.67.1 must freeze all of the following:
 
 Because both production semantics and benchmark/evidence change, all existing R2.67 frozen artifacts are historical evidence only. R2.67.1 must not mutate them in place and pretend continuity.
 
-Create fresh `R2_67_1_*` artifacts after production stops changing:
+Create fresh `archive/root-history/historical_r_series/R2_67_1_*` artifacts after production stops changing:
 
 - pre-hosted source/evidence lock;
 - authored Phase-A result;

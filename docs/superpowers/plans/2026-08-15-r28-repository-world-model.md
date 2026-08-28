@@ -86,8 +86,8 @@
 
 **Files:**
 - Create: `.github/workflows/r28-world-model.yml`
-- Create: `R2_8_DELIVERY.md`
-- Create: `R2_8_RELEASE_MANIFEST.json`
+- Create: `archive/root-history/historical_r_series/R2_8_DELIVERY.md`
+- Create: `archive/root-history/historical_r_series/R2_8_RELEASE_MANIFEST.json`
 - Modify: `README.md` only to add a research-status note without claiming external coding performance.
 
 **Interfaces:**

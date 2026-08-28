@@ -4,7 +4,7 @@ on:
   push:
     branches: [r267-1-genuine-causal-necessity-hotfix-gpt56sol]
     paths:
-      - 'R2_67_1_*.json'
+      - 'archive/root-history/historical_r_series/R2_67_1_*.json'
       - 'cogcoder/r267_three_probe_causal_composition.py'
       - 'benchmarks/kfigg/r267_1_*.py'
       - 'research/r267_1_*.py'
@@ -15,7 +15,7 @@ on:
   pull_request:
     branches: [main]
     paths:
-      - 'R2_67_1_*.json'
+      - 'archive/root-history/historical_r_series/R2_67_1_*.json'
       - 'cogcoder/r267_three_probe_causal_composition.py'
       - 'benchmarks/kfigg/r267_1_*.py'
       - 'research/r267_1_*.py'
@@ -48,7 +48,7 @@ jobs:
           PYTHONPATH=. python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock_path = Path('R2_67_1_PRE_HOSTED_LOCK.json')
+          lock_path = Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json')
           if not lock_path.is_file():
               raise SystemExit('R2.67.1 lock not frozen yet')
           lock = json.loads(lock_path.read_text())
@@ -122,7 +122,7 @@ jobs:
           PYTHONPATH=. python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-          lock = json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json').read_text())
           parent = lock['parent_release_commit']
           base = os.environ['EXPECTED_BASE_SHA']
           subprocess.run(['git','merge-base','--is-ancestor',parent,base], check=True)
@@ -148,9 +148,9 @@ jobs:
           external = run_external_transfer(np.dot, source_id='numpy:numpy.dot', source_version=np.__version__)
           phase_text = json.dumps(phase, indent=2, sort_keys=True) + '\n'
           external_text = json.dumps(external, indent=2, sort_keys=True) + '\n'
-          assert Path('R2_67_1_PHASE_A_RESULT.json').read_text() == phase_text
-          assert Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text() == external_text
-          lock = json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          assert Path('archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json').read_text() == phase_text
+          assert Path('archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json').read_text() == external_text
+          lock = json.loads(Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json').read_text())
           canonical_phase = json.dumps(phase, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
           canonical_external = json.dumps(external, sort_keys=True, separators=(',', ':'), allow_nan=False).encode()
           assert hashlib.sha256(canonical_phase).hexdigest() == lock['authored_evidence']['sha256_canonical_json']

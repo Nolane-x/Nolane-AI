@@ -4,30 +4,30 @@ on:
   push:
     branches: [main, r262-complementary-causal-program-integration]
     paths:
-      - 'R2_61_TO_R2_62_EVOLUTION.md'
-      - 'R2_62_TDD_RED.json'
-      - 'R2_62_PRE_HOSTED_LOCK.json'
-      - 'R2_62_PHASE_A_RESULT.json'
-      - 'R2_62_EXTERNAL_TRANSFER.json'
-      - 'R2_62_VERIFY_RESULT.json'
-      - 'R2_62_WORLD_FINAL.json'
-      - 'R2_62_DELIVERY.md'
-      - 'R2_62_RELEASE_MANIFEST.json'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_61_TO_R2_62_EVOLUTION.md'
+      - 'archive/root-history/historical_r_series/R2_62_TDD_RED.json'
+      - 'archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_62_VERIFY_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_62_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_62_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_62_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - '.github/workflows/r262-release-bundle.yml'
   pull_request:
     branches: [main]
     paths:
-      - 'R2_61_TO_R2_62_EVOLUTION.md'
-      - 'R2_62_TDD_RED.json'
-      - 'R2_62_PRE_HOSTED_LOCK.json'
-      - 'R2_62_PHASE_A_RESULT.json'
-      - 'R2_62_EXTERNAL_TRANSFER.json'
-      - 'R2_62_VERIFY_RESULT.json'
-      - 'R2_62_WORLD_FINAL.json'
-      - 'R2_62_DELIVERY.md'
-      - 'R2_62_RELEASE_MANIFEST.json'
-      - 'R2_READINESS_RECALIBRATION.md'
+      - 'archive/root-history/historical_r_series/R2_61_TO_R2_62_EVOLUTION.md'
+      - 'archive/root-history/historical_r_series/R2_62_TDD_RED.json'
+      - 'archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_62_VERIFY_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_62_WORLD_FINAL.json'
+      - 'archive/root-history/historical_r_series/R2_62_DELIVERY.md'
+      - 'archive/root-history/historical_r_series/R2_62_RELEASE_MANIFEST.json'
+      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
       - '.github/workflows/r262-release-bundle.yml'
   workflow_dispatch:
 
@@ -57,16 +57,16 @@ jobs:
           import json, subprocess
           from pathlib import Path
 
-          red=json.loads(Path('R2_62_TDD_RED.json').read_text())
-          lock=json.loads(Path('R2_62_PRE_HOSTED_LOCK.json').read_text())
-          phase=json.loads(Path('R2_62_PHASE_A_RESULT.json').read_text())
-          external=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
-          verify=json.loads(Path('R2_62_VERIFY_RESULT.json').read_text())
-          world=json.loads(Path('R2_62_WORLD_FINAL.json').read_text())
-          manifest=json.loads(Path('R2_62_RELEASE_MANIFEST.json').read_text())
-          parent=json.loads(Path('R2_61_RELEASE_MANIFEST.json').read_text())
-          delivery=Path('R2_62_DELIVERY.md').read_text()
-          readiness=Path('R2_READINESS_RECALIBRATION.md').read_text()
+          red=json.loads(Path('archive/root-history/historical_r_series/R2_62_TDD_RED.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json').read_text())
+          phase=json.loads(Path('archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json').read_text())
+          external=json.loads(Path('archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json').read_text())
+          verify=json.loads(Path('archive/root-history/historical_r_series/R2_62_VERIFY_RESULT.json').read_text())
+          world=json.loads(Path('archive/root-history/historical_r_series/R2_62_WORLD_FINAL.json').read_text())
+          manifest=json.loads(Path('archive/root-history/historical_r_series/R2_62_RELEASE_MANIFEST.json').read_text())
+          parent=json.loads(Path('archive/root-history/historical_r_series/R2_61_RELEASE_MANIFEST.json').read_text())
+          delivery=Path('archive/root-history/historical_r_series/R2_62_DELIVERY.md').read_text()
+          readiness=Path('archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md').read_text()
 
           assert parent['status'] == 'ACCEPTED_BOUNDED_CAPABILITY'
           assert parent['readiness']['score'] == 48.5
@@ -144,7 +144,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r262_complementary_experiment_program import run_benchmark
-          expected=json.loads(Path('R2_62_PHASE_A_RESULT.json').read_text())
+          expected=json.loads(Path('archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json').read_text())
           actual=run_benchmark()
           assert actual == expected
           print('R262_PHASE_A_RELEASE_RECOMPUTE_OK')
@@ -156,7 +156,7 @@ jobs:
           from pathlib import Path
           import ufunclab
           from research.r262_external_complementary_transfer import run_external_transfer
-          expected=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
+          expected=json.loads(Path('archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json').read_text())
           actual=run_external_transfer(
               ufunclab.deadzone,
               source_id='WarrenWeckesser/ufunclab:ufunclab.deadzone',

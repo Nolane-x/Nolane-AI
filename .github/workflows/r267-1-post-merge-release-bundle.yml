@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'R2_67_1_*.json'
+      - 'archive/root-history/historical_r_series/R2_67_1_*.json'
       - 'cogcoder/r267_three_probe_causal_composition.py'
       - 'benchmarks/kfigg/r267_1_*.py'
       - 'research/r267_1_*.py'
@@ -38,7 +38,7 @@ jobs:
           PYTHONPATH=. python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json').read_text())
           subprocess.run(['git','merge-base','--is-ancestor',lock['source_freeze_head'],'HEAD'], check=True)
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
@@ -73,9 +73,9 @@ jobs:
           import json, subprocess
           from pathlib import Path
           required=(
-              'R2_67_1_PRE_HOSTED_LOCK.json',
-              'R2_67_1_PHASE_A_RESULT.json',
-              'R2_67_1_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json',
               'cogcoder/r267_three_probe_causal_composition.py',
               'benchmarks/kfigg/r267_1_genuine_three_probe.py',
               'research/r267_1_external_cyclic_dot_transfer.py',
@@ -87,7 +87,7 @@ jobs:
           )
           for path in required:
               assert Path(path).is_file(), path
-          lock=json.loads(Path('R2_67_1_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json').read_text())
           assert lock['parent_release_commit'] == '43b43ce4b324b0d74357957af18dd0f60b1cb85e'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['frozen_evidence_changes_after_lock_forbidden'] is True
@@ -116,8 +116,8 @@ jobs:
           assert np.__version__ == '2.4.6'
           phase=run_benchmark()
           external=run_external_transfer(np.dot, source_id='numpy:numpy.dot', source_version=np.__version__)
-          assert phase == json.loads(Path('R2_67_1_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_67_1_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert phase['false_accepts'] == 0
           assert phase['oracle_accounting_exact'] is True
@@ -158,9 +158,9 @@ jobs:
           python - <<'PY'
           import zipfile
           required={
-              'R2_67_1_PRE_HOSTED_LOCK.json',
-              'R2_67_1_PHASE_A_RESULT.json',
-              'R2_67_1_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_67_1_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_67_1_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_67_1_EXTERNAL_TRANSFER.json',
               'tests/test_r267_1_triplet_budget_semantics.py',
               '.github/workflows/r267-1-post-merge-release-bundle.yml',
           }

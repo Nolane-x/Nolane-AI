@@ -4,9 +4,9 @@ on:
   push:
     branches: [r267-three-probe-causal-composition-gpt56sol]
     paths:
-      - 'R2_67_PRE_HOSTED_LOCK.json'
-      - 'R2_67_PHASE_A_RESULT.json'
-      - 'R2_67_EXTERNAL_TRANSFER.json'
+      - 'archive/root-history/historical_r_series/R2_67_PRE_HOSTED_LOCK.json'
+      - 'archive/root-history/historical_r_series/R2_67_PHASE_A_RESULT.json'
+      - 'archive/root-history/historical_r_series/R2_67_EXTERNAL_TRANSFER.json'
       - '.github/workflows/r267-release-bundle.yml'
   workflow_dispatch:
 
@@ -37,9 +37,9 @@ jobs:
           import json, subprocess
           from pathlib import Path
           required=(
-              'R2_67_PRE_HOSTED_LOCK.json',
-              'R2_67_PHASE_A_RESULT.json',
-              'R2_67_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_67_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_67_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_67_EXTERNAL_TRANSFER.json',
               'cogcoder/r267_three_probe_causal_composition.py',
               'benchmarks/kfigg/r267_three_probe_causal_composition.py',
               'research/r267_external_dot_transfer.py',
@@ -50,7 +50,7 @@ jobs:
           )
           for path in required:
               assert Path(path).is_file(), path
-          lock=json.loads(Path('R2_67_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_67_PRE_HOSTED_LOCK.json').read_text())
           assert lock['production_source_changes_after_lock_forbidden'] is True
           assert lock['trainable_parameter_count'] == 0
           for path, expected in lock['frozen_git_blobs'].items():
@@ -68,9 +68,9 @@ jobs:
           from research.r267_external_dot_transfer import run_external_transfer
           assert np.__version__ == '2.4.6'
           phase=run_benchmark()
-          frozen_phase=json.loads(Path('R2_67_PHASE_A_RESULT.json').read_text())
+          frozen_phase=json.loads(Path('archive/root-history/historical_r_series/R2_67_PHASE_A_RESULT.json').read_text())
           assert phase == frozen_phase
-          frozen_external=json.loads(Path('R2_67_EXTERNAL_TRANSFER.json').read_text())
+          frozen_external=json.loads(Path('archive/root-history/historical_r_series/R2_67_EXTERNAL_TRANSFER.json').read_text())
           external=run_external_transfer(
               np.dot,
               source_id=frozen_external['source_id'],
@@ -109,9 +109,9 @@ jobs:
           python - <<'PY'
           import zipfile
           required={
-              'R2_67_PRE_HOSTED_LOCK.json',
-              'R2_67_PHASE_A_RESULT.json',
-              'R2_67_EXTERNAL_TRANSFER.json',
+              'archive/root-history/historical_r_series/R2_67_PRE_HOSTED_LOCK.json',
+              'archive/root-history/historical_r_series/R2_67_PHASE_A_RESULT.json',
+              'archive/root-history/historical_r_series/R2_67_EXTERNAL_TRANSFER.json',
               'cogcoder/r267_three_probe_causal_composition.py',
               'benchmarks/kfigg/r267_three_probe_causal_composition.py',
               'research/r267_external_dot_transfer.py',

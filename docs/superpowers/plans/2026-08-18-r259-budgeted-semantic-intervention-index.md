@@ -37,7 +37,7 @@
 - [ ] Run GREEN and commit.
 
 ### Task 3: Frozen efficiency benchmark
-**Files:** Create `benchmarks/kfigg/r259_budgeted_semantic_intervention_index.py`, `tests/test_r259_budgeted_semantic_intervention_benchmark.py`, `R2_59_PHASE_A_RESULT.json`.
+**Files:** Create `benchmarks/kfigg/r259_budgeted_semantic_intervention_index.py`, `tests/test_r259_budgeted_semantic_intervention_benchmark.py`, `archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json`.
 
 - [ ] Write frozen benchmark tests with rename/permutation and efficiency thresholds.
 - [ ] Verify RED.
@@ -53,7 +53,7 @@
 - [ ] Commit.
 
 ### Task 5: Hosted verification and release boundary
-**Files:** Create `.github/workflows/r259-budgeted-semantic-intervention-index.yml`, `R2_58_TO_R2_59_EVOLUTION.md`; after hosted evidence add release evidence files and release-bundle workflow.
+**Files:** Create `.github/workflows/r259-budgeted-semantic-intervention-index.yml`, `archive/root-history/historical_r_series/R2_58_TO_R2_59_EVOLUTION.md`; after hosted evidence add release evidence files and release-bundle workflow.
 
 - [ ] Run focused R2.59 and protected R2.58→R2.41 tests locally in bounded groups.
 - [ ] Add Python 3.11/3.13 matrix and pinned ufunclab hosted job.

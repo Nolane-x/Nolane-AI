@@ -9,7 +9,7 @@ on:
       - 'tests/test_r27_*.py'
       - 'research/R2_7_*'
       - 'benchmarks/codeworld/**'
-      - 'R2_7_*'
+      - 'archive/root-history/historical_r_series/R2_7_*'
       - '.github/workflows/r27-codeworld.yml'
   workflow_dispatch:
 

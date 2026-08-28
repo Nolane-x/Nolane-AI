@@ -29,7 +29,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_62_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json').read_text())
           assert lock['parent_release_commit'] == '33042cbe92bea69580c7cc264cb35db09aaeee2f'
           assert lock['production_source_changes_after_lock_forbidden'] is True
           for path, expected in lock['frozen_git_blobs'].items():
@@ -45,7 +45,7 @@ jobs:
           import json
           from pathlib import Path
           from benchmarks.kfigg.r262_complementary_experiment_program import run_benchmark
-          expected=json.loads(Path('R2_62_PHASE_A_RESULT.json').read_text())
+          expected=json.loads(Path('archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json').read_text())
           actual=run_benchmark()
           assert actual == expected, (actual, expected)
           assert actual['discoveries'] == actual['configurations'] == 3
@@ -104,7 +104,7 @@ jobs:
           from pathlib import Path
           import ufunclab
           from research.r262_external_complementary_transfer import run_external_transfer
-          expected=json.loads(Path('R2_62_EXTERNAL_TRANSFER.json').read_text())
+          expected=json.loads(Path('archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json').read_text())
           result=run_external_transfer(
             ufunclab.deadzone,
             source_id='WarrenWeckesser/ufunclab:ufunclab.deadzone',

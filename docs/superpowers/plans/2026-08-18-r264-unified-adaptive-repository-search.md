@@ -43,7 +43,7 @@
 **Files:**
 - `tests/test_r264_unified_adaptive_benchmark.py`
 - `benchmarks/kfigg/r264_unified_adaptive_repository_search.py`
-- `R2_64_PHASE_A_RESULT.json` after hosted measurement.
+- `archive/root-history/historical_r_series/R2_64_PHASE_A_RESULT.json` after hosted measurement.
 
 - [ ] Write benchmark test before benchmark module exists and record hosted RED.
 - [ ] Build six structurally varied multi-file positive episodes with a connected decoy site.
@@ -59,7 +59,7 @@
 **Files:**
 - `tests/test_r264_external_unified_transfer.py`
 - `research/r264_external_unified_transfer.py`
-- `R2_64_EXTERNAL_TRANSFER.json` after hosted measurement.
+- `archive/root-history/historical_r_series/R2_64_EXTERNAL_TRANSFER.json` after hosted measurement.
 
 - [ ] Write external test before harness module exists and record hosted RED.
 - [ ] Use pinned NumPy 2.4.6 `numpy.square` via callable I/O only.
@@ -73,8 +73,8 @@
 ## Task 4 — Source lock and canonical protected-lineage gate
 
 **Files:**
-- `R2_64_TDD_RED.json`
-- `R2_64_PRE_HOSTED_LOCK.json`
+- `archive/root-history/historical_r_series/R2_64_TDD_RED.json`
+- `archive/root-history/historical_r_series/R2_64_PRE_HOSTED_LOCK.json`
 - workflow update.
 
 - [ ] Freeze exact production/benchmark/external/test Git blobs after adversarial hardening.
@@ -87,11 +87,11 @@
 ## Task 5 — Nolane World, readiness and release
 
 **Files:**
-- `R2_64_HOSTED_VERIFICATION.json`
-- `R2_64_WORLD_FINAL.json`
-- `R2_64_DELIVERY.md`
-- `R2_64_RELEASE_MANIFEST.json`
-- `R2_READINESS_RECALIBRATION.md`
+- `archive/root-history/historical_r_series/R2_64_HOSTED_VERIFICATION.json`
+- `archive/root-history/historical_r_series/R2_64_WORLD_FINAL.json`
+- `archive/root-history/historical_r_series/R2_64_DELIVERY.md`
+- `archive/root-history/historical_r_series/R2_64_RELEASE_MANIFEST.json`
+- `archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md`
 - `.github/workflows/r264-release-bundle.yml`
 
 - [ ] Submit canonical hosted evidence to Nolane World 0.8.0 using a runtime-recognized verifier principal.

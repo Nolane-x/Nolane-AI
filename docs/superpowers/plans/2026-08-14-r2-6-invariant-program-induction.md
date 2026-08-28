@@ -229,7 +229,7 @@ If gate passes, record R2.6 phase-A as training-only transfer evidence and begin
 ### Task 8: Verification and milestone delivery
 
 **Files:**
-- Create/update: `R2_6_DELIVERY.md`
+- Create/update: `archive/root-history/historical_r_series/R2_6_DELIVERY.md`
 - Create: complete milestone ZIP and checksum outside git; persist recovery copy to Library.
 
 - [ ] **Step 1: Run focused and regression tests**

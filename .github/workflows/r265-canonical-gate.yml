@@ -8,7 +8,7 @@ on:
       - 'tests/test_r265_*.py'
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
-      - 'R2_65_*.json'
+      - 'archive/root-history/historical_r_series/R2_65_*.json'
       - '.github/workflows/r265-canonical-gate.yml'
   pull_request:
     branches: [main]
@@ -17,7 +17,7 @@ on:
       - 'tests/test_r265_*.py'
       - 'benchmarks/kfigg/r265_*.py'
       - 'research/r265_*.py'
-      - 'R2_65_*.json'
+      - 'archive/root-history/historical_r_series/R2_65_*.json'
       - '.github/workflows/r265-canonical-gate.yml'
   workflow_dispatch:
 
@@ -42,7 +42,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
           assert lock['production_source_changes_after_lock_forbidden'] is True
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
@@ -63,8 +63,8 @@ jobs:
           from research.r265_external_patch_primitive_transfer import run_external_transfer
           phase=run_benchmark()
           external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
-          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
           assert phase['all_gates_pass'] is True
           assert external['passed'] is True
           print('R265_EXACT_EVIDENCE_OK')
@@ -108,7 +108,7 @@ jobs:
           python - <<'PY'
           import json, os, subprocess
           from pathlib import Path
-          lock=json.loads(Path('R2_65_PRE_HOSTED_LOCK.json').read_text())
+          lock=json.loads(Path('archive/root-history/historical_r_series/R2_65_PRE_HOSTED_LOCK.json').read_text())
           assert os.environ['EXPECTED_BASE_SHA'] == lock['parent_release_commit'], (os.environ['EXPECTED_BASE_SHA'], lock['parent_release_commit'])
           for path, expected in lock['frozen_git_blobs'].items():
               actual=subprocess.check_output(['git','hash-object',path], text=True).strip()
@@ -125,8 +125,8 @@ jobs:
           from research.r265_external_patch_primitive_transfer import run_external_transfer
           phase=run_benchmark()
           external=run_external_transfer(np.multiply, source_id='numpy.multiply', source_version=np.__version__)
-          assert phase == json.loads(Path('R2_65_PHASE_A_RESULT.json').read_text())
-          assert external == json.loads(Path('R2_65_EXTERNAL_TRANSFER.json').read_text())
+          assert phase == json.loads(Path('archive/root-history/historical_r_series/R2_65_PHASE_A_RESULT.json').read_text())
+          assert external == json.loads(Path('archive/root-history/historical_r_series/R2_65_EXTERNAL_TRANSFER.json').read_text())
           print('R265_EXACT_EVIDENCE_OK')
           PY
       - name: Run R2.65 focused suite

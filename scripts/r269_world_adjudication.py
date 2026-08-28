@@ -14,12 +14,12 @@ CLAIM_BOUNDARY = (
 )
 
 DEFAULT_PATHS = {
-    'world_receipt': Path('R2_69_WORLD_BOUNDED_ADJUDICATION.json'),
-    'world_state': Path('R2_69_WORLD_STATE_SNAPSHOT.json'),
-    'world_gate': Path('R2_69_WORLD_GATE_SNAPSHOT.json'),
-    'sequential': Path('R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'),
-    'external': Path('R2_69_EXTERNAL_TRANSFER.json'),
-    'promotion': Path('R2_69_PROMOTION_AUTHORITY.json'),
+    'world_receipt': Path('archive/root-history/historical_r_series/R2_69_WORLD_BOUNDED_ADJUDICATION.json'),
+    'world_state': Path('archive/root-history/historical_r_series/R2_69_WORLD_STATE_SNAPSHOT.json'),
+    'world_gate': Path('archive/root-history/historical_r_series/R2_69_WORLD_GATE_SNAPSHOT.json'),
+    'sequential': Path('archive/root-history/historical_r_series/R2_69_SEQUENTIAL_INTEGRATION_EVIDENCE.json'),
+    'external': Path('archive/root-history/historical_r_series/R2_69_EXTERNAL_TRANSFER.json'),
+    'promotion': Path('archive/root-history/historical_r_series/R2_69_PROMOTION_AUTHORITY.json'),
 }
 
 _NATIVE_WORLD_ID = re.compile(r'^world_[0-9a-f]{12}$')
