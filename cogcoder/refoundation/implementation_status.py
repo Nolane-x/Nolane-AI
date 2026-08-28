@@ -134,6 +134,14 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native three-module assurance policy, independent challenge/evidence, profile routing, blocking/override and promotion authority over canonical artifact, authority, event, skill, identity, digest and verification dependencies; historical assurance modules bridge exact semantic public identities.",
     ),
+    "external.individual_evolution": (
+        "nolane.external_core.individual_evolution",
+        (
+            "cogcoder/organization/individual_evolution.py",
+            "cogcoder/organization/evolution_profiles.py",
+        ),
+        "Native individual-evolution lineage, profile, learning, self-model, neural challenger and longitudinal benchmark authority over canonical assurance, verification, identity, skill, experience, self-model, evidence and digest dependencies; historical individual-evolution/profile modules bridge exact semantic public identities.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),

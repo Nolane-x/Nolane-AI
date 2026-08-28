@@ -110,3 +110,8 @@ No current status statement implies that all runtime or External Core surfaces a
 - Component revision advances to `0.0.1`; active facade authority is retired.
 - Repository native debt decreases from 10 to 9 non-native component records.
 
+
+
+## Wave 5AO — native individual evolution authority
+
+Wave 5AO retires `external.individual_evolution` by moving the individual-evolution control plane and evolution-profile authority under canonical `nolane.external_core` ownership. Canonical code resolves assurance, verification, identity, skills, experience, self-model, evidence and digest dependencies only through `nolane` authorities; historical `cogcoder.organization.individual_evolution` and `evolution_profiles` are exact semantic public-object bridges. The generated native-debt projection moves from 9 to 8 non-native component records.
