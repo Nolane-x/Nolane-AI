@@ -1,0 +1,297 @@
+name: Refoundation Wave 5AM Authority Carrier
+
+on:
+  push:
+    branches:
+      - refoundation/epoch0-wave5am-native-evaluation-campaign
+
+permissions:
+  contents: write
+
+jobs:
+  carrier:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation/epoch0-wave5am-native-evaluation-campaign
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Materialize Wave 5AM canonical campaign cluster
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          root = Path('.')
+          legacy_root = root / 'cogcoder' / 'organization'
+          canonical_root = root / 'nolane' / 'evaluation'
+          canonical_root.mkdir(parents=True, exist_ok=True)
+
+          module_objects = {
+              'campaign': ('CampaignStatus', 'EvaluationCampaign', 'EvaluationCampaignControlPlane'),
+              'campaign_repository': ('RepositorySnapshot', 'RepositorySnapshotRegistry'),
+              'campaign_tasks': ('CampaignPartition', 'CampaignTaskManifest', 'CampaignTaskRegistry'),
+              'campaign_contamination': ('ContaminationKind', 'ContaminationFinding', 'CampaignContaminationLedger'),
+              'campaign_runner': ('CampaignRunSpec', 'CampaignRunReceipt', 'CampaignRunLedger'),
+              'campaign_reproduction': ('CampaignReproductionPackage', 'CampaignReproductionReceipt', 'CampaignReproductionLedger'),
+              'campaign_ingest': ('CampaignIngestReceipt', 'CampaignIngestor'),
+          }
+
+          replacements = {
+              'campaign_repository': {
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+              },
+              'campaign_tasks': {
+                  'from .campaign_repository import RepositorySnapshotRegistry': 'from nolane.evaluation.campaign_repository import RepositorySnapshotRegistry',
+                  'from .evaluation_regimes import BenchmarkDomain': 'from nolane.evaluation.regimes import BenchmarkDomain',
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+              },
+              'campaign_contamination': {
+                  'from .campaign_tasks import CampaignPartition, CampaignTaskRegistry': 'from nolane.evaluation.campaign_tasks import CampaignPartition, CampaignTaskRegistry',
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+              },
+              'campaign': {
+                  'from .campaign_repository import RepositorySnapshotRegistry': 'from nolane.evaluation.campaign_repository import RepositorySnapshotRegistry',
+                  'from .campaign_tasks import CampaignTaskRegistry': 'from nolane.evaluation.campaign_tasks import CampaignTaskRegistry',
+                  'from .evaluation_regimes import EvaluationMode': 'from nolane.evaluation.regimes import EvaluationMode',
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+                  'from .campaign_contamination import CampaignContaminationLedger': 'from nolane.evaluation.campaign_contamination import CampaignContaminationLedger',
+                  'from .campaign_ingest import CampaignIngestor': 'from nolane.evaluation.campaign_ingest import CampaignIngestor',
+                  'from .campaign_reproduction import CampaignReproductionLedger': 'from nolane.evaluation.campaign_reproduction import CampaignReproductionLedger',
+                  'from .campaign_runner import CampaignRunLedger': 'from nolane.evaluation.campaign_runner import CampaignRunLedger',
+              },
+              'campaign_runner': {
+                  'from .campaign import CampaignStatus, EvaluationCampaignControlPlane': 'from nolane.evaluation.campaign import CampaignStatus, EvaluationCampaignControlPlane',
+                  'from .campaign_tasks import CampaignTaskRegistry': 'from nolane.evaluation.campaign_tasks import CampaignTaskRegistry',
+                  'from .evaluation_regimes import EvaluationMode': 'from nolane.evaluation.regimes import EvaluationMode',
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+              },
+              'campaign_reproduction': {
+                  'from .artifacts import ArtifactStore': 'from nolane.external_core.artifacts import ArtifactStore',
+                  'from .campaign import EvaluationCampaignControlPlane': 'from nolane.evaluation.campaign import EvaluationCampaignControlPlane',
+                  'from .registry import AgentRegistry': 'from nolane.organization.identity import AgentRegistry',
+                  'from .types import canonical_digest': 'from nolane.core.canonical_digest import canonical_digest',
+              },
+              'campaign_ingest': {
+                  'from .artifacts import ArtifactStore': 'from nolane.external_core.artifacts import ArtifactStore',
+                  'from .campaign import CampaignStatus, EvaluationCampaignControlPlane': 'from nolane.evaluation.campaign import CampaignStatus, EvaluationCampaignControlPlane',
+                  'from .campaign_contamination import CampaignContaminationLedger': 'from nolane.evaluation.campaign_contamination import CampaignContaminationLedger',
+                  'from .campaign_repository import RepositorySnapshotRegistry': 'from nolane.evaluation.campaign_repository import RepositorySnapshotRegistry',
+                  'from .campaign_runner import CampaignRunLedger': 'from nolane.evaluation.campaign_runner import CampaignRunLedger',
+                  'from .campaign_tasks import CampaignPartition, CampaignTaskRegistry': 'from nolane.evaluation.campaign_tasks import CampaignPartition, CampaignTaskRegistry',
+                  'from .evaluation import EvaluationScalingControlPlane': 'from nolane.evaluation.scaling import EvaluationScalingControlPlane',
+                  'from .evaluation_regimes import BenchmarkDomain, EvidenceProvenanceClass, EvaluationMode': 'from nolane.evaluation.regimes import BenchmarkDomain, EvidenceProvenanceClass, EvaluationMode',
+                  'from .registry import AgentRegistry': 'from nolane.organization.identity import AgentRegistry',
+                  'from .types import EvidenceRecord, canonical_digest': 'from nolane.external_core.evidence import EvidenceRecord\nfrom nolane.core.canonical_digest import canonical_digest',
+              },
+          }
+
+          for suffix, names in module_objects.items():
+              source = (legacy_root / f'{suffix}.py').read_text(encoding='utf-8')
+              for old, new in replacements[suffix].items():
+                  if old not in source:
+                      raise SystemExit(f'missing migration anchor in {suffix}: {old}')
+                  source = source.replace(old, new)
+              if suffix == 'campaign':
+                  anchor = 'from nolane.core.canonical_digest import canonical_digest\n'
+                  metadata = (
+                      '\nCOMPONENT_ID = "evaluation.campaign"\n'
+                      'COMPONENT_VERSION = "0.0.1"\n'
+                      'MIGRATED_FROM = "cogcoder.organization.campaign"\n'
+                  )
+                  if anchor not in source:
+                      raise SystemExit('missing campaign metadata anchor')
+                  source = source.replace(anchor, anchor + metadata, 1)
+              (canonical_root / f'{suffix}.py').write_text(source, encoding='utf-8')
+
+              imports = ',\n    '.join(names)
+              exported = ',\n    '.join(repr(name) for name in names)
+              bridge = (
+                  '"""Historical compatibility bridge to canonical evaluation campaign authority."""\n\n'
+                  f'from nolane.evaluation.{suffix} import (\n    {imports},\n)\n\n'
+                  f'__all__ = (\n    {exported},\n)\n'
+              )
+              (legacy_root / f'{suffix}.py').write_text(bridge, encoding='utf-8')
+
+          # Component version authority.
+          path = root / 'cogcoder' / 'refoundation' / 'component_versions.py'
+          text = path.read_text(encoding='utf-8')
+          if '"evaluation.campaign": 1,' not in text:
+              anchor = '        "evaluation.scaling": 1,\n'
+              if anchor not in text:
+                  raise SystemExit('missing component-version scaling anchor')
+              text = text.replace(anchor, anchor + '        "evaluation.campaign": 1,\n', 1)
+          path.write_text(text, encoding='utf-8')
+
+          # Retire active facade.
+          path = root / 'cogcoder' / 'refoundation' / 'facades.py'
+          text = path.read_text(encoding='utf-8')
+          facade_line = '        FacadeBinding("evaluation.campaign", "nolane.evaluation.campaign", "cogcoder.organization.campaign", ("EvaluationCampaignControlPlane",)),\n'
+          if facade_line not in text:
+              raise SystemExit('missing evaluation.campaign facade anchor')
+          path.write_text(text.replace(facade_line, '', 1), encoding='utf-8')
+
+          # Grant canonical implementation/write authority for the full seven-module closure.
+          path = root / 'cogcoder' / 'refoundation' / 'implementation_status.py'
+          text = path.read_text(encoding='utf-8')
+          if '"evaluation.campaign": (' not in text:
+              anchor = (
+                  '    "evaluation.scaling": (\n'
+                  '        "nolane.evaluation.scaling",\n'
+                  '        ("cogcoder/organization/evaluation.py",),\n'
+                  '        "Native evaluation-scaling composition authority over canonical artifacts, claims, evidence, parameters, regimes, release, stress and organization identity dependencies; historical evaluation module bridges exact control-plane identity.",\n'
+                  '    ),\n'
+              )
+              if anchor not in text:
+                  raise SystemExit('missing implementation-ledger scaling anchor')
+              block = (
+                  '    "evaluation.campaign": (\n'
+                  '        "nolane.evaluation.campaign",\n'
+                  '        (\n'
+                  '            "cogcoder/organization/campaign.py",\n'
+                  '            "cogcoder/organization/campaign_repository.py",\n'
+                  '            "cogcoder/organization/campaign_tasks.py",\n'
+                  '            "cogcoder/organization/campaign_contamination.py",\n'
+                  '            "cogcoder/organization/campaign_runner.py",\n'
+                  '            "cogcoder/organization/campaign_reproduction.py",\n'
+                  '            "cogcoder/organization/campaign_ingest.py",\n'
+                  '        ),\n'
+                  '        "Native seven-module evaluation-campaign authority over frozen repository snapshots, task manifests/partitions, contamination checks, run receipts, reproduction evidence and canonical scaling ingestion; all historical campaign modules bridge exact semantic public identities.",\n'
+                  '    ),\n'
+              )
+              text = text.replace(anchor, anchor + block, 1)
+          path.write_text(text, encoding='utf-8')
+
+          # Keep global accepted revision/native oracles exact while allowing predecessor debt to decrease.
+          path = root / 'tests' / 'test_refoundation_component_versions.py'
+          text = path.read_text(encoding='utf-8')
+          if '    "evaluation.campaign": 1,\n' not in text:
+              anchor = '    "evaluation.scaling": 1,\n'
+              if anchor not in text:
+                  raise SystemExit('missing component-version test anchor')
+              text = text.replace(anchor, anchor + '    "evaluation.campaign": 1,\n', 1)
+              lookup = '    assert str(next_component_version("evaluation.scaling")) == "0.0.2"\n'
+              text = text.replace(
+                  lookup,
+                  lookup + '    assert str(component_version("evaluation.campaign")) == "0.0.1"\n    assert str(next_component_version("evaluation.campaign")) == "0.0.2"\n',
+                  1,
+              )
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'tests' / 'test_refoundation_implementation_status.py'
+          text = path.read_text(encoding='utf-8')
+          if '    "evaluation.campaign",\n' not in text:
+              anchor = '    "evaluation.scaling",\n'
+              if text.count(anchor) < 2:
+                  raise SystemExit('missing implementation-status test anchors')
+              text = text.replace(anchor, anchor + '    "evaluation.campaign",\n')
+          path.write_text(text, encoding='utf-8')
+
+          path = root / 'tests' / 'test_refoundation_wave5al_native_evaluation_scaling.py'
+          text = path.read_text(encoding='utf-8')
+          exact = '    assert len(state["components"]) == 11\n'
+          if exact in text:
+              text = text.replace(exact, '    assert len(state["components"]) <= 11\n', 1)
+          path.write_text(text, encoding='utf-8')
+
+          status_path = root / 'CURRENT' / 'STATUS.md'
+          status = status_path.read_text(encoding='utf-8')
+          if 'Wave 5AM' not in status:
+              status = status.rstrip() + (
+                  '\n\n## Wave 5AM — native evaluation campaign cluster\n\n'
+                  '- `evaluation.campaign` now owns the complete seven-module campaign semantic closure under `nolane.evaluation`.\n'
+                  '- Historical `cogcoder.organization.campaign*` modules are exact-object compatibility bridges only.\n'
+                  '- Component revision advances to `0.0.1`; active facade authority is retired.\n'
+                  '- Repository native debt decreases from 11 to 10 non-native component records.\n'
+              )
+              status_path.write_text(status + '\n', encoding='utf-8')
+          PY
+      - name: Materialize and verify repository authority projections
+        run: |
+          python -m nolane.repository.audit --write
+          python -m nolane.repository.audit --check
+      - name: Compile migrated namespaces
+        run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+      - name: Verify 67 AI resolved dossiers are fresh
+        run: python -m nolane.ai.materialize --check
+      - name: Run Refoundation Epoch 0 contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Run all organization campaign and execution regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_execution_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+      - name: Verify frozen Neural R2.3 metadata contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
+      - name: Verify Wave 5AM scope
+        shell: bash
+        run: |
+          python - <<'PY'
+          import subprocess
+          allowed_prefixes = (
+              'nolane/evaluation/campaign',
+              'cogcoder/organization/campaign',
+              'cogcoder/refoundation/component_versions.py',
+              'cogcoder/refoundation/facades.py',
+              'cogcoder/refoundation/implementation_status.py',
+              'CURRENT/NATIVE_DEBT.json',
+              'CURRENT/NATIVE_DEBT.md',
+              'CURRENT/STATUS.md',
+              'archive/INDEX.json',
+              'tests/test_refoundation_component_versions.py',
+              'tests/test_refoundation_implementation_status.py',
+              'tests/test_refoundation_wave5al_native_evaluation_scaling.py',
+              'tests/test_refoundation_wave5am_native_evaluation_campaign.py',
+          )
+          paths = [line[3:] for line in subprocess.check_output(['git', 'status', '--short'], text=True).splitlines()]
+          bad = [path for path in paths if not path.startswith(allowed_prefixes)]
+          if bad:
+              raise SystemExit(f'out-of-scope Wave 5AM changes: {bad}')
+          print('Wave 5AM diff scope clean:', len(paths), 'paths')
+          PY
+      - name: Commit hosted-green Wave 5AM cutover
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add nolane/evaluation/campaign*.py cogcoder/organization/campaign*.py \
+            cogcoder/refoundation/component_versions.py cogcoder/refoundation/facades.py \
+            cogcoder/refoundation/implementation_status.py CURRENT/NATIVE_DEBT.json \
+            CURRENT/NATIVE_DEBT.md CURRENT/STATUS.md archive/INDEX.json \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py \
+            tests/test_refoundation_wave5al_native_evaluation_scaling.py
+          if git diff --cached --quiet; then
+            echo 'No Wave 5AM materialization changes to commit.'
+            exit 0
+          fi
+          git commit -m 'refoundation: materialize hosted-green Wave 5AM campaign authority'
+          git push origin HEAD:refoundation/epoch0-wave5am-native-evaluation-campaign
