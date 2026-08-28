@@ -27,6 +27,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.individual_evolution",
     "external.operations",
     "external.research",
+    "external.cognitive_library",
     "external.verification",
     "external.evidence",
     "external.experience",
@@ -81,6 +82,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         "external.assurance",
         "external.individual_evolution",
         "external.operations",
+        "external.cognitive_library",
         "external.context",
         "external.architecture",
         "external.integration",
@@ -109,7 +111,6 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
 def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
     ledger = build_component_implementation_ledger()
     for component_id in (
-        "external.cognitive_library",
         "external.capability_acquisition",
         "external.causal",
         "external.experimentation",
