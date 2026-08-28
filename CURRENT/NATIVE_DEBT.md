@@ -6,20 +6,11 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 
 ## Counts
 
-- `compatibility_facade`: 4
+- `compatibility_facade`: 3
 - `frozen_asset`: 1
 - `historical_only`: 5
 
 ## Components
-
-### `external.assurance`
-
-- Component version: `0.0.0`
-- Status: `compatibility_facade`
-- Canonical module: `nolane.external_core.assurance`
-- Canonical write authority: `false`
-- Legacy/provenance sources: cogcoder/organization/assurance.py
-- Notes: Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt.
 
 ### `external.capability_acquisition`
 

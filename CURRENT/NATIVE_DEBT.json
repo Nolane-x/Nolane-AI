@@ -1,17 +1,6 @@
 {
   "components": [
     {
-      "canonical_module": "nolane.external_core.assurance",
-      "canonical_write_authority": false,
-      "component_id": "external.assurance",
-      "component_version": "0.0.0",
-      "implementation_status": "compatibility_facade",
-      "legacy_sources": [
-        "cogcoder/organization/assurance.py"
-      ],
-      "notes": "Public canonical import exists but executable source remains accepted legacy implementation pending cutover receipt."
-    },
-    {
       "canonical_module": null,
       "canonical_write_authority": false,
       "component_id": "external.capability_acquisition",
@@ -112,7 +101,7 @@
     }
   ],
   "counts_by_status": {
-    "compatibility_facade": 4,
+    "compatibility_facade": 3,
     "frozen_asset": 1,
     "historical_only": 5
   },
