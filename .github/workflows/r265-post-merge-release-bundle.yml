@@ -2,16 +2,6 @@ name: R2.65 Final Post-Merge Complete Bundle
 # Triggered after accepted-main delivery, World, readiness and manifest closure.
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/r265-post-merge-release-bundle.yml'
-      - 'archive/root-history/historical_r_series/R2_65_HOSTED_VERIFICATION.json'
-      - 'archive/root-history/historical_r_series/R2_65_WORLD_FINAL.json'
-      - 'archive/root-history/historical_r_series/R2_65_RELEASE_MANIFEST.json'
-      - 'archive/root-history/historical_r_series/R2_65_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_64_1_TO_R2_65_EVOLUTION.md'
-      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
   workflow_dispatch:
 
 permissions:
