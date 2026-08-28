@@ -1,20 +1,11 @@
 name: Refoundation Wave 5AS Repository Surface Carrier
 
+# PR merge-ref verification is owned by the canonical Refoundation workflow.
+# This carrier stays branch-scoped so Wave-4 historical CI isolation remains intact.
 on:
   push:
     branches:
       - refoundation/epoch0-wave5as-repository-surface
-  pull_request:
-    branches:
-      - main
-    paths:
-      - 'archive/**'
-      - 'CURRENT/**'
-      - 'nolane/repository/**'
-      - 'scripts/refoundation_*root_history*.py'
-      - 'tests/test_refoundation_*.py'
-      - '.github/workflows/refoundation-wave5as-repository-surface-carrier.yml'
-      - '.github/workflows/r22-integrity.yml'
 
 permissions:
   contents: read
