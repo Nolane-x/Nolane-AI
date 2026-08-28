@@ -10,10 +10,11 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from nolane.repository.audit_v2 import (  # noqa: E402
-    _DYNAMIC_FAMILY_PATTERNS,
+    _QUOTED_TOKEN,
     _expected_archive_target,
     _history_locations,
     _iter_reference_text,
+    _root_dynamic_category_for_token,
     _strip_archive_qualified_references,
 )
 
@@ -27,13 +28,16 @@ def main() -> int:
             cleaned = _strip_archive_qualified_references(line, targets)
             if "archive/root-history/" in cleaned:
                 continue
-            for category, pattern in _DYNAMIC_FAMILY_PATTERNS:
-                if pattern.search(cleaned):
+            for match in _QUOTED_TOKEN.finditer(cleaned):
+                token = match.group("token")
+                category = _root_dynamic_category_for_token(token)
+                if category is not None:
                     hits.append(
                         {
                             "category": category,
                             "path": relative.as_posix(),
                             "line": line_number,
+                            "token": token,
                             "text": line.strip(),
                         }
                     )
