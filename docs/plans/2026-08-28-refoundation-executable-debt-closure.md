@@ -53,15 +53,16 @@ Observe hosted RED before production migration.
 - Create: `tests/test_refoundation_wave5aq_native_research.py`
 - Modify: `nolane/external_core/research.py`
 - Create: `nolane/external_core/research_profiles.py`
-- Convert historical `research.py` / `research_profiles.py` into exact semantic bridges.
+- Create: `nolane/external_core/research_provenance.py`
+- Convert historical `research.py`, `research_profiles.py`, and `research_provenance.py` into exact semantic bridges.
 - Update implementation/version/status authority through a verified carrier and regenerate repository audit projections.
 
 **RED/GREEN invariants:**
 1. Exactly four Research identities remain authoritative: chief, repository archaeology, docs/API, prior art.
 2. Routing remains deterministic and preserves primary-domain/domain/signal/availability scoring semantics.
-3. Source quality, logical freshness, provenance requirements, contradiction assessment/resolution, and domain authorization remain fail-closed.
-4. Research state and digests round-trip exactly.
-5. Canonical Research implementation has no reverse `cogcoder.organization` import.
+3. Source quality, logical freshness, provenance requirements, contradiction assessment/resolution, and domain authorization remain fail-closed inside canonical `research_provenance` ownership.
+4. Research synthesis/handoff, provenance state, and digests round-trip exactly.
+5. Canonical Research implementation has no reverse `cogcoder.organization` import across any of the three modules.
 6. `external.research` becomes `canonical_native`, version `0.0.1`, and generated native debt moves from 7 to 6.
 
 **Verification:** full Refoundation contracts plus all research/assurance/context/evidence regressions and Neural R2.3 metadata verification.
@@ -76,11 +77,11 @@ Observe hosted RED before production migration.
 **Closure invariants:**
 1. Generated debt contains exactly six intentional records: five `historical_only` semantic reservations plus `neural.shared` as `frozen_asset`.
 2. Zero `compatibility_facade` and zero `legacy_internal` records remain.
-3. No canonical `nolane` implementation reverse-imports executable authority from `cogcoder.organization`.
+3. No canonical `nolane` implementation reverse-imports executable authority from `cogcoder.organization` within authority clusters already claimed as fully native.
 4. Historical bridge modules retain exact public-object identity where accepted compatibility is required.
 5. 67 AI dossiers and generated repository audit projections are fresh.
 6. Frozen Neural R2.3 contracts remain unchanged and verified.
-7. Refoundation PR routing does not run legacy heavyweight workflows as active work on `refoundation/*` heads; skipped historical workflows are acceptable provenance behavior.
+7. Refoundation PR routing does not run legacy heavyweight workflows as active work on user-authored `refoundation/*` PR heads; bot receipt pushes may be `action_required` and are treated separately from hosted carrier evidence.
 
 **Final verification:**
 - compileall
