@@ -1,0 +1,117 @@
+name: Refoundation Wave 5AW Hardening One Shot
+
+on:
+  push:
+    branches:
+      - refoundation-wave5aw-native-experimentation
+
+permissions:
+  contents: write
+
+jobs:
+  apply-hardening:
+    if: ${{ !contains(github.event.head_commit.message, '[wave5aw-hardening-apply]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation-wave5aw-native-experimentation
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependency
+        run: python -m pip install -q pytest
+      - name: Apply receipt and ledger semantic hardening
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("nolane/external_core/experimentation.py")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one hardening target, found {count}")
+              text = text.replace(old, new, 1)
+
+          old_receipt_validation = (
+              '        if self.status == "accept" and self.selected is None:\n'
+              '            raise ValueError("accepted shadow experiment requires selected hypothesis")\n'
+              '        if self.status != "accept" and self.selected is not None:\n'
+              '            raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")\n'
+          )
+          new_receipt_validation = (
+              '        if self.status == "accept":\n'
+              '            if self.selected is None:\n'
+              '                raise ValueError("accepted shadow experiment requires selected hypothesis")\n'
+              '            if self.initial_survivors < 1 or self.final_survivors != 1:\n'
+              '                raise ValueError("accepted shadow experiment requires singleton survivor state")\n'
+              '            if self.verification_oracle_calls < 1:\n'
+              '                raise ValueError("accepted shadow experiment requires independent verification")\n'
+              '            if self.verification_failures != 0:\n'
+              '                raise ValueError("accepted shadow experiment cannot contain verification failures")\n'
+              '            if self.reason != "shadow_experiment_verified":\n'
+              '                raise ValueError("accepted shadow experiment requires verified reason")\n'
+              '            if self.selection_oracle_calls != len(self.rounds):\n'
+              '                raise ValueError("accepted shadow experiment selection calls must match committed rounds")\n'
+              '        elif self.selected is not None:\n'
+              '            raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")\n'
+          )
+          replace_once(old_receipt_validation, new_receipt_validation)
+
+          to_state_end = (
+              '            "trainable_parameter_count": self.trainable_parameter_count,\n'
+              '        }\n\n'
+              '    @classmethod\n'
+              '    def from_state(cls, state: Mapping[str, object]) -> "ShadowExperimentReceipt":\n'
+          )
+          semantic_state = (
+              '            "trainable_parameter_count": self.trainable_parameter_count,\n'
+              '        }\n\n'
+              '    def semantic_state(self) -> dict[str, object]:\n'
+              '        """Canonical receipt state with non-semantic human labels removed."""\n'
+              '        state = self.to_state()\n'
+              '        if self.selected is not None:\n'
+              '            selected_state = self.selected.semantic_state()\n'
+              '            selected_state["hypothesis_id"] = self.selected.hypothesis_id\n'
+              '            state["selected"] = selected_state\n'
+              '        return state\n\n'
+              '    @classmethod\n'
+              '    def from_state(cls, state: Mapping[str, object]) -> "ShadowExperimentReceipt":\n'
+          )
+          replace_once(to_state_end, semantic_state)
+
+          replace_once(
+              '        object.__setattr__(self, "receipt_state_json", _canonical_json(receipt.to_state()))\n',
+              '        object.__setattr__(self, "receipt_state_json", _canonical_json(receipt.semantic_state()))\n',
+          )
+          replace_once(
+              '            _canonical_json(receipt.to_state()),\n',
+              '            _canonical_json(receipt.semantic_state()),\n',
+          )
+
+          path.write_text(text, encoding="utf-8")
+          PY
+      - name: Verify focused GREEN and repository freshness
+        run: |
+          python -m compileall -q nolane/external_core/experimentation.py
+          python -m pytest -q \
+            tests/test_refoundation_wave5aw_experimentation_hardening.py \
+            tests/test_refoundation_wave5aw_native_experimentation.py \
+            tests/test_refoundation_wave5av_native_causal.py
+          python -m nolane.repository.audit --check
+          git diff --check
+      - name: Commit only verified semantic hardening and remove carrier
+        shell: bash
+        run: |
+          git config user.name "Nolane Refoundation Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/refoundation-wave5aw-hardening-one-shot.yml
+          git add nolane/external_core/experimentation.py
+          git diff --cached --check
+          git commit -m "fix(refoundation): harden Wave 5AW semantic receipts [wave5aw-hardening-apply]"
+          git push origin HEAD:refoundation-wave5aw-native-experimentation
