@@ -54,6 +54,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.parameters": 1,
         "evaluation.release": 1,
         "evaluation.scaling": 1,
+        "evaluation.campaign": 1,
         "neural.inference_bridge": 1,
     }
 )

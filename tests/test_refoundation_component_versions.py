@@ -56,6 +56,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "evaluation.parameters": 1,
     "evaluation.release": 1,
     "evaluation.scaling": 1,
+    "evaluation.campaign": 1,
     "neural.inference_bridge": 1,
 }
 ACCEPTED_REVISION_ONE_COMPONENTS = {
@@ -121,6 +122,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("evaluation.release")) == "0.0.2"
     assert str(component_version("evaluation.scaling")) == "0.0.1"
     assert str(next_component_version("evaluation.scaling")) == "0.0.2"
+    assert str(component_version("evaluation.campaign")) == "0.0.1"
+    assert str(next_component_version("evaluation.campaign")) == "0.0.2"
     assert str(component_version("neural.inference_bridge")) == "0.0.1"
     assert str(next_component_version("neural.inference_bridge")) == "0.0.2"
     assert str(component_version("organization.tasks")) == "0.0.2"
