@@ -409,9 +409,20 @@ class ShadowExperimentReceipt:
         ):
             if int(value) < 0:
                 raise ValueError("shadow experiment counters must be non-negative")
-        if self.status == "accept" and self.selected is None:
-            raise ValueError("accepted shadow experiment requires selected hypothesis")
-        if self.status != "accept" and self.selected is not None:
+        if self.status == "accept":
+            if self.selected is None:
+                raise ValueError("accepted shadow experiment requires selected hypothesis")
+            if self.initial_survivors < 1 or self.final_survivors != 1:
+                raise ValueError("accepted shadow experiment requires singleton survivor state")
+            if self.verification_oracle_calls < 1:
+                raise ValueError("accepted shadow experiment requires independent verification")
+            if self.verification_failures != 0:
+                raise ValueError("accepted shadow experiment cannot contain verification failures")
+            if self.reason != "shadow_experiment_verified":
+                raise ValueError("accepted shadow experiment requires verified reason")
+            if self.selection_oracle_calls != len(self.rounds):
+                raise ValueError("accepted shadow experiment selection calls must match committed rounds")
+        elif self.selected is not None:
             raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")
 
     @property
@@ -433,6 +444,15 @@ class ShadowExperimentReceipt:
             "promoted": False,
             "trainable_parameter_count": self.trainable_parameter_count,
         }
+
+    def semantic_state(self) -> dict[str, object]:
+        """Canonical receipt state with non-semantic human labels removed."""
+        state = self.to_state()
+        if self.selected is not None:
+            selected_state = self.selected.semantic_state()
+            selected_state["hypothesis_id"] = self.selected.hypothesis_id
+            state["selected"] = selected_state
+        return state
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "ShadowExperimentReceipt":
@@ -667,7 +687,7 @@ class ExperimentLedgerRecord:
         receipt = ShadowExperimentReceipt.from_state(raw)
         if receipt.experiment_id != self.experiment_id:
             raise ValueError("ledger experiment id does not match receipt")
-        object.__setattr__(self, "receipt_state_json", _canonical_json(receipt.to_state()))
+        object.__setattr__(self, "receipt_state_json", _canonical_json(receipt.semantic_state()))
 
     @property
     def receipt(self) -> ShadowExperimentReceipt:
@@ -723,7 +743,7 @@ class ExperimentLedger:
             raise ValueError("experiment ledger requires clean evidence")
         record = ExperimentLedgerRecord(
             receipt.experiment_id,
-            _canonical_json(receipt.to_state()),
+            _canonical_json(receipt.semantic_state()),
             evidence,
         )
         current = self._records.get(record.experiment_id)
