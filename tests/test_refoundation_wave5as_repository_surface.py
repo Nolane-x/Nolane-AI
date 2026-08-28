@@ -10,7 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 _MANUAL_ONLY_POST_REFOUNDATION_WORKFLOWS = (
     "r21-integrity.yml",
     "r214-active-program-disambiguation.yml",
-    "r218-transfer-governance.yml",
+    "r218-cross-domain-governance.yml",
     "r219-autonomous-representation-discovery.yml",
     "r221-confidence-adaptive-evidence.yml",
     "r256-release-bundle.yml",
