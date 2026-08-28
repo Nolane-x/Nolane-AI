@@ -7,6 +7,23 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 
+_MANUAL_ONLY_POST_REFOUNDATION_WORKFLOWS = (
+    "r21-integrity.yml",
+    "r214-active-program-disambiguation.yml",
+    "r218-transfer-governance.yml",
+    "r219-autonomous-representation-discovery.yml",
+    "r221-confidence-adaptive-evidence.yml",
+    "r256-release-bundle.yml",
+    "r259-budgeted-semantic-intervention-index.yml",
+    "r262-release-bundle.yml",
+    "r264-release-bundle.yml",
+    "r265-post-merge-release-bundle.yml",
+    "r266-post-merge-release-bundle.yml",
+    "r267-1-post-merge-release-bundle.yml",
+    "r268-post-merge-release-bundle.yml",
+    "r269-post-merge-release-bundle.yml",
+)
+
 
 def _historical_root_names() -> tuple[str, ...]:
     rows: list[str] = []
@@ -45,6 +62,39 @@ def test_wave5as_r22_integrity_is_not_an_automatic_main_gate() -> None:
     text = (ROOT / ".github" / "workflows" / "r22-integrity.yml").read_text(encoding="utf-8")
     assert "workflow_dispatch:" in text
     assert "branches: [main]" not in text
+
+
+def test_wave5at_demonstrably_stale_historical_workflows_are_manual_only() -> None:
+    workflows = ROOT / ".github" / "workflows"
+    offenders: list[str] = []
+    for name in _MANUAL_ONLY_POST_REFOUNDATION_WORKFLOWS:
+        text = (workflows / name).read_text(encoding="utf-8")
+        event_block = text.split("\njobs:", 1)[0]
+        if "workflow_dispatch:" not in event_block:
+            offenders.append(f"{name}:missing-workflow-dispatch")
+        for automatic_event in ("push:", "pull_request:", "schedule:"):
+            if f"\n  {automatic_event}" in event_block:
+                offenders.append(f"{name}:automatic-{automatic_event[:-1]}")
+    assert not offenders, offenders
+
+
+def test_wave5at_archive_resolver_preserves_historical_lock_paths() -> None:
+    from nolane.repository.audit import resolve_repository_path
+
+    assert resolve_repository_path("cogcoder/r260_active_repository_probes.py", root=ROOT) == (
+        "cogcoder/r260_active_repository_probes.py"
+    )
+    assert resolve_repository_path("R2_60_PHASE_A_RESULT.json", root=ROOT) == (
+        "archive/root-history/historical_r_series/R2_60_PHASE_A_RESULT.json"
+    )
+
+
+def test_wave5at_r260_hosted_gate_uses_archive_aware_provenance_resolution() -> None:
+    text = (ROOT / ".github" / "workflows" / "r260-active-repository-probes.yml").read_text(
+        encoding="utf-8"
+    )
+    assert "resolve_repository_path" in text
+    assert "HEAD:{resolved_path}" in text
 
 
 def test_wave5as_current_status_records_repository_surface_closure() -> None:
