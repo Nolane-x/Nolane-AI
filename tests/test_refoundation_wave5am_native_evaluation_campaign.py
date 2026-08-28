@@ -141,3 +141,9 @@ def test_wave5am_current_status_tracks_native_campaign_cutover() -> None:
     assert "Wave 5AM" in status
     assert "evaluation.campaign" in status
     assert "10 non-native" in status
+
+
+def test_wave5am_temporary_authority_carrier_is_absent_from_accepted_tree() -> None:
+    root = _root()
+    assert not (root / ".github" / "workflows" / "refoundation-wave5am-authority-carrier.yml").exists()
+    assert not (root / "docs" / "superpowers" / "plans" / ".wave5am-carrier-trigger").exists()
