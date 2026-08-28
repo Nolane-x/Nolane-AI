@@ -115,3 +115,8 @@ No current status statement implies that all runtime or External Core surfaces a
 ## Wave 5AO — native individual evolution authority
 
 Wave 5AO retires `external.individual_evolution` by moving the individual-evolution control plane and evolution-profile authority under canonical `nolane.external_core` ownership. Canonical code resolves assurance, verification, identity, skills, experience, self-model, evidence and digest dependencies only through `nolane` authorities; historical `cogcoder.organization.individual_evolution` and `evolution_profiles` are exact semantic public-object bridges. The generated native-debt projection moves from 9 to 8 non-native component records.
+
+
+## Wave 5AP — native Operations authority
+
+Wave 5AP retires `external.operations` by moving the complete Operations semantic closure under canonical `nolane.external_core` ownership: twelve-profile operational routing, data migration/persistence/consistency authority, reproducible build/release/observability authority, reliability/failure/performance authority, and assurance-gated operational readiness. Canonical Operations code resolves artifacts, assurance, skills, identity and digest dependencies only through `nolane` authorities; historical Operations modules are exact semantic public-object bridges. The generated native-debt projection moves from 8 to 7 non-native component records.
