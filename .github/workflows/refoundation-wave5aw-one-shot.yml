@@ -48,27 +48,20 @@ jobs:
           class_start = text.index("class ExperimentProbe:")
           start = text.index("    @property\n    def probe_id", class_start)
           end = text.index("\n    def to_state", start)
-          replacement = """    @property
-          def probe_id(self) -> str:
-              # Preserve R2.60 plain-probe hash ordering for exact deterministic
-              # tie parity while extending semantic identity for interventions.
-              if self.intervention is None:
-                  payload: object = list(self.args)
-              else:
-                  payload = {
-                      "args": list(self.args),
-                      "intervention": self.intervention.to_state(),
-                  }
-              return _digest("xprobe:", payload)
-
-          """
-          # YAML de-indentation leaves the Python source indentation above in the
-          # literal; normalize it explicitly to the class's four-space level.
-          lines = replacement.splitlines()
-          normalized = []
-          for line in lines:
-              normalized.append(line[6:] if line.startswith("      ") else line)
-          replacement = "\n".join(normalized)
+          replacement = (
+              "    @property\n"
+              "    def probe_id(self) -> str:\n"
+              "        # Preserve R2.60 plain-probe hash ordering for exact deterministic\n"
+              "        # tie parity while extending semantic identity for interventions.\n"
+              "        if self.intervention is None:\n"
+              "            payload: object = list(self.args)\n"
+              "        else:\n"
+              "            payload = {\n"
+              "                \"args\": list(self.args),\n"
+              "                \"intervention\": self.intervention.to_state(),\n"
+              "            }\n"
+              "        return _digest(\"xprobe:\", payload)\n"
+          )
           text = text[:start] + replacement + text[end:]
           write(path, text)
 
