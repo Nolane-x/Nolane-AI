@@ -31,24 +31,18 @@ _SCAN_PRUNE_DIRS = {
     "node_modules",
 }
 _REFERENCE_SCAN_EXCLUDE = {
+    ".github/workflows/refoundation-wave5as-repository-surface-carrier.yml",
     "nolane/repository/audit.py",
     "nolane/repository/audit_v2.py",
+    "scripts/refoundation_debug_root_history_refs.py",
     "scripts/refoundation_migrate_root_history.py",
     "tests/test_refoundation_git_inventory.py",
     "tests/test_refoundation_wave4_repository_quarantine.py",
     "tests/test_refoundation_wave5as_repository_surface.py",
 }
 _MAX_REFERENCE_SCAN_BYTES = 5 * 1024 * 1024
-_DYNAMIC_FAMILY_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
-    (
-        "historical_r_series",
-        re.compile(r"(?:R\d[^\s'\"`]*[?*[]|(?:glob|rglob)\([^\n)]*R\d)", re.IGNORECASE),
-    ),
-    (
-        "legacy_weight_pointer",
-        re.compile(r"CURRENT_ONE_WEIGHT_[^\s'\"`]*[?*[]", re.IGNORECASE),
-    ),
-)
+_QUOTED_TOKEN = re.compile(r"(?P<q>['\"`])(?P<token>[^'\"`\n]+)(?P=q)")
+_GLOB_META = frozenset("*?[")
 
 
 def _is_historical_name(name: str) -> bool:
@@ -58,6 +52,32 @@ def _is_historical_name(name: str) -> bool:
         or name == "CURRENT_STATUS.md"
         or name == "CHECKPOINT_MANIFEST.json"
     )
+
+
+def _root_dynamic_category_for_token(token: str) -> str | None:
+    """Classify an actual quoted root filename/glob, never prose or a path."""
+    if not token or "/" in token or "\\" in token:
+        return None
+    if any(ch.isspace() for ch in token):
+        return None
+    if not any(ch in token for ch in _GLOB_META):
+        return None
+    if token.startswith("CURRENT_ONE_WEIGHT_"):
+        return "legacy_weight_pointer"
+    if token.startswith("R["):
+        return "historical_r_series"
+    if len(token) > 1 and token[0] == "R" and token[1].isdigit():
+        return "historical_r_series"
+    return None
+
+
+def _root_dynamic_categories(line: str) -> set[str]:
+    categories: set[str] = set()
+    for match in _QUOTED_TOKEN.finditer(line):
+        category = _root_dynamic_category_for_token(match.group("token"))
+        if category is not None:
+            categories.add(category)
+    return categories
 
 
 def _historical_root_candidates(root: Path) -> tuple[Path, ...]:
@@ -154,8 +174,8 @@ def _iter_reference_text(root: Path):
 def _strip_archive_qualified_references(line: str, targets: tuple[str, ...]) -> str:
     cleaned = line
     for target in targets:
-        cleaned = cleaned.replace(target, "")
         cleaned = cleaned.replace(f"./{target}", "")
+        cleaned = cleaned.replace(target, "")
     return cleaned
 
 
@@ -198,9 +218,7 @@ def _build_reference_audits(
                         }
                     )
             if "archive/root-history/" not in cleaned:
-                for category, pattern in _DYNAMIC_FAMILY_PATTERNS:
-                    if pattern.search(cleaned):
-                        dynamic_categories.add(category)
+                dynamic_categories.update(_root_dynamic_categories(cleaned))
 
     audits: dict[str, dict[str, Any]] = {}
     for name, (_, move_status) in locations.items():
