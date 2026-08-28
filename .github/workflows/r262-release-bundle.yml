@@ -1,34 +1,6 @@
 name: R2.62 Full Repository Release Bundle
 
 on:
-  push:
-    branches: [main, r262-complementary-causal-program-integration]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_61_TO_R2_62_EVOLUTION.md'
-      - 'archive/root-history/historical_r_series/R2_62_TDD_RED.json'
-      - 'archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json'
-      - 'archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json'
-      - 'archive/root-history/historical_r_series/R2_62_VERIFY_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_62_WORLD_FINAL.json'
-      - 'archive/root-history/historical_r_series/R2_62_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_62_RELEASE_MANIFEST.json'
-      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
-      - '.github/workflows/r262-release-bundle.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_61_TO_R2_62_EVOLUTION.md'
-      - 'archive/root-history/historical_r_series/R2_62_TDD_RED.json'
-      - 'archive/root-history/historical_r_series/R2_62_PRE_HOSTED_LOCK.json'
-      - 'archive/root-history/historical_r_series/R2_62_PHASE_A_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_62_EXTERNAL_TRANSFER.json'
-      - 'archive/root-history/historical_r_series/R2_62_VERIFY_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_62_WORLD_FINAL.json'
-      - 'archive/root-history/historical_r_series/R2_62_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_62_RELEASE_MANIFEST.json'
-      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
-      - '.github/workflows/r262-release-bundle.yml'
   workflow_dispatch:
 
 permissions:
