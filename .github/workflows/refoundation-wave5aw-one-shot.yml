@@ -1,0 +1,161 @@
+name: Refoundation Wave 5AW One Shot
+
+on:
+  push:
+    branches:
+      - refoundation-wave5aw-native-experimentation
+
+permissions:
+  contents: write
+
+jobs:
+  apply-wave5aw:
+    if: ${{ !contains(github.event.head_commit.message, '[wave5aw-apply]') }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation-wave5aw-native-experimentation
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused test dependency
+        run: python -m pip install -q pytest
+      - name: Apply deterministic Wave 5AW cutover
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one replacement target, found {count}")
+              target.write_text(text.replace(old, new), encoding="utf-8")
+
+          replace_once(
+              "nolane/external_core/experimentation.py",
+              '''    @property
+              def probe_id(self) -> str:
+                  return _digest(
+                      "xprobe:",
+                      {
+                          "args": list(self.args),
+                          "intervention": self.intervention.to_state() if self.intervention is not None else None,
+                      },
+                  )
+          ''',
+              '''    @property
+              def probe_id(self) -> str:
+                  # Preserve R2.60's plain-probe hash ordering for exact deterministic
+                  # tie parity while extending semantic identity when an intervention exists.
+                  if self.intervention is None:
+                      payload: object = list(self.args)
+                  else:
+                      payload = {
+                          "args": list(self.args),
+                          "intervention": self.intervention.to_state(),
+                      }
+                  return _digest("xprobe:", payload)
+          ''',
+          )
+
+          replace_once(
+              "tests/test_refoundation_wave5aw_native_experimentation.py",
+              '''    probes = _probe_grid(native, (-1, 0, 1))
+              left = _hypothesis(native, probes, lambda x, y: x + y, display_name="left")
+              right = _hypothesis(native, probes, lambda x, y: y + x, display_name="right")
+
+              selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
+          ''',
+              '''    probes = _probe_grid(native, (-1, 0, 1))
+              extra = native.ExperimentProbe((7, 11))
+              hypothesis_domain = (*probes, extra)
+              left = _hypothesis(native, hypothesis_domain, lambda x, y: x + y, display_name="left")
+              right = native.ExperimentHypothesis(
+                  tuple((probe.probe_id, sum(probe.args)) for probe in probes)
+                  + ((extra.probe_id, 999),),
+                  display_name="right",
+              )
+
+              # The hypotheses are semantically distinct, but the allowed selection
+              # probes cannot discriminate them. This is the real abstention case.
+              selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
+          ''',
+          )
+
+          replace_once(
+              "cogcoder/refoundation/component_versions.py",
+              '        "external.causal": 1,\n',
+              '        "external.causal": 1,\n        "external.experimentation": 1,\n',
+          )
+
+          causal_block = '''    "external.causal": (
+              "nolane.external_core.causal",
+              (
+                  "cogcoder/r258_intervention_discovery.py",
+                  "cogcoder/r262_complementary_experiment_program.py",
+              ),
+              "Native bounded positional intervention identity, complementary causal-program structure discovery and evidence-bound deterministic causal-program ledger over canonical Cognitive Library and Evidence authority; R2.58/R2.62 remain historical parity and provenance oracles.",
+          ),
+          '''
+          experimentation_block = '''    "external.experimentation": (
+              "nolane.external_core.experimentation",
+              ("cogcoder/r260_active_repository_probes.py",),
+              "Native content-addressed active-probe and finite version-space experiment authority with deterministic R2.60-parity selection, hard oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic ledger authority over canonical Causal/Evidence boundaries; R2.60 remains a historical parity/provenance oracle and R2.61 expansion remains outside this ownership boundary.",
+          ),
+          '''
+          replace_once(
+              "cogcoder/refoundation/implementation_status.py",
+              causal_block,
+              causal_block + experimentation_block,
+          )
+          replace_once(
+              "cogcoder/refoundation/implementation_status.py",
+              '    "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),\n',
+              '',
+          )
+
+          replace_once(
+              "README.md",
+              '''Wave 5AV makes `external.causal` canonical-native at `nolane.external_core.causal`, with bounded positional interventions, complementary causal-program structure discovery and an evidence-bound deterministic causal-program ledger. After this cutover there are **3 semantic cutovers** remaining: `external.capability_acquisition`, `external.experimentation`, and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
+          ''',
+              '''Wave 5AW makes `external.experimentation` canonical-native at `nolane.external_core.experimentation`, with content-addressed probes/hypotheses, deterministic R2.60-parity version-space selection, hard oracle budgets, pure shadow execution, independent verification and an evidence-bound deterministic experiment ledger. After this cutover there are **2 semantic cutovers** remaining: `external.capability_acquisition` and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
+          ''',
+          )
+
+          status_path = Path("CURRENT/STATUS.md")
+          status = status_path.read_text(encoding="utf-8")
+          heading = "## Wave 5AW — native Experimentation authority"
+          if heading not in status:
+              status = status.rstrip() + "\n\n" + heading + "\n\n" + (
+                  "Wave 5AW retires `external.experimentation` by extracting content-addressed experiment probes and finite behavioral hypotheses, deterministic information-seeking version-space selection, hard selection-oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic experiment-ledger snapshot authority under canonical `nolane.external_core.experimentation` ownership. Canonical Experimentation depends only on native Causal/Evidence boundaries and contains no reverse import into historical CogCoder/Research authority. R2.60 remains a parity/provenance oracle; R2.61 candidate-expansion semantics remain outside this boundary for the later capability-acquisition cutover. The generated native-debt projection moves from 4 to 3 non-native records: `external.capability_acquisition`, `external.transfer_meta`, and the separately governed frozen `neural.shared` asset.\n"
+              )
+              status_path.write_text(status, encoding="utf-8")
+          PY
+      - name: Materialize deterministic repository authority projections
+        run: python -m nolane.repository.audit --write
+      - name: Verify Wave 5AW focused contracts
+        run: |
+          python -m compileall -q nolane/external_core/experimentation.py cogcoder/refoundation
+          python -m pytest -q tests/test_refoundation_wave5aw_native_experimentation.py tests/test_refoundation_wave5av_native_causal.py
+          python -m nolane.repository.audit --check
+      - name: Commit only verified cutover and remove carrier
+        shell: bash
+        run: |
+          git config user.name "Nolane Refoundation Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/refoundation-wave5aw-one-shot.yml
+          git add \
+            nolane/external_core/experimentation.py \
+            tests/test_refoundation_wave5aw_native_experimentation.py \
+            cogcoder/refoundation/component_versions.py \
+            cogcoder/refoundation/implementation_status.py \
+            CURRENT/STATUS.md CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md \
+            archive/INDEX.json README.md
+          git diff --cached --check
+          git commit -m "feat(refoundation): complete Wave 5AW native experimentation [wave5aw-apply]"
+          git push origin HEAD:refoundation-wave5aw-native-experimentation
