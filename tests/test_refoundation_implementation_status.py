@@ -24,6 +24,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "organization.temporary_work_units",
     "external.artifacts",
     "external.assurance",
+    "external.individual_evolution",
     "external.verification",
     "external.evidence",
     "external.experience",
@@ -76,6 +77,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
 
     for component_id in (
         "external.assurance",
+        "external.individual_evolution",
         "external.context",
         "external.architecture",
         "external.integration",
@@ -95,7 +97,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         "evaluation.parameters",
         "evaluation.release",
         "evaluation.scaling",
-    "evaluation.campaign",
+        "evaluation.campaign",
         "neural.inference_bridge",
     ):
         assert ledger[component_id].canonical_write_authority
