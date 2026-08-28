@@ -171,6 +171,14 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native typed operator catalog, bounded expression DSL, learned abstraction vocabulary and deterministic cognitive-library snapshot authority; R2.53/R2.56/R2.57 remain historical parity and provenance oracles.",
     ),
+    "external.causal": (
+        "nolane.external_core.causal",
+        (
+            "cogcoder/r258_intervention_discovery.py",
+            "cogcoder/r262_complementary_experiment_program.py",
+        ),
+        "Native bounded positional intervention identity, complementary causal-program structure discovery and evidence-bound deterministic causal-program ledger over canonical Cognitive Library and Evidence authority; R2.58/R2.62 remain historical parity and provenance oracles.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),
@@ -370,7 +378,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
     "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
-    "external.causal": ("historical bounded causal programs; not a current dedicated organization component",),
     "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),
     "external.transfer_meta": ("historical transfer/meta-learning mechanisms; extraction not yet accepted",),
 }
