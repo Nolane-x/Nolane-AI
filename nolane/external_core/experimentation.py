@@ -41,6 +41,17 @@ def _nonempty(value: object, name: str) -> str:
     return text
 
 
+def _normalized_ids(values: Sequence[object], name: str) -> tuple[str, ...]:
+    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):
+        raise TypeError(f"{name} must be a sequence")
+    rows = tuple(sorted(_nonempty(value, name) for value in values))
+    if not rows:
+        raise ValueError(f"{name} must be non-empty")
+    if len(rows) != len(set(rows)):
+        raise ValueError(f"{name} must not contain duplicates")
+    return rows
+
+
 def _json_scalar(value: object) -> object:
     if value is None or isinstance(value, (bool, int, str)):
         return value
@@ -361,20 +372,41 @@ def select_informative_probe(
     )
 
 
+def _experiment_id_from_parts(
+    version_space_hypothesis_ids: Sequence[object],
+    selection_probe_ids: Sequence[object],
+    verification_probe_ids: Sequence[object],
+    budget: int,
+) -> str:
+    hypothesis_ids = _normalized_ids(version_space_hypothesis_ids, "version_space_hypothesis_ids")
+    selection_ids = _normalized_ids(selection_probe_ids, "selection_probe_ids")
+    verification_ids = _normalized_ids(verification_probe_ids, "verification_probe_ids")
+    normalized_budget = int(budget)
+    if normalized_budget < 0:
+        raise ValueError("max_selection_oracle_calls must be non-negative")
+    version_space_id = _digest("xspace:", {"hypothesis_ids": list(hypothesis_ids)})
+    return _digest(
+        "xexp:",
+        {
+            "version_space_id": version_space_id,
+            "selection_probe_ids": list(selection_ids),
+            "verification_probe_ids": list(verification_ids),
+            "max_selection_oracle_calls": normalized_budget,
+        },
+    )
+
+
 def _experiment_id(
     version_space: VersionSpace,
     probes: Sequence[ExperimentProbe],
     verification_probes: Sequence[ExperimentProbe],
     budget: int,
 ) -> str:
-    return _digest(
-        "xexp:",
-        {
-            "version_space_id": version_space.version_space_id,
-            "selection_probe_ids": [row.probe_id for row in probes],
-            "verification_probe_ids": [row.probe_id for row in verification_probes],
-            "max_selection_oracle_calls": budget,
-        },
+    return _experiment_id_from_parts(
+        tuple(row.hypothesis_id for row in version_space.hypotheses),
+        tuple(row.probe_id for row in probes),
+        tuple(row.probe_id for row in verification_probes),
+        budget,
     )
 
 
@@ -392,6 +424,10 @@ class ShadowExperimentReceipt:
     reason: str
     promoted: bool = False
     trainable_parameter_count: int = 0
+    version_space_hypothesis_ids: tuple[str, ...] = ()
+    selection_probe_ids: tuple[str, ...] = ()
+    verification_probe_ids: tuple[str, ...] = ()
+    max_selection_oracle_calls: int = 0
 
     def __post_init__(self) -> None:
         _nonempty(self.experiment_id, "experiment_id")
@@ -425,6 +461,42 @@ class ShadowExperimentReceipt:
         elif self.selected is not None:
             raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")
 
+        hypothesis_ids = _normalized_ids(
+            self.version_space_hypothesis_ids,
+            "version_space_hypothesis_ids",
+        )
+        selection_probe_ids = _normalized_ids(self.selection_probe_ids, "selection_probe_ids")
+        verification_probe_ids = _normalized_ids(self.verification_probe_ids, "verification_probe_ids")
+        budget = int(self.max_selection_oracle_calls)
+        if budget < 0:
+            raise ValueError("max_selection_oracle_calls must be non-negative")
+        if self.initial_survivors != len(hypothesis_ids):
+            raise ValueError("receipt initial survivor count must match version-space identity")
+        if self.final_survivors > self.initial_survivors:
+            raise ValueError("receipt final survivors cannot exceed initial survivors")
+        if self.selection_oracle_calls > budget:
+            raise ValueError("receipt selection calls exceed experiment budget")
+        if self.verification_oracle_calls > len(verification_probe_ids):
+            raise ValueError("receipt verification calls exceed declared verification probes")
+        if self.status == "accept" and self.verification_oracle_calls != len(verification_probe_ids):
+            raise ValueError("accepted shadow experiment must verify every declared verification probe")
+        if self.selected is not None and self.selected.hypothesis_id not in hypothesis_ids:
+            raise ValueError("selected hypothesis is outside declared version-space identity")
+        if any(row.probe.probe_id not in selection_probe_ids for row in self.rounds):
+            raise ValueError("experiment round uses a probe outside declared selection identity")
+        expected_experiment_id = _experiment_id_from_parts(
+            hypothesis_ids,
+            selection_probe_ids,
+            verification_probe_ids,
+            budget,
+        )
+        if self.experiment_id != expected_experiment_id:
+            raise ValueError("experiment id does not match canonical content")
+        object.__setattr__(self, "version_space_hypothesis_ids", hypothesis_ids)
+        object.__setattr__(self, "selection_probe_ids", selection_probe_ids)
+        object.__setattr__(self, "verification_probe_ids", verification_probe_ids)
+        object.__setattr__(self, "max_selection_oracle_calls", budget)
+
     @property
     def oracle_calls_total(self) -> int:
         return self.selection_oracle_calls + self.verification_oracle_calls
@@ -443,6 +515,10 @@ class ShadowExperimentReceipt:
             "reason": self.reason,
             "promoted": False,
             "trainable_parameter_count": self.trainable_parameter_count,
+            "version_space_hypothesis_ids": list(self.version_space_hypothesis_ids),
+            "selection_probe_ids": list(self.selection_probe_ids),
+            "verification_probe_ids": list(self.verification_probe_ids),
+            "max_selection_oracle_calls": self.max_selection_oracle_calls,
         }
 
     def semantic_state(self) -> dict[str, object]:
@@ -485,6 +561,10 @@ class ShadowExperimentReceipt:
             str(state["reason"]),
             False,
             int(state.get("trainable_parameter_count", 0)),
+            _normalized_ids(state.get("version_space_hypothesis_ids", ()), "version_space_hypothesis_ids"),
+            _normalized_ids(state.get("selection_probe_ids", ()), "selection_probe_ids"),
+            _normalized_ids(state.get("verification_probe_ids", ()), "verification_probe_ids"),
+            int(state["max_selection_oracle_calls"]),
         )
 
 
@@ -497,6 +577,7 @@ def _abstain(
     rounds: Sequence[ExperimentRound],
     reason: str,
     *,
+    identity: Mapping[str, object],
     verification_failures: int = 0,
 ) -> ShadowExperimentReceipt:
     return ShadowExperimentReceipt(
@@ -510,6 +591,10 @@ def _abstain(
         tuple(rounds),
         verification_failures,
         reason,
+        version_space_hypothesis_ids=tuple(identity["version_space_hypothesis_ids"]),
+        selection_probe_ids=tuple(identity["selection_probe_ids"]),
+        verification_probe_ids=tuple(identity["verification_probe_ids"]),
+        max_selection_oracle_calls=int(identity["max_selection_oracle_calls"]),
     )
 
 
@@ -538,6 +623,12 @@ def run_shadow_experiment(
     if budget < 0:
         raise ValueError("max_selection_oracle_calls must be non-negative")
 
+    identity_kwargs: dict[str, object] = {
+        "version_space_hypothesis_ids": tuple(row.hypothesis_id for row in version_space.hypotheses),
+        "selection_probe_ids": tuple(row.probe_id for row in selection_probes),
+        "verification_probe_ids": tuple(row.probe_id for row in verification),
+        "max_selection_oracle_calls": budget,
+    }
     experiment_id = _experiment_id(version_space, selection_probes, verification, budget)
     survivors = version_space.hypotheses
     initial = len(survivors)
@@ -556,6 +647,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "selection_oracle_budget_exhausted",
+                identity=identity_kwargs,
             )
         current = VersionSpace(tuple(survivors))
         selection = select_informative_probe(
@@ -572,6 +664,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "no_informative_probe",
+                identity=identity_kwargs,
             )
         probe = selection.probe
         try:
@@ -586,6 +679,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "selection_oracle_error",
+                identity=identity_kwargs,
             )
         selection_calls += 1
         used.add(probe.probe_id)
@@ -613,6 +707,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "oracle_outside_candidate_version_space",
+                identity=identity_kwargs,
             )
 
     selected = survivors[0]
@@ -628,6 +723,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "verification_probe_outside_hypothesis",
+                identity=identity_kwargs,
                 verification_failures=1,
             )
         try:
@@ -642,6 +738,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "independent_verification_failed",
+                identity=identity_kwargs,
                 verification_failures=1,
             )
         verification_calls += 1
@@ -654,6 +751,7 @@ def run_shadow_experiment(
                 verification_calls,
                 rounds,
                 "independent_verification_failed",
+                identity=identity_kwargs,
                 verification_failures=1,
             )
 
@@ -668,6 +766,10 @@ def run_shadow_experiment(
         tuple(rounds),
         0,
         "shadow_experiment_verified",
+        version_space_hypothesis_ids=tuple(identity_kwargs["version_space_hypothesis_ids"]),
+        selection_probe_ids=tuple(identity_kwargs["selection_probe_ids"]),
+        verification_probe_ids=tuple(identity_kwargs["verification_probe_ids"]),
+        max_selection_oracle_calls=int(identity_kwargs["max_selection_oracle_calls"]),
     )
 
 
