@@ -1,0 +1,84 @@
+name: Refoundation Wave 5AR Closure Carrier
+
+on:
+  push:
+    branches:
+      - refoundation/epoch0-wave5ar-executable-debt-closure
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Materialize Wave 5AR closure receipt
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          status = Path('CURRENT/STATUS.md')
+          text = status.read_text(encoding='utf-8')
+          heading = '## Wave 5AR — executable debt closure and stabilization'
+          if heading not in text:
+              text += '''\n\n## Wave 5AR — executable debt closure and stabilization\n\nWave 5AR closes the executable compatibility-debt phase of A1 Refoundation. The active compatibility facade registry is intentionally empty: there are zero active compatibility facades and zero `legacy_internal` executable authority records. `CURRENT/NATIVE_DEBT.json` now contains exactly six intentional non-native records: five historical semantic reservations (`external.capability_acquisition`, `external.causal`, `external.cognitive_library`, `external.experimentation`, and `external.transfer_meta`) plus the separately governed frozen `neural.shared` asset. None of these six records is an executable migration-failure claim, and this closure does not authorize revival, extraction, movement, deletion, or mutation of those historical/frozen authorities.\n\nThe final Operations and Research semantic closures execute under canonical `nolane.external_core` ownership with historical `cogcoder.organization` paths retained only as exact semantic public-object bridges. Repository audit projections and all 67 AI dossier views remain generated and fresh, while frozen Neural R2.3 authority remains unchanged. Historical CI workflows were observed skipping their jobs on user-authored `refoundation/*` PR heads; no broad workflow mutation is justified by this closure.\n'''
+              status.write_text(text, encoding='utf-8')
+          PY
+      - name: Verify generated authority is fresh
+        run: |
+          python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+          python -m nolane.ai.materialize --check
+          python -m nolane.repository.audit --check
+      - name: Run all Refoundation contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Run broad Coding AGI regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_execution_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+      - name: Verify frozen Neural R2.3 metadata contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
+      - name: Commit verified Wave 5AR closure receipt
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add CURRENT/STATUS.md
+          if git diff --cached --quiet; then
+            echo 'No Wave 5AR closure changes to commit.'
+            exit 0
+          fi
+          git commit -m 'docs(refoundation): materialize Wave 5AR closure receipt'
+          git push origin HEAD:refoundation/epoch0-wave5ar-executable-debt-closure
