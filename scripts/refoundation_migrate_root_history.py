@@ -26,20 +26,18 @@ _SCAN_PRUNE_DIRS = {
     "node_modules",
 }
 _REWRITE_EXCLUDE = {
+    ".github/workflows/refoundation-wave5as-repository-surface-carrier.yml",
     "nolane/repository/audit.py",
     "nolane/repository/audit_v2.py",
+    "scripts/refoundation_debug_root_history_refs.py",
     "scripts/refoundation_migrate_root_history.py",
     "tests/test_refoundation_git_inventory.py",
     "tests/test_refoundation_wave4_repository_quarantine.py",
     "tests/test_refoundation_wave5as_repository_surface.py",
 }
 _MAX_TEXT_BYTES = 5 * 1024 * 1024
-_QUOTED_R_GLOB = re.compile(
-    r"(?P<q>['\"`])(?P<p>R\d[^'\"`\n]*[?*\[][^'\"`\n]*)(?P=q)"
-)
-_QUOTED_WEIGHT_GLOB = re.compile(
-    r"(?P<q>['\"`])(?P<p>CURRENT_ONE_WEIGHT_[^'\"`\n]*[?*\[][^'\"`\n]*)(?P=q)"
-)
+_QUOTED_TOKEN = re.compile(r"(?P<q>['\"`])(?P<token>[^'\"`\n]+)(?P=q)")
+_GLOB_META = frozenset("*?[")
 
 
 def _sha256(path: Path) -> str:
@@ -120,24 +118,33 @@ def _iter_rewrite_text():
             yield path, text
 
 
+def _archive_pattern_for_root_token(token: str) -> str | None:
+    """Return the archive-qualified form only for a real root filename/glob token."""
+    if not token or "/" in token or "\\" in token:
+        return None
+    if any(ch.isspace() for ch in token):
+        return None
+    if not any(ch in token for ch in _GLOB_META):
+        return None
+    if token.startswith("CURRENT_ONE_WEIGHT_"):
+        return f"archive/root-history/legacy_weight_pointer/{token}"
+    if token.startswith("R["):
+        return f"archive/root-history/historical_r_series/{token}"
+    if len(token) > 1 and token[0] == "R" and token[1].isdigit():
+        return f"archive/root-history/historical_r_series/{token}"
+    return None
+
+
 def _prefix_quoted_globs(text: str) -> str:
-    def prefix_r(match: re.Match[str]) -> str:
+    def replace(match: re.Match[str]) -> str:
         q = match.group("q")
-        pattern = match.group("p")
-        if pattern.startswith("archive/root-history/"):
+        token = match.group("token")
+        archived = _archive_pattern_for_root_token(token)
+        if archived is None:
             return match.group(0)
-        return f"{q}archive/root-history/historical_r_series/{pattern}{q}"
+        return f"{q}{archived}{q}"
 
-    def prefix_weight(match: re.Match[str]) -> str:
-        q = match.group("q")
-        pattern = match.group("p")
-        if pattern.startswith("archive/root-history/"):
-            return match.group(0)
-        return f"{q}archive/root-history/legacy_weight_pointer/{pattern}{q}"
-
-    text = _QUOTED_R_GLOB.sub(prefix_r, text)
-    text = _QUOTED_WEIGHT_GLOB.sub(prefix_weight, text)
-    return text
+    return _QUOTED_TOKEN.sub(replace, text)
 
 
 def _rewrite_references(entries: list[dict]) -> int:
@@ -147,8 +154,8 @@ def _rewrite_references(entries: list[dict]) -> int:
         text = original
         for index, (name, target) in enumerate(pairs):
             placeholder = f"__NOLANE_ARCHIVE_TARGET_{index:04d}__"
-            text = text.replace(target, placeholder)
             text = text.replace(f"./{target}", placeholder)
+            text = text.replace(target, placeholder)
             text = text.replace(name, target)
             text = text.replace(placeholder, target)
         text = _prefix_quoted_globs(text)
