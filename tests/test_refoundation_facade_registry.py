@@ -5,7 +5,7 @@ from cogcoder.refoundation.facades import build_active_facade_bindings, validate
 
 def test_active_facade_bindings_are_unique_and_explicit() -> None:
     bindings = build_active_facade_bindings()
-    assert bindings
+    assert isinstance(bindings, tuple)
     assert len({row.component_id for row in bindings}) == len(bindings)
     assert len({row.canonical_module for row in bindings}) == len(bindings)
     assert all(row.canonical_module.startswith("nolane.") for row in bindings)

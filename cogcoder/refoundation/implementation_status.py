@@ -142,6 +142,15 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native individual-evolution lineage, profile, learning, self-model, neural challenger and longitudinal benchmark authority over canonical assurance, verification, identity, skill, experience, self-model, evidence and digest dependencies; historical individual-evolution/profile modules bridge exact semantic public identities.",
     ),
+    "external.research": (
+        "nolane.external_core.research",
+        (
+            "cogcoder/organization/research.py",
+            "cogcoder/organization/research_profiles.py",
+            "cogcoder/organization/research_provenance.py",
+        ),
+        "Native Research routing, source/provenance/freshness/contradiction authority, synthesis and assurance-gated engineering handoff over canonical artifacts, assurance, skills, identity and digest dependencies; historical Research modules bridge exact semantic public identities.",
+    ),
     "external.operations": (
         "nolane.external_core.operations",
         (
