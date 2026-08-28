@@ -1,0 +1,62 @@
+name: Refoundation Wave 5AS Repository Surface Carrier
+
+on:
+  push:
+    branches:
+      - refoundation/epoch0-wave5as-repository-surface
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refoundation-wave5as-repository-surface
+  cancel-in-progress: true
+
+jobs:
+  materialize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Materialize zero-loss root-history relocation
+        run: python scripts/refoundation_migrate_root_history.py --apply
+      - name: Verify repository surface and generated audit are closed
+        run: |
+          python -m compileall -q cogcoder nolane scripts
+          python -m nolane.ai.materialize --check
+          python -m nolane.repository.audit --check
+          python scripts/refoundation_migrate_root_history.py --check
+      - name: Run all Refoundation contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Run broad Coding AGI regressions
+        run: python -m pytest -q tests/test_coding_agi_*.py
+      - name: Verify frozen Neural R2.3 metadata contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
+      - name: Verify root surface is physically clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          leftovers="$(find . -maxdepth 1 -type f \( -name 'R[0-9]*' -o -name 'CURRENT_ONE_WEIGHT_*' -o -name 'CURRENT_STATUS.md' -o -name 'CHECKPOINT_MANIFEST.json' \) -print)"
+          if [ -n "$leftovers" ]; then
+            printf 'Historical artifacts remain at repository root:\n%s\n' "$leftovers"
+            exit 1
+          fi
+      - name: Commit verified Wave 5AS repository-surface receipts
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "Wave 5AS repository surface already materialized."
+            exit 0
+          fi
+          git commit -m "refactor(refoundation): materialize Wave 5AS repository surface"
+          git push origin HEAD:refoundation/epoch0-wave5as-repository-surface
