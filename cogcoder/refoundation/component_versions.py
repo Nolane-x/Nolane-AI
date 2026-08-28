@@ -27,6 +27,7 @@ _COMPONENT_REVISIONS.update(
         "external.individual_evolution": 1,
         "external.operations": 1,
         "external.research": 1,
+        "external.cognitive_library": 1,
         "external.verification": 1,
         "external.evidence": 1,
         "external.experience": 1,
