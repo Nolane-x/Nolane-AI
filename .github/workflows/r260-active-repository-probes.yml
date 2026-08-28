@@ -49,6 +49,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
+          from nolane.repository.audit import resolve_repository_path
           lock = json.loads(Path('archive/root-history/historical_r_series/R2_60_PRE_HOSTED_LOCK.json').read_text())
           assert lock['parent_release_commit'] == '1e59bd13baabba0e1ba71294aa02365d4e661ee0'
           parent = json.loads(Path('archive/root-history/historical_r_series/R2_59_RELEASE_MANIFEST.json').read_text())
@@ -56,8 +57,9 @@ jobs:
           assert parent['readiness'] == 47.8
           assert parent['world_w5_passed'] is False
           for path, expected in lock['source_blobs'].items():
-              actual = subprocess.check_output(['git', 'rev-parse', f'HEAD:{path}'], text=True).strip()
-              assert actual == expected, (path, actual, expected)
+              resolved_path = resolve_repository_path(path)
+              actual = subprocess.check_output(['git', 'rev-parse', f'HEAD:{resolved_path}'], text=True).strip()
+              assert actual == expected, (path, resolved_path, actual, expected)
           print('R260_SOURCE_LOCK_OK')
           PY
       - name: Run R2.60 focused tests
