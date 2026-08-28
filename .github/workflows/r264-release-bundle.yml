@@ -1,21 +1,6 @@
 name: R2.64 Full Repository Release Bundle
 
 on:
-  push:
-    branches: [main, r264-unified-adaptive-repository-search-gpt56sol]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_64_TDD_RED.json'
-      - 'archive/root-history/historical_r_series/R2_64_PRE_HOSTED_LOCK.json'
-      - 'archive/root-history/historical_r_series/R2_64_PHASE_A_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_64_EXTERNAL_TRANSFER.json'
-      - 'archive/root-history/historical_r_series/R2_64_HOSTED_VERIFICATION.json'
-      - 'archive/root-history/historical_r_series/R2_64_WORLD_FINAL.json'
-      - 'archive/root-history/historical_r_series/R2_64_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_64_RELEASE_MANIFEST.json'
-      - 'archive/root-history/historical_r_series/R2_READINESS_RECALIBRATION.md'
-      - '.github/workflows/r264-release-bundle.yml'
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 permissions:
