@@ -142,3 +142,7 @@ The repository audit now understands both quarantined and moved history and trea
 ## Wave 5AU — native Cognitive Library authority
 
 Wave 5AU retires `external.cognitive_library` by moving the bounded typed expression/operator DSL, explicit externalization operator catalog, learned abstraction vocabulary, deterministic canonical library snapshot/digest and fail-closed registration authority under native `nolane.external_core` ownership. Canonical Cognitive Library code has no reverse historical imports; R2.53/R2.56/R2.57 remain historical parity/provenance oracles. Promotion/quarantine, causal programs, active experimentation and transfer/meta reuse remain distinct downstream debt. The generated native-debt projection moves from 6 to 5 non-native component records.
+
+## Wave 5AV — native causal authority
+
+Wave 5AV retires `external.causal` by extracting the bounded positional intervention schema, identity-stable intervention enumeration, complementary two-intervention causal-program structure discovery and evidence-bound deterministic causal-program ledger into canonical `nolane.external_core.causal` ownership. The canonical module depends on current Cognitive Library/Evidence authority and contains no reverse historical import. R2.58 and R2.62 remain parity/provenance oracles rather than current write authority. The generated native-debt projection moves from 5 to 4 non-native component records: three historical semantic reservations plus the frozen `neural.shared` asset.
