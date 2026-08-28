@@ -1,15 +1,6 @@
 name: R2.18 Cross-Domain Transfer Governance Reproduction
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cogcoder/r218_*.py'
-      - 'benchmarks/kfigg/r218_cross_domain_transfer.py'
-      - 'tests/test_r218_*.py'
-      - 'research/R2_18_*.json'
-      - 'research/bundles/R2_18-source-and-evidence.part-*.b64'
-      - '.github/workflows/r218-cross-domain-governance.yml'
   workflow_dispatch:
 
 permissions:

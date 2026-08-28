@@ -1,19 +1,6 @@
 name: R2.21 Confidence-Adaptive Evidence Core
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cogcoder/r220_*.py'
-      - 'cogcoder/r221_*.py'
-      - 'benchmarks/kfigg/r220_*.py'
-      - 'benchmarks/kfigg/r221_*.py'
-      - 'tests/test_r221_*.py'
-      - 'research/R2_20_PHASE_A_RESULT.json'
-      - 'research/R2_21_*.json'
-      - 'archive/root-history/historical_r_series/R2_21_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_21_RELEASE_MANIFEST.json'
-      - '.github/workflows/r221-confidence-adaptive-evidence.yml'
   workflow_dispatch:
 
 permissions:

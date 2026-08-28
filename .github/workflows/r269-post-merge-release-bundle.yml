@@ -1,15 +1,7 @@
 name: R2.69 Post-Merge Exact-Main Bundle
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cogcoder/r269_*.py'
-      - 'benchmarks/kfigg/r269_*.py'
-      - 'tests/test_r269_*.py'
-      - 'scripts/r269_*.py'
-      - 'archive/root-history/historical_r_series/R2_69_*.json'
-      - '.github/workflows/r269-*.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read

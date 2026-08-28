@@ -1,16 +1,6 @@
 name: R2.14 Active Program Disambiguation Phase A
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cogcoder/r214_active_synthesis.py'
-      - 'benchmarks/kfigg/r214_program_identification.py'
-      - 'scripts/run_r214_program_identification.py'
-      - 'tests/test_r214_*.py'
-      - 'research/R2_14_*.json'
-      - 'archive/root-history/historical_r_series/R2_14_*'
-      - '.github/workflows/r214-active-program-disambiguation.yml'
   workflow_dispatch:
 
 permissions:

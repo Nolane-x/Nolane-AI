@@ -1,17 +1,6 @@
 name: R2.68 Post-Merge Exact-Main Bundle
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_68_*.json'
-      - 'archive/root-history/historical_r_series/R2_68_*.md'
-      - 'cogcoder/r268_*.py'
-      - 'cogcoder/_r268_*.py'
-      - 'benchmarks/kfigg/r268_*.py'
-      - 'research/r268_*.py'
-      - 'tests/test_r268_*.py'
-      - '.github/workflows/r268-*.yml'
   workflow_dispatch:
 
 permissions:

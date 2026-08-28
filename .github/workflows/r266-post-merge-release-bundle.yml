@@ -1,14 +1,6 @@
 name: R2.66 Final Post-Merge Complete Bundle
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_66_HOSTED_VERIFICATION.json'
-      - 'archive/root-history/historical_r_series/R2_66_WORLD_FINAL.json'
-      - 'archive/root-history/historical_r_series/R2_66_RELEASE_MANIFEST.json'
-      - 'archive/root-history/historical_r_series/R2_66_DELIVERY.md'
-      - '.github/workflows/r266-post-merge-release-bundle.yml'
   workflow_dispatch:
 
 permissions:

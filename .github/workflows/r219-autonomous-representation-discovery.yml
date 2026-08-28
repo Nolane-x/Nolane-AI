@@ -1,17 +1,6 @@
 name: R2.19 Autonomous Representation Discovery Core
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'cogcoder/r219_*.py'
-      - 'tests/test_r219_representation_*.py'
-      - 'tests/test_r219_discovery.py'
-      - 'tests/test_r219_library_bridge.py'
-      - 'research/R2_19_*.json'
-      - 'archive/root-history/historical_r_series/R2_19_DELIVERY.md'
-      - 'archive/root-history/historical_r_series/R2_19_RELEASE_MANIFEST.json'
-      - '.github/workflows/r219-autonomous-representation-discovery.yml'
   workflow_dispatch:
 
 permissions:
