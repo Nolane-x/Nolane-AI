@@ -120,3 +120,8 @@ Wave 5AO retires `external.individual_evolution` by moving the individual-evolut
 ## Wave 5AP — native Operations authority
 
 Wave 5AP retires `external.operations` by moving the complete Operations semantic closure under canonical `nolane.external_core` ownership: twelve-profile operational routing, data migration/persistence/consistency authority, reproducible build/release/observability authority, reliability/failure/performance authority, and assurance-gated operational readiness. Canonical Operations code resolves artifacts, assurance, skills, identity and digest dependencies only through `nolane` authorities; historical Operations modules are exact semantic public-object bridges. The generated native-debt projection moves from 8 to 7 non-native component records.
+
+
+## Wave 5AQ — native Research authority
+
+Wave 5AQ retires `external.research` by moving the complete Research semantic closure under canonical `nolane.external_core` ownership: exact four-identity research routing, source quality and logical freshness, provenance and domain authorization, contradiction assessment/resolution, synthesis artifact authority, and assurance-gated engineering handoff. Canonical Research code resolves artifacts, assurance, skills, identity and digest dependencies only through `nolane` authorities; historical Research modules are exact semantic public-object bridges. The generated native-debt projection moves from 7 to 6 non-native component records, leaving only five historical semantic reservations and the frozen `neural.shared` asset.

@@ -26,6 +26,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.assurance",
     "external.individual_evolution",
     "external.operations",
+    "external.research",
     "external.verification",
     "external.evidence",
     "external.experience",
