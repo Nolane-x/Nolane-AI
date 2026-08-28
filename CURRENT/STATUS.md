@@ -103,3 +103,10 @@ No current status statement implies that all runtime or External Core surfaces a
 - Component revision advances to `0.0.1`; active facade authority is retired.
 - Repository native debt decreases from 11 to 10 non-native component records.
 
+## Wave 5AN — native external assurance cluster
+
+- `external.assurance` now owns the complete three-module assurance semantic closure under `nolane.external_core`.
+- Historical `cogcoder.organization.assurance*` modules are exact-object compatibility bridges only.
+- Component revision advances to `0.0.1`; active facade authority is retired.
+- Repository native debt decreases from 10 to 9 non-native component records.
+

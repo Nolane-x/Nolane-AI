@@ -125,6 +125,15 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ("cogcoder/organization/foundry.py", "cogcoder/organization/foundry_profiles.py", "cogcoder/organization/foundry_resources.py"),
         "Canonical non-agent Work Unit API over accepted bounded Foundry lifecycle/resource/evidence implementation.",
     ),
+    "external.assurance": (
+        "nolane.external_core.assurance",
+        (
+            "cogcoder/organization/assurance.py",
+            "cogcoder/organization/assurance_evidence.py",
+            "cogcoder/organization/assurance_profiles.py",
+        ),
+        "Native three-module assurance policy, independent challenge/evidence, profile routing, blocking/override and promotion authority over canonical artifact, authority, event, skill, identity, digest and verification dependencies; historical assurance modules bridge exact semantic public identities.",
+    ),
     "external.artifacts": (
         "nolane.external_core.artifacts",
         ("cogcoder/organization/artifacts.py",),

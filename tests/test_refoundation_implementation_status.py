@@ -23,6 +23,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "organization.runtime",
     "organization.temporary_work_units",
     "external.artifacts",
+    "external.assurance",
     "external.verification",
     "external.evidence",
     "external.experience",
@@ -74,6 +75,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         assert ledger[component_id].status is ImplementationStatus.CANONICAL_NATIVE
 
     for component_id in (
+        "external.assurance",
         "external.context",
         "external.architecture",
         "external.integration",

@@ -59,7 +59,6 @@ class FacadeParityReport:
 def build_active_facade_bindings() -> tuple[FacadeBinding, ...]:
     return (
         FacadeBinding("external.individual_evolution", "nolane.external_core.individual_evolution", "cogcoder.organization.individual_evolution", ("IndividualEvolutionControlPlane",)),
-        FacadeBinding("external.assurance", "nolane.external_core.assurance", "cogcoder.organization.assurance", ("AssuranceControlPlane",)),
         FacadeBinding("external.operations", "nolane.external_core.operations", "cogcoder.organization.operations", ("OperationsControlPlane",)),
         FacadeBinding("external.research", "nolane.external_core.research", "cogcoder.organization.research", ("ResearchControlPlane",)),
     )
