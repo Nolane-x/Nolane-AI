@@ -1,0 +1,139 @@
+name: Refoundation Wave 5AW Content Address One Shot
+
+on:
+  push:
+    branches:
+      - refoundation-wave5aw-native-experimentation
+
+permissions:
+  contents: write
+
+jobs:
+  apply-content-address-hardening:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation-wave5aw-native-experimentation
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install focused dependency
+        run: python -m pip install -q pytest
+      - name: Apply receipt identity envelope
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("nolane/external_core/experimentation.py")
+          text = path.read_text(encoding="utf-8")
+
+          def replace_once(old: str, new: str) -> None:
+              global text
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"expected exactly one replacement target, found {count}: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+
+          def replace_count(old: str, new: str, expected: int) -> None:
+              global text
+              count = text.count(old)
+              if count != expected:
+                  raise SystemExit(f"expected {expected} replacement targets, found {count}: {old[:80]!r}")
+              text = text.replace(old, new)
+
+          replace_once(
+              '''def _nonempty(value: object, name: str) -> str:\n    text = str(value).strip()\n    if not text:\n        raise ValueError(f"{name} must be non-empty")\n    return text\n\n\ndef _json_scalar(value: object) -> object:\n''',
+              '''def _nonempty(value: object, name: str) -> str:\n    text = str(value).strip()\n    if not text:\n        raise ValueError(f"{name} must be non-empty")\n    return text\n\n\ndef _normalized_ids(values: Sequence[object], name: str) -> tuple[str, ...]:\n    if not isinstance(values, Sequence) or isinstance(values, (str, bytes)):\n        raise TypeError(f"{name} must be a sequence")\n    rows = tuple(sorted(_nonempty(value, name) for value in values))\n    if not rows:\n        raise ValueError(f"{name} must be non-empty")\n    if len(rows) != len(set(rows)):\n        raise ValueError(f"{name} must not contain duplicates")\n    return rows\n\n\ndef _json_scalar(value: object) -> object:\n''',
+          )
+
+          replace_once(
+              '''def _experiment_id(\n    version_space: VersionSpace,\n    probes: Sequence[ExperimentProbe],\n    verification_probes: Sequence[ExperimentProbe],\n    budget: int,\n) -> str:\n    return _digest(\n        "xexp:",\n        {\n            "version_space_id": version_space.version_space_id,\n            "selection_probe_ids": [row.probe_id for row in probes],\n            "verification_probe_ids": [row.probe_id for row in verification_probes],\n            "max_selection_oracle_calls": budget,\n        },\n    )\n''',
+              '''def _experiment_id_from_parts(\n    version_space_hypothesis_ids: Sequence[object],\n    selection_probe_ids: Sequence[object],\n    verification_probe_ids: Sequence[object],\n    budget: int,\n) -> str:\n    hypothesis_ids = _normalized_ids(version_space_hypothesis_ids, "version_space_hypothesis_ids")\n    selection_ids = _normalized_ids(selection_probe_ids, "selection_probe_ids")\n    verification_ids = _normalized_ids(verification_probe_ids, "verification_probe_ids")\n    normalized_budget = int(budget)\n    if normalized_budget < 0:\n        raise ValueError("max_selection_oracle_calls must be non-negative")\n    version_space_id = _digest("xspace:", {"hypothesis_ids": list(hypothesis_ids)})\n    return _digest(\n        "xexp:",\n        {\n            "version_space_id": version_space_id,\n            "selection_probe_ids": list(selection_ids),\n            "verification_probe_ids": list(verification_ids),\n            "max_selection_oracle_calls": normalized_budget,\n        },\n    )\n\n\ndef _experiment_id(\n    version_space: VersionSpace,\n    probes: Sequence[ExperimentProbe],\n    verification_probes: Sequence[ExperimentProbe],\n    budget: int,\n) -> str:\n    return _experiment_id_from_parts(\n        tuple(row.hypothesis_id for row in version_space.hypotheses),\n        tuple(row.probe_id for row in probes),\n        tuple(row.probe_id for row in verification_probes),\n        budget,\n    )\n''',
+          )
+
+          replace_once(
+              '''    reason: str\n    promoted: bool = False\n    trainable_parameter_count: int = 0\n''',
+              '''    reason: str\n    promoted: bool = False\n    trainable_parameter_count: int = 0\n    version_space_hypothesis_ids: tuple[str, ...] = ()\n    selection_probe_ids: tuple[str, ...] = ()\n    verification_probe_ids: tuple[str, ...] = ()\n    max_selection_oracle_calls: int = 0\n''',
+          )
+
+          replace_once(
+              '''        elif self.selected is not None:\n            raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")\n\n    @property\n''',
+              '''        elif self.selected is not None:\n            raise ValueError("abstained shadow experiment cannot expose a selected hypothesis")\n\n        hypothesis_ids = _normalized_ids(\n            self.version_space_hypothesis_ids,\n            "version_space_hypothesis_ids",\n        )\n        selection_probe_ids = _normalized_ids(self.selection_probe_ids, "selection_probe_ids")\n        verification_probe_ids = _normalized_ids(self.verification_probe_ids, "verification_probe_ids")\n        budget = int(self.max_selection_oracle_calls)\n        if budget < 0:\n            raise ValueError("max_selection_oracle_calls must be non-negative")\n        if self.initial_survivors != len(hypothesis_ids):\n            raise ValueError("receipt initial survivor count must match version-space identity")\n        if self.final_survivors > self.initial_survivors:\n            raise ValueError("receipt final survivors cannot exceed initial survivors")\n        if self.selection_oracle_calls > budget:\n            raise ValueError("receipt selection calls exceed experiment budget")\n        if self.verification_oracle_calls > len(verification_probe_ids):\n            raise ValueError("receipt verification calls exceed declared verification probes")\n        if self.status == "accept" and self.verification_oracle_calls != len(verification_probe_ids):\n            raise ValueError("accepted shadow experiment must verify every declared verification probe")\n        if self.selected is not None and self.selected.hypothesis_id not in hypothesis_ids:\n            raise ValueError("selected hypothesis is outside declared version-space identity")\n        if any(row.probe.probe_id not in selection_probe_ids for row in self.rounds):\n            raise ValueError("experiment round uses a probe outside declared selection identity")\n        expected_experiment_id = _experiment_id_from_parts(\n            hypothesis_ids,\n            selection_probe_ids,\n            verification_probe_ids,\n            budget,\n        )\n        if self.experiment_id != expected_experiment_id:\n            raise ValueError("experiment id does not match canonical content")\n        object.__setattr__(self, "version_space_hypothesis_ids", hypothesis_ids)\n        object.__setattr__(self, "selection_probe_ids", selection_probe_ids)\n        object.__setattr__(self, "verification_probe_ids", verification_probe_ids)\n        object.__setattr__(self, "max_selection_oracle_calls", budget)\n\n    @property\n''',
+          )
+
+          replace_once(
+              '''            "trainable_parameter_count": self.trainable_parameter_count,\n        }\n\n    def semantic_state(self) -> dict[str, object]:\n''',
+              '''            "trainable_parameter_count": self.trainable_parameter_count,\n            "version_space_hypothesis_ids": list(self.version_space_hypothesis_ids),\n            "selection_probe_ids": list(self.selection_probe_ids),\n            "verification_probe_ids": list(self.verification_probe_ids),\n            "max_selection_oracle_calls": self.max_selection_oracle_calls,\n        }\n\n    def semantic_state(self) -> dict[str, object]:\n''',
+          )
+
+          replace_once(
+              '''            False,\n            int(state.get("trainable_parameter_count", 0)),\n        )\n\n\ndef _abstain(\n''',
+              '''            False,\n            int(state.get("trainable_parameter_count", 0)),\n            _normalized_ids(state.get("version_space_hypothesis_ids", ()), "version_space_hypothesis_ids"),\n            _normalized_ids(state.get("selection_probe_ids", ()), "selection_probe_ids"),\n            _normalized_ids(state.get("verification_probe_ids", ()), "verification_probe_ids"),\n            int(state["max_selection_oracle_calls"]),\n        )\n\n\ndef _abstain(\n''',
+          )
+
+          replace_once(
+              '''    reason: str,\n    *,\n    verification_failures: int = 0,\n) -> ShadowExperimentReceipt:\n''',
+              '''    reason: str,\n    *,\n    identity: Mapping[str, object],\n    verification_failures: int = 0,\n) -> ShadowExperimentReceipt:\n''',
+          )
+
+          replace_once(
+              '''        verification_failures,\n        reason,\n    )\n\n\ndef run_shadow_experiment(\n''',
+              '''        verification_failures,\n        reason,\n        version_space_hypothesis_ids=tuple(identity["version_space_hypothesis_ids"]),\n        selection_probe_ids=tuple(identity["selection_probe_ids"]),\n        verification_probe_ids=tuple(identity["verification_probe_ids"]),\n        max_selection_oracle_calls=int(identity["max_selection_oracle_calls"]),\n    )\n\n\ndef run_shadow_experiment(\n''',
+          )
+
+          replace_once(
+              '''    experiment_id = _experiment_id(version_space, selection_probes, verification, budget)\n    survivors = version_space.hypotheses\n''',
+              '''    identity_kwargs: dict[str, object] = {\n        "version_space_hypothesis_ids": tuple(row.hypothesis_id for row in version_space.hypotheses),\n        "selection_probe_ids": tuple(row.probe_id for row in selection_probes),\n        "verification_probe_ids": tuple(row.probe_id for row in verification),\n        "max_selection_oracle_calls": budget,\n    }\n    experiment_id = _experiment_id(version_space, selection_probes, verification, budget)\n    survivors = version_space.hypotheses\n''',
+          )
+
+          for reason in (
+              "selection_oracle_budget_exhausted",
+              "no_informative_probe",
+              "selection_oracle_error",
+              "oracle_outside_candidate_version_space",
+          ):
+              replace_once(
+                  f'''                "{reason}",\n            )''',
+                  f'''                "{reason}",\n                identity=identity_kwargs,\n            )''',
+              )
+
+          replace_once(
+              '''                "verification_probe_outside_hypothesis",\n                verification_failures=1,\n            )''',
+              '''                "verification_probe_outside_hypothesis",\n                identity=identity_kwargs,\n                verification_failures=1,\n            )''',
+          )
+
+          replace_count(
+              '''                "independent_verification_failed",\n                verification_failures=1,\n            )''',
+              '''                "independent_verification_failed",\n                identity=identity_kwargs,\n                verification_failures=1,\n            )''',
+              2,
+          )
+
+          replace_once(
+              '''        0,\n        "shadow_experiment_verified",\n    )\n\n\n@dataclass(frozen=True, slots=True)\nclass ExperimentLedgerRecord:\n''',
+              '''        0,\n        "shadow_experiment_verified",\n        version_space_hypothesis_ids=tuple(identity_kwargs["version_space_hypothesis_ids"]),\n        selection_probe_ids=tuple(identity_kwargs["selection_probe_ids"]),\n        verification_probe_ids=tuple(identity_kwargs["verification_probe_ids"]),\n        max_selection_oracle_calls=int(identity_kwargs["max_selection_oracle_calls"]),\n    )\n\n\n@dataclass(frozen=True, slots=True)\nclass ExperimentLedgerRecord:\n''',
+          )
+
+          path.write_text(text, encoding="utf-8")
+          PY
+      - name: Verify focused GREEN and repository freshness
+        run: |
+          python -m compileall -q nolane/external_core/experimentation.py
+          python -m pytest -q \
+            tests/test_refoundation_wave5aw_experimentation_hardening.py \
+            tests/test_refoundation_wave5aw_native_experimentation.py \
+            tests/test_refoundation_wave5av_native_causal.py
+          python -m nolane.repository.audit --check
+          git diff --check
+      - name: Commit only verified content-address hardening and remove carrier
+        shell: bash
+        run: |
+          git config user.name "Nolane Refoundation Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git rm .github/workflows/refoundation-wave5aw-content-address-one-shot.yml
+          git add nolane/external_core/experimentation.py
+          git diff --cached --check
+          git commit -m "fix(refoundation): bind Wave 5AW receipt content address [wave5aw-content-address]"
+          git push origin HEAD:refoundation-wave5aw-native-experimentation
