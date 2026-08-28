@@ -1,30 +1,6 @@
 name: R2.59 Budgeted Semantic Intervention Index
 
 on:
-  push:
-    branches: [main, r259-budgeted-semantic-index-gpt56sol]
-    paths:
-      - 'cogcoder/r259_*.py'
-      - 'benchmarks/kfigg/r259_*.py'
-      - 'research/r259_*.py'
-      - 'tests/test_r259_*.py'
-      - 'archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_59_PRE_HOSTED_LOCK.json'
-      - 'archive/root-history/historical_r_series/R2_58_TO_R2_59_EVOLUTION.md'
-      - 'docs/superpowers/specs/2026-08-18-r259-budgeted-semantic-intervention-index-design.md'
-      - 'docs/superpowers/plans/2026-08-18-r259-budgeted-semantic-intervention-index.md'
-      - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'cogcoder/r259_*.py'
-      - 'benchmarks/kfigg/r259_*.py'
-      - 'research/r259_*.py'
-      - 'tests/test_r259_*.py'
-      - 'archive/root-history/historical_r_series/R2_59_PHASE_A_RESULT.json'
-      - 'archive/root-history/historical_r_series/R2_59_PRE_HOSTED_LOCK.json'
-      - 'archive/root-history/historical_r_series/R2_58_TO_R2_59_EVOLUTION.md'
-      - '.github/workflows/r259-budgeted-semantic-intervention-index.yml'
   workflow_dispatch:
 
 permissions:
