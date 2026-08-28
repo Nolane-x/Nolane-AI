@@ -1,16 +1,6 @@
 name: R2.67.1 Final Post-Merge Complete Bundle
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'archive/root-history/historical_r_series/R2_67_1_*.json'
-      - 'cogcoder/r267_three_probe_causal_composition.py'
-      - 'benchmarks/kfigg/r267_1_*.py'
-      - 'research/r267_1_*.py'
-      - 'tests/test_r267_1_*.py'
-      - 'tests/test_r267_independent_ablation_completeness.py'
-      - '.github/workflows/r267-1-*.yml'
   workflow_dispatch:
 
 permissions:
