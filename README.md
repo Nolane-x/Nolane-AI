@@ -1,12 +1,26 @@
 # Nolane AI — Experimental Compact Cognitive System
 
-> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active accepted/draft boundary, current milestone authority and promotion requirements, read [`archive/root-history/legacy_current_status/CURRENT_STATUS.md`](archive/root-history/legacy_current_status/CURRENT_STATUS.md). Do not infer current milestone state from the historical sections below.
+> **Authoritative current status:** this README preserves historical capability context and older benchmark lineage. For the active accepted/draft boundary, current milestone authority and promotion requirements, read [`CURRENT/STATUS.md`](CURRENT/STATUS.md). For the exact remaining migration ledger, read [`CURRENT/NATIVE_DEBT.md`](CURRENT/NATIVE_DEBT.md). Historical material under `archive/` is provenance, not current authority.
 
 Nolane AI is an experimental compact cognitive system built around a small neural core plus explicit memory, retrieval, epistemic verification, reusable skills, active experimentation and public-feedback replanning. The project deliberately separates **neural capability** from **hybrid runtime capability**.
 
+## Current Refoundation authority
+
+The A1 Refoundation is moving executable and semantic ownership into the canonical `nolane` namespaces while preserving historical R-series evidence as read-only provenance. `CURRENT/` is the repository authority surface; archived R-series delivery/release/status files do not override it.
+
+Wave 5AV makes `external.causal` canonical-native at `nolane.external_core.causal`, with bounded positional interventions, complementary causal-program structure discovery and an evidence-bound deterministic causal-program ledger. After this cutover there are **3 semantic cutovers** remaining: `external.capability_acquisition`, `external.experimentation`, and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
+
+Use these files when reading the repository today:
+
+- [`CURRENT/STATUS.md`](CURRENT/STATUS.md) — accepted Refoundation lineage and current architectural status.
+- [`CURRENT/NATIVE_DEBT.md`](CURRENT/NATIVE_DEBT.md) — generated human-readable list of remaining non-native semantic/frozen records.
+- [`CURRENT/NATIVE_DEBT.json`](CURRENT/NATIVE_DEBT.json) — machine-readable debt projection used by repository audit and CI.
+- [`CURRENT/REPOSITORY_AUTHORITY.md`](CURRENT/REPOSITORY_AUTHORITY.md) — precedence and historical-quarantine rules.
+- [`archive/INDEX.json`](archive/INDEX.json) — generated provenance ledger for historical root artifacts moved under `archive/root-history/`.
+
 ## Active coding research track — historical context, not current status authority
 
-The repository contains an experimental coding-generalization lineage beyond the older R2.4 system. The entries below document historical gates and claim boundaries; they are not a substitute for `archive/root-history/legacy_current_status/CURRENT_STATUS.md`.
+The repository contains an experimental coding-generalization lineage beyond the older R2.4 system. The entries below document historical gates and claim boundaries; they are not a substitute for `CURRENT/STATUS.md`.
 
 - **R2.7 CodeWorld Phase A:** adds a 622,147-parameter coding-loop controller, producing **79,401,400** effective neural parameters. Its internal language×task-pair curriculum is a workflow-policy gate only, not evidence of general repository coding performance.
 - **R2.8 Repository World Model Phase A:** adds **0 neural parameters**. It represents repository dependency/test topology, maintains competing fault hypotheses, and selects legal coding actions using expected information gain plus graph-derived edit risk. Its locked four-case architecture gate and full node/hypothesis renaming invariance pass internally.
@@ -70,7 +84,10 @@ Successful GitHub Actions runs:
 
 ## Verification
 
-- `archive/root-history/legacy_current_status/CURRENT_STATUS.md` — authoritative short operational status for current accepted/draft boundaries.
+- `CURRENT/STATUS.md` — authoritative short operational status for current accepted/draft boundaries.
+- `CURRENT/NATIVE_DEBT.md` — current generated migration-debt view.
+- `CURRENT/REPOSITORY_AUTHORITY.md` — repository precedence and historical-quarantine contract.
+- `archive/INDEX.json` — generated provenance ledger for relocated historical root artifacts.
 - `research/R2_4_STATUS.json` — accepted R2.4 historical state and exact metrics.
 - `research/R2_4_PRE_DEV_LOCK.md` — protocol/source lock before stage 2.
 - `research/R2_4_STAGE3_FREEZE.md` — source freeze before stage 3.
