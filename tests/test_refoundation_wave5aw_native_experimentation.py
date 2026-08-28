@@ -306,14 +306,15 @@ def test_wave5aw_authority_version_and_debt_cutover() -> None:
     assert str(component_version("external.experimentation")) == "0.0.1"
     assert "cogcoder/r260_active_repository_probes.py" in row.legacy_sources
 
+    # Forward-stable migration invariant: Wave 5AW proved the 4 -> 3 transition
+    # in hosted cutover CI. Later waves may reduce global debt further, but
+    # Experimentation must never regress into the debt projection.
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in debt["components"]}
     assert "external.experimentation" not in ids
-    assert ids == {"external.capability_acquisition", "external.transfer_meta", "neural.shared"}
-    assert len(debt["components"]) == 3
-    assert debt["counts_by_status"] == {"frozen_asset": 1, "historical_only": 2}
+    assert sum(debt["counts_by_status"].values()) == len(debt["components"])
 
     status = (_root() / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
     assert "Wave 5AW" in status
     assert "external.experimentation" in status
-    assert "3 non-native" in status
+    assert "moves from 4 to 3 non-native" in status
