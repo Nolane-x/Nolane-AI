@@ -28,111 +28,145 @@ jobs:
           python - <<'PY'
           from pathlib import Path
 
+          def read(path: str) -> str:
+              return Path(path).read_text(encoding="utf-8")
+
+          def write(path: str, text: str) -> None:
+              Path(path).write_text(text, encoding="utf-8")
+
           def replace_once(path: str, old: str, new: str) -> None:
-              target = Path(path)
-              text = target.read_text(encoding="utf-8")
+              text = read(path)
               count = text.count(old)
               if count != 1:
-                  raise SystemExit(f"{path}: expected exactly one replacement target, found {count}")
-              target.write_text(text.replace(old, new), encoding="utf-8")
+                  raise SystemExit(f"{path}: expected exactly one target, found {count}")
+              write(path, text.replace(old, new, 1))
 
-          replace_once(
-              "nolane/external_core/experimentation.py",
-              '''    @property
-              def probe_id(self) -> str:
-                  return _digest(
-                      "xprobe:",
-                      {
-                          "args": list(self.args),
-                          "intervention": self.intervention.to_state() if self.intervention is not None else None,
-                      },
-                  )
-          ''',
-              '''    @property
-              def probe_id(self) -> str:
-                  # Preserve R2.60's plain-probe hash ordering for exact deterministic
-                  # tie parity while extending semantic identity when an intervention exists.
-                  if self.intervention is None:
-                      payload: object = list(self.args)
-                  else:
-                      payload = {
-                          "args": list(self.args),
-                          "intervention": self.intervention.to_state(),
-                      }
-                  return _digest("xprobe:", payload)
-          ''',
+          # 1. ExperimentProbe tie identity: plain probes deliberately retain the
+          # R2.60 hash ordering; intervention-bearing probes extend that identity.
+          path = "nolane/external_core/experimentation.py"
+          text = read(path)
+          class_start = text.index("class ExperimentProbe:")
+          start = text.index("    @property\n    def probe_id", class_start)
+          end = text.index("\n    def to_state", start)
+          replacement = """    @property
+          def probe_id(self) -> str:
+              # Preserve R2.60 plain-probe hash ordering for exact deterministic
+              # tie parity while extending semantic identity for interventions.
+              if self.intervention is None:
+                  payload: object = list(self.args)
+              else:
+                  payload = {
+                      "args": list(self.args),
+                      "intervention": self.intervention.to_state(),
+                  }
+              return _digest("xprobe:", payload)
+
+          """
+          # YAML de-indentation leaves the Python source indentation above in the
+          # literal; normalize it explicitly to the class's four-space level.
+          lines = replacement.splitlines()
+          normalized = []
+          for line in lines:
+              normalized.append(line[6:] if line.startswith("      ") else line)
+          replacement = "\n".join(normalized)
+          text = text[:start] + replacement + text[end:]
+          write(path, text)
+
+          # 2. Correct the abstention contract: semantically different hypotheses
+          # may still be indistinguishable under the allowed selection probes.
+          path = "tests/test_refoundation_wave5aw_native_experimentation.py"
+          text = read(path)
+          function_start = text.index(
+              "def test_wave5aw_noninformative_and_budget_paths_abstain_without_oracle_calls"
           )
-
-          replace_once(
-              "tests/test_refoundation_wave5aw_native_experimentation.py",
-              '''    probes = _probe_grid(native, (-1, 0, 1))
-              left = _hypothesis(native, probes, lambda x, y: x + y, display_name="left")
-              right = _hypothesis(native, probes, lambda x, y: y + x, display_name="right")
-
-              selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
-          ''',
-              '''    probes = _probe_grid(native, (-1, 0, 1))
-              extra = native.ExperimentProbe((7, 11))
-              hypothesis_domain = (*probes, extra)
-              left = _hypothesis(native, hypothesis_domain, lambda x, y: x + y, display_name="left")
-              right = native.ExperimentHypothesis(
-                  tuple((probe.probe_id, sum(probe.args)) for probe in probes)
-                  + ((extra.probe_id, 999),),
-                  display_name="right",
-              )
-
-              # The hypotheses are semantically distinct, but the allowed selection
-              # probes cannot discriminate them. This is the real abstention case.
-              selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
-          ''',
+          start = text.index("    probes = _probe_grid(native, (-1, 0, 1))\n", function_start)
+          end = text.index("    selection = native.select_informative_probe", start)
+          replacement = (
+              "    probes = _probe_grid(native, (-1, 0, 1))\n"
+              "    extra = native.ExperimentProbe((7, 11))\n"
+              "    hypothesis_domain = (*probes, extra)\n"
+              "    left = _hypothesis(native, hypothesis_domain, lambda x, y: x + y, display_name=\"left\")\n"
+              "    right = native.ExperimentHypothesis(\n"
+              "        tuple((probe.probe_id, sum(probe.args)) for probe in probes)\n"
+              "        + ((extra.probe_id, 999),),\n"
+              "        display_name=\"right\",\n"
+              "    )\n\n"
+              "    # Distinct globally, indistinguishable under the allowed probes.\n"
           )
+          text = text[:start] + replacement + text[end:]
+          write(path, text)
 
+          # 3. Component version and implementation authority cutover.
           replace_once(
               "cogcoder/refoundation/component_versions.py",
               '        "external.causal": 1,\n',
               '        "external.causal": 1,\n        "external.experimentation": 1,\n',
           )
 
-          causal_block = '''    "external.causal": (
-              "nolane.external_core.causal",
-              (
-                  "cogcoder/r258_intervention_discovery.py",
-                  "cogcoder/r262_complementary_experiment_program.py",
-              ),
-              "Native bounded positional intervention identity, complementary causal-program structure discovery and evidence-bound deterministic causal-program ledger over canonical Cognitive Library and Evidence authority; R2.58/R2.62 remain historical parity and provenance oracles.",
-          ),
-          '''
-          experimentation_block = '''    "external.experimentation": (
-              "nolane.external_core.experimentation",
-              ("cogcoder/r260_active_repository_probes.py",),
-              "Native content-addressed active-probe and finite version-space experiment authority with deterministic R2.60-parity selection, hard oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic ledger authority over canonical Causal/Evidence boundaries; R2.60 remains a historical parity/provenance oracle and R2.61 expansion remains outside this ownership boundary.",
-          ),
-          '''
-          replace_once(
-              "cogcoder/refoundation/implementation_status.py",
-              causal_block,
-              causal_block + experimentation_block,
+          path = "cogcoder/refoundation/implementation_status.py"
+          text = read(path)
+          native_part, sep, tail = text.partition("\n_HISTORICAL_ONLY")
+          if not sep:
+              raise SystemExit("implementation_status.py: missing historical boundary")
+          if '    "external.experimentation": (' in native_part:
+              raise SystemExit("implementation_status.py: Experimentation already native")
+          anchor = '    "external.artifacts": (\n'
+          if native_part.count(anchor) != 1:
+              raise SystemExit("implementation_status.py: artifacts anchor is not unique")
+          block = (
+              '    "external.experimentation": (\n'
+              '        "nolane.external_core.experimentation",\n'
+              '        ("cogcoder/r260_active_repository_probes.py",),\n'
+              '        "Native content-addressed active-probe and finite version-space experiment authority with deterministic R2.60-parity selection, hard oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic ledger authority over canonical Causal/Evidence boundaries; R2.60 remains a historical parity/provenance oracle and R2.61 expansion remains outside this ownership boundary.",\n'
+              '    ),\n'
           )
-          replace_once(
-              "cogcoder/refoundation/implementation_status.py",
-              '    "external.experimentation": ("historical active experimentation mechanisms; extraction not yet accepted",),\n',
-              '',
+          native_part = native_part.replace(anchor, block + anchor, 1)
+          historical_row = (
+              '    "external.experimentation": '
+              '("historical active experimentation mechanisms; extraction not yet accepted",),\n'
           )
+          if tail.count(historical_row) != 1:
+              raise SystemExit("implementation_status.py: historical Experimentation row is not unique")
+          tail = tail.replace(historical_row, "", 1)
+          write(path, native_part + sep + tail)
 
-          replace_once(
-              "README.md",
-              '''Wave 5AV makes `external.causal` canonical-native at `nolane.external_core.causal`, with bounded positional interventions, complementary causal-program structure discovery and an evidence-bound deterministic causal-program ledger. After this cutover there are **3 semantic cutovers** remaining: `external.capability_acquisition`, `external.experimentation`, and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
-          ''',
-              '''Wave 5AW makes `external.experimentation` canonical-native at `nolane.external_core.experimentation`, with content-addressed probes/hypotheses, deterministic R2.60-parity version-space selection, hard oracle budgets, pure shadow execution, independent verification and an evidence-bound deterministic experiment ledger. After this cutover there are **2 semantic cutovers** remaining: `external.capability_acquisition` and `external.transfer_meta`. `neural.shared` remains an intentional frozen asset rather than an unfinished semantic cutover.
-          ''',
+          # 4. Keep human authority surfaces aligned with machine authority.
+          path = "README.md"
+          text = read(path)
+          old_start = "Wave 5AV makes `external.causal` canonical-native"
+          start = text.index(old_start)
+          end = text.index("\n\n", start)
+          paragraph = (
+              "Wave 5AW makes `external.experimentation` canonical-native at "
+              "`nolane.external_core.experimentation`, with content-addressed "
+              "probes/hypotheses, deterministic R2.60-parity version-space selection, "
+              "hard oracle budgets, pure shadow execution, independent verification "
+              "and an evidence-bound deterministic experiment ledger. After this "
+              "cutover there are **2 semantic cutovers** remaining: "
+              "`external.capability_acquisition` and `external.transfer_meta`. "
+              "`neural.shared` remains an intentional frozen asset rather than an "
+              "unfinished semantic cutover."
           )
+          write(path, text[:start] + paragraph + text[end:])
 
           status_path = Path("CURRENT/STATUS.md")
           status = status_path.read_text(encoding="utf-8")
           heading = "## Wave 5AW — native Experimentation authority"
           if heading not in status:
               status = status.rstrip() + "\n\n" + heading + "\n\n" + (
-                  "Wave 5AW retires `external.experimentation` by extracting content-addressed experiment probes and finite behavioral hypotheses, deterministic information-seeking version-space selection, hard selection-oracle budgets, fail-closed abstention, pure shadow execution, independent verification and evidence-bound deterministic experiment-ledger snapshot authority under canonical `nolane.external_core.experimentation` ownership. Canonical Experimentation depends only on native Causal/Evidence boundaries and contains no reverse import into historical CogCoder/Research authority. R2.60 remains a parity/provenance oracle; R2.61 candidate-expansion semantics remain outside this boundary for the later capability-acquisition cutover. The generated native-debt projection moves from 4 to 3 non-native records: `external.capability_acquisition`, `external.transfer_meta`, and the separately governed frozen `neural.shared` asset.\n"
+                  "Wave 5AW retires `external.experimentation` by extracting "
+                  "content-addressed experiment probes and finite behavioral hypotheses, "
+                  "deterministic information-seeking version-space selection, hard "
+                  "selection-oracle budgets, fail-closed abstention, pure shadow execution, "
+                  "independent verification and evidence-bound deterministic experiment-ledger "
+                  "snapshot authority under canonical `nolane.external_core.experimentation` "
+                  "ownership. Canonical Experimentation depends only on native Causal/Evidence "
+                  "boundaries and contains no reverse import into historical CogCoder/Research "
+                  "authority. R2.60 remains a parity/provenance oracle; R2.61 candidate-expansion "
+                  "semantics remain outside this boundary for the later capability-acquisition "
+                  "cutover. The generated native-debt projection moves from 4 to 3 non-native "
+                  "records: `external.capability_acquisition`, `external.transfer_meta`, and the "
+                  "separately governed frozen `neural.shared` asset.\n"
               )
               status_path.write_text(status, encoding="utf-8")
           PY
