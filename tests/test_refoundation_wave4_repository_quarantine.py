@@ -10,20 +10,34 @@ REF_WORKFLOW = "refoundation-epoch0-wave1.yml"
 _JOB_HEADER = re.compile(r"^  ([A-Za-z0-9_.-]+):\s*$")
 
 
+def _is_historical_name(name: str) -> bool:
+    return bool(
+        (name.startswith("R") and len(name) > 1 and name[1].isdigit())
+        or name.startswith("CURRENT_ONE_WEIGHT_")
+        or name == "CURRENT_STATUS.md"
+        or name == "CHECKPOINT_MANIFEST.json"
+    )
+
+
 def _historical_root_candidates() -> tuple[Path, ...]:
-    rows: list[Path] = []
-    for path in ROOT.iterdir():
-        if not path.is_file():
-            continue
-        name = path.name
-        if (
-            (name.startswith("R") and len(name) > 1 and name[1].isdigit())
-            or name.startswith("CURRENT_ONE_WEIGHT_")
-            or name == "CURRENT_STATUS.md"
-            or name == "CHECKPOINT_MANIFEST.json"
-        ):
-            rows.append(path)
-    return tuple(sorted(rows, key=lambda p: p.name))
+    return tuple(
+        sorted(
+            (path for path in ROOT.iterdir() if path.is_file() and _is_historical_name(path.name)),
+            key=lambda p: p.name,
+        )
+    )
+
+
+def _archived_history_candidates() -> tuple[Path, ...]:
+    base = ROOT / "archive" / "root-history"
+    if not base.is_dir():
+        return ()
+    return tuple(
+        sorted(
+            (path for path in base.rglob("*") if path.is_file() and _is_historical_name(path.name)),
+            key=lambda p: (p.name, p.as_posix()),
+        )
+    )
 
 
 def _load_json(path: Path):
@@ -65,7 +79,7 @@ def test_wave4_current_and_archive_authority_files_exist() -> None:
     assert "Wave 4" in status and "quarantine" in status.lower()
 
 
-def test_wave4_archive_index_covers_every_ambiguous_historical_root_artifact() -> None:
+def test_wave4_archive_index_covers_root_and_relocated_history() -> None:
     index_path = ROOT / "archive" / "INDEX.json"
     assert index_path.is_file(), "archive/INDEX.json is required before root history can be trusted"
     payload = _load_json(index_path)
@@ -73,7 +87,7 @@ def test_wave4_archive_index_covers_every_ambiguous_historical_root_artifact() -
     assert payload["component_version"] == "0.0.0"
     entries = payload["entries"]
     indexed = {row["original_path"] for row in entries}
-    actual = {path.name for path in _historical_root_candidates()}
+    actual = {path.name for path in (*_historical_root_candidates(), *_archived_history_candidates())}
     assert indexed == actual, {
         "missing": sorted(actual - indexed),
         "stale": sorted(indexed - actual),
@@ -83,7 +97,11 @@ def test_wave4_archive_index_covers_every_ambiguous_historical_root_artifact() -
         assert row["delete_allowed"] is False
         assert row["move_status"] in {"quarantined_in_place", "moved"}
         assert row["sha256"] and len(row["sha256"]) == 64
-        assert row["archive_target"].startswith("archive/")
+        assert row["archive_target"].startswith("archive/root-history/")
+        if row["move_status"] == "moved":
+            assert (ROOT / row["archive_target"]).is_file()
+        else:
+            assert (ROOT / row["original_path"]).is_file()
 
 
 def test_wave4_reference_audit_is_exhaustive_deterministic_and_fail_closed() -> None:
@@ -92,13 +110,17 @@ def test_wave4_reference_audit_is_exhaustive_deterministic_and_fail_closed() -> 
     first = build_archive_index(ROOT)
     second = build_archive_index(ROOT)
     assert first == second
-    assert first["reference_audit_policy"] == "exact-plus-family-dynamic-fail-closed-v1"
+    assert first["reference_audit_policy"] == "root-reference-aware-zero-loss-v2"
 
     entries = first["entries"]
     assert entries
     for row in entries:
         audit = row["reference_audit"]
-        assert audit["decision"] in {"safe_to_move", "quarantined_in_place"}
+        assert audit["decision"] in {
+            "quarantined_in_place",
+            "moved",
+            "moved_with_reference_debt",
+        }
         assert audit["reference_count"] == len(audit["references"])
         assert audit["blockers"] == sorted(set(audit["blockers"]))
         for ref in audit["references"]:
@@ -112,14 +134,18 @@ def test_wave4_reference_audit_is_exhaustive_deterministic_and_fail_closed() -> 
                 "documentation",
                 "repository_metadata",
             }
-        if row["category"] in {"historical_checkpoint_pointer", "legacy_weight_pointer"}:
+
+        if row["move_status"] == "quarantined_in_place":
             assert audit["decision"] == "quarantined_in_place"
-            assert "protected_provenance_pointer" in audit["blockers"]
-        if audit["decision"] == "safe_to_move":
+            assert "migration_receipt_missing" in audit["blockers"]
+            if row["category"] in {"historical_checkpoint_pointer", "legacy_weight_pointer"}:
+                assert "protected_provenance_pointer" in audit["blockers"]
+        elif audit["decision"] == "moved":
             assert audit["reference_count"] == 0
             assert not audit["blockers"]
         else:
-            assert audit["blockers"] or audit["reference_count"] > 0
+            assert row["move_status"] == "moved"
+            assert audit["blockers"]
 
 
 def test_wave4_native_debt_is_exhaustive_against_implementation_ledger() -> None:
@@ -195,7 +221,29 @@ def test_wave4_all_historical_pull_request_workflow_jobs_skip_refoundation_heads
 def test_wave4_workflow_isolation_rewriter_preserves_existing_conditions_and_is_idempotent() -> None:
     from nolane.repository.workflow_isolation import isolate_workflow_text
 
-    source = """name: sample\non:\n  pull_request:\n  push:\n\njobs:\n  plain:\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo plain\n  conditional:\n    if: ${{ github.actor != 'blocked' }}\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo conditional\n  folded:\n    if: >-\n      github.repository_owner == 'Nolane-x' &&\n      github.event_name != 'workflow_dispatch'\n    runs-on: ubuntu-latest\n    steps:\n      - run: echo folded\n"""
+    source = """name: sample
+on:
+  pull_request:
+  push:
+
+jobs:
+  plain:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo plain
+  conditional:
+    if: ${{ github.actor != 'blocked' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo conditional
+  folded:
+    if: >-
+      github.repository_owner == 'Nolane-x' &&
+      github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo folded
+"""
     isolated = isolate_workflow_text(source)
     blocks = _workflow_job_blocks(isolated)
     assert set(blocks) == {"plain", "conditional", "folded"}
