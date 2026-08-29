@@ -91,6 +91,8 @@ def test_epoch0_closure_contract_runs_in_the_supported_refoundation_matrix() -> 
     assert "python -m nolane.repository.audit --check" in workflow
     assert "python -m pytest -q tests/test_refoundation_*.py" in workflow
     assert "python model/neural-r2.3/scripts/verify_neural_r23.py" in workflow
+    assert "Upload Refoundation Epoch 0 generated audit snapshot" in workflow
+    assert "refoundation-epoch0-audit-py${{ matrix.python-version }}" in workflow
     assert "Wave 5O" not in workflow
     assert "refoundation-wave5o-audit" not in workflow
 
