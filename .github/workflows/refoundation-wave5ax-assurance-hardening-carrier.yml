@@ -1,0 +1,138 @@
+name: Refoundation Wave 5AX Assurance Hardening Carrier
+
+on:
+  push:
+    branches:
+      - refoundation-wave5ax-native-capability-acquisition
+    paths:
+      - .github/workflows/refoundation-wave5ax-assurance-hardening-carrier.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation-wave5ax-native-capability-acquisition
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Harden native Assurance provenance and forward-stabilize accepted registries
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              if new in text:
+                  return
+              if old not in text:
+                  raise SystemExit(f'missing patch anchor in {path}: {old[:120]!r}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          prod = 'nolane/external_core/capability_acquisition.py'
+          replace_once(prod, 'from typing import Any, Mapping, Protocol\n', 'from typing import Any, Mapping\n')
+          replace_once(
+              prod,
+              'from nolane.external_core.assurance import PromotionAssuranceReceipt\n',
+              'from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt\n',
+          )
+          replace_once(
+              prod,
+              '\n\nclass PromotionReceiptStore(Protocol):\n    def promotion_receipt(self, receipt_id: str) -> PromotionAssuranceReceipt: ...\n',
+              '',
+          )
+          replace_once(
+              prod,
+              '        assurance: PromotionReceiptStore,\n        receipt: PromotionAssuranceReceipt,\n    ) -> PromotionAssuranceReceipt:\n        if not isinstance(receipt, PromotionAssuranceReceipt):\n',
+              '        assurance: AssuranceControlPlane,\n        receipt: PromotionAssuranceReceipt,\n    ) -> PromotionAssuranceReceipt:\n        if not isinstance(assurance, AssuranceControlPlane):\n            raise TypeError("assurance must be native AssuranceControlPlane")\n        if not isinstance(receipt, PromotionAssuranceReceipt):\n',
+          )
+          replace_once(
+              prod,
+              '            persisted = assurance.promotion_receipt(receipt.receipt_id)\n',
+              '            persisted = AssuranceControlPlane.promotion_receipt(assurance, receipt.receipt_id)\n',
+          )
+          replace_once(
+              prod,
+              '        assurance: PromotionReceiptStore,\n        receipt: PromotionAssuranceReceipt,\n',
+              '        assurance: AssuranceControlPlane,\n        receipt: PromotionAssuranceReceipt,\n',
+          )
+
+          contract = 'tests/test_refoundation_wave5ax_native_capability_acquisition.py'
+          replace_once(
+              contract,
+              'from nolane.external_core.assurance import PromotionAssuranceReceipt\n',
+              'from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt\n',
+          )
+          replace_once(
+              contract,
+              '''class _AssurancePlane:\n    def __init__(self, *receipts: PromotionAssuranceReceipt) -> None:\n        self._receipts = {row.receipt_id: row for row in receipts}\n\n    def promotion_receipt(self, receipt_id: str) -> PromotionAssuranceReceipt:\n        try:\n            return self._receipts[receipt_id]\n        except KeyError as exc:\n            raise KeyError(receipt_id) from exc\n''',
+              '''def _assurance_plane(*receipts: PromotionAssuranceReceipt) -> AssuranceControlPlane:\n    plane = object.__new__(AssuranceControlPlane)\n    plane._promotion_receipts = {row.receipt_id: row for row in receipts}\n    return plane\n''',
+          )
+          path = Path(contract)
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('_AssurancePlane(', '_assurance_plane(')
+          path.write_text(text, encoding='utf-8')
+
+          versions_test = 'tests/test_refoundation_component_versions.py'
+          replace_once(
+              versions_test,
+              '    "external.cognitive_library": 1,\n    "external.causal": 1,\n',
+              '    "external.cognitive_library": 1,\n    "external.capability_acquisition": 1,\n    "external.causal": 1,\n',
+          )
+
+          status_test = 'tests/test_refoundation_implementation_status.py'
+          target = Path(status_test)
+          text = target.read_text(encoding='utf-8')
+          if '    "external.capability_acquisition",\n    "external.causal",\n' not in text:
+              text = text.replace(
+                  '    "external.cognitive_library",\n    "external.causal",\n',
+                  '    "external.cognitive_library",\n    "external.capability_acquisition",\n    "external.causal",\n',
+                  1,
+              )
+          # The explicit write-authority sample must include the new canonical governor.
+          marker = '        "external.cognitive_library",\n        "external.causal",\n'
+          if marker in text:
+              text = text.replace(
+                  marker,
+                  '        "external.cognitive_library",\n        "external.capability_acquisition",\n        "external.causal",\n',
+                  1,
+              )
+          old_unextracted = '''    for component_id in (\n        "external.capability_acquisition",\n        "external.transfer_meta",\n    ):\n'''
+          new_unextracted = '''    for component_id in (\n        "external.transfer_meta",\n    ):\n'''
+          if old_unextracted in text:
+              text = text.replace(old_unextracted, new_unextracted, 1)
+          elif new_unextracted not in text:
+              raise SystemExit('implementation-status unextracted anchor missing')
+          target.write_text(text, encoding='utf-8')
+          PY
+      - name: Verify focused authority contracts
+        run: >-
+          python -m pytest -q
+          tests/test_refoundation_wave5ax_native_capability_acquisition.py
+          tests/test_refoundation_wave5ax_capability_acquisition_hardening.py
+          tests/test_refoundation_component_versions.py
+          tests/test_refoundation_implementation_status.py
+      - name: Verify full Refoundation contract suite
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Verify repository projections remain fresh
+        run: python -m nolane.repository.audit --check
+      - name: Commit hardening and remove carrier
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/refoundation-wave5ax-assurance-hardening-carrier.yml
+          git add nolane/external_core/capability_acquisition.py \
+                  tests/test_refoundation_wave5ax_native_capability_acquisition.py \
+                  tests/test_refoundation_component_versions.py \
+                  tests/test_refoundation_implementation_status.py
+          git commit -m 'fix(refoundation): bind capability promotion to native Assurance authority'
+          git push origin HEAD:refoundation-wave5ax-native-capability-acquisition
