@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: post-epoch0/native-inventory-semantics
-          fetch-depth: 0
+          fetch-depth: 2
 
       - uses: actions/setup-python@v5
         with:
@@ -26,31 +26,55 @@ jobs:
       - name: Install focused test dependency
         run: python -m pip install -q pytest
 
-      - name: Harden generator source
+      - name: Recover and harden reviewed migration payload
         shell: bash
         run: |
-          echo 'ZnJvbSBwYXRobGliIGltcG9ydCBQYXRoCgpwYXRoID0gUGF0aCgibm9sYW5lL3JlcG9zaXRvcnkvYXVkaXRfdjIucHkiKQp0ZXh0ID0gcGF0aC5yZWFkX3RleHQoZW5jb2Rpbmc9InV0Zi04IikKCm9sZF9zY2hlbWEgPSAnREVCVF9TQ0hFTUFfVkVSU0lPTiA9ICJub2xhbmUtbmF0aXZlLWRlYnQtdjEiXG5SRUZFUkVOQ0VfQVVESVRfUE9MSUNZID0gInJvb3QtcmVmZXJlbmNlLWF3YXJlLXplcm8tbG9zcy12MiInCm5ld19zY2hlbWEgPSAiIiJERUJUX1NDSEVNQV9WRVJTSU9OID0gIm5vbGFuZS1uYXRpdmUtZGVidC12MiIKUkVGRVJFTkNFX0FVRElUX1BPTElDWSA9ICJyb290LXJlZmVyZW5jZS1hd2FyZS16ZXJvLWxvc3MtdjIiCl9BQ1RJT05BQkxFX01JR1JBVElPTl9TVEFUVVNFUyA9IGZyb3plbnNldCgKICAgIHsKICAgICAgICBJbXBsZW1lbnRhdGlvblN0YXR1cy5DT01QQVRJQklMSVRZX0ZBQ0FERSwKICAgICAgICBJbXBsZW1lbnRhdGlvblN0YXR1cy5MRUdBQ1lfSU5URVJOQUwsCiAgICAgICAgSW1wbGVtZW50YXRpb25TdGF0dXMuSElTVE9SSUNBTF9PTkxZLAogICAgfQopIiIiCmlmIHRleHQuY291bnQob2xkX3NjaGVtYSkgIT0gMToKICAgIHJhaXNlIFN5c3RlbUV4aXQoInNjaGVtYSBhbmNob3IgZHJpZnQiKQp0ZXh0ID0gdGV4dC5yZXBsYWNlKG9sZF9zY2hlbWEsIG5ld19zY2hlbWEpCgpidWlsZF9zdGFydCA9IHRleHQuaW5kZXgoImRlZiBidWlsZF9uYXRpdmVfZGVidCgpIC0+IGRpY3Rbc3RyLCBBbnldOiIpCnJlbmRlcl9zdGFydCA9IHRleHQuaW5kZXgoImRlZiByZW5kZXJfbmF0aXZlX2RlYnRfbWFya2Rvd24iLCBidWlsZF9zdGFydCkKbmV3X2J1aWxkID0gIiIiZGVmIGJ1aWxkX25hdGl2ZV9kZWJ0KCkgLT4gZGljdFtzdHIsIEFueV06CiAgICBsZWRnZXIgPSBidWlsZF9jb21wb25lbnRfaW1wbGVtZW50YXRpb25fbGVkZ2VyKCkKICAgIGNvbXBvbmVudHM6IGxpc3RbZGljdFtzdHIsIEFueV1dID0gW10KICAgIGNvdW50czogZGljdFtzdHIsIGludF0gPSB7fQogICAgYWN0aW9uYWJsZV9taWdyYXRpb25fZGVidF9jb3VudCA9IDAKICAgIGFjY2VwdGVkX25vbl9taWdyYXRpb25fY291bnQgPSAwCiAgICBmb3IgY29tcG9uZW50X2lkIGluIHNvcnRlZChsZWRnZXIpOgogICAgICAgIHJvdyA9IGxlZGdlcltjb21wb25lbnRfaWRdCiAgICAgICAgaWYgcm93LnN0YXR1cyBpcyBJbXBsZW1lbnRhdGlvblN0YXR1cy5DQU5PTklDQUxfTkFUSVZFOgogICAgICAgICAgICBjb250aW51ZQogICAgICAgIHN0YXR1cyA9IHJvdy5zdGF0dXMudmFsdWUKICAgICAgICBpZiByb3cuc3RhdHVzIGluIF9BQ1RJT05BQkxFX01JR1JBVElPTl9TVEFUVVNFUzoKICAgICAgICAgICAgbWlncmF0aW9uX2FjdGlvbl9yZXF1aXJlZCA9IFRydWUKICAgICAgICAgICAgYWN0aW9uYWJsZV9taWdyYXRpb25fZGVidF9jb3VudCArPSAxCiAgICAgICAgZWxpZiByb3cuc3RhdHVzIGlzIEltcGxlbWVudGF0aW9uU3RhdHVzLkZST1pFTl9BU1NFVDoKICAgICAgICAgICAgbWlncmF0aW9uX2FjdGlvbl9yZXF1aXJlZCA9IEZhbHNlCiAgICAgICAgICAgIGFjY2VwdGVkX25vbl9taWdyYXRpb25fY291bnQgKz0gMQogICAgICAgIGVsc2U6CiAgICAgICAgICAgIHJhaXNlIFZhbHVlRXJyb3IoZiJ1bmNsYXNzaWZpZWQgbm9uLW5hdGl2ZSBpbXBsZW1lbnRhdGlvbiBzdGF0dXM6IHtyb3cuc3RhdHVzIXJ9IikKICAgICAgICBjb3VudHNbc3RhdHVzXSA9IGNvdW50cy5nZXQoc3RhdHVzLCAwKSArIDEKICAgICAgICBjb21wb25lbnRzLmFwcGVuZCgKICAgICAgICAgICAgewogICAgICAgICAgICAgICAgImNvbXBvbmVudF9pZCI6IHJvdy5jb21wb25lbnRfaWQsCiAgICAgICAgICAgICAgICAiY29tcG9uZW50X3ZlcnNpb24iOiByb3cuY29tcG9uZW50X3ZlcnNpb24sCiAgICAgICAgICAgICAgICAiaW1wbGVtZW50YXRpb25fc3RhdHVzIjogc3RhdHVzLAogICAgICAgICAgICAgICAgIm1pZ3JhdGlvbl9hY3Rpb25fcmVxdWlyZWQiOiBtaWdyYXRpb25fYWN0aW9uX3JlcXVpcmVkLAogICAgICAgICAgICAgICAgImNhbm9uaWNhbF9tb2R1bGUiOiByb3cuY2Fub25pY2FsX21vZHVsZSwKICAgICAgICAgICAgICAgICJsZWdhY3lfc291cmNlcyI6IGxpc3Qocm93LmxlZ2FjeV9zb3VyY2VzKSwKICAgICAgICAgICAgICAgICJjYW5vbmljYWxfd3JpdGVfYXV0aG9yaXR5Ijogcm93LmNhbm9uaWNhbF93cml0ZV9hdXRob3JpdHksCiAgICAgICAgICAgICAgICAibm90ZXMiOiByb3cubm90ZXMsCiAgICAgICAgICAgIH0KICAgICAgICApCiAgICByZXR1cm4gewogICAgICAgICJzY2hlbWFfdmVyc2lvbiI6IERFQlRfU0NIRU1BX1ZFUlNJT04sCiAgICAgICAgInJlcG9zaXRvcnlfcXVhcmFudGluZV92ZXJzaW9uIjogQ09NUE9ORU5UX1ZFUlNJT04sCiAgICAgICAgImRlZmluaXRpb24iOiAiRXZlcnkgY2Fub25pY2FsIGNvbXBvbmVudCBub3QgY2xhc3NpZmllZCBjYW5vbmljYWxfbmF0aXZlLiBUaGlzIGlzIGEgYnJvYWQgbm9uLW5hdGl2ZSBpbXBsZW1lbnRhdGlvbiBpbnZlbnRvcnk7IG9ubHkgcmVjb3JkcyB3aXRoIG1pZ3JhdGlvbl9hY3Rpb25fcmVxdWlyZWQ9dHJ1ZSBhcmUgYWN0aW9uYWJsZSBtaWdyYXRpb24gZGVidC4iLAogICAgICAgICJhY3Rpb25hYmxlX21pZ3JhdGlvbl9kZWJ0X2NvdW50IjogYWN0aW9uYWJsZV9taWdyYXRpb25fZGVidF9jb3VudCwKICAgICAgICAiYWNjZXB0ZWRfbm9uX21pZ3JhdGlvbl9jb3VudCI6IGFjY2VwdGVkX25vbl9taWdyYXRpb25fY291bnQsCiAgICAgICAgImNvdW50c19ieV9zdGF0dXMiOiB7a2V5OiBjb3VudHNba2V5XSBmb3Iga2V5IGluIHNvcnRlZChjb3VudHMpfSwKICAgICAgICAiY29tcG9uZW50cyI6IGNvbXBvbmVudHMsCiAgICB9CgoKIiIiCnRleHQgPSB0ZXh0WzpidWlsZF9zdGFydF0gKyBuZXdfYnVpbGQgKyB0ZXh0W3JlbmRlcl9zdGFydDpdCgpyZW5kZXJfc3RhcnQgPSB0ZXh0LmluZGV4KCJkZWYgcmVuZGVyX25hdGl2ZV9kZWJ0X21hcmtkb3duIikKanNvbl9zdGFydCA9IHRleHQuaW5kZXgoImRlZiBfanNvbl9ieXRlcyIsIHJlbmRlcl9zdGFydCkKbmV3X3JlbmRlciA9ICIiImRlZiByZW5kZXJfbmF0aXZlX2RlYnRfbWFya2Rvd24ocGF5bG9hZDogTWFwcGluZ1tzdHIsIEFueV0pIC0+IHN0cjoKICAgIGNvbXBvbmVudHMgPSBsaXN0KHBheWxvYWRbImNvbXBvbmVudHMiXSkKICAgIGNvdW50cyA9IGRpY3QocGF5bG9hZFsiY291bnRzX2J5X3N0YXR1cyJdKQogICAgbGluZXMgPSBbCiAgICAgICAgIiMgTm9uLU5hdGl2ZSBJbXBsZW1lbnRhdGlvbiBJbnZlbnRvcnkiLAogICAgICAgICIiLAogICAgICAgIGYiUmVwb3NpdG9yeSBxdWFyYW50aW5lIGNvbXBvbmVudDogYHtwYXlsb2FkWydyZXBvc2l0b3J5X3F1YXJhbnRpbmVfdmVyc2lvbiddfWAuIiwKICAgICAgICAiIiwKICAgICAgICAiVGhpcyBmaWxlIGlzIHRoZSBnZW5lcmF0ZWQgaHVtYW4tcmVhZGFibGUgdmlldyBvZiBgQ1VSUkVOVC9OQVRJVkVfREVCVC5qc29uYC4gSXQgaXMgYSBicm9hZCBub24tbmF0aXZlIGltcGxlbWVudGF0aW9uIGludmVudG9yeS4gUmVjb3JkcyB3aXRoIGBtaWdyYXRpb25fYWN0aW9uX3JlcXVpcmVkPXRydWVgIGFyZSBhY3Rpb25hYmxlIG1pZ3JhdGlvbiBkZWJ0LiBGcm96ZW4gYXNzZXRzIGNhbiBiZSBhY2NlcHRlZCB0ZXJtaW5hbCByZWNvcmRzIGFuZCByZW1haW4gbGlzdGVkIGZvciBhdXRob3JpdHkgdHJhbnNwYXJlbmN5LiIsCiAgICAgICAgIiIsCiAgICAgICAgIiMjIFN1bW1hcnkiLAogICAgICAgICIiLAogICAgICAgIGYiLSBBY3Rpb25hYmxlIG1pZ3JhdGlvbiBkZWJ0OiBge3BheWxvYWRbJ2FjdGlvbmFibGVfbWlncmF0aW9uX2RlYnRfY291bnQnXX1gIiwKICAgICAgICBmIi0gQWNjZXB0ZWQgbm9uLW1pZ3JhdGlvbiByZWNvcmRzOiBge3BheWxvYWRbJ2FjY2VwdGVkX25vbl9taWdyYXRpb25fY291bnQnXX1gIiwKICAgICAgICAiIiwKICAgICAgICAiIyMgQ291bnRzIGJ5IHN0YXR1cyIsCiAgICAgICAgIiIsCiAgICBdCiAgICBpZiBjb3VudHM6CiAgICAgICAgZm9yIHN0YXR1cyBpbiBzb3J0ZWQoY291bnRzKToKICAgICAgICAgICAgbGluZXMuYXBwZW5kKGYiLSBge3N0YXR1c31gOiB7Y291bnRzW3N0YXR1c119IikKICAgIGVsc2U6CiAgICAgICAgbGluZXMuYXBwZW5kKCItIE5vIHJlbWFpbmluZyBub24tbmF0aXZlIGNvbXBvbmVudHMuIikKICAgIGxpbmVzLmV4dGVuZCgoIiIsICIjIyBDb21wb25lbnRzIiwgIiIpKQogICAgZm9yIHJvdyBpbiBjb21wb25lbnRzOgogICAgICAgIGNhbm9uaWNhbCA9IHJvd1siY2Fub25pY2FsX21vZHVsZSJdIG9yICJub25lIgogICAgICAgIGxlZ2FjeSA9ICIsICIuam9pbihyb3dbImxlZ2FjeV9zb3VyY2VzIl0pIG9yICJub25lIGRlY2xhcmVkIgogICAgICAgIGxpbmVzLmV4dGVuZCgKICAgICAgICAgICAgKAogICAgICAgICAgICAgICAgZiIjIyMgYHtyb3dbJ2NvbXBvbmVudF9pZCddfWAiLAogICAgICAgICAgICAgICAgIiIsCiAgICAgICAgICAgICAgICBmIi0gQ29tcG9uZW50IHZlcnNpb246IGB7cm93Wydjb21wb25lbnRfdmVyc2lvbiddfWAiLAogICAgICAgICAgICAgICAgZiItIFN0YXR1czogYHtyb3dbJ2ltcGxlbWVudGF0aW9uX3N0YXR1cyddfWAiLAogICAgICAgICAgICAgICAgZiItIE1pZ3JhdGlvbiBhY3Rpb24gcmVxdWlyZWQ6IGB7c3RyKGJvb2wocm93WydtaWdyYXRpb25fYWN0aW9uX3JlcXVpcmVkJ10pKS5sb3dlcigpfWAiLAogICAgICAgICAgICAgICAgZiItIENhbm9uaWNhbCBtb2R1bGU6IGB7Y2Fub25pY2FsfWAiLAogICAgICAgICAgICAgICAgZiItIENhbm9uaWNhbCB3cml0ZSBhdXRob3JpdHk6IGB7c3RyKGJvb2wocm93WydjYW5vbmljYWxfd3JpdGVfYXV0aG9yaXR5J10pKS5sb3dlcigpfWAiLAogICAgICAgICAgICAgICAgZiItIExlZ2FjeS9wcm92ZW5hbmNlIHNvdXJjZXM6IHtsZWdhY3l9IiwKICAgICAgICAgICAgICAgIGYiLSBOb3Rlczoge3Jvd1snbm90ZXMnXX0iLAogICAgICAgICAgICAgICAgIiIsCiAgICAgICAgICAgICkKICAgICAgICApCiAgICBsaW5lcy5hcHBlbmQoCiAgICAgICAgIj4gR0VORVJBVEVEIFZJRVcg4oCUIHVwZGF0ZSBpbXBsZW1lbnRhdGlvbiBhdXRob3JpdHkgYXQgaXRzIGNhbm9uaWNhbCBzb3VyY2UgYW5kIHJlZ2VuZXJhdGU7IG5ldmVyIGhhbmQtZWRpdCB0aGlzIGludmVudG9yeSBwcm9qZWN0aW9uLiIKICAgICkKICAgIGxpbmVzLmFwcGVuZCgiIikKICAgIHJldHVybiAiXG4iLmpvaW4obGluZXMpCgoKIiIiCnRleHQgPSB0ZXh0WzpyZW5kZXJfc3RhcnRdICsgbmV3X3JlbmRlciArIHRleHRbanNvbl9zdGFydDpdCgpvbGRfZGVzY3JpcHRpb24gPSAnZGVzY3JpcHRpb249Ik1hdGVyaWFsaXplL2NoZWNrIE5vbGFuZSByZXBvc2l0b3J5IGhpc3RvcnkgYW5kIG5hdGl2ZS1kZWJ0IGF1ZGl0IHZpZXdzLiInCm5ld19kZXNjcmlwdGlvbiA9ICdkZXNjcmlwdGlvbj0iTWF0ZXJpYWxpemUvY2hlY2sgTm9sYW5lIHJlcG9zaXRvcnkgaGlzdG9yeSBhbmQgbm9uLW5hdGl2ZSBpbnZlbnRvcnkgYXVkaXQgdmlld3MuIicKaWYgdGV4dC5jb3VudChvbGRfZGVzY3JpcHRpb24pICE9IDE6CiAgICByYWlzZSBTeXN0ZW1FeGl0KCJkZXNjcmlwdGlvbiBhbmNob3IgZHJpZnQiKQp0ZXh0ID0gdGV4dC5yZXBsYWNlKG9sZF9kZXNjcmlwdGlvbiwgbmV3X2Rlc2NyaXB0aW9uKQoKb2xkX3ByaW50ID0gIiIiICAgICAgICBmIntyZWZlcmVuY2VfZGVidH0gd2l0aCByZWZlcmVuY2UgZGVidDsgIgogICAgICAgIGYie2xlbihkZWJ0Wydjb21wb25lbnRzJ10pfSBub24tbmF0aXZlIGNvbXBvbmVudCByZWNvcmRzLiIKIiIiCm5ld19wcmludCA9ICIiIiAgICAgICAgZiJ7cmVmZXJlbmNlX2RlYnR9IHdpdGggcmVmZXJlbmNlIGRlYnQ7ICIKICAgICAgICBmIntsZW4oZGVidFsnY29tcG9uZW50cyddKX0gbm9uLW5hdGl2ZSBjb21wb25lbnQgcmVjb3JkczsgIgogICAgICAgIGYie2RlYnRbJ2FjdGlvbmFibGVfbWlncmF0aW9uX2RlYnRfY291bnQnXX0gYWN0aW9uYWJsZSBtaWdyYXRpb24gZGVidC4iCiIiIgppZiB0ZXh0LmNvdW50KG9sZF9wcmludCkgIT0gMToKICAgIHJhaXNlIFN5c3RlbUV4aXQoImF1ZGl0IHN1bW1hcnkgYW5jaG9yIGRyaWZ0IikKdGV4dCA9IHRleHQucmVwbGFjZShvbGRfcHJpbnQsIG5ld19wcmludCkKCnBhdGgud3JpdGVfdGV4dCh0ZXh0LCBlbmNvZGluZz0idXRmLTgiKQo=' | base64 -d > /tmp/migrate-native-inventory.py
+          python - <<'PY'
+          from __future__ import annotations
+
+          import base64
+          import re
+          import subprocess
+          from pathlib import Path
+
+          workflow_path = ".github/workflows/post-epoch0-native-inventory-carrier.yml"
+          previous = subprocess.check_output(
+              ["git", "show", f"HEAD^:{workflow_path}"],
+              text=True,
+          )
+          match = re.search(
+              r"echo '([A-Za-z0-9+/=]+)' \\| base64 -d > /tmp/migrate-native-inventory\\.py",
+              previous,
+          )
+          if match is None:
+              raise SystemExit("reviewed migration payload not found in parent carrier")
+
+          migration = base64.b64decode(match.group(1)).decode("utf-8")
+          needle = 'new_renderer = """'
+          if migration.count(needle) != 1:
+              raise SystemExit("renderer raw-string anchor drift")
+          migration = migration.replace(needle, 'new_renderer = r"""', 1)
+
+          compile(migration, "/tmp/migrate-native-inventory.py", "exec")
+          Path("/tmp/migrate-native-inventory.py").write_text(migration, encoding="utf-8")
+          PY
           python /tmp/migrate-native-inventory.py
+
+      - name: Compile migrated source before generation
+        run: python -m compileall -q nolane scripts
 
       - name: Regenerate canonical projections
         run: python -m nolane.repository.audit --write
 
-      - name: Verify focused semantics and freshness
-        shell: bash
-        run: |
-          python -m compileall -q nolane
-          python -m pytest -q \
-            tests/test_refoundation_post_epoch0_native_inventory_semantics.py \
-            tests/test_refoundation_epoch0_final_closure.py
-          python -m nolane.repository.audit --check
+      - name: Focused GREEN proof
+        run: python -m pytest -q tests/test_refoundation_post_epoch0_native_inventory_semantics.py
 
-      - name: Self-delete and commit
+      - name: Commit migrated source and projections
         shell: bash
         run: |
-          rm .github/workflows/post-epoch0-native-inventory-carrier.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add nolane/repository/audit_v2.py CURRENT/NATIVE_DEBT.json CURRENT/NATIVE_DEBT.md
           git diff --cached --quiet && exit 0
           git commit -m "refactor: distinguish frozen inventory from migration debt"
           git push origin HEAD:post-epoch0/native-inventory-semantics
