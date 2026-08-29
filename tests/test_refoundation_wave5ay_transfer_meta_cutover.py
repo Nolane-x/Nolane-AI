@@ -28,11 +28,14 @@ def test_wave5ay_transfer_meta_authority_version_provenance_and_debt_cutover() -
     )
 
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
-    assert debt["schema_version"] == "nolane-native-debt-v1"
+    assert debt["schema_version"] == "nolane-native-debt-v2"
+    assert debt["actionable_migration_debt_count"] == 0
+    assert debt["accepted_non_migration_count"] == 1
     assert debt["counts_by_status"] == {"frozen_asset": 1}
     assert [record["component_id"] for record in debt["components"]] == ["neural.shared"]
     remaining = debt["components"][0]
     assert remaining["implementation_status"] == "frozen_asset"
+    assert remaining["migration_action_required"] is False
     assert remaining["canonical_module"] is None
     assert not remaining["canonical_write_authority"]
     assert remaining["legacy_sources"] == ["model/neural-r2.3"]
