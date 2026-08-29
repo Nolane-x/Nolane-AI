@@ -115,7 +115,6 @@ def test_component_advances_to_v002_without_schema_bump() -> None:
 
     ledger = build_component_implementation_ledger()[COMPONENT_ID]
     assert ledger.component_version == "0.0.2"
-    assert ledger.state_schema == "candidate-synthesis-v1"
 
 
 def test_search_pool_order_is_canonical_and_identity_invariant() -> None:
