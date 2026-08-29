@@ -333,14 +333,19 @@ class CapabilityAcquisitionGovernor:
     def _validate_library_bindings(self) -> None:
         for record in self._records.values():
             installed = self._candidate_in_library(self.library, record.candidate)
-            if record.state is CapabilityState.PROMOTED and not installed:
-                raise ValueError("promoted capability is missing from cognitive library")
-            if (
-                record.state is CapabilityState.QUARANTINED
-                and record.assurance_receipt_id is not None
-                and not installed
-            ):
+            authority_requires_install = (
+                record.state is CapabilityState.PROMOTED
+                or (
+                    record.state is CapabilityState.QUARANTINED
+                    and record.assurance_receipt_id is not None
+                )
+            )
+            if authority_requires_install and not installed:
+                if record.state is CapabilityState.PROMOTED:
+                    raise ValueError("promoted capability is missing from cognitive library")
                 raise ValueError("revoked promoted capability is missing from cognitive library")
+            if not authority_requires_install and installed:
+                raise ValueError("non-promoted capability is unexpectedly present in cognitive library")
 
     def admit(self, candidate: CapabilityCandidate) -> CapabilityRecord:
         if not isinstance(candidate, CapabilityCandidate):
@@ -420,6 +425,34 @@ class CapabilityAcquisitionGovernor:
         if persisted != receipt:
             raise ValueError("persisted assurance receipt does not match supplied receipt")
         return persisted
+
+    @classmethod
+    def _validate_restored_assurance(
+        cls,
+        assurance: AssuranceControlPlane | None,
+        record: CapabilityRecord,
+    ) -> None:
+        if record.assurance_receipt_id is None:
+            return
+        if not isinstance(assurance, AssuranceControlPlane):
+            raise ValueError("persisted assurance authority is required to restore capability")
+        try:
+            receipt = AssuranceControlPlane.promotion_receipt(
+                assurance, record.assurance_receipt_id
+            )
+        except (KeyError, LookupError) as exc:
+            raise ValueError(
+                "persisted assurance receipt is required to restore capability authority"
+            ) from exc
+        persisted = cls._validated_persisted_receipt(assurance, receipt)
+        if not persisted.authorized:
+            raise ValueError("restored promotion assurance receipt is not authorized")
+        if persisted.subject_id != record.candidate.candidate_id:
+            raise ValueError("restored promotion assurance receipt subject mismatch")
+        if tuple(persisted.evidence_ids) != record.evidence_ids:
+            raise ValueError("restored promotion assurance receipt evidence mismatch")
+        if persisted.predecessor_version != record.baseline_digest:
+            raise ValueError("restored promotion assurance receipt baseline mismatch")
 
     def promote(
         self,
@@ -530,6 +563,7 @@ class CapabilityAcquisitionGovernor:
         state: Mapping[str, Any],
         *,
         library: CognitiveLibrary,
+        assurance: AssuranceControlPlane | None = None,
     ) -> "CapabilityAcquisitionGovernor":
         if str(state.get("schema_version")) != _SCHEMA_VERSION:
             raise ValueError("unsupported capability acquisition schema")
@@ -546,6 +580,8 @@ class CapabilityAcquisitionGovernor:
             min_reliability=float(state.get("min_reliability", _DEFAULT_MIN_RELIABILITY)),
             records=records,
         )
+        for record in result.records():
+            cls._validate_restored_assurance(assurance, record)
         if result.to_state() != dict(state):
             raise ValueError("non-canonical capability acquisition state")
         return result

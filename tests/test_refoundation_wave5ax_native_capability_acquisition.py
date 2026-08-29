@@ -313,7 +313,11 @@ def test_wave5ax_snapshot_roundtrip_is_deterministic_and_rejects_tampering() -> 
     state = governor.to_state()
     encoded = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
     restored_library = CognitiveLibrary.from_state(json.loads(json.dumps(library.to_state())))
-    restored = native.CapabilityAcquisitionGovernor.from_state(json.loads(encoded), library=restored_library)
+    restored = native.CapabilityAcquisitionGovernor.from_state(
+        json.loads(encoded),
+        library=restored_library,
+        assurance=_assurance_plane(receipt),
+    )
     assert json.dumps(
         restored.to_state(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
     ) == encoded
