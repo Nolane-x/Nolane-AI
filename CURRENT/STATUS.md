@@ -2,6 +2,10 @@
 
 Architecture generation: `A1` (Refoundation Epoch 0).
 
+## Current state — Epoch 0 CLOSED
+
+Epoch 0 is closed. `CURRENT/EPOCH0_CLOSURE.md` is the terminal closure receipt and `CURRENT/NATIVE_DEBT.json` is the generated terminal debt projection. All tracked executable semantic components are under canonical native authority; the sole non-native record is the deliberately frozen `neural.shared` asset, which is not executable migration debt and has no canonical write authority. No later Refoundation extraction wave is implied or required by this status document.
+
 ## Accepted baseline
 
 Accepted and merged to `main`:
@@ -13,9 +17,9 @@ Accepted and merged to `main`:
 
 Wave 4 established historical-authority quarantine and the repository audit/debt machinery used by later extraction waves. Historical root R-series artifacts, old root `CURRENT_*` pointers, checkpoint provenance, and historical workflows remain evidence, but they do not outrank current authority.
 
-## Current native-extraction lineage
+## Historical native-extraction lineage (closed)
 
-The downstream Refoundation lineage is continuing semantic ownership extraction without treating historical file layout as current authority. The latest cutovers and refinements are:
+The following Wave chronology records how semantic ownership was extracted during Epoch 0. It is historical provenance, not an open queue of future extraction work:
 
 - Wave 5M: `external.requirements` -> native `nolane.external_core.requirements`
 - Wave 5N: `external.planning` -> native `nolane.external_core.planning`
@@ -86,15 +90,15 @@ Wave 5AK retires `evaluation.release` by moving release receipts, aggregate eval
 
 Wave 5AL retires `evaluation.scaling` by moving the evaluation-scaling composition control plane, empty-state semantics and snapshot reconstruction under native `nolane.evaluation.scaling` ownership. The canonical scaling layer composes artifacts, claims, evidence, parameters, regimes, release, stress and organization identity only through canonical `nolane` authorities; historical `cogcoder.organization.evaluation` becomes an exact control-plane bridge. The generated native-debt projection therefore moves from 12 to 11 non-native component records.
 
-## Repository authority and remaining debt
+## Repository authority and terminal debt
 
-`CURRENT/REPOSITORY_AUTHORITY.md` defines repository precedence and quarantine semantics. `archive/INDEX.json` is the generated root-history census. `CURRENT/NATIVE_DEBT.json` / `.md` expose every canonical semantic component that is not yet `canonical_native`, so extraction can continue independently using local `0.0.N` component versions.
+`CURRENT/REPOSITORY_AUTHORITY.md` defines repository precedence and quarantine semantics. `archive/INDEX.json` is the generated root-history census. `CURRENT/NATIVE_DEBT.json` / `.md` are terminal generated projections for Epoch 0: they contain only the accepted frozen `neural.shared` asset and do not authorize further extraction.
 
 Wave 5V reduced generated native debt to 25 remaining non-native component records. Wave 5W retires exactly `external.execution.executor`, reducing that debt from 25 to 24 while leaving `external.execution.control` and all unrelated compatibility/historical/frozen boundaries unchanged. Wave 5Y reduces the projection to 23; Wave 5Z retires exactly `neural.inference_bridge`, reducing it to 22. Wave 5AA retires exactly `external.execution.control`, reducing the projection to 21 non-native component records. Wave 5AB is prerequisite-only and intentionally keeps that count at 21 while canonicalizing shared coding-profile/routing authority ahead of the `external.coding.control` cutover. Wave 5AC retires exactly `external.coding.control`, reducing the generated projection to 20 non-native component records. Wave 5AD retires exactly `external.debugging`, reducing the generated projection to 19 non-native component records. Wave 5AE retires exactly `external.ui_ux`, reducing the generated projection to 18 non-native component records. Wave 5AF retires exactly `evaluation.regimes`, reducing the generated projection to 17 non-native component records. Wave 5AG retires exactly `evaluation.evidence`, reducing the generated projection to 16 non-native component records. Wave 5AH retires exactly `evaluation.stress`, reducing the generated projection to 15 non-native component records.
 
-The dependency graph and the actual import graph must both be clean before a boundary is cut over. In particular, Assurance and Individual Evolution currently expose hidden legacy import coupling beyond their high-level manifest edges; those surfaces must be retargeted or decomposed before authority migration rather than moved cosmetically.
+Earlier extraction waves required both dependency-graph and import-graph closure before cutover; later accepted waves resolved those boundaries. Compatibility, determinism, evidence, repository quarantine, and the 67 permanent first-generation AI identity constraints remain fail-closed as enduring architecture constraints, not as unfinished migration work.
 
-No current status statement implies that all runtime or External Core surfaces are already native. Compatibility, determinism, evidence, repository quarantine, and the 67 permanent first-generation AI identity constraints remain fail-closed throughout Refoundation.
+Current authority is terminal for Epoch 0: `historical_only` debt is zero, canonical write authority is native-only, and the remaining `neural.shared` record is an intentionally frozen asset rather than an executable compatibility boundary.
 
 ## Wave 5AM — native evaluation campaign cluster
 
