@@ -222,6 +222,24 @@ def test_budget_never_descends_through_or_returns_from_partial_frontier() -> Non
         assert result.receipt.abstention_reason == "generation_budget_exhausted"
 
 
+def test_truncated_depth_three_frontier_is_pool_order_identity_invariant() -> None:
+    base, sources = _search_library()
+    pairs = _generated_at_depth(CandidateSynthesisEngine(base), sources, 2)
+    populated = CognitiveLibrary(abstractions=(*sources, *pairs))
+    ids = tuple(row.abstraction_id for row in sources)
+    engine = CandidateSynthesisEngine(populated)
+
+    forward = engine.synthesize(_progressive_request(ids, budget=11))
+    reverse = engine.synthesize(_progressive_request(tuple(reversed(ids)), budget=11))
+
+    assert forward.candidate is None and reverse.candidate is None
+    assert forward.receipt.candidates_considered == 11
+    assert reverse.receipt.candidates_considered == 11
+    assert forward.receipt.abstention_reason == "generation_budget_exhausted"
+    assert reverse.receipt.abstention_reason == "generation_budget_exhausted"
+    assert forward.receipt.synthesis_id == reverse.receipt.synthesis_id
+
+
 def test_full_multi_depth_exhaustion_has_distinct_no_novel_reason_and_no_reuse() -> None:
     base, sources = _search_library()
     engine = CandidateSynthesisEngine(base)
@@ -239,6 +257,28 @@ def test_full_multi_depth_exhaustion_has_distinct_no_novel_reason_and_no_reuse()
     assert result.candidate is None
     assert result.receipt.candidates_considered == total_without_reuse
     assert result.receipt.abstention_reason == "no_novel_candidate"
+
+
+def test_progressive_fails_closed_on_generated_identity_collision() -> None:
+    library, sources = _search_library()
+    engine = CandidateSynthesisEngine(library)
+    first_pair = next(iter(itertools.permutations(_ordered_sources(sources), 2)))
+    generated = _composition_candidate(engine, first_pair).payload()
+    assert isinstance(generated, LearnedAbstraction)
+
+    forged = LearnedAbstraction(
+        abstraction_id=generated.abstraction_id,
+        parameter_count=generated.parameter_count,
+        template=generated.template,
+        support_task_ids=("task.forged",),
+        raw_occurrence_cost=generated.raw_occurrence_cost + 1,
+        rewritten_cost=generated.rewritten_cost,
+    )
+    library.vocabulary._items[generated.abstraction_id] = forged
+
+    ids = tuple(row.abstraction_id for row in sources)
+    with pytest.raises(ValueError, match="collides with different library payload"):
+        CandidateSynthesisEngine(library).synthesize(_progressive_request(ids, budget=6))
 
 
 def test_zero_budget_progressive_search_performs_no_generation() -> None:
