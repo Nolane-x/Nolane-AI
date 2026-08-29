@@ -1,0 +1,114 @@
+name: Candidate Synthesis v0.0.2 GREEN Carrier
+
+on:
+  push:
+    branches:
+      - post-epoch0/candidate-synthesis-v0.0.2-bounded-search
+    paths:
+      - '.github/workflows/candidate-synthesis-v002-green-carrier.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/candidate-synthesis-v0.0.2-bounded-search
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Apply bounded-search GREEN patch
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != 1:
+                  raise SystemExit(f"expected exactly one anchor in {path}: {old[:80]!r}; got {text.count(old)}")
+              p.write_text(text.replace(old, new, 1))
+
+          path = "nolane/external_core/candidate_synthesis.py"
+          replace_once(path, "from dataclasses import dataclass\n", "from dataclasses import dataclass\nfrom itertools import permutations\n")
+          replace_once(path, 'COMPONENT_VERSION = "0.0.1"', 'COMPONENT_VERSION = "0.0.2"')
+          replace_once(
+              path,
+              'class SynthesisMode(str, Enum):\n    LEARNED_ABSTRACTION_COMPOSITION = "learned_abstraction_composition"\n',
+              'class SynthesisMode(str, Enum):\n    LEARNED_ABSTRACTION_COMPOSITION = "learned_abstraction_composition"\n    BOUNDED_LEARNED_ABSTRACTION_SEARCH = "bounded_learned_abstraction_search"\n',
+          )
+          replace_once(
+              path,
+              'def _sorted_unique_ids(values: Sequence[object], name: str) -> tuple[str, ...]:\n    return tuple(sorted(_ordered_unique_ids(values, name)))\n',
+              '''def _sorted_unique_ids(values: Sequence[object], name: str) -> tuple[str, ...]:\n    return tuple(sorted(_ordered_unique_ids(values, name)))\n\n\ndef _source_ids_for_mode(\n    mode: SynthesisMode,\n    values: Sequence[object],\n) -> tuple[str, ...]:\n    rows = _ordered_unique_ids(values, "source item ids", minimum=2)\n    if mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:\n        return tuple(sorted(rows))\n    return rows\n''',
+          )
+          replace_once(
+              path,
+              '        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)\n',
+              '        sources = _source_ids_for_mode(mode, self.source_item_ids)\n',
+          )
+          replace_once(
+              path,
+              '        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)\n',
+              '        sources = _source_ids_for_mode(mode, self.source_item_ids)\n',
+          )
+
+          p = Path(path)
+          text = p.read_text()
+          start = text.index('    def synthesize(self, request: SynthesisRequest) -> SynthesisResult:\n')
+          end = text.index('\n\n__all__ = (', start)
+          method = '''    def _resolve_sources(\n        self,\n        before_digest: str,\n        request: SynthesisRequest,\n    ) -> tuple[list[LearnedAbstraction] | None, SynthesisResult | None]:\n        sources: list[LearnedAbstraction] = []\n        for source_id in request.source_item_ids:\n            try:\n                source = self.library.vocabulary.get(source_id)\n            except KeyError:\n                return None, self._abstain(\n                    before_digest,\n                    request,\n                    candidates_considered=0,\n                    reason=f"source_not_found:{source_id}",\n                )\n            if source.parameter_count != 1:\n                return None, self._abstain(\n                    before_digest,\n                    request,\n                    candidates_considered=0,\n                    reason=f"source_not_unary:{source_id}",\n                )\n            if _contains_field(source.template, _PARAM_FIELD):\n                return None, self._abstain(\n                    before_digest,\n                    request,\n                    candidates_considered=0,\n                    reason=f"reserved_field_collision:{source_id}",\n                )\n            sources.append(source)\n        return sources, None\n\n    def _compose_sources(self, sources: Sequence[LearnedAbstraction]) -> LearnedAbstraction:\n        composed: Expr = Field(_PARAM_FIELD)\n        for source in sources:\n            composed = AbstractionCall(source.abstraction_id, (composed,))\n        expanded = expand_expr(composed, self.library.vocabulary)\n        template = _bind_synthesis_parameter(expanded)\n        support_task_ids = tuple(\n            sorted({task_id for source in sources for task_id in source.support_task_ids})\n        )\n        return make_abstraction(\n            template,\n            parameter_count=1,\n            support_task_ids=support_task_ids,\n            raw_occurrence_cost=template.cost,\n            rewritten_cost=template.cost,\n        )\n\n    def _installed_abstraction(self, generated: LearnedAbstraction) -> LearnedAbstraction | None:\n        try:\n            existing = self.library.vocabulary.get(generated.abstraction_id)\n        except KeyError:\n            return None\n        if existing != generated:\n            raise ValueError("generated abstraction identity collides with different library payload")\n        return existing\n\n    def _synthesize_composition(\n        self,\n        before_digest: str,\n        request: SynthesisRequest,\n        sources: Sequence[LearnedAbstraction],\n    ) -> SynthesisResult:\n        generated = self._compose_sources(sources)\n        if generated.abstraction_id in set(request.source_item_ids):\n            return self._abstain(\n                before_digest,\n                request,\n                candidates_considered=1,\n                reason="candidate_matches_source",\n            )\n        if self._installed_abstraction(generated) is not None:\n            return self._abstain(\n                before_digest,\n                request,\n                candidates_considered=1,\n                reason="candidate_already_in_library",\n            )\n        candidate = CapabilityCandidate.for_learned_abstraction(generated)\n        return self._return(\n            before_digest,\n            SynthesisResult(\n                candidate=candidate,\n                receipt=_receipt(request, candidates_considered=1, candidate=candidate),\n            ),\n        )\n\n    def _synthesize_bounded_search(\n        self,\n        before_digest: str,\n        request: SynthesisRequest,\n        sources: Sequence[LearnedAbstraction],\n    ) -> SynthesisResult:\n        source_ids = set(request.source_item_ids)\n        seen_candidate_ids: set[str] = set()\n        best_candidate: CapabilityCandidate | None = None\n        best_score: tuple[int, int, str] | None = None\n        considered = 0\n\n        for pair in permutations(sources, 2):\n            if considered >= request.generation_budget:\n                break\n            considered += 1\n            generated = self._compose_sources(pair)\n            if generated.abstraction_id in source_ids:\n                continue\n            if self._installed_abstraction(generated) is not None:\n                continue\n            candidate = CapabilityCandidate.for_learned_abstraction(generated)\n            if candidate.candidate_id in seen_candidate_ids:\n                continue\n            seen_candidate_ids.add(candidate.candidate_id)\n            score = (\n                generated.template.cost,\n                -len(generated.support_task_ids),\n                candidate.candidate_id,\n            )\n            if best_score is None or score < best_score:\n                best_score = score\n                best_candidate = candidate\n\n        if best_candidate is None:\n            return self._abstain(\n                before_digest,\n                request,\n                candidates_considered=considered,\n                reason="no_novel_candidate_within_budget",\n            )\n        return self._return(\n            before_digest,\n            SynthesisResult(\n                candidate=best_candidate,\n                receipt=_receipt(\n                    request,\n                    candidates_considered=considered,\n                    candidate=best_candidate,\n                ),\n            ),\n        )\n\n    def synthesize(self, request: SynthesisRequest) -> SynthesisResult:\n        if not isinstance(request, SynthesisRequest):\n            raise TypeError("request must be SynthesisRequest")\n        before_digest = self.library.digest\n        if request.generation_budget == 0:\n            return self._abstain(\n                before_digest,\n                request,\n                candidates_considered=0,\n                reason="generation_budget_exhausted",\n            )\n\n        sources, abstention = self._resolve_sources(before_digest, request)\n        if abstention is not None:\n            return abstention\n        assert sources is not None\n\n        if request.mode is SynthesisMode.LEARNED_ABSTRACTION_COMPOSITION:\n            return self._synthesize_composition(before_digest, request, sources)\n        if request.mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:\n            return self._synthesize_bounded_search(before_digest, request, sources)\n        raise ValueError("unsupported candidate synthesis mode")\n'''
+          p.write_text(text[:start] + method + text[end:])
+
+          replace_once(
+              "nolane/metadata/component_versions.py",
+              '        "external.candidate_synthesis": 1,',
+              '        "external.candidate_synthesis": 2,',
+          )
+          replace_once(
+              "tests/test_refoundation_component_versions.py",
+              '    "external.candidate_synthesis": 1,',
+              '    "external.candidate_synthesis": 2,',
+          )
+
+          existing_test = Path("tests/test_refoundation_post_epoch0_candidate_synthesis.py")
+          test_text = existing_test.read_text()
+          test_text = test_text.replace(
+              "def test_candidate_synthesis_is_declared_as_native_v001_component() -> None:",
+              "def test_candidate_synthesis_is_declared_as_native_v002_component() -> None:",
+              1,
+          )
+          if test_text.count('assert str(manifest.version) == "0.0.1"') != 1:
+              raise SystemExit("unexpected candidate manifest version anchor count")
+          test_text = test_text.replace('assert str(manifest.version) == "0.0.1"', 'assert str(manifest.version) == "0.0.2"', 1)
+          if test_text.count('assert record.component_version == "0.0.1"') != 1:
+              raise SystemExit("unexpected candidate ledger version anchor count")
+          test_text = test_text.replace('assert record.component_version == "0.0.1"', 'assert record.component_version == "0.0.2"', 1)
+          existing_test.write_text(test_text)
+      - name: Compile candidate synthesis
+        run: python -m compileall -q nolane/external_core/candidate_synthesis.py nolane/metadata
+      - name: Run focused candidate synthesis GREEN contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_candidate_synthesis.py \
+            tests/test_refoundation_post_epoch0_candidate_synthesis_bounded_search.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py
+      - name: Commit exact tested GREEN tree
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            nolane/external_core/candidate_synthesis.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_post_epoch0_candidate_synthesis.py
+          git diff --cached --check
+          git commit -m "feat: add bounded candidate synthesis search v0.0.2"
+          git push origin HEAD:post-epoch0/candidate-synthesis-v0.0.2-bounded-search
