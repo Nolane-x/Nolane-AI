@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: post-epoch0/native-inventory-semantics
-          fetch-depth: 2
+          fetch-depth: 4
 
       - uses: actions/setup-python@v5
         with:
@@ -33,23 +33,36 @@ jobs:
           from __future__ import annotations
 
           import base64
-          import re
           import subprocess
           from pathlib import Path
 
           workflow_path = ".github/workflows/post-epoch0-native-inventory-carrier.yml"
-          previous = subprocess.check_output(
-              ["git", "show", f"HEAD^:{workflow_path}"],
-              text=True,
-          )
-          match = re.search(
-              r"echo '([A-Za-z0-9+/=]+)' \\| base64 -d > /tmp/migrate-native-inventory\\.py",
-              previous,
-          )
-          if match is None:
-              raise SystemExit("reviewed migration payload not found in parent carrier")
+          prefix = "echo '"
+          suffix = "' | base64 -d > /tmp/migrate-native-inventory.py"
+          payload = None
 
-          migration = base64.b64decode(match.group(1)).decode("utf-8")
+          for depth in range(1, 4):
+              revision = "HEAD" + "^" * depth
+              try:
+                  previous = subprocess.check_output(
+                      ["git", "show", f"{revision}:{workflow_path}"],
+                      text=True,
+                      stderr=subprocess.DEVNULL,
+                  )
+              except subprocess.CalledProcessError:
+                  continue
+              for line in previous.splitlines():
+                  stripped = line.strip()
+                  if stripped.startswith(prefix) and stripped.endswith(suffix):
+                      payload = stripped[len(prefix) : -len(suffix)]
+                      break
+              if payload is not None:
+                  break
+
+          if payload is None:
+              raise SystemExit("reviewed migration payload not found in carrier history")
+
+          migration = base64.b64decode(payload, validate=True).decode("utf-8")
           needle = 'new_renderer = """'
           if migration.count(needle) != 1:
               raise SystemExit("renderer raw-string anchor drift")
