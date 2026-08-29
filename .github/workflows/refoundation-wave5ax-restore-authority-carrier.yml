@@ -1,0 +1,87 @@
+name: Refoundation Wave 5AX Restore Authority Carrier
+
+on:
+  push:
+    branches:
+      - refoundation-wave5ax-native-capability-acquisition
+    paths:
+      - .github/workflows/refoundation-wave5ax-restore-authority-carrier.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation-wave5ax-native-capability-acquisition
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Bind restored capability authority to library state and native Assurance
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              if old not in text:
+                  if new in text:
+                      return
+                  raise SystemExit(f'missing patch anchor in {path}: {old[:160]!r}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          prod = 'nolane/external_core/capability_acquisition.py'
+          replace_once(
+              prod,
+              '''    def _validate_library_bindings(self) -> None:\n        for record in self._records.values():\n            installed = self._candidate_in_library(self.library, record.candidate)\n            if record.state is CapabilityState.PROMOTED and not installed:\n                raise ValueError("promoted capability is missing from cognitive library")\n            if (\n                record.state is CapabilityState.QUARANTINED\n                and record.assurance_receipt_id is not None\n                and not installed\n            ):\n                raise ValueError("revoked promoted capability is missing from cognitive library")\n''',
+              '''    def _validate_library_bindings(self) -> None:\n        for record in self._records.values():\n            installed = self._candidate_in_library(self.library, record.candidate)\n            authority_requires_install = (\n                record.state is CapabilityState.PROMOTED\n                or (\n                    record.state is CapabilityState.QUARANTINED\n                    and record.assurance_receipt_id is not None\n                )\n            )\n            if authority_requires_install and not installed:\n                if record.state is CapabilityState.PROMOTED:\n                    raise ValueError("promoted capability is missing from cognitive library")\n                raise ValueError("revoked promoted capability is missing from cognitive library")\n            if not authority_requires_install and installed:\n                raise ValueError("non-promoted capability is unexpectedly present in cognitive library")\n''',
+          )
+          replace_once(
+              prod,
+              '''        if persisted != receipt:\n            raise ValueError("persisted assurance receipt does not match supplied receipt")\n        return persisted\n\n    def promote(\n''',
+              '''        if persisted != receipt:\n            raise ValueError("persisted assurance receipt does not match supplied receipt")\n        return persisted\n\n    @classmethod\n    def _validate_restored_assurance(\n        cls,\n        assurance: AssuranceControlPlane | None,\n        record: CapabilityRecord,\n    ) -> None:\n        if record.assurance_receipt_id is None:\n            return\n        if not isinstance(assurance, AssuranceControlPlane):\n            raise ValueError("persisted assurance authority is required to restore capability")\n        try:\n            receipt = AssuranceControlPlane.promotion_receipt(\n                assurance, record.assurance_receipt_id\n            )\n        except (KeyError, LookupError) as exc:\n            raise ValueError(\n                "persisted assurance receipt is required to restore capability authority"\n            ) from exc\n        persisted = cls._validated_persisted_receipt(assurance, receipt)\n        if not persisted.authorized:\n            raise ValueError("restored promotion assurance receipt is not authorized")\n        if persisted.subject_id != record.candidate.candidate_id:\n            raise ValueError("restored promotion assurance receipt subject mismatch")\n        if tuple(persisted.evidence_ids) != record.evidence_ids:\n            raise ValueError("restored promotion assurance receipt evidence mismatch")\n        if persisted.predecessor_version != record.baseline_digest:\n            raise ValueError("restored promotion assurance receipt baseline mismatch")\n\n    def promote(\n''',
+          )
+          replace_once(
+              prod,
+              '''    def from_state(\n        cls,\n        state: Mapping[str, Any],\n        *,\n        library: CognitiveLibrary,\n    ) -> "CapabilityAcquisitionGovernor":\n''',
+              '''    def from_state(\n        cls,\n        state: Mapping[str, Any],\n        *,\n        library: CognitiveLibrary,\n        assurance: AssuranceControlPlane | None = None,\n    ) -> "CapabilityAcquisitionGovernor":\n''',
+          )
+          replace_once(
+              prod,
+              '''        result = cls(\n            library,\n            min_reliability=float(state.get("min_reliability", _DEFAULT_MIN_RELIABILITY)),\n            records=records,\n        )\n        if result.to_state() != dict(state):\n''',
+              '''        result = cls(\n            library,\n            min_reliability=float(state.get("min_reliability", _DEFAULT_MIN_RELIABILITY)),\n            records=records,\n        )\n        for record in result.records():\n            cls._validate_restored_assurance(assurance, record)\n        if result.to_state() != dict(state):\n''',
+          )
+
+          contract = 'tests/test_refoundation_wave5ax_native_capability_acquisition.py'
+          replace_once(
+              contract,
+              '''    restored = native.CapabilityAcquisitionGovernor.from_state(json.loads(encoded), library=restored_library)\n''',
+              '''    restored = native.CapabilityAcquisitionGovernor.from_state(\n        json.loads(encoded),\n        library=restored_library,\n        assurance=_assurance_plane(receipt),\n    )\n''',
+          )
+          PY
+      - name: Verify focused Wave 5AX restore and authority contracts
+        run: >-
+          python -m pytest -q
+          tests/test_refoundation_wave5ax_native_capability_acquisition.py
+          tests/test_refoundation_wave5ax_capability_acquisition_hardening.py
+      - name: Verify full Refoundation contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Verify repository projections
+        run: python -m nolane.repository.audit --check
+      - name: Commit exact hardening and remove carrier
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git rm .github/workflows/refoundation-wave5ax-restore-authority-carrier.yml
+          git add nolane/external_core/capability_acquisition.py \
+                  tests/test_refoundation_wave5ax_native_capability_acquisition.py
+          git commit -m 'fix(refoundation): rebind capability authority during restore'
+          git push origin HEAD:refoundation-wave5ax-native-capability-acquisition
