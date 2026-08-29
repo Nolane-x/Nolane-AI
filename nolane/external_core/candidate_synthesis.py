@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from itertools import permutations
 from enum import Enum
 from typing import Any, Mapping, Sequence
 
@@ -18,7 +19,7 @@ from nolane.external_core.cognitive_vocabulary import (
 
 
 COMPONENT_ID = "external.candidate_synthesis"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 SCHEMA_VERSION = "candidate-synthesis-v1"
 DESIGN_LINEAGE = "post-Epoch-0 native synthesis; R2.56/R2.61/R2.65 are design provenance only"
 _PARAM_FIELD = "__nolane_candidate_synthesis_param_0__"
@@ -26,6 +27,7 @@ _PARAM_FIELD = "__nolane_candidate_synthesis_param_0__"
 
 class SynthesisMode(str, Enum):
     LEARNED_ABSTRACTION_COMPOSITION = "learned_abstraction_composition"
+    BOUNDED_LEARNED_ABSTRACTION_SEARCH = "bounded_learned_abstraction_search"
 
 
 class EvidencePhase(str, Enum):
@@ -54,6 +56,16 @@ def _ordered_unique_ids(values: Sequence[object], name: str, *, minimum: int = 0
 
 def _sorted_unique_ids(values: Sequence[object], name: str) -> tuple[str, ...]:
     return tuple(sorted(_ordered_unique_ids(values, name)))
+
+
+def _source_ids_for_mode(
+    mode: SynthesisMode,
+    values: Sequence[object],
+) -> tuple[str, ...]:
+    rows = _ordered_unique_ids(values, "source item ids", minimum=2)
+    if mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:
+        return tuple(sorted(rows))
+    return rows
 
 
 @dataclass(frozen=True, slots=True)
@@ -89,7 +101,7 @@ class SynthesisRequest:
     def __post_init__(self) -> None:
         mode = SynthesisMode(self.mode)
         objective = _nonempty(self.objective, "synthesis objective")
-        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)
+        sources = _source_ids_for_mode(mode, self.source_item_ids)
         evidence = tuple(self.evidence)
         if not all(isinstance(row, EvidenceRef) for row in evidence):
             raise TypeError("synthesis evidence must contain EvidenceRef values")
@@ -171,7 +183,7 @@ class SynthesisReceipt:
     def __post_init__(self) -> None:
         mode = SynthesisMode(self.mode)
         objective = _nonempty(self.objective, "synthesis objective")
-        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)
+        sources = _source_ids_for_mode(mode, self.source_item_ids)
         evidence_ids = _sorted_unique_ids(self.evidence_ids, "evidence ids")
         experiments = _sorted_unique_ids(self.experiment_receipt_ids, "experiment receipt ids")
         causal = _sorted_unique_ids(self.causal_program_ids, "causal program ids")
@@ -377,12 +389,152 @@ class CandidateSynthesisEngine:
             ),
         )
 
+    def _resolve_sources(
+        self,
+        before_digest: str,
+        request: SynthesisRequest,
+    ) -> tuple[list[LearnedAbstraction] | None, SynthesisResult | None]:
+        sources: list[LearnedAbstraction] = []
+        for source_id in request.source_item_ids:
+            try:
+                source = self.library.vocabulary.get(source_id)
+            except KeyError:
+                return None, self._abstain(
+                    before_digest,
+                    request,
+                    candidates_considered=0,
+                    reason=f"source_not_found:{source_id}",
+                )
+            if source.parameter_count != 1:
+                return None, self._abstain(
+                    before_digest,
+                    request,
+                    candidates_considered=0,
+                    reason=f"source_not_unary:{source_id}",
+                )
+            if _contains_field(source.template, _PARAM_FIELD):
+                return None, self._abstain(
+                    before_digest,
+                    request,
+                    candidates_considered=0,
+                    reason=f"reserved_field_collision:{source_id}",
+                )
+            sources.append(source)
+        return sources, None
+
+    def _compose_sources(self, sources: Sequence[LearnedAbstraction]) -> LearnedAbstraction:
+        composed: Expr = Field(_PARAM_FIELD)
+        for source in sources:
+            composed = AbstractionCall(source.abstraction_id, (composed,))
+        expanded = expand_expr(composed, self.library.vocabulary)
+        template = _bind_synthesis_parameter(expanded)
+        support_task_ids = tuple(
+            sorted({task_id for source in sources for task_id in source.support_task_ids})
+        )
+        return make_abstraction(
+            template,
+            parameter_count=1,
+            support_task_ids=support_task_ids,
+            raw_occurrence_cost=template.cost,
+            rewritten_cost=template.cost,
+        )
+
+    def _installed_abstraction(self, generated: LearnedAbstraction) -> LearnedAbstraction | None:
+        try:
+            existing = self.library.vocabulary.get(generated.abstraction_id)
+        except KeyError:
+            return None
+        if existing != generated:
+            raise ValueError("generated abstraction identity collides with different library payload")
+        return existing
+
+    def _synthesize_composition(
+        self,
+        before_digest: str,
+        request: SynthesisRequest,
+        sources: Sequence[LearnedAbstraction],
+    ) -> SynthesisResult:
+        generated = self._compose_sources(sources)
+        if generated.abstraction_id in set(request.source_item_ids):
+            return self._abstain(
+                before_digest,
+                request,
+                candidates_considered=1,
+                reason="candidate_matches_source",
+            )
+        if self._installed_abstraction(generated) is not None:
+            return self._abstain(
+                before_digest,
+                request,
+                candidates_considered=1,
+                reason="candidate_already_in_library",
+            )
+        candidate = CapabilityCandidate.for_learned_abstraction(generated)
+        return self._return(
+            before_digest,
+            SynthesisResult(
+                candidate=candidate,
+                receipt=_receipt(request, candidates_considered=1, candidate=candidate),
+            ),
+        )
+
+    def _synthesize_bounded_search(
+        self,
+        before_digest: str,
+        request: SynthesisRequest,
+        sources: Sequence[LearnedAbstraction],
+    ) -> SynthesisResult:
+        source_ids = set(request.source_item_ids)
+        seen_candidate_ids: set[str] = set()
+        best_candidate: CapabilityCandidate | None = None
+        best_score: tuple[int, int, str] | None = None
+        considered = 0
+
+        for pair in permutations(sources, 2):
+            if considered >= request.generation_budget:
+                break
+            considered += 1
+            generated = self._compose_sources(pair)
+            if generated.abstraction_id in source_ids:
+                continue
+            if self._installed_abstraction(generated) is not None:
+                continue
+            candidate = CapabilityCandidate.for_learned_abstraction(generated)
+            if candidate.candidate_id in seen_candidate_ids:
+                continue
+            seen_candidate_ids.add(candidate.candidate_id)
+            score = (
+                generated.template.cost,
+                -len(generated.support_task_ids),
+                candidate.candidate_id,
+            )
+            if best_score is None or score < best_score:
+                best_score = score
+                best_candidate = candidate
+
+        if best_candidate is None:
+            return self._abstain(
+                before_digest,
+                request,
+                candidates_considered=considered,
+                reason="no_novel_candidate_within_budget",
+            )
+        return self._return(
+            before_digest,
+            SynthesisResult(
+                candidate=best_candidate,
+                receipt=_receipt(
+                    request,
+                    candidates_considered=considered,
+                    candidate=best_candidate,
+                ),
+            ),
+        )
+
     def synthesize(self, request: SynthesisRequest) -> SynthesisResult:
         if not isinstance(request, SynthesisRequest):
             raise TypeError("request must be SynthesisRequest")
         before_digest = self.library.digest
-        if request.mode is not SynthesisMode.LEARNED_ABSTRACTION_COMPOSITION:
-            raise ValueError("unsupported candidate synthesis mode")
         if request.generation_budget == 0:
             return self._abstain(
                 before_digest,
@@ -391,80 +543,16 @@ class CandidateSynthesisEngine:
                 reason="generation_budget_exhausted",
             )
 
-        sources: list[LearnedAbstraction] = []
-        for source_id in request.source_item_ids:
-            try:
-                source = self.library.vocabulary.get(source_id)
-            except KeyError:
-                return self._abstain(
-                    before_digest,
-                    request,
-                    candidates_considered=0,
-                    reason=f"source_not_found:{source_id}",
-                )
-            if source.parameter_count != 1:
-                return self._abstain(
-                    before_digest,
-                    request,
-                    candidates_considered=0,
-                    reason=f"source_not_unary:{source_id}",
-                )
-            if _contains_field(source.template, _PARAM_FIELD):
-                return self._abstain(
-                    before_digest,
-                    request,
-                    candidates_considered=0,
-                    reason=f"reserved_field_collision:{source_id}",
-                )
-            sources.append(source)
+        sources, abstention = self._resolve_sources(before_digest, request)
+        if abstention is not None:
+            return abstention
+        assert sources is not None
 
-        # AbstractionCall is the synthesis IR: source order is semantic. The IR
-        # is then fully expanded against the canonical vocabulary so the final
-        # CapabilityCandidate is standalone-decodable by Capability Acquisition.
-        composed: Expr = Field(_PARAM_FIELD)
-        for source in sources:
-            composed = AbstractionCall(source.abstraction_id, (composed,))
-        expanded = expand_expr(composed, self.library.vocabulary)
-        template = _bind_synthesis_parameter(expanded)
-
-        support_task_ids = tuple(
-            sorted({task_id for source in sources for task_id in source.support_task_ids})
-        )
-        generated = make_abstraction(
-            template,
-            parameter_count=1,
-            support_task_ids=support_task_ids,
-            raw_occurrence_cost=template.cost,
-            rewritten_cost=template.cost,
-        )
-
-        if generated.abstraction_id in set(request.source_item_ids):
-            return self._abstain(
-                before_digest,
-                request,
-                candidates_considered=1,
-                reason="candidate_matches_source",
-            )
-        try:
-            existing = self.library.vocabulary.get(generated.abstraction_id)
-        except KeyError:
-            existing = None
-        if existing is not None:
-            if existing != generated:
-                raise ValueError("generated abstraction identity collides with different library payload")
-            return self._abstain(
-                before_digest,
-                request,
-                candidates_considered=1,
-                reason="candidate_already_in_library",
-            )
-
-        candidate = CapabilityCandidate.for_learned_abstraction(generated)
-        result = SynthesisResult(
-            candidate=candidate,
-            receipt=_receipt(request, candidates_considered=1, candidate=candidate),
-        )
-        return self._return(before_digest, result)
+        if request.mode is SynthesisMode.LEARNED_ABSTRACTION_COMPOSITION:
+            return self._synthesize_composition(before_digest, request, sources)
+        if request.mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:
+            return self._synthesize_bounded_search(before_digest, request, sources)
+        raise ValueError("unsupported candidate synthesis mode")
 
 
 __all__ = (
