@@ -13,7 +13,7 @@
 ## Task 1 — RED/GREEN: Canonical component declaration
 
 **Files:**
-- Create: `tests/test_post_epoch0_candidate_synthesis.py`
+- Create: `tests/test_refoundation_post_epoch0_candidate_synthesis.py`
 - Create: `nolane/external_core/candidate_synthesis.py`
 - Modify: `nolane/metadata/_component_specs.py`
 - Modify: `nolane/metadata/component_versions.py`
@@ -25,10 +25,10 @@
 
 ## Task 2 — RED: Proposal/evidence/mutation contracts
 
-Extend `tests/test_post_epoch0_candidate_synthesis.py` before adding behavior.
+Extend `tests/test_refoundation_post_epoch0_candidate_synthesis.py` before adding behavior.
 
 Contracts:
-1. ordered unary source composition creates a new `CapabilityCandidate` whose template is generated from `AbstractionCall` nodes;
+1. ordered unary source composition creates a new standalone `CapabilityCandidate`; transient composition is represented with `AbstractionCall`, then fully expanded before candidate encoding;
 2. same semantic request yields same synthesis ID and candidate ID;
 3. set-like provenance ordering is identity-invariant;
 4. source ordering is semantic and may change candidate identity;
@@ -50,9 +50,10 @@ Implement only what the RED suite requires:
 - `EvidencePhase` / immutable evidence provenance refs;
 - immutable `SynthesisRequest` with canonical normalization;
 - immutable `SynthesisReceipt` with content-derived identity and state round-trip;
-- `CandidateSynthesisEngine.synthesize_learned_abstraction_composition`;
-- ordered composition of unary abstractions using `TemplateParam(0)` and nested `AbstractionCall` nodes;
-- deterministic support-task union and bounded cost accounting;
+- `CandidateSynthesisEngine.synthesize`;
+- ordered composition of unary abstractions through nested `AbstractionCall` IR;
+- full canonical expansion of that IR to a standalone one-parameter template before `CapabilityCandidate` encoding;
+- deterministic support-task union and zero-claim bounded cost accounting;
 - conversion through `CapabilityCandidate.for_learned_abstraction`;
 - fail-closed abstention reasons;
 - before/after Cognitive Library digest guard;
@@ -72,7 +73,7 @@ Verify the component graph has no dependency cycle and the implementation ledger
 ## Task 5 — Verification and merge gate
 
 Focused verification:
-- `python -m pytest -q tests/test_post_epoch0_candidate_synthesis.py`
+- `python -m pytest -q tests/test_refoundation_post_epoch0_candidate_synthesis.py`
 
 Repository verification:
 - `python -m compileall -q cogcoder/organization cogcoder/refoundation nolane`
