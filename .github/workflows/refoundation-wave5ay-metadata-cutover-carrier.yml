@@ -17,6 +17,7 @@ permissions:
 
 jobs:
   cutover:
+    if: ${{ github.event_name == 'push' || github.head_ref == 'refoundation-wave5ay-native-transfer-meta' || startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
