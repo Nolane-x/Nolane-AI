@@ -31,7 +31,7 @@ jobs:
           def replace_once(path: str, old: str, new: str) -> None:
               target = Path(path)
               text = target.read_text(encoding='utf-8')
-              if new in text:
+              if new and new in text:
                   return
               if old not in text:
                   raise SystemExit(f'missing patch anchor in {path}: {old[:120]!r}')
@@ -97,7 +97,6 @@ jobs:
                   '    "external.cognitive_library",\n    "external.capability_acquisition",\n    "external.causal",\n',
                   1,
               )
-          # The explicit write-authority sample must include the new canonical governor.
           marker = '        "external.cognitive_library",\n        "external.causal",\n'
           if marker in text:
               text = text.replace(
