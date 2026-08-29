@@ -70,8 +70,16 @@ def test_epoch0_native_debt_projection_is_exact_terminal_state_and_fresh() -> No
 
 def test_epoch0_closure_is_explicit_without_overclaiming_frozen_neural_authority() -> None:
     status = (ROOT / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
+    assert "## Current state — Epoch 0 CLOSED" in status
+    assert "CURRENT/EPOCH0_CLOSURE.md" in status
+    assert "## Historical native-extraction lineage (closed)" in status
+    assert "## Repository authority and terminal debt" in status
+    assert "No later Refoundation extraction wave is implied or required" in status
     assert "## Wave 5AY — Native transfer/meta authority" in status
     assert "`historical_only` debt reaches zero" in status
+    assert "lineage is continuing semantic ownership extraction" not in status
+    assert "so extraction can continue independently" not in status
+    assert "No current status statement implies that all runtime or External Core surfaces are already native" not in status
 
     closure = (ROOT / "CURRENT" / "EPOCH0_CLOSURE.md").read_text(encoding="utf-8")
     assert CLOSURE_HEADING in closure
