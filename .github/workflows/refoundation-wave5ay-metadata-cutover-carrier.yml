@@ -80,9 +80,9 @@ jobs:
           replacement = '        "external.capability_acquisition",\n        "external.transfer_meta",\n        "external.causal",\n'
           count = text.count(pair)
           if count:
-              if count != 2:
-                  raise SystemExit(f'implementation status accepted/writer anchors: expected 2, found {count}')
-              text = text.replace(pair, replacement)
+              if count != 1:
+                  raise SystemExit(f'implementation status writer anchor: expected 1, found {count}')
+              text = text.replace(pair, replacement, 1)
           accepted_pair = '    "external.capability_acquisition",\n    "external.causal",\n'
           accepted_replacement = '    "external.capability_acquisition",\n    "external.transfer_meta",\n    "external.causal",\n'
           if accepted_replacement not in text:
