@@ -1,0 +1,69 @@
+name: Post-Epoch 0 Candidate Synthesis GREEN 1
+
+on:
+  push:
+    branches:
+      - 'post-epoch0/candidate-synthesis-v0.0.1'
+
+permissions:
+  contents: write
+
+jobs:
+  declare-component:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Apply minimal component declaration
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          module = Path('nolane/external_core/candidate_synthesis.py')
+          if module.exists():
+              raise SystemExit('candidate_synthesis module already exists; GREEN-1 carrier is one-shot')
+          module.write_text(
+              '''from __future__ import annotations\n\n\nCOMPONENT_ID = "external.candidate_synthesis"\nCOMPONENT_VERSION = "0.0.1"\nSCHEMA_VERSION = "candidate-synthesis-v1"\nDESIGN_LINEAGE = "post-Epoch-0 native synthesis; R2.56/R2.61/R2.65 are design provenance only"\n\n\n__all__ = (\n    "COMPONENT_ID",\n    "COMPONENT_VERSION",\n    "SCHEMA_VERSION",\n    "DESIGN_LINEAGE",\n)\n''',
+              encoding='utf-8',
+          )
+
+          specs = Path('nolane/metadata/_component_specs.py')
+          text = specs.read_text(encoding='utf-8')
+          anchor = '    ("external.capability_acquisition", "external_core", "probation, quarantine, promotion and retrieval firewall", "capability-acquisition-v1", ("external.cognitive_library", "external.assurance")),\n'
+          addition = anchor + '    ("external.candidate_synthesis", "external_core", "stateless provenance-bound capability proposal synthesis", "candidate-synthesis-v1", ("external.cognitive_library", "external.capability_acquisition", "external.evidence", "external.causal", "external.experimentation")),\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('component-spec anchor drift')
+          specs.write_text(text.replace(anchor, addition, 1), encoding='utf-8')
+
+          versions = Path('nolane/metadata/component_versions.py')
+          text = versions.read_text(encoding='utf-8')
+          anchor = '        "external.capability_acquisition": 1,\n'
+          addition = anchor + '        "external.candidate_synthesis": 1,\n'
+          if text.count(anchor) != 1:
+              raise SystemExit('component-version anchor drift')
+          versions.write_text(text.replace(anchor, addition, 1), encoding='utf-8')
+
+          status = Path('nolane/metadata/implementation_status.py')
+          text = status.read_text(encoding='utf-8')
+          anchor = '    "external.transfer_meta": (\n'
+          addition = '''    "external.candidate_synthesis": (\n        "nolane.external_core.candidate_synthesis",\n        (),\n        "Native stateless post-Epoch-0 proposal-generation authority over canonical Cognitive Library/CapabilityCandidate boundaries; owns no persistence, probation, promotion, Assurance or neural mutation authority, and historical invention engines remain design provenance only.",\n    ),\n''' + anchor
+          if text.count(anchor) != 1:
+              raise SystemExit('implementation-status anchor drift')
+          status.write_text(text.replace(anchor, addition, 1), encoding='utf-8')
+          PY
+      - name: Verify GREEN-1 focused declaration
+        run: python -m pytest -q tests/test_refoundation_post_epoch0_candidate_synthesis.py
+      - name: Commit tested GREEN-1 declaration
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add nolane/external_core/candidate_synthesis.py nolane/metadata/_component_specs.py nolane/metadata/component_versions.py nolane/metadata/implementation_status.py
+          git commit -m 'feat: declare native candidate synthesis component'
+          git push origin HEAD:${GITHUB_REF_NAME}
