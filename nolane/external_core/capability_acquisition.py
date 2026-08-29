@@ -4,10 +4,10 @@ import json
 import math
 from dataclasses import dataclass, replace
 from enum import Enum
-from typing import Any, Mapping, Protocol
+from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.assurance import PromotionAssuranceReceipt
+from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt
 from nolane.external_core.cognitive_catalog import OperatorFamilyDescriptor
 from nolane.external_core.cognitive_library import (
     COMPONENT_ID as COGNITIVE_LIBRARY_COMPONENT_ID,
@@ -34,10 +34,6 @@ class CapabilityState(str, Enum):
     PROBATION = "probation"
     PROMOTED = "promoted"
     QUARANTINED = "quarantined"
-
-
-class PromotionReceiptStore(Protocol):
-    def promotion_receipt(self, receipt_id: str) -> PromotionAssuranceReceipt: ...
 
 
 def _canonical_json(value: Mapping[str, Any]) -> str:
@@ -404,16 +400,18 @@ class CapabilityAcquisitionGovernor:
 
     @staticmethod
     def _validated_persisted_receipt(
-        assurance: PromotionReceiptStore,
+        assurance: AssuranceControlPlane,
         receipt: PromotionAssuranceReceipt,
     ) -> PromotionAssuranceReceipt:
+        if not isinstance(assurance, AssuranceControlPlane):
+            raise TypeError("assurance must be native AssuranceControlPlane")
         if not isinstance(receipt, PromotionAssuranceReceipt):
             raise TypeError("receipt must be PromotionAssuranceReceipt")
         # Recompute the native receipt digest instead of trusting a detached
         # dataclass instance supplied by the caller.
         PromotionAssuranceReceipt.from_state(receipt.to_state())
         try:
-            persisted = assurance.promotion_receipt(receipt.receipt_id)
+            persisted = AssuranceControlPlane.promotion_receipt(assurance, receipt.receipt_id)
         except (KeyError, LookupError) as exc:
             raise ValueError("persisted assurance receipt is required") from exc
         if not isinstance(persisted, PromotionAssuranceReceipt):

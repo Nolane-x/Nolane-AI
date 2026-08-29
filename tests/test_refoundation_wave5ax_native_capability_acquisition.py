@@ -10,7 +10,7 @@ import pytest
 from cogcoder.refoundation.component_versions import component_version
 from cogcoder.refoundation.implementation_status import ImplementationStatus, build_component_implementation_ledger
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.assurance import PromotionAssuranceReceipt
+from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt
 from nolane.external_core.cognitive_catalog import OperatorFamilyDescriptor, SubOperatorDescriptor
 from nolane.external_core.cognitive_library import CognitiveLibrary
 
@@ -78,15 +78,10 @@ def _promotion_receipt(
     )
 
 
-class _AssurancePlane:
-    def __init__(self, *receipts: PromotionAssuranceReceipt) -> None:
-        self._receipts = {row.receipt_id: row for row in receipts}
-
-    def promotion_receipt(self, receipt_id: str) -> PromotionAssuranceReceipt:
-        try:
-            return self._receipts[receipt_id]
-        except KeyError as exc:
-            raise KeyError(receipt_id) from exc
+def _assurance_plane(*receipts: PromotionAssuranceReceipt) -> AssuranceControlPlane:
+    plane = object.__new__(AssuranceControlPlane)
+    plane._promotion_receipts = {row.receipt_id: row for row in receipts}
+    return plane
 
 
 def _ready(native, *, library: CognitiveLibrary | None = None, display_name: str = "candidate"):
@@ -183,7 +178,7 @@ def test_wave5ax_promotion_requires_exact_persisted_assurance_receipt_and_eviden
         predecessor_version=baseline,
     )
     with pytest.raises(ValueError, match="persisted assurance"):
-        governor.promote(candidate.candidate_id, assurance=_AssurancePlane(), receipt=forged)
+        governor.promote(candidate.candidate_id, assurance=_assurance_plane(), receipt=forged)
     assert library.digest == baseline
 
     wrong_subject = _promotion_receipt(
@@ -195,7 +190,7 @@ def test_wave5ax_promotion_requires_exact_persisted_assurance_receipt_and_eviden
     with pytest.raises(ValueError, match="subject"):
         governor.promote(
             candidate.candidate_id,
-            assurance=_AssurancePlane(wrong_subject),
+            assurance=_assurance_plane(wrong_subject),
             receipt=wrong_subject,
         )
     assert library.digest == baseline
@@ -209,7 +204,7 @@ def test_wave5ax_promotion_requires_exact_persisted_assurance_receipt_and_eviden
     with pytest.raises(ValueError, match="evidence"):
         governor.promote(
             candidate.candidate_id,
-            assurance=_AssurancePlane(wrong_evidence),
+            assurance=_assurance_plane(wrong_evidence),
             receipt=wrong_evidence,
         )
     assert library.digest == baseline
@@ -222,7 +217,7 @@ def test_wave5ax_promotion_requires_exact_persisted_assurance_receipt_and_eviden
     )
     promoted = governor.promote(
         candidate.candidate_id,
-        assurance=_AssurancePlane(accepted),
+        assurance=_assurance_plane(accepted),
         receipt=accepted,
     )
     assert promoted.state is native.CapabilityState.PROMOTED
@@ -258,7 +253,7 @@ def test_wave5ax_library_baseline_drift_and_unauthorized_receipts_fail_closed() 
     with pytest.raises(ValueError, match="baseline"):
         governor.promote(
             candidate.candidate_id,
-            assurance=_AssurancePlane(drifted),
+            assurance=_assurance_plane(drifted),
             receipt=drifted,
         )
     with pytest.raises(KeyError):
@@ -275,7 +270,7 @@ def test_wave5ax_library_baseline_drift_and_unauthorized_receipts_fail_closed() 
     with pytest.raises(ValueError, match="authorized"):
         clean_governor.promote(
             clean_candidate.candidate_id,
-            assurance=_AssurancePlane(rejected),
+            assurance=_assurance_plane(rejected),
             receipt=rejected,
         )
     with pytest.raises(KeyError):
@@ -291,7 +286,7 @@ def test_wave5ax_retrieval_firewall_revokes_promoted_capability_after_live_failu
         evidence_ids=evidence_ids,
         predecessor_version=library.digest,
     )
-    governor.promote(candidate.candidate_id, assurance=_AssurancePlane(receipt), receipt=receipt)
+    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
     assert governor.retrieve(candidate.candidate_id) == _family()
 
     revoked = governor.report_live_failure(candidate.candidate_id, reason="post-promotion regression")
@@ -313,7 +308,7 @@ def test_wave5ax_snapshot_roundtrip_is_deterministic_and_rejects_tampering() -> 
         evidence_ids=evidence_ids,
         predecessor_version=library.digest,
     )
-    governor.promote(candidate.candidate_id, assurance=_AssurancePlane(receipt), receipt=receipt)
+    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
 
     state = governor.to_state()
     encoded = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
