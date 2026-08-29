@@ -1,4 +1,4 @@
-"""Compatibility bridge into the canonical AI-first organization specification."""
+"""Canonical organization specification sourced from AI-first Nolane data."""
 
 from nolane.ai.catalog import (
     CENTRAL_TOOLS,

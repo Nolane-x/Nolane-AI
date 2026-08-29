@@ -1,9 +1,9 @@
-from cogcoder.refoundation.component_versions import (
+from nolane.metadata.component_versions import (
     component_revision_map,
     component_version,
     next_component_version,
 )
-from cogcoder.refoundation.versioning import ComponentVersion
+from nolane.metadata.versioning import ComponentVersion
 
 __all__ = (
     "ComponentVersion",

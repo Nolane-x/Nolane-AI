@@ -1,5 +1,5 @@
-from cogcoder.refoundation.composition import CompositionLock, build_wave1_composition_lock
-from cogcoder.refoundation.manifests import ComponentManifest, build_component_manifests
+from nolane.metadata.composition import CompositionLock, build_wave1_composition_lock
+from nolane.metadata.manifests import ComponentManifest, build_component_manifests
 
 COMPONENT_ID = "organization.runtime"
 COMPONENT_VERSION = "0.0.0"
