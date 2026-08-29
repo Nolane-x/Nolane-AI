@@ -49,6 +49,7 @@ COMPONENT_SPECS: tuple[tuple[str, str, str, str, tuple[str, ...]], ...] = (
     ("external.research", "external_core", "freshness/provenance research and governed handoff", "research-v1", ("external.assurance", "external.artifacts")),
     ("external.cognitive_library", "external_core", "typed operators, abstractions and reusable cognitive primitives", "cognitive-library-v1", ("external.evidence",)),
     ("external.capability_acquisition", "external_core", "probation, quarantine, promotion and retrieval firewall", "capability-acquisition-v1", ("external.cognitive_library", "external.assurance")),
+    ("external.candidate_synthesis", "external_core", "stateless provenance-bound capability proposal synthesis", "candidate-synthesis-v1", ("external.cognitive_library", "external.capability_acquisition", "external.evidence", "external.causal", "external.experimentation")),
     ("external.causal", "external_core", "bounded proof-carrying causal basis mechanisms", "causal-v1", ("external.cognitive_library", "external.evidence")),
     ("external.experimentation", "external_core", "active probes, interventions and version-space experiments", "experimentation-v1", ("external.causal", "external.evidence")),
     ("external.transfer_meta", "external_core", "portable verified experience and governed meta reuse", "transfer-meta-v1", ("external.causal", "external.experience", "external.assurance")),

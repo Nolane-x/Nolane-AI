@@ -182,6 +182,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native R2.55-lineage candidate/probation/promotion/quarantine governor over canonical Cognitive Library and Assurance boundaries, with content-addressed candidate identity, exact persisted promotion-receipt/evidence/baseline binding, fail-closed library drift, promoted-only retrieval firewall, live-failure revocation and deterministic state restoration; candidate generation and later version-space expansion remain outside this ownership boundary.",
     ),
+    "external.candidate_synthesis": (
+        "nolane.external_core.candidate_synthesis",
+        (),
+        "Native stateless post-Epoch-0 proposal-generation authority over canonical Cognitive Library/CapabilityCandidate boundaries; owns no persistence, probation, promotion, Assurance or neural mutation authority, and historical invention engines remain design provenance only.",
+    ),
     "external.transfer_meta": (
         "nolane.external_core.transfer_meta",
         (

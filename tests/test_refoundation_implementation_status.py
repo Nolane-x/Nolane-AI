@@ -29,6 +29,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.research",
     "external.cognitive_library",
     "external.capability_acquisition",
+    "external.candidate_synthesis",
     "external.transfer_meta",
     "external.causal",
     "external.experimentation",
