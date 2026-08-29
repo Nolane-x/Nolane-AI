@@ -7,18 +7,9 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 ## Counts
 
 - `frozen_asset`: 1
-- `historical_only`: 2
+- `historical_only`: 1
 
 ## Components
-
-### `external.capability_acquisition`
-
-- Component version: `0.0.0`
-- Status: `historical_only`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: historical capability-acquisition mechanisms; extraction not yet accepted
-- Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
 
 ### `external.transfer_meta`
 

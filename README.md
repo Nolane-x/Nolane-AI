@@ -117,3 +117,5 @@ GitHub `main` contains source, locks, results, manifests and CI. Large neural ch
 ## License
 
 Research code currently follows licenses embedded in imported/derived components. A repository-wide license should only be declared after those component licenses are audited.
+
+- **Wave 5AX native capability acquisition:** R2.55-lineage candidate → probation → promoted/quarantined governance now lives in `nolane.external_core.capability_acquisition`, with exact Assurance receipt/evidence/baseline binding and a promoted-only retrieval firewall.

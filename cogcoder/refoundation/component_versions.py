@@ -29,6 +29,7 @@ _COMPONENT_REVISIONS.update(
         "external.research": 1,
         "external.cognitive_library": 1,
         "external.causal": 1,
+        "external.capability_acquisition": 1,
         "external.experimentation": 1,
         "external.verification": 1,
         "external.evidence": 1,

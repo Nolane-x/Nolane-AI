@@ -171,6 +171,17 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native typed operator catalog, bounded expression DSL, learned abstraction vocabulary and deterministic cognitive-library snapshot authority; R2.53/R2.56/R2.57 remain historical parity and provenance oracles.",
     ),
+    "external.capability_acquisition": (
+        "nolane.external_core.capability_acquisition",
+        (
+            "cogcoder/r255_hardened_acquisition.py",
+            "cogcoder/r255_lifecycle.py",
+            "cogcoder/r255_authority.py",
+            "cogcoder/r255_reliability.py",
+            "cogcoder/r255_retrieval_firewall.py",
+        ),
+        "Native R2.55-lineage candidate/probation/promotion/quarantine governor over canonical Cognitive Library and Assurance boundaries, with content-addressed candidate identity, exact persisted promotion-receipt/evidence/baseline binding, fail-closed library drift, promoted-only retrieval firewall, live-failure revocation and deterministic state restoration; candidate generation and later version-space expansion remain outside this ownership boundary.",
+    ),
     "external.causal": (
         "nolane.external_core.causal",
         (
@@ -382,7 +393,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.capability_acquisition": ("historical capability-acquisition mechanisms; extraction not yet accepted",),
     "external.transfer_meta": ("historical transfer/meta-learning mechanisms; extraction not yet accepted",),
 }
 
