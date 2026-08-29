@@ -3,17 +3,6 @@
     {
       "canonical_module": null,
       "canonical_write_authority": false,
-      "component_id": "external.transfer_meta",
-      "component_version": "0.0.0",
-      "implementation_status": "historical_only",
-      "legacy_sources": [
-        "historical transfer/meta-learning mechanisms; extraction not yet accepted"
-      ],
-      "notes": "Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet."
-    },
-    {
-      "canonical_module": null,
-      "canonical_write_authority": false,
       "component_id": "neural.shared",
       "component_version": "0.0.0",
       "implementation_status": "frozen_asset",
@@ -24,8 +13,7 @@
     }
   ],
   "counts_by_status": {
-    "frozen_asset": 1,
-    "historical_only": 1
+    "frozen_asset": 1
   },
   "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
   "repository_quarantine_version": "0.0.0",

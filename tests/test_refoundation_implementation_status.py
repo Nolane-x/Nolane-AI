@@ -29,6 +29,7 @@ ACCEPTED_CANONICAL_NATIVE_COMPONENTS = {
     "external.research",
     "external.cognitive_library",
     "external.capability_acquisition",
+    "external.transfer_meta",
     "external.causal",
     "external.experimentation",
     "external.verification",
@@ -87,6 +88,7 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         "external.operations",
         "external.cognitive_library",
         "external.capability_acquisition",
+        "external.transfer_meta",
         "external.causal",
         "external.experimentation",
         "external.context",
@@ -114,13 +116,14 @@ def test_manifest_presence_never_implies_migration_completion() -> None:
         assert ledger[component_id].canonical_write_authority
 
 
-def test_unextracted_cognitive_components_are_not_falsely_marked_canonical() -> None:
+def test_historical_only_component_debt_is_empty_after_wave5ay_cutover() -> None:
     ledger = build_component_implementation_ledger()
-    for component_id in (
-        "external.transfer_meta",
-    ):
-        assert ledger[component_id].status is ImplementationStatus.HISTORICAL_ONLY
-        assert not ledger[component_id].canonical_write_authority
+    historical = {
+        component_id
+        for component_id, row in ledger.items()
+        if row.status is ImplementationStatus.HISTORICAL_ONLY
+    }
+    assert historical == set()
 
 
 def test_frozen_neural_asset_is_not_conflated_with_runtime_adapter() -> None:
