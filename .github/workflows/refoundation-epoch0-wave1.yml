@@ -43,10 +43,10 @@ jobs:
         run: python -m nolane.ai.materialize --check
       - name: Verify repository quarantine audit is fresh
         run: python -m nolane.repository.audit --check
-      - name: Upload Wave 5O generated audit carrier
+      - name: Upload Refoundation Epoch 0 generated audit snapshot
         uses: actions/upload-artifact@v4
         with:
-          name: refoundation-wave5o-audit-py${{ matrix.python-version }}
+          name: refoundation-epoch0-audit-py${{ matrix.python-version }}
           path: |
             CURRENT/NATIVE_DEBT.json
             CURRENT/NATIVE_DEBT.md
