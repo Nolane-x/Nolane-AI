@@ -1,0 +1,65 @@
+name: Post-Epoch 0 metadata authority carrier fix
+
+on:
+  push:
+    branches:
+      - post-epoch0/metadata-authority-hardening
+    paths:
+      - .github/workflows/post-epoch0-metadata-authority-carrier-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/metadata-authority-hardening
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install focused test dependency
+        run: python -m pip install -q pytest
+
+      - name: Reuse proven migration script
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          carrier = Path('.github/workflows/post-epoch0-metadata-authority-carrier.yml').read_text(encoding='utf-8')
+          start_marker = "          from pathlib import Path\n"
+          end_marker = "          PY\n\n      - name: Verify focused metadata migration"
+          start = carrier.index(start_marker)
+          end = carrier.index(end_marker, start)
+          block = carrier[start:end]
+          script = "\n".join(line[10:] if line.startswith("          ") else line for line in block.splitlines()) + "\n"
+          exec(compile(script, '<metadata-authority-carrier>', 'exec'), {})
+          PY
+
+      - name: Verify focused metadata migration
+        shell: bash
+        run: |
+          python -m compileall -q cogcoder/refoundation nolane
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_metadata_authority.py \
+            tests/test_refoundation_post_epoch0_native_boundary.py \
+            tests/test_refoundation_epoch0_final_closure.py
+          python -m nolane.repository.audit --check
+
+      - name: Self-delete carriers and commit
+        shell: bash
+        run: |
+          rm .github/workflows/post-epoch0-metadata-authority-carrier.yml
+          rm .github/workflows/post-epoch0-metadata-authority-carrier-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: move canonical metadata authority into nolane"
+          git push origin HEAD:post-epoch0/metadata-authority-hardening
