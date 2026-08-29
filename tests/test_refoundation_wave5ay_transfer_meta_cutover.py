@@ -28,12 +28,20 @@ def test_wave5ay_transfer_meta_authority_version_provenance_and_debt_cutover() -
     )
 
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
+    assert debt["schema_version"] == "nolane-native-debt-v1"
     assert debt["counts_by_status"] == {"frozen_asset": 1}
     assert [record["component_id"] for record in debt["components"]] == ["neural.shared"]
-    assert all(record["implementation_status"] != "historical_only" for record in debt["components"])
+    remaining = debt["components"][0]
+    assert remaining["implementation_status"] == "frozen_asset"
+    assert remaining["canonical_module"] is None
+    assert not remaining["canonical_write_authority"]
+    assert remaining["legacy_sources"] == ["model/neural-r2.3"]
 
     status = (_root() / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
     assert "Wave 5AY" in status
     assert "external.transfer_meta" in status
     assert "moves from 2 to 1 non-native" in status
     assert "historical_only` debt reaches zero" in status
+
+    carrier = _root() / ".github" / "workflows" / "refoundation-wave5ay-metadata-cutover-carrier.yml"
+    assert not carrier.exists()
