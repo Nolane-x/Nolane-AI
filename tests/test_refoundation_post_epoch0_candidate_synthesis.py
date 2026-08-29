@@ -102,20 +102,20 @@ def _request(source_ids: tuple[str, ...], *, budget: int = 1, reverse_provenance
     )
 
 
-def test_candidate_synthesis_is_declared_as_native_v002_component() -> None:
+def test_candidate_synthesis_is_declared_as_native_v003_component() -> None:
     assert importlib.util.find_spec(CANONICAL_MODULE) is not None
 
     manifests = {row.component_id: row for row in build_component_manifests()}
     assert COMPONENT_ID in manifests
     manifest = manifests[COMPONENT_ID]
-    assert str(manifest.version) == "0.0.2"
+    assert str(manifest.version) == "0.0.3"
     assert manifest.layer == "external_core"
     assert manifest.state_schema == "candidate-synthesis-v1"
 
     ledger = build_component_implementation_ledger()
     record = ledger[COMPONENT_ID]
     assert record.status is ImplementationStatus.CANONICAL_NATIVE
-    assert record.component_version == "0.0.2"
+    assert record.component_version == "0.0.3"
     assert record.canonical_module == CANONICAL_MODULE
     assert record.legacy_sources == ()
 
