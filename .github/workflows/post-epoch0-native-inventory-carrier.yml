@@ -1,0 +1,249 @@
+name: Post-Epoch 0 native inventory semantics carrier
+
+on:
+  push:
+    branches:
+      - post-epoch0/native-inventory-semantics
+    paths:
+      - .github/workflows/post-epoch0-native-inventory-carrier.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/native-inventory-semantics
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install focused test dependency
+        run: python -m pip install -q pytest
+
+      - name: Harden non-native inventory semantics at generator source
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('nolane/repository/audit_v2.py')
+          text = path.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  'DEBT_SCHEMA_VERSION = "nolane-native-debt-v1"\nREFERENCE_AUDIT_POLICY = "root-reference-aware-zero-loss-v2"',
+                  'DEBT_SCHEMA_VERSION = "nolane-native-debt-v2"\nREFERENCE_AUDIT_POLICY = "root-reference-aware-zero-loss-v2"\n_ACTIONABLE_MIGRATION_STATUSES = frozenset(\n    {\n        ImplementationStatus.COMPATIBILITY_FACADE,\n        ImplementationStatus.LEGACY_INTERNAL,\n        ImplementationStatus.HISTORICAL_ONLY,\n    }\n)'
+              ),
+              (
+'''def build_native_debt() -> dict[str, Any]:
+    ledger = build_component_implementation_ledger()
+    components: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    for component_id in sorted(ledger):
+        row = ledger[component_id]
+        if row.status is ImplementationStatus.CANONICAL_NATIVE:
+            continue
+        status = row.status.value
+        counts[status] = counts.get(status, 0) + 1
+        components.append(
+            {
+                "component_id": row.component_id,
+                "component_version": row.component_version,
+                "implementation_status": status,
+                "canonical_module": row.canonical_module,
+                "legacy_sources": list(row.legacy_sources),
+                "canonical_write_authority": row.canonical_write_authority,
+                "notes": row.notes,
+            }
+        )
+    return {
+        "schema_version": DEBT_SCHEMA_VERSION,
+        "repository_quarantine_version": COMPONENT_VERSION,
+        "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
+        "counts_by_status": {key: counts[key] for key in sorted(counts)},
+        "components": components,
+    }
+''',
+'''def build_native_debt() -> dict[str, Any]:
+    ledger = build_component_implementation_ledger()
+    components: list[dict[str, Any]] = []
+    counts: dict[str, int] = {}
+    actionable_migration_debt_count = 0
+    accepted_non_migration_count = 0
+    for component_id in sorted(ledger):
+        row = ledger[component_id]
+        if row.status is ImplementationStatus.CANONICAL_NATIVE:
+            continue
+        status = row.status.value
+        if row.status in _ACTIONABLE_MIGRATION_STATUSES:
+            migration_action_required = True
+            actionable_migration_debt_count += 1
+        elif row.status is ImplementationStatus.FROZEN_ASSET:
+            migration_action_required = False
+            accepted_non_migration_count += 1
+        else:
+            raise ValueError(f"unclassified non-native implementation status: {row.status!r}")
+        counts[status] = counts.get(status, 0) + 1
+        components.append(
+            {
+                "component_id": row.component_id,
+                "component_version": row.component_version,
+                "implementation_status": status,
+                "migration_action_required": migration_action_required,
+                "canonical_module": row.canonical_module,
+                "legacy_sources": list(row.legacy_sources),
+                "canonical_write_authority": row.canonical_write_authority,
+                "notes": row.notes,
+            }
+        )
+    return {
+        "schema_version": DEBT_SCHEMA_VERSION,
+        "repository_quarantine_version": COMPONENT_VERSION,
+        "definition": "Every canonical component not classified canonical_native. This is a broad non-native implementation inventory; only records with migration_action_required=true are actionable migration debt.",
+        "actionable_migration_debt_count": actionable_migration_debt_count,
+        "accepted_non_migration_count": accepted_non_migration_count,
+        "counts_by_status": {key: counts[key] for key in sorted(counts)},
+        "components": components,
+    }
+'''
+              ),
+              (
+'''def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
+    components = list(payload["components"])
+    counts = dict(payload["counts_by_status"])
+    lines = [
+        "# Native Implementation Debt",
+        "",
+        f"Repository quarantine component: `{payload['repository_quarantine_version']}`.",
+        "",
+        "This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It lists every canonical semantic component whose executable implementation is not yet classified `canonical_native`. It does **not** mean the component is broken or unaccepted; it makes remaining migration work impossible to hide.",
+        "",
+        "## Counts",
+        "",
+    ]
+    if counts:
+        for status in sorted(counts):
+            lines.append(f"- `{status}`: {counts[status]}")
+    else:
+        lines.append("- No remaining non-native components.")
+    lines.extend(("", "## Components", ""))
+    for row in components:
+        canonical = row["canonical_module"] or "none"
+        legacy = ", ".join(row["legacy_sources"]) or "none declared"
+        lines.extend(
+            (
+                f"### `{row['component_id']}`",
+                "",
+                f"- Component version: `{row['component_version']}`",
+                f"- Status: `{row['implementation_status']}`",
+                f"- Canonical module: `{canonical}`",
+                f"- Canonical write authority: `{str(bool(row['canonical_write_authority'])).lower()}`",
+                f"- Legacy/provenance sources: {legacy}",
+                f"- Notes: {row['notes']}",
+                "",
+            )
+        )
+    lines.append(
+        "> GENERATED VIEW — update implementation authority at its canonical source and regenerate; never hand-edit this debt projection."
+    )
+    lines.append("")
+    return "\n".join(lines)
+''',
+'''def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
+    components = list(payload["components"])
+    counts = dict(payload["counts_by_status"])
+    lines = [
+        "# Non-Native Implementation Inventory",
+        "",
+        f"Repository quarantine component: `{payload['repository_quarantine_version']}`.",
+        "",
+        "This file is the generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It is a broad non-native implementation inventory. Records with `migration_action_required=true` are actionable migration debt. Frozen assets can be accepted terminal records and remain listed for authority transparency.",
+        "",
+        "## Summary",
+        "",
+        f"- Actionable migration debt: `{payload['actionable_migration_debt_count']}`",
+        f"- Accepted non-migration records: `{payload['accepted_non_migration_count']}`",
+        "",
+        "## Counts by status",
+        "",
+    ]
+    if counts:
+        for status in sorted(counts):
+            lines.append(f"- `{status}`: {counts[status]}")
+    else:
+        lines.append("- No remaining non-native components.")
+    lines.extend(("", "## Components", ""))
+    for row in components:
+        canonical = row["canonical_module"] or "none"
+        legacy = ", ".join(row["legacy_sources"]) or "none declared"
+        lines.extend(
+            (
+                f"### `{row['component_id']}`",
+                "",
+                f"- Component version: `{row['component_version']}`",
+                f"- Status: `{row['implementation_status']}`",
+                f"- Migration action required: `{str(bool(row['migration_action_required'])).lower()}`",
+                f"- Canonical module: `{canonical}`",
+                f"- Canonical write authority: `{str(bool(row['canonical_write_authority'])).lower()}`",
+                f"- Legacy/provenance sources: {legacy}",
+                f"- Notes: {row['notes']}",
+                "",
+            )
+        )
+    lines.append(
+        "> GENERATED VIEW — update implementation authority at its canonical source and regenerate; never hand-edit this inventory projection."
+    )
+    lines.append("")
+    return "\n".join(lines)
+'''
+              ),
+              (
+                  'description="Materialize/check Nolane repository history and native-debt audit views."',
+                  'description="Materialize/check Nolane repository history and non-native inventory audit views."'
+              ),
+              (
+'''        f"{reference_debt} with reference debt; "
+        f"{len(debt['components'])} non-native component records."
+''',
+'''        f"{reference_debt} with reference debt; "
+        f"{len(debt['components'])} non-native component records; "
+        f"{debt['actionable_migration_debt_count']} actionable migration debt."
+'''
+              ),
+          ]
+
+          for old, new in replacements:
+              if text.count(old) != 1:
+                  raise SystemExit(f'generator anchor drift for block beginning: {old[:80]!r}')
+              text = text.replace(old, new)
+          path.write_text(text, encoding='utf-8')
+          PY
+
+      - name: Regenerate canonical projections
+        run: python -m nolane.repository.audit --write
+
+      - name: Verify focused semantics and freshness
+        shell: bash
+        run: |
+          python -m compileall -q nolane
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_native_inventory_semantics.py \
+            tests/test_refoundation_epoch0_final_closure.py
+          python -m nolane.repository.audit --check
+
+      - name: Self-delete and commit
+        shell: bash
+        run: |
+          rm .github/workflows/post-epoch0-native-inventory-carrier.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet && exit 0
+          git commit -m "refactor: distinguish frozen inventory from migration debt"
+          git push origin HEAD:post-epoch0/native-inventory-semantics
