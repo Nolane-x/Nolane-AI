@@ -1,11 +1,11 @@
 """Canonical Nolane runtime API.
 
-This package is the clean Refoundation entrypoint. Historical
-``cogcoder.organization.runtime*`` modules remain compatibility implementation
-and evidence sources until their migration receipts permit archival.
+Canonical authority lives in this namespace.  The accepted Epoch-0 behavioral
+substrate is reachable only through ``nolane.compatibility`` and carries no
+canonical write authority of its own.
 """
 
-from cogcoder.refoundation.canonical_runtime import CanonicalOrganization
+from nolane.compatibility.refoundation import CanonicalOrganization
 
 from .composition import (
     SemanticRuntimeComposition,
