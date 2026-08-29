@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: post-epoch0/native-inventory-semantics
-          fetch-depth: 5
+          fetch-depth: 2
 
       - uses: actions/setup-python@v5
         with:
@@ -26,66 +26,149 @@ jobs:
       - name: Install focused test dependency
         run: python -m pip install -q pytest
 
-      - name: Recover and harden reviewed migration payload
+      - name: Apply native inventory semantics v2
         shell: bash
         run: |
           python - <<'PY'
           from __future__ import annotations
 
-          import base64
-          import subprocess
           from pathlib import Path
 
-          workflow_path = ".github/workflows/post-epoch0-native-inventory-carrier.yml"
-          prefix = "echo '"
-          suffix = "' | base64 -d > /tmp/migrate-native-inventory.py"
-          payload = None
+          path = Path("nolane/repository/audit_v2.py")
+          text = path.read_text(encoding="utf-8")
 
-          for depth in range(1, 5):
-              revision = "HEAD" + "^" * depth
-              try:
-                  previous = subprocess.check_output(
-                      ["git", "show", f"{revision}:{workflow_path}"],
-                      text=True,
-                      stderr=subprocess.DEVNULL,
+          old_schema = 'DEBT_SCHEMA_VERSION = "nolane-native-debt-v1"'
+          if text.count(old_schema) != 1:
+              raise SystemExit("native inventory schema anchor drift")
+          text = text.replace(
+              old_schema,
+              'DEBT_SCHEMA_VERSION = "nolane-native-debt-v2"',
+              1,
+          )
+
+          reference_anchor = 'REFERENCE_AUDIT_POLICY = "root-reference-aware-zero-loss-v2"\n'
+          if text.count(reference_anchor) != 1:
+              raise SystemExit("reference policy anchor drift")
+          text = text.replace(
+              reference_anchor,
+              reference_anchor
+              + "_ACTIONABLE_MIGRATION_STATUSES = frozenset(\n"
+              + "    {\n"
+              + "        ImplementationStatus.COMPATIBILITY_FACADE,\n"
+              + "        ImplementationStatus.LEGACY_INTERNAL,\n"
+              + "        ImplementationStatus.HISTORICAL_ONLY,\n"
+              + "    }\n"
+              + ")\n",
+              1,
+          )
+
+          build_start = text.index("def build_native_debt() -> dict[str, Any]:")
+          render_start = text.index("def render_native_debt_markdown", build_start)
+          json_start = text.index("def _json_bytes", render_start)
+
+          new_build = r'''def build_native_debt() -> dict[str, Any]:
+              ledger = build_component_implementation_ledger()
+              components: list[dict[str, Any]] = []
+              counts: dict[str, int] = {}
+              actionable_migration_debt_count = 0
+              accepted_non_migration_count = 0
+              for component_id in sorted(ledger):
+                  row = ledger[component_id]
+                  if row.status is ImplementationStatus.CANONICAL_NATIVE:
+                      continue
+                  status = row.status.value
+                  if row.status in _ACTIONABLE_MIGRATION_STATUSES:
+                      migration_action_required = True
+                      actionable_migration_debt_count += 1
+                  elif row.status is ImplementationStatus.FROZEN_ASSET:
+                      migration_action_required = False
+                      accepted_non_migration_count += 1
+                  else:
+                      raise ValueError(
+                          f"unclassified non-native implementation status: {row.status!r}"
+                      )
+                  counts[status] = counts.get(status, 0) + 1
+                  components.append(
+                      {
+                          "component_id": row.component_id,
+                          "component_version": row.component_version,
+                          "implementation_status": status,
+                          "migration_action_required": migration_action_required,
+                          "canonical_module": row.canonical_module,
+                          "legacy_sources": list(row.legacy_sources),
+                          "canonical_write_authority": row.canonical_write_authority,
+                          "notes": row.notes,
+                      }
                   )
-              except subprocess.CalledProcessError:
-                  continue
-              for line in previous.splitlines():
-                  stripped = line.strip()
-                  if stripped.startswith(prefix) and stripped.endswith(suffix):
-                      payload = stripped[len(prefix) : -len(suffix)]
-                      break
-              if payload is not None:
-                  break
+              return {
+                  "schema_version": DEBT_SCHEMA_VERSION,
+                  "repository_quarantine_version": COMPONENT_VERSION,
+                  "definition": "Every canonical component not yet classified canonical_native. This is a broad non-native implementation inventory; only records with migration_action_required=true are actionable migration debt.",
+                  "actionable_migration_debt_count": actionable_migration_debt_count,
+                  "accepted_non_migration_count": accepted_non_migration_count,
+                  "counts_by_status": {key: counts[key] for key in sorted(counts)},
+                  "components": components,
+              }
+          '''
 
-          if payload is None:
-              raise SystemExit("reviewed migration payload not found in carrier history")
-
-          migration = base64.b64decode(payload, validate=True).decode("utf-8")
-          declarations = [
-              line for line in migration.splitlines() if line.startswith("new_renderer = ")
-          ]
-          if len(declarations) != 1:
-              raise SystemExit(
-                  f"renderer declaration drift: expected 1, found {len(declarations)}"
+          new_renderer = r'''def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
+              components = list(payload["components"])
+              counts = dict(payload["counts_by_status"])
+              lines = [
+                  "# Non-Native Implementation Inventory",
+                  "",
+                  f"Repository quarantine component: `{payload['repository_quarantine_version']}`.",
+                  "",
+                  "This file is the generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It is a broad non-native implementation inventory. Only records with `migration_action_required=true` are actionable migration debt. Frozen assets can be accepted terminal records when their role and authority are explicitly bounded.",
+                  "",
+                  "## Summary",
+                  "",
+                  f"- Actionable migration debt: `{payload['actionable_migration_debt_count']}`",
+                  f"- Accepted non-migration records: `{payload['accepted_non_migration_count']}`",
+                  "",
+                  "## Counts by status",
+                  "",
+              ]
+              if counts:
+                  for status in sorted(counts):
+                      lines.append(f"- `{status}`: {counts[status]}")
+              else:
+                  lines.append("- No remaining non-native components.")
+              lines.extend(("", "## Components", ""))
+              for row in components:
+                  canonical = row["canonical_module"] or "none"
+                  legacy = ", ".join(row["legacy_sources"]) or "none declared"
+                  lines.extend(
+                      (
+                          f"### `{row['component_id']}`",
+                          "",
+                          f"- Component version: `{row['component_version']}`",
+                          f"- Status: `{row['implementation_status']}`",
+                          f"- Migration action required: `{str(bool(row['migration_action_required'])).lower()}`",
+                          f"- Canonical module: `{canonical}`",
+                          f"- Canonical write authority: `{str(bool(row['canonical_write_authority'])).lower()}`",
+                          f"- Legacy/provenance sources: {legacy}",
+                          f"- Notes: {row['notes']}",
+                          "",
+                      )
+                  )
+              lines.append(
+                  "> GENERATED VIEW — update implementation authority at its canonical source and regenerate; never hand-edit this inventory projection."
               )
-          declaration = declarations[0]
-          if declaration.startswith('new_renderer = r"""'):
-              pass
-          elif declaration.startswith('new_renderer = """'):
-              migration = migration.replace(
-                  'new_renderer = """',
-                  'new_renderer = r"""',
-                  1,
-              )
-          else:
-              raise SystemExit(f"unsupported renderer declaration: {declaration!r}")
+              lines.append("")
+              return "\n".join(lines)
+          '''
 
-          compile(migration, "/tmp/migrate-native-inventory.py", "exec")
-          Path("/tmp/migrate-native-inventory.py").write_text(migration, encoding="utf-8")
+          # The strings above are indented for YAML readability; normalize only their common indentation.
+          import textwrap
+
+          new_build = textwrap.dedent(new_build).lstrip()
+          new_renderer = textwrap.dedent(new_renderer).lstrip()
+          text = text[:build_start] + new_build + "\n\n" + new_renderer + "\n\n" + text[json_start:]
+
+          compile(text, str(path), "exec")
+          path.write_text(text, encoding="utf-8")
           PY
-          python /tmp/migrate-native-inventory.py
 
       - name: Compile migrated source before generation
         run: python -m compileall -q nolane scripts
