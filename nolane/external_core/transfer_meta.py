@@ -187,6 +187,8 @@ class PortableExperienceSourceReceipt:
     portable_id: str
     source_experience_id: str
     attribution_id: str
+    source_experience_digest: str
+    source_attribution_digest: str
     source_evidence_digest: str
     causal_row_digest: str | None
     source_authority_digest: str
@@ -197,6 +199,8 @@ class PortableExperienceSourceReceipt:
             "portable_id": _nonempty(self.portable_id, "portable_id"),
             "source_experience_id": _nonempty(self.source_experience_id, "source_experience_id"),
             "attribution_id": _nonempty(self.attribution_id, "attribution_id"),
+            "source_experience_digest": _nonempty(self.source_experience_digest, "source_experience_digest"),
+            "source_attribution_digest": _nonempty(self.source_attribution_digest, "source_attribution_digest"),
             "source_evidence_digest": _nonempty(self.source_evidence_digest, "source_evidence_digest"),
             "causal_row_digest": None if self.causal_row_digest is None else _nonempty(self.causal_row_digest, "causal_row_digest"),
         }
@@ -210,6 +214,8 @@ class PortableExperienceSourceReceipt:
         object.__setattr__(self, "portable_id", values["portable_id"])
         object.__setattr__(self, "source_experience_id", values["source_experience_id"])
         object.__setattr__(self, "attribution_id", values["attribution_id"])
+        object.__setattr__(self, "source_experience_digest", values["source_experience_digest"])
+        object.__setattr__(self, "source_attribution_digest", values["source_attribution_digest"])
         object.__setattr__(self, "source_evidence_digest", values["source_evidence_digest"])
         object.__setattr__(self, "causal_row_digest", values["causal_row_digest"])
         object.__setattr__(self, "source_authority_digest", expected_authority)
@@ -222,6 +228,8 @@ class PortableExperienceSourceReceipt:
         portable_id: str,
         source_experience_id: str,
         attribution_id: str,
+        source_experience_digest: str,
+        source_attribution_digest: str,
         source_evidence_digest: str,
         causal_row_digest: str | None,
     ) -> "PortableExperienceSourceReceipt":
@@ -229,6 +237,8 @@ class PortableExperienceSourceReceipt:
             "portable_id": _nonempty(portable_id, "portable_id"),
             "source_experience_id": _nonempty(source_experience_id, "source_experience_id"),
             "attribution_id": _nonempty(attribution_id, "attribution_id"),
+            "source_experience_digest": _nonempty(source_experience_digest, "source_experience_digest"),
+            "source_attribution_digest": _nonempty(source_attribution_digest, "source_attribution_digest"),
             "source_evidence_digest": _nonempty(source_evidence_digest, "source_evidence_digest"),
             "causal_row_digest": None if causal_row_digest is None else _nonempty(causal_row_digest, "causal_row_digest"),
         }
@@ -245,6 +255,8 @@ class PortableExperienceSourceReceipt:
             "portable_id": self.portable_id,
             "source_experience_id": self.source_experience_id,
             "attribution_id": self.attribution_id,
+            "source_experience_digest": self.source_experience_digest,
+            "source_attribution_digest": self.source_attribution_digest,
             "source_evidence_digest": self.source_evidence_digest,
             "causal_row_digest": self.causal_row_digest,
             "source_authority_digest": self.source_authority_digest,
@@ -257,6 +269,8 @@ class PortableExperienceSourceReceipt:
             portable_id=str(state["portable_id"]),
             source_experience_id=str(state["source_experience_id"]),
             attribution_id=str(state["attribution_id"]),
+            source_experience_digest=str(state["source_experience_digest"]),
+            source_attribution_digest=str(state["source_attribution_digest"]),
             source_evidence_digest=str(state["source_evidence_digest"]),
             causal_row_digest=None if state.get("causal_row_digest") is None else str(state["causal_row_digest"]),
             source_authority_digest=str(state["source_authority_digest"]),
@@ -482,11 +496,15 @@ class TransferMetaGovernor:
             lesson=attribution.lesson,
             causal_program_id=causal_id,
         )
+        source_experience_digest = canonical_digest(source.to_state())
+        source_attribution_digest = canonical_digest(attribution.to_state())
         source_evidence_digest = canonical_digest(attribution.evidence.to_state())
         receipt = PortableExperienceSourceReceipt.create(
             portable_id=portable.portable_id,
             source_experience_id=source.experience_id,
             attribution_id=attribution.attribution_id,
+            source_experience_digest=source_experience_digest,
+            source_attribution_digest=source_attribution_digest,
             source_evidence_digest=source_evidence_digest,
             causal_row_digest=causal_digest,
         )
