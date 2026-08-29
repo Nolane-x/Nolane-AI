@@ -1,4 +1,4 @@
-from cogcoder.refoundation.regions import RegionManifest, build_region_manifests
+from nolane.metadata.regions import RegionManifest, build_region_manifests
 
 COMPONENT_ID = "organization.identity"
 COMPONENT_VERSION = "0.0.0"

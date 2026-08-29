@@ -1,4 +1,4 @@
-from cogcoder.refoundation.capabilities import (
+from nolane.metadata.capabilities import (
     ExternalCoreManifest,
     agent_capability_projection,
     build_external_core_catalog,

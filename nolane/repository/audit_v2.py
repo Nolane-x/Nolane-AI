@@ -8,7 +8,7 @@ import re
 from pathlib import Path
 from typing import Any, Mapping
 
-from cogcoder.refoundation.implementation_status import (
+from nolane.metadata.implementation_status import (
     ImplementationStatus,
     build_component_implementation_ledger,
 )

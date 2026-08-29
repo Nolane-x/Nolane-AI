@@ -1,4 +1,4 @@
-from cogcoder.refoundation.runtime_state_map import (
+from nolane.metadata.runtime_state_map import (
     CanonicalStateBundle,
     RuntimeStateBinding,
     RuntimeStateEnvelope,
