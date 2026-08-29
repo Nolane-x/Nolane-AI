@@ -1,6 +1,6 @@
 # Candidate Synthesis v0.0.1 Design
 
-> `CURRENT/` remains canonical architecture authority. This document defines the bounded post-Epoch-0 feature design that will be implemented and then reflected into canonical architecture only after executable contracts are GREEN.
+> `CURRENT/` remains canonical architecture authority. This document defines the bounded post-Epoch-0 feature design that is reflected into canonical architecture only after executable contracts are GREEN.
 
 ## Goal
 
@@ -32,17 +32,19 @@ Evidence / Causal / Experimentation / Cognitive Library
                  PROMOTED / QUARANTINED
 ```
 
-The implementation may own canonical source code for its own deterministic semantics, but it owns no persistent domain-state write authority. In particular it cannot mutate Cognitive Library, Capability Acquisition, Assurance, or the frozen neural asset.
+The implementation owns canonical source code for its own deterministic semantics, but it owns no persistent domain-state write authority. In particular it cannot mutate Cognitive Library, Capability Acquisition, Assurance, or the frozen neural asset.
 
 ## v0.0.1 vertical slice
 
 The first real synthesis mode is `learned_abstraction_composition`.
 
-Given two or more existing unary `LearnedAbstraction` source IDs from the canonical Cognitive Library, synthesis creates a new unary abstraction by ordered composition using canonical `AbstractionCall` nodes. Source order is semantic: `(A, B)` means `B(A(x))`; reordering may produce a different candidate.
+Given two or more existing unary `LearnedAbstraction` source IDs from the canonical Cognitive Library, synthesis creates a new unary abstraction by ordered composition. Source order is semantic: `(A, B)` means `B(A(x))`; reordering may produce a different candidate.
 
-The caller does not supply the candidate template. The candidate must be generated from canonical source abstractions, so this is proposal generation rather than candidate selection.
+The caller does not supply the candidate template. Candidate Synthesis constructs a transient composition IR from canonical `AbstractionCall` nodes, expands that IR against the exact source vocabulary, and then binds the synthetic input placeholder to `TemplateParam(0)`. The final candidate template is therefore standalone: it contains the composed behavior but no unresolved external abstraction dependency.
 
-The synthesized abstraction is converted through the existing canonical `CapabilityCandidate.for_learned_abstraction` boundary. Synthesis never calls `CapabilityAcquisitionGovernor.admit`, `begin_probation`, `record_probation`, `promote`, or `quarantine`.
+This expansion step is required by the existing `CapabilityCandidate` contract. Capability Acquisition deliberately decodes a candidate through an isolated Cognitive Library fragment, so carrying unresolved source `AbstractionCall` references would either fail canonical decoding or force an unjustified widening of the acquisition schema. v0.0.1 chooses the narrower authority boundary instead.
+
+The standalone abstraction is converted through the existing canonical `CapabilityCandidate.for_learned_abstraction` boundary. Synthesis never calls `CapabilityAcquisitionGovernor.admit`, `begin_probation`, `record_probation`, `promote`, or `quarantine`.
 
 ## Evidence separation
 
@@ -60,7 +62,7 @@ Experiment receipts and causal-program IDs are provenance references only; their
 
 ## Determinism and receipts
 
-Every request and receipt is immutable and canonicalized. A `SynthesisReceipt` binds at least:
+Every request and receipt is immutable and canonicalized. A `SynthesisReceipt` binds:
 
 - synthesis mode and objective,
 - ordered source item IDs,
@@ -77,15 +79,16 @@ Every request and receipt is immutable and canonicalized. A `SynthesisReceipt` b
 
 ## Fail-closed rules
 
-v0.0.1 must reject or abstain on:
+v0.0.1 rejects or abstains on:
 
-- generation budget below one,
+- negative generation budgets, with zero budget producing an explicit budget-exhausted abstention,
 - fewer than two source abstractions,
 - duplicate source IDs,
 - missing source IDs,
 - any non-unary source abstraction,
 - non-discovery evidence supplied to generation,
 - empty or duplicate provenance IDs,
+- collision with the reserved synthetic input field,
 - generated candidate already present in the Cognitive Library,
 - generated candidate semantically equal to a source candidate,
 - malformed/tampered request or receipt state.
@@ -94,7 +97,7 @@ Budget exhaustion is an abstention result, not a partial promotion signal.
 
 ## Mutation boundary
 
-A synthesis call snapshots the library digest before generation and verifies it is unchanged before returning. The component stores no ledger. A produced candidate remains outside acquisition state until the caller explicitly invokes `CapabilityAcquisitionGovernor.admit(candidate)`.
+A synthesis call snapshots the library digest before generation and verifies it is unchanged before returning. The component stores no ledger. A produced candidate remains outside acquisition state until the caller explicitly invokes `CapabilityAcquisitionGovernor.admit(candidate)`; that explicit admission creates `CANDIDATE`, not probation or promotion.
 
 ## Deliberately out of scope
 
@@ -102,7 +105,7 @@ A synthesis call snapshots the library digest before generation and verifies it 
 - operator-family behavior synthesis,
 - version-space mutation/search beyond the bounded composition slice,
 - self-generated assurance,
-- automatic probation or promotion,
+- automatic admission, probation, or promotion,
 - persistence or write-through to Cognitive Library,
 - neural/checkpoint mutation,
 - revival of historical `cogcoder` invention engines as runtime authority.
