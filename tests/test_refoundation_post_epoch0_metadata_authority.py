@@ -33,7 +33,9 @@ def test_canonical_metadata_does_not_depend_on_refoundation_namespace() -> None:
     The explicit compatibility membrane may still import the accepted behavioral
     substrate, but canonical metadata, manifests, component versions, runtime
     descriptors, capability catalogs and repository audit logic must not source
-    their authority from ``cogcoder.refoundation``.
+    their authority from ``cogcoder.refoundation``. Historical modules may
+    re-export canonical metadata for compatibility; dependency direction remains
+    historical -> canonical, never canonical -> historical.
     """
 
     violations: list[str] = []
