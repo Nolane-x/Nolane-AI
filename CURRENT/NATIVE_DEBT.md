@@ -7,18 +7,8 @@ This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It l
 ## Counts
 
 - `frozen_asset`: 1
-- `historical_only`: 1
 
 ## Components
-
-### `external.transfer_meta`
-
-- Component version: `0.0.0`
-- Status: `historical_only`
-- Canonical module: `none`
-- Canonical write authority: `false`
-- Legacy/provenance sources: historical transfer/meta-learning mechanisms; extraction not yet accepted
-- Notes: Manifest reserves the semantic boundary; no dedicated active implementation is claimed yet.
 
 ### `neural.shared`
 

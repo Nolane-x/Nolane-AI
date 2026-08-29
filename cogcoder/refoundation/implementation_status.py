@@ -182,6 +182,15 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         ),
         "Native R2.55-lineage candidate/probation/promotion/quarantine governor over canonical Cognitive Library and Assurance boundaries, with content-addressed candidate identity, exact persisted promotion-receipt/evidence/baseline binding, fail-closed library drift, promoted-only retrieval firewall, live-failure revocation and deterministic state restoration; candidate generation and later version-space expansion remain outside this ownership boundary.",
     ),
+    "external.transfer_meta": (
+        "nolane.external_core.transfer_meta",
+        (
+            "cogcoder/r269_causal_basis_adapter.py",
+            "cogcoder/r269_experience_compiler.py",
+            "cogcoder/r269_transfer_runtime.py",
+        ),
+        "Native Wave 5AY transfer/reuse authority over canonical Experience, optional accepted Causal support and Assurance: verified successful experience is compiled into an identity-free portable payload with a separate exact source-authority receipt; adaptation is deterministic and destination-bound; accepted reuse requires the exact persisted native Assurance receipt; negative transfer quarantines/revokes reuse; restore re-derives source authority from native ledgers and fails closed on same-ID source drift. R2.69 transfer runtime is provenance only for cross-domain transfer/adaptation and negative-transfer reuse semantics; cold-scratch search, meta-credit learning, multi-prior policy optimization, candidate synthesis and historical promotion authority remain outside this ownership boundary.",
+    ),
     "external.causal": (
         "nolane.external_core.causal",
         (
@@ -393,7 +402,6 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
 }
 
 _HISTORICAL_ONLY: dict[str, tuple[str, ...]] = {
-    "external.transfer_meta": ("historical transfer/meta-learning mechanisms; extraction not yet accepted",),
 }
 
 _FROZEN_ASSET: dict[str, tuple[str, ...]] = {

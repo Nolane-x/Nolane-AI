@@ -119,3 +119,5 @@ GitHub `main` contains source, locks, results, manifests and CI. Large neural ch
 Research code currently follows licenses embedded in imported/derived components. A repository-wide license should only be declared after those component licenses are audited.
 
 - **Wave 5AX native capability acquisition:** R2.55-lineage candidate → probation → promoted/quarantined governance now lives in `nolane.external_core.capability_acquisition`, with exact Assurance receipt/evidence/baseline binding and a promoted-only retrieval firewall.
+
+- **Wave 5AY native transfer/meta reuse:** R2.69-lineage verified portable experience → deterministic cross-domain adaptation → Assurance-gated acceptance now lives in `nolane.external_core.transfer_meta`, with exact source-state authority binding, negative-transfer quarantine/revocation and fail-closed restore; scratch search, meta-credit and candidate synthesis remain outside the boundary.
