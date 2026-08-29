@@ -73,6 +73,8 @@ def test_epoch0_closure_is_explicit_without_overclaiming_frozen_neural_authority
     assert "## Current state — Epoch 0 CLOSED" in status
     assert "CURRENT/EPOCH0_CLOSURE.md" in status
     assert "## Historical native-extraction lineage (closed)" in status
+    assert "## Repository authority and terminal debt" in status
+    assert "No later Refoundation extraction wave is implied or required" in status
     assert "## Wave 5AY — Native transfer/meta authority" in status
     assert "`historical_only` debt reaches zero" in status
     assert "lineage is continuing semantic ownership extraction" not in status
