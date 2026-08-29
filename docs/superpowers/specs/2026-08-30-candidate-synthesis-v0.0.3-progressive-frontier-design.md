@@ -27,7 +27,7 @@ This is a progressive-search policy, not a claim that shallow candidates are sem
 - Enumerate ordered source sequences without replacement at depths `2..len(source_pool)`.
 - Search one complete depth frontier at a time.
 - Preserve the existing hard global hypothesis budget.
-- Select the deterministic best novel candidate within the first depth that produces any novel candidates.
+- Select the deterministic best novel candidate within the first fully searched depth that produces any novel candidates.
 - Fully expand each hypothesis against the exact Cognitive Library vocabulary before constructing the final `CapabilityCandidate`.
 - Preserve Cognitive Library immutability and lifecycle separation.
 - Preserve v0.0.1 composition and v0.0.2 pair-search behavior exactly.
@@ -61,7 +61,7 @@ A schema bump is intentionally not required. The new mode is completely determin
 
 The mode itself fixes the depth policy to `2..len(source_pool)`, so no new serialized field is needed.
 
-Existing v1 request and receipt states must continue to decode canonically. Existing modes must preserve their identities and behavior.
+Existing v1 request and receipt states must continue to decode canonically. Existing modes must preserve their identities and behavior. Once released, `PROGRESSIVE_MULTI_DEPTH_SEARCH` semantics are protocol-stable: later changes to frontier semantics must use a new mode and/or schema rather than silently changing the meaning of existing receipts.
 
 ## 4. Source-pool semantics
 
@@ -125,9 +125,9 @@ For each depth `d`:
 6. If the entire depth frontier is completed and at least one novel candidate exists, rank only those candidates and return the best one.
 7. Only if the entire depth frontier is completed and contains no novel candidate may the engine proceed to depth `d + 1`.
 
-A partially searched depth never authorizes descent to a deeper depth.
+A partially searched depth never authorizes descent to a deeper depth and never authorizes a winner. If the generation budget is exhausted before the current depth frontier is complete, the engine must abstain with `generation_budget_exhausted`, even if one or more novel candidates were observed in the partial frontier.
 
-This prevents the budget from silently changing search semantics. The engine may return the best candidate from a partially searched current depth if a candidate was actually observed there, but it may not claim that deeper depths were unnecessary or exhausted.
+This is intentionally stricter than v0.0.2 pair search. Progressive mode promises a frontier-level selection contract; therefore it must not present a partial-frontier winner as if the depth had been fairly ranked.
 
 ## 7. Candidate construction
 
@@ -166,11 +166,13 @@ If the total bounded search space contains fewer hypotheses than the budget, `ca
 
 A budget of zero performs no generation.
 
+In progressive mode, a budget must be large enough to complete the current depth frontier before any candidate from that frontier may be returned. This makes budget sufficiency observable and prevents traversal truncation from masquerading as a complete ranking result.
+
 ## 9. Ranking
 
 Ranking remains structural and deterministic. No Assurance signal, challenge result, final-verification evidence, or lifecycle state participates.
 
-Within the selected depth frontier, lower tuple wins:
+Within the selected fully searched depth frontier, lower tuple wins:
 
 1. `generated.template.cost` ascending
 2. `-len(generated.support_task_ids)` ascending (broader support first)
@@ -178,7 +180,7 @@ Within the selected depth frontier, lower tuple wins:
 
 Candidates from different depths do not compete in one global ranking.
 
-The first completely searched depth with one or more novel candidates is the selected depth. This prevents a deeper candidate from winning merely because of an arbitrary cross-depth heuristic and prevents shallow structural cost from making multi-depth search useless in practice.
+The first fully searched depth with one or more novel candidates is the selected depth. This prevents a deeper candidate from winning merely because of an arbitrary cross-depth heuristic and prevents shallow structural cost from making multi-depth search useless in practice.
 
 ## 10. Novelty and deduplication
 
@@ -192,17 +194,21 @@ For every considered hypothesis:
 
 Deduplication does not refund budget. A duplicate was still a considered hypothesis.
 
+Novel candidates observed in a partial frontier are transient search observations only. If budget exhaustion prevents completion of that frontier, they must not escape as the result candidate.
+
 ## 11. Abstention semantics
 
 Canonical abstention meanings for the new mode:
 
 ### `generation_budget_exhausted`
 
-Used when no candidate can be returned and the generation budget is exhausted before the complete bounded search space has been proven exhausted.
+Used whenever the generation budget is exhausted before the current required frontier has been completely enumerated.
 
-This means: search stopped due to compute bound, not because the configured frontier was fully disproven.
+This includes the case where partial traversal already observed one or more novel candidates. Those candidates cannot be returned because the frontier-level ranking contract is incomplete.
 
-Budget zero is a special case of this reason with `candidates_considered == 0`.
+Budget zero is a special case with `candidates_considered == 0`.
+
+This reason means: search stopped due to compute bound, not because the configured frontier was fully evaluated.
 
 ### `no_novel_candidate`
 
@@ -211,8 +217,6 @@ Used only when the engine has completely enumerated every allowed frontier from 
 This is strictly stronger than budget exhaustion.
 
 Existing abstention reasons for source validation and existing modes remain unchanged.
-
-If a novel candidate exists in the current explored depth before the budget is reached, the engine may return the best novel candidate among the hypotheses actually considered in that depth. The receipt must bind the actual count. It must not claim that the remainder of the depth was searched.
 
 ## 12. Receipt and identity invariants
 
@@ -231,7 +235,7 @@ Its canonical semantic identity already binds:
 - actual candidates considered
 - winning candidate ID and semantic fingerprint, or abstention reason
 
-For the new mode, these fields are sufficient because depth policy and frontier order are protocol constants defined by the mode and component version.
+For the new mode, these fields are sufficient because the depth policy, frontier ordering, frontier-completion rule, and ranking rule are immutable semantics of the mode.
 
 Tampering with budget accounting, selected identity, fingerprint, abstention, mode, or pool must continue to invalidate receipt identity.
 
@@ -272,6 +276,7 @@ For equal semantic input state:
 - hypothesis enumeration order must be deterministic;
 - depth progression must be deterministic;
 - global budget truncation must be deterministic;
+- frontier completion must be deterministic;
 - semantic dedup must be deterministic;
 - ranking must be deterministic;
 - winning candidate identity and synthesis receipt identity must be deterministic.
@@ -294,19 +299,20 @@ The RED suite must lock at least these contracts:
 8. Source reuse inside a hypothesis is absent.
 9. The hard global hypothesis budget spans depth boundaries correctly.
 10. A budget ending within depth 2 cannot authorize search at depth 3.
-11. Caller source-pool reordering cannot change candidate or receipt identity.
-12. Ranking within one depth remains deterministic under the existing structural tuple.
-13. Deduplication works across distinct source sequences that collapse to the same semantic candidate.
-14. Installed candidates are skipped without refunding budget.
-15. Zero budget abstains with `generation_budget_exhausted` and zero considered.
-16. Budget exhaustion before complete frontier exhaustion is distinguishable from full-space `no_novel_candidate`.
-17. Full search through depth `n` with no novel candidate emits `no_novel_candidate`.
-18. Challenge and final-Assurance evidence remain rejected before generation.
-19. Search does not mutate Cognitive Library or Capability Acquisition state.
-20. Explicit post-synthesis admission still yields exactly `CapabilityState.CANDIDATE`.
-21. Request and receipt v1 round-trip remains canonical.
-22. Receipt tamper rejection covers progressive-mode budget/result state.
-23. Final returned candidate is standalone-decodable with no unresolved `AbstractionCall`.
+11. A budget ending within a frontier cannot return a partial-frontier winner, even when a novel candidate was observed.
+12. Caller source-pool reordering cannot change candidate or receipt identity.
+13. Ranking within one fully searched depth remains deterministic under the existing structural tuple.
+14. Deduplication works across distinct source sequences that collapse to the same semantic candidate.
+15. Installed candidates are skipped without refunding budget.
+16. Zero budget abstains with `generation_budget_exhausted` and zero considered.
+17. Budget exhaustion before complete frontier exhaustion is distinguishable from full-space `no_novel_candidate`.
+18. Full search through depth `n` with no novel candidate emits `no_novel_candidate`.
+19. Challenge and final-Assurance evidence remain rejected before generation.
+20. Search does not mutate Cognitive Library or Capability Acquisition state.
+21. Explicit post-synthesis admission still yields exactly `CapabilityState.CANDIDATE`.
+22. Request and receipt v1 round-trip remains canonical.
+23. Receipt tamper rejection covers progressive-mode budget/result state.
+24. Final returned candidate is standalone-decodable with no unresolved `AbstractionCall`.
 
 RED evidence must show failures caused by the missing v0.0.3 behavior/version/mode, not test bugs.
 
@@ -345,12 +351,13 @@ Additional production files require an explicit design justification before impl
 
 v0.0.3 is complete only when all of the following are true:
 
-- Progressive multi-depth synthesis can generate a novel standalone depth-3-or-greater proposal when every shallower frontier contains no novel proposal.
+- Progressive multi-depth synthesis can generate a novel standalone depth-3-or-greater proposal when every shallower frontier was fully searched and contains no novel proposal.
 - No source is reused in one hypothesis.
 - No generated intermediate enters the library or same-call source vocabulary.
 - Search is globally hard-budgeted and deterministic.
 - The engine never descends past a partially searched shallower frontier.
-- Cross-depth selection uses shallowest successful complete frontier, not a fabricated utility score.
+- The engine never returns a winner from a partially searched frontier.
+- Cross-depth selection uses the shallowest successful fully searched frontier, not a fabricated utility score.
 - Discovery-only evidence separation remains intact.
 - Lifecycle authority remains outside Candidate Synthesis.
 - v0.0.1 and v0.0.2 behavior regressions remain green.
