@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import importlib
+from typing import get_type_hints
 
 import pytest
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.assurance import PromotionAssuranceReceipt
+from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt
 from nolane.external_core.cognitive_catalog import OperatorFamilyDescriptor, SubOperatorDescriptor
 from nolane.external_core.cognitive_library import CognitiveLibrary
 
@@ -83,3 +84,9 @@ def test_wave5ax_promotion_rejects_non_native_assurance_store_even_with_byte_exa
     assert governor.retrievable_ids() == ()
     with pytest.raises(KeyError):
         library.family("wave5ax_hardening")
+
+
+def test_wave5ax_promote_public_contract_names_native_assurance_authority() -> None:
+    native = importlib.import_module("nolane.external_core.capability_acquisition")
+    hints = get_type_hints(native.CapabilityAcquisitionGovernor.promote)
+    assert hints["assurance"] is AssuranceControlPlane
