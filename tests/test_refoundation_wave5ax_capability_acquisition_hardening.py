@@ -156,3 +156,25 @@ def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assuranc
     )
     assert restored.retrievable_ids() == (candidate.candidate_id,)
     assert restored.retrieve(candidate.candidate_id) == _family()
+
+
+def test_wave5ax_candidate_can_be_quarantined_before_probation_fail_closed() -> None:
+    native = importlib.import_module("nolane.external_core.capability_acquisition")
+    library = CognitiveLibrary()
+    governor = native.CapabilityAcquisitionGovernor(library)
+    candidate = native.CapabilityCandidate.for_operator_family(_family())
+    governor.admit(candidate)
+    baseline = library.digest
+
+    quarantined = governor.quarantine(candidate.candidate_id, reason="admission policy rejected")
+
+    assert quarantined.state is native.CapabilityState.QUARANTINED
+    assert quarantined.baseline_digest == baseline
+    assert quarantined.assurance_receipt_id is None
+    assert governor.retrievable_ids() == ()
+    with pytest.raises(PermissionError):
+        governor.retrieve(candidate.candidate_id)
+    with pytest.raises(ValueError, match="quarantined"):
+        governor.begin_probation(candidate.candidate_id)
+    with pytest.raises(KeyError):
+        library.family("wave5ax_hardening")
