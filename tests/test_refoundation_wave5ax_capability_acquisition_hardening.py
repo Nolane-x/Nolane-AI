@@ -48,6 +48,12 @@ def _receipt(candidate_id: str, evidence_ids: tuple[str, ...], baseline: str) ->
     )
 
 
+def _assurance_plane(*receipts: PromotionAssuranceReceipt) -> AssuranceControlPlane:
+    plane = object.__new__(AssuranceControlPlane)
+    plane._promotion_receipts = {row.receipt_id: row for row in receipts}
+    return plane
+
+
 class _SpoofedReceiptStore:
     def __init__(self, receipt: PromotionAssuranceReceipt) -> None:
         self.receipt = receipt
@@ -90,3 +96,63 @@ def test_wave5ax_promote_public_contract_names_native_assurance_authority() -> N
     native = importlib.import_module("nolane.external_core.capability_acquisition")
     hints = get_type_hints(native.CapabilityAcquisitionGovernor.promote)
     assert hints["assurance"] is AssuranceControlPlane
+
+
+def test_wave5ax_restore_rejects_library_authority_for_non_promoted_state() -> None:
+    native = importlib.import_module("nolane.external_core.capability_acquisition")
+    library = CognitiveLibrary()
+    governor = native.CapabilityAcquisitionGovernor(library)
+    candidate = native.CapabilityCandidate.for_operator_family(_family())
+    governor.admit(candidate)
+    state = governor.to_state()
+
+    # The external library must not be able to mint acquisition authority for a
+    # record that the governor itself still classifies as non-promoted.
+    library.register_family(_family())
+    with pytest.raises(ValueError, match="non-promoted.*library|library.*non-promoted"):
+        native.CapabilityAcquisitionGovernor.from_state(state, library=library)
+
+
+def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assurance() -> None:
+    native = importlib.import_module("nolane.external_core.capability_acquisition")
+    library = CognitiveLibrary()
+    governor = native.CapabilityAcquisitionGovernor(library)
+    candidate = native.CapabilityCandidate.for_operator_family(_family())
+    governor.admit(candidate)
+    governor.begin_probation(candidate.candidate_id)
+    evidence_ids = ("independent:restore", "challenge:restore")
+    governor.record_probation(
+        candidate.candidate_id,
+        evidence_ids=evidence_ids,
+        independent_passed=True,
+        challenge_passed=True,
+        reliability=0.99,
+    )
+    baseline = library.digest
+    receipt = _receipt(candidate.candidate_id, evidence_ids, baseline)
+    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
+    state = governor.to_state()
+    restored_library = CognitiveLibrary.from_state(library.to_state())
+
+    with pytest.raises(ValueError, match="persisted assurance"):
+        native.CapabilityAcquisitionGovernor.from_state(
+            state,
+            library=restored_library,
+            assurance=_assurance_plane(),
+        )
+
+    wrong_subject = _receipt("capability:wrong-subject", evidence_ids, baseline)
+    with pytest.raises(ValueError, match="subject"):
+        native.CapabilityAcquisitionGovernor.from_state(
+            state,
+            library=restored_library,
+            assurance=_assurance_plane(wrong_subject),
+        )
+
+    restored = native.CapabilityAcquisitionGovernor.from_state(
+        state,
+        library=restored_library,
+        assurance=_assurance_plane(receipt),
+    )
+    assert restored.retrievable_ids() == (candidate.candidate_id,)
+    assert restored.retrieve(candidate.candidate_id) == _family()
