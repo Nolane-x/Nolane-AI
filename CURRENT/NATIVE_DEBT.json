@@ -1,4 +1,6 @@
 {
+  "accepted_non_migration_count": 1,
+  "actionable_migration_debt_count": 0,
   "components": [
     {
       "canonical_module": null,
@@ -9,13 +11,14 @@
       "legacy_sources": [
         "model/neural-r2.3"
       ],
+      "migration_action_required": false,
       "notes": "Accepted frozen neural asset with separate runtime adapter and checkpoint authority."
     }
   ],
   "counts_by_status": {
     "frozen_asset": 1
   },
-  "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
+  "definition": "Every canonical component not yet classified canonical_native. This is a broad non-native implementation inventory; only records with migration_action_required=true are actionable migration debt.",
   "repository_quarantine_version": "0.0.0",
-  "schema_version": "nolane-native-debt-v1"
+  "schema_version": "nolane-native-debt-v2"
 }

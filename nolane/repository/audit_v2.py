@@ -17,8 +17,15 @@ from nolane.metadata.implementation_status import (
 ROOT = Path(__file__).resolve().parents[2]
 COMPONENT_VERSION = "0.0.0"
 ARCHIVE_SCHEMA_VERSION = "nolane-repository-history-v1"
-DEBT_SCHEMA_VERSION = "nolane-native-debt-v1"
+DEBT_SCHEMA_VERSION = "nolane-native-debt-v2"
 REFERENCE_AUDIT_POLICY = "root-reference-aware-zero-loss-v2"
+_ACTIONABLE_MIGRATION_STATUSES = frozenset(
+    {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.LEGACY_INTERNAL,
+        ImplementationStatus.HISTORICAL_ONLY,
+    }
+)
 
 _SCAN_PRUNE_DIRS = {
     ".git",
@@ -283,17 +290,30 @@ def build_native_debt() -> dict[str, Any]:
     ledger = build_component_implementation_ledger()
     components: list[dict[str, Any]] = []
     counts: dict[str, int] = {}
+    actionable_migration_debt_count = 0
+    accepted_non_migration_count = 0
     for component_id in sorted(ledger):
         row = ledger[component_id]
         if row.status is ImplementationStatus.CANONICAL_NATIVE:
             continue
         status = row.status.value
+        if row.status in _ACTIONABLE_MIGRATION_STATUSES:
+            migration_action_required = True
+            actionable_migration_debt_count += 1
+        elif row.status is ImplementationStatus.FROZEN_ASSET:
+            migration_action_required = False
+            accepted_non_migration_count += 1
+        else:
+            raise ValueError(
+                f"unclassified non-native implementation status: {row.status!r}"
+            )
         counts[status] = counts.get(status, 0) + 1
         components.append(
             {
                 "component_id": row.component_id,
                 "component_version": row.component_version,
                 "implementation_status": status,
+                "migration_action_required": migration_action_required,
                 "canonical_module": row.canonical_module,
                 "legacy_sources": list(row.legacy_sources),
                 "canonical_write_authority": row.canonical_write_authority,
@@ -303,7 +323,9 @@ def build_native_debt() -> dict[str, Any]:
     return {
         "schema_version": DEBT_SCHEMA_VERSION,
         "repository_quarantine_version": COMPONENT_VERSION,
-        "definition": "Every canonical component not yet classified canonical_native. This is migration debt, not a capability-failure claim.",
+        "definition": "Every canonical component not yet classified canonical_native. This is a broad non-native implementation inventory; only records with migration_action_required=true are actionable migration debt.",
+        "actionable_migration_debt_count": actionable_migration_debt_count,
+        "accepted_non_migration_count": accepted_non_migration_count,
         "counts_by_status": {key: counts[key] for key in sorted(counts)},
         "components": components,
     }
@@ -313,13 +335,18 @@ def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
     components = list(payload["components"])
     counts = dict(payload["counts_by_status"])
     lines = [
-        "# Native Implementation Debt",
+        "# Non-Native Implementation Inventory",
         "",
         f"Repository quarantine component: `{payload['repository_quarantine_version']}`.",
         "",
-        "This file is a generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It lists every canonical semantic component whose executable implementation is not yet classified `canonical_native`. It does **not** mean the component is broken or unaccepted; it makes remaining migration work impossible to hide.",
+        "This file is the generated human-readable view of `CURRENT/NATIVE_DEBT.json`. It is a broad non-native implementation inventory. Only records with `migration_action_required=true` are actionable migration debt. Frozen assets can be accepted terminal records when their role and authority are explicitly bounded.",
         "",
-        "## Counts",
+        "## Summary",
+        "",
+        f"- Actionable migration debt: `{payload['actionable_migration_debt_count']}`",
+        f"- Accepted non-migration records: `{payload['accepted_non_migration_count']}`",
+        "",
+        "## Counts by status",
         "",
     ]
     if counts:
@@ -337,6 +364,7 @@ def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
                 "",
                 f"- Component version: `{row['component_version']}`",
                 f"- Status: `{row['implementation_status']}`",
+                f"- Migration action required: `{str(bool(row['migration_action_required'])).lower()}`",
                 f"- Canonical module: `{canonical}`",
                 f"- Canonical write authority: `{str(bool(row['canonical_write_authority'])).lower()}`",
                 f"- Legacy/provenance sources: {legacy}",
@@ -345,7 +373,7 @@ def render_native_debt_markdown(payload: Mapping[str, Any]) -> str:
             )
         )
     lines.append(
-        "> GENERATED VIEW — update implementation authority at its canonical source and regenerate; never hand-edit this debt projection."
+        "> GENERATED VIEW — update implementation authority at its canonical source and regenerate; never hand-edit this inventory projection."
     )
     lines.append("")
     return "\n".join(lines)
