@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from itertools import permutations
 from enum import Enum
+from itertools import permutations
+from math import perm
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest
@@ -19,7 +20,7 @@ from nolane.external_core.cognitive_vocabulary import (
 
 
 COMPONENT_ID = "external.candidate_synthesis"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 SCHEMA_VERSION = "candidate-synthesis-v1"
 DESIGN_LINEAGE = "post-Epoch-0 native synthesis; R2.56/R2.61/R2.65 are design provenance only"
 _PARAM_FIELD = "__nolane_candidate_synthesis_param_0__"
@@ -28,6 +29,7 @@ _PARAM_FIELD = "__nolane_candidate_synthesis_param_0__"
 class SynthesisMode(str, Enum):
     LEARNED_ABSTRACTION_COMPOSITION = "learned_abstraction_composition"
     BOUNDED_LEARNED_ABSTRACTION_SEARCH = "bounded_learned_abstraction_search"
+    PROGRESSIVE_MULTI_DEPTH_SEARCH = "progressive_multi_depth_search"
 
 
 class EvidencePhase(str, Enum):
@@ -63,7 +65,10 @@ def _source_ids_for_mode(
     values: Sequence[object],
 ) -> tuple[str, ...]:
     rows = _ordered_unique_ids(values, "source item ids", minimum=2)
-    if mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:
+    if mode in (
+        SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH,
+        SynthesisMode.PROGRESSIVE_MULTI_DEPTH_SEARCH,
+    ):
         return tuple(sorted(rows))
     return rows
 
@@ -356,6 +361,17 @@ def _bind_synthesis_parameter(expr: Expr) -> Expr:
     raise TypeError("unknown cognitive expression node")
 
 
+def _candidate_score(candidate: CapabilityCandidate) -> tuple[int, int, str]:
+    payload = candidate.payload()
+    if not isinstance(payload, LearnedAbstraction):
+        raise TypeError("candidate synthesis ranking requires learned abstraction payload")
+    return (
+        payload.template.cost,
+        -len(payload.support_task_ids),
+        candidate.candidate_id,
+    )
+
+
 class CandidateSynthesisEngine:
     """Stateless, fail-closed proposal generator with no lifecycle authority."""
 
@@ -503,11 +519,7 @@ class CandidateSynthesisEngine:
             if candidate.candidate_id in seen_candidate_ids:
                 continue
             seen_candidate_ids.add(candidate.candidate_id)
-            score = (
-                generated.template.cost,
-                -len(generated.support_task_ids),
-                candidate.candidate_id,
-            )
+            score = _candidate_score(candidate)
             if best_score is None or score < best_score:
                 best_score = score
                 best_candidate = candidate
@@ -531,6 +543,77 @@ class CandidateSynthesisEngine:
             ),
         )
 
+    def _synthesize_progressive_search(
+        self,
+        before_digest: str,
+        request: SynthesisRequest,
+        sources: Sequence[LearnedAbstraction],
+    ) -> SynthesisResult:
+        source_ids = set(request.source_item_ids)
+        seen_candidate_ids: set[str] = set()
+        considered = 0
+        source_count = len(sources)
+
+        for depth in range(2, source_count + 1):
+            frontier_size = perm(source_count, depth)
+            remaining = request.generation_budget - considered
+
+            if remaining < frontier_size:
+                attempted = 0
+                for hypothesis in permutations(sources, depth):
+                    if attempted >= remaining:
+                        break
+                    attempted += 1
+                    considered += 1
+                    generated = self._compose_sources(hypothesis)
+                    if generated.abstraction_id in source_ids:
+                        continue
+                    if self._installed_abstraction(generated) is not None:
+                        continue
+                    candidate = CapabilityCandidate.for_learned_abstraction(generated)
+                    seen_candidate_ids.add(candidate.candidate_id)
+                return self._abstain(
+                    before_digest,
+                    request,
+                    candidates_considered=considered,
+                    reason="generation_budget_exhausted",
+                )
+
+            frontier_candidates: dict[str, CapabilityCandidate] = {}
+            for hypothesis in permutations(sources, depth):
+                considered += 1
+                generated = self._compose_sources(hypothesis)
+                if generated.abstraction_id in source_ids:
+                    continue
+                if self._installed_abstraction(generated) is not None:
+                    continue
+                candidate = CapabilityCandidate.for_learned_abstraction(generated)
+                if candidate.candidate_id in seen_candidate_ids:
+                    continue
+                seen_candidate_ids.add(candidate.candidate_id)
+                frontier_candidates[candidate.candidate_id] = candidate
+
+            if frontier_candidates:
+                best_candidate = min(frontier_candidates.values(), key=_candidate_score)
+                return self._return(
+                    before_digest,
+                    SynthesisResult(
+                        candidate=best_candidate,
+                        receipt=_receipt(
+                            request,
+                            candidates_considered=considered,
+                            candidate=best_candidate,
+                        ),
+                    ),
+                )
+
+        return self._abstain(
+            before_digest,
+            request,
+            candidates_considered=considered,
+            reason="no_novel_candidate",
+        )
+
     def synthesize(self, request: SynthesisRequest) -> SynthesisResult:
         if not isinstance(request, SynthesisRequest):
             raise TypeError("request must be SynthesisRequest")
@@ -552,6 +635,8 @@ class CandidateSynthesisEngine:
             return self._synthesize_composition(before_digest, request, sources)
         if request.mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:
             return self._synthesize_bounded_search(before_digest, request, sources)
+        if request.mode is SynthesisMode.PROGRESSIVE_MULTI_DEPTH_SEARCH:
+            return self._synthesize_progressive_search(before_digest, request, sources)
         raise ValueError("unsupported candidate synthesis mode")
 
 
