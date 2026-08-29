@@ -1,6 +1,8 @@
-from cogcoder.refoundation.temporary_work_units import TemporaryWorkUnitManifest
-from cogcoder.refoundation.work_units import (
+"""Canonical temporary work-unit API over the explicit compatibility membrane."""
+
+from nolane.compatibility.refoundation import (
     TemporaryWorkUnitBudget,
+    TemporaryWorkUnitManifest,
     TemporaryWorkUnitRequest,
     TemporaryWorkUnitService,
 )

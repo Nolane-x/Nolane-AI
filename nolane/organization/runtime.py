@@ -1,11 +1,10 @@
 """Canonical organization runtime namespace.
 
-The accepted historical runtime is reachable only through the internal
-Refoundation compatibility membrane. This public module exposes the canonical
-organization boundary and does not re-export the raw legacy runtime class.
+The public organization surface depends on the canonical runtime API rather
+than reaching directly into Refoundation implementation modules.
 """
 
-from cogcoder.refoundation.canonical_runtime import CanonicalOrganization
+from nolane.runtime import CanonicalOrganization
 
 COMPONENT_ID = "organization.runtime"
 COMPONENT_VERSION = "0.0.0"
