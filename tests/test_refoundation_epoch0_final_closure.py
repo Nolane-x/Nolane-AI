@@ -12,7 +12,7 @@ from nolane.repository.audit import build_native_debt, stale_paths
 ROOT = Path(__file__).resolve().parents[1]
 EXPECTED_FROZEN_COMPONENT = "neural.shared"
 EXPECTED_FROZEN_PROVENANCE = ("model/neural-r2.3",)
-CLOSURE_HEADING = "## Epoch 0 — final closure"
+CLOSURE_HEADING = "# Epoch 0 — final closure"
 
 
 def test_epoch0_has_no_historical_or_non_native_executable_authority() -> None:
@@ -70,13 +70,17 @@ def test_epoch0_native_debt_projection_is_exact_terminal_state_and_fresh() -> No
 
 def test_epoch0_closure_is_explicit_without_overclaiming_frozen_neural_authority() -> None:
     status = (ROOT / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
-    assert CLOSURE_HEADING in status
-    closure = status.split(CLOSURE_HEADING, 1)[1]
+    assert "## Wave 5AY — Native transfer/meta authority" in status
+    assert "`historical_only` debt reaches zero" in status
+
+    closure = (ROOT / "CURRENT" / "EPOCH0_CLOSURE.md").read_text(encoding="utf-8")
+    assert CLOSURE_HEADING in closure
     assert "`historical_only` debt is zero" in closure
     assert "`neural.shared` remains `frozen_asset`" in closure
     assert "not executable migration debt" in closure
     assert "does not grant canonical write authority" in closure
     assert "Epoch 0 is closed" in closure
+    assert "No later extraction wave is required" in closure
 
 
 def test_epoch0_closure_contract_runs_in_the_supported_refoundation_matrix() -> None:
