@@ -48,16 +48,15 @@ jobs:
               'def _sorted_unique_ids(values: Sequence[object], name: str) -> tuple[str, ...]:\n    return tuple(sorted(_ordered_unique_ids(values, name)))\n',
               '''def _sorted_unique_ids(values: Sequence[object], name: str) -> tuple[str, ...]:\n    return tuple(sorted(_ordered_unique_ids(values, name)))\n\n\ndef _source_ids_for_mode(\n    mode: SynthesisMode,\n    values: Sequence[object],\n) -> tuple[str, ...]:\n    rows = _ordered_unique_ids(values, "source item ids", minimum=2)\n    if mode is SynthesisMode.BOUNDED_LEARNED_ABSTRACTION_SEARCH:\n        return tuple(sorted(rows))\n    return rows\n''',
           )
-          replace_once(
-              path,
-              '        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)\n',
-              '        sources = _source_ids_for_mode(mode, self.source_item_ids)\n',
-          )
-          replace_once(
-              path,
-              '        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)\n',
-              '        sources = _source_ids_for_mode(mode, self.source_item_ids)\n',
-          )
+          p = Path(path)
+          text = p.read_text()
+          source_anchor = '        sources = _ordered_unique_ids(self.source_item_ids, "source item ids", minimum=2)\n'
+          source_replacement = '        sources = _source_ids_for_mode(mode, self.source_item_ids)\n'
+          if text.count(source_anchor) != 2:
+              raise SystemExit(
+                  f"expected exactly two request/receipt source anchors in {path}; got {text.count(source_anchor)}"
+              )
+          p.write_text(text.replace(source_anchor, source_replacement, 2))
 
           p = Path(path)
           text = p.read_text()
