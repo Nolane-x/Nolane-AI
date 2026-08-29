@@ -425,7 +425,7 @@ class CapabilityAcquisitionGovernor:
         self,
         candidate_id: str,
         *,
-        assurance: PromotionReceiptStore,
+        assurance: AssuranceControlPlane,
         receipt: PromotionAssuranceReceipt,
     ) -> CapabilityRecord:
         record = self.record(candidate_id)
