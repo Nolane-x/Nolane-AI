@@ -528,6 +528,7 @@ class CapabilityAcquisitionGovernor:
         updated = replace(
             record,
             state=CapabilityState.QUARANTINED,
+            baseline_digest=record.baseline_digest or self.library.digest,
             quarantine_reason=clean_reason,
         )
         self._records[record.candidate.candidate_id] = updated
