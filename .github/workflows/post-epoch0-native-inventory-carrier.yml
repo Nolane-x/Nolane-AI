@@ -17,7 +17,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: post-epoch0/native-inventory-semantics
-          fetch-depth: 4
+          fetch-depth: 5
 
       - uses: actions/setup-python@v5
         with:
@@ -41,7 +41,7 @@ jobs:
           suffix = "' | base64 -d > /tmp/migrate-native-inventory.py"
           payload = None
 
-          for depth in range(1, 4):
+          for depth in range(1, 5):
               revision = "HEAD" + "^" * depth
               try:
                   previous = subprocess.check_output(
@@ -63,10 +63,24 @@ jobs:
               raise SystemExit("reviewed migration payload not found in carrier history")
 
           migration = base64.b64decode(payload, validate=True).decode("utf-8")
-          needle = 'new_renderer = """'
-          if migration.count(needle) != 1:
-              raise SystemExit("renderer raw-string anchor drift")
-          migration = migration.replace(needle, 'new_renderer = r"""', 1)
+          declarations = [
+              line for line in migration.splitlines() if line.startswith("new_renderer = ")
+          ]
+          if len(declarations) != 1:
+              raise SystemExit(
+                  f"renderer declaration drift: expected 1, found {len(declarations)}"
+              )
+          declaration = declarations[0]
+          if declaration.startswith('new_renderer = r"""'):
+              pass
+          elif declaration.startswith('new_renderer = """'):
+              migration = migration.replace(
+                  'new_renderer = """',
+                  'new_renderer = r"""',
+                  1,
+              )
+          else:
+              raise SystemExit(f"unsupported renderer declaration: {declaration!r}")
 
           compile(migration, "/tmp/migrate-native-inventory.py", "exec")
           Path("/tmp/migrate-native-inventory.py").write_text(migration, encoding="utf-8")
