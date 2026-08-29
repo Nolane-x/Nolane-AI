@@ -91,3 +91,9 @@ def test_epoch0_closure_contract_runs_in_the_supported_refoundation_matrix() -> 
     assert "python -m nolane.repository.audit --check" in workflow
     assert "python -m pytest -q tests/test_refoundation_*.py" in workflow
     assert "python model/neural-r2.3/scripts/verify_neural_r23.py" in workflow
+
+
+def test_epoch0_closed_main_has_no_wave_specific_carrier_workflows() -> None:
+    workflows = ROOT / ".github" / "workflows"
+    residue = tuple(sorted(path.name for path in workflows.glob("refoundation-wave*.yml")))
+    assert residue == ()
