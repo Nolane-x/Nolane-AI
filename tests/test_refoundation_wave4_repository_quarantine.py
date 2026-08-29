@@ -155,9 +155,9 @@ def test_wave4_native_debt_is_exhaustive_against_implementation_ledger() -> None
     )
 
     path = ROOT / "CURRENT" / "NATIVE_DEBT.json"
-    assert path.is_file(), "CURRENT/NATIVE_DEBT.json must expose remaining migration debt"
+    assert path.is_file(), "CURRENT/NATIVE_DEBT.json must expose the non-native implementation inventory"
     payload = _load_json(path)
-    assert payload["schema_version"] == "nolane-native-debt-v1"
+    assert payload["schema_version"] == "nolane-native-debt-v2"
     expected = {
         component_id: row
         for component_id, row in build_component_implementation_ledger().items()
@@ -168,10 +168,20 @@ def test_wave4_native_debt_is_exhaustive_against_implementation_ledger() -> None
         "missing": sorted(set(expected) - set(actual)),
         "stale": sorted(set(actual) - set(expected)),
     }
+    actionable_statuses = {
+        ImplementationStatus.COMPATIBILITY_FACADE,
+        ImplementationStatus.LEGACY_INTERNAL,
+        ImplementationStatus.HISTORICAL_ONLY,
+    }
+    expected_actionable = sum(row.status in actionable_statuses for row in expected.values())
+    expected_accepted = sum(row.status is ImplementationStatus.FROZEN_ASSET for row in expected.values())
+    assert payload["actionable_migration_debt_count"] == expected_actionable
+    assert payload["accepted_non_migration_count"] == expected_accepted
     for component_id, expected_row in expected.items():
         row = actual[component_id]
         assert row["component_version"] == expected_row.component_version
         assert row["implementation_status"] == expected_row.status.value
+        assert row["migration_action_required"] is (expected_row.status in actionable_statuses)
         assert row["canonical_write_authority"] is False
         assert row["legacy_sources"] == list(expected_row.legacy_sources)
 
