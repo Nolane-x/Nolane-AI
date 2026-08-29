@@ -30,7 +30,7 @@ def test_wave5ay_transfer_meta_authority_version_provenance_and_debt_cutover() -
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     assert debt["counts_by_status"] == {"frozen_asset": 1}
     assert [record["component_id"] for record in debt["components"]] == ["neural.shared"]
-    assert all(record["status"] != "historical_only" for record in debt["components"])
+    assert all(record["implementation_status"] != "historical_only" for record in debt["components"])
 
     status = (_root() / "CURRENT" / "STATUS.md").read_text(encoding="utf-8")
     assert "Wave 5AY" in status
