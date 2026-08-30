@@ -107,14 +107,14 @@ def _score(candidate: CapabilityCandidate) -> tuple[int, int, str]:
     )
 
 
-def test_component_is_v003_while_bounded_search_schema_stays_v1() -> None:
+def test_component_is_v004_while_bounded_search_schema_stays_v1() -> None:
     manifests = {row.component_id: row for row in build_component_manifests()}
     manifest = manifests[COMPONENT_ID]
-    assert str(manifest.version) == "0.0.3"
+    assert str(manifest.version) == "0.0.4"
     assert manifest.state_schema == "candidate-synthesis-v1"
 
     ledger = build_component_implementation_ledger()[COMPONENT_ID]
-    assert ledger.component_version == "0.0.3"
+    assert ledger.component_version == "0.0.4"
 
 
 def test_search_pool_order_is_canonical_and_identity_invariant() -> None:

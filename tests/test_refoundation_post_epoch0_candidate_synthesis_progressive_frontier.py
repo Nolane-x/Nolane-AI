@@ -124,14 +124,14 @@ def _generated_at_depth(
     return tuple(generated)
 
 
-def test_component_advances_to_v003_without_schema_bump() -> None:
+def test_component_advances_to_v004_without_legacy_schema_bump() -> None:
     manifests = {row.component_id: row for row in build_component_manifests()}
     manifest = manifests[COMPONENT_ID]
-    assert str(manifest.version) == "0.0.3"
+    assert str(manifest.version) == "0.0.4"
     assert manifest.state_schema == "candidate-synthesis-v1"
 
     ledger = build_component_implementation_ledger()[COMPONENT_ID]
-    assert ledger.component_version == "0.0.3"
+    assert ledger.component_version == "0.0.4"
 
 
 def test_progressive_pool_order_is_canonical_and_request_round_trips() -> None:
