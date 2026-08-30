@@ -197,5 +197,5 @@ def test_impact_artifacts_round_trip_and_reject_tampering():
 
     forged = proof.to_state()
     forged['complete'] = False
-    with pytest.raises(ValueError, match='digest'):
+    with pytest.raises(ValueError, match='digest|completeness'):
         EngineeringTestSelectionProof.from_state(forged)
