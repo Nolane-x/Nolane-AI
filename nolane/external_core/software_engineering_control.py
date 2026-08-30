@@ -18,6 +18,7 @@ from nolane.external_core.software_engineering import (
     PatchTransactionLedger,
     SoftwareEngineeringClosureEngine,
 )
+from nolane.external_core.software_engineering_gate import HistoricalAuthorizationEngineeringGate
 from nolane.external_core.software_engineering_mutation import EvidenceBoundMutationAuthorityEngine
 from nolane.external_core.software_engineering_policy import (
     EngineeringChangeManifestLedger,
@@ -195,7 +196,7 @@ class SoftwareEngineeringControlPlane:
         self.gate = (
             gate
             if gate is not None
-            else GovernedEngineeringGate(
+            else HistoricalAuthorizationEngineeringGate(
                 evidence=self.evidence,
                 transactions=self.transactions,
                 closure=self.closure,
@@ -529,7 +530,7 @@ class SoftwareEngineeringControlPlane:
             state=state["closure"],
         )
         policy = EngineeringVerificationPolicy.from_state(state["policy"])
-        gate = GovernedEngineeringGate.from_state(
+        gate = HistoricalAuthorizationEngineeringGate.from_state(
             evidence=evidence,
             transactions=transactions,
             closure=closure,
