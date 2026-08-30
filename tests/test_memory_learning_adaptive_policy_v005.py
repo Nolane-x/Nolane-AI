@@ -26,16 +26,22 @@ class _EventStub:
         raise KeyError(event_id)
 
 
-def test_retrieval_policy_identity_is_content_addressed_and_roundtrips() -> None:
+def test_retrieval_policy_identity_is_content_addressed_roundtrips_and_migrates() -> None:
     from nolane.memory.adaptive_policy import MemoryRetrievalPolicy
 
     policy = MemoryRetrievalPolicy(cost_weight=0.75, information_weight=1.25, max_estimated_units=12)
     same = MemoryRetrievalPolicy.from_state(policy.to_state())
     changed = MemoryRetrievalPolicy(cost_weight=0.25, information_weight=1.25, max_estimated_units=12)
+    migrated = policy.migrate(cost_weight=1.5, max_estimated_units=9)
 
     assert same == policy
     assert same.policy_id == policy.policy_id
     assert changed.policy_id != policy.policy_id
+    assert migrated.parent_policy_id == policy.policy_id
+    assert migrated.policy_id != policy.policy_id
+    assert migrated.cost_weight == 1.5
+    assert migrated.max_estimated_units == 9
+    assert MemoryRetrievalPolicy.from_state(migrated.to_state()) == migrated
 
 
 def test_retrieval_policy_is_cost_sensitive_but_keeps_hard_authority_filters() -> None:
