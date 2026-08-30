@@ -555,16 +555,16 @@ class OrganizationExecutionControlPlane:
             if identity.status is AgentStatus.PAUSED:
                 return self._terminal(session, ExecutionState.PAUSED, 'agent paused by authority')
 
-            if action.tool_action.mutation_paths:
-                effect_class = EffectClass.LOCAL_MUTATION
-                risk_class = ExecutionRisk.R2
-                verifier_level = VerifierLevel.V2
-                recovery_plan = 'restore isolated workspace checkpoint'
-            elif is_external:
+            if is_external:
                 effect_class = EffectClass.EXTERNAL_MUTATION
                 risk_class = ExecutionRisk.R3
                 verifier_level = VerifierLevel.V3
                 recovery_plan = 'reconcile externally observed effect from core receipt evidence'
+            elif action.tool_action.mutation_paths:
+                effect_class = EffectClass.LOCAL_MUTATION
+                risk_class = ExecutionRisk.R2
+                verifier_level = VerifierLevel.V2
+                recovery_plan = 'restore isolated workspace checkpoint'
             else:
                 effect_class = EffectClass.READ
                 risk_class = ExecutionRisk.R1
