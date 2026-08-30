@@ -662,7 +662,9 @@ class GoalDesignCoherencePlane:
             {"goal_design_decision_input_manifest": input_manifest_payload}
         )
 
-        evidence_refs = set(goal.evidence_refs) | set(selected.evidence_refs)
+        evidence_refs = set(goal.evidence_refs)
+        for option in canonical_options:
+            evidence_refs.update(option.evidence_refs)
         for scenario in scenarios:
             evidence_refs.update(scenario.evidence_refs)
         for proof in proof_obligations:
