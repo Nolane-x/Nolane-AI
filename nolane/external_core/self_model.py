@@ -1,14 +1,27 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+import re
 from typing import Any, Mapping
 
 from nolane.external_core.evidence import EvidenceRecord
 from nolane.organization.identity import AgentRegistry
 
 COMPONENT_ID = "external.self_model"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.self_model"
+
+_COMMITTED_VERSION = re.compile(r"^self-model-(\d{8})$")
+
+
+def _committed_revision(version: str) -> int | None:
+    match = _COMMITTED_VERSION.fullmatch(str(version))
+    if match is None:
+        return None
+    revision = int(match.group(1))
+    if revision <= 0:
+        raise ValueError("committed self-model revision must be positive")
+    return revision
 
 
 @dataclass(frozen=True, slots=True)
@@ -22,6 +35,26 @@ class SelfModel:
     trusted_skill_ids: tuple[str, ...] = ()
     blind_spots: tuple[str, ...] = ()
     evidence_ids: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        if not str(self.agent_id).strip() or not str(self.version).strip():
+            raise ValueError("self-model identity and version must be explicit")
+        if not 0.0 <= float(self.calibration) <= 1.0:
+            raise ValueError("self-model calibration must lie in [0, 1]")
+        for label, rows in (
+            ("domain competence", self.domain_competence),
+            ("tool competence", self.tool_competence),
+        ):
+            seen: set[str] = set()
+            for key, value in rows:
+                normalized = str(key).strip()
+                if not normalized:
+                    raise ValueError(f"{label} key must be explicit")
+                if normalized in seen:
+                    raise ValueError(f"duplicate {label} key: {normalized}")
+                if not 0.0 <= float(value) <= 1.0:
+                    raise ValueError(f"{label} score must lie in [0, 1]")
+                seen.add(normalized)
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -154,15 +187,55 @@ class SelfModelRegistry:
     @classmethod
     def from_state(cls, registry: AgentRegistry, state: Mapping[str, Any]) -> "SelfModelRegistry":
         result = cls(registry, initialize=False)
+        seen: set[str] = set()
         for value in state.get("models", ()):
             row = SelfModel.from_state(value)
+            registry.get(row.agent_id)
+            if row.agent_id in seen:
+                raise ValueError(f"duplicate self-model agent row: {row.agent_id}")
+            seen.add(row.agent_id)
             result._models[row.agent_id] = row
-        result._revisions = {str(k): int(v) for k, v in state.get("revisions", {}).items()}
+
+        revisions: dict[str, int] = {}
+        for key, value in state.get("revisions", {}).items():
+            agent_id = str(key)
+            registry.get(agent_id)
+            revision = int(value)
+            if revision <= 0:
+                raise ValueError("self-model revision must be positive")
+            revisions[agent_id] = revision
+        result._revisions = revisions
+
+        for agent_id, row in result._models.items():
+            committed_revision = _committed_revision(row.version)
+            revision = result._revisions.get(agent_id)
+            if committed_revision is not None:
+                if revision != committed_revision:
+                    raise ValueError(
+                        f"self-model revision mismatch for {agent_id}: "
+                        f"version commits {committed_revision}, ledger has {revision}"
+                    )
+            elif revision is None:
+                result._revisions[agent_id] = 1
+
         for identity in registry.identities():
             if identity.agent_id not in result._models:
+                dangling_revision = result._revisions.get(identity.agent_id)
+                if dangling_revision not in (None, 1):
+                    raise ValueError(
+                        f"self-model revision {dangling_revision} for {identity.agent_id} has no committed model row"
+                    )
                 version = getattr(identity, "self_model_version", "self-model-0.1")
                 result._models[identity.agent_id] = SelfModel(identity.agent_id, str(version))
                 result._revisions[identity.agent_id] = 1
+
+        unknown_revision_agents = set(result._revisions).difference(result._models)
+        if unknown_revision_agents:
+            raise ValueError("self-model revision ledger contains agents without model rows")
+
+        if hasattr(registry, "set_self_model_version"):
+            for agent_id in sorted(result._models):
+                registry.set_self_model_version(agent_id, result._models[agent_id].version)
         return result
 
 
