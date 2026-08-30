@@ -24,11 +24,17 @@ class AttemptBoundEngineeringPatchTransaction(EngineeringPatchTransaction):
     operation_ref: str = ""
 
     def __post_init__(self) -> None:
-        super().__post_init__()
+        # dataclass(slots=True) may synthesize a replacement class object on
+        # Python 3.11, so zero-argument super() can retain a stale __class__
+        # cell. Call the immutable base implementation explicitly.
+        EngineeringPatchTransaction.__post_init__(self)
         _text(self.operation_ref, field="engineering operation ref")
 
     def to_state(self) -> dict[str, Any]:
-        return {**super().to_state(), "operation_ref": self.operation_ref}
+        return {
+            **EngineeringPatchTransaction.to_state(self),
+            "operation_ref": self.operation_ref,
+        }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "AttemptBoundEngineeringPatchTransaction":
