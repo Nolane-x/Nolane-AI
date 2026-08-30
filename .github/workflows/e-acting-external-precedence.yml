@@ -1,4 +1,4 @@
-name: E Acting External Precedence GREEN
+name: E Acting Lease Expiry RED
 
 on:
   push:
@@ -7,44 +7,17 @@ on:
     paths:
       - .github/workflows/e-acting-external-precedence.yml
 
-permissions:
-  contents: write
-
 jobs:
-  green:
+  red:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           ref: refoundation/e-acting-transactional-runtime-gpt56sol
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply fail-closed external precedence
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('nolane/external_core/execution.py')
-          text = path.read_text(encoding='utf-8')
-          old = '''            if action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION\n                risk_class = ExecutionRisk.R2\n                verifier_level = VerifierLevel.V2\n                recovery_plan = 'restore isolated workspace checkpoint'\n            elif is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION\n                risk_class = ExecutionRisk.R3\n                verifier_level = VerifierLevel.V3\n                recovery_plan = 'reconcile externally observed effect from core receipt evidence'\n            else:\n                effect_class = EffectClass.READ\n                risk_class = ExecutionRisk.R1\n                verifier_level = VerifierLevel.V1\n                recovery_plan = ''\n'''
-          new = '''            if is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION\n                risk_class = ExecutionRisk.R3\n                verifier_level = VerifierLevel.V3\n                recovery_plan = 'reconcile externally observed effect from core receipt evidence'\n            elif action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION\n                risk_class = ExecutionRisk.R2\n                verifier_level = VerifierLevel.V2\n                recovery_plan = 'restore isolated workspace checkpoint'\n            else:\n                effect_class = EffectClass.READ\n                risk_class = ExecutionRisk.R1\n                verifier_level = VerifierLevel.V1\n                recovery_plan = ''\n'''
-          if text.count(old) != 1:
-              raise SystemExit(f'expected one canonical effect-classification block, found {text.count(old)}')
-          path.write_text(text.replace(old, new, 1), encoding='utf-8')
-          PY
       - run: python -m pip install -q pytest
-      - name: Run E Acting contracts
-        run: |
-          python -m py_compile nolane/external_core/*.py
-          python -m pytest -q tests/test_refoundation_acting_protocol.py tests/test_refoundation_acting_workspace.py tests/test_refoundation_acting_runtime.py
-      - name: Run full Refoundation regression
-        run: python -m pytest -q tests/test_refoundation_*.py
-      - name: Commit external precedence hardening
-        if: success()
-        run: |
-          git config user.name "nolane-e-acting-bot"
-          git config user.email "actions@users.noreply.github.com"
-          git add nolane/external_core/execution.py
-          git commit -m "fix(e-acting): make external effects dominate rollback hints [e-acting-precedence]"
-          git push origin HEAD:refoundation/e-acting-transactional-runtime-gpt56sol
+      - name: Prove elapsed lease expiry regression is RED
+        run: python -m pytest -q tests/test_refoundation_acting_runtime.py -k elapsed_core_time_can_expire_lease_before_commit
