@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -12,6 +13,7 @@ from nolane.external_core.acting_protocol import (
     VerifierLevel,
 )
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
+from nolane.external_core.execution import OrganizationExecutionControlPlane
 from nolane.external_core.execution_types import ToolAction
 from nolane.external_core.execution_workspace import RepositoryWorkspace
 
@@ -139,3 +141,16 @@ def test_committed_idempotency_replay_does_not_execute_side_effect_twice(tmp_pat
         assert workspace.read_text("README.md") == "changed\n"
     finally:
         workspace.close()
+
+
+def test_canonical_organization_control_plane_cannot_bypass_transactional_acting() -> None:
+    source = inspect.getsource(OrganizationExecutionControlPlane.step)
+    assert "self.acting_executor.invoke(" in source
+    assert "self.executor.invoke(" not in source
+
+
+def test_organization_control_plane_persists_transactional_ledger_state() -> None:
+    source = inspect.getsource(OrganizationExecutionControlPlane.to_state)
+    restore_source = inspect.getsource(OrganizationExecutionControlPlane.from_state)
+    assert "acting_executor" in source
+    assert "TransactionalExternalCoreExecutor.from_state" in restore_source
