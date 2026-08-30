@@ -6,7 +6,8 @@ import pytest
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.evidence import EvidenceRecord
-from nolane.external_core.individual_evolution import IndividualEvolutionControlPlane
+from nolane.external_core.individual_evolution import EvolutionLineageEntry, IndividualEvolutionControlPlane
+from nolane.external_core.self_model import SelfModelRegistry
 from nolane.memory.fabric import MemoryFabric, MemoryScope, MemoryStatus
 from nolane.memory.lifecycle import MemoryLifecycleLedger
 from nolane.memory.skills import SkillEvolutionEngine, SkillScope
@@ -21,6 +22,19 @@ class _RegistryStub:
 
     def get(self, agent_id: str):
         return self._actors[str(agent_id)]
+
+
+class _SelfModelRegistryStub(_RegistryStub):
+    def __init__(self) -> None:
+        super().__init__()
+        self._actors["memory.chief"].self_model_version = "self-model-0.1"
+        self._actors["memory.worker"].self_model_version = "self-model-0.1"
+
+    def identities(self):
+        return tuple(self._actors[key] for key in sorted(self._actors))
+
+    def set_self_model_version(self, agent_id: str, version: str) -> None:
+        self.get(agent_id).self_model_version = str(version)
 
 
 class _EventStub:
@@ -159,3 +173,59 @@ def test_individual_evolution_delegates_persistent_skill_promotion_to_governed_p
 
     assert promoter.calls == [(skill_id, SkillScope.PERSONAL)]
     assert promoted.scope is SkillScope.PERSONAL
+
+
+def test_self_model_restore_rejects_revision_rollback_against_committed_version() -> None:
+    registry = _SelfModelRegistryStub()
+    state = SelfModelRegistry(registry).to_state()
+    chief = next(row for row in state["models"] if row["agent_id"] == "memory.chief")
+    chief["version"] = "self-model-00000005"
+    state["revisions"]["memory.chief"] = 1
+
+    with pytest.raises(ValueError, match="revision"):
+        SelfModelRegistry.from_state(registry, state)
+
+
+def test_self_model_restore_rejects_duplicate_agent_rows() -> None:
+    registry = _SelfModelRegistryStub()
+    state = SelfModelRegistry(registry).to_state()
+    chief = next(row for row in state["models"] if row["agent_id"] == "memory.chief")
+    state["models"].append(dict(chief))
+
+    with pytest.raises(ValueError, match="duplicate"):
+        SelfModelRegistry.from_state(registry, state)
+
+
+def test_individual_evolution_state_preserves_global_lineage_sequence() -> None:
+    first = EvolutionLineageEntry(
+        sequence=1,
+        entry_id="lineage-first",
+        agent_id="z.agent",
+        transition="first",
+        neural_version="n1",
+        self_model_version="s1",
+        specialization_signature="sig-z",
+    )
+    second = EvolutionLineageEntry(
+        sequence=2,
+        entry_id="lineage-second",
+        agent_id="a.agent",
+        transition="second",
+        neural_version="n2",
+        self_model_version="s2",
+        specialization_signature="sig-a",
+    )
+
+    class _StateStub:
+        def to_state(self):
+            return {}
+
+    plane = object.__new__(IndividualEvolutionControlPlane)
+    plane.profiles = _StateStub()
+    plane.experiences = _StateStub()
+    plane._lineage = {"z.agent": [first], "a.agent": [second]}
+    plane._observations = {}
+    plane._lineage_counter = 2
+
+    state = plane.to_state()
+    assert [row["sequence"] for row in state["lineage"]] == [1, 2]
