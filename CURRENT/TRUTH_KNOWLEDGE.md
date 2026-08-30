@@ -75,6 +75,7 @@ No stage may silently perform the next stage's decision.
 - `external.knowledge` remains the existing canonical reusable knowledge fabric in `nolane.memory.knowledge`.
 - `knowledge_truth.py` adds proposition/derivation semantics needed by truth closure; it does not replace retrieval/document/chunk authority.
 - A truth claim is content-addressed over `(claim_id, subject, relation, object, risk, evidence_ids, parent_claim_ids)`.
+- `evidence_ids` and `parent_claim_ids` have set semantics: constructors reject duplicates and store them as sorted tuples, so semantic identity and content digest are independent of caller ordering.
 - Parent references form a DAG; cycles and missing parents fail closed.
 - Restore is topological and independent of serialized claim-ID sort order.
 - Duplicate serialized claim identities fail closed; restore cannot normalize ambiguous/malleable state by silently deduplicating it.
@@ -104,7 +105,7 @@ A `TruthVerificationReceipt` binds:
 - exact Epistemic snapshot digest;
 - cited evidence IDs.
 
-Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source. Duplicate serialized receipt identities fail closed rather than collapsing into one row.
+Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source. Duplicate serialized receipt identities fail closed rather than collapsing into one row. Cited evidence IDs are a canonical sorted unique set, so a receipt cannot acquire a different digest merely by permuting equivalent references.
 
 ## Assurance protocol invariants
 
@@ -132,7 +133,7 @@ Current minimum diversity policy:
 
 A `TruthClosureCertificate` is a content-addressed decision receipt, not self-authenticating authority. `TruthClosureCertificate.from_state()` proves only serialization/content integrity. A consumer that wants to rely on `closed=True` must call `TruthAssuranceGate.validate_certificate(...)`, which re-derives canonical closure from current live Knowledge, Evidence and Verification state and requires exact certificate equality. A digest-valid self-issued certificate therefore does not acquire authority, and a formerly valid certificate stops validating when live evidence/verification state changes.
 
-Certificate receipt-ID/debt-ID lists and reasons are canonical sets represented as unique ordered tuples; duplicates or inconsistent `closed`/`reasons` combinations fail closed. The digest-only legacy `close()` surface remains deliberately fail-closed and cannot return an accepted truth certificate.
+Certificate receipt-ID/debt-ID lists and reasons are canonical sets represented as sorted unique tuples; equivalent permutations therefore produce one certificate identity. Duplicates or inconsistent `closed`/`reasons` combinations fail closed. The digest-only legacy `close()` surface remains deliberately fail-closed and cannot return an accepted truth certificate.
 
 ## Subprotocol binding invariants
 
@@ -165,6 +166,7 @@ Truth Closure is additive protocol semantics under those components. Any future 
 - **A4**: discovered and forbids duplicate canonical authority, removes the private truth digest, moves proposition semantics to `knowledge_truth.py`, and binds every helper to one existing canonical parent component.
 - **A5**: separates content integrity from authority authenticity: closure certificates require live revalidation, and duplicate serialized ledger/certificate identities fail closed instead of being normalized away.
 - **A6**: adds canonical metadata acknowledgement without mutating parent component identity/version: a content-addressed subprotocol registry validates all five parent↔helper bindings bidirectionally and prevents helper-declared ownership from becoming one-sided authority.
+- **A7**: closes order-based state malleability by canonical-sorting every set-semantic reference used in Knowledge claims, Verification receipts and Assurance certificates before content identity is computed.
 
 ## Acceptance gates
 
