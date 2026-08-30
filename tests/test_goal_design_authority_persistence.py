@@ -278,3 +278,28 @@ def test_restore_rejects_tampered_supersession_cycle():
 
     with pytest.raises(ValueError, match="cycle"):
         DecisionAuthorityIndex.from_state(state)
+
+
+def test_mark_stale_requires_at_least_one_authority_reason():
+    index = DecisionAuthorityIndex()
+    receipt = _receipt("receipt:no-reason")
+    index.register(receipt)
+
+    with pytest.raises(ValueError, match="reason"):
+        index.mark_stale(receipt.receipt_id, ())
+
+    assert index.get(receipt.receipt_id).lifecycle is DecisionLifecycle.ACTIVE
+
+
+def test_supersession_requires_an_active_replacement_decision():
+    index = DecisionAuthorityIndex()
+    original = _receipt("receipt:original")
+    replacement = _receipt("receipt:replacement")
+    index.register(original)
+    index.register(replacement)
+    index.mark_stale(replacement.receipt_id, ("replacement drift",))
+
+    with pytest.raises(ValueError, match="replacement.*active"):
+        index.supersede(original.receipt_id, by_receipt_id=replacement.receipt_id)
+
+    assert index.get(original.receipt_id).lifecycle is DecisionLifecycle.ACTIVE
