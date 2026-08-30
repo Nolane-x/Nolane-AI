@@ -204,3 +204,36 @@ def test_restore_accepts_revalidated_memory_with_lifecycle_verification_proof() 
     assert restored.to_state() == state
     assert restored.memory.get(row.memory_id).status is MemoryStatus.ACTIVE
     assert restored.metadata(row.memory_id).epistemic_type is EpistemicType.VERIFIED
+
+
+def test_restore_rejects_promoted_skill_without_persisted_learning_validation() -> None:
+    _, state = _promoted_skill_state()
+    state["skill_validations"] = []
+
+    with pytest.raises(PermissionError, match="persistent skill.*validation|validation.*persistent skill"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_retrieval_receipt_state_digest_binds_tombstone_set() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    before = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+    )
+    substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="explicit_forgetting",
+        evidence_refs=("forget-proof",),
+    )
+    substrate.memory.set_status(row.memory_id, MemoryStatus.ACTIVE, reason="unsafe drift")
+    after = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+    )
+
+    assert before.receipt.memory_state_digest != after.receipt.memory_state_digest
+    assert dict(after.rejected)[row.memory_id] == "tombstoned"
