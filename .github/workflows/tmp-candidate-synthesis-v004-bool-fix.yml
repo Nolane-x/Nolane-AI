@@ -37,15 +37,22 @@ jobs:
           old_request = '''            generation_budget=int(state.get("generation_budget", 0)),\n            mode=SynthesisMode(str(state["mode"])),\n'''
           new_request = '''            generation_budget=_structural_state_int(\n                state.get("generation_budget", 0),\n                "generation budget",\n            ),\n            mode=SynthesisMode(str(state["mode"])),\n'''
           if text.count(old_request) != 1:
-              raise SystemExit('structural request budget restore anchor mismatch')
+              raise SystemExit(f'structural request budget restore anchor mismatch: {text.count(old_request)}')
           text = text.replace(old_request, new_request)
+
+          start_marker = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisReceipt:'
+          end_marker = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisResult:'
+          if text.count(start_marker) != 1 or text.count(end_marker) != 1:
+              raise SystemExit('structural receipt class boundary mismatch')
+          before, structural_and_after = text.split(start_marker, 1)
+          structural_body, after = structural_and_after.split(end_marker, 1)
 
           old_receipt = '''            generation_budget=int(state["generation_budget"]),\n            candidates_considered=int(state["candidates_considered"]),\n            candidate_id=None if state.get("candidate_id") is None else str(state["candidate_id"]),\n'''
           new_receipt = '''            generation_budget=_structural_state_int(\n                state["generation_budget"],\n                "generation budget",\n            ),\n            candidates_considered=_structural_state_int(\n                state["candidates_considered"],\n                "candidates considered",\n            ),\n            candidate_id=None if state.get("candidate_id") is None else str(state["candidate_id"]),\n'''
-          # This exact sequence appears once in the structural receipt restore; legacy v1 stays untouched.
-          if text.count(old_receipt) != 1:
-              raise SystemExit(f'structural receipt budget restore anchor mismatch: {text.count(old_receipt)}')
-          text = text.replace(old_receipt, new_receipt)
+          if structural_body.count(old_receipt) != 1:
+              raise SystemExit(f'structural receipt scoped anchor mismatch: {structural_body.count(old_receipt)}')
+          structural_body = structural_body.replace(old_receipt, new_receipt)
+          text = before + start_marker + structural_body + end_marker + after
 
           path.write_text(text, encoding='utf-8')
           PY
