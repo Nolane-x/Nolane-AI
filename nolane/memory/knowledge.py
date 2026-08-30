@@ -5,11 +5,14 @@ import math
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Protocol, Sequence
+from enum import Enum
+from typing import Any, Mapping, Protocol, Sequence
+
+from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.knowledge"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.knowledge_types"
 MIGRATED_SOURCES = (
     "cogcoder/knowledge_types.py",
@@ -17,6 +20,9 @@ MIGRATED_SOURCES = (
     "cogcoder/knowledge_ledger.py",
     "cogcoder/knowledge_adapters.py",
 )
+
+RELATION_SEMANTICS_PROTOCOL = "relation-semantics-registry-v1"
+RELATION_SEMANTICS_PROJECTION_PROTOCOL = "relation-semantics-projection-v1"
 
 
 @dataclass(frozen=True)
@@ -339,6 +345,170 @@ def extract_generic_query_anchors(text: str) -> tuple[str, ...]:
     )
 
 
+def _relation_name(value: str) -> str:
+    relation = str(value).strip()
+    if not relation:
+        raise ValueError("relation semantics relation must be explicit")
+    return relation
+
+
+def _relation_names(values: Sequence[str]) -> tuple[str, ...]:
+    rows = tuple(sorted(_relation_name(value) for value in values))
+    if len(set(rows)) != len(rows):
+        raise ValueError("relation semantics projection relations must be unique")
+    return rows
+
+
+class RelationCardinality(str, Enum):
+    EXCLUSIVE = "exclusive"
+    MULTI_VALUED = "multi_valued"
+    UNSPECIFIED = "unspecified"
+
+
+@dataclass(frozen=True, slots=True)
+class RelationSemanticsRevision:
+    relation: str
+    revision: int
+    cardinality: RelationCardinality
+    previous_digest: str
+    digest: str
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        relation: str,
+        revision: int,
+        cardinality: RelationCardinality,
+        previous_digest: str = "",
+    ) -> "RelationSemanticsRevision":
+        relation = _relation_name(relation)
+        revision = int(revision)
+        if revision < 1:
+            raise ValueError("relation semantics revision must be positive")
+        cardinality = RelationCardinality(cardinality)
+        previous_digest = str(previous_digest).strip()
+        if revision == 1 and previous_digest:
+            raise ValueError("relation semantics first revision cannot declare predecessor")
+        if revision > 1 and not previous_digest:
+            raise ValueError("relation semantics later revision requires predecessor")
+        payload = {
+            "relation": relation,
+            "revision": revision,
+            "cardinality": cardinality.value,
+            "previous_digest": previous_digest,
+        }
+        return cls(relation, revision, cardinality, previous_digest, canonical_digest(payload))
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "relation": self.relation,
+            "revision": self.revision,
+            "cardinality": self.cardinality.value,
+            "previous_digest": self.previous_digest,
+            "digest": self.digest,
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "RelationSemanticsRevision":
+        row = cls.create(
+            relation=str(state["relation"]),
+            revision=int(state["revision"]),
+            cardinality=RelationCardinality(str(state["cardinality"])),
+            previous_digest=str(state.get("previous_digest", "")),
+        )
+        if str(state["digest"]) != row.digest:
+            raise ValueError("relation semantics revision digest mismatch")
+        return row
+
+
+class RelationSemanticsRegistry:
+    """Append-only cardinality authority owned by canonical ``external.knowledge``."""
+
+    def __init__(self) -> None:
+        self._revisions: dict[str, list[RelationSemanticsRevision]] = {}
+
+    def record(self, row: RelationSemanticsRevision) -> RelationSemanticsRevision:
+        if not isinstance(row, RelationSemanticsRevision):
+            raise TypeError("relation semantics registry accepts canonical revisions only")
+        history = self._revisions.setdefault(row.relation, [])
+        if not history:
+            if row.revision != 1:
+                raise ValueError("relation semantics revision sequence must start at 1")
+            history.append(row)
+            return row
+
+        current = history[-1]
+        if row.revision == current.revision:
+            if row != current:
+                raise ValueError("relation semantics revision collision")
+            return current
+        if row.revision != current.revision + 1:
+            raise ValueError("relation semantics revision sequence must advance exactly once")
+        if row.previous_digest != current.digest:
+            raise ValueError("relation semantics predecessor mismatch")
+        history.append(row)
+        return row
+
+    def revisions(self, relation: str) -> tuple[RelationSemanticsRevision, ...]:
+        return tuple(self._revisions.get(_relation_name(relation), ()))
+
+    def current(self, relation: str) -> RelationSemanticsRevision | None:
+        rows = self.revisions(relation)
+        return rows[-1] if rows else None
+
+    def cardinality(self, relation: str) -> RelationCardinality:
+        row = self.current(relation)
+        return RelationCardinality.UNSPECIFIED if row is None else row.cardinality
+
+    def projection_state(self, relations: Sequence[str]) -> dict[str, Any]:
+        rows: list[dict[str, Any]] = []
+        for relation in _relation_names(relations):
+            current = self.current(relation)
+            if current is None:
+                rows.append({"relation": relation, "status": "unspecified"})
+            else:
+                rows.append({
+                    "relation": relation,
+                    "status": "registered",
+                    "revision": current.to_state(),
+                })
+        return {"protocol": RELATION_SEMANTICS_PROJECTION_PROTOCOL, "relations": rows}
+
+    def projection_digest(self, relations: Sequence[str]) -> str:
+        return canonical_digest(self.projection_state(relations))
+
+    def to_state(self) -> dict[str, Any]:
+        rows = [
+            row.to_state()
+            for relation in sorted(self._revisions)
+            for row in self._revisions[relation]
+        ]
+        return {"protocol": RELATION_SEMANTICS_PROTOCOL, "revisions": rows}
+
+    @property
+    def digest(self) -> str:
+        return canonical_digest(self.to_state())
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "RelationSemanticsRegistry":
+        if str(state.get("protocol", "")) != RELATION_SEMANTICS_PROTOCOL:
+            raise ValueError("unsupported relation semantics registry protocol")
+        parsed: list[RelationSemanticsRevision] = []
+        seen: set[tuple[str, int]] = set()
+        for value in state.get("revisions", ()):
+            row = RelationSemanticsRevision.from_state(value)
+            key = (row.relation, row.revision)
+            if key in seen:
+                raise ValueError("duplicate serialized relation revision")
+            seen.add(key)
+            parsed.append(row)
+        registry = cls()
+        for row in sorted(parsed, key=lambda item: (item.relation, item.revision)):
+            registry.record(row)
+        return registry
+
+
 __all__ = (
     "KnowledgeDocument",
     "EvidenceChunk",
@@ -349,4 +519,9 @@ __all__ = (
     "EvidenceLedger",
     "CallbackKnowledgeSource",
     "extract_generic_query_anchors",
+    "RelationCardinality",
+    "RelationSemanticsRevision",
+    "RelationSemanticsRegistry",
+    "RELATION_SEMANTICS_PROTOCOL",
+    "RELATION_SEMANTICS_PROJECTION_PROTOCOL",
 )
