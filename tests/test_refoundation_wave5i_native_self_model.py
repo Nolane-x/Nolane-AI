@@ -65,8 +65,8 @@ def test_wave5i_self_model_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.self_model"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.self_model")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.self_model")) == "0.0.2"
 
 
 def test_wave5i_self_model_and_accepted_downstream_cutovers_stay_out_of_facades() -> None:
@@ -145,6 +145,10 @@ def test_wave5i_self_model_preserves_initialization_updates_and_state() -> None:
     restored = SelfModelRegistry.from_state(restored_registry, state)
     assert restored.to_state() == state
     assert restored.get("producer") == second
+    assert restored_registry.updated == {
+        "producer": "self-model-00000003",
+        "verifier": "self-model-0.1",
+    }
 
     partial_state = {
         "models": [second.to_state()],
