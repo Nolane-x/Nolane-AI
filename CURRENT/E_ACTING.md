@@ -1,8 +1,8 @@
 # E. Acting — Canonical Refoundation Boundary
 
 **Component family:** E  
-**Revision:** 0.1.0 transactional baseline  
-**Authority:** this document defines the intended ownership boundary for E while the branch is under review.
+**Revision:** transactional baseline with canonical execution integration  
+**Authority:** this document describes the implemented E ownership boundary on the E refoundation branch.
 
 ## Scope
 
@@ -20,29 +20,33 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 
 ## Canonical components
 
-| E area | Canonical implementation | Responsibility |
-|---|---|---|
-| Invokable Cores | `nolane/external_core/invokable.py` | versioned core execution profile: schemas, capabilities, effects, permissions, failure/verification hooks, idempotency, retry, compensation |
-| Execution Workspace | `nolane/external_core/execution_workspace.py` | isolated Git worktree + reversible local checkpoints + digest-proven restore |
-| Executor | `nolane/external_core/acting_runtime.py` | transactional wrapper around concrete core invocation; checkpoint/invoke/verify/commit or restore/recover |
-| Execution Control | `nolane/external_core/acting_protocol.py` | action lifecycle, leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts |
+| E area | Canonical implementation | Version | Responsibility |
+|---|---|---:|---|
+| Invokable Cores | `nolane/external_core/invokable.py` | `0.0.2` | versioned core execution profile: schemas, capabilities, effects, permissions, failure/verification hooks, idempotency, retry, compensation |
+| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.1.0` | isolated Git worktree + reversible local checkpoints + digest-proven restore |
+| Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.0` | lifecycle, leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts |
+| Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.0` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor |
+| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.2` | compatibility-facing organization controller whose effectful tool path is now forced through `TransactionalExternalCoreExecutor`; persists and restores the transactional ledger |
 
 ## Canonical flow
 
 ```text
 upstream selected + authorized action
+    -> canonical Execution Control
     -> execution contract
     -> capability-bounded lease
     -> precondition evidence
     -> effect-budget reservation
-    -> concrete execution
+    -> TransactionalExternalCoreExecutor
+    -> concrete core execution
     -> observed outcome
     -> postcondition verification
     -> COMMIT
        or ROLLBACK / DEGRADED
+    -> persisted receipt / ledger chain
 ```
 
-A concrete tool returning success is not enough to commit.
+A concrete tool returning success is not enough to commit. `OrganizationExecutionControlPlane.step()` no longer invokes the primitive executor directly for tool effects; it routes those effects through the transactional executor and then consumes the resulting core receipt for compatibility with the existing organization execution surface.
 
 ## Critical invariants
 
@@ -56,17 +60,35 @@ A concrete tool returning success is not enough to commit.
 8. A committed idempotency key never re-invokes the side effect.
 9. Lifecycle receipts are append-only and hash-chained.
 10. E never performs candidate selection or strategic authorization.
+11. Canonical execution control may infer only the minimum compatibility mapping needed to classify an already-selected tool action as read/local/external execution; it does not perform candidate or strategic reasoning.
+12. Transactional ledger state is part of canonical execution-control persistence and is restored across runtime restart.
 
-## Compatibility
+## Compatibility boundary
 
-`nolane/external_core/execution.py` remains a compatibility controller because it currently combines neural decision generation with execution. The new E transactional boundary is intentionally separate so specialist work on C/D and other domains can evolve without E absorbing their ownership.
+`nolane/external_core/execution.py` still contains the historical organization-facing inference/controller surface because upstream C/D refoundation is owned by other workstreams. That compatibility surface is no longer an execution bypass: its TOOL branch routes through `TransactionalExternalCoreExecutor`.
 
-The later integration adapter should translate an upstream authorized decision artifact into the E execution contract and route its concrete core call through `TransactionalExternalCoreExecutor`.
+The adapter binds an already-issued `AgentDecisionReceipt` to the E contract via `authorization_ref`, derives a deterministic idempotency key from session + decision receipt, and conservatively maps local workspace mutation, external-core invocation, and read-only tool execution into E effect/risk classes. It does not mint strategic authorization or make a new candidate-selection decision.
+
+## Persistence authority
+
+The E integration extends canonical runtime state with the transactional executor ledger. Historical runtime-state digests remain immutable provenance anchors:
+
+- Wave 1 accepted digest is preserved.
+- Wave 5N planning/persistence cutover digest is preserved.
+- E. Acting adds a new append-only runtime-state digest for the transactional-ledger cutover rather than rewriting either historical value.
+
+This preserves deterministic first-generation state while making idempotency and receipt-chain state restart-safe.
 
 ## Verification
 
 Dedicated CI: `.github/workflows/refoundation-e-acting.yml`
 
 The gate compiles canonical E modules, runs E-specific protocol/workspace/executor contracts, and then executes every `tests/test_refoundation_*.py` test on Python 3.11 and 3.13. JUnit evidence is preserved on failures.
+
+The canonical-integration regression contracts additionally require that:
+
+- `OrganizationExecutionControlPlane.step()` contains the transactional invocation path and cannot directly call `self.executor.invoke(...)` for the canonical tool-effect path;
+- `OrganizationExecutionControlPlane.to_state()` persists `acting_executor` state; and
+- `OrganizationExecutionControlPlane.from_state()` restores it with `TransactionalExternalCoreExecutor.from_state(...)`.
 
 Full design rationale: `docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md`.
