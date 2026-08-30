@@ -93,9 +93,9 @@ def _accepted_shadow_receipt(design: ExperimentDesign):
     }
     receipt = run_shadow_experiment(
         version_space,
-        (treatment, control, ablation),
+        (treatment,),
         lambda probe: observations[probe.probe_id],
-        verification_probes=(verification,),
+        verification_probes=(control, ablation, verification),
         max_selection_oracle_calls=rebound.max_selection_oracle_calls,
     )
     assert receipt.status == "accept"
@@ -134,6 +134,18 @@ def test_design_requires_treatment_control_ablation_and_independent_verification
             )
 
 
+def test_controls_and_ablations_are_mandatory_verification_phase_probes() -> None:
+    design = _design()
+    by_role = {row.role: row.probe.probe_id for row in design.probes}
+
+    assert design.selection_probe_ids == (by_role[ExperimentProbeRole.TREATMENT],)
+    assert set(design.verification_probe_ids) == {
+        by_role[ExperimentProbeRole.NEGATIVE_CONTROL],
+        by_role[ExperimentProbeRole.ABLATION],
+        by_role[ExperimentProbeRole.INDEPENDENT_VERIFICATION],
+    }
+
+
 def test_design_rejects_duplicate_probes_and_invalid_budget_values() -> None:
     base = _design()
     with pytest.raises(ValueError):
@@ -165,7 +177,7 @@ def test_design_state_rejects_tampered_identity() -> None:
         ExperimentDesign.from_state(state)
 
 
-def test_execution_binding_proves_authorization_cost_and_independent_verification() -> None:
+def test_execution_binding_proves_authorization_cost_controls_and_independent_verification() -> None:
     design, shadow = _accepted_shadow_receipt(_design())
     bound = bind_experiment_design_execution(design, shadow)
 
@@ -173,7 +185,8 @@ def test_execution_binding_proves_authorization_cost_and_independent_verificatio
     assert bound.design_id == design.design_id
     assert bound.experiment_id == shadow.experiment_id
     assert bound.selected_hypothesis_id == shadow.selected.hypothesis_id
-    assert bound.verification_oracle_calls == 1
+    assert bound.verification_oracle_calls == 3
+    assert bound.actual_cost == pytest.approx(design.worst_case_cost)
     assert bound.actual_cost <= design.max_total_cost
     assert bound.promoted is False
     assert ExperimentDesignExecutionReceipt.from_state(bound.to_state()) == bound
@@ -196,12 +209,10 @@ def test_execution_binding_rejects_receipt_from_different_design() -> None:
         stop_condition_ids=design.stop_condition_ids,
     )
 
-    # Cost changes alone do not change the engine receipt's probe identity, so
-    # the binding must still be explicitly design-scoped rather than treating
-    # an experiment_id as a design_id.
     bound = bind_experiment_design_execution(other, shadow)
     assert bound.design_id == other.design_id
     assert bound.design_id != design.design_id
+    assert bound.actual_cost == pytest.approx(other.worst_case_cost)
 
 
 def test_execution_binding_rejects_unplanned_probe_authority() -> None:
@@ -222,6 +233,6 @@ def test_execution_binding_rejects_unplanned_probe_authority() -> None:
         max_total_cost=design.max_total_cost,
         stop_condition_ids=design.stop_condition_ids,
     )
-    assert by_role[ExperimentProbeRole.NEGATIVE_CONTROL].probe.probe_id in shadow.selection_probe_ids
-    with pytest.raises(ValueError, match="selection probes"):
+    assert by_role[ExperimentProbeRole.NEGATIVE_CONTROL].probe.probe_id in shadow.verification_probe_ids
+    with pytest.raises(ValueError, match="verification probes"):
         bind_experiment_design_execution(incompatible, shadow)
