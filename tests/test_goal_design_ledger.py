@@ -1,5 +1,3 @@
-from dataclasses import replace
-
 import pytest
 
 from nolane.external_core.goal_design import DecisionReceipt, GoalDesignCoherencePlane, GoalDesignVersionVector
