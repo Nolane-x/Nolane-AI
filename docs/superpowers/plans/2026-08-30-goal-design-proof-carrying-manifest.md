@@ -101,8 +101,8 @@ Observed GREEN as part of the complete Goal/Design suite.
 
 ### Task 5: Final verification and PR closure
 
-- [ ] Exact A8+D+F final candidate passes every `tests/test_goal_design*.py` test on Python 3.11 and Python 3.12.
-- [ ] Refresh `main`; if it materially changed after A8 integration, integrate and re-run the merged-baseline gate.
+- [x] Exact A8+D+F candidate `28ae824f7fa686650f055517393deac024fad0bc`, workflow run `33313989149`, passed every `tests/test_goal_design*.py` test: 48/48 on Python 3.11 and 48/48 on Python 3.12.
+- [x] Refreshed `main` after the A8 run; it remained `64d1ed5ad816e731068f0612db90c5b32288a465`, so no additional specialist integration was required before PR reopening.
 - [ ] `main...feat/goal-design-coherence-plane-gpt56sol` is `behind_by=0`, mergeable, and its changed-file set contains only Goal/Design implementation, tests, documentation, compatibility export and dedicated workflow.
-- [ ] Reopen PR #239 with final RED→GREEN and cross-authority evidence.
+- [x] Reopened PR #239 with final RED→GREEN, A8 scoped-Truth and F manifest-attestation evidence. The reopened PR resolved base `main` to `64d1ed5ad816e731068f0612db90c5b32288a465` and branch head to `28ae824f7fa686650f055517393deac024fad0bc` before this closure-document commit.
 - [ ] Merge PR #239 with exact-head protection and verify the returned merge SHA is the new `main` SHA.
