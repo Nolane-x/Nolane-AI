@@ -71,6 +71,26 @@ class EngineeringEvidenceAttestation:
     dependencies: tuple[str, ...]
     digest: str
 
+    def __post_init__(self) -> None:
+        for value, field in (
+            (self.attestation_id, "attestation id"),
+            (self.subject_ref, "subject ref"),
+            (self.subject_digest, "subject digest"),
+            (self.producer_agent_id, "producer agent"),
+            (self.verifier_agent_id, "verifier agent"),
+            (self.verifier_region, "verifier region"),
+            (self.source_revision, "source revision"),
+            (self.environment_digest, "environment digest"),
+            (self.digest, "attestation digest"),
+        ):
+            _text(value, field=field)
+        if not self.evidence_refs:
+            raise ValueError("engineering evidence requires evidence refs")
+        if self.passed and self.verifier_agent_id == self.producer_agent_id:
+            raise PermissionError("successful engineering evidence forbids self-verification")
+        if self.passed and self.verifier_region != "verification-testing":
+            raise PermissionError("successful engineering evidence requires verification-testing authority")
+
     def payload(self) -> dict[str, Any]:
         return {
             "subject_ref": self.subject_ref,
@@ -113,12 +133,7 @@ class EngineeringEvidenceAttestation:
 
 
 class EngineeringEvidenceLedger:
-    """Content-addressed verification evidence with dependency-aware revocation.
-
-    Evidence is deliberately separate from the existing CodingPatchCandidate
-    evidence-reference fields. Those references remain provenance pointers;
-    this ledger adds exact subject/source/environment binding and invalidation.
-    """
+    """Content-addressed verification evidence with dependency-aware revocation."""
 
     def __init__(self) -> None:
         self._rows: dict[str, EngineeringEvidenceAttestation] = {}
@@ -148,49 +163,36 @@ class EngineeringEvidenceLedger:
         environment_digest: str,
         dependencies: tuple[str, ...] = (),
     ) -> EngineeringEvidenceAttestation:
-        subject = _text(subject_ref, field="subject ref")
-        subject_hash = _text(subject_digest, field="subject digest")
-        producer = _text(producer_agent_id, field="producer agent")
-        verifier = _text(verifier_agent_id, field="verifier agent")
-        region = _text(verifier_region, field="verifier region")
         refs = _refs(evidence_refs)
         if not refs:
             raise ValueError("engineering evidence requires evidence refs")
-        source = _text(source_revision, field="source revision")
-        environment = _text(environment_digest, field="environment digest")
-        deps = _refs(dependencies)
-        if bool(passed) and verifier == producer:
-            raise PermissionError("successful engineering evidence forbids self-verification")
-        if bool(passed) and region != "verification-testing":
-            raise PermissionError("successful engineering evidence requires verification-testing authority")
-
         payload = {
-            "subject_ref": subject,
-            "subject_digest": subject_hash,
-            "producer_agent_id": producer,
-            "verifier_agent_id": verifier,
-            "verifier_region": region,
+            "subject_ref": _text(subject_ref, field="subject ref"),
+            "subject_digest": _text(subject_digest, field="subject digest"),
+            "producer_agent_id": _text(producer_agent_id, field="producer agent"),
+            "verifier_agent_id": _text(verifier_agent_id, field="verifier agent"),
+            "verifier_region": _text(verifier_region, field="verifier region"),
             "kind": EngineeringEvidenceKind(kind).value,
             "passed": bool(passed),
             "evidence_refs": list(refs),
-            "source_revision": source,
-            "environment_digest": environment,
-            "dependencies": list(deps),
+            "source_revision": _text(source_revision, field="source revision"),
+            "environment_digest": _text(environment_digest, field="environment digest"),
+            "dependencies": list(_refs(dependencies)),
         }
         digest = canonical_digest(payload)
         row = EngineeringEvidenceAttestation(
             attestation_id=f"eng-evidence-{digest[:20]}",
-            subject_ref=subject,
-            subject_digest=subject_hash,
-            producer_agent_id=producer,
-            verifier_agent_id=verifier,
-            verifier_region=region,
-            kind=EngineeringEvidenceKind(kind),
-            passed=bool(passed),
-            evidence_refs=refs,
-            source_revision=source,
-            environment_digest=environment,
-            dependencies=deps,
+            subject_ref=payload["subject_ref"],
+            subject_digest=payload["subject_digest"],
+            producer_agent_id=payload["producer_agent_id"],
+            verifier_agent_id=payload["verifier_agent_id"],
+            verifier_region=payload["verifier_region"],
+            kind=EngineeringEvidenceKind(payload["kind"]),
+            passed=payload["passed"],
+            evidence_refs=tuple(payload["evidence_refs"]),
+            source_revision=payload["source_revision"],
+            environment_digest=payload["environment_digest"],
+            dependencies=tuple(payload["dependencies"]),
             digest=digest,
         )
         existing = self._rows.get(row.attestation_id)
@@ -202,7 +204,10 @@ class EngineeringEvidenceLedger:
     def revoke(self, source_ref: str, *, reason: str) -> tuple[str, ...]:
         source = _text(source_ref, field="revocation source")
         why = _text(reason, field="revocation reason")
-        self._revocations[source] = why
+        old_reason = self._revocations.get(source)
+        if old_reason is not None and old_reason != why:
+            raise ValueError("revocation history cannot be rebound")
+        self._revocations.setdefault(source, why)
 
         affected: set[str] = set()
         frontier = [source]
@@ -224,6 +229,24 @@ class EngineeringEvidenceLedger:
     def is_revoked(self, reference: str) -> bool:
         return str(reference) in self._revocations
 
+    def _lineage_live(self, identity: str, visiting: set[str]) -> bool:
+        if identity in visiting or self.is_revoked(identity):
+            return False
+        row = self._rows.get(identity)
+        if row is None:
+            return not self.is_revoked(identity)
+        if not row.passed:
+            return False
+        visiting.add(identity)
+        try:
+            return all(
+                not self.is_revoked(dependency)
+                and (dependency not in self._rows or self._lineage_live(dependency, visiting))
+                for dependency in row.dependencies
+            )
+        finally:
+            visiting.remove(identity)
+
     def is_valid(
         self,
         attestation_id: str,
@@ -236,22 +259,13 @@ class EngineeringEvidenceLedger:
             row = self.get(attestation_id)
         except KeyError:
             return False
-        if not row.passed or self.is_revoked(row.attestation_id):
-            return False
-        if (
-            row.subject_ref != str(subject_ref)
-            or row.subject_digest != str(subject_digest)
-            or row.source_revision != str(source_revision)
-        ):
-            return False
-        if any(self.is_revoked(ref) for ref in row.dependencies):
-            return False
-        for dependency in row.dependencies:
-            if dependency in self._rows:
-                dep = self._rows[dependency]
-                if not dep.passed or self.is_revoked(dep.attestation_id):
-                    return False
-        return True
+        return (
+            row.passed
+            and row.subject_ref == str(subject_ref)
+            and row.subject_digest == str(subject_digest)
+            and row.source_revision == str(source_revision)
+            and self._lineage_live(row.attestation_id, set())
+        )
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -279,8 +293,6 @@ class EngineeringEvidenceLedger:
                 raise ValueError("revocation reference cannot be rebound")
             ledger._revocations[reference] = reason
 
-        # Known attestation-to-attestation dependencies must be acyclic. External
-        # artifact refs remain opaque provenance leaves.
         visiting: set[str] = set()
         visited: set[str] = set()
 
@@ -317,6 +329,50 @@ class EngineeringPatchTransaction:
     closure_receipt_id: str | None = None
     rollback_ref: str | None = None
     failure_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        for value, field in (
+            (self.transaction_id, "transaction id"),
+            (self.patch_ref, "patch ref"),
+            (self.patch_digest, "patch digest"),
+            (self.source_revision, "source revision"),
+            (self.rollback_artifact_ref, "rollback artifact"),
+        ):
+            _text(value, field=field)
+        if self.phase is not EngineeringPhase.PROPOSED and not self.claim_refs:
+            raise ValueError("non-proposed transaction requires source claims")
+        if self.phase in {
+            EngineeringPhase.PRECONDITIONS_VERIFIED,
+            EngineeringPhase.APPLIED,
+            EngineeringPhase.OUTCOME_OBSERVED,
+            EngineeringPhase.POSTCONDITIONS_VERIFIED,
+            EngineeringPhase.CANDIDATE_READY,
+        } and not self.precondition_attestation_ids:
+            raise ValueError("verified transaction phase requires precondition attestations")
+        if self.phase in {
+            EngineeringPhase.APPLIED,
+            EngineeringPhase.OUTCOME_OBSERVED,
+            EngineeringPhase.POSTCONDITIONS_VERIFIED,
+            EngineeringPhase.CANDIDATE_READY,
+        } and not self.application_ref:
+            raise ValueError("applied transaction phase requires application ref")
+        if self.phase in {
+            EngineeringPhase.OUTCOME_OBSERVED,
+            EngineeringPhase.POSTCONDITIONS_VERIFIED,
+            EngineeringPhase.CANDIDATE_READY,
+        } and not self.outcome_evidence_refs:
+            raise ValueError("observed transaction phase requires outcome evidence")
+        if self.phase in {
+            EngineeringPhase.POSTCONDITIONS_VERIFIED,
+            EngineeringPhase.CANDIDATE_READY,
+        } and not self.postcondition_attestation_ids:
+            raise ValueError("postcondition transaction phase requires attestations")
+        if self.phase is EngineeringPhase.CANDIDATE_READY and not self.closure_receipt_id:
+            raise ValueError("candidate-ready transaction requires closure receipt")
+        if self.phase is EngineeringPhase.QUARANTINED and not self.failure_reason:
+            raise ValueError("quarantined transaction requires reason")
+        if self.phase is EngineeringPhase.ROLLED_BACK and (not self.rollback_ref or not self.failure_reason):
+            raise ValueError("rolled-back transaction requires rollback ref and reason")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -357,7 +413,7 @@ class EngineeringPatchTransaction:
 
 
 class PatchTransactionLedger:
-    """Fail-closed patch mutation lifecycle inspired by Nolane World actions."""
+    """Fail-closed patch mutation lifecycle adapted from Nolane World actions."""
 
     def __init__(self, evidence: EngineeringEvidenceLedger) -> None:
         self.evidence = evidence
@@ -434,24 +490,20 @@ class PatchTransactionLedger:
         old = self.get(transaction_id)
         self._require_phase(old, EngineeringPhase.CLAIMS_BOUND)
         identities = self._validate_attestations(old, attestation_ids)
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.PRECONDITIONS_VERIFIED,
-                precondition_attestation_ids=identities,
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.PRECONDITIONS_VERIFIED,
+            precondition_attestation_ids=identities,
+        ))
 
     def mark_applied(self, transaction_id: str, *, application_ref: str) -> EngineeringPatchTransaction:
         old = self.get(transaction_id)
         self._require_phase(old, EngineeringPhase.PRECONDITIONS_VERIFIED)
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.APPLIED,
-                application_ref=_text(application_ref, field="application ref"),
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.APPLIED,
+            application_ref=_text(application_ref, field="application ref"),
+        ))
 
     def observe_outcome(
         self, transaction_id: str, *, evidence_refs: tuple[str, ...]
@@ -461,9 +513,11 @@ class PatchTransactionLedger:
         refs = _refs(evidence_refs)
         if not refs:
             raise ValueError("applied patch requires observed outcome evidence")
-        return self._store(
-            replace(old, phase=EngineeringPhase.OUTCOME_OBSERVED, outcome_evidence_refs=refs)
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.OUTCOME_OBSERVED,
+            outcome_evidence_refs=refs,
+        ))
 
     def verify_postconditions(
         self, transaction_id: str, *, attestation_ids: tuple[str, ...]
@@ -471,26 +525,22 @@ class PatchTransactionLedger:
         old = self.get(transaction_id)
         self._require_phase(old, EngineeringPhase.OUTCOME_OBSERVED)
         identities = self._validate_attestations(old, attestation_ids)
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.POSTCONDITIONS_VERIFIED,
-                postcondition_attestation_ids=identities,
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.POSTCONDITIONS_VERIFIED,
+            postcondition_attestation_ids=identities,
+        ))
 
     def mark_candidate_ready(
         self, transaction_id: str, *, closure_receipt_id: str
     ) -> EngineeringPatchTransaction:
         old = self.get(transaction_id)
         self._require_phase(old, EngineeringPhase.POSTCONDITIONS_VERIFIED)
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.CANDIDATE_READY,
-                closure_receipt_id=_text(closure_receipt_id, field="closure receipt"),
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.CANDIDATE_READY,
+            closure_receipt_id=_text(closure_receipt_id, field="closure receipt"),
+        ))
 
     def quarantine(self, transaction_id: str, *, reason: str) -> EngineeringPatchTransaction:
         old = self.get(transaction_id)
@@ -501,13 +551,11 @@ class PatchTransactionLedger:
             EngineeringPhase.OUTCOME_OBSERVED,
             EngineeringPhase.POSTCONDITIONS_VERIFIED,
         )
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.QUARANTINED,
-                failure_reason=_text(reason, field="quarantine reason"),
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.QUARANTINED,
+            failure_reason=_text(reason, field="quarantine reason"),
+        ))
 
     def rollback(
         self, transaction_id: str, *, rollback_ref: str, reason: str
@@ -520,14 +568,12 @@ class PatchTransactionLedger:
             EngineeringPhase.POSTCONDITIONS_VERIFIED,
             EngineeringPhase.QUARANTINED,
         )
-        return self._store(
-            replace(
-                old,
-                phase=EngineeringPhase.ROLLED_BACK,
-                rollback_ref=_text(rollback_ref, field="rollback ref"),
-                failure_reason=_text(reason, field="rollback reason"),
-            )
-        )
+        return self._store(replace(
+            old,
+            phase=EngineeringPhase.ROLLED_BACK,
+            rollback_ref=_text(rollback_ref, field="rollback ref"),
+            failure_reason=_text(reason, field="rollback reason"),
+        ))
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -577,6 +623,15 @@ class EngineeringClosureReceipt:
     authority: str
     digest: str
 
+    def __post_init__(self) -> None:
+        if self.authority != "candidate_only":
+            raise ValueError("engineering closure cannot hold promotion authority")
+        if self.ready:
+            if self.decision is not EngineeringDecision.CANDIDATE_READY or self.reasons:
+                raise ValueError("ready closure must be clean candidate-ready")
+        elif self.decision is EngineeringDecision.CANDIDATE_READY:
+            raise ValueError("blocked closure cannot claim candidate-ready decision")
+
     def payload(self) -> dict[str, Any]:
         return {
             "patch_ref": self.patch_ref,
@@ -623,18 +678,11 @@ class EngineeringClosureReceipt:
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != f"eng-closure-{expected[:20]}":
             raise ValueError("engineering closure receipt digest/id mismatch")
-        if row.authority != "candidate_only":
-            raise ValueError("engineering closure cannot restore promotion authority")
         return row
 
 
 class SoftwareEngineeringClosureEngine:
-    """Cross-surface F closure without promotion authority.
-
-    The engine consumes, but never replaces, canonical Coding/Debugging/UI
-    receipts. A positive decision means only that the engineering candidate is
-    internally coherent enough to hand to downstream authority owners.
-    """
+    """Cross-surface F closure with deliberately candidate-only authority."""
 
     def __init__(
         self,
@@ -681,7 +729,10 @@ class SoftwareEngineeringClosureEngine:
         tx = self.transactions.get(transaction_id)
         source_revision = _text(current_source_revision, field="current source revision")
         identities = _refs(attestation_ids)
-        required = tuple(sorted({EngineeringEvidenceKind(kind) for kind in required_attestation_kinds}, key=lambda value: value.value))
+        required = tuple(sorted(
+            {EngineeringEvidenceKind(kind) for kind in required_attestation_kinds},
+            key=lambda value: value.value,
+        ))
         reasons: list[str] = []
 
         if tx.patch_ref != patch_ref or tx.patch_digest != patch_digest:
@@ -690,13 +741,13 @@ class SoftwareEngineeringClosureEngine:
             reasons.append("transaction_not_postcondition_verified")
         if tx.source_revision != source_revision:
             reasons.append("stale_source_revision")
-        if not tx.rollback_artifact_ref:
-            reasons.append("missing_rollback_artifact")
         if not set(tx.postcondition_attestation_ids).issubset(set(identities)):
             reasons.append("transaction_evidence_scope_mismatch")
 
         coding_id = self._value(getattr(coding_readiness, "receipt_id", None))
         coding_digest = self._value(getattr(coding_readiness, "digest", None))
+        if not coding_id or not coding_digest:
+            reasons.append("missing_coding_readiness_identity")
         if self._value(getattr(coding_readiness, "patch_id", None)) != patch_ref:
             reasons.append("coding_readiness_lineage_mismatch")
         if not bool(getattr(coding_readiness, "ready", False)):
@@ -739,6 +790,8 @@ class SoftwareEngineeringClosureEngine:
             else:
                 debug_id = self._value(getattr(debug_resolution, "resolution_id", None)) or None
                 debug_digest = self._value(getattr(debug_resolution, "digest", None)) or None
+                if not debug_id or not debug_digest:
+                    reasons.append("missing_debug_resolution_identity")
                 if (
                     self._value(getattr(debug_resolution, "patch_id", None)) != patch_ref
                     or self._value(getattr(debug_resolution, "coding_readiness_receipt_id", None)) != coding_id
@@ -753,6 +806,8 @@ class SoftwareEngineeringClosureEngine:
             else:
                 ui_id = self._value(getattr(ui_readiness, "receipt_id", None)) or None
                 ui_digest = self._value(getattr(ui_readiness, "digest", None)) or None
+                if not ui_id or not ui_digest:
+                    reasons.append("missing_ui_readiness_identity")
                 if not bool(getattr(ui_readiness, "ready", False)):
                     reasons.append("ui_readiness_not_ready")
                 if (
@@ -807,7 +862,8 @@ class SoftwareEngineeringClosureEngine:
         self._receipts[row.receipt_id] = row
         if row.ready:
             self.transactions.mark_candidate_ready(
-                tx.transaction_id, closure_receipt_id=row.receipt_id
+                tx.transaction_id,
+                closure_receipt_id=row.receipt_id,
             )
         return existing or row
 
@@ -826,8 +882,30 @@ class SoftwareEngineeringClosureEngine:
         for value in state.get("receipts", ()):
             row = EngineeringClosureReceipt.from_state(value)
             tx = transactions.get(row.transaction_id)
-            if row.patch_ref != tx.patch_ref or row.patch_digest != tx.patch_digest:
+            if (
+                row.patch_ref != tx.patch_ref
+                or row.patch_digest != tx.patch_digest
+                or row.source_revision != tx.source_revision
+            ):
                 raise ValueError("closure snapshot transaction lineage mismatch")
+            if row.ready:
+                if (
+                    tx.phase is not EngineeringPhase.CANDIDATE_READY
+                    or tx.closure_receipt_id != row.receipt_id
+                ):
+                    raise ValueError("closure snapshot closure lineage mismatch")
+                if not set(tx.postcondition_attestation_ids).issubset(set(row.attestation_ids)):
+                    raise ValueError("closure snapshot evidence lineage mismatch")
+                for identity in row.attestation_ids:
+                    if not evidence.is_valid(
+                        identity,
+                        subject_ref=row.patch_ref,
+                        subject_digest=row.patch_digest,
+                        source_revision=row.source_revision,
+                    ):
+                        raise ValueError("closure snapshot contains invalid evidence")
+            elif tx.closure_receipt_id == row.receipt_id:
+                raise ValueError("blocked closure cannot own transaction closure linkage")
             existing = engine._receipts.get(row.receipt_id)
             if existing is not None and existing != row:
                 raise ValueError("duplicate/rebound engineering closure receipt")
