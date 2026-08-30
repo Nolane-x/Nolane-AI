@@ -11,7 +11,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.memory.lifecycle"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
 
 
@@ -205,23 +205,38 @@ class MemoryLifecycleLedger:
         state: Mapping[str, Any],
     ) -> 'MemoryLifecycleLedger':
         receipts = tuple(MemoryLifecycleReceipt.from_state(row) for row in state.get('receipts', ()))
+        counter = int(state.get('counter', len(receipts)))
+        if counter != len(receipts):
+            raise ValueError('memory lifecycle sequence counter mismatch')
         result = cls(
             registry=registry,
             memory=memory,
             events=events,
             receipts=receipts,
-            counter=int(state.get('counter', len(receipts))),
+            counter=counter,
         )
-        for row in receipts:
-            registry.get(row.actor_agent_id)
+        replay_status: dict[str, MemoryStatus] = {}
+        for sequence, row in enumerate(receipts, start=1):
+            expected_receipt_id = f'memory-lifecycle-{sequence:08d}'
+            if row.receipt_id != expected_receipt_id:
+                raise ValueError('memory lifecycle receipt sequence mismatch')
+            result._authorize(row.actor_agent_id, row.new_status)
             memory.get(row.memory_id)
+            result._require_allowed_transition(row.previous_status, row.new_status)
+            if not row.reason.strip() or not row.evidence_refs:
+                raise ValueError('restored memory lifecycle transition requires explicit reason and evidence')
+            if row.new_status is MemoryStatus.ACTIVE and not (
+                row.correction_ref and row.correction_ref.strip()
+            ):
+                raise ValueError('restored memory reactivation requires an explicit corrective reference')
             if row.event_anchor_id is not None:
                 events.get(row.event_anchor_id)
-        latest_by_memory: dict[str, MemoryLifecycleReceipt] = {}
-        for row in receipts:
-            latest_by_memory[row.memory_id] = row
-        for memory_id, row in latest_by_memory.items():
-            if memory.get(memory_id).status is not row.new_status:
+            previous_replayed = replay_status.get(row.memory_id)
+            if previous_replayed is not None and row.previous_status is not previous_replayed:
+                raise ValueError('memory lifecycle continuity mismatch')
+            replay_status[row.memory_id] = row.new_status
+        for memory_id, terminal_status in replay_status.items():
+            if memory.get(memory_id).status is not terminal_status:
                 raise ValueError('restored memory status disagrees with lifecycle history')
         return result
 
