@@ -76,34 +76,74 @@ class SelfModelRegistry:
         if evidence.verifier_agent_id == str(agent_id):
             raise PermissionError("self-model improvement requires evidence external to the producer")
 
-    def update_competence(
-        self,
-        agent_id: str,
-        *,
-        domain: str,
-        score: float,
-        evidence: EvidenceRecord,
-    ) -> SelfModel:
+    def _commit(self, agent_id: str, evidence: EvidenceRecord, **changes: Any) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
-        if not 0.0 <= float(score) <= 1.0:
-            raise ValueError("competence score must lie in [0, 1]")
-        if not str(domain).strip():
-            raise ValueError("competence domain must be explicit")
         old = self.get(agent_id)
-        values = dict(old.domain_competence)
-        values[str(domain)] = float(score)
         revision = self._revisions.get(str(agent_id), 1) + 1
         self._revisions[str(agent_id)] = revision
         row = replace(
             old,
             version=f"self-model-{revision:08d}",
-            domain_competence=tuple(sorted(values.items())),
             evidence_ids=tuple(dict.fromkeys(old.evidence_ids + (evidence.evidence_id,))),
+            **changes,
         )
         self._models[row.agent_id] = row
         if hasattr(self.registry, "set_self_model_version"):
             self.registry.set_self_model_version(row.agent_id, row.version)
         return row
+
+    def update_competence(self, agent_id: str, *, domain: str, score: float, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        if not 0.0 <= float(score) <= 1.0:
+            raise ValueError("competence score must lie in [0, 1]")
+        domain = str(domain).strip()
+        if not domain:
+            raise ValueError("competence domain must be explicit")
+        values = dict(self.get(agent_id).domain_competence)
+        values[domain] = float(score)
+        return self._commit(agent_id, evidence, domain_competence=tuple(sorted(values.items())))
+
+    def update_tool_competence(self, agent_id: str, *, tool: str, score: float, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        if not 0.0 <= float(score) <= 1.0:
+            raise ValueError("tool competence score must lie in [0, 1]")
+        tool = str(tool).strip()
+        if not tool:
+            raise ValueError("tool identity must be explicit")
+        values = dict(self.get(agent_id).tool_competence)
+        values[tool] = float(score)
+        return self._commit(agent_id, evidence, tool_competence=tuple(sorted(values.items())))
+
+    def record_failure_mode(self, agent_id: str, *, failure_mode: str, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        value = str(failure_mode).strip()
+        if not value:
+            raise ValueError("failure mode must be explicit")
+        old = self.get(agent_id)
+        return self._commit(agent_id, evidence, failure_modes=tuple(dict.fromkeys(old.failure_modes + (value,))))
+
+    def record_blind_spot(self, agent_id: str, *, blind_spot: str, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        value = str(blind_spot).strip()
+        if not value:
+            raise ValueError("blind spot must be explicit")
+        old = self.get(agent_id)
+        return self._commit(agent_id, evidence, blind_spots=tuple(dict.fromkeys(old.blind_spots + (value,))))
+
+    def update_calibration(self, agent_id: str, *, calibration: float, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        value = float(calibration)
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("self-model calibration must lie in [0, 1]")
+        return self._commit(agent_id, evidence, calibration=value)
+
+    def trust_skill(self, agent_id: str, *, skill_id: str, evidence: EvidenceRecord) -> SelfModel:
+        self._require_external_valid_evidence(agent_id, evidence)
+        value = str(skill_id).strip()
+        if not value:
+            raise ValueError("trusted skill id must be explicit")
+        old = self.get(agent_id)
+        return self._commit(agent_id, evidence, trusted_skill_ids=tuple(dict.fromkeys(old.trusted_skill_ids + (value,))))
 
     def to_state(self) -> dict[str, Any]:
         return {
