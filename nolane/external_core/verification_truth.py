@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from ._truth_digest import truth_digest
-from .evidence_truth import EvidenceChannel
+from .evidence_truth import EvidenceChannel, EvidenceLedger
 
 COMPONENT_ID = "external.verification.truth"
-COMPONENT_VERSION = "0.2.0"
+COMPONENT_VERSION = "0.3.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,8 +61,31 @@ class TruthVerificationReceipt:
         return row
 
 
+@dataclass(frozen=True, slots=True)
+class TruthVerificationCoverage:
+    receipts: tuple[TruthVerificationReceipt, ...]
+    valid_receipt_ids: tuple[str, ...]
+    invalid_receipt_ids: tuple[str, ...]
+    negative_receipt_ids: tuple[str, ...]
+    passing_source_families: tuple[str, ...]
+    passing_channels: tuple[EvidenceChannel, ...]
+    issues: tuple[str, ...]
+
+    @property
+    def independent_source_count(self) -> int:
+        return len(self.passing_source_families)
+
+    @property
+    def channel_count(self) -> int:
+        return len(self.passing_channels)
+
+
 class TruthVerificationLedger:
-    """Append-only exact-state challenge ledger; negative results are retained."""
+    """Append-only exact-state challenge ledger; negative results are retained.
+
+    Raw receipts may be recorded for audit, including incomplete/failed receipts. Only `coverage()`
+    establishes whether a receipt is provenance-grounded enough to count toward Assurance.
+    """
 
     def __init__(self) -> None:
         self._receipts: dict[str, TruthVerificationReceipt] = {}
@@ -84,11 +107,61 @@ class TruthVerificationLedger:
         return tuple(row for row in self.receipts(claim_id)
                      if row.knowledge_digest == str(knowledge_digest) and row.epistemic_digest == str(epistemic_digest))
 
+    @staticmethod
+    def _receipt_provenance_issue(row: TruthVerificationReceipt, evidence: EvidenceLedger) -> str | None:
+        if not row.evidence_ids:
+            return "unbound_verification_evidence"
+        for evidence_id in row.evidence_ids:
+            if not evidence.is_active(evidence_id):
+                return "verification_provenance_mismatch"
+            try:
+                item = evidence.get(evidence_id)
+            except KeyError:
+                return "verification_provenance_mismatch"
+            if (
+                item.subject_id != row.claim_id
+                or item.source_id != row.verifier_id
+                or item.source_family != row.source_family
+                or item.channel is not row.channel
+            ):
+                return "verification_provenance_mismatch"
+        return None
+
+    def coverage(self, claim_id: str, *, knowledge_digest: str, epistemic_digest: str,
+                 evidence: EvidenceLedger) -> TruthVerificationCoverage:
+        rows = self.bound_receipts(
+            str(claim_id), knowledge_digest=str(knowledge_digest), epistemic_digest=str(epistemic_digest),
+        )
+        valid: list[TruthVerificationReceipt] = []
+        invalid: list[TruthVerificationReceipt] = []
+        issues: list[str] = []
+        for row in rows:
+            issue = self._receipt_provenance_issue(row, evidence)
+            if issue is None:
+                valid.append(row)
+            else:
+                invalid.append(row)
+                issues.append(issue)
+
+        passing = tuple(row for row in valid if row.passed)
+        negatives = tuple(row.receipt_id for row in rows if not row.passed)
+        return TruthVerificationCoverage(
+            receipts=rows,
+            valid_receipt_ids=tuple(row.receipt_id for row in valid),
+            invalid_receipt_ids=tuple(row.receipt_id for row in invalid),
+            negative_receipt_ids=tuple(sorted(negatives)),
+            passing_source_families=tuple(sorted({row.source_family for row in passing})),
+            passing_channels=tuple(sorted({row.channel for row in passing}, key=lambda channel: channel.value)),
+            issues=tuple(dict.fromkeys(issues)),
+        )
+
     def independent_passing_channels(self, claim_id: str, *, knowledge_digest: str, epistemic_digest: str) -> int:
+        """Compatibility metric over raw receipts; strict Assurance uses provenance-validated coverage()."""
         return len({row.source_family for row in self.bound_receipts(claim_id, knowledge_digest=knowledge_digest,
                                                                       epistemic_digest=epistemic_digest) if row.passed})
 
     def distinct_passing_channel_kinds(self, claim_id: str, *, knowledge_digest: str, epistemic_digest: str) -> int:
+        """Compatibility metric over raw receipts; strict Assurance uses provenance-validated coverage()."""
         return len({row.channel for row in self.bound_receipts(claim_id, knowledge_digest=knowledge_digest,
                                                                 epistemic_digest=epistemic_digest) if row.passed})
 
@@ -109,4 +182,4 @@ class TruthVerificationLedger:
         return ledger
 
 
-__all__ = ("TruthVerificationReceipt", "TruthVerificationLedger")
+__all__ = ("TruthVerificationReceipt", "TruthVerificationCoverage", "TruthVerificationLedger")
