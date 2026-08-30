@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.assurance import AssuranceControlPlane
@@ -15,8 +15,15 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.individual_evolution"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.individual_evolution"
+
+
+class GovernedSkillPromoter(Protocol):
+    skills: SkillEvolutionEngine
+
+    def promote_skill(self, skill_id: str, scope: SkillScope) -> SkillRecord:
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -100,13 +107,17 @@ class IndividualEvolutionControlPlane:
         assurance: AssuranceControlPlane,
         profiles: EvolutionProfileRegistry | None = None,
         experiences: ExperienceLedger | None = None,
+        governed_skill_promoter: GovernedSkillPromoter | None = None,
         lineage: tuple[EvolutionLineageEntry, ...] = (),
         observations: tuple[BenchmarkObservation, ...] = (),
         initialize_lineage: bool = True,
     ) -> None:
+        if governed_skill_promoter is not None and governed_skill_promoter.skills is not evolution:
+            raise ValueError('governed skill promoter must share the individual evolution skill authority')
         self.registry = registry
         self.events = events
         self.evolution = evolution
+        self.governed_skill_promoter = governed_skill_promoter
         self.self_models = self_models
         self.verification = verification
         self.assurance = assurance
@@ -196,8 +207,13 @@ class IndividualEvolutionControlPlane:
             verifier_regions = {self.registry.get(verifier_id).region for verifier_id in clean_external}
             if not any(region != owner_region for region in verifier_regions):
                 raise PermissionError('global learning promotion requires cross-region evidence')
+        promoter = self.governed_skill_promoter
+        if promoter is None:
+            raise PermissionError('persistent skill promotion requires a governed skill promoter')
+        if promoter.skills is not self.evolution:
+            raise PermissionError('governed skill promoter is not bound to this skill authority')
         before_scope = skill.scope
-        promoted = self.evolution.promote(skill_id, scope)
+        promoted = promoter.promote_skill(skill_id, scope)
         if promoted.scope != before_scope:
             self._append_lineage(
                 promoted.owner_agent_id, 'skill_promoted',
@@ -298,6 +314,7 @@ class IndividualEvolutionControlPlane:
         cls, *, registry: AgentRegistry, events, evolution: SkillEvolutionEngine,
         self_models: SelfModelRegistry, verification: VerificationAuthority,
         assurance: AssuranceControlPlane, state: Mapping[str, Any],
+        governed_skill_promoter: GovernedSkillPromoter | None = None,
     ) -> 'IndividualEvolutionControlPlane':
         profiles = EvolutionProfileRegistry.from_state(registry=registry, self_models=self_models, state=state.get('profiles', {}))
         experiences = ExperienceLedger.from_state(registry=registry, events=events, state=state.get('experiences', {}))
@@ -306,6 +323,7 @@ class IndividualEvolutionControlPlane:
         result = cls(
             registry=registry, events=events, evolution=evolution, self_models=self_models,
             verification=verification, assurance=assurance, profiles=profiles, experiences=experiences,
+            governed_skill_promoter=governed_skill_promoter,
             lineage=lineage, observations=observations, initialize_lineage=not bool(lineage),
         )
         result._lineage_counter = max(int(state.get('lineage_counter', result._lineage_counter)), result._lineage_counter)
@@ -313,6 +331,7 @@ class IndividualEvolutionControlPlane:
 
 
 __all__ = (
+    "GovernedSkillPromoter",
     "EvolutionLineageEntry",
     "BenchmarkObservation",
     "LongitudinalAssessment",
