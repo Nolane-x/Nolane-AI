@@ -8,7 +8,9 @@ from nolane.external_core.software_engineering_impact import (
     EngineeringDependencyGraphLedger,
     EngineeringTestCoverageLedger,
 )
-from nolane.external_core.software_engineering_impact_control import DerivedImpactEngineeringControl
+from nolane.external_core.software_engineering_impact_execution_control import (
+    ExecutionBoundDerivedImpactEngineeringControl,
+)
 
 
 def _patch():
@@ -85,7 +87,7 @@ def _control():
         },
         provenance_refs=('coverage:exec-control',),
     )
-    strict = DerivedImpactEngineeringControl(
+    strict = ExecutionBoundDerivedImpactEngineeringControl(
         plane=plane,
         dependency_graphs=graphs,
         test_coverage=coverages,
@@ -252,6 +254,9 @@ def test_green_execution_bound_to_independent_test_attestation_allows_candidate(
     assert receipt.test_execution_id == execution.execution_id
     assert receipt.test_execution_digest == execution.digest
 
-    restored = DerivedImpactEngineeringControl.from_state(claims=claims, state=strict.to_state())
+    restored = ExecutionBoundDerivedImpactEngineeringControl.from_state(
+        claims=claims,
+        state=strict.to_state(),
+    )
     assert restored.test_execution_for_work(work.work_id) == execution
     assert restored.get(receipt.receipt_id) == receipt
