@@ -10,6 +10,7 @@ from .knowledge_truth import KnowledgeLedger, KnowledgeRisk
 
 PARENT_COMPONENT_ID = "external.epistemic"
 TRUTH_PROTOCOL = "truth-epistemic-snapshot-v1"
+DEPENDENCY_SCOPE_PROTOCOL = "truth-dependency-scope-v2"
 
 
 class EpistemicDisposition(str, Enum):
@@ -225,6 +226,174 @@ class EpistemicSnapshot:
         return row
 
 
+@dataclass(frozen=True, slots=True)
+class TruthScopeAssessment:
+    claim_id: str
+    disposition: EpistemicDisposition
+    support_evidence_ids: tuple[str, ...]
+    refute_evidence_ids: tuple[str, ...]
+    digest: str
+
+    @classmethod
+    def create(cls, *, claim_id: str, disposition: EpistemicDisposition,
+               support_evidence_ids: tuple[str, ...], refute_evidence_ids: tuple[str, ...]) -> "TruthScopeAssessment":
+        claim_id = _explicit(claim_id, "scope assessment claim_id")
+        support = _unique(tuple(support_evidence_ids), "scope support_evidence_ids")
+        refute = _unique(tuple(refute_evidence_ids), "scope refute_evidence_ids")
+        if set(support) & set(refute):
+            raise ValueError("scope evidence cannot be both support and refute")
+        payload = {
+            "claim_id": claim_id,
+            "disposition": EpistemicDisposition(disposition).value,
+            "support_evidence_ids": list(support),
+            "refute_evidence_ids": list(refute),
+        }
+        return cls(claim_id, EpistemicDisposition(disposition), support, refute, canonical_digest(payload))
+
+    @classmethod
+    def from_assessment(cls, row: EpistemicAssessment) -> "TruthScopeAssessment":
+        return cls.create(
+            claim_id=row.claim_id, disposition=row.disposition,
+            support_evidence_ids=row.support_evidence_ids, refute_evidence_ids=row.refute_evidence_ids,
+        )
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "claim_id": self.claim_id,
+            "disposition": self.disposition.value,
+            "support_evidence_ids": list(self.support_evidence_ids),
+            "refute_evidence_ids": list(self.refute_evidence_ids),
+            "digest": self.digest,
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "TruthScopeAssessment":
+        row = cls.create(
+            claim_id=str(state["claim_id"]),
+            disposition=EpistemicDisposition(str(state["disposition"])),
+            support_evidence_ids=tuple(str(value) for value in state.get("support_evidence_ids", ())),
+            refute_evidence_ids=tuple(str(value) for value in state.get("refute_evidence_ids", ())),
+        )
+        if str(state["digest"]) != row.digest:
+            raise ValueError("scope assessment digest mismatch")
+        return row
+
+
+@dataclass(frozen=True, slots=True)
+class TruthDependencyScope:
+    target_claim_id: str
+    lineage_claim_ids: tuple[str, ...]
+    scope_claim_ids: tuple[str, ...]
+    evidence_ids: tuple[str, ...]
+    knowledge_digest: str
+    evidence_digest: str
+    assessments: tuple[TruthScopeAssessment, ...]
+    contradictions: tuple[EpistemicContradiction, ...]
+    debts: tuple[EpistemicDebt, ...]
+    digest: str
+
+    @staticmethod
+    def _payload(*, target_claim_id: str, lineage_claim_ids: tuple[str, ...],
+                 scope_claim_ids: tuple[str, ...], evidence_ids: tuple[str, ...],
+                 knowledge_digest: str, evidence_digest: str,
+                 assessments: tuple[TruthScopeAssessment, ...],
+                 contradictions: tuple[EpistemicContradiction, ...],
+                 debts: tuple[EpistemicDebt, ...]) -> dict[str, Any]:
+        return {
+            "protocol": DEPENDENCY_SCOPE_PROTOCOL,
+            "target_claim_id": target_claim_id,
+            "lineage_claim_ids": list(lineage_claim_ids),
+            "scope_claim_ids": list(scope_claim_ids),
+            "evidence_ids": list(evidence_ids),
+            "knowledge_digest": knowledge_digest,
+            "evidence_digest": evidence_digest,
+            "assessments": [row.to_state() for row in assessments],
+            "contradictions": [row.to_state() for row in contradictions],
+            "debts": [row.to_state() for row in debts],
+        }
+
+    @classmethod
+    def create(cls, *, target_claim_id: str, lineage_claim_ids: tuple[str, ...],
+               scope_claim_ids: tuple[str, ...], evidence_ids: tuple[str, ...],
+               knowledge_digest: str, evidence_digest: str,
+               assessments: tuple[TruthScopeAssessment, ...],
+               contradictions: tuple[EpistemicContradiction, ...],
+               debts: tuple[EpistemicDebt, ...]) -> "TruthDependencyScope":
+        target = _explicit(target_claim_id, "scope target_claim_id")
+        lineage = _unique(tuple(lineage_claim_ids), "lineage_claim_ids")
+        scope = _unique(tuple(scope_claim_ids), "scope_claim_ids")
+        evidence = _unique(tuple(evidence_ids), "scope evidence_ids")
+        knowledge_digest = _explicit(knowledge_digest, "scoped knowledge_digest")
+        evidence_digest = _explicit(evidence_digest, "scoped evidence_digest")
+        if target not in lineage:
+            raise ValueError("scope target must belong to lineage")
+        if not set(lineage).issubset(set(scope)):
+            raise ValueError("scope lineage must be contained in scope claims")
+
+        assessments = tuple(sorted(assessments, key=lambda row: row.claim_id))
+        contradictions = tuple(sorted(contradictions, key=lambda row: row.contradiction_id))
+        debts = tuple(sorted(debts, key=lambda row: row.debt_id))
+        assessment_ids = tuple(row.claim_id for row in assessments)
+        if len(set(assessment_ids)) != len(assessment_ids) or set(assessment_ids) != set(scope):
+            raise ValueError("scope assessments must cover exactly the scope claims")
+        if len({row.contradiction_id for row in contradictions}) != len(contradictions):
+            raise ValueError("scope contradiction ids must be unique")
+        if len({row.debt_id for row in debts}) != len(debts):
+            raise ValueError("scope debt ids must be unique")
+        scope_set = set(scope)
+        if any(set(row.claim_ids) - scope_set for row in contradictions):
+            raise ValueError("scope contradiction references claim outside scope")
+        if any(row.claim_id not in scope_set for row in debts):
+            raise ValueError("scope debt references claim outside scope")
+
+        payload = cls._payload(
+            target_claim_id=target, lineage_claim_ids=lineage, scope_claim_ids=scope,
+            evidence_ids=evidence, knowledge_digest=knowledge_digest, evidence_digest=evidence_digest,
+            assessments=assessments, contradictions=contradictions, debts=debts,
+        )
+        return cls(
+            target, lineage, scope, evidence, knowledge_digest, evidence_digest,
+            assessments, contradictions, debts, canonical_digest(payload),
+        )
+
+    @classmethod
+    def create_from_state_payload(cls, state: Mapping[str, Any]) -> "TruthDependencyScope":
+        if str(state.get("protocol", "")) != DEPENDENCY_SCOPE_PROTOCOL:
+            raise ValueError("unsupported dependency scope protocol")
+        return cls.create(
+            target_claim_id=str(state["target_claim_id"]),
+            lineage_claim_ids=tuple(str(value) for value in state.get("lineage_claim_ids", ())),
+            scope_claim_ids=tuple(str(value) for value in state.get("scope_claim_ids", ())),
+            evidence_ids=tuple(str(value) for value in state.get("evidence_ids", ())),
+            knowledge_digest=str(state["knowledge_digest"]),
+            evidence_digest=str(state["evidence_digest"]),
+            assessments=tuple(TruthScopeAssessment.from_state(value) for value in state.get("assessments", ())),
+            contradictions=tuple(EpistemicContradiction.from_state(value) for value in state.get("contradictions", ())),
+            debts=tuple(EpistemicDebt.from_state(value) for value in state.get("debts", ())),
+        )
+
+    def assessment(self, claim_id: str) -> TruthScopeAssessment:
+        for row in self.assessments:
+            if row.claim_id == str(claim_id):
+                return row
+        raise KeyError(f"claim missing from dependency scope: {claim_id}")
+
+    def to_state(self) -> dict[str, Any]:
+        return {**self._payload(
+            target_claim_id=self.target_claim_id, lineage_claim_ids=self.lineage_claim_ids,
+            scope_claim_ids=self.scope_claim_ids, evidence_ids=self.evidence_ids,
+            knowledge_digest=self.knowledge_digest, evidence_digest=self.evidence_digest,
+            assessments=self.assessments, contradictions=self.contradictions, debts=self.debts,
+        ), "digest": self.digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "TruthDependencyScope":
+        row = cls.create_from_state_payload(state)
+        if str(state["digest"]) != row.digest:
+            raise ValueError("dependency scope digest mismatch")
+        return row
+
+
 class EpistemicJudge:
     """Truth-closure uncertainty/conflict protocol under ``external.epistemic``."""
 
@@ -314,11 +483,53 @@ class EpistemicJudge:
         return EpistemicSnapshot.create(knowledge_digest=knowledge.digest, evidence_digest=evidence.digest,
                                         assessments=assessments, contradictions=tuple(contradictions), debts=tuple(debts))
 
+    def dependency_scope(self, claim_id: str, *, knowledge: KnowledgeLedger,
+                         evidence: EvidenceLedger) -> TruthDependencyScope:
+        target = str(claim_id)
+        lineage = knowledge.lineage_claim_ids(target)
+        scope_claim_ids = knowledge.truth_scope_claim_ids(target)
+        evidence_ids = knowledge.evidence_ids_for_claims(scope_claim_ids)
+        snapshot = self.snapshot(knowledge=knowledge, evidence=evidence)
+        scope_set = set(scope_claim_ids)
+        assessments = tuple(
+            TruthScopeAssessment.from_assessment(snapshot.assessment(current))
+            for current in scope_claim_ids
+        )
+        contradictions = tuple(
+            row for row in snapshot.contradictions
+            if set(row.claim_ids) & scope_set
+        )
+        debts = tuple(row for row in snapshot.debts if row.claim_id in scope_set)
+        return TruthDependencyScope.create(
+            target_claim_id=target,
+            lineage_claim_ids=lineage,
+            scope_claim_ids=scope_claim_ids,
+            evidence_ids=evidence_ids,
+            knowledge_digest=knowledge.scoped_digest(scope_claim_ids),
+            evidence_digest=evidence.scoped_digest(evidence_ids),
+            assessments=assessments,
+            contradictions=contradictions,
+            debts=debts,
+        )
+
+    def validate_dependency_scope(self, scope: TruthDependencyScope, *, knowledge: KnowledgeLedger,
+                                  evidence: EvidenceLedger) -> bool:
+        if not isinstance(scope, TruthDependencyScope):
+            return False
+        try:
+            canonical = self.dependency_scope(
+                scope.target_claim_id, knowledge=knowledge, evidence=evidence,
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
+        return canonical == scope
+
     def audit(self, *, knowledge: KnowledgeLedger, evidence: EvidenceLedger) -> tuple[EpistemicDebt, ...]:
         return self.snapshot(knowledge=knowledge, evidence=evidence).debts
 
 
 __all__ = (
-    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "EpistemicDisposition", "EpistemicAssessment",
-    "EpistemicDebt", "EpistemicContradiction", "EpistemicSnapshot", "EpistemicJudge",
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "DEPENDENCY_SCOPE_PROTOCOL", "EpistemicDisposition",
+    "EpistemicAssessment", "EpistemicDebt", "EpistemicContradiction", "EpistemicSnapshot",
+    "TruthScopeAssessment", "TruthDependencyScope", "EpistemicJudge",
 )
