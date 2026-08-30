@@ -9,7 +9,7 @@ from nolane.external_core.evidence import EvidenceRecord
 
 
 COMPONENT_ID = "external.skills"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.evolution"
 
 
