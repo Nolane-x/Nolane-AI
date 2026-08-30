@@ -4,7 +4,9 @@ import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
 from nolane.external_core.evidence import EvidenceRecord
-from nolane.memory.learning_substrate import LearningSubstrate
+from nolane.memory.adaptive_policy import MemoryRetrievalPolicy
+from nolane.memory.fabric import MemoryScope
+from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 from nolane.memory.skills import SkillScope
 
 
@@ -60,6 +62,16 @@ def test_runtime_skill_promotion_crosses_shared_learning_substrate() -> None:
     assert promoted.scope is SkillScope.PERSONAL
 
 
+def test_runtime_b_control_planes_share_single_authority_objects() -> None:
+    runtime = OrganizationRuntime.first_generation()
+
+    assert runtime.learning_substrate.memory is runtime.memory
+    assert runtime.learning_substrate.skills is runtime.evolution
+    assert runtime.learning_substrate.lifecycle is runtime.memory_context.lifecycle
+    assert runtime.learning_substrate.relations is runtime.memory_context.relations
+    assert runtime.learning_substrate.experiences is runtime.individual_evolution.experiences
+
+
 def test_runtime_restore_preserves_governed_skill_validation_and_shared_authority() -> None:
     runtime = OrganizationRuntime.first_generation()
     promoter = runtime.individual_evolution.governed_skill_promoter
@@ -74,7 +86,66 @@ def test_runtime_restore_preserves_governed_skill_validation_and_shared_authorit
     assert isinstance(restored_promoter, LearningSubstrate)
     assert restored_promoter.skills is restored.evolution
     assert restored_promoter.memory is restored.memory
+    assert restored_promoter.lifecycle is restored.memory_context.lifecycle
+    assert restored_promoter.relations is restored.memory_context.relations
+    assert restored_promoter.experiences is restored.individual_evolution.experiences
     assert restored.to_state() == runtime.to_state()
 
     promoted = restored.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     assert promoted.scope is SkillScope.PERSONAL
+
+
+def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    substrate = runtime.learning_substrate
+
+    anchor = substrate.remember(
+        text="runtime verified version anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.PROJECT_STATE,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("runtime-anchor-evidence",),
+        source_refs=("runtime-anchor-source",),
+        version_scope="runtime-v1",
+        salience=0.9,
+    )
+    health = substrate.record_anchor_health(
+        anchor.memory_id,
+        actor_agent_id="memory.worker",
+        healthy=True,
+        evidence_ref="runtime-anchor-health",
+        observed_version_scope="runtime-v1",
+        reason="live environment still matches the bound version",
+    )
+    policy = MemoryRetrievalPolicy(
+        information_weight=1.25,
+        cost_weight=0.4,
+        max_estimated_units=32,
+    )
+    bundle = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+        tags=("runtime",),
+        policy=policy,
+    )
+
+    state = runtime.to_state()
+    learning_state = state["learning_substrate"]
+    assert learning_state["metadata"]
+    assert learning_state["retrieval_policies"]
+    assert learning_state["retrieval_receipts"]
+    assert learning_state["anchor_health"]
+
+    restored = OrganizationRuntime.from_state(state)
+    restored_substrate = restored.learning_substrate
+
+    assert restored_substrate.metadata(anchor.memory_id) == substrate.metadata(anchor.memory_id)
+    assert restored_substrate.retrieval_policy(policy.policy_id) == policy
+    assert restored_substrate.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
+    assert restored_substrate.anchor_health(anchor.memory_id) == (health,)
+    assert restored_substrate.lifecycle is restored.memory_context.lifecycle
+    assert restored_substrate.relations is restored.memory_context.relations
+    assert restored_substrate.experiences is restored.individual_evolution.experiences
+    assert restored.to_state() == state
