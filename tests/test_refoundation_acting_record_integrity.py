@@ -71,3 +71,29 @@ def test_persisted_record_evidence_cannot_diverge_from_lifecycle_event() -> None
 
     with pytest.raises(ValueError, match="record.*event|event.*record"):
         ActingProtocolLedger.from_state(state)
+
+
+def test_schema1_snapshot_without_record_digest_restores_and_migrates() -> None:
+    state = copy.deepcopy(_ready_state())
+    assert state["schema_version"] == 1
+    record = state["records"][0]
+    record.pop("digest")
+
+    restored = ActingProtocolLedger.from_state(state)
+    migrated = restored.to_state()
+
+    assert migrated["schema_version"] == 1
+    assert migrated["records"][0]["digest"]
+    assert restored.validate_chain("record-integrity-action") is True
+
+
+def test_persisted_lease_cannot_be_rebound_even_with_record_digest_recomputed() -> None:
+    state = copy.deepcopy(_ready_state())
+    record = state["records"][0]
+    lease = record["lease"]
+    lease["owner_id"] = "attacker"
+    lease["expires_at_ms"] += 5_000
+    _recompute_local_record_digest(record)
+
+    with pytest.raises(ValueError, match="lease.*event|event.*lease|lease.*digest"):
+        ActingProtocolLedger.from_state(state)
