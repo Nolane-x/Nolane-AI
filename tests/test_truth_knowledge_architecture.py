@@ -3,16 +3,17 @@ from __future__ import annotations
 import pytest
 
 from nolane.external_core.assurance_truth import TruthAssuranceGate
-from nolane.external_core.epistemic_truth import EpistemicDebt, EpistemicDisposition, EpistemicJudge
+from nolane.external_core.epistemic_truth import EpistemicDisposition, EpistemicJudge
 from nolane.external_core.evidence_truth import EvidenceChannel, EvidenceLedger, EvidencePolarity, TruthEvidence
 from nolane.external_core.knowledge import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
 from nolane.external_core.verification_truth import TruthVerificationLedger, TruthVerificationReceipt
 
 
-def _evidence(evidence_id: str, *, source: str, family: str, channel: EvidenceChannel, polarity=EvidencePolarity.SUPPORT):
+def _evidence(evidence_id: str, *, source: str, family: str, channel: EvidenceChannel, polarity=EvidencePolarity.SUPPORT,
+              subject_id: str = "claim.alpha"):
     return TruthEvidence.create(
         evidence_id=evidence_id,
-        subject_id="claim.alpha",
+        subject_id=subject_id,
         source_id=source,
         source_family=family,
         channel=channel,
@@ -88,17 +89,27 @@ def test_negative_verification_is_retained_and_exact_state_binding_rejects_stale
     assert ledger.bound_receipts("claim.alpha", knowledge_digest="k2", epistemic_digest="e1") == ()
 
 
-def test_high_risk_truth_closure_needs_independent_channels_and_zero_critical_debt():
+def test_high_risk_truth_closure_needs_independent_channels_and_critical_debt_blocks_closure():
+    evidence = EvidenceLedger()
+    evidence.record(_evidence("e1", source="runner-a", family="family-a", channel=EvidenceChannel.TEST))
+    evidence.record(_evidence("e2", source="runner-b", family="family-b", channel=EvidenceChannel.REPRODUCTION))
+    knowledge = KnowledgeLedger()
+    knowledge.add(KnowledgeClaim.create(
+        claim_id="claim.alpha", subject="alpha", relation="is", object="true",
+        risk=KnowledgeRisk.HIGH, evidence_ids=("e1", "e2"),
+    ))
+    snapshot = EpistemicJudge().snapshot(knowledge=knowledge, evidence=evidence)
+
     verification = TruthVerificationLedger()
     verification.record(TruthVerificationReceipt.create(
         receipt_id="v1", claim_id="claim.alpha", verifier_id="runner-a",
         source_family="family-a", channel=EvidenceChannel.TEST, passed=True,
-        knowledge_digest="k", epistemic_digest="e",
+        knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest, evidence_ids=("e1",),
     ))
     gate = TruthAssuranceGate()
-    rejected = gate.close(
-        claim_id="claim.alpha", risk=KnowledgeRisk.HIGH,
-        knowledge_digest="k", epistemic_digest="e", verification=verification,
+    rejected = gate.close_snapshot(
+        claim_id="claim.alpha", knowledge=knowledge, evidence=evidence,
+        epistemic=snapshot, verification=verification,
     )
     assert not rejected.closed
     assert "insufficient_independent_verification" in rejected.reasons
@@ -106,23 +117,29 @@ def test_high_risk_truth_closure_needs_independent_channels_and_zero_critical_de
     verification.record(TruthVerificationReceipt.create(
         receipt_id="v2", claim_id="claim.alpha", verifier_id="runner-b",
         source_family="family-b", channel=EvidenceChannel.REPRODUCTION, passed=True,
-        knowledge_digest="k", epistemic_digest="e",
+        knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest, evidence_ids=("e2",),
     ))
-    blocked = gate.close(
-        claim_id="claim.alpha", risk=KnowledgeRisk.HIGH,
-        knowledge_digest="k", epistemic_digest="e", verification=verification,
-        debts=(EpistemicDebt.create("d1", claim_id="claim.alpha", critical=True, reason="unresolved contradiction"),),
-    )
-    assert not blocked.closed
-    assert "critical_epistemic_debt" in blocked.reasons
-
-    closed = gate.close(
-        claim_id="claim.alpha", risk=KnowledgeRisk.HIGH,
-        knowledge_digest="k", epistemic_digest="e", verification=verification,
+    closed = gate.close_snapshot(
+        claim_id="claim.alpha", knowledge=knowledge, evidence=evidence,
+        epistemic=snapshot, verification=verification,
     )
     assert closed.closed
     restored = type(closed).from_state(closed.to_state())
     assert restored == closed
+
+    critical_evidence = EvidenceLedger()
+    critical_knowledge = KnowledgeLedger()
+    critical_knowledge.add(KnowledgeClaim.create(
+        claim_id="claim.critical", subject="critical", relation="is", object="unresolved",
+        risk=KnowledgeRisk.CRITICAL,
+    ))
+    critical_snapshot = EpistemicJudge().snapshot(knowledge=critical_knowledge, evidence=critical_evidence)
+    blocked = gate.close_snapshot(
+        claim_id="claim.critical", knowledge=critical_knowledge, evidence=critical_evidence,
+        epistemic=critical_snapshot, verification=TruthVerificationLedger(),
+    )
+    assert not blocked.closed
+    assert "critical_epistemic_debt" in blocked.reasons
 
 
 def test_duplicate_or_unbound_verification_identity_fails_closed():
