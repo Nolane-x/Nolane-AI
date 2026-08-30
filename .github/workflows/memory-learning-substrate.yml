@@ -58,7 +58,12 @@ jobs:
             tests/test_memory_learning_substrate_v005_integration.py
             tests/test_memory_learning_closure_v005.py
             tests/test_memory_learning_adaptive_policy_v005.py
+            tests/test_memory_learning_restore_authority_v005.py
+            tests/test_refoundation_component_versions.py
             tests/test_refoundation_memory_public_layout.py
+            tests/test_refoundation_wave5c_native_memory_fabric.py
+            tests/test_refoundation_wave5h_native_experience.py
+            tests/test_refoundation_wave5j_native_skills.py
             tests/test_refoundation_wave5ao_native_individual_evolution.py
             tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py

@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 
 COMPONENT_ID = "external.memory.fabric"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.memory + cogcoder.organization.types"
 
 
@@ -290,10 +290,31 @@ class MemoryFabric:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "MemoryFabric":
         fabric = cls()
-        fabric._entries = [MemoryEntry.from_state(row) for row in state.get("entries", ())]
-        for index, row in enumerate(fabric._entries, start=1):
+        entries = [MemoryEntry.from_state(raw) for raw in state.get("entries", ())]
+        earlier_ids: set[str] = set()
+        for index, row in enumerate(entries, start=1):
             if row.sequence != index or row.memory_id != f"mem-{index:08d}":
                 raise ValueError("memory sequence is not canonical")
+            if not str(row.text).strip():
+                raise ValueError("memory text must be non-empty")
+            if not str(row.owner_agent_id).strip():
+                raise ValueError("memory owner must be explicit")
+            if row.scope is MemoryScope.REGION and not row.region:
+                raise ValueError("regional memory requires a region")
+            if row.scope is MemoryScope.TASK and not row.task_id:
+                raise ValueError("task memory requires a task id")
+            if row.status is not MemoryStatus.ACTIVE and not str(row.status_reason or "").strip():
+                raise ValueError("inactive memory state requires a reason")
+            if row.status is MemoryStatus.ACTIVE and row.status_reason is not None:
+                raise ValueError("active memory state cannot retain an inactive reason")
+            for field_name in ("tags", "evidence_ids", "dependencies"):
+                values = getattr(row, field_name)
+                if values != tuple(sorted(set(values))):
+                    raise ValueError(f"memory {field_name} are not canonical")
+            if row.supersedes is not None and row.supersedes not in earlier_ids:
+                raise ValueError("memory supersedes reference must target an earlier memory")
+            earlier_ids.add(row.memory_id)
+        fabric._entries = entries
         return fabric
 
 

@@ -58,6 +58,8 @@ def _attribution_id_for_state(raw: dict[str, object]) -> str:
 
 
 def _experience_ledger_with_positive_attribution():
+    from nolane.memory.experience import ExperienceLedger
+
     registry = _RegistryStub()
     events = _EventStub()
     ledger = ExperienceLedger(registry=registry, events=events)
@@ -87,6 +89,8 @@ def _experience_ledger_with_positive_attribution():
 
 
 def test_experience_restore_rejects_content_address_rebinding() -> None:
+    from nolane.memory.experience import ExperienceLedger
+
     ledger, registry, events, _, _ = _experience_ledger_with_positive_attribution()
     state = ledger.to_state()
     state["experiences"][0]["summary"] = "tampered summary under old content address"
@@ -96,6 +100,8 @@ def test_experience_restore_rejects_content_address_rebinding() -> None:
 
 
 def test_experience_restore_rejects_rehashed_identity_region_rebinding() -> None:
+    from nolane.memory.experience import ExperienceLedger
+
     ledger, registry, events, _, _ = _experience_ledger_with_positive_attribution()
     state = ledger.to_state()
     raw = state["experiences"][0]
@@ -108,6 +114,8 @@ def test_experience_restore_rejects_rehashed_identity_region_rebinding() -> None
 
 
 def test_experience_restore_rejects_rehashed_self_certified_positive_attribution() -> None:
+    from nolane.memory.experience import ExperienceLedger
+
     ledger, registry, events, _, _ = _experience_ledger_with_positive_attribution()
     state = ledger.to_state()
     raw = state["attributions"][0]
@@ -121,6 +129,8 @@ def test_experience_restore_rejects_rehashed_self_certified_positive_attribution
 
 
 def test_experience_restore_rejects_duplicate_serialized_rows() -> None:
+    from nolane.memory.experience import ExperienceLedger
+
     ledger, registry, events, _, _ = _experience_ledger_with_positive_attribution()
     state = ledger.to_state()
     state["experiences"].append(dict(state["experiences"][0]))
@@ -262,4 +272,48 @@ def test_memory_fabric_restore_rejects_forward_supersedes_reference() -> None:
     state["entries"][0]["supersedes"] = "mem-00000002"
 
     with pytest.raises(ValueError, match="supersedes|earlier"):
+        MemoryFabric.from_state(state)
+
+
+def test_experience_restore_rejects_duplicate_attribution_rows() -> None:
+    ledger, registry, events, _, _ = _experience_ledger_with_positive_attribution()
+    state = ledger.to_state()
+    state["attributions"].append(dict(state["attributions"][0]))
+
+    with pytest.raises(ValueError, match="duplicate.*attribution"):
+        ExperienceLedger.from_state(registry=registry, events=events, state=state)
+
+
+def test_skill_restore_rejects_duplicate_skill_rows() -> None:
+    engine, _ = _skill_engine_with_external_evidence()
+    state = engine.to_state()
+    state["skills"].append(dict(state["skills"][0]))
+
+    with pytest.raises(ValueError, match="duplicate.*skill"):
+        SkillEvolutionEngine.from_state(state)
+
+
+def test_memory_fabric_restore_rejects_empty_owner() -> None:
+    state = _fabric_state()
+    state["entries"][0]["owner_agent_id"] = " "
+
+    with pytest.raises(ValueError, match="memory owner must be explicit"):
+        MemoryFabric.from_state(state)
+
+
+def test_memory_fabric_restore_rejects_task_scope_without_task_id() -> None:
+    state = _fabric_state()
+    state["entries"][0]["scope"] = MemoryScope.TASK.value
+    state["entries"][0]["task_id"] = None
+
+    with pytest.raises(ValueError, match="task memory requires a task id"):
+        MemoryFabric.from_state(state)
+
+
+@pytest.mark.parametrize("field", ("tags", "evidence_ids", "dependencies"))
+def test_memory_fabric_restore_rejects_noncanonical_set_like_fields(field: str) -> None:
+    state = _fabric_state()
+    state["entries"][0][field] = ["z", "a", "z"]
+
+    with pytest.raises(ValueError, match=f"{field}|canonical"):
         MemoryFabric.from_state(state)
