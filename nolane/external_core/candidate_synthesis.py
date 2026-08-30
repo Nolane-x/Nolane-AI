@@ -448,6 +448,12 @@ def _structural_node_from_state(state: Mapping[str, object], *, _depth: int = 1)
     return node
 
 
+def _structural_state_int(value: object, name: str) -> int:
+    if isinstance(value, bool) or not isinstance(value, int):
+        raise TypeError(f"{name} must be an integer")
+    return value
+
+
 def _normalize_structural_evidence(values: Sequence[EvidenceRef]) -> tuple[EvidenceRef, ...]:
     evidence = tuple(values)
     if not all(isinstance(row, EvidenceRef) for row in evidence):
@@ -538,7 +544,10 @@ class StructuralSynthesisRequest:
             evidence=tuple(evidence),
             experiment_receipt_ids=tuple(str(value) for value in state.get("experiment_receipt_ids", ())),
             causal_program_ids=tuple(str(value) for value in state.get("causal_program_ids", ())),
-            generation_budget=int(state.get("generation_budget", 0)),
+            generation_budget=_structural_state_int(
+                state.get("generation_budget", 0),
+                "generation budget",
+            ),
             mode=SynthesisMode(str(state["mode"])),
         )
         raw_sources = state.get("source_item_ids", ())
@@ -644,8 +653,14 @@ class StructuralSynthesisReceipt:
             evidence_ids=tuple(str(value) for value in state.get("evidence_ids", ())),
             experiment_receipt_ids=tuple(str(value) for value in state.get("experiment_receipt_ids", ())),
             causal_program_ids=tuple(str(value) for value in state.get("causal_program_ids", ())),
-            generation_budget=int(state["generation_budget"]),
-            candidates_considered=int(state["candidates_considered"]),
+            generation_budget=_structural_state_int(
+                state["generation_budget"],
+                "generation budget",
+            ),
+            candidates_considered=_structural_state_int(
+                state["candidates_considered"],
+                "candidates considered",
+            ),
             candidate_id=None if state.get("candidate_id") is None else str(state["candidate_id"]),
             semantic_fingerprint=None if state.get("semantic_fingerprint") is None else str(state["semantic_fingerprint"]),
             abstention_reason=None if state.get("abstention_reason") is None else str(state["abstention_reason"]),
