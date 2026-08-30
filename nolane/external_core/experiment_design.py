@@ -134,11 +134,12 @@ class PlannedExperimentProbe:
 
 
 _REQUIRED_ROLES = frozenset(ExperimentProbeRole)
-_SELECTION_ROLES = frozenset(
+_SELECTION_ROLES = frozenset({ExperimentProbeRole.TREATMENT})
+_VERIFICATION_ROLES = frozenset(
     {
-        ExperimentProbeRole.TREATMENT,
         ExperimentProbeRole.NEGATIVE_CONTROL,
         ExperimentProbeRole.ABLATION,
+        ExperimentProbeRole.INDEPENDENT_VERIFICATION,
     }
 )
 
@@ -209,11 +210,7 @@ class ExperimentDesign:
     @property
     def verification_probe_ids(self) -> tuple[str, ...]:
         return tuple(
-            sorted(
-                row.probe.probe_id
-                for row in self.probes
-                if row.role is ExperimentProbeRole.INDEPENDENT_VERIFICATION
-            )
+            sorted(row.probe.probe_id for row in self.probes if row.role in _VERIFICATION_ROLES)
         )
 
     @property
