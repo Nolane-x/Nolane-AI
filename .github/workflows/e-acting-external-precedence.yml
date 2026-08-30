@@ -78,13 +78,13 @@ jobs:
               'tests/test_refoundation_wave5s_native_execution_workspace.py',
               '"0.0.2"',
               '"0.0.3"',
-              count=4,
+              count=3,
           )
           replace_exact(
               'tests/test_refoundation_wave5aa_native_execution_control.py',
               '"0.0.2"',
               '"0.0.3"',
-              count=4,
+              count=3,
           )
           PY
       - run: python -m pip install -q pytest
