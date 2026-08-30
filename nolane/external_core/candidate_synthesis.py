@@ -485,9 +485,9 @@ class StructuralSynthesisRequest:
         evidence = _normalize_structural_evidence(self.evidence)
         experiments = _sorted_unique_ids(self.experiment_receipt_ids, "experiment receipt ids")
         causal = _sorted_unique_ids(self.causal_program_ids, "causal program ids")
-        if isinstance(self.generation_budget, bool):
+        if isinstance(self.generation_budget, bool) or not isinstance(self.generation_budget, int):
             raise TypeError("generation budget must be an integer")
-        budget = int(self.generation_budget)
+        budget = self.generation_budget
         if budget < 0:
             raise ValueError("generation budget must be non-negative")
         object.__setattr__(self, "mode", mode)
@@ -585,10 +585,15 @@ class StructuralSynthesisReceipt:
         evidence_ids = _sorted_unique_ids(self.evidence_ids, "evidence ids")
         experiments = _sorted_unique_ids(self.experiment_receipt_ids, "experiment receipt ids")
         causal = _sorted_unique_ids(self.causal_program_ids, "causal program ids")
-        if isinstance(self.generation_budget, bool) or isinstance(self.candidates_considered, bool):
+        if (
+            isinstance(self.generation_budget, bool)
+            or not isinstance(self.generation_budget, int)
+            or isinstance(self.candidates_considered, bool)
+            or not isinstance(self.candidates_considered, int)
+        ):
             raise TypeError("structural synthesis receipt budget values must be integers")
-        budget = int(self.generation_budget)
-        considered = int(self.candidates_considered)
+        budget = self.generation_budget
+        considered = self.candidates_considered
         if budget < 0 or considered < 0 or considered > budget:
             raise ValueError("structural synthesis receipt budget accounting is invalid")
         candidate_id = None if self.candidate_id is None else _nonempty(self.candidate_id, "candidate id")
