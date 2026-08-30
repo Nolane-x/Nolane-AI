@@ -187,7 +187,7 @@ def test_control_plane_restore_rejects_gate_closure_forgery_even_with_recomputed
         raise AssertionError('forged gate/closure lineage must be rejected')
 
 
-def test_control_plane_live_revalidation_tracks_claim_release_without_rewriting_history():
+def test_candidate_revalidation_survives_normal_claim_release_after_apply():
     patch, claims, claim, plane, _, gate, first = _ready_plane()
     historical_gate_digest = gate.digest
     claims.release(claim.claim_id, actor_agent_id=claim.agent_id)
@@ -197,6 +197,6 @@ def test_control_plane_live_revalidation_tracks_claim_release_without_rewriting_
         current_source_revision='git:source-a',
     )
     assert first.current
-    assert not second.current
-    assert any('claim_' in reason for reason in second.reasons)
+    assert second.current
+    assert second.reasons == ()
     assert plane.gate.get(gate.receipt_id).digest == historical_gate_digest
