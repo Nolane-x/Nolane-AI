@@ -40,7 +40,7 @@ from .goal_design_contracts import (
 )
 from .goal_design_ledger import GoalDesignLedger
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 class DecisionLifecycle(str, Enum):
@@ -141,6 +141,13 @@ class DecisionAuthorityIndex:
             "proof_obligation_ids": list(receipt.proof_obligation_ids),
             "uncertainty_ids": list(receipt.uncertainty_ids),
             "evidence_refs": list(receipt.evidence_refs),
+            "goal_digest": receipt.goal_digest,
+            "scenario_set_digest": receipt.scenario_set_digest,
+            "option_set_digest": receipt.option_set_digest,
+            "proof_state_digest": receipt.proof_state_digest,
+            "uncertainty_state_digest": receipt.uncertainty_state_digest,
+            "traceability_digest": receipt.traceability_digest,
+            "input_manifest_digest": receipt.input_manifest_digest,
         }
 
     @staticmethod
@@ -155,6 +162,13 @@ class DecisionAuthorityIndex:
             proof_obligation_ids=tuple(str(x) for x in state.get("proof_obligation_ids", ())),
             uncertainty_ids=tuple(str(x) for x in state.get("uncertainty_ids", ())),
             evidence_refs=tuple(str(x) for x in state.get("evidence_refs", ())),
+            goal_digest=str(state.get("goal_digest", "")),
+            scenario_set_digest=str(state.get("scenario_set_digest", "")),
+            option_set_digest=str(state.get("option_set_digest", "")),
+            proof_state_digest=str(state.get("proof_state_digest", "")),
+            uncertainty_state_digest=str(state.get("uncertainty_state_digest", "")),
+            traceability_digest=str(state.get("traceability_digest", "")),
+            input_manifest_digest=str(state.get("input_manifest_digest", "")),
         )
 
     def register(
