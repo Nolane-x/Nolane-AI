@@ -1,0 +1,22 @@
+name: E Acting External Precedence RED
+
+on:
+  push:
+    branches:
+      - refoundation/e-acting-transactional-runtime-gpt56sol
+    paths:
+      - .github/workflows/e-acting-external-precedence.yml
+
+jobs:
+  red:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation/e-acting-transactional-runtime-gpt56sol
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Prove external precedence regression is RED
+        run: python -m pytest -q tests/test_refoundation_acting_runtime.py -k external_effect_classification_precedes_local_mutation_rollback_hints
