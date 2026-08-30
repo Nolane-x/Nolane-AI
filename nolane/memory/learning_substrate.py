@@ -241,6 +241,7 @@ class LearningSubstrate:
         self._metadata: dict[str, LearningMemoryMetadata] = {}
         self._tombstones: dict[str, MemoryTombstone] = {}
         self._skill_validations: dict[str, SkillValidation] = {}
+        self._retrieval_policies: dict[str, MemoryRetrievalPolicy] = {}
         self._retrieval_receipts: dict[str, MemoryRetrievalReceipt] = {}
         self._compactions: dict[str, MemoryCompactionReceipt] = {}
         self._anchor_health: dict[str, list[MemoryAnchorHealthReceipt]] = {}
@@ -435,18 +436,21 @@ class LearningSubstrate:
         rows = self._anchor_health.get(str(memory_id), ())
         return rows[-1] if rows else None
 
+    def _ordered_anchor_health(self) -> tuple[MemoryAnchorHealthReceipt, ...]:
+        return tuple(
+            sorted(
+                (receipt for receipts in self._anchor_health.values() for receipt in receipts),
+                key=lambda receipt: receipt.sequence,
+            )
+        )
+
     def _retrieval_state_digest(self) -> str:
-        health = [
-            receipt.to_state()
-            for memory_id in sorted(self._anchor_health)
-            for receipt in self._anchor_health[memory_id]
-        ]
         return canonical_digest(
             {
                 "memory": self.memory.to_state(),
                 "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
                 "relations": self.relations.to_state(),
-                "anchor_health": health,
+                "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
             }
         )
 
@@ -468,6 +472,7 @@ class LearningSubstrate:
         retrieval_policy = policy or MemoryRetrievalPolicy()
         if not isinstance(retrieval_policy, MemoryRetrievalPolicy):
             raise TypeError("learning retrieval policy must be MemoryRetrievalPolicy")
+        self._retrieval_policies.setdefault(retrieval_policy.policy_id, retrieval_policy)
 
         wanted = {str(x) for x in tags}
         rejected: dict[str, str] = {}
@@ -564,6 +569,12 @@ class LearningSubstrate:
         self._retrieval_receipts.setdefault(receipt.receipt_id, receipt)
         return LearningRetrievalBundle(tuple(selected), rejected_rows, receipt)
 
+    def retrieval_policy(self, policy_id: str) -> MemoryRetrievalPolicy:
+        try:
+            return self._retrieval_policies[str(policy_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown memory retrieval policy: {policy_id}") from exc
+
     def retrieval_receipt(self, receipt_id: str) -> MemoryRetrievalReceipt:
         try:
             return self._retrieval_receipts[str(receipt_id)]
@@ -641,11 +652,11 @@ class LearningSubstrate:
 
         rows = tuple(self.memory.get(memory_id) for memory_id in source_ids)
         metadata_rows = tuple(self.metadata(memory_id) for memory_id in source_ids)
-        if any(row.status is not MemoryStatus.ACTIVE for row in rows):
-            raise ValueError("memory compaction only accepts active source memories")
         epistemic_types = {row.epistemic_type for row in metadata_rows}
         if len(epistemic_types) != 1:
             raise ValueError("memory compaction cannot mix epistemic type classes")
+        if any(row.status is not MemoryStatus.ACTIVE for row in rows):
+            raise ValueError("memory compaction only accepts active source memories")
         source_kinds = {row.kind for row in metadata_rows}
         if len(source_kinds) != 1 or MemoryKind(kind) not in source_kinds:
             raise ValueError("memory compaction must preserve memory kind")
@@ -876,15 +887,14 @@ class LearningSubstrate:
             "skill_validations": [
                 self._skill_validations[key].to_state() for key in sorted(self._skill_validations)
             ],
+            "retrieval_policies": [
+                self._retrieval_policies[key].to_state() for key in sorted(self._retrieval_policies)
+            ],
             "retrieval_receipts": [
                 self._retrieval_receipts[key].to_state() for key in sorted(self._retrieval_receipts)
             ],
             "compactions": [self._compactions[key].to_state() for key in sorted(self._compactions)],
-            "anchor_health": [
-                receipt.to_state()
-                for memory_id in sorted(self._anchor_health)
-                for receipt in self._anchor_health[memory_id]
-            ],
+            "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
         }
 
     @classmethod
@@ -927,6 +937,10 @@ class LearningSubstrate:
             row.skill_id: row
             for row in (SkillValidation.from_state(raw) for raw in state.get("skill_validations", ()))
         }
+        retrieval_policies = tuple(
+            MemoryRetrievalPolicy.from_state(raw) for raw in state.get("retrieval_policies", ())
+        )
+        result._retrieval_policies = {row.policy_id: row for row in retrieval_policies}
         retrieval_receipts = tuple(
             MemoryRetrievalReceipt.from_state(raw) for raw in state.get("retrieval_receipts", ())
         )
@@ -948,6 +962,8 @@ class LearningSubstrate:
         for skill_id in result._skill_validations:
             result.skills.get(skill_id)
         for receipt in retrieval_receipts:
+            if receipt.policy_id not in result._retrieval_policies:
+                raise ValueError("retrieval receipt references unknown policy")
             for memory_id in receipt.selected_memory_ids:
                 memory.get(memory_id)
             for memory_id, _ in receipt.rejected:
