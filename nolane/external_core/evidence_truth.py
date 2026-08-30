@@ -8,6 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 PARENT_COMPONENT_ID = "external.evidence"
 TRUTH_PROTOCOL = "truth-evidence-v1"
+SCOPE_PROJECTION_PROTOCOL = "truth-evidence-scope-v2"
 
 
 class EvidencePolarity(str, Enum):
@@ -30,6 +31,15 @@ def _explicit(value: str, field: str) -> str:
     if not value:
         raise ValueError(f"{field} must be explicit")
     return value
+
+
+def _unique_ids(values: tuple[str, ...], field: str) -> tuple[str, ...]:
+    rows = tuple(sorted(str(value).strip() for value in values))
+    if any(not value for value in rows):
+        raise ValueError(f"{field} entries must be explicit")
+    if len(set(rows)) != len(rows):
+        raise ValueError(f"{field} entries must be unique")
+    return rows
 
 
 @dataclass(frozen=True, slots=True)
@@ -159,6 +169,33 @@ class EvidenceLedger:
             rows = tuple(row for row in rows if self.is_active(row.evidence_id))
         return tuple(sorted(rows, key=lambda row: row.evidence_id))
 
+    def scoped_state(self, evidence_ids: tuple[str, ...]) -> dict[str, Any]:
+        ids = _unique_ids(tuple(evidence_ids), "scope evidence ids")
+        rows: list[dict[str, Any]] = []
+        for evidence_id in ids:
+            record = self._records.get(evidence_id)
+            if record is None:
+                rows.append({"evidence_id": evidence_id, "status": "missing"})
+                continue
+            revocation = self._revocations.get(evidence_id)
+            if revocation is not None:
+                rows.append({
+                    "evidence_id": evidence_id,
+                    "status": "revoked",
+                    "record": record.to_state(),
+                    "revocation": revocation.to_state(),
+                })
+            else:
+                rows.append({
+                    "evidence_id": evidence_id,
+                    "status": "active",
+                    "record": record.to_state(),
+                })
+        return {"protocol": SCOPE_PROJECTION_PROTOCOL, "evidence": rows}
+
+    def scoped_digest(self, evidence_ids: tuple[str, ...]) -> str:
+        return canonical_digest(self.scoped_state(evidence_ids))
+
     def to_state(self) -> dict[str, Any]:
         return {"protocol": TRUTH_PROTOCOL, "records": [row.to_state() for row in self.records()],
                 "revocations": [self._revocations[key].to_state() for key in sorted(self._revocations)]}
@@ -191,6 +228,6 @@ class EvidenceLedger:
 
 
 __all__ = (
-    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "EvidencePolarity", "EvidenceChannel",
-    "TruthEvidence", "EvidenceRevocation", "EvidenceLedger",
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "SCOPE_PROJECTION_PROTOCOL", "EvidencePolarity",
+    "EvidenceChannel", "TruthEvidence", "EvidenceRevocation", "EvidenceLedger",
 )
