@@ -1,6 +1,6 @@
 """Live Goal/Design authority runtime for Nolane AI.
 
-The coherence plane defines the authority semantics.  This module connects those
+The coherence plane defines the authority semantics. This module connects those
 semantics to the existing Requirements, Planning, Architecture, Integration and
 Context control planes without taking ownership away from them.
 
@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import Enum
+import sys
 from typing import Any, Iterable, Mapping, Sequence
 
 from .goal_design import (
@@ -37,9 +38,9 @@ from .goal_design_contracts import (
     PlanningState,
     RequirementsState,
 )
-from .goal_design_ledger import AuthorityLevel, EventKind, GoalDesignLedger
+from .goal_design_ledger import GoalDesignLedger
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 
 class DecisionLifecycle(str, Enum):
@@ -53,7 +54,7 @@ class DecisionLifecycle(str, Enum):
 class GoalDesignChangeSet:
     """Explicit authority refs known to have changed.
 
-    `architecture_refs` may contain component or interface ids.  The impact
+    `architecture_refs` may contain component or interface ids. The impact
     engine resolves the concrete kind from the live architecture graph.
     """
 
@@ -117,10 +118,44 @@ class DecisionAuthorityRecord:
 
 
 class DecisionAuthorityIndex:
-    """In-memory authority index over immutable content-addressed receipts."""
+    """Persistent authority index over immutable content-addressed receipts."""
+
+    SCHEMA_VERSION = 1
 
     def __init__(self) -> None:
         self._records: dict[str, DecisionAuthorityRecord] = {}
+
+    @property
+    def digest(self) -> str:
+        return stable_digest({"decision_authority_index": self.to_state()})
+
+    @staticmethod
+    def _receipt_to_state(receipt: DecisionReceipt) -> dict[str, Any]:
+        return {
+            "receipt_id": receipt.receipt_id,
+            "goal_id": receipt.goal_id,
+            "selected_option_id": receipt.selected_option_id,
+            "snapshot_digest": receipt.snapshot_digest,
+            "version_vector": dict(receipt.version_vector),
+            "evaluation_digest": receipt.evaluation_digest,
+            "proof_obligation_ids": list(receipt.proof_obligation_ids),
+            "uncertainty_ids": list(receipt.uncertainty_ids),
+            "evidence_refs": list(receipt.evidence_refs),
+        }
+
+    @staticmethod
+    def _receipt_from_state(state: Mapping[str, Any]) -> DecisionReceipt:
+        return DecisionReceipt(
+            receipt_id=str(state["receipt_id"]),
+            goal_id=str(state["goal_id"]),
+            selected_option_id=str(state["selected_option_id"]),
+            snapshot_digest=str(state["snapshot_digest"]),
+            version_vector={str(k): str(v) for k, v in dict(state.get("version_vector", {})).items()},
+            evaluation_digest=str(state["evaluation_digest"]),
+            proof_obligation_ids=tuple(str(x) for x in state.get("proof_obligation_ids", ())),
+            uncertainty_ids=tuple(str(x) for x in state.get("uncertainty_ids", ())),
+            evidence_refs=tuple(str(x) for x in state.get("evidence_refs", ())),
+        )
 
     def register(
         self,
@@ -158,7 +193,9 @@ class DecisionAuthorityIndex:
 
     def mark_stale(self, receipt_id: str, reasons: Iterable[str]) -> DecisionAuthorityRecord:
         record = self.get(receipt_id)
-        merged = tuple(sorted(set(record.invalidation_reasons) | {str(reason) for reason in reasons if str(reason).strip()}))
+        merged = tuple(
+            sorted(set(record.invalidation_reasons) | {str(reason) for reason in reasons if str(reason).strip()})
+        )
         if record.lifecycle is DecisionLifecycle.STALE and merged == record.invalidation_reasons:
             return record
         updated = replace(record, lifecycle=DecisionLifecycle.STALE, invalidation_reasons=merged)
@@ -187,6 +224,58 @@ class DecisionAuthorityIndex:
         self._records[receipt_id] = updated
         return updated
 
+    def to_state(self) -> dict[str, Any]:
+        records: list[dict[str, Any]] = []
+        for record in self.records():
+            records.append(
+                {
+                    "receipt": self._receipt_to_state(record.receipt),
+                    "dependency_refs": list(record.dependency_refs),
+                    "snapshot_digest": record.snapshot_digest,
+                    "lifecycle": record.lifecycle.value,
+                    "invalidation_reasons": list(record.invalidation_reasons),
+                    "authority_event_id": record.authority_event_id,
+                    "superseded_by": record.superseded_by,
+                }
+            )
+        return {"schema_version": self.SCHEMA_VERSION, "records": records}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "DecisionAuthorityIndex":
+        if int(state.get("schema_version", cls.SCHEMA_VERSION)) != cls.SCHEMA_VERSION:
+            raise ValueError("unsupported Goal/Design decision index schema version")
+        index = cls()
+        for row in state.get("records", ()):
+            receipt = cls._receipt_from_state(row["receipt"])
+            if receipt.receipt_id in index._records:
+                raise ValueError(f"duplicate Goal/Design decision receipt identity: {receipt.receipt_id}")
+            snapshot_digest = str(row.get("snapshot_digest", receipt.snapshot_digest))
+            if snapshot_digest != receipt.snapshot_digest:
+                raise ValueError("decision authority snapshot digest disagrees with receipt")
+            dependency_refs = tuple(sorted({str(x) for x in row.get("dependency_refs", ()) if str(x).strip()}))
+            invalidation_reasons = tuple(
+                sorted({str(x) for x in row.get("invalidation_reasons", ()) if str(x).strip()})
+            )
+            index._records[receipt.receipt_id] = DecisionAuthorityRecord(
+                receipt=receipt,
+                dependency_refs=dependency_refs,
+                snapshot_digest=snapshot_digest,
+                lifecycle=DecisionLifecycle(str(row.get("lifecycle", DecisionLifecycle.ACTIVE.value))),
+                invalidation_reasons=invalidation_reasons,
+                authority_event_id=(
+                    None if row.get("authority_event_id") is None else str(row.get("authority_event_id"))
+                ),
+                superseded_by=None if row.get("superseded_by") is None else str(row.get("superseded_by")),
+            )
+        known = set(index._records)
+        for record in index._records.values():
+            if record.lifecycle is DecisionLifecycle.SUPERSEDED:
+                if not record.superseded_by or record.superseded_by not in known:
+                    raise ValueError("superseded decision references unknown replacement receipt")
+            elif record.superseded_by is not None:
+                raise ValueError("non-superseded decision cannot carry superseded_by")
+        return index
+
 
 @dataclass(frozen=True)
 class IntegrationGuardReceipt:
@@ -209,7 +298,7 @@ class GoalDesignRuntime:
     """Operational membrane over the five existing D control planes.
 
     This object never writes Requirements, Planning, Architecture, Integration
-    or Context state.  It observes those authorities, creates Goal/Design
+    or Context state. It observes those authorities, creates Goal/Design
     authority snapshots/receipts, and rejects actions compiled against stale
     state.
     """
@@ -250,12 +339,19 @@ class GoalDesignRuntime:
 
     def _context_plane_state(self) -> PlaneState:
         version = str(getattr(self.context, "context_policy_version", "policy:v1"))
+        module = sys.modules.get(type(self.context).__module__)
+        component_version = None if module is None else getattr(module, "COMPONENT_VERSION", None)
         payload = {
             "context_policy_version": version,
+            "context_component_version": None if component_version is None else str(component_version),
             "max_memories": int(getattr(self.context, "max_memories", 0)),
             "max_events": int(getattr(self.context, "max_events", 0)),
         }
         return PlaneState(version, stable_digest(payload))
+
+    @staticmethod
+    def _status_value(value: Any) -> str:
+        return str(getattr(value, "value", value))
 
     def observe(self) -> GoalDesignStateBundle:
         """Observe a deterministic authority bundle from the live five planes."""
@@ -263,11 +359,7 @@ class GoalDesignRuntime:
         requirements_graph = self.requirements.graph
         requirement_nodes = tuple(requirements_graph.nodes())
         active_requirements = tuple(
-            sorted(
-                node.requirement_id
-                for node in requirement_nodes
-                if getattr(getattr(node, "status", None), "value", getattr(node, "status", None)) == "active"
-            )
+            sorted(node.requirement_id for node in requirement_nodes if self._status_value(node.status) == "active")
         )
         acceptance_refs = tuple(
             sorted(
@@ -289,7 +381,7 @@ class GoalDesignRuntime:
                 {
                     str(ref)
                     for node in plan_nodes
-                    if getattr(getattr(node, "status", None), "value", getattr(node, "status", None)) != "superseded"
+                    if self._status_value(getattr(node, "status", "active")) != "superseded"
                     for ref in getattr(node, "requirement_refs", ())
                 }
             )
@@ -300,11 +392,24 @@ class GoalDesignRuntime:
         )
 
         architecture_graph = self.architecture.graph
-        architecture_components = tuple(architecture_graph.components())
-        architecture_interfaces = tuple(architecture_graph.interfaces())
+        architecture_components = tuple(
+            component
+            for component in architecture_graph.components()
+            if self._status_value(getattr(component, "status", "active")) not in {"removed", "superseded"}
+        )
+        active_component_ids = {component.component_id for component in architecture_components}
+        architecture_interfaces = tuple(
+            interface
+            for interface in architecture_graph.interfaces()
+            if interface.producer_component_id in active_component_ids
+        )
 
         integration_graph = self.integration.graph
-        integration_candidates = tuple(integration_graph.candidates())
+        integration_candidates = tuple(
+            candidate
+            for candidate in integration_graph.candidates()
+            if self._status_value(getattr(candidate, "status", "proposed")) not in {"rejected", "superseded"}
+        )
         integration_component_refs = tuple(
             sorted(
                 {
@@ -330,7 +435,7 @@ class GoalDesignRuntime:
             ),
             architecture=ArchitectureState(
                 state=self._graph_plane_state(architecture_graph),
-                component_ids=tuple(sorted(component.component_id for component in architecture_components)),
+                component_ids=tuple(sorted(active_component_ids)),
                 interface_ids=tuple(sorted(interface.interface_id for interface in architecture_interfaces)),
                 invariant_ids=(),
             ),
@@ -442,7 +547,7 @@ class GoalDesignRuntime:
                         reasons.add(f"component {component.component_id} implements an affected plan node")
                     affected_components.add(component.component_id)
 
-            # Dependency edges are directional: source depends on target.  A
+            # Dependency edges are directional: source depends on target. A
             # changed target can invalidate its source/consumer, not vice versa.
             for edge in edges:
                 if edge.target_component_id in affected_components and edge.source_component_id not in affected_components:
@@ -526,16 +631,11 @@ class GoalDesignRuntime:
 
     def _record_invalidation(self, record: DecisionAuthorityRecord, reasons: Sequence[str]) -> None:
         parent_ids = (record.authority_event_id,) if record.authority_event_id else ()
-        self.ledger.append(
-            EventKind.INVALIDATION,
-            {
-                "receipt_id": record.receipt.receipt_id,
-                "snapshot_digest": record.snapshot_digest,
-                "reasons": list(reasons),
-            },
-            authority_level=AuthorityLevel.EVIDENCE,
+        self.ledger.record_invalidation(
+            receipt_id=record.receipt.receipt_id,
+            snapshot_digest=record.snapshot_digest,
+            reasons=tuple(str(reason) for reason in reasons),
             parent_ids=parent_ids,
-            subject_refs=(record.receipt.receipt_id,),
         )
 
     def invalidate_impacted_decisions(self, report: GoalDesignImpactReport) -> tuple[str, ...]:
@@ -571,6 +671,9 @@ class GoalDesignRuntime:
         snapshot_report = self.authority.verify_snapshot(snapshot, bundle.version_vector)
         blockers = [issue.message for issue in snapshot_report.issues if issue.blocking]
         candidate = self.integration.graph.get(candidate_id)
+        candidate_status = self._status_value(getattr(candidate, "status", "proposed"))
+        if candidate_status in {"rejected", "superseded"}:
+            blockers.append(f"integration candidate is terminal and cannot be admitted: {candidate_status}")
 
         current_architecture_version = int(self.architecture.graph.version)
         if int(candidate.architecture_version_expected) != current_architecture_version:
@@ -587,30 +690,45 @@ class GoalDesignRuntime:
             except KeyError:
                 blockers.append(f"integration candidate references unknown requirement {ref}")
                 continue
-            status = getattr(getattr(node, "status", None), "value", getattr(node, "status", None))
-            if status != "active":
+            if self._status_value(getattr(node, "status", "active")) != "active":
                 blockers.append(f"integration candidate references non-active requirement {ref}")
 
         for ref in getattr(candidate, "plan_refs", ()):
             dependency_refs.add(str(ref))
             try:
-                self.planning.graph.get(ref)
+                node = self.planning.graph.get(ref)
             except KeyError:
                 blockers.append(f"integration candidate references unknown plan node {ref}")
+                continue
+            if self._status_value(getattr(node, "status", "active")) == "superseded":
+                blockers.append(f"integration candidate references superseded plan node {ref}")
 
         for ref in getattr(candidate, "changed_component_refs", ()):
             dependency_refs.add(str(ref))
             try:
-                self.architecture.graph.get_component(ref)
+                component = self.architecture.graph.get_component(ref)
             except KeyError:
                 blockers.append(f"integration candidate references unknown architecture component {ref}")
+                continue
+            if self._status_value(getattr(component, "status", "active")) in {"removed", "superseded"}:
+                blockers.append(f"integration candidate references inactive architecture component {ref}")
 
         for ref in getattr(candidate, "changed_interface_refs", ()):
             dependency_refs.add(str(ref))
             try:
-                self.architecture.graph.get_interface(ref)
+                interface = self.architecture.graph.get_interface(ref)
             except KeyError:
                 blockers.append(f"integration candidate references unknown architecture interface {ref}")
+                continue
+            try:
+                producer = self.architecture.graph.get_component(interface.producer_component_id)
+            except KeyError:
+                blockers.append(
+                    f"integration interface {ref} has unknown producer {interface.producer_component_id}"
+                )
+                continue
+            if self._status_value(getattr(producer, "status", "active")) in {"removed", "superseded"}:
+                blockers.append(f"integration interface {ref} is produced by inactive component")
 
         if blockers:
             raise CoherenceError("Goal/Design integration guard blocked: " + "; ".join(blockers))
