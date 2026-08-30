@@ -459,6 +459,7 @@ class LearningSubstrate:
             {
                 "memory": self.memory.to_state(),
                 "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
+                "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
                 "relations": self.relations.to_state(),
                 "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
             }
@@ -495,6 +496,9 @@ class LearningSubstrate:
             include_inactive=True,
         )
         for row in visible:
+            if row.memory_id in self._tombstones:
+                rejected[row.memory_id] = "tombstoned"
+                continue
             metadata = self._metadata.get(row.memory_id)
             if metadata is None:
                 rejected[row.memory_id] = "missing_learning_metadata"
@@ -804,11 +808,25 @@ class LearningSubstrate:
         evidence_refs: tuple[str, ...],
     ) -> MemoryTombstone:
         row, reason = self.memory.get(memory_id), str(reason).strip()
-        evidence = tuple(sorted({str(x) for x in evidence_refs if str(x)}))
+        actor = self.registry.get(str(actor_agent_id).strip())
+        if actor.region != self.lifecycle.REGION:
+            raise PermissionError("forgetting memory requires a Memory/Context identity")
+        evidence = _clean_refs(evidence_refs)
         if not reason:
             raise ValueError("forgetting requires an explicit reason")
         if not evidence:
             raise ValueError("forgetting requires evidence")
+        candidate = MemoryTombstone(
+            row.memory_id,
+            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
+            reason,
+            evidence,
+        )
+        existing = self._tombstones.get(row.memory_id)
+        if existing is not None:
+            if existing != candidate:
+                raise ValueError("memory tombstone cannot be rebound")
+            return existing
         if row.status is not MemoryStatus.ARCHIVED:
             self.lifecycle.transition(
                 row.memory_id,
@@ -817,14 +835,8 @@ class LearningSubstrate:
                 reason=reason,
                 evidence_refs=evidence,
             )
-        tombstone = MemoryTombstone(
-            row.memory_id,
-            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
-            reason,
-            evidence,
-        )
-        self._tombstones[row.memory_id] = tombstone
-        return tombstone
+        self._tombstones[row.memory_id] = candidate
+        return candidate
 
     def tombstone(self, memory_id: str) -> MemoryTombstone:
         try:
@@ -871,8 +883,45 @@ class LearningSubstrate:
             regression_families,
             causal_families,
         )
+        self._validate_skill_validation_semantics(row)
         self._skill_validations[row.skill_id] = row
         return row
+
+    @staticmethod
+    def _validate_skill_validation_semantics(validation: SkillValidation) -> None:
+        regressions = _clean_refs(validation.regression_evidence_ids)
+        causal = _clean_refs(validation.causal_ablation_evidence_ids)
+        if not regressions:
+            raise ValueError("skill validation requires executed regression evidence")
+        if not causal:
+            raise ValueError("skill validation requires causal ablation evidence")
+        if regressions != validation.regression_evidence_ids:
+            raise ValueError("skill validation regression evidence ids are not canonical")
+        if causal != validation.causal_ablation_evidence_ids:
+            raise ValueError("skill validation causal evidence ids are not canonical")
+
+        regression_pairs = validation.regression_evidence_families
+        causal_pairs = validation.causal_ablation_evidence_families
+        if len(dict(regression_pairs)) != len(regression_pairs):
+            raise ValueError("skill validation regression evidence family mapping contains duplicate ids")
+        if len(dict(causal_pairs)) != len(causal_pairs):
+            raise ValueError("skill validation causal evidence family mapping contains duplicate ids")
+        regression_families = _normalize_family_map(
+            regressions, dict(regression_pairs), label="regression"
+        )
+        causal_families = _normalize_family_map(
+            causal, dict(causal_pairs), label="causal ablation"
+        )
+        if regression_families != regression_pairs or causal_families != causal_pairs:
+            raise ValueError("skill validation evidence family mapping is not canonical")
+        regression_family_ids = {family_id for _, family_id in regression_families}
+        causal_family_ids = {family_id for _, family_id in causal_families}
+        if len(regression_family_ids) < 2:
+            raise ValueError("skill validation requires independent regression evidence families")
+        if not causal_family_ids:
+            raise ValueError("skill validation requires causal ablation evidence families")
+        if regression_family_ids.intersection(causal_family_ids):
+            raise ValueError("causal ablation evidence families must be independent of regression families")
 
     @staticmethod
     def _require_independent_skill_validation(validation: SkillValidation) -> None:
@@ -968,6 +1017,37 @@ class LearningSubstrate:
         if receipt.healthy and metadata.version_scope is not None and receipt.observed_version_scope != metadata.version_scope:
             raise ValueError("healthy anchor restore cannot contradict its bound version scope")
 
+    def _validate_learning_metadata_semantics(self, metadata: LearningMemoryMetadata) -> None:
+        row = self.memory.get(metadata.memory_id)
+        if metadata.source_refs != _clean_refs(metadata.source_refs):
+            raise ValueError("learning metadata source refs are not canonical")
+        if row.status is not MemoryStatus.ACTIVE:
+            return
+        if metadata.epistemic_type is not EpistemicType.VERIFIED:
+            raise ValueError("active learning memory requires verified epistemic metadata")
+        if row.evidence_ids:
+            return
+        lifecycle_rows = self.lifecycle.receipts_for(row.memory_id)
+        activation = lifecycle_rows[-1] if lifecycle_rows else None
+        if (
+            activation is None
+            or activation.new_status is not MemoryStatus.ACTIVE
+            or not activation.evidence_refs
+            or not str(activation.correction_ref or "").strip()
+        ):
+            raise ValueError("active learning memory requires verification proof")
+
+    def _validate_tombstone_semantics(self, tombstone: MemoryTombstone) -> None:
+        row = self.memory.get(tombstone.memory_id)
+        if row.status is not MemoryStatus.ARCHIVED:
+            raise ValueError("memory tombstone requires archived memory state")
+        archived = any(
+            receipt.new_status is MemoryStatus.ARCHIVED
+            for receipt in self.lifecycle.receipts_for(tombstone.memory_id)
+        )
+        if not archived:
+            raise ValueError("memory tombstone requires archived lifecycle authority")
+
     def to_state(self) -> dict[str, Any]:
         return {
             "memory": self.memory.to_state(),
@@ -1058,15 +1138,24 @@ class LearningSubstrate:
         for row in anchor_health:
             result._anchor_health.setdefault(row.memory_id, []).append(row)
 
-        for memory_id in result._metadata:
-            memory.get(memory_id)
+        for metadata in result._metadata.values():
+            result._validate_learning_metadata_semantics(metadata)
         for memory_id, tombstone in result._tombstones.items():
             row = memory.get(memory_id)
             expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
             if tombstone.content_digest != expected_digest:
                 raise ValueError("memory tombstone content digest mismatch")
-        for skill_id in result._skill_validations:
+            result._validate_tombstone_semantics(tombstone)
+        for skill_id, validation in result._skill_validations.items():
             result.skills.get(skill_id)
+            result._validate_skill_validation_semantics(validation)
+        for raw_skill in result.skills.to_state().get("skills", ()):
+            if (
+                SkillScope(str(raw_skill.get("scope", SkillScope.CANDIDATE.value)))
+                is not SkillScope.CANDIDATE
+                and str(raw_skill["skill_id"]) not in result._skill_validations
+            ):
+                raise PermissionError("restored persistent skill requires governed learning validation")
         for receipt in retrieval_receipts:
             if receipt.policy_id not in result._retrieval_policies:
                 raise ValueError("retrieval receipt references unknown policy")
