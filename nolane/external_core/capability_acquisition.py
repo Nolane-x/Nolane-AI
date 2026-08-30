@@ -54,11 +54,12 @@ def _payload_from_json(payload_json: str) -> dict[str, Any]:
 
 def _library_fragment(kind: CapabilityKind, payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "cognitive-library-v1",
+        "schema_version": "cognitive-library-v2",
         "component_id": COGNITIVE_LIBRARY_COMPONENT_ID,
         "component_version": COGNITIVE_LIBRARY_COMPONENT_VERSION,
         "families": [dict(payload)] if kind is CapabilityKind.OPERATOR_FAMILY else [],
         "abstractions": [dict(payload)] if kind is CapabilityKind.LEARNED_ABSTRACTION else [],
+        "descriptors": [],
     }
 
 
@@ -486,10 +487,20 @@ class CapabilityAcquisitionGovernor:
         payload = record.candidate.payload()
         if record.candidate.kind is CapabilityKind.OPERATOR_FAMILY:
             assert isinstance(payload, OperatorFamilyDescriptor)
-            self.library.register_family(payload)
+            self.library.register_family(
+                payload,
+                candidate_id=record.candidate.candidate_id,
+                assurance=assurance,
+                receipt=persisted,
+            )
         else:
             assert isinstance(payload, LearnedAbstraction)
-            self.library.register_abstraction(payload)
+            self.library.register_abstraction(
+                payload,
+                candidate_id=record.candidate.candidate_id,
+                assurance=assurance,
+                receipt=persisted,
+            )
 
         updated = replace(
             record,
