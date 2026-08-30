@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A7 accepted on `main`; A8 dependency-scoped binding candidate on `refoundation/truth-knowledge-a8-scoped-binding`.**
+Status: **Refoundation A1–A8 accepted Truth / Knowledge baseline.**
 
 ## Canonical authority model
 
