@@ -95,12 +95,8 @@ class EngineeringApplicationIntent:
             transaction_id=_text(state["transaction_id"], field="transaction id"),
             patch_ref=_text(state["patch_ref"], field="patch ref"),
             patch_digest=_text(state["patch_digest"], field="patch digest"),
-            mutation_authority_receipt_id=_text(
-                state["mutation_authority_receipt_id"], field="mutation authority receipt id"
-            ),
-            mutation_authority_receipt_digest=_text(
-                state["mutation_authority_receipt_digest"], field="mutation authority receipt digest"
-            ),
+            mutation_authority_receipt_id=_text(state["mutation_authority_receipt_id"], field="mutation authority receipt id"),
+            mutation_authority_receipt_digest=_text(state["mutation_authority_receipt_digest"], field="mutation authority receipt digest"),
             application_ref=_text(state["application_ref"], field="application ref"),
             authorized=bool(state["authorized"]),
             decision=EngineeringEffectDecision(str(state["decision"])),
@@ -240,13 +236,9 @@ class EngineeringRollbackIntent:
             patch_ref=_text(state["patch_ref"], field="patch ref"),
             patch_digest=_text(state["patch_digest"], field="patch digest"),
             application_commit_id=_text(state["application_commit_id"], field="application commit id"),
-            application_commit_digest=_text(
-                state["application_commit_digest"], field="application commit digest"
-            ),
+            application_commit_digest=_text(state["application_commit_digest"], field="application commit digest"),
             rollback_artifact_ref=_text(state["rollback_artifact_ref"], field="rollback artifact ref"),
-            rollback_operation_ref=_text(
-                state["rollback_operation_ref"], field="rollback operation ref"
-            ),
+            rollback_operation_ref=_text(state["rollback_operation_ref"], field="rollback operation ref"),
             reason=_text(state["reason"], field="rollback reason"),
             target_state_digest=_text(state["target_state_digest"], field="target state digest"),
             decision=EngineeringRollbackDecision(str(state["decision"])),
@@ -288,13 +280,13 @@ class EngineeringRollbackVerificationReceipt:
             _text(value, field=field)
         if not self.evidence_refs:
             raise ValueError("rollback verification requires evidence refs")
-        expected = (
-            EngineeringRollbackDecision.VERIFIED if self.passed else EngineeringRollbackDecision.BLOCKED
-        )
+        expected = EngineeringRollbackDecision.VERIFIED if self.passed else EngineeringRollbackDecision.BLOCKED
         if self.decision is not expected:
             raise ValueError("rollback verification decision contradicts pass state")
         if self.authority != "recovery_scope_only":
             raise ValueError("rollback verification cannot grant broader authority")
+        if self.passed and self.verifier_region != "verification-testing":
+            raise PermissionError("successful rollback verification requires verification-testing authority")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -318,9 +310,7 @@ class EngineeringRollbackVerificationReceipt:
         row = cls(
             receipt_id=_text(state["receipt_id"], field="rollback verification receipt id"),
             rollback_intent_id=_text(state["rollback_intent_id"], field="rollback intent id"),
-            rollback_intent_digest=_text(
-                state["rollback_intent_digest"], field="rollback intent digest"
-            ),
+            rollback_intent_digest=_text(state["rollback_intent_digest"], field="rollback intent digest"),
             transaction_id=_text(state["transaction_id"], field="transaction id"),
             verifier_agent_id=_text(state["verifier_agent_id"], field="rollback verifier agent"),
             verifier_region=_text(state["verifier_region"], field="rollback verifier region"),
@@ -390,19 +380,11 @@ class EngineeringRollbackCompletion:
         row = cls(
             completion_id=_text(state["completion_id"], field="rollback completion id"),
             rollback_intent_id=_text(state["rollback_intent_id"], field="rollback intent id"),
-            rollback_intent_digest=_text(
-                state["rollback_intent_digest"], field="rollback intent digest"
-            ),
-            verification_receipt_id=_text(
-                state["verification_receipt_id"], field="rollback verification receipt id"
-            ),
-            verification_receipt_digest=_text(
-                state["verification_receipt_digest"], field="rollback verification receipt digest"
-            ),
+            rollback_intent_digest=_text(state["rollback_intent_digest"], field="rollback intent digest"),
+            verification_receipt_id=_text(state["verification_receipt_id"], field="rollback verification receipt id"),
+            verification_receipt_digest=_text(state["verification_receipt_digest"], field="rollback verification receipt digest"),
             transaction_id=_text(state["transaction_id"], field="transaction id"),
-            rollback_operation_ref=_text(
-                state["rollback_operation_ref"], field="rollback operation ref"
-            ),
+            rollback_operation_ref=_text(state["rollback_operation_ref"], field="rollback operation ref"),
             target_state_digest=_text(state["target_state_digest"], field="target state digest"),
             decision=EngineeringRollbackDecision(str(state["decision"])),
             authority=_text(state["authority"], field="rollback completion authority"),
@@ -564,12 +546,7 @@ class EngineeringEffectLedger:
         self._application_ref_to_intent[app_ref] = row.intent_id
         return existing or row
 
-    def commit_application(
-        self,
-        intent_id: str,
-        *,
-        executor_receipt_ref: str,
-    ) -> EngineeringApplicationCommit:
+    def commit_application(self, intent_id: str, *, executor_receipt_ref: str) -> EngineeringApplicationCommit:
         intent = self.application_intent(intent_id)
         executor_ref = _text(executor_receipt_ref, field="executor receipt ref")
         prior_commit_id = self._application_commit_by_intent.get(intent.intent_id)
@@ -620,9 +597,7 @@ class EngineeringEffectLedger:
         self._application_commit_by_transaction[tx.transaction_id] = row.commit_id
         return row
 
-    def application_commit_for_transaction(
-        self, transaction_id: str
-    ) -> EngineeringApplicationCommit | None:
+    def application_commit_for_transaction(self, transaction_id: str) -> EngineeringApplicationCommit | None:
         commit_id = self._application_commit_by_transaction.get(str(transaction_id))
         return None if commit_id is None else self._application_commits[commit_id]
 
@@ -695,6 +670,18 @@ class EngineeringEffectLedger:
         binding = bindings.get(binding_id)
         return tuple(sorted({str(snapshot.agent_id) for snapshot in binding.claim_snapshots}))
 
+    def _validate_successful_rollback_verifier(
+        self,
+        *,
+        intent: EngineeringRollbackIntent,
+        verifier_agent_id: str,
+        verifier_region: str,
+    ) -> None:
+        if verifier_agent_id in self._producer_agents_for_rollback(intent):
+            raise PermissionError("successful rollback verification forbids self-verification")
+        if verifier_region != "verification-testing":
+            raise PermissionError("successful rollback verification requires verification-testing authority")
+
     def verify_rollback(
         self,
         intent_id: str,
@@ -718,13 +705,12 @@ class EngineeringEffectLedger:
         if not refs:
             raise ValueError("rollback verification requires evidence refs")
         if bool(passed):
-            if verifier in self._producer_agents_for_rollback(intent):
-                raise PermissionError("successful rollback verification forbids self-verification")
-            if region != "verification-testing":
-                raise PermissionError("successful rollback verification requires verification-testing authority")
-        decision = (
-            EngineeringRollbackDecision.VERIFIED if bool(passed) else EngineeringRollbackDecision.BLOCKED
-        )
+            self._validate_successful_rollback_verifier(
+                intent=intent,
+                verifier_agent_id=verifier,
+                verifier_region=region,
+            )
+        decision = EngineeringRollbackDecision.VERIFIED if bool(passed) else EngineeringRollbackDecision.BLOCKED
         payload = {
             "rollback_intent_id": intent.intent_id,
             "rollback_intent_digest": intent.digest,
@@ -758,12 +744,7 @@ class EngineeringEffectLedger:
         self._rollback_verifications[row.receipt_id] = row
         return existing or row
 
-    def complete_rollback(
-        self,
-        intent_id: str,
-        *,
-        verification_receipt_id: str,
-    ) -> EngineeringRollbackCompletion:
+    def complete_rollback(self, intent_id: str, *, verification_receipt_id: str) -> EngineeringRollbackCompletion:
         intent = self.rollback_intent(intent_id)
         prior_completion_id = self._rollback_completion_by_intent.get(intent.intent_id)
         if prior_completion_id is not None:
@@ -784,6 +765,11 @@ class EngineeringEffectLedger:
             or verification.restored_state_digest != intent.target_state_digest
         ):
             raise PermissionError("rollback verification is not verified for this rollback intent")
+        self._validate_successful_rollback_verifier(
+            intent=intent,
+            verifier_agent_id=verification.verifier_agent_id,
+            verifier_region=verification.verifier_region,
+        )
         tx = self.transactions.get(intent.transaction_id)
         if tx.phase not in self._PRE_ROLLBACK_PHASES:
             raise ValueError("rollback completion requires an applied recoverable transaction phase")
@@ -832,9 +818,7 @@ class EngineeringEffectLedger:
             commit = self.application_commit_for_transaction(tx.transaction_id)
             if tx.application_ref is not None:
                 if commit is None:
-                    raise ValueError(
-                        f"applied transaction missing application commit: {tx.transaction_id}"
-                    )
+                    raise ValueError(f"applied transaction missing application commit: {tx.transaction_id}")
                 intent = self.application_intent(commit.intent_id)
                 if (
                     commit.transaction_id != tx.transaction_id
@@ -849,9 +833,7 @@ class EngineeringEffectLedger:
             completion_id = self._rollback_completion_by_transaction.get(tx.transaction_id)
             if tx.phase is EngineeringPhase.ROLLED_BACK:
                 if completion_id is None:
-                    raise ValueError(
-                        f"rolled-back transaction missing rollback completion: {tx.transaction_id}"
-                    )
+                    raise ValueError(f"rolled-back transaction missing rollback completion: {tx.transaction_id}")
                 completion = self.rollback_completion(completion_id)
                 if (
                     completion.transaction_id != tx.transaction_id
@@ -958,6 +940,12 @@ class EngineeringEffectLedger:
                 or row.restored_state_digest != intent.target_state_digest
             ):
                 raise ValueError("rollback verification intent lineage mismatch")
+            if row.passed:
+                ledger._validate_successful_rollback_verifier(
+                    intent=intent,
+                    verifier_agent_id=row.verifier_agent_id,
+                    verifier_region=row.verifier_region,
+                )
             existing = ledger._rollback_verifications.get(row.receipt_id)
             if existing is not None and existing != row:
                 raise ValueError("duplicate/rebound rollback verification")
@@ -981,6 +969,11 @@ class EngineeringEffectLedger:
                 or tx.rollback_ref != row.rollback_operation_ref
             ):
                 raise ValueError("rollback completion intent/verification/transaction lineage mismatch")
+            ledger._validate_successful_rollback_verifier(
+                intent=intent,
+                verifier_agent_id=verification.verifier_agent_id,
+                verifier_region=verification.verifier_region,
+            )
             prior_intent = ledger._rollback_completion_by_intent.get(intent.intent_id)
             if prior_intent is not None and prior_intent != row.completion_id:
                 raise ValueError("rollback intent has multiple completions in snapshot")
