@@ -243,7 +243,30 @@ def test_wave5ax_library_baseline_drift_and_unauthorized_receipts_fail_closed() 
             ),
         ),
     )
-    library.register_family(drift_family)
+    drift_governor = native.CapabilityAcquisitionGovernor(library)
+    drift_candidate = native.CapabilityCandidate.for_operator_family(drift_family)
+    drift_governor.admit(drift_candidate)
+    drift_governor.begin_probation(drift_candidate.candidate_id)
+    drift_evidence = ("independent:drift", "challenge:drift")
+    drift_governor.record_probation(
+        drift_candidate.candidate_id,
+        evidence_ids=drift_evidence,
+        independent_passed=True,
+        challenge_passed=True,
+        reliability=0.95,
+    )
+    drift_receipt = _promotion_receipt(
+        receipt_id="assurance-promotion-library-drift",
+        candidate_id=drift_candidate.candidate_id,
+        evidence_ids=drift_evidence,
+        predecessor_version=library.digest,
+    )
+    drift_governor.promote(
+        drift_candidate.candidate_id,
+        assurance=_assurance_plane(drift_receipt),
+        receipt=drift_receipt,
+    )
+
     drifted = _promotion_receipt(
         receipt_id="assurance-promotion-drifted",
         candidate_id=candidate.candidate_id,
