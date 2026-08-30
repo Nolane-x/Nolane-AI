@@ -1,0 +1,315 @@
+--- nolane/memory/learning_substrate.py
++++ nolane/memory/learning_substrate.py
+@@ -459,6 +459,7 @@
+             {
+                 "memory": self.memory.to_state(),
+                 "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
++                "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
+                 "relations": self.relations.to_state(),
+                 "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
+             }
+@@ -495,6 +496,9 @@
+             include_inactive=True,
+         )
+         for row in visible:
++            if row.memory_id in self._tombstones:
++                rejected[row.memory_id] = "tombstoned"
++                continue
+             metadata = self._metadata.get(row.memory_id)
+             if metadata is None:
+                 rejected[row.memory_id] = "missing_learning_metadata"
+@@ -804,11 +808,25 @@
+         evidence_refs: tuple[str, ...],
+     ) -> MemoryTombstone:
+         row, reason = self.memory.get(memory_id), str(reason).strip()
+-        evidence = tuple(sorted({str(x) for x in evidence_refs if str(x)}))
++        actor = self.registry.get(str(actor_agent_id).strip())
++        if actor.region != self.lifecycle.REGION:
++            raise PermissionError("forgetting memory requires a Memory/Context identity")
++        evidence = _clean_refs(evidence_refs)
+         if not reason:
+             raise ValueError("forgetting requires an explicit reason")
+         if not evidence:
+             raise ValueError("forgetting requires evidence")
++        candidate = MemoryTombstone(
++            row.memory_id,
++            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
++            reason,
++            evidence,
++        )
++        existing = self._tombstones.get(row.memory_id)
++        if existing is not None:
++            if existing != candidate:
++                raise ValueError("memory tombstone cannot be rebound")
++            return existing
+         if row.status is not MemoryStatus.ARCHIVED:
+             self.lifecycle.transition(
+                 row.memory_id,
+@@ -817,14 +835,8 @@
+                 reason=reason,
+                 evidence_refs=evidence,
+             )
+-        tombstone = MemoryTombstone(
+-            row.memory_id,
+-            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
+-            reason,
+-            evidence,
+-        )
+-        self._tombstones[row.memory_id] = tombstone
+-        return tombstone
++        self._tombstones[row.memory_id] = candidate
++        return candidate
+ 
+     def tombstone(self, memory_id: str) -> MemoryTombstone:
+         try:
+@@ -871,8 +883,45 @@
+             regression_families,
+             causal_families,
+         )
++        self._validate_skill_validation_semantics(row)
+         self._skill_validations[row.skill_id] = row
+         return row
++
++    @staticmethod
++    def _validate_skill_validation_semantics(validation: SkillValidation) -> None:
++        regressions = _clean_refs(validation.regression_evidence_ids)
++        causal = _clean_refs(validation.causal_ablation_evidence_ids)
++        if not regressions:
++            raise ValueError("skill validation requires executed regression evidence")
++        if not causal:
++            raise ValueError("skill validation requires causal ablation evidence")
++        if regressions != validation.regression_evidence_ids:
++            raise ValueError("skill validation regression evidence ids are not canonical")
++        if causal != validation.causal_ablation_evidence_ids:
++            raise ValueError("skill validation causal evidence ids are not canonical")
++
++        regression_pairs = validation.regression_evidence_families
++        causal_pairs = validation.causal_ablation_evidence_families
++        if len(dict(regression_pairs)) != len(regression_pairs):
++            raise ValueError("skill validation regression evidence family mapping contains duplicate ids")
++        if len(dict(causal_pairs)) != len(causal_pairs):
++            raise ValueError("skill validation causal evidence family mapping contains duplicate ids")
++        regression_families = _normalize_family_map(
++            regressions, dict(regression_pairs), label="regression"
++        )
++        causal_families = _normalize_family_map(
++            causal, dict(causal_pairs), label="causal ablation"
++        )
++        if regression_families != regression_pairs or causal_families != causal_pairs:
++            raise ValueError("skill validation evidence family mapping is not canonical")
++        regression_family_ids = {family_id for _, family_id in regression_families}
++        causal_family_ids = {family_id for _, family_id in causal_families}
++        if len(regression_family_ids) < 2:
++            raise ValueError("skill validation requires independent regression evidence families")
++        if not causal_family_ids:
++            raise ValueError("skill validation requires causal ablation evidence families")
++        if regression_family_ids.intersection(causal_family_ids):
++            raise ValueError("causal ablation evidence families must be independent of regression families")
+ 
+     @staticmethod
+     def _require_independent_skill_validation(validation: SkillValidation) -> None:
+@@ -968,6 +1017,37 @@
+         if receipt.healthy and metadata.version_scope is not None and receipt.observed_version_scope != metadata.version_scope:
+             raise ValueError("healthy anchor restore cannot contradict its bound version scope")
+ 
++    def _validate_learning_metadata_semantics(self, metadata: LearningMemoryMetadata) -> None:
++        row = self.memory.get(metadata.memory_id)
++        if metadata.source_refs != _clean_refs(metadata.source_refs):
++            raise ValueError("learning metadata source refs are not canonical")
++        if row.status is not MemoryStatus.ACTIVE:
++            return
++        if metadata.epistemic_type is not EpistemicType.VERIFIED:
++            raise ValueError("active learning memory requires verified epistemic metadata")
++        if row.evidence_ids:
++            return
++        lifecycle_rows = self.lifecycle.receipts_for(row.memory_id)
++        activation = lifecycle_rows[-1] if lifecycle_rows else None
++        if (
++            activation is None
++            or activation.new_status is not MemoryStatus.ACTIVE
++            or not activation.evidence_refs
++            or not str(activation.correction_ref or "").strip()
++        ):
++            raise ValueError("active learning memory requires verification proof")
++
++    def _validate_tombstone_semantics(self, tombstone: MemoryTombstone) -> None:
++        row = self.memory.get(tombstone.memory_id)
++        if row.status is not MemoryStatus.ARCHIVED:
++            raise ValueError("memory tombstone requires archived memory state")
++        archived = any(
++            receipt.new_status is MemoryStatus.ARCHIVED
++            for receipt in self.lifecycle.receipts_for(tombstone.memory_id)
++        )
++        if not archived:
++            raise ValueError("memory tombstone requires archived lifecycle authority")
++
+     def to_state(self) -> dict[str, Any]:
+         return {
+             "memory": self.memory.to_state(),
+@@ -1058,15 +1138,24 @@
+         for row in anchor_health:
+             result._anchor_health.setdefault(row.memory_id, []).append(row)
+ 
+-        for memory_id in result._metadata:
+-            memory.get(memory_id)
++        for metadata in result._metadata.values():
++            result._validate_learning_metadata_semantics(metadata)
+         for memory_id, tombstone in result._tombstones.items():
+             row = memory.get(memory_id)
+             expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
+             if tombstone.content_digest != expected_digest:
+                 raise ValueError("memory tombstone content digest mismatch")
+-        for skill_id in result._skill_validations:
++            result._validate_tombstone_semantics(tombstone)
++        for skill_id, validation in result._skill_validations.items():
+             result.skills.get(skill_id)
++            result._validate_skill_validation_semantics(validation)
++        for raw_skill in result.skills.to_state().get("skills", ()):
++            if (
++                SkillScope(str(raw_skill.get("scope", SkillScope.CANDIDATE.value)))
++                is not SkillScope.CANDIDATE
++                and str(raw_skill["skill_id"]) not in result._skill_validations
++            ):
++                raise PermissionError("restored persistent skill requires governed learning validation")
+         for receipt in retrieval_receipts:
+             if receipt.policy_id not in result._retrieval_policies:
+                 raise ValueError("retrieval receipt references unknown policy")
+--- nolane/memory/lifecycle.py
++++ nolane/memory/lifecycle.py
+@@ -11,7 +11,7 @@
+ 
+ 
+ COMPONENT_ID = "external.memory.lifecycle"
+-COMPONENT_VERSION = "0.0.3"
++COMPONENT_VERSION = "0.0.4"
+ MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
+ 
+ 
+--- nolane/memory/retrieval.py
++++ nolane/memory/retrieval.py
+@@ -10,7 +10,7 @@
+ 
+ 
+ COMPONENT_ID = "external.memory.retrieval"
+-COMPONENT_VERSION = "0.0.1"
++COMPONENT_VERSION = "0.0.2"
+ MIGRATED_FROM = "cogcoder.organization.memory_retrieval"
+ 
+ 
+--- nolane/memory/skills.py
++++ nolane/memory/skills.py
+@@ -9,7 +9,7 @@
+ 
+ 
+ COMPONENT_ID = "external.skills"
+-COMPONENT_VERSION = "0.0.2"
++COMPONENT_VERSION = "0.0.3"
+ MIGRATED_FROM = "cogcoder.organization.evolution"
+ 
+ 
+--- nolane/metadata/component_versions.py
++++ nolane/metadata/component_versions.py
+@@ -37,10 +37,10 @@
+         "external.evidence": 1,
+         "external.experience": 2,
+         "external.self_model": 2,
+-        "external.skills": 2,
++        "external.skills": 3,
+         "external.memory.fabric": 2,
+-        "external.memory.lifecycle": 3,
+-        "external.memory.retrieval": 1,
++        "external.memory.lifecycle": 4,
++        "external.memory.retrieval": 2,
+         "external.knowledge": 1,
+         "external.epistemic": 1,
+         "external.requirements": 1,
+--- tests/test_refoundation_component_versions.py
++++ tests/test_refoundation_component_versions.py
+@@ -39,10 +39,10 @@
+     "external.evidence": 1,
+     "external.experience": 2,
+     "external.self_model": 2,
+-    "external.skills": 2,
++    "external.skills": 3,
+     "external.memory.fabric": 2,
+-    "external.memory.lifecycle": 3,
+-    "external.memory.retrieval": 1,
++    "external.memory.lifecycle": 4,
++    "external.memory.retrieval": 2,
+     "external.knowledge": 1,
+     "external.epistemic": 1,
+     "external.requirements": 1,
+--- tests/test_refoundation_memory_public_layout.py
++++ tests/test_refoundation_memory_public_layout.py
+@@ -58,11 +58,11 @@
+ 
+     expected = {
+         fabric: ("external.memory.fabric", "0.0.2"),
+-        lifecycle: ("external.memory.lifecycle", "0.0.3"),
+-        retrieval: ("external.memory.retrieval", "0.0.1"),
++        lifecycle: ("external.memory.lifecycle", "0.0.4"),
++        retrieval: ("external.memory.retrieval", "0.0.2"),
+         context: ("external.context", "0.0.1"),
+         experience: ("external.experience", "0.0.2"),
+-        skills: ("external.skills", "0.0.2"),
++        skills: ("external.skills", "0.0.3"),
+     }
+     for module, (component_id, component_version) in expected.items():
+         assert module.COMPONENT_ID == component_id
+--- tests/test_refoundation_wave5d_native_memory_lifecycle.py
++++ tests/test_refoundation_wave5d_native_memory_lifecycle.py
+@@ -64,8 +64,8 @@
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.lifecycle"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.3"
+-    assert str(component_version("external.memory.lifecycle")) == "0.0.3"
++    assert row.component_version == "0.0.4"
++    assert str(component_version("external.memory.lifecycle")) == "0.0.4"
+ 
+ 
+ def test_wave5d_memory_lifecycle_leaves_facades_but_retrieval_does_not() -> None:
+--- tests/test_refoundation_wave5e_native_memory_retrieval.py
++++ tests/test_refoundation_wave5e_native_memory_retrieval.py
+@@ -42,8 +42,8 @@
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.retrieval"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.1"
+-    assert str(component_version("external.memory.retrieval")) == "0.0.1"
++    assert row.component_version == "0.0.2"
++    assert str(component_version("external.memory.retrieval")) == "0.0.2"
+ 
+ 
+ def test_wave5e_memory_retrieval_leaves_active_facades() -> None:
+--- tests/test_refoundation_wave5j_native_skills.py
++++ tests/test_refoundation_wave5j_native_skills.py
+@@ -38,8 +38,8 @@
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.skills"
+     assert row.canonical_write_authority
+-    assert row.component_version == "0.0.2"
+-    assert str(component_version("external.skills")) == "0.0.2"
++    assert row.component_version == "0.0.3"
++    assert str(component_version("external.skills")) == "0.0.3"
+ 
+ 
+ def test_wave5j_skills_leave_context_facade_untouched() -> None:
+--- .github/workflows/memory-learning-substrate.yml
++++ .github/workflows/memory-learning-substrate.yml
+@@ -4,6 +4,7 @@
+   push:
+     branches:
+       - codex/memory-learning-substrate-v0.0.5
++      - codex/memory-learning-reauthorization-v0.0.6
+     paths:
+       - 'nolane/memory/**'
+       - 'nolane/external_core/self_model.py'
+@@ -79,6 +80,7 @@
+             tests/test_memory_learning_adaptive_policy_v005.py
+             tests/test_memory_learning_restore_authority_v005.py
+             tests/test_memory_learning_runtime_wiring_v005.py
++            tests/test_memory_learning_reauthorization_v006.py
+             tests/test_refoundation_component_versions.py
+             tests/test_refoundation_runtime_state_map.py
+             tests/test_refoundation_wave2_zero_loss_runtime_digest.py
