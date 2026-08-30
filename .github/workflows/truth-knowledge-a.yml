@@ -16,6 +16,12 @@ on:
       - 'nolane/external_core/epistemic_truth.py'
       - 'nolane/external_core/verification_truth.py'
       - 'nolane/external_core/assurance_truth.py'
+      - 'nolane/external_core/temporal_truth.py'
+      - 'nolane/external_core/evidence_temporal_truth.py'
+      - 'nolane/external_core/knowledge_temporal_truth.py'
+      - 'nolane/external_core/epistemic_temporal_truth.py'
+      - 'nolane/external_core/verification_temporal_truth.py'
+      - 'nolane/external_core/assurance_temporal_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
@@ -33,6 +39,12 @@ on:
       - 'nolane/external_core/epistemic_truth.py'
       - 'nolane/external_core/verification_truth.py'
       - 'nolane/external_core/assurance_truth.py'
+      - 'nolane/external_core/temporal_truth.py'
+      - 'nolane/external_core/evidence_temporal_truth.py'
+      - 'nolane/external_core/knowledge_temporal_truth.py'
+      - 'nolane/external_core/epistemic_temporal_truth.py'
+      - 'nolane/external_core/verification_temporal_truth.py'
+      - 'nolane/external_core/assurance_temporal_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
@@ -54,7 +66,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Compile canonical A authorities, truth protocols, and metadata binding registry
+      - name: Compile canonical A authorities, truth protocols, temporal sidecars, and metadata binding registry
         run: |
           python -m py_compile \
             nolane/core/canonical_digest.py \
@@ -68,6 +80,12 @@ jobs:
             nolane/external_core/epistemic_truth.py \
             nolane/external_core/verification_truth.py \
             nolane/external_core/assurance_truth.py \
+            nolane/external_core/temporal_truth.py \
+            nolane/external_core/evidence_temporal_truth.py \
+            nolane/external_core/knowledge_temporal_truth.py \
+            nolane/external_core/epistemic_temporal_truth.py \
+            nolane/external_core/verification_temporal_truth.py \
+            nolane/external_core/assurance_temporal_truth.py \
             nolane/metadata/subprotocols.py
       - name: Run Truth Knowledge contracts
         run: python -m pytest -q tests/test_truth_knowledge_*.py
