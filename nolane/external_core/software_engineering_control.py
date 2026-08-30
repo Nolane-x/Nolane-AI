@@ -379,7 +379,27 @@ class SoftwareEngineeringControlPlane:
             raise ValueError("engineering work claim binding lineage mismatch")
         return self.mutation_authority.assess(work.transaction_id, patch=patch)
 
-    def mark_applied(self, transaction_id: str, *, application_ref: str) -> EngineeringPatchTransaction:
+    def mark_applied(
+        self,
+        transaction_id: str,
+        *,
+        application_ref: str,
+        mutation_authority_receipt_id: str | None = None,
+    ) -> EngineeringPatchTransaction:
+        if mutation_authority_receipt_id is None:
+            raise PermissionError("patch application requires mutation authority receipt")
+        try:
+            receipt = self.mutation_authority.get(mutation_authority_receipt_id)
+        except KeyError as exc:
+            raise PermissionError("patch application requires known mutation authority receipt") from exc
+        tx = self.transactions.get(transaction_id)
+        if (
+            not receipt.authorized
+            or receipt.transaction_id != tx.transaction_id
+            or receipt.patch_ref != tx.patch_ref
+            or receipt.patch_digest != tx.patch_digest
+        ):
+            raise PermissionError("patch application denied by mutation authority receipt lineage")
         reasons = self.mutation_authority.preapply_reasons(transaction_id)
         if reasons:
             raise PermissionError(
