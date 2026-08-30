@@ -11,7 +11,7 @@ from .evidence import EvidenceRecord
 
 
 COMPONENT_ID = "external.causal"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder R2.58/R2.62 bounded causal-program lineage"
 
 _NUMERIC_COMPOSITION_OPS = ("add", "sub", "rsub", "mul", "min", "max")
