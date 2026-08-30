@@ -307,3 +307,198 @@ def test_anchor_health_state_serializes_in_global_sequence_order() -> None:
     assert [row["sequence"] for row in state["anchor_health"]] == [1, 2]
     restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
     assert restored.to_state() == state
+
+
+def test_restore_rejects_semantically_rehashed_self_certified_anchor() -> None:
+    from nolane.memory.adaptive_policy import MemoryAnchorHealthReceipt
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    anchor = substrate.remember(
+        text="externally checked anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.PROJECT_STATE,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("anchor-evidence",),
+    )
+    substrate.record_anchor_health(
+        anchor.memory_id,
+        actor_agent_id="memory.worker",
+        healthy=True,
+        evidence_ref="external-health",
+        observed_version_scope=None,
+        reason="external observation",
+    )
+    state = substrate.to_state()
+    original = substrate.anchor_health(anchor.memory_id)[0]
+    state["anchor_health"][0] = MemoryAnchorHealthReceipt(
+        sequence=original.sequence,
+        memory_id=original.memory_id,
+        actor_agent_id="memory.chief",
+        healthy=original.healthy,
+        evidence_ref=original.evidence_ref,
+        observed_version_scope=original.observed_version_scope,
+        reason="rehash after self-certification",
+    ).to_state()
+
+    with pytest.raises(PermissionError, match="external"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_semantically_rehashed_self_certified_compaction() -> None:
+    from nolane.memory.adaptive_policy import MemoryCompactionReceipt
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    first = substrate.remember(
+        text="compaction source one",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("source-one",),
+    )
+    second = substrate.remember(
+        text="compaction source two",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("source-two",),
+    )
+    _, receipt = substrate.compact(
+        source_memory_ids=(first.memory_id, second.memory_id),
+        summary_text="compacted result",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        actor_agent_id="memory.worker",
+        evidence_refs=("external-review",),
+    )
+    state = substrate.to_state()
+    state["compactions"][0] = MemoryCompactionReceipt(
+        source_memory_ids=receipt.source_memory_ids,
+        compacted_memory_id=receipt.compacted_memory_id,
+        source_digest=receipt.source_digest,
+        epistemic_type=receipt.epistemic_type,
+        actor_agent_id="memory.chief",
+        evidence_refs=receipt.evidence_refs,
+    ).to_state()
+
+    with pytest.raises(PermissionError, match="external"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_retrieval_selected_rejected_overlap() -> None:
+    from nolane.memory.adaptive_policy import MemoryRetrievalReceipt
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    memory = substrate.remember(
+        text="retrieval receipt integrity anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("retrieval-integrity",),
+    )
+    bundle = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+    )
+    state = substrate.to_state()
+    receipt = bundle.receipt
+    state["retrieval_receipts"][0] = MemoryRetrievalReceipt(
+        policy_id=receipt.policy_id,
+        query_digest=receipt.query_digest,
+        memory_state_digest=receipt.memory_state_digest,
+        selected_memory_ids=receipt.selected_memory_ids,
+        rejected=((memory.memory_id, "budget"),),
+        estimated_units=receipt.estimated_units,
+    ).to_state()
+
+    with pytest.raises(ValueError, match="selected.*rejected|overlap"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_tombstone_content_rebinding() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    memory = substrate.remember(
+        text="raw content bound to tombstone",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("raw-evidence",),
+    )
+    substrate.forget(
+        memory.memory_id,
+        actor_agent_id="memory.worker",
+        reason="intentional archival",
+        evidence_refs=("forget-review",),
+    )
+    state = substrate.to_state()
+    state["tombstones"][0]["content_digest"] = "0" * 64
+
+    with pytest.raises(ValueError, match="tombstone.*digest|content"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_duplicate_learning_metadata_rows() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    substrate.remember(
+        text="duplicate metadata sentinel",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("metadata-evidence",),
+    )
+    state = substrate.to_state()
+    state["metadata"].append(dict(state["metadata"][0]))
+
+    with pytest.raises(ValueError, match="duplicate.*metadata"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_migrated_retrieval_policy_requires_reconstructible_parent_lineage() -> None:
+    from nolane.memory.adaptive_policy import MemoryRetrievalPolicy
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    substrate.remember(
+        text="policy lineage anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("policy-lineage",),
+    )
+    parent = MemoryRetrievalPolicy(cost_weight=0.25)
+    child = parent.migrate(cost_weight=0.5)
+
+    with pytest.raises(ValueError, match="parent"):
+        substrate.retrieve(
+            agent_id="memory.chief",
+            region="memory-context-knowledge",
+            as_of="2026-08-30T00:00:00+00:00",
+            policy=child,
+        )
+
+    substrate.register_retrieval_policy(parent)
+    bundle = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+        policy=child,
+    )
+    assert substrate.retrieval_policy(child.policy_id) == child
+    state = substrate.to_state()
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    assert restored.retrieval_policy(bundle.receipt.policy_id) == child
