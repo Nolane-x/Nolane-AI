@@ -6,9 +6,9 @@ from nolane.external_core.software_engineering_impact import (
     EngineeringDependencyGraphLedger,
     EngineeringImpactAnalyzer,
     EngineeringTestCoverageLedger,
-    EngineeringTestExecutionLedger,
     EngineeringTestSelectionEngine,
 )
+from nolane.external_core.software_engineering_impact_execution import EngineeringTestExecutionLedger
 
 
 @dataclass(frozen=True)
