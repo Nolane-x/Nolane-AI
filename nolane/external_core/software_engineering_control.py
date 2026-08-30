@@ -27,6 +27,7 @@ from nolane.external_core.software_engineering_policy import (
     EngineeringVerificationPolicy,
     GovernedEngineeringGate,
 )
+from nolane.external_core.software_engineering_receipts import CanonicalReceiptClosureEngine
 from nolane.external_core.software_engineering_validity import (
     EngineeringClaimBindingLedger,
     EngineeringCurrentValidityReceipt,
@@ -156,11 +157,11 @@ class EngineeringWorkRecord:
 class SoftwareEngineeringControlPlane:
     """Unified governed entry point for F. Software Engineering.
 
-    The control plane composes the canonical Coding claim authority with
-    content-addressed evidence, reversible patch transactions, change manifests,
-    policy-derived verification, explicit pre-apply mutation authority,
-    cross-surface closure and post-closure current validity. No layer here can
-    promote beyond the candidate boundary.
+    The control plane composes canonical F authorities with content-addressed
+    evidence, reversible patch transactions, policy-derived verification,
+    explicit pre-apply mutation authority, canonical upstream receipt integrity,
+    cross-surface closure and post-closure live validity. It never promotes
+    beyond the candidate boundary.
     """
 
     def __init__(
@@ -190,7 +191,7 @@ class SoftwareEngineeringControlPlane:
         self.closure = (
             closure
             if closure is not None
-            else SoftwareEngineeringClosureEngine(evidence=self.evidence, transactions=self.transactions)
+            else CanonicalReceiptClosureEngine(evidence=self.evidence, transactions=self.transactions)
         )
         self.policy = policy if policy is not None else EngineeringVerificationPolicy()
         self.gate = (
@@ -524,7 +525,7 @@ class SoftwareEngineeringControlPlane:
             state=state["claim_bindings"],
         )
         manifests = EngineeringChangeManifestLedger.from_state(state["manifests"])
-        closure = SoftwareEngineeringClosureEngine.from_state(
+        closure = CanonicalReceiptClosureEngine.from_state(
             evidence=evidence,
             transactions=transactions,
             state=state["closure"],
