@@ -206,8 +206,8 @@ def test_wave5k_knowledge_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.knowledge"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.knowledge")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.knowledge")) == "0.0.2"
 
 
 def test_wave5k_public_knowledge_objects_bridge_to_canonical_identity() -> None:

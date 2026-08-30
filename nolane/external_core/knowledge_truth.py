@@ -5,6 +5,7 @@ from enum import Enum
 from typing import Any, Mapping, Protocol
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.memory.knowledge import RelationCardinality, RelationSemanticsRegistry
 
 PARENT_COMPONENT_ID = "external.knowledge"
 TRUTH_PROTOCOL = "truth-knowledge-v1"
@@ -154,7 +155,7 @@ class KnowledgeLedger:
         return tuple(sorted(seen))
 
     def truth_scope_claim_ids(self, claim_id: str) -> tuple[str, ...]:
-        """Derive the fixed-point lineage + competing-proposition neighborhood for a target."""
+        """Derive the A8 fixed-point lineage + all same-key proposition neighborhood."""
         scope = set(self.lineage_claim_ids(str(claim_id)))
         changed = True
         while changed:
@@ -174,6 +175,45 @@ class KnowledgeLedger:
                 scope = expanded
                 changed = True
         return tuple(sorted(scope))
+
+    def truth_scope_claim_ids_v3(
+        self,
+        claim_id: str,
+        relation_semantics: RelationSemanticsRegistry,
+    ) -> tuple[str, ...]:
+        """Derive relation-aware fixed-point scope without changing A8 v2 semantics."""
+        if not isinstance(relation_semantics, RelationSemanticsRegistry):
+            raise TypeError("relation-aware truth scope requires canonical relation semantics registry")
+        scope = set(self.lineage_claim_ids(str(claim_id)))
+        changed = True
+        while changed:
+            changed = False
+            competitors: set[str] = set()
+            for current in tuple(scope):
+                claim = self.get(current)
+                cardinality = relation_semantics.cardinality(claim.relation)
+                if cardinality is RelationCardinality.MULTI_VALUED:
+                    continue
+                competitors.update(
+                    row.claim_id
+                    for row in self._claims.values()
+                    if row.subject == claim.subject
+                    and row.relation == claim.relation
+                    and row.object != claim.object
+                )
+            expanded = set(scope)
+            for competitor in competitors:
+                expanded.update(self.lineage_claim_ids(competitor))
+            if expanded != scope:
+                scope = expanded
+                changed = True
+        return tuple(sorted(scope))
+
+    def relations_for_claims(self, claim_ids: tuple[str, ...]) -> tuple[str, ...]:
+        ids = _uniq(tuple(claim_ids), "scope claim ids")
+        if not ids:
+            raise ValueError("scope claim ids must not be empty")
+        return tuple(sorted({self.get(claim_id).relation for claim_id in ids}))
 
     def evidence_ids_for_claims(self, claim_ids: tuple[str, ...]) -> tuple[str, ...]:
         ids = _uniq(tuple(claim_ids), "scope claim ids")

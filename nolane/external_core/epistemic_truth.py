@@ -5,12 +5,14 @@ from enum import Enum
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.memory.knowledge import RelationCardinality, RelationSemanticsRegistry
 from .evidence_truth import EvidenceLedger, EvidencePolarity
 from .knowledge_truth import KnowledgeLedger, KnowledgeRisk
 
 PARENT_COMPONENT_ID = "external.epistemic"
 TRUTH_PROTOCOL = "truth-epistemic-snapshot-v1"
 DEPENDENCY_SCOPE_PROTOCOL = "truth-dependency-scope-v2"
+RELATION_AWARE_SCOPE_PROTOCOL = "truth-dependency-scope-v3"
 
 
 class EpistemicDisposition(str, Enum):
@@ -394,6 +396,131 @@ class TruthDependencyScope:
         return row
 
 
+@dataclass(frozen=True, slots=True)
+class TruthRelationAwareScope:
+    target_claim_id: str
+    lineage_claim_ids: tuple[str, ...]
+    scope_claim_ids: tuple[str, ...]
+    evidence_ids: tuple[str, ...]
+    relation_ids: tuple[str, ...]
+    knowledge_digest: str
+    evidence_digest: str
+    relation_semantics_digest: str
+    assessments: tuple[TruthScopeAssessment, ...]
+    contradictions: tuple[EpistemicContradiction, ...]
+    debts: tuple[EpistemicDebt, ...]
+    digest: str
+
+    @staticmethod
+    def _payload(*, target_claim_id: str, lineage_claim_ids: tuple[str, ...],
+                 scope_claim_ids: tuple[str, ...], evidence_ids: tuple[str, ...],
+                 relation_ids: tuple[str, ...], knowledge_digest: str, evidence_digest: str,
+                 relation_semantics_digest: str, assessments: tuple[TruthScopeAssessment, ...],
+                 contradictions: tuple[EpistemicContradiction, ...],
+                 debts: tuple[EpistemicDebt, ...]) -> dict[str, Any]:
+        return {
+            "protocol": RELATION_AWARE_SCOPE_PROTOCOL,
+            "target_claim_id": target_claim_id,
+            "lineage_claim_ids": list(lineage_claim_ids),
+            "scope_claim_ids": list(scope_claim_ids),
+            "evidence_ids": list(evidence_ids),
+            "relation_ids": list(relation_ids),
+            "knowledge_digest": knowledge_digest,
+            "evidence_digest": evidence_digest,
+            "relation_semantics_digest": relation_semantics_digest,
+            "assessments": [row.to_state() for row in assessments],
+            "contradictions": [row.to_state() for row in contradictions],
+            "debts": [row.to_state() for row in debts],
+        }
+
+    @classmethod
+    def create(cls, *, target_claim_id: str, lineage_claim_ids: tuple[str, ...],
+               scope_claim_ids: tuple[str, ...], evidence_ids: tuple[str, ...],
+               relation_ids: tuple[str, ...], knowledge_digest: str, evidence_digest: str,
+               relation_semantics_digest: str, assessments: tuple[TruthScopeAssessment, ...],
+               contradictions: tuple[EpistemicContradiction, ...],
+               debts: tuple[EpistemicDebt, ...]) -> "TruthRelationAwareScope":
+        target = _explicit(target_claim_id, "relation-aware scope target_claim_id")
+        lineage = _unique(tuple(lineage_claim_ids), "relation-aware lineage_claim_ids")
+        scope = _unique(tuple(scope_claim_ids), "relation-aware scope_claim_ids")
+        evidence = _unique(tuple(evidence_ids), "relation-aware evidence_ids")
+        relations = _unique(tuple(relation_ids), "relation-aware relation_ids")
+        knowledge_digest = _explicit(knowledge_digest, "relation-aware knowledge_digest")
+        evidence_digest = _explicit(evidence_digest, "relation-aware evidence_digest")
+        relation_semantics_digest = _explicit(relation_semantics_digest, "relation semantics digest")
+        if target not in lineage:
+            raise ValueError("relation-aware scope target must belong to lineage")
+        if not set(lineage).issubset(set(scope)):
+            raise ValueError("relation-aware scope lineage must be contained in scope claims")
+
+        assessments = tuple(sorted(assessments, key=lambda row: row.claim_id))
+        contradictions = tuple(sorted(contradictions, key=lambda row: row.contradiction_id))
+        debts = tuple(sorted(debts, key=lambda row: row.debt_id))
+        assessment_ids = tuple(row.claim_id for row in assessments)
+        if len(set(assessment_ids)) != len(assessment_ids) or set(assessment_ids) != set(scope):
+            raise ValueError("relation-aware assessments must cover exactly the scope claims")
+        if len({row.contradiction_id for row in contradictions}) != len(contradictions):
+            raise ValueError("relation-aware contradiction ids must be unique")
+        if len({row.debt_id for row in debts}) != len(debts):
+            raise ValueError("relation-aware debt ids must be unique")
+        scope_set = set(scope)
+        if any(set(row.claim_ids) - scope_set for row in contradictions):
+            raise ValueError("relation-aware contradiction references claim outside scope")
+        if any(row.claim_id not in scope_set for row in debts):
+            raise ValueError("relation-aware debt references claim outside scope")
+
+        payload = cls._payload(
+            target_claim_id=target, lineage_claim_ids=lineage, scope_claim_ids=scope,
+            evidence_ids=evidence, relation_ids=relations, knowledge_digest=knowledge_digest,
+            evidence_digest=evidence_digest, relation_semantics_digest=relation_semantics_digest,
+            assessments=assessments, contradictions=contradictions, debts=debts,
+        )
+        return cls(
+            target, lineage, scope, evidence, relations, knowledge_digest, evidence_digest,
+            relation_semantics_digest, assessments, contradictions, debts, canonical_digest(payload),
+        )
+
+    @classmethod
+    def create_from_state_payload(cls, state: Mapping[str, Any]) -> "TruthRelationAwareScope":
+        if str(state.get("protocol", "")) != RELATION_AWARE_SCOPE_PROTOCOL:
+            raise ValueError("unsupported relation-aware scope protocol")
+        return cls.create(
+            target_claim_id=str(state["target_claim_id"]),
+            lineage_claim_ids=tuple(str(value) for value in state.get("lineage_claim_ids", ())),
+            scope_claim_ids=tuple(str(value) for value in state.get("scope_claim_ids", ())),
+            evidence_ids=tuple(str(value) for value in state.get("evidence_ids", ())),
+            relation_ids=tuple(str(value) for value in state.get("relation_ids", ())),
+            knowledge_digest=str(state["knowledge_digest"]),
+            evidence_digest=str(state["evidence_digest"]),
+            relation_semantics_digest=str(state["relation_semantics_digest"]),
+            assessments=tuple(TruthScopeAssessment.from_state(value) for value in state.get("assessments", ())),
+            contradictions=tuple(EpistemicContradiction.from_state(value) for value in state.get("contradictions", ())),
+            debts=tuple(EpistemicDebt.from_state(value) for value in state.get("debts", ())),
+        )
+
+    def assessment(self, claim_id: str) -> TruthScopeAssessment:
+        for row in self.assessments:
+            if row.claim_id == str(claim_id):
+                return row
+        raise KeyError(f"claim missing from relation-aware scope: {claim_id}")
+
+    def to_state(self) -> dict[str, Any]:
+        return {**self._payload(
+            target_claim_id=self.target_claim_id, lineage_claim_ids=self.lineage_claim_ids,
+            scope_claim_ids=self.scope_claim_ids, evidence_ids=self.evidence_ids,
+            relation_ids=self.relation_ids, knowledge_digest=self.knowledge_digest,
+            evidence_digest=self.evidence_digest, relation_semantics_digest=self.relation_semantics_digest,
+            assessments=self.assessments, contradictions=self.contradictions, debts=self.debts,
+        ), "digest": self.digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "TruthRelationAwareScope":
+        row = cls.create_from_state_payload(state)
+        if str(state["digest"]) != row.digest:
+            raise ValueError("relation-aware scope digest mismatch")
+        return row
+
+
 class EpistemicJudge:
     """Truth-closure uncertainty/conflict protocol under ``external.epistemic``."""
 
@@ -524,12 +651,129 @@ class EpistemicJudge:
             return False
         return canonical == scope
 
+    def relation_aware_dependency_scope(
+        self,
+        claim_id: str,
+        *,
+        knowledge: KnowledgeLedger,
+        evidence: EvidenceLedger,
+        relation_semantics: RelationSemanticsRegistry,
+    ) -> TruthRelationAwareScope:
+        if not isinstance(relation_semantics, RelationSemanticsRegistry):
+            raise TypeError("relation-aware epistemic scope requires canonical relation semantics registry")
+        target = str(claim_id)
+        lineage = knowledge.lineage_claim_ids(target)
+        scope_claim_ids = knowledge.truth_scope_claim_ids_v3(target, relation_semantics)
+        evidence_ids = knowledge.evidence_ids_for_claims(scope_claim_ids)
+        relation_ids = knowledge.relations_for_claims(scope_claim_ids)
+
+        memo: dict[str, EpistemicAssessment] = {}
+        raw_assessments = tuple(
+            self._assess(current, knowledge=knowledge, evidence=evidence, memo=memo)
+            for current in scope_claim_ids
+        )
+        assessments = tuple(TruthScopeAssessment.from_assessment(row) for row in raw_assessments)
+
+        debts = [
+            row for row in self._lineage_debts(knowledge=knowledge, evidence=evidence)
+            if row.claim_id in set(scope_claim_ids)
+        ]
+        for row in raw_assessments:
+            claim = knowledge.get(row.claim_id)
+            if row.disposition in {EpistemicDisposition.UNKNOWN, EpistemicDisposition.CONTRADICTED}:
+                debts.append(EpistemicDebt.create(
+                    f"epistemic-debt:{claim.claim_id}:{row.disposition.value}",
+                    claim_id=claim.claim_id,
+                    critical=claim.risk is KnowledgeRisk.CRITICAL,
+                    reason=row.disposition.value,
+                ))
+
+        groups: dict[tuple[str, str], list[str]] = {}
+        for row in raw_assessments:
+            if row.disposition is EpistemicDisposition.SUPPORTED:
+                claim = knowledge.get(row.claim_id)
+                groups.setdefault((claim.subject, claim.relation), []).append(claim.claim_id)
+
+        contradictions: list[EpistemicContradiction] = []
+        for (subject, relation), claim_ids in sorted(groups.items()):
+            objects = {knowledge.get(current).object for current in claim_ids}
+            if len(objects) <= 1:
+                continue
+            cardinality = relation_semantics.cardinality(relation)
+            if cardinality is RelationCardinality.EXCLUSIVE:
+                conflict = EpistemicContradiction.create(
+                    subject=subject,
+                    relation=relation,
+                    claim_ids=tuple(claim_ids),
+                    object_values=tuple(objects),
+                )
+                contradictions.append(conflict)
+                for current in conflict.claim_ids:
+                    claim = knowledge.get(current)
+                    debts.append(EpistemicDebt.create(
+                        f"epistemic-debt:{current}:{conflict.contradiction_id}",
+                        claim_id=current,
+                        critical=claim.risk is KnowledgeRisk.CRITICAL,
+                        reason="competing_supported_propositions",
+                    ))
+            elif cardinality is RelationCardinality.UNSPECIFIED:
+                for current in sorted(claim_ids):
+                    claim = knowledge.get(current)
+                    ambiguity_key = canonical_digest({
+                        "subject": subject,
+                        "relation": relation,
+                        "claim_ids": sorted(claim_ids),
+                        "objects": sorted(objects),
+                    })[:24]
+                    debts.append(EpistemicDebt.create(
+                        f"epistemic-debt:{current}:relation-semantics:{ambiguity_key}",
+                        claim_id=current,
+                        critical=claim.risk is KnowledgeRisk.CRITICAL,
+                        reason="relation_semantics_unspecified_for_multiple_values",
+                    ))
+
+        return TruthRelationAwareScope.create(
+            target_claim_id=target,
+            lineage_claim_ids=lineage,
+            scope_claim_ids=scope_claim_ids,
+            evidence_ids=evidence_ids,
+            relation_ids=relation_ids,
+            knowledge_digest=knowledge.scoped_digest(scope_claim_ids),
+            evidence_digest=evidence.scoped_digest(evidence_ids),
+            relation_semantics_digest=relation_semantics.projection_digest(relation_ids),
+            assessments=assessments,
+            contradictions=tuple(contradictions),
+            debts=tuple(debts),
+        )
+
+    def validate_relation_aware_scope(
+        self,
+        scope: TruthRelationAwareScope,
+        *,
+        knowledge: KnowledgeLedger,
+        evidence: EvidenceLedger,
+        relation_semantics: RelationSemanticsRegistry,
+    ) -> bool:
+        if not isinstance(scope, TruthRelationAwareScope):
+            return False
+        try:
+            canonical = self.relation_aware_dependency_scope(
+                scope.target_claim_id,
+                knowledge=knowledge,
+                evidence=evidence,
+                relation_semantics=relation_semantics,
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
+        return canonical == scope
+
     def audit(self, *, knowledge: KnowledgeLedger, evidence: EvidenceLedger) -> tuple[EpistemicDebt, ...]:
         return self.snapshot(knowledge=knowledge, evidence=evidence).debts
 
 
 __all__ = (
-    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "DEPENDENCY_SCOPE_PROTOCOL", "EpistemicDisposition",
-    "EpistemicAssessment", "EpistemicDebt", "EpistemicContradiction", "EpistemicSnapshot",
-    "TruthScopeAssessment", "TruthDependencyScope", "EpistemicJudge",
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "DEPENDENCY_SCOPE_PROTOCOL", "RELATION_AWARE_SCOPE_PROTOCOL",
+    "EpistemicDisposition", "EpistemicAssessment", "EpistemicDebt", "EpistemicContradiction",
+    "EpistemicSnapshot", "TruthScopeAssessment", "TruthDependencyScope", "TruthRelationAwareScope",
+    "EpistemicJudge",
 )
