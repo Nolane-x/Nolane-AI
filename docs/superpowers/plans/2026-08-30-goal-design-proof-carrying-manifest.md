@@ -122,12 +122,14 @@ Dedicated Goal Design Coherence Plane run `33306747928` completed with 41/41 pas
 
 - [x] **Step 4: Review branch diff against `main`**
 
-After integrating current `main` (`a38bd47daef1d28e16d9487c3db9355301e6113e`) into the feature branch, `main...feat/goal-design-coherence-plane-gpt56sol` is ahead-only and the diff remains scoped to Goal/Design implementation, tests, documentation and its dedicated workflow. No A/B/C specialist authority file is modified by the D delta.
+The D delta remains scoped to Goal/Design implementation, tests, documentation and its dedicated workflow. Specialist work merged into `main` is treated as baseline and must not reappear as D-owned changes.
 
 ## Branch-closing merged-baseline gate
 
-- [x] Current `main` was integrated into the feature branch through merge commit `8ac794b00daf5a9b8ef8db63ae69c27c72961aee`, whose first parent is the verified D implementation head and second parent is Refoundation A main.
-- [x] The merge tree is exactly the synthetic merge tree GitHub previously computed for PR #239, preserving both A and D authority work without conflict.
-- [x] A dedicated `test_goal_design_refoundation_interop.py` contract is used as a cross-refoundation gate: Truth/Knowledge content identity must flow into Goal/Design receipt evidence and must change D authority identity when the upstream truth content digest changes.
-- [ ] Final combined A+D head passes all `tests/test_goal_design*.py` on Python 3.11 and 3.12.
-- [ ] PR #239 final diff is rechecked against current `main`, remains mergeable, and contains no unrelated specialist-domain delta.
+- [x] Refoundation A main (`a38bd47daef1d28e16d9487c3db9355301e6113e`) was first integrated through merge commit `8ac794b00daf5a9b8ef8db63ae69c27c72961aee`, preserving the verified D implementation head as first parent.
+- [x] `test_goal_design_refoundation_interop.py` has an execution-backed RED proof on pre-A D commit `d7d27b01eff2952913648f5055b12b894acdee95`: Python 3.12 failed during collection exactly because `nolane.external_core.evidence_truth` did not yet exist.
+- [x] The same interop contract on the combined baseline requires Truth/Knowledge `content_digest` to flow into Goal/Design receipt evidence and to alter D authority identity when upstream truth content changes.
+- [x] Current main advanced again to F Software Engineering commit `37360b9c889170d789634abab823e4a0de191e85`. GitHub computed conflict-free synthetic merge tree `f18526ccd51acbb303c7765cfba0dee3643998be`; that exact tree was integrated into the feature branch by merge commit `2171e9cbad8decbc4a553bf4e5f8d162b0e63b26` with D as first parent and current main as second parent.
+- [x] F remains a separate authority surface. The closing interop contract binds a D `input_manifest_digest` as an opaque F engineering-evidence `subject_digest`; F verifies the artifact without acquiring Goal/Design decision authority.
+- [ ] Final combined A+D+F head passes all `tests/test_goal_design*.py` on Python 3.11 and 3.12.
+- [ ] PR #239 final diff is rechecked against the then-current `main`, remains mergeable, has `behind_by=0`, and contains no unrelated specialist-domain delta.
