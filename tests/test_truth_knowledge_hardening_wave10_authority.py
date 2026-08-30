@@ -13,13 +13,12 @@ from nolane.external_core.epistemic_truth import EpistemicJudge
 from nolane.external_core.evidence_truth import EvidenceChannel, EvidenceLedger, EvidencePolarity, TruthEvidence
 from nolane.external_core.knowledge_truth import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
 from nolane.external_core.verification_truth import (
-    RELATION_AWARE_BINDING_MODE,
+    RELATION_SCOPED_BINDING_MODE,
     TruthVerificationLedger,
     TruthVerificationReceipt,
 )
 from nolane.memory import knowledge as canonical_knowledge
 from nolane.memory.knowledge import (
-    EvidenceChunk,
     EvidenceLedger as CanonicalKnowledgeEvidenceLedger,
     RelationCardinality,
     RelationSemanticsRegistry,
@@ -130,7 +129,7 @@ def test_a10_unspecified_ancestor_ambiguity_blocks_descendant_v3_closure():
         source_family="child-family",
         channel=EvidenceChannel.REPRODUCTION,
         passed=True,
-        binding_mode=RELATION_AWARE_BINDING_MODE,
+        binding_mode=RELATION_SCOPED_BINDING_MODE,
         scope_digest=scope.digest,
         evidence_ids=("child-e",),
     ))
@@ -151,7 +150,7 @@ def test_a10_v3_serialization_rejects_global_binding_smuggling():
         source_family="family",
         channel=EvidenceChannel.TEST,
         passed=True,
-        binding_mode=RELATION_AWARE_BINDING_MODE,
+        binding_mode=RELATION_SCOPED_BINDING_MODE,
         scope_digest="scope-v3",
         evidence_ids=("e1",),
     )
@@ -163,7 +162,7 @@ def test_a10_v3_serialization_rejects_global_binding_smuggling():
     certificate = TruthClosureCertificate.create(
         claim_id="claim.a",
         risk=KnowledgeRisk.LOW,
-        binding_mode=RELATION_AWARE_BINDING_MODE,
+        binding_mode=RELATION_SCOPED_BINDING_MODE,
         scope_digest="scope-v3",
         verification_scope_digest="verification-v3",
         verification_receipt_ids=("v3",),
