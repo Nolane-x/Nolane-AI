@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **Refoundation A1–A8 accepted baseline; A10 Relation Semantics is an independently numbered final candidate. A9 Temporal Validity remains a separate concurrent workstream and is not claimed by A10.**
+Status: **Refoundation A1–A8 accepted baseline. A10 Relation Semantics is acceptance-approved; its accepted status becomes effective only after expected-head merge and post-merge proof on `main`. A9 Temporal Validity remains a separate concurrent workstream and is not claimed by A10.**
 
 ## Canonical authority model
 
