@@ -7,6 +7,10 @@ on:
     paths:
       - .github/workflows/e-acting-external-precedence.yml
 
+concurrency:
+  group: e-acting-safety-hardening
+  cancel-in-progress: true
+
 jobs:
   red:
     runs-on: ubuntu-24.04
