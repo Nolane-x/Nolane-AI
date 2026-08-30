@@ -34,6 +34,14 @@ MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST = (
     "76ff067244a54029961d4096a2af23bf37f4194b255c663cb15554970c745749"
 )
 
+# Final B runtime unification removes duplicate lifecycle/relation/experience
+# authority objects and persists the adaptive memory overlay under its existing
+# canonical owners. The governed-promotion fingerprint remains immutable above
+# so each accepted persistence cutover stays independently auditable.
+MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST = (
+    "d64f2009f928ba4c7dd759ffed604e3e3a9418b7918953b7dca093990c2211fd"
+)
+
 
 def test_runtime_state_fingerprint_tracks_the_memory_learning_v005_persistence_cutover() -> None:
     first = CanonicalOrganization.first_generation()
@@ -41,11 +49,12 @@ def test_runtime_state_fingerprint_tracks_the_memory_learning_v005_persistence_c
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
-    assert first.state_digest == MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
-    assert second.state_digest == MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
+    assert first.state_digest == MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
+    assert second.state_digest == MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V005_RUNTIME_STATE_DIGEST != WAVE5N_RUNTIME_STATE_DIGEST
     assert WAVE5N_RUNTIME_STATE_DIGEST != WAVE1_ACCEPTED_RUNTIME_STATE_DIGEST
