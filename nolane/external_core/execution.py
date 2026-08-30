@@ -543,6 +543,7 @@ class OrganizationExecutionControlPlane:
                 self._sessions[session.session_id] = session
                 return self._terminal(session, ExecutionState.FAILED, f'action outside declared schema: {schema_key}')
             is_external = action.tool_action.tool_id in self.executor.external_core_ids
+            unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})
             if session.counters.tool_calls >= session.budget.max_tool_calls:
                 return self._budget_terminal(session, 'tool-call budget exhausted')
             if is_external and session.counters.external_core_calls >= session.budget.max_external_core_calls:
@@ -555,7 +556,7 @@ class OrganizationExecutionControlPlane:
             if identity.status is AgentStatus.PAUSED:
                 return self._terminal(session, ExecutionState.PAUSED, 'agent paused by authority')
 
-            if is_external:
+            if is_external or action.tool_action.tool_id in unconfined_process_tools:
                 effect_class = EffectClass.EXTERNAL_MUTATION
                 risk_class = ExecutionRisk.R3
                 verifier_level = VerifierLevel.V3
