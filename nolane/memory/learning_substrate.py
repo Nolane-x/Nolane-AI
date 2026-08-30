@@ -6,6 +6,12 @@ from enum import Enum
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.memory.adaptive_policy import (
+    MemoryAnchorHealthReceipt,
+    MemoryCompactionReceipt,
+    MemoryRetrievalPolicy,
+    MemoryRetrievalReceipt,
+)
 from nolane.memory.experience import ExperienceLedger, ExperienceOutcome, LearningLayer
 from nolane.memory.fabric import MemoryEntry, MemoryFabric, MemoryScope, MemoryStatus
 from nolane.memory.lifecycle import MemoryLifecycleLedger, MemoryRelationGraph, MemoryRelationKind
@@ -81,6 +87,10 @@ def _normalize_family_map(
     return tuple(sorted(normalized.items()))
 
 
+def _clean_refs(values: tuple[str, ...]) -> tuple[str, ...]:
+    return tuple(sorted({str(value).strip() for value in values if str(value).strip()}))
+
+
 @dataclass(frozen=True, slots=True)
 class LearningMemoryMetadata:
     memory_id: str
@@ -111,18 +121,24 @@ class LearningMemoryMetadata:
 
     def to_state(self) -> dict[str, Any]:
         return {
-            "memory_id": self.memory_id, "kind": self.kind.value,
-            "epistemic_type": self.epistemic_type.value, "source_refs": list(self.source_refs),
-            "valid_from": self.valid_from, "valid_until": self.valid_until,
-            "version_scope": self.version_scope, "last_verified_ref": self.last_verified_ref,
-            "salience": self.salience, "failure_condition": self.failure_condition,
+            "memory_id": self.memory_id,
+            "kind": self.kind.value,
+            "epistemic_type": self.epistemic_type.value,
+            "source_refs": list(self.source_refs),
+            "valid_from": self.valid_from,
+            "valid_until": self.valid_until,
+            "version_scope": self.version_scope,
+            "last_verified_ref": self.last_verified_ref,
+            "salience": self.salience,
+            "failure_condition": self.failure_condition,
             "retry_if_changed": self.retry_if_changed,
         }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "LearningMemoryMetadata":
         return cls(
-            memory_id=str(state["memory_id"]), kind=MemoryKind(str(state["kind"])),
+            memory_id=str(state["memory_id"]),
+            kind=MemoryKind(str(state["kind"])),
             epistemic_type=EpistemicType(str(state["epistemic_type"])),
             source_refs=tuple(str(x) for x in state.get("source_refs", ())),
             valid_from=None if state.get("valid_from") is None else str(state["valid_from"]),
@@ -143,13 +159,21 @@ class MemoryTombstone:
     evidence_refs: tuple[str, ...]
 
     def to_state(self) -> dict[str, Any]:
-        return {"memory_id": self.memory_id, "content_digest": self.content_digest,
-                "reason": self.reason, "evidence_refs": list(self.evidence_refs)}
+        return {
+            "memory_id": self.memory_id,
+            "content_digest": self.content_digest,
+            "reason": self.reason,
+            "evidence_refs": list(self.evidence_refs),
+        }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "MemoryTombstone":
-        return cls(str(state["memory_id"]), str(state["content_digest"]), str(state["reason"]),
-                   tuple(str(x) for x in state.get("evidence_refs", ())))
+        return cls(
+            str(state["memory_id"]),
+            str(state["content_digest"]),
+            str(state["reason"]),
+            tuple(str(x) for x in state.get("evidence_refs", ())),
+        )
 
 
 @dataclass(frozen=True, slots=True)
@@ -163,6 +187,7 @@ class RetrievedLearningMemory:
 class LearningRetrievalBundle:
     selected: tuple[RetrievedLearningMemory, ...]
     rejected: tuple[tuple[str, str], ...]
+    receipt: MemoryRetrievalReceipt
 
 
 @dataclass(frozen=True, slots=True)
@@ -196,11 +221,17 @@ class SkillValidation:
 class LearningSubstrate:
     """Evidence-bounded orchestration for External Core B, without a second authority plane."""
 
-    def __init__(self, *, registry, events, memory: MemoryFabric | None = None,
-                 lifecycle: MemoryLifecycleLedger | None = None,
-                 relations: MemoryRelationGraph | None = None,
-                 skills: SkillEvolutionEngine | None = None,
-                 experiences: ExperienceLedger | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        registry,
+        events,
+        memory: MemoryFabric | None = None,
+        lifecycle: MemoryLifecycleLedger | None = None,
+        relations: MemoryRelationGraph | None = None,
+        skills: SkillEvolutionEngine | None = None,
+        experiences: ExperienceLedger | None = None,
+    ) -> None:
         self.registry, self.events = registry, events
         self.memory = memory or MemoryFabric()
         self.lifecycle = lifecycle or MemoryLifecycleLedger(registry=registry, memory=self.memory, events=events)
@@ -210,40 +241,87 @@ class LearningSubstrate:
         self._metadata: dict[str, LearningMemoryMetadata] = {}
         self._tombstones: dict[str, MemoryTombstone] = {}
         self._skill_validations: dict[str, SkillValidation] = {}
+        self._retrieval_receipts: dict[str, MemoryRetrievalReceipt] = {}
+        self._compactions: dict[str, MemoryCompactionReceipt] = {}
+        self._anchor_health: dict[str, list[MemoryAnchorHealthReceipt]] = {}
 
-    def remember(self, *, text: str, owner_agent_id: str, scope: MemoryScope, kind: MemoryKind,
-                 epistemic_type: EpistemicType, region: str | None = None, task_id: str | None = None,
-                 tags: tuple[str, ...] = (), evidence_ids: tuple[str, ...] = (), confidence: float = 1.0,
-                 dependencies: tuple[str, ...] = (), supersedes: str | None = None,
-                 source_refs: tuple[str, ...] = (), valid_from: str | None = None,
-                 valid_until: str | None = None, version_scope: str | None = None,
-                 last_verified_ref: str | None = None, salience: float = 0.5,
-                 failure_condition: str | None = None, retry_if_changed: str | None = None) -> MemoryEntry:
+    def remember(
+        self,
+        *,
+        text: str,
+        owner_agent_id: str,
+        scope: MemoryScope,
+        kind: MemoryKind,
+        epistemic_type: EpistemicType,
+        region: str | None = None,
+        task_id: str | None = None,
+        tags: tuple[str, ...] = (),
+        evidence_ids: tuple[str, ...] = (),
+        confidence: float = 1.0,
+        dependencies: tuple[str, ...] = (),
+        supersedes: str | None = None,
+        source_refs: tuple[str, ...] = (),
+        valid_from: str | None = None,
+        valid_until: str | None = None,
+        version_scope: str | None = None,
+        last_verified_ref: str | None = None,
+        salience: float = 0.5,
+        failure_condition: str | None = None,
+        retry_if_changed: str | None = None,
+    ) -> MemoryEntry:
         kind, epistemic_type = MemoryKind(kind), EpistemicType(epistemic_type)
         validated = epistemic_type is EpistemicType.VERIFIED and bool(evidence_ids)
         row = self.memory.write(
-            scope, text, owner_agent_id=owner_agent_id, region=region, task_id=task_id, tags=tags,
-            evidence_ids=evidence_ids, confidence=confidence, dependencies=dependencies, supersedes=supersedes,
+            scope,
+            text,
+            owner_agent_id=owner_agent_id,
+            region=region,
+            task_id=task_id,
+            tags=tags,
+            evidence_ids=evidence_ids,
+            confidence=confidence,
+            dependencies=dependencies,
+            supersedes=supersedes,
             initial_status=MemoryStatus.ACTIVE if validated else MemoryStatus.QUARANTINED,
             status_reason=None if validated else "awaiting_external_validation",
         )
         self._metadata[row.memory_id] = LearningMemoryMetadata(
-            row.memory_id, kind, epistemic_type, tuple(sorted({str(x) for x in source_refs})),
-            valid_from, valid_until, version_scope, last_verified_ref, float(salience),
-            failure_condition, retry_if_changed,
+            row.memory_id,
+            kind,
+            epistemic_type,
+            tuple(sorted({str(x) for x in source_refs})),
+            valid_from,
+            valid_until,
+            version_scope,
+            last_verified_ref,
+            float(salience),
+            failure_condition,
+            retry_if_changed,
         )
         return row
 
-    def remember_experience(self, experience_id: str, *, failure_condition: str | None = None,
-                            retry_if_changed: str | None = None, salience: float = 0.6) -> MemoryEntry:
+    def remember_experience(
+        self,
+        experience_id: str,
+        *,
+        failure_condition: str | None = None,
+        retry_if_changed: str | None = None,
+        salience: float = 0.6,
+    ) -> MemoryEntry:
         experience = self.experiences.get(experience_id)
         failed = experience.outcome is ExperienceOutcome.FAILURE
         return self.remember(
-            text=experience.summary, owner_agent_id=experience.agent_id, scope=MemoryScope.PERSONAL,
+            text=experience.summary,
+            owner_agent_id=experience.agent_id,
+            scope=MemoryScope.PERSONAL,
             kind=MemoryKind.FAILURE if failed else MemoryKind.EPISODIC,
-            epistemic_type=EpistemicType.OBSERVATION, region=experience.region, task_id=experience.task_id,
-            tags=(experience.domain, experience.outcome.value), evidence_ids=experience.evidence_refs,
-            source_refs=(experience.experience_id,) + experience.object_refs, salience=salience,
+            epistemic_type=EpistemicType.OBSERVATION,
+            region=experience.region,
+            task_id=experience.task_id,
+            tags=(experience.domain, experience.outcome.value),
+            evidence_ids=experience.evidence_refs,
+            source_refs=(experience.experience_id,) + experience.object_refs,
+            salience=salience,
             failure_condition=failure_condition if failed else None,
             retry_if_changed=retry_if_changed if failed else None,
         )
@@ -254,13 +332,18 @@ class LearningSubstrate:
             raise PermissionError("negative or unverified attribution cannot become verified memory")
         experience = self.experiences.get(attribution.experience_id)
         return self.remember(
-            text=attribution.lesson, owner_agent_id=experience.agent_id, scope=MemoryScope.PERSONAL,
-            kind=_LAYER_KIND[attribution.learning_layer], epistemic_type=EpistemicType.VERIFIED,
-            region=experience.region, task_id=experience.task_id,
+            text=attribution.lesson,
+            owner_agent_id=experience.agent_id,
+            scope=MemoryScope.PERSONAL,
+            kind=_LAYER_KIND[attribution.learning_layer],
+            epistemic_type=EpistemicType.VERIFIED,
+            region=experience.region,
+            task_id=experience.task_id,
             tags=(experience.domain, attribution.learning_layer.value),
             evidence_ids=(attribution.evidence.evidence_id,),
             source_refs=(experience.experience_id, attribution.attribution_id),
-            last_verified_ref=attribution.evidence.evidence_id, salience=0.75,
+            last_verified_ref=attribution.evidence.evidence_id,
+            salience=0.75,
         )
 
     def metadata(self, memory_id: str) -> LearningMemoryMetadata:
@@ -270,29 +353,64 @@ class LearningSubstrate:
         except KeyError as exc:
             raise KeyError(f"missing learning metadata for {memory_id}") from exc
 
-    def validate_memory(self, memory_id: str, *, actor_agent_id: str,
-                        evidence_refs: tuple[str, ...], correction_ref: str) -> MemoryEntry:
+    def validate_memory(
+        self,
+        memory_id: str,
+        *,
+        actor_agent_id: str,
+        evidence_refs: tuple[str, ...],
+        correction_ref: str,
+    ) -> MemoryEntry:
         receipt = self.lifecycle.transition(
-            memory_id, actor_agent_id=actor_agent_id, new_status=MemoryStatus.ACTIVE,
-            reason="external_validation_completed", evidence_refs=evidence_refs, correction_ref=correction_ref,
+            memory_id,
+            actor_agent_id=actor_agent_id,
+            new_status=MemoryStatus.ACTIVE,
+            reason="external_validation_completed",
+            evidence_refs=evidence_refs,
+            correction_ref=correction_ref,
         )
         metadata = self.metadata(memory_id)
         self._metadata[memory_id] = replace(
-            metadata, epistemic_type=EpistemicType.VERIFIED, last_verified_ref=str(correction_ref),
+            metadata,
+            epistemic_type=EpistemicType.VERIFIED,
+            last_verified_ref=str(correction_ref),
             source_refs=tuple(sorted(set(metadata.source_refs + receipt.evidence_refs))),
         )
         return self.memory.get(memory_id)
 
-    def decay_memory(self, memory_id: str, *, actor_agent_id: str, reason: str,
-                     evidence_refs: tuple[str, ...]) -> MemoryEntry:
-        self.lifecycle.transition(memory_id, actor_agent_id=actor_agent_id, new_status=MemoryStatus.STALE,
-                                  reason=reason, evidence_refs=evidence_refs)
+    def decay_memory(
+        self,
+        memory_id: str,
+        *,
+        actor_agent_id: str,
+        reason: str,
+        evidence_refs: tuple[str, ...],
+    ) -> MemoryEntry:
+        self.lifecycle.transition(
+            memory_id,
+            actor_agent_id=actor_agent_id,
+            new_status=MemoryStatus.STALE,
+            reason=reason,
+            evidence_refs=evidence_refs,
+        )
         return self.memory.get(memory_id)
 
-    def relate(self, *, actor_agent_id: str, source_memory_id: str, target_memory_id: str,
-               kind: MemoryRelationKind, evidence_refs: tuple[str, ...]):
-        return self.relations.add(actor_agent_id=actor_agent_id, source_memory_id=source_memory_id,
-                                  target_memory_id=target_memory_id, kind=kind, evidence_refs=evidence_refs)
+    def relate(
+        self,
+        *,
+        actor_agent_id: str,
+        source_memory_id: str,
+        target_memory_id: str,
+        kind: MemoryRelationKind,
+        evidence_refs: tuple[str, ...],
+    ):
+        return self.relations.add(
+            actor_agent_id=actor_agent_id,
+            source_memory_id=source_memory_id,
+            target_memory_id=target_memory_id,
+            kind=kind,
+            evidence_refs=evidence_refs,
+        )
 
     @staticmethod
     def _temporal_rejection(metadata: LearningMemoryMetadata, as_of: datetime) -> str | None:
@@ -305,50 +423,354 @@ class LearningSubstrate:
 
     @staticmethod
     def _score(row: MemoryEntry, metadata: LearningMemoryMetadata) -> float:
-        return (_EPISTEMIC_RANK[metadata.epistemic_type] * 100.0 + row.confidence * 50.0
-                + metadata.salience * 20.0 + (10.0 if row.evidence_ids else 0.0)
-                + min(row.sequence, 1_000_000) / 1_000_000.0)
+        return (
+            _EPISTEMIC_RANK[metadata.epistemic_type] * 100.0
+            + row.confidence * 50.0
+            + metadata.salience * 20.0
+            + (10.0 if row.evidence_ids else 0.0)
+            + min(row.sequence, 1_000_000) / 1_000_000.0
+        )
 
-    def retrieve(self, *, agent_id: str, region: str, as_of: str, task_id: str | None = None,
-                 tags: tuple[str, ...] = (), limit: int = 8) -> LearningRetrievalBundle:
+    def _latest_anchor_health(self, memory_id: str) -> MemoryAnchorHealthReceipt | None:
+        rows = self._anchor_health.get(str(memory_id), ())
+        return rows[-1] if rows else None
+
+    def _retrieval_state_digest(self) -> str:
+        health = [
+            receipt.to_state()
+            for memory_id in sorted(self._anchor_health)
+            for receipt in self._anchor_health[memory_id]
+        ]
+        return canonical_digest(
+            {
+                "memory": self.memory.to_state(),
+                "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
+                "relations": self.relations.to_state(),
+                "anchor_health": health,
+            }
+        )
+
+    def retrieve(
+        self,
+        *,
+        agent_id: str,
+        region: str,
+        as_of: str,
+        task_id: str | None = None,
+        tags: tuple[str, ...] = (),
+        limit: int = 8,
+        policy: MemoryRetrievalPolicy | None = None,
+    ) -> LearningRetrievalBundle:
         if limit < 0:
             raise ValueError("learning retrieval limit must be non-negative")
         timestamp = _parse_time(as_of)
         assert timestamp is not None
-        wanted, rejected, candidates = {str(x) for x in tags}, {}, []
-        for row in self.memory.visible_entries(agent_id=agent_id, region=region, task_id=task_id, include_inactive=True):
+        retrieval_policy = policy or MemoryRetrievalPolicy()
+        if not isinstance(retrieval_policy, MemoryRetrievalPolicy):
+            raise TypeError("learning retrieval policy must be MemoryRetrievalPolicy")
+
+        wanted = {str(x) for x in tags}
+        rejected: dict[str, str] = {}
+        candidates: list[RetrievedLearningMemory] = []
+        estimated_units: dict[str, int] = {}
+        visible = self.memory.visible_entries(
+            agent_id=agent_id,
+            region=region,
+            task_id=task_id,
+            include_inactive=True,
+        )
+        for row in visible:
             metadata = self._metadata.get(row.memory_id)
             if metadata is None:
-                rejected[row.memory_id] = "missing_learning_metadata"; continue
+                rejected[row.memory_id] = "missing_learning_metadata"
+                continue
             temporal = self._temporal_rejection(metadata, timestamp)
             if temporal is not None:
-                rejected[row.memory_id] = temporal; continue
+                rejected[row.memory_id] = temporal
+                continue
             if row.status is not MemoryStatus.ACTIVE:
-                rejected[row.memory_id] = row.status.value; continue
+                rejected[row.memory_id] = row.status.value
+                continue
             if metadata.epistemic_type is EpistemicType.REJECTED:
-                rejected[row.memory_id] = "epistemically_rejected"; continue
-            candidates.append(RetrievedLearningMemory(
-                row, metadata, self._score(row, metadata) + 100.0 * len(wanted.intersection(row.tags))))
+                rejected[row.memory_id] = "epistemically_rejected"
+                continue
+            health = self._latest_anchor_health(row.memory_id)
+            if health is not None and not health.healthy:
+                rejected[row.memory_id] = "anchor_unhealthy"
+                continue
+            units = retrieval_policy.estimate_units(row.text)
+            if retrieval_policy.max_estimated_units is not None and units > retrieval_policy.max_estimated_units:
+                rejected[row.memory_id] = "policy_cost_budget"
+                continue
+            information_score = self._score(row, metadata) + 100.0 * len(wanted.intersection(row.tags))
+            estimated_units[row.memory_id] = units
+            candidates.append(
+                RetrievedLearningMemory(
+                    row,
+                    metadata,
+                    retrieval_policy.score(information_score, estimated_units=units),
+                )
+            )
+
         contradictions: dict[str, set[str]] = {}
         for relation in self.relations.relations():
             if relation.kind is MemoryRelationKind.CONTRADICTS:
                 contradictions.setdefault(relation.source_memory_id, set()).add(relation.target_memory_id)
                 contradictions.setdefault(relation.target_memory_id, set()).add(relation.source_memory_id)
-        selected, selected_ids = [], set()
-        for candidate in sorted(candidates, key=lambda item: (item.score, item.memory.sequence), reverse=True):
-            conflicts = contradictions.get(candidate.memory.memory_id, set()).intersection(selected_ids)
-            if conflicts:
-                rejected[candidate.memory.memory_id] = "contradicted_by:" + sorted(conflicts)[0]; continue
-            selected.append(candidate); selected_ids.add(candidate.memory.memory_id)
-            if len(selected) >= limit:
-                break
-        for candidate in candidates:
-            if candidate.memory.memory_id not in selected_ids and candidate.memory.memory_id not in rejected:
-                rejected[candidate.memory.memory_id] = "budget"
-        return LearningRetrievalBundle(tuple(selected), tuple(sorted(rejected.items())))
 
-    def forget(self, memory_id: str, *, actor_agent_id: str, reason: str,
-               evidence_refs: tuple[str, ...]) -> MemoryTombstone:
+        selected: list[RetrievedLearningMemory] = []
+        selected_ids: set[str] = set()
+        selected_units = 0
+        for candidate in sorted(candidates, key=lambda item: (item.score, item.memory.sequence), reverse=True):
+            memory_id = candidate.memory.memory_id
+            conflicts = contradictions.get(memory_id, set()).intersection(selected_ids)
+            if conflicts:
+                rejected[memory_id] = "contradicted_by:" + sorted(conflicts)[0]
+                continue
+            if len(selected) >= limit:
+                rejected[memory_id] = "budget"
+                continue
+            units = estimated_units[memory_id]
+            if (
+                retrieval_policy.max_estimated_units is not None
+                and selected_units + units > retrieval_policy.max_estimated_units
+            ):
+                rejected[memory_id] = "policy_cost_budget"
+                continue
+            selected.append(candidate)
+            selected_ids.add(memory_id)
+            selected_units += units
+
+        rejected_rows = tuple(sorted(rejected.items()))
+        query_digest = canonical_digest(
+            {
+                "agent_id": str(agent_id),
+                "region": str(region),
+                "as_of": str(as_of),
+                "task_id": None if task_id is None else str(task_id),
+                "tags": sorted(wanted),
+                "limit": int(limit),
+                "policy_id": retrieval_policy.policy_id,
+            }
+        )
+        receipt = MemoryRetrievalReceipt(
+            policy_id=retrieval_policy.policy_id,
+            query_digest=query_digest,
+            memory_state_digest=self._retrieval_state_digest(),
+            selected_memory_ids=tuple(item.memory.memory_id for item in selected),
+            rejected=rejected_rows,
+            estimated_units=selected_units,
+        )
+        self._retrieval_receipts.setdefault(receipt.receipt_id, receipt)
+        return LearningRetrievalBundle(tuple(selected), rejected_rows, receipt)
+
+    def retrieval_receipt(self, receipt_id: str) -> MemoryRetrievalReceipt:
+        try:
+            return self._retrieval_receipts[str(receipt_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown memory retrieval receipt: {receipt_id}") from exc
+
+    @staticmethod
+    def _source_projection(row: MemoryEntry, metadata: LearningMemoryMetadata) -> dict[str, Any]:
+        # Lifecycle state is deliberately excluded. Compaction binds source content
+        # and epistemic metadata while allowing later stale/archive transitions.
+        return {
+            "memory_id": row.memory_id,
+            "sequence": row.sequence,
+            "scope": row.scope.value,
+            "text": row.text,
+            "owner_agent_id": row.owner_agent_id,
+            "region": row.region,
+            "task_id": row.task_id,
+            "tags": list(row.tags),
+            "parent_memory_id": row.parent_memory_id,
+            "promotion_receipt_id": row.promotion_receipt_id,
+            "evidence_ids": list(row.evidence_ids),
+            "confidence": row.confidence,
+            "dependencies": list(row.dependencies),
+            "supersedes": row.supersedes,
+            "metadata": metadata.to_state(),
+        }
+
+    def _compaction_source_digest(self, source_memory_ids: tuple[str, ...]) -> str:
+        return canonical_digest(
+            [
+                self._source_projection(self.memory.get(memory_id), self.metadata(memory_id))
+                for memory_id in source_memory_ids
+            ]
+        )
+
+    @staticmethod
+    def _intersection_bound(
+        metadata_rows: tuple[LearningMemoryMetadata, ...],
+        *,
+        field: str,
+        choose_max: bool,
+    ) -> str | None:
+        values = [(getattr(row, field), _parse_time(getattr(row, field))) for row in metadata_rows]
+        present = [(raw, parsed) for raw, parsed in values if parsed is not None]
+        if not present:
+            return None
+        raw, _ = (max if choose_max else min)(present, key=lambda pair: pair[1])
+        return raw
+
+    def compact(
+        self,
+        *,
+        source_memory_ids: tuple[str, ...],
+        summary_text: str,
+        owner_agent_id: str,
+        scope: MemoryScope,
+        kind: MemoryKind,
+        actor_agent_id: str,
+        evidence_refs: tuple[str, ...],
+    ) -> tuple[MemoryEntry, MemoryCompactionReceipt]:
+        source_ids = tuple(sorted({str(value).strip() for value in source_memory_ids if str(value).strip()}))
+        if len(source_ids) < 2:
+            raise ValueError("memory compaction requires at least two source memories")
+        evidence = _clean_refs(evidence_refs)
+        if not evidence:
+            raise ValueError("memory compaction requires external evidence")
+        owner = str(owner_agent_id).strip()
+        actor = str(actor_agent_id).strip()
+        if not owner or not actor:
+            raise ValueError("memory compaction requires explicit owner and actor")
+        self.registry.get(actor)
+        if actor == owner:
+            raise PermissionError("memory compaction requires external review; owner cannot self-certify")
+
+        rows = tuple(self.memory.get(memory_id) for memory_id in source_ids)
+        metadata_rows = tuple(self.metadata(memory_id) for memory_id in source_ids)
+        if any(row.status is not MemoryStatus.ACTIVE for row in rows):
+            raise ValueError("memory compaction only accepts active source memories")
+        epistemic_types = {row.epistemic_type for row in metadata_rows}
+        if len(epistemic_types) != 1:
+            raise ValueError("memory compaction cannot mix epistemic type classes")
+        source_kinds = {row.kind for row in metadata_rows}
+        if len(source_kinds) != 1 or MemoryKind(kind) not in source_kinds:
+            raise ValueError("memory compaction must preserve memory kind")
+        target_scope = MemoryScope(scope)
+        if any(row.owner_agent_id != owner for row in rows):
+            raise ValueError("memory compaction cannot cross memory owners")
+        if any(row.scope is not target_scope for row in rows):
+            raise ValueError("memory compaction cannot weaken or change memory scope")
+        regions = {row.region for row in rows}
+        tasks = {row.task_id for row in rows}
+        if len(regions) != 1 or len(tasks) != 1:
+            raise ValueError("memory compaction requires uniform region/task bindings")
+        version_scopes = {row.version_scope for row in metadata_rows}
+        if len(version_scopes) != 1:
+            raise ValueError("memory compaction cannot mix version scopes")
+
+        valid_from = self._intersection_bound(metadata_rows, field="valid_from", choose_max=True)
+        valid_until = self._intersection_bound(metadata_rows, field="valid_until", choose_max=False)
+        start, end = _parse_time(valid_from), _parse_time(valid_until)
+        if start is not None and end is not None and end <= start:
+            raise ValueError("memory compaction source validity windows do not overlap")
+
+        epistemic_type = next(iter(epistemic_types))
+        combined_evidence = _clean_refs(
+            evidence + tuple(value for row in rows for value in row.evidence_ids)
+        )
+        combined_sources = _clean_refs(
+            source_ids + tuple(value for metadata in metadata_rows for value in metadata.source_refs)
+        )
+        combined_tags = _clean_refs(tuple(value for row in rows for value in row.tags) + ("compacted",))
+        combined_dependencies = _clean_refs(source_ids + tuple(value for row in rows for value in row.dependencies))
+        compacted = self.remember(
+            text=summary_text,
+            owner_agent_id=owner,
+            scope=target_scope,
+            kind=MemoryKind(kind),
+            epistemic_type=epistemic_type,
+            region=rows[0].region,
+            task_id=rows[0].task_id,
+            tags=combined_tags,
+            evidence_ids=combined_evidence,
+            confidence=min(row.confidence for row in rows),
+            dependencies=combined_dependencies,
+            source_refs=combined_sources,
+            valid_from=valid_from,
+            valid_until=valid_until,
+            version_scope=metadata_rows[0].version_scope,
+            last_verified_ref=evidence[0] if epistemic_type is EpistemicType.VERIFIED else None,
+            salience=max(row.salience for row in metadata_rows),
+        )
+        receipt = MemoryCompactionReceipt(
+            source_memory_ids=source_ids,
+            compacted_memory_id=compacted.memory_id,
+            source_digest=self._compaction_source_digest(source_ids),
+            epistemic_type=epistemic_type.value,
+            actor_agent_id=actor,
+            evidence_refs=evidence,
+        )
+        self._compactions[receipt.compaction_id] = receipt
+        return compacted, receipt
+
+    def compaction_receipt(self, compaction_id: str) -> MemoryCompactionReceipt:
+        try:
+            return self._compactions[str(compaction_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown memory compaction receipt: {compaction_id}") from exc
+
+    def reconstruct_compaction(self, compaction_id: str) -> tuple[MemoryEntry, ...]:
+        receipt = self.compaction_receipt(compaction_id)
+        rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
+        actual = self._compaction_source_digest(receipt.source_memory_ids)
+        if actual != receipt.source_digest:
+            raise ValueError("memory compaction source digest mismatch")
+        return rows
+
+    def record_anchor_health(
+        self,
+        memory_id: str,
+        *,
+        actor_agent_id: str,
+        healthy: bool,
+        evidence_ref: str,
+        observed_version_scope: str | None,
+        reason: str,
+    ) -> MemoryAnchorHealthReceipt:
+        row = self.memory.get(memory_id)
+        metadata = self.metadata(memory_id)
+        actor = str(actor_agent_id).strip()
+        evidence = str(evidence_ref).strip()
+        normalized_reason = str(reason).strip()
+        observed = None if observed_version_scope is None else str(observed_version_scope).strip()
+        if not actor or not evidence or not normalized_reason:
+            raise ValueError("anchor health requires actor, evidence, and reason")
+        if observed_version_scope is not None and not observed:
+            raise ValueError("observed version scope must be non-empty when present")
+        self.registry.get(actor)
+        if actor == row.owner_agent_id:
+            raise PermissionError("anchor health requires external observation; owner cannot self-certify")
+        if bool(healthy) and metadata.version_scope is not None and observed != metadata.version_scope:
+            raise ValueError("healthy anchor observation cannot contradict its bound version scope")
+        sequence = 1 + sum(len(receipts) for receipts in self._anchor_health.values())
+        receipt = MemoryAnchorHealthReceipt(
+            sequence=sequence,
+            memory_id=row.memory_id,
+            actor_agent_id=actor,
+            healthy=bool(healthy),
+            evidence_ref=evidence,
+            observed_version_scope=observed,
+            reason=normalized_reason,
+        )
+        self._anchor_health.setdefault(row.memory_id, []).append(receipt)
+        return receipt
+
+    def anchor_health(self, memory_id: str) -> tuple[MemoryAnchorHealthReceipt, ...]:
+        self.memory.get(memory_id)
+        return tuple(self._anchor_health.get(str(memory_id), ()))
+
+    def forget(
+        self,
+        memory_id: str,
+        *,
+        actor_agent_id: str,
+        reason: str,
+        evidence_refs: tuple[str, ...],
+    ) -> MemoryTombstone:
         row, reason = self.memory.get(memory_id), str(reason).strip()
         evidence = tuple(sorted({str(x) for x in evidence_refs if str(x)}))
         if not reason:
@@ -356,11 +778,19 @@ class LearningSubstrate:
         if not evidence:
             raise ValueError("forgetting requires evidence")
         if row.status is not MemoryStatus.ARCHIVED:
-            self.lifecycle.transition(row.memory_id, actor_agent_id=actor_agent_id,
-                                      new_status=MemoryStatus.ARCHIVED, reason=reason, evidence_refs=evidence)
-        tombstone = MemoryTombstone(row.memory_id,
-                                    canonical_digest({"memory_id": row.memory_id, "text": row.text}),
-                                    reason, evidence)
+            self.lifecycle.transition(
+                row.memory_id,
+                actor_agent_id=actor_agent_id,
+                new_status=MemoryStatus.ARCHIVED,
+                reason=reason,
+                evidence_refs=evidence,
+            )
+        tombstone = MemoryTombstone(
+            row.memory_id,
+            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
+            reason,
+            evidence,
+        )
         self._tombstones[row.memory_id] = tombstone
         return tombstone
 
@@ -387,10 +817,14 @@ class LearningSubstrate:
         if not causal:
             raise ValueError("skill validation requires causal ablation evidence")
         regression_families = _normalize_family_map(
-            regressions, regression_evidence_families, label="regression"
+            regressions,
+            regression_evidence_families,
+            label="regression",
         )
         causal_families = _normalize_family_map(
-            causal, causal_ablation_evidence_families, label="causal ablation"
+            causal,
+            causal_ablation_evidence_families,
+            label="causal ablation",
         )
         regression_family_ids = {family_id for _, family_id in regression_families}
         causal_family_ids = {family_id for _, family_id in causal_families}
@@ -399,7 +833,11 @@ class LearningSubstrate:
         if regression_family_ids.intersection(causal_family_ids):
             raise ValueError("causal ablation evidence families must be independent of regression families")
         row = SkillValidation(
-            str(skill_id), regressions, causal, regression_families, causal_families
+            str(skill_id),
+            regressions,
+            causal,
+            regression_families,
+            causal_families,
         )
         self._skill_validations[row.skill_id] = row
         return row
@@ -413,7 +851,9 @@ class LearningSubstrate:
         if not causal_family_ids:
             raise PermissionError("persistent skill promotion requires causal ablation evidence families")
         if regression_family_ids.intersection(causal_family_ids):
-            raise PermissionError("persistent skill promotion requires causal evidence independent of regression families")
+            raise PermissionError(
+                "persistent skill promotion requires causal evidence independent of regression families"
+            )
 
     def promote_skill(self, skill_id: str, scope: SkillScope) -> SkillRecord:
         validation = self._skill_validations.get(str(skill_id))
@@ -426,37 +866,107 @@ class LearningSubstrate:
 
     def to_state(self) -> dict[str, Any]:
         return {
-            "memory": self.memory.to_state(), "lifecycle": self.lifecycle.to_state(),
-            "relations": self.relations.to_state(), "skills": self.skills.to_state(),
+            "memory": self.memory.to_state(),
+            "lifecycle": self.lifecycle.to_state(),
+            "relations": self.relations.to_state(),
+            "skills": self.skills.to_state(),
             "experiences": self.experiences.to_state(),
             "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
             "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
-            "skill_validations": [self._skill_validations[key].to_state() for key in sorted(self._skill_validations)],
+            "skill_validations": [
+                self._skill_validations[key].to_state() for key in sorted(self._skill_validations)
+            ],
+            "retrieval_receipts": [
+                self._retrieval_receipts[key].to_state() for key in sorted(self._retrieval_receipts)
+            ],
+            "compactions": [self._compactions[key].to_state() for key in sorted(self._compactions)],
+            "anchor_health": [
+                receipt.to_state()
+                for memory_id in sorted(self._anchor_health)
+                for receipt in self._anchor_health[memory_id]
+            ],
         }
 
     @classmethod
     def from_state(cls, *, registry, events, state: Mapping[str, Any]) -> "LearningSubstrate":
         memory = MemoryFabric.from_state(state.get("memory", {}))
-        lifecycle = MemoryLifecycleLedger.from_state(registry=registry, memory=memory, events=events,
-                                                       state=state.get("lifecycle", {}))
-        relations = MemoryRelationGraph.from_state(registry=registry, memory=memory, events=events,
-                                                    state=state.get("relations", {}))
-        result = cls(registry=registry, events=events, memory=memory, lifecycle=lifecycle, relations=relations,
-                     skills=SkillEvolutionEngine.from_state(state.get("skills", {})),
-                     experiences=ExperienceLedger.from_state(registry=registry, events=events,
-                                                             state=state.get("experiences", {})))
-        result._metadata = {row.memory_id: row for row in
-                            (LearningMemoryMetadata.from_state(raw) for raw in state.get("metadata", ()))}
-        result._tombstones = {row.memory_id: row for row in
-                              (MemoryTombstone.from_state(raw) for raw in state.get("tombstones", ()))}
-        result._skill_validations = {row.skill_id: row for row in
-                                     (SkillValidation.from_state(raw) for raw in state.get("skill_validations", ()))}
+        lifecycle = MemoryLifecycleLedger.from_state(
+            registry=registry,
+            memory=memory,
+            events=events,
+            state=state.get("lifecycle", {}),
+        )
+        relations = MemoryRelationGraph.from_state(
+            registry=registry,
+            memory=memory,
+            events=events,
+            state=state.get("relations", {}),
+        )
+        result = cls(
+            registry=registry,
+            events=events,
+            memory=memory,
+            lifecycle=lifecycle,
+            relations=relations,
+            skills=SkillEvolutionEngine.from_state(state.get("skills", {})),
+            experiences=ExperienceLedger.from_state(
+                registry=registry,
+                events=events,
+                state=state.get("experiences", {}),
+            ),
+        )
+        result._metadata = {
+            row.memory_id: row
+            for row in (LearningMemoryMetadata.from_state(raw) for raw in state.get("metadata", ()))
+        }
+        result._tombstones = {
+            row.memory_id: row
+            for row in (MemoryTombstone.from_state(raw) for raw in state.get("tombstones", ()))
+        }
+        result._skill_validations = {
+            row.skill_id: row
+            for row in (SkillValidation.from_state(raw) for raw in state.get("skill_validations", ()))
+        }
+        retrieval_receipts = tuple(
+            MemoryRetrievalReceipt.from_state(raw) for raw in state.get("retrieval_receipts", ())
+        )
+        result._retrieval_receipts = {row.receipt_id: row for row in retrieval_receipts}
+        compactions = tuple(MemoryCompactionReceipt.from_state(raw) for raw in state.get("compactions", ()))
+        result._compactions = {row.compaction_id: row for row in compactions}
+        anchor_health = tuple(
+            MemoryAnchorHealthReceipt.from_state(raw) for raw in state.get("anchor_health", ())
+        )
+        expected_health_sequence = list(range(1, len(anchor_health) + 1))
+        actual_health_sequence = [row.sequence for row in anchor_health]
+        if actual_health_sequence != expected_health_sequence:
+            raise ValueError("anchor health sequence invariant violated")
+        for row in anchor_health:
+            result._anchor_health.setdefault(row.memory_id, []).append(row)
+
         for memory_id in (*result._metadata, *result._tombstones):
             memory.get(memory_id)
         for skill_id in result._skill_validations:
             result.skills.get(skill_id)
+        for receipt in retrieval_receipts:
+            for memory_id in receipt.selected_memory_ids:
+                memory.get(memory_id)
+            for memory_id, _ in receipt.rejected:
+                memory.get(memory_id)
+        for receipt in compactions:
+            memory.get(receipt.compacted_memory_id)
+            result.reconstruct_compaction(receipt.compaction_id)
+        for receipt in anchor_health:
+            memory.get(receipt.memory_id)
         return result
 
 
-__all__ = ("MemoryKind", "EpistemicType", "LearningMemoryMetadata", "MemoryTombstone",
-           "RetrievedLearningMemory", "LearningRetrievalBundle", "SkillValidation", "LearningSubstrate")
+__all__ = (
+    "MemoryKind",
+    "EpistemicType",
+    "LearningMemoryMetadata",
+    "MemoryTombstone",
+    "RetrievedLearningMemory",
+    "LearningRetrievalBundle",
+    "SkillValidation",
+    "LearningSubstrate",
+)
