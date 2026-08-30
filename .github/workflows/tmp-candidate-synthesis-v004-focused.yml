@@ -1,0 +1,28 @@
+name: Temporary Candidate Synthesis v0.0.4 Focused
+
+on:
+  push:
+    branches:
+      - post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+    paths:
+      - .github/workflows/tmp-candidate-synthesis-v004-focused.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Run structural synthesis focused contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_candidate_synthesis_structural_composition.py \
+            tests/test_refoundation_post_epoch0_candidate_synthesis_structural_hardening.py
