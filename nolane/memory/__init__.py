@@ -18,7 +18,15 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "MemoryRelationGraph": ("nolane.memory.lifecycle", "MemoryRelationGraph"),
     "MemoryRetrievalBudget": ("nolane.memory.retrieval", "MemoryRetrievalBudget"),
     "MemoryRetrievalEngine": ("nolane.memory.retrieval", "MemoryRetrievalEngine"),
+    "MemoryRetrievalPolicy": ("nolane.memory.adaptive_policy", "MemoryRetrievalPolicy"),
+    "MemoryRetrievalReceipt": ("nolane.memory.adaptive_policy", "MemoryRetrievalReceipt"),
+    "MemoryCompactionReceipt": ("nolane.memory.adaptive_policy", "MemoryCompactionReceipt"),
+    "MemoryAnchorHealthReceipt": ("nolane.memory.adaptive_policy", "MemoryAnchorHealthReceipt"),
     "SkillEvolutionEngine": ("nolane.memory.skills", "SkillEvolutionEngine"),
+    "LearningSubstrate": ("nolane.memory.learning_substrate", "LearningSubstrate"),
+    "LearningMemoryMetadata": ("nolane.memory.learning_substrate", "LearningMemoryMetadata"),
+    "MemoryKind": ("nolane.memory.learning_substrate", "MemoryKind"),
+    "EpistemicType": ("nolane.memory.learning_substrate", "EpistemicType"),
 }
 
 __all__ = tuple(_EXPORTS)

@@ -38,8 +38,8 @@ def test_wave5j_skills_are_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.skills"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.skills")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.skills")) == "0.0.2"
 
 
 def test_wave5j_skills_leave_context_facade_untouched() -> None:

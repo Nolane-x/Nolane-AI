@@ -20,6 +20,21 @@ def _candidate(runtime: OrganizationRuntime, agent_id: str = 'coding.backend.01'
     )
 
 
+def _validate_persistent_skill(runtime: OrganizationRuntime, skill_id: str) -> None:
+    runtime.learning_substrate.record_skill_validation(
+        skill_id,
+        regression_evidence_ids=('EV-REGRESSION-A', 'EV-REGRESSION-B'),
+        causal_ablation_evidence_ids=('EV-CAUSAL-ABLATION',),
+        regression_evidence_families={
+            'EV-REGRESSION-A': 'regression-family-a',
+            'EV-REGRESSION-B': 'regression-family-b',
+        },
+        causal_ablation_evidence_families={
+            'EV-CAUSAL-ABLATION': 'causal-family',
+        },
+    )
+
+
 def test_candidate_skill_is_not_active_and_producer_cannot_self_verify():
     runtime = OrganizationRuntime.first_generation()
     skill = _candidate(runtime)
@@ -33,6 +48,7 @@ def test_skill_promotion_requires_progressively_stronger_external_evidence_and_c
     runtime = OrganizationRuntime.first_generation()
     skill = _candidate(runtime)
     runtime.individual_evolution.verify_skill(skill.skill_id, EvidenceRecord('EV-V1', 'coding.chief', True))
+    _validate_persistent_skill(runtime, skill.skill_id)
     personal = runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     assert personal.scope is SkillScope.PERSONAL
     with pytest.raises(PermissionError):

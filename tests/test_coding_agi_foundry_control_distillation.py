@@ -74,6 +74,20 @@ def test_authorized_handoff_distills_only_candidate_owned_by_permanent_target():
     runtime.individual_evolution.verify_skill(
         skill.skill_id, EvidenceRecord('F14-SKILL-EXT', 'verification.unit-property.01', True),
     )
+    with pytest.raises(PermissionError, match='executed regression evidence'):
+        runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
+    runtime.learning_substrate.record_skill_validation(
+        skill.skill_id,
+        regression_evidence_ids=('F14-SKILL-REG-A', 'F14-SKILL-REG-B'),
+        causal_ablation_evidence_ids=('F14-SKILL-CAUSAL',),
+        regression_evidence_families={
+            'F14-SKILL-REG-A': 'foundry-regression-family-a',
+            'F14-SKILL-REG-B': 'foundry-regression-family-b',
+        },
+        causal_ablation_evidence_families={
+            'F14-SKILL-CAUSAL': 'foundry-causal-family',
+        },
+    )
     promoted = runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     assert promoted.scope is SkillScope.PERSONAL
 

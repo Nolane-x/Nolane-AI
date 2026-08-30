@@ -9,7 +9,7 @@ from nolane.external_core.evidence import EvidenceRecord
 
 
 COMPONENT_ID = "external.skills"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evolution"
 
 
@@ -173,9 +173,37 @@ class SkillEvolutionEngine:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "SkillEvolutionEngine":
         engine = cls()
+        seen_skill_ids: set[str] = set()
         for value in state.get("skills", ()):
             row = SkillRecord.from_state(value)
-            engine._skills[row.skill_id] = row
+            if row.skill_id in seen_skill_ids:
+                raise ValueError("duplicate serialized skill id")
+            seen_skill_ids.add(row.skill_id)
+
+            evidence_ids = [evidence.evidence_id for evidence in row.evidence]
+            if len(set(evidence_ids)) != len(evidence_ids):
+                raise ValueError("duplicate serialized skill evidence id")
+
+            canonical = engine.propose(
+                owner_agent_id=row.owner_agent_id,
+                region=row.region,
+                name=row.name,
+                body=row.body,
+            )
+            if canonical.skill_id != row.skill_id or canonical.content_digest != row.content_digest:
+                raise ValueError("skill restore content digest or skill id is not canonical")
+
+            for evidence in row.evidence:
+                engine.verify(row.skill_id, evidence)
+            if row.scope is not SkillScope.CANDIDATE:
+                engine.promote(row.skill_id, row.scope)
+            if row.quarantined:
+                engine.quarantine(row.skill_id, reason=row.quarantine_reason or "")
+            elif row.quarantine_reason is not None:
+                raise ValueError("skill quarantine reason requires quarantined state")
+
+            if engine.get(row.skill_id) != row:
+                raise ValueError("skill restore is not canonical")
         return engine
 
 

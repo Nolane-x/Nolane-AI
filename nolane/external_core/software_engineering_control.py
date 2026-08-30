@@ -19,6 +19,14 @@ from nolane.external_core.software_engineering import (
     SoftwareEngineeringClosureEngine,
 )
 from nolane.external_core.software_engineering_claims import AnchoredEngineeringClaimBindingLedger
+from nolane.external_core.software_engineering_effects import (
+    EngineeringApplicationCommit,
+    EngineeringApplicationIntent,
+    EngineeringEffectLedger,
+    EngineeringRollbackCompletion,
+    EngineeringRollbackIntent,
+    EngineeringRollbackVerificationReceipt,
+)
 from nolane.external_core.software_engineering_gate import HistoricalAuthorizationEngineeringGate
 from nolane.external_core.software_engineering_mutation import EvidenceBoundMutationAuthorityEngine
 from nolane.external_core.software_engineering_policy import (
@@ -38,7 +46,7 @@ from nolane.external_core.software_engineering_validity import (
 
 
 COMPONENT_ID = "external.software_engineering.control"
-COMPONENT_VERSION = "0.4.0"
+COMPONENT_VERSION = "0.5.0"
 CANONICAL_WRITE_AUTHORITY = False
 
 
@@ -161,7 +169,8 @@ class SoftwareEngineeringControlPlane:
 
     The control plane composes canonical F authorities with content-addressed
     evidence, reversible patch transactions, policy-derived verification,
-    explicit pre-apply mutation authority, canonical upstream receipt integrity,
+    explicit pre-apply mutation authority, idempotent external-effect intents,
+    independently verified rollback, canonical upstream receipt integrity,
     cross-surface closure and post-closure live validity. It never promotes
     beyond the candidate boundary and is not a canonical component write owner.
     """
@@ -178,6 +187,7 @@ class SoftwareEngineeringControlPlane:
         policy: EngineeringVerificationPolicy | None = None,
         gate: GovernedEngineeringGate | None = None,
         mutation_authority: EvidenceBoundMutationAuthorityEngine | None = None,
+        effects: EngineeringEffectLedger | None = None,
         validity: EngineeringValidityEngine | None = None,
         works: Mapping[str, EngineeringWorkRecord] | None = None,
     ) -> None:
@@ -217,6 +227,14 @@ class SoftwareEngineeringControlPlane:
                 evidence=self.evidence,
             )
         )
+        self.effects = (
+            effects
+            if effects is not None
+            else EngineeringEffectLedger(
+                transactions=self.transactions,
+                mutation_authority=self.mutation_authority,
+            )
+        )
         self.validity = (
             validity
             if validity is not None
@@ -242,6 +260,18 @@ class SoftwareEngineeringControlPlane:
             return self._works[str(work_id)]
         except KeyError as exc:
             raise KeyError(f"unknown engineering work: {work_id}") from exc
+
+    def _assert_work_patch(self, work: EngineeringWorkRecord, patch: Any, *, operation: str) -> None:
+        if not hasattr(patch, "to_state"):
+            raise TypeError(f"{operation} requires canonical patch state")
+        if (
+            str(getattr(patch, "patch_id", "")) != work.patch_ref
+            or canonical_digest(patch.to_state()) != work.patch_digest
+        ):
+            raise ValueError("engineering work patch lineage mismatch")
+        binding = self.claim_bindings.get(work.claim_binding_id)
+        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
+            raise ValueError("engineering work claim binding lineage mismatch")
 
     def begin_patch(
         self,
@@ -371,17 +401,35 @@ class SoftwareEngineeringControlPlane:
         patch: Any,
     ) -> EngineeringMutationAuthorityReceipt:
         work = self.work(work_id)
-        if not hasattr(patch, "to_state"):
-            raise TypeError("mutation authority requires canonical patch state")
-        if (
-            str(getattr(patch, "patch_id", "")) != work.patch_ref
-            or canonical_digest(patch.to_state()) != work.patch_digest
-        ):
-            raise ValueError("engineering work patch lineage mismatch")
-        binding = self.claim_bindings.get(work.claim_binding_id)
-        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
-            raise ValueError("engineering work claim binding lineage mismatch")
+        self._assert_work_patch(work, patch, operation="mutation authority")
         return self.mutation_authority.assess(work.transaction_id, patch=patch)
+
+    def prepare_application(
+        self,
+        *,
+        work_id: str,
+        patch: Any,
+        mutation_authority_receipt_id: str,
+        application_ref: str,
+    ) -> EngineeringApplicationIntent:
+        work = self.work(work_id)
+        self._assert_work_patch(work, patch, operation="application preparation")
+        return self.effects.prepare_application(
+            transaction_id=work.transaction_id,
+            mutation_authority_receipt_id=mutation_authority_receipt_id,
+            application_ref=application_ref,
+        )
+
+    def commit_application(
+        self,
+        intent_id: str,
+        *,
+        executor_receipt_ref: str,
+    ) -> EngineeringApplicationCommit:
+        return self.effects.commit_application(
+            intent_id,
+            executor_receipt_ref=executor_receipt_ref,
+        )
 
     def mark_applied(
         self,
@@ -390,26 +438,70 @@ class SoftwareEngineeringControlPlane:
         application_ref: str,
         mutation_authority_receipt_id: str | None = None,
     ) -> EngineeringPatchTransaction:
+        """Backward-compatible adapter through the v0.5 effect protocol.
+
+        Legacy callers historically supplied only one application reference.
+        For compatibility that reference is treated as both the executor's
+        stable idempotency reference and its commit receipt. New integrations
+        should use prepare_application() and commit_application() explicitly.
+        """
         if mutation_authority_receipt_id is None:
             raise PermissionError("patch application requires mutation authority receipt")
-        try:
-            receipt = self.mutation_authority.get(mutation_authority_receipt_id)
-        except KeyError as exc:
-            raise PermissionError("patch application requires known mutation authority receipt") from exc
-        tx = self.transactions.get(transaction_id)
-        if (
-            not receipt.authorized
-            or receipt.transaction_id != tx.transaction_id
-            or receipt.patch_ref != tx.patch_ref
-            or receipt.patch_digest != tx.patch_digest
-        ):
-            raise PermissionError("patch application denied by mutation authority receipt lineage")
-        reasons = self.mutation_authority.preapply_reasons(transaction_id)
-        if reasons:
-            raise PermissionError(
-                "patch application denied by mutation authority: " + ", ".join(reasons)
-            )
-        return self.transactions.mark_applied(transaction_id, application_ref=application_ref)
+        intent = self.effects.prepare_application(
+            transaction_id=transaction_id,
+            mutation_authority_receipt_id=mutation_authority_receipt_id,
+            application_ref=application_ref,
+        )
+        self.effects.commit_application(
+            intent.intent_id,
+            executor_receipt_ref=application_ref,
+        )
+        return self.transactions.get(transaction_id)
+
+    def prepare_rollback(
+        self,
+        *,
+        transaction_id: str,
+        rollback_operation_ref: str,
+        reason: str,
+        target_state_digest: str,
+    ) -> EngineeringRollbackIntent:
+        return self.effects.prepare_rollback(
+            transaction_id=transaction_id,
+            rollback_operation_ref=rollback_operation_ref,
+            reason=reason,
+            target_state_digest=target_state_digest,
+        )
+
+    def verify_rollback(
+        self,
+        intent_id: str,
+        *,
+        verifier_agent_id: str,
+        verifier_region: str,
+        restored_state_digest: str,
+        evidence_refs: tuple[str, ...],
+        passed: bool,
+    ) -> EngineeringRollbackVerificationReceipt:
+        return self.effects.verify_rollback(
+            intent_id,
+            verifier_agent_id=verifier_agent_id,
+            verifier_region=verifier_region,
+            restored_state_digest=restored_state_digest,
+            evidence_refs=evidence_refs,
+            passed=passed,
+        )
+
+    def complete_rollback(
+        self,
+        intent_id: str,
+        *,
+        verification_receipt_id: str,
+    ) -> EngineeringRollbackCompletion:
+        return self.effects.complete_rollback(
+            intent_id,
+            verification_receipt_id=verification_receipt_id,
+        )
 
     def observe_outcome(
         self,
@@ -417,6 +509,8 @@ class SoftwareEngineeringControlPlane:
         *,
         evidence_refs: tuple[str, ...],
     ) -> EngineeringPatchTransaction:
+        if self.effects.application_commit_for_transaction(transaction_id) is None:
+            raise PermissionError("outcome observation requires committed application effect")
         return self.transactions.observe_outcome(transaction_id, evidence_refs=evidence_refs)
 
     def verify_postconditions(
@@ -425,6 +519,8 @@ class SoftwareEngineeringControlPlane:
         *,
         attestation_ids: tuple[str, ...],
     ) -> EngineeringPatchTransaction:
+        if self.effects.application_commit_for_transaction(transaction_id) is None:
+            raise PermissionError("postcondition verification requires committed application effect")
         return self.transactions.verify_postconditions(
             transaction_id,
             attestation_ids=attestation_ids,
@@ -442,17 +538,12 @@ class SoftwareEngineeringControlPlane:
         ui_readiness: Any | None = None,
     ) -> EngineeringGateReceipt:
         work = self.work(work_id)
-        if not hasattr(patch, "to_state"):
-            raise TypeError("candidate assessment requires canonical patch state")
-        patch_digest = canonical_digest(patch.to_state())
-        if str(getattr(patch, "patch_id", "")) != work.patch_ref or patch_digest != work.patch_digest:
-            raise ValueError("engineering work patch lineage mismatch")
+        self._assert_work_patch(work, patch, operation="candidate assessment")
+        if self.effects.application_commit_for_transaction(work.transaction_id) is None:
+            raise PermissionError("candidate assessment requires committed application effect")
         manifest = self.manifests.get(work.manifest_id)
         if manifest.digest != work.manifest_digest:
             raise ValueError("engineering work manifest lineage mismatch")
-        binding = self.claim_bindings.get(work.claim_binding_id)
-        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
-            raise ValueError("engineering work claim binding lineage mismatch")
         return self.gate.assess(
             manifest=manifest,
             patch=patch,
@@ -493,6 +584,7 @@ class SoftwareEngineeringControlPlane:
             "closure": self.closure.to_state(),
             "gate": self.gate.to_state(),
             "mutation_authority": self.mutation_authority.to_state(),
+            "effects": self.effects.to_state(),
             "validity": self.validity.to_state(),
         }
 
@@ -549,6 +641,11 @@ class SoftwareEngineeringControlPlane:
             evidence=evidence,
             state=state["mutation_authority"],
         )
+        effects = EngineeringEffectLedger.from_state(
+            transactions=transactions,
+            mutation_authority=mutation_authority,
+            state=state["effects"],
+        )
         validity = EngineeringValidityEngine.from_state(
             evidence=evidence,
             transactions=transactions,
@@ -594,6 +691,7 @@ class SoftwareEngineeringControlPlane:
             policy=policy,
             gate=gate,
             mutation_authority=mutation_authority,
+            effects=effects,
             validity=validity,
             works=works,
         )
