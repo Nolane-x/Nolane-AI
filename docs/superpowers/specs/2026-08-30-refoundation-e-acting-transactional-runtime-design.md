@@ -303,7 +303,7 @@ Every lifecycle event is canonicalized into an `ExecutionEvent` containing:
 - payload digest;
 - event digest and receipt id.
 
-For each action, receipts form a hash chain. `from_state()` validates event digests, ids, sequence, previous-digest linkage, ownership, phase/head agreement, and rejects orphan events.
+For each action, receipts form a hash chain. `from_state()` validates event digests, ids, sequence, previous-digest linkage, ownership, phase/head agreement, and rejects orphan events. Persisted `ActionRecord` snapshots are independently content-addressed and then cross-checked against the immutable lifecycle events: the proposed contract, authorization, pre/postcondition evidence, execution counters, outcome, verifier state, and terminal references cannot be rebound by recomputing only the local record digest.
 
 This is tamper-evident rather than cryptographically signed. Signature/trust-root integration is a separate authority concern and must not be invented inside E.
 

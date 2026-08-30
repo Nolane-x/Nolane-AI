@@ -24,7 +24,7 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 |---|---|---:|---|
 | Invokable Cores | `nolane/external_core/invokable.py` | `0.0.2` | versioned core execution profile: schemas, capabilities, effects, permissions, failure/verification hooks, idempotency, retry, compensation |
 | Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.3` | isolated Git worktree + reversible local checkpoints + full-payload digest-proven restore, including ignored files and empty directories |
-| Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.0` | lifecycle, leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts |
+| Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.1` | lifecycle, leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts |
 | Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.1` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor, with monotonic elapsed-time lease enforcement |
 | Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.3` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger and conservatively classifies unconfined process tools |
 
@@ -58,7 +58,7 @@ A concrete tool returning success is not enough to commit. `OrganizationExecutio
 6. Local rollback is valid only when workspace restore reproduces the checkpoint digest.
 7. External/irreversible failure is degraded unless domain-specific compensation is proven.
 8. A committed idempotency key never re-invokes the side effect.
-9. Lifecycle receipts are append-only and hash-chained.
+9. Lifecycle receipts are append-only and hash-chained; persisted `ActionRecord` state is content-addressed and must project exactly from those lifecycle events.
 10. E never performs candidate selection or strategic authorization.
 11. Canonical execution control may infer only the minimum compatibility mapping needed to classify an already-selected tool action as read/local/external execution; it does not perform candidate or strategic reasoning.
 12. Transactional ledger state is part of canonical execution-control persistence and is restored across runtime restart.
