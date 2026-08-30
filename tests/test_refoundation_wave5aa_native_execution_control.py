@@ -203,8 +203,8 @@ def test_wave5aa_authority_version_facade_inventory_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.execution"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.execution.control")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.execution.control")) == "0.0.2"
     assert all(
         binding.component_id != "external.execution.control"
         for binding in build_active_facade_bindings()

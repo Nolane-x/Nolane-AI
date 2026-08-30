@@ -5,6 +5,8 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+import pytest
+
 from nolane.external_core.acting_protocol import (
     ActionPhase,
     ActingProtocolLedger,
@@ -71,7 +73,14 @@ class _MutatingExecutor:
         return self._receipts[receipt_id]
 
 
-def _invoke(kernel: TransactionalExternalCoreExecutor, workspace: RepositoryWorkspace, *, now_ms: int = 100):
+def _invoke(
+    kernel: TransactionalExternalCoreExecutor,
+    workspace: RepositoryWorkspace,
+    *,
+    now_ms: int = 100,
+    verifier_level: VerifierLevel = VerifierLevel.V2,
+    postcondition_evidence_refs: tuple[str, ...] = ("evidence:workspace-observed", "evidence:receipt-persisted"),
+):
     return kernel.invoke(
         agent_id="nolane.coder",
         task_id="task-1",
@@ -85,8 +94,8 @@ def _invoke(kernel: TransactionalExternalCoreExecutor, workspace: RepositoryWork
         preconditions=("task-lease-valid", "mutation-scope-covered"),
         precondition_evidence_refs=("evidence:task-lease", "evidence:claim"),
         postconditions=("workspace-observed", "receipt-persisted"),
-        postcondition_evidence_refs=("evidence:workspace-observed", "evidence:receipt-persisted"),
-        verifier_level=VerifierLevel.V2,
+        postcondition_evidence_refs=postcondition_evidence_refs,
+        verifier_level=verifier_level,
         idempotency_key="task-1:write-readme:v1",
         recovery_plan="restore isolated workspace checkpoint",
         now_ms=now_ms,
@@ -139,6 +148,33 @@ def test_committed_idempotency_replay_does_not_execute_side_effect_twice(tmp_pat
         assert second.replayed is True
         assert raw.calls == 1
         assert workspace.read_text("README.md") == "changed\n"
+    finally:
+        workspace.close()
+
+
+def test_insufficient_verifier_is_rejected_before_any_effect(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    protocol = ActingProtocolLedger()
+    raw = _MutatingExecutor(success=True)
+    kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)
+    try:
+        with pytest.raises(PermissionError, match="R2 postcondition verification requires V2"):
+            _invoke(kernel, workspace, verifier_level=VerifierLevel.V1)
+        assert raw.calls == 0
+        assert workspace.read_text("README.md") == "base\n"
+    finally:
+        workspace.close()
+
+
+def test_core_receipt_evidence_satisfies_declared_postcondition_evidence(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    protocol = ActingProtocolLedger()
+    raw = _MutatingExecutor(success=True)
+    kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)
+    try:
+        result = _invoke(kernel, workspace, postcondition_evidence_refs=())
+        assert result.record.phase is ActionPhase.COMMITTED
+        assert "evidence-1" in result.record.postcondition_evidence_refs
     finally:
         workspace.close()
 

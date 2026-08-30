@@ -188,6 +188,12 @@ class TransactionalExternalCoreExecutor:
     ) -> ActingInvocationResult:
         effect = EffectClass(effect_class)
         risk = ExecutionRisk(risk_class)
+        resolved_verifier_level = VerifierLevel.coerce(verifier_level)
+        minimum_verifier_level = self.protocol.minimum_verifier_level(risk)
+        if resolved_verifier_level < minimum_verifier_level:
+            raise PermissionError(
+                f'{risk.value} postcondition verification requires {minimum_verifier_level.name}'
+            )
         key = str(idempotency_key).strip()
         if not key:
             raise ValueError("transactional invocation requires an idempotency key")
@@ -262,10 +268,16 @@ class TransactionalExternalCoreExecutor:
                     replayed=False,
                 )
 
+            postcondition_refs = tuple(
+                dict.fromkeys(str(x).strip() for x in postcondition_evidence_refs if str(x).strip())
+            )
+            receipt_evidence_ref = str(receipt.evidence_artifact_id or receipt.receipt_id).strip()
+            if receipt_evidence_ref and receipt_evidence_ref not in postcondition_refs:
+                postcondition_refs = postcondition_refs + (receipt_evidence_ref,)
             self.protocol.verify_postconditions(
                 action_id,
-                evidence_refs=tuple(str(x) for x in postcondition_evidence_refs),
-                verifier_level=verifier_level,
+                evidence_refs=postcondition_refs,
+                verifier_level=resolved_verifier_level,
                 now_ms=int(now_ms),
             )
             row = self.protocol.commit(

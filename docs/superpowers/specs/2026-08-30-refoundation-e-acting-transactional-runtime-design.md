@@ -327,7 +327,7 @@ legacy execution.py
   neural decision + acting
             |
             v
-future adapter
+canonical compatibility adapter
   decision receipt -> authorized execution intent
             |
             v
@@ -377,15 +377,16 @@ The dedicated Refoundation E workflow runs on Python 3.11 and 3.13 and performs:
 
 The implementation was developed test-first: the workflow and failing contracts were committed before the new protocol/runtime modules.
 
-## 18. Next integration seam
+## 18. Canonical integration seam — implemented
 
-After other domain upgrades settle, the safe integration task is narrowly defined:
+The compatibility integration is now closed on this branch:
 
-1. introduce an adapter from the upstream authorized decision artifact into `ExecutionContract`/transactional invocation parameters;
-2. route existing concrete `ExternalCoreExecutor` calls through `TransactionalExternalCoreExecutor`;
-3. preserve old execution/session state import as a compatibility migration;
-4. keep reasoning/planning selection outside E;
-5. add core-specific compensation adapters for external effects;
-6. add durable execution lease persistence when the system gains a shared runtime authority.
+1. the already-issued `AgentDecisionReceipt` is bound to the E execution contract as upstream authorization evidence;
+2. canonical TOOL execution routes through `TransactionalExternalCoreExecutor`, never directly through `ExternalCoreExecutor.invoke`;
+3. legacy execution/session state remains loadable while transactional ledger state is persisted and restored alongside it;
+4. task/identity authority state is bound into precondition evidence and existing identity permissions/bindings supply the capability grants;
+5. risk classes are paired with their minimum verifier levels before any effect can start;
+6. successful concrete-core receipts contribute their persisted evidence artifact to postcondition verification;
+7. reasoning/planning selection remains outside E.
 
-That integration can occur without redesigning E again because the transactional boundary is now explicit.
+Core-specific compensation beyond the generic degraded/recovery contract remains an owner-core extension point rather than a reason to bypass E.

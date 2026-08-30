@@ -558,14 +558,17 @@ class OrganizationExecutionControlPlane:
             if action.tool_action.mutation_paths:
                 effect_class = EffectClass.LOCAL_MUTATION
                 risk_class = ExecutionRisk.R2
+                verifier_level = VerifierLevel.V2
                 recovery_plan = 'restore isolated workspace checkpoint'
             elif is_external:
                 effect_class = EffectClass.EXTERNAL_MUTATION
                 risk_class = ExecutionRisk.R3
+                verifier_level = VerifierLevel.V3
                 recovery_plan = 'reconcile externally observed effect from core receipt evidence'
             else:
                 effect_class = EffectClass.READ
                 risk_class = ExecutionRisk.R1
+                verifier_level = VerifierLevel.V1
                 recovery_plan = ''
 
             acting = self.acting_executor.invoke(
@@ -575,14 +578,17 @@ class OrganizationExecutionControlPlane:
                 action=action.tool_action,
                 risk_class=risk_class,
                 effect_class=effect_class,
-                required_capabilities=(),
-                capability_grants=(),
+                required_capabilities=(action.tool_action.tool_id,),
+                capability_grants=tuple(dict.fromkeys(identity.tool_permissions + identity.external_core_bindings)),
                 authorization_ref=f'decision:{decision.receipt_id}',
-                preconditions=(),
-                precondition_evidence_refs=(),
-                postconditions=(),
+                preconditions=('task-lease-valid', 'tool-authorization-present'),
+                precondition_evidence_refs=(
+                    'task-state:' + canonical_digest(task.to_state()),
+                    'identity-state:' + canonical_digest(identity.to_state()),
+                ),
+                postconditions=('core-outcome-evidenced',),
                 postcondition_evidence_refs=(),
-                verifier_level=VerifierLevel.V1,
+                verifier_level=verifier_level,
                 idempotency_key=f'{session.session_id}:{decision.receipt_id}',
                 recovery_plan=recovery_plan,
                 now_ms=int(time.time() * 1000),

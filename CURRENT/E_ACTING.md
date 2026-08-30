@@ -23,7 +23,7 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 | E area | Canonical implementation | Version | Responsibility |
 |---|---|---:|---|
 | Invokable Cores | `nolane/external_core/invokable.py` | `0.0.2` | versioned core execution profile: schemas, capabilities, effects, permissions, failure/verification hooks, idempotency, retry, compensation |
-| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.1.0` | isolated Git worktree + reversible local checkpoints + digest-proven restore |
+| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.2` | isolated Git worktree + reversible local checkpoints + digest-proven restore |
 | Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.0` | lifecycle, leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts |
 | Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.0` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor |
 | Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.2` | compatibility-facing organization controller whose effectful tool path is now forced through `TransactionalExternalCoreExecutor`; persists and restores the transactional ledger |
