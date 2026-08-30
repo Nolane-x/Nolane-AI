@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.1"
+COMPONENT_VERSION = "0.1.2"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -389,8 +389,8 @@ class ActionRecord:
             failure_reason=str(state.get("failure_reason", "")),
             event_receipt_ids=tuple(str(x) for x in state.get("event_receipt_ids", ())),
         )
-        supplied_digest = str(state.get("digest", ""))
-        if supplied_digest != row.digest:
+        supplied_digest = state.get("digest")
+        if supplied_digest is not None and str(supplied_digest) != row.digest:
             raise ValueError("action record digest mismatch")
         return row
 
@@ -561,7 +561,7 @@ class ActingProtocolLedger:
             row,
             phase=ActionPhase.LEASED,
             event_type="lease_acquired",
-            evidence_refs=(auth,),
+            evidence_refs=(auth, "lease:" + lease.lease_id),
             payload={"lease": lease.to_state(), "capability_grants": sorted(grants)},
             lease=lease,
             authorization_ref=auth,
@@ -617,7 +617,7 @@ class ActingProtocolLedger:
             row,
             phase=row.phase,
             event_type="lease_renewed",
-            evidence_refs=(ref,),
+            evidence_refs=(ref, "lease:" + lease.lease_id, "previous-lease:" + current.lease_id),
             payload={"lease": lease.to_state(), "previous_lease_id": current.lease_id},
             lease=lease,
         )
@@ -637,7 +637,7 @@ class ActingProtocolLedger:
             row,
             phase=row.phase,
             event_type="lease_revoked",
-            evidence_refs=(ref,),
+            evidence_refs=(ref, "lease:" + lease.lease_id),
             payload={"reason": reason_text, "lease_id": lease.lease_id},
             lease=lease,
         )
@@ -886,14 +886,94 @@ class ActingProtocolLedger:
             raise ValueError("action record contract disagrees with proposed event")
 
         lease_acquired = self._single_event(history, "lease_acquired")
+        renewal_events = tuple(event for event in history if event.event_type == "lease_renewed")
+        revocation_events = tuple(event for event in history if event.event_type == "lease_revoked")
         if lease_acquired is None:
             if row.authorization_ref or row.lease is not None:
                 raise ValueError("action record lease/authorization disagrees with lifecycle events")
         else:
-            if lease_acquired.evidence_refs != (row.authorization_ref,):
-                raise ValueError("action record authorization disagrees with lease event")
             if row.lease is None:
                 raise ValueError("action record lease missing despite lease event")
+            acquired_refs = lease_acquired.evidence_refs
+            if not acquired_refs or acquired_refs[0] != row.authorization_ref:
+                raise ValueError("action record authorization disagrees with lease event")
+            if len(acquired_refs) not in {1, 2}:
+                raise ValueError("action record lease acquisition evidence is non-canonical")
+
+            lifecycle_lease_id: str | None = None
+            if len(acquired_refs) == 2:
+                if not acquired_refs[1].startswith("lease:"):
+                    raise ValueError("action record lease acquisition evidence is non-canonical")
+                lifecycle_lease_id = acquired_refs[1][len("lease:"):]
+
+            if row.lease.generation != 1 + len(renewal_events):
+                raise ValueError("action record lease generation disagrees with lifecycle events")
+
+            last_modern_previous_id: str | None = None
+            for renewal in renewal_events:
+                refs = renewal.evidence_refs
+                if len(refs) == 1:  # schema-1 legacy renewal evidence
+                    lifecycle_lease_id = None
+                    last_modern_previous_id = None
+                    continue
+                if (
+                    len(refs) != 3
+                    or not refs[1].startswith("lease:")
+                    or not refs[2].startswith("previous-lease:")
+                ):
+                    raise ValueError("action record lease renewal evidence is non-canonical")
+                renewed_id = refs[1][len("lease:"):]
+                previous_id = refs[2][len("previous-lease:"):]
+                if lifecycle_lease_id is not None and previous_id != lifecycle_lease_id:
+                    raise ValueError("action record lease renewal chain disagrees with lifecycle events")
+                lifecycle_lease_id = renewed_id
+                last_modern_previous_id = previous_id
+
+            for revocation in revocation_events:
+                refs = revocation.evidence_refs
+                if len(refs) == 1:  # schema-1 legacy revocation evidence
+                    lifecycle_lease_id = None
+                    continue
+                if len(refs) != 2 or not refs[1].startswith("lease:"):
+                    raise ValueError("action record lease revocation evidence is non-canonical")
+                revoked_id = refs[1][len("lease:"):]
+                if lifecycle_lease_id is not None and revoked_id != lifecycle_lease_id:
+                    raise ValueError("action record lease revocation disagrees with lifecycle events")
+                lifecycle_lease_id = revoked_id
+
+            if lifecycle_lease_id is not None and lifecycle_lease_id != row.lease.lease_id:
+                raise ValueError("action record lease disagrees with lifecycle event evidence")
+            if revocation_events and not row.lease.revoked:
+                raise ValueError("action record lease revocation state disagrees with lifecycle events")
+            if not revocation_events and row.lease.revoked:
+                raise ValueError("action record lease is revoked without lifecycle evidence")
+
+            if row.lease.generation == 1:
+                expected_lease_digest = canonical_digest(
+                    {
+                        "action_id": row.action_id,
+                        "owner_id": row.lease.owner_id,
+                        "generation": row.lease.generation,
+                        "issued_at_ms": row.lease.issued_at_ms,
+                        "expires_at_ms": row.lease.expires_at_ms,
+                        "authorization_ref": row.authorization_ref,
+                    }
+                )
+                if row.lease.lease_id != "execution-lease-" + expected_lease_digest[:24]:
+                    raise ValueError("action record lease digest is invalid")
+            elif last_modern_previous_id is not None:
+                expected_lease_digest = canonical_digest(
+                    {
+                        "action_id": row.action_id,
+                        "owner_id": row.lease.owner_id,
+                        "generation": row.lease.generation,
+                        "issued_at_ms": row.lease.issued_at_ms,
+                        "expires_at_ms": row.lease.expires_at_ms,
+                        "previous_lease_id": last_modern_previous_id,
+                    }
+                )
+                if row.lease.lease_id != "execution-lease-" + expected_lease_digest[:24]:
+                    raise ValueError("action record renewed lease digest is invalid")
 
         preconditions = self._single_event(history, "preconditions_verified")
         expected_precondition_refs = () if preconditions is None else preconditions.evidence_refs
