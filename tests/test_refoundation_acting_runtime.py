@@ -259,7 +259,10 @@ def test_canonical_adapter_uses_risk_appropriate_verifier_levels() -> None:
 
 def test_external_effect_classification_precedes_local_mutation_rollback_hints() -> None:
     source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    external_branch = "\n            if is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION"
+    external_branch = (
+        "\n            if is_external or action.tool_action.tool_id in unconfined_process_tools:"
+        "\n                effect_class = EffectClass.EXTERNAL_MUTATION"
+    )
     local_branch = "\n            elif action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION"
     assert external_branch in source
     assert local_branch in source
