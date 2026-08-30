@@ -337,14 +337,41 @@ def test_a8_negative_current_scope_verification_blocks_closure():
 
 
 def test_a8_v1_snapshot_certificate_remains_global_and_conservatively_stales():
-    knowledge, evidence, verification = _build_high_risk_target()
+    evidence = EvidenceLedger()
+    evidence.record(_evidence(
+        "target-e1", subject_id="claim.target", source_id="runner-a", source_family="family-a",
+        channel=EvidenceChannel.TEST,
+    ))
+    evidence.record(_evidence(
+        "target-e2", subject_id="claim.target", source_id="runner-b", source_family="family-b",
+        channel=EvidenceChannel.REPRODUCTION,
+    ))
+    knowledge = KnowledgeLedger()
+    knowledge.add(KnowledgeClaim.create(
+        claim_id="claim.target", subject="target", relation="is", object="true",
+        risk=KnowledgeRisk.HIGH, evidence_ids=("target-e1", "target-e2"),
+    ))
     snapshot = EpistemicJudge().snapshot(knowledge=knowledge, evidence=evidence)
+    verification = TruthVerificationLedger()
+    verification.record(TruthVerificationReceipt.create(
+        receipt_id="target-v1-global", claim_id="claim.target", verifier_id="runner-a",
+        source_family="family-a", channel=EvidenceChannel.TEST, passed=True,
+        knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest,
+        evidence_ids=("target-e1",),
+    ))
+    verification.record(TruthVerificationReceipt.create(
+        receipt_id="target-v2-global", claim_id="claim.target", verifier_id="runner-b",
+        source_family="family-b", channel=EvidenceChannel.REPRODUCTION, passed=True,
+        knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest,
+        evidence_ids=("target-e2",),
+    ))
     gate = TruthAssuranceGate()
     certificate = gate.close_snapshot(
         claim_id="claim.target", knowledge=knowledge, evidence=evidence,
         epistemic=snapshot, verification=verification,
     )
     assert certificate.closed
+    assert not certificate.is_scoped
 
     evidence.record(_evidence(
         "unrelated-e", subject_id="claim.unrelated", source_id="unrelated-source",
