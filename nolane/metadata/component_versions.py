@@ -41,7 +41,7 @@ _COMPONENT_REVISIONS.update(
         "external.memory.fabric": 1,
         "external.memory.lifecycle": 1,
         "external.memory.retrieval": 1,
-        "external.knowledge": 1,
+        "external.knowledge": 2,
         "external.epistemic": 1,
         "external.requirements": 1,
         "external.planning": 1,
