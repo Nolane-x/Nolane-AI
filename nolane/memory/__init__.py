@@ -19,6 +19,10 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "MemoryRetrievalBudget": ("nolane.memory.retrieval", "MemoryRetrievalBudget"),
     "MemoryRetrievalEngine": ("nolane.memory.retrieval", "MemoryRetrievalEngine"),
     "SkillEvolutionEngine": ("nolane.memory.skills", "SkillEvolutionEngine"),
+    "LearningSubstrate": ("nolane.memory.learning_substrate", "LearningSubstrate"),
+    "LearningMemoryMetadata": ("nolane.memory.learning_substrate", "LearningMemoryMetadata"),
+    "MemoryKind": ("nolane.memory.learning_substrate", "MemoryKind"),
+    "EpistemicType": ("nolane.memory.learning_substrate", "EpistemicType"),
 }
 
 __all__ = tuple(_EXPORTS)
