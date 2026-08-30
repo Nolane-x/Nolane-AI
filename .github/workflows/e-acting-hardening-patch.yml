@@ -1,0 +1,157 @@
+name: E Acting Hardening Patch
+
+on:
+  push:
+    branches:
+      - refoundation/e-acting-transactional-runtime-gpt56sol
+    paths:
+      - .github/workflows/e-acting-hardening-patch.yml
+
+permissions:
+  contents: write
+
+jobs:
+  harden:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refoundation/e-acting-transactional-runtime-gpt56sol
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply E Acting hardening
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old[:120]!r}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'nolane/external_core/execution.py',
+              """            if action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION\n                risk_class = ExecutionRisk.R2\n                recovery_plan = 'restore isolated workspace checkpoint'\n            elif is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION\n                risk_class = ExecutionRisk.R3\n                recovery_plan = 'reconcile externally observed effect from core receipt evidence'\n            else:\n                effect_class = EffectClass.READ\n                risk_class = ExecutionRisk.R1\n                recovery_plan = ''\n""",
+              """            if action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION\n                risk_class = ExecutionRisk.R2\n                verifier_level = VerifierLevel.V2\n                recovery_plan = 'restore isolated workspace checkpoint'\n            elif is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION\n                risk_class = ExecutionRisk.R3\n                verifier_level = VerifierLevel.V3\n                recovery_plan = 'reconcile externally observed effect from core receipt evidence'\n            else:\n                effect_class = EffectClass.READ\n                risk_class = ExecutionRisk.R1\n                verifier_level = VerifierLevel.V1\n                recovery_plan = ''\n""",
+          )
+          replace_once(
+              'nolane/external_core/execution.py',
+              """                required_capabilities=(),\n                capability_grants=(),\n                authorization_ref=f'decision:{decision.receipt_id}',\n                preconditions=(),\n                precondition_evidence_refs=(),\n                postconditions=(),\n                postcondition_evidence_refs=(),\n                verifier_level=VerifierLevel.V1,\n""",
+              """                required_capabilities=(action.tool_action.tool_id,),\n                capability_grants=tuple(dict.fromkeys(identity.tool_permissions + identity.external_core_bindings)),\n                authorization_ref=f'decision:{decision.receipt_id}',\n                preconditions=('task-lease-valid', 'tool-authorization-present'),\n                precondition_evidence_refs=(\n                    'task-state:' + canonical_digest(task.to_state()),\n                    'identity-state:' + canonical_digest(identity.to_state()),\n                ),\n                postconditions=('core-outcome-evidenced',),\n                postcondition_evidence_refs=(),\n                verifier_level=verifier_level,\n""",
+          )
+
+          replace_once(
+              'nolane/external_core/acting_runtime.py',
+              """        effect = EffectClass(effect_class)\n        risk = ExecutionRisk(risk_class)\n        key = str(idempotency_key).strip()\n""",
+              """        effect = EffectClass(effect_class)\n        risk = ExecutionRisk(risk_class)\n        resolved_verifier_level = VerifierLevel.coerce(verifier_level)\n        minimum_verifier_level = self.protocol.minimum_verifier_level(risk)\n        if resolved_verifier_level < minimum_verifier_level:\n            raise PermissionError(\n                f'{risk.value} postcondition verification requires {minimum_verifier_level.name}'\n            )\n        key = str(idempotency_key).strip()\n""",
+          )
+          replace_once(
+              'nolane/external_core/acting_runtime.py',
+              """            self.protocol.verify_postconditions(\n                action_id,\n                evidence_refs=tuple(str(x) for x in postcondition_evidence_refs),\n                verifier_level=verifier_level,\n                now_ms=int(now_ms),\n            )\n""",
+              """            postcondition_refs = tuple(\n                dict.fromkeys(str(x).strip() for x in postcondition_evidence_refs if str(x).strip())\n            )\n            receipt_evidence_ref = str(receipt.evidence_artifact_id or receipt.receipt_id).strip()\n            if receipt_evidence_ref and receipt_evidence_ref not in postcondition_refs:\n                postcondition_refs = postcondition_refs + (receipt_evidence_ref,)\n            self.protocol.verify_postconditions(\n                action_id,\n                evidence_refs=postcondition_refs,\n                verifier_level=resolved_verifier_level,\n                now_ms=int(now_ms),\n            )\n""",
+          )
+
+          replace_once(
+              'nolane/external_core/execution_workspace.py',
+              'COMPONENT_VERSION = "0.1.0"',
+              'COMPONENT_VERSION = "0.0.2"',
+          )
+
+          metadata = Path('nolane/metadata/component_versions.py')
+          text = metadata.read_text(encoding='utf-8')
+          for component in ('external.invokable_cores', 'external.execution.workspace', 'external.execution.control'):
+              old = f'        "{component}": 1,'
+              new = f'        "{component}": 2,'
+              if text.count(old) != 1:
+                  raise SystemExit(f'metadata: expected one revision entry for {component}')
+              text = text.replace(old, new, 1)
+          metadata.write_text(text, encoding='utf-8')
+
+          for path in (
+              'tests/test_refoundation_wave5r_native_invokable_cores.py',
+              'tests/test_refoundation_wave5aa_native_execution_control.py',
+          ):
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              changed = text.replace('row.component_version == "0.0.1"', 'row.component_version == "0.0.2"')\
+                            .replace('component_version("external.invokable_cores")) == "0.0.1"', 'component_version("external.invokable_cores")) == "0.0.2"')\
+                            .replace('component_version("external.execution.control")) == "0.0.1"', 'component_version("external.execution.control")) == "0.0.2"')
+              if changed == text:
+                  raise SystemExit(f'{path}: no version authority assertion updated')
+              target.write_text(changed, encoding='utf-8')
+
+          path = Path('tests/test_refoundation_wave5s_native_execution_workspace.py')
+          text = path.read_text(encoding='utf-8')
+          replacements = {
+              'assert canonical.COMPONENT_VERSION == "0.1.0"': 'assert canonical.COMPONENT_VERSION == "0.0.2"',
+              'assert row.component_version == "0.0.1"': 'assert row.component_version == "0.0.2"',
+              'assert str(component_version("external.execution.workspace")) == "0.0.1"': 'assert str(component_version("external.execution.workspace")) == "0.0.2"',
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'wave5s: expected one {old!r}')
+              text = text.replace(old, new, 1)
+          path.write_text(text, encoding='utf-8')
+
+          path = Path('tests/test_refoundation_acting_runtime.py')
+          text = path.read_text(encoding='utf-8')
+          if 'import pytest\n' not in text:
+              text = text.replace('from pathlib import Path\n', 'from pathlib import Path\n\nimport pytest\n', 1)
+          old_sig = 'def _invoke(kernel: TransactionalExternalCoreExecutor, workspace: RepositoryWorkspace, *, now_ms: int = 100):'
+          new_sig = 'def _invoke(\n    kernel: TransactionalExternalCoreExecutor,\n    workspace: RepositoryWorkspace,\n    *,\n    now_ms: int = 100,\n    verifier_level: VerifierLevel = VerifierLevel.V2,\n    postcondition_evidence_refs: tuple[str, ...] = ("evidence:workspace-observed", "evidence:receipt-persisted"),\n):'
+          if text.count(old_sig) != 1:
+              raise SystemExit('acting runtime helper signature not found exactly once')
+          text = text.replace(old_sig, new_sig, 1)
+          text = text.replace(
+              '        postcondition_evidence_refs=("evidence:workspace-observed", "evidence:receipt-persisted"),\n        verifier_level=VerifierLevel.V2,',
+              '        postcondition_evidence_refs=postcondition_evidence_refs,\n        verifier_level=verifier_level,',
+              1,
+          )
+          marker = '\n\ndef test_canonical_organization_control_plane_cannot_bypass_transactional_acting() -> None:\n'
+          extra = '''\n\ndef test_insufficient_verifier_is_rejected_before_any_effect(tmp_path: Path) -> None:\n    workspace = _workspace(tmp_path)\n    protocol = ActingProtocolLedger()\n    raw = _MutatingExecutor(success=True)\n    kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)\n    try:\n        with pytest.raises(PermissionError, match="R2 postcondition verification requires V2"):\n            _invoke(kernel, workspace, verifier_level=VerifierLevel.V1)\n        assert raw.calls == 0\n        assert workspace.read_text("README.md") == "base\\n"\n    finally:\n        workspace.close()\n\n\ndef test_core_receipt_evidence_satisfies_declared_postcondition_evidence(tmp_path: Path) -> None:\n    workspace = _workspace(tmp_path)\n    protocol = ActingProtocolLedger()\n    raw = _MutatingExecutor(success=True)\n    kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)\n    try:\n        result = _invoke(kernel, workspace, postcondition_evidence_refs=())\n        assert result.record.phase is ActionPhase.COMMITTED\n        assert "evidence-1" in result.record.postcondition_evidence_refs\n    finally:\n        workspace.close()\n'''
+          if text.count(marker) != 1:
+              raise SystemExit('acting runtime insertion marker not found exactly once')
+          text = text.replace(marker, extra + marker, 1)
+          path.write_text(text, encoding='utf-8')
+
+          current = Path('CURRENT/E_ACTING.md')
+          text = current.read_text(encoding='utf-8')
+          if text.count('| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.1.0` |') != 1:
+              raise SystemExit('CURRENT/E_ACTING workspace version row mismatch')
+          text = text.replace(
+              '| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.1.0` |',
+              '| Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.2` |',
+              1,
+          )
+          current.write_text(text, encoding='utf-8')
+
+          spec = Path('docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md')
+          text = spec.read_text(encoding='utf-8')
+          text = text.replace('future adapter\n  decision receipt -> authorized execution intent', 'canonical compatibility adapter\n  decision receipt -> authorized execution intent', 1)
+          old = '''## 18. Next integration seam\n\nAfter other domain upgrades settle, the safe integration task is narrowly defined:\n\n1. introduce an adapter from the upstream authorized decision artifact into `ExecutionContract`/transactional invocation parameters;\n2. route existing concrete `ExternalCoreExecutor` calls through `TransactionalExternalCoreExecutor`;\n3. preserve old execution/session state import as a compatibility migration;\n4. keep reasoning/planning selection outside E;\n5. add core-specific compensation adapters for external effects;\n6. add durable execution lease persistence when the system gains a shared runtime authority.\n\nThat integration can occur without redesigning E again because the transactional boundary is now explicit.\n'''
+          new = '''## 18. Canonical integration seam — implemented\n\nThe compatibility integration is now closed on this branch:\n\n1. the already-issued `AgentDecisionReceipt` is bound to the E execution contract as upstream authorization evidence;\n2. canonical TOOL execution routes through `TransactionalExternalCoreExecutor`, never directly through `ExternalCoreExecutor.invoke`;\n3. legacy execution/session state remains loadable while transactional ledger state is persisted and restored alongside it;\n4. task/identity authority state is bound into precondition evidence and existing identity permissions/bindings supply the capability grants;\n5. risk classes are paired with their minimum verifier levels before any effect can start;\n6. successful concrete-core receipts contribute their persisted evidence artifact to postcondition verification;\n7. reasoning/planning selection remains outside E.\n\nCore-specific compensation beyond the generic degraded/recovery contract remains an owner-core extension point rather than a reason to bypass E.\n'''
+          if text.count(old) != 1:
+              raise SystemExit('design integration section did not match exactly once')
+          spec.write_text(text.replace(old, new, 1), encoding='utf-8')
+          PY
+      - name: Compile and run E contracts
+        run: |
+          python -m pip install -q pytest
+          python -m py_compile nolane/external_core/*.py nolane/metadata/*.py
+          python -m pytest -q tests/test_refoundation_acting_protocol.py tests/test_refoundation_acting_workspace.py tests/test_refoundation_acting_runtime.py
+      - name: Run full Refoundation regression
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Commit hardening
+        if: success()
+        run: |
+          git config user.name "nolane-e-acting-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add nolane/external_core/execution.py nolane/external_core/acting_runtime.py nolane/external_core/execution_workspace.py nolane/metadata/component_versions.py tests/test_refoundation_acting_runtime.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5aa_native_execution_control.py CURRENT/E_ACTING.md docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md
+          git commit -m "fix(e-acting): harden verifier evidence and version authority [e-acting-hardening]"
+          git push origin HEAD:refoundation/e-acting-transactional-runtime-gpt56sol
