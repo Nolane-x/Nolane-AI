@@ -1,0 +1,71 @@
+name: Refoundation E Acting Transactional Runtime
+
+on:
+  push:
+    branches:
+      - refoundation/e-acting-transactional-runtime-gpt56sol
+  pull_request:
+    paths:
+      - 'nolane/external_core/acting_protocol.py'
+      - 'nolane/external_core/acting_runtime.py'
+      - 'nolane/external_core/execution.py'
+      - 'nolane/external_core/execution_workspace.py'
+      - 'nolane/external_core/invokable.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_refoundation_acting_*.py'
+      - 'tests/test_refoundation_component_versions.py'
+      - 'tests/test_refoundation_wave5r_native_invokable_cores.py'
+      - 'tests/test_refoundation_wave5s_native_execution_workspace.py'
+      - 'tests/test_refoundation_wave5aa_native_execution_control.py'
+      - 'CURRENT/E_ACTING.md'
+      - 'docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md'
+      - 'docs/superpowers/plans/2026-08-30-refoundation-e-acting-transactional-runtime.md'
+      - '.github/workflows/refoundation-e-acting.yml'
+
+concurrency:
+  group: refoundation-e-acting-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  acting-contracts:
+    # Refoundation branches own their dedicated gate and must not be executed
+    # again as historical PR workflow jobs during repository quarantine.
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Refoundation inventory tests intentionally inspect pinned historical
+          # commits. A shallow checkout makes those tests fail for infrastructure
+          # reasons rather than product regressions.
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile canonical E Acting modules
+        run: python -m py_compile nolane/external_core/*.py
+      - name: Run E Acting transactional contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_protocol.py \
+            tests/test_refoundation_acting_record_integrity.py \
+            tests/test_refoundation_acting_workspace.py \
+            tests/test_refoundation_acting_runtime.py \
+            --junitxml=e-acting-contracts-${{ matrix.python-version }}.xml
+      - name: Run Refoundation regression suite
+        run: |
+          python -m pytest -q tests/test_refoundation_*.py \
+            --junitxml=e-acting-regression-${{ matrix.python-version }}.xml
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-acting-junit-${{ matrix.python-version }}
+          path: e-acting-*.xml
+          if-no-files-found: error
