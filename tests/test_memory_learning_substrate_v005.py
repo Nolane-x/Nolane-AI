@@ -149,11 +149,117 @@ def test_skill_persistence_requires_executed_regression_and_causal_ablation_evid
 
     substrate.record_skill_validation(
         skill.skill_id,
-        regression_evidence_ids=("regression-executed-1",),
+        regression_evidence_ids=("regression-executed-1", "regression-executed-2"),
         causal_ablation_evidence_ids=("causal-ablation-1",),
+        regression_evidence_families={
+            "regression-executed-1": "regression-family-a",
+            "regression-executed-2": "regression-family-b",
+        },
+        causal_ablation_evidence_families={"causal-ablation-1": "causal-family-a"},
     )
     promoted = substrate.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     assert promoted.scope is SkillScope.PERSONAL
+
+
+def test_skill_validation_rejects_evidence_family_laundering() -> None:
+    from nolane.memory.learning_substrate import LearningSubstrate
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    skill = substrate.skills.propose(
+        owner_agent_id="memory.chief",
+        region="memory-context-knowledge",
+        name="family-bounded-skill",
+        body="only promote on independent evidence lineages",
+    )
+
+    with pytest.raises(ValueError, match="independent regression evidence families"):
+        substrate.record_skill_validation(
+            skill.skill_id,
+            regression_evidence_ids=("reg-1", "reg-2"),
+            causal_ablation_evidence_ids=("causal-1",),
+            regression_evidence_families={"reg-1": "same-family", "reg-2": "same-family"},
+            causal_ablation_evidence_families={"causal-1": "causal-family"},
+        )
+
+    with pytest.raises(ValueError, match="independent of regression families"):
+        substrate.record_skill_validation(
+            skill.skill_id,
+            regression_evidence_ids=("reg-1", "reg-2"),
+            causal_ablation_evidence_ids=("causal-1",),
+            regression_evidence_families={"reg-1": "family-a", "reg-2": "family-b"},
+            causal_ablation_evidence_families={"causal-1": "family-a"},
+        )
+
+
+def test_memory_lifecycle_transition_matrix_blocks_terminal_resurrection() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    row = substrate.remember(
+        text="version-bound fact",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-initial",),
+    )
+    substrate.decay_memory(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="freshness_window_elapsed",
+        evidence_refs=("evidence-stale",),
+    )
+    substrate.validate_memory(
+        row.memory_id,
+        actor_agent_id="memory.chief",
+        evidence_refs=("evidence-revalidated",),
+        correction_ref="correction-revalidated",
+    )
+    assert substrate.memory.get(row.memory_id).status is MemoryStatus.ACTIVE
+
+    substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="retention_policy",
+        evidence_refs=("evidence-forget",),
+    )
+    with pytest.raises(PermissionError, match="forbidden memory lifecycle transition"):
+        substrate.lifecycle.transition(
+            row.memory_id,
+            actor_agent_id="memory.chief",
+            new_status=MemoryStatus.ACTIVE,
+            reason="attempted-resurrection",
+            evidence_refs=("evidence-resurrection",),
+            correction_ref="correction-resurrection",
+        )
+
+    incumbent = substrate.remember(
+        text="old governed fact",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-old",),
+    )
+    substrate.remember(
+        text="replacement governed fact",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-replacement",),
+        supersedes=incumbent.memory_id,
+    )
+    assert substrate.memory.get(incumbent.memory_id).status is MemoryStatus.SUPERSEDED
+    with pytest.raises(PermissionError, match="forbidden memory lifecycle transition"):
+        substrate.lifecycle.transition(
+            incumbent.memory_id,
+            actor_agent_id="memory.chief",
+            new_status=MemoryStatus.ACTIVE,
+            reason="attempted-unsupersede",
+            evidence_refs=("evidence-unsupersede",),
+            correction_ref="correction-unsupersede",
+        )
 
 
 def test_learning_substrate_state_roundtrip_is_deterministic() -> None:
