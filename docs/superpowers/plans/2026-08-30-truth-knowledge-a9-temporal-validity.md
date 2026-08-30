@@ -1,192 +1,143 @@
 # A9 Temporal Truth — Implementation Plan
 
-**Goal:** extend the accepted A1–A8 family-A Truth baseline with explicit deterministic temporal validity while preserving every legacy authority, API path, state shape, and digest identity.
+**Goal:** add explicit deterministic temporal validity to family-A Truth while preserving the accepted A1–A8 implementation files and identities unchanged wherever possible.
 
-**Base:** exact `main` A8 merge `64d1ed5ad816e731068f0612db90c5b32288a465`.
+**Base:** A8 merge `64d1ed5ad816e731068f0612db90c5b32288a465`.
 
 **Branch:** `refoundation/truth-knowledge-a9-temporal-validity`.
 
-## Constraints
+## Architectural decision after first RED
 
-- Keep exactly five family-A authorities.
-- No implicit wall clock.
-- No changes to family F or PR #245 surfaces.
-- Legacy v1/v2 state must not gain temporal keys.
-- TDD RED proof precedes production code.
-- Final acceptance requires focused Truth + full Refoundation on the exact final head, Python 3.11 and 3.13.
+The first RED head proved that A8 has no temporal interval/context/binding capability. A9 will not retrofit temporal fields into v1/v2 dataclasses. Instead it will use authority-bound sidecar subprotocols:
 
-## Task 1 — RED temporal capability contract
+```text
+shared deterministic time primitives
+        temporal_truth.py
+              │
+     ┌────────┼────────┐
+     ↓        ↓        ↓
+Evidence   Knowledge  ...
+ temporal   temporal
+ sidecar    sidecar
+     │        │
+     └────┬───┘
+          ↓
+ Epistemic temporal scope
+          ↓
+ Verification temporal v3
+          ↓
+ Assurance temporal v3
+```
 
-Add `tests/test_truth_knowledge_hardening_wave9_temporal.py` and prove A8 lacks:
+This makes legacy compatibility structural rather than conditional: A1–A8 record/receipt/certificate classes do not need temporal fields at all.
 
-- canonical `TemporalContext`;
-- temporal `TruthEvidence` validity intervals;
-- temporal `KnowledgeClaim` applicability intervals;
-- `as_of` dependency-scope evaluation;
-- temporal Verification binding;
-- temporal Assurance closure/validation.
+## New modules
 
-Expected RED is capability-specific TypeError/AttributeError/assertion failure, while all A1–A8 tests remain GREEN.
+### `nolane/external_core/temporal_truth.py`
+Pure deterministic primitives only:
 
-## Task 2 — RED compatibility contract
-
-Add `tests/test_truth_knowledge_hardening_wave9_temporal_serialization.py` covering desired v3 state separation and preserving exact legacy shapes.
-
-RED should show temporal v3 is absent, not break v1/v2.
-
-## Task 3 — Canonical temporal helper
-
-Create `nolane/external_core/temporal_truth.py` as a non-authoritative subprotocol helper.
-
-Implement:
-
-- `CanonicalTimestamp` validation or equivalent private validator;
-- immutable `TruthInterval`;
-- immutable content-addressed `TemporalContext`;
-- half-open interval predicate;
-- deterministic `to_state` / `from_state` / digest validation;
+- strict UTC RFC3339-second validation;
+- `TruthInterval` half-open `[valid_from, valid_until)`;
+- `TemporalContext` with explicit `as_of` and content digest;
 - no `COMPONENT_ID`;
-- no clock calls.
+- no wall-clock calls.
 
-Add the helper to the focused Truth workflow compile/path list so its direct edits trigger the gate.
+### `nolane/external_core/evidence_temporal_truth.py`
+`PARENT_COMPONENT_ID = "external.evidence"`.
 
-## Task 4 — Evidence temporal protocol
+- content-addressed `EvidenceTemporalBinding` binds one existing `TruthEvidence.content_digest` to a validity interval;
+- `TemporalEvidenceView` owns only temporal bindings, not evidence history;
+- unbound legacy evidence is timeless;
+- state at context: `missing`, `revoked`, `binding_mismatch`, `not_yet_valid`, `expired`, `active`;
+- scoped temporal projection/digest includes context and base evidence state.
 
-Extend `evidence_truth.py` without changing legacy `TruthEvidence` v1 serialization.
+### `nolane/external_core/knowledge_temporal_truth.py`
+`PARENT_COMPONENT_ID = "external.knowledge"`.
 
-Preferred bounded design:
+- `KnowledgeTemporalBinding` binds one existing `KnowledgeClaim.content_digest` to an interval;
+- `TemporalKnowledgeView` owns only applicability bindings;
+- unbound legacy claim is timeless;
+- temporal fixed-point competition includes only claims applicable at `as_of`;
+- required parent lineage remains visible even when non-applicable so failure is auditable;
+- scoped temporal projection/digest includes context and base claim state.
 
-- introduce a temporal evidence protocol value/version or explicit temporal factory that serializes validity bounds only in temporal state;
-- preserve legacy `TruthEvidence.create(...)` behavior and digest exactly;
-- expose deterministic state at `TemporalContext`:
-  `missing`, `revoked`, `not_yet_valid`, `expired`, `active`;
-- only active temporal evidence participates in temporal assessment.
+### `nolane/external_core/epistemic_temporal_truth.py`
+`PARENT_COMPONENT_ID = "external.epistemic"`.
 
-## Task 5 — Knowledge temporal protocol
+- `TemporalTruthDependencyScope` is a new v3 scope object;
+- `TemporalEpistemicJudge` recursively evaluates lineage at explicit context;
+- expired/not-yet-valid evidence cannot support;
+- non-applicable historical competitors cannot create live contradiction;
+- non-applicable required parent fails descendant support closed;
+- live validation recomputes canonical v3 scope from all four source inputs.
 
-Extend `knowledge_truth.py` without changing legacy `KnowledgeClaim` v1 serialization.
+### `nolane/external_core/verification_temporal_truth.py`
+`PARENT_COMPONENT_ID = "external.verification"`.
 
-Implement temporal claim applicability with half-open intervals and deterministic round-trip validation.
+- `TemporalTruthVerificationReceipt` uses binding mode `dependency-scope-temporal-v3`;
+- receipt binds temporal scope digest + temporal context digest + canonical `as_of`;
+- `TemporalTruthVerificationLedger` validates provenance against temporal evidence state at that exact context;
+- separate ledger prevents accidental acceptance of v1/v2 receipts as temporal proof.
 
-Legacy claims remain timeless in legacy closure. Temporal closure may accept legacy claims as timeless only where compatibility rules explicitly allow it; temporal claims themselves must obey their interval.
+### `nolane/external_core/assurance_temporal_truth.py`
+`PARENT_COMPONENT_ID = "external.assurance"`.
 
-## Task 6 — Epistemic temporal dependency scope
+- `TemporalTruthClosureCertificate` v3 binds temporal scope, verification projection and context;
+- `TemporalTruthAssuranceGate` reuses existing risk thresholds but requires temporal v3 verification;
+- live validation recomputes the exact temporal closure and rejects a different `as_of`.
 
-Extend `epistemic_truth.py` with a new temporal scope path rather than changing A8's existing `dependency_scope(...)` identity.
+## Compatibility invariant
 
-Preferred API:
+The following A1–A8 files should remain byte-identical unless a demonstrated integration requirement forces a minimal change:
 
-```python
-judge.temporal_dependency_scope(
-    claim_id,
-    *,
-    temporal_context=TemporalContext.create(as_of=...),
-    knowledge=knowledge,
-    evidence=evidence,
-)
-```
+- `evidence_truth.py`
+- `knowledge_truth.py`
+- `epistemic_truth.py`
+- `verification_truth.py`
+- `assurance_truth.py`
 
-The temporal scope must:
+Legacy tests must stay GREEN without compatibility branches inside those classes.
 
-- resolve target + parent lineage at `as_of`;
-- fail closed when required temporal lineage is not applicable;
-- include only live competitors at `as_of`;
-- expand competitor ancestry to fixed point;
-- derive evidence state at `as_of`;
-- bind `TemporalContext.digest` into scope digest;
-- validate against live authority, not merely self-consistent state.
+## TDD sequence
 
-A8 `dependency_scope(...)` remains unchanged.
+1. First RED head: capability gap proof against A8 surface.
+2. RED refinement: tests lock the sidecar interface while production remains absent.
+3. GREEN: add only sidecar modules + focused workflow coverage.
+4. Focused Truth GREEN Python 3.11/3.13.
+5. Re-fetch/integrate current `main` without overwriting concurrent work.
+6. Open PR and run full Refoundation Epoch 0 Python 3.11/3.13.
+7. Only after integrated GREEN, update canonical `CURRENT/TRUTH_KNOWLEDGE.md` to A1–A9 accepted.
+8. Rerun focused + full exact final head.
+9. Verify diff/mergeability/reviews and merge with expected head SHA.
+10. Prove post-merge main tree equals tested final tree.
 
-## Task 7 — Verification temporal v3
+## Required semantic tests
 
-Extend `verification_truth.py` with a third mutually exclusive binding mode, conceptually `dependency-scope-temporal-v3`.
+- canonical context round-trip and malformed timestamp rejection;
+- half-open interval boundary;
+- expired evidence cannot support;
+- non-overlapping historical claims do not conflict;
+- parent outside validity window fails descendant support;
+- temporal verification receipt cannot be reused at another context;
+- temporal assurance certificate cannot validate at another context;
+- revocation still invalidates temporal certificate;
+- forged binding/content digest fails closed;
+- all six new modules expose no `COMPONENT_ID`;
+- legacy Evidence/Knowledge/v1/v2 Verification/Assurance state remains temporal-key-free.
 
-A temporal receipt binds:
+## Focused workflow
 
-- `scope_digest`;
-- temporal context digest and canonical `as_of`;
-- existing evidence/verifier/source/channel/pass fields.
+Update `.github/workflows/truth-knowledge-a.yml` so all six A9 sidecar modules are in both path filters and the compile list. This ensures future sidecar-only changes cannot bypass family-A CI.
 
-Legacy v1 and A8 v2 `to_state()` must remain exact.
+## Full acceptance
 
-`TruthVerificationLedger` must expose temporal-current receipt selection that rejects receipts from a different temporal context/scope.
+Exact final head must pass:
 
-## Task 8 — Assurance temporal v3
-
-Extend `assurance_truth.py` with temporal closure and validation APIs, preferably:
-
-```python
-gate.close_temporal(..., temporal_context=context)
-gate.validate_temporal_certificate(..., temporal_context=context)
-```
-
-Temporal certificates must bind temporal context + temporal scope + temporal verification scope and live-recompute authority state at the bound context.
-
-Legacy `close_snapshot`, `close_live`, and `validate_certificate` behavior remains unchanged.
-
-## Task 9 — GREEN focused gate
-
-Run the `Truth Knowledge A Layer` push workflow on the exact GREEN head.
-
-Required on both Python 3.11 and 3.13:
-
-- compile success;
-- all `tests/test_truth_knowledge_*.py` success;
-- repository authority audit success.
-
-Do not treat PR-skipped copies as GREEN.
-
-## Task 10 — Integrate current main safely
-
-Before PR/final acceptance:
-
-1. re-fetch current `main`;
-2. compare with A9 branch;
-3. if `main` moved, integrate it without overwriting concurrent subsystem work;
-4. prove A9 diff remains family-A-only;
-5. rerun focused gate on the exact integrated head.
-
-## Task 11 — Full Refoundation acceptance
-
-Open PR against current `main` and run Refoundation Epoch 0 on exact integrated head.
-
-Required Python 3.11 + 3.13:
-
-- compile accepted namespaces;
-- 67 resolved dossiers fresh;
-- quarantine audit fresh;
-- Refoundation contracts;
-- Truth contracts;
+- Truth Knowledge A Layer 3.11 + 3.13;
+- Refoundation Epoch 0 3.11 + 3.13;
+- 67/67 dossier freshness;
+- quarantine audit;
 - zero-loss evidence;
 - organization/campaign/execution regressions;
-- frozen Neural R2.3 checks.
-
-## Task 12 — Candidate to accepted
-
-Only after exact integrated head is fully GREEN:
-
-- update `CURRENT/TRUTH_KNOWLEDGE.md` from A1–A8 accepted to A1–A9 accepted;
-- document Temporal Truth semantics and compatibility floor;
-- create final candidate commit;
-- rerun focused + full Refoundation on that exact final head.
-
-## Task 13 — Merge closure
-
-Before merge verify:
-
-- latest `main` is in branch ancestry;
-- PR `mergeable:true`;
-- exact diff contains only intended A9 family-A files;
-- no unresolved review threads;
-- focused final-head GREEN 3.11/3.13;
-- full Refoundation final-head GREEN 3.11/3.13.
-
-Merge with `expected_head_sha`.
-
-Post-merge prove:
-
-- `main` points to merge commit;
-- merge tree equals final tested tree;
-- canonical Truth doc states A1–A9 accepted;
-- post-merge push workflows reveal no new failure.
+- frozen Neural R2.3;
+- clean PR authority/review surface.
