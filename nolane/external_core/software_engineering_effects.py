@@ -410,6 +410,7 @@ class EngineeringEffectLedger:
         EngineeringPhase.APPLIED,
         EngineeringPhase.OUTCOME_OBSERVED,
         EngineeringPhase.POSTCONDITIONS_VERIFIED,
+        EngineeringPhase.CANDIDATE_READY,
         EngineeringPhase.QUARANTINED,
     }
 
