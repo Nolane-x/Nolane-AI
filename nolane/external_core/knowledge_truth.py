@@ -22,7 +22,7 @@ class _EvidenceLedgerLike(Protocol):
 
 
 def _uniq(values: tuple[str, ...], field: str) -> tuple[str, ...]:
-    out = tuple(str(v).strip() for v in values)
+    out = tuple(sorted(str(v).strip() for v in values))
     if any(not v for v in out):
         raise ValueError(f"{field} entries must be explicit")
     if len(set(out)) != len(out):
