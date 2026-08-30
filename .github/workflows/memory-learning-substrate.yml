@@ -57,12 +57,13 @@ jobs:
             tests/test_memory_learning_substrate_v005.py
             tests/test_memory_learning_substrate_v005_integration.py
             tests/test_memory_learning_closure_v005.py
+            tests/test_memory_learning_adaptive_policy_v005.py
             tests/test_refoundation_memory_public_layout.py
             tests/test_refoundation_wave5ao_native_individual_evolution.py
             tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py
           )
-          if (( ${#tests[@]} < 5 )); then
+          if (( ${#tests[@]} < 6 )); then
             echo "Memory/Learning contract discovery failed" >&2
             exit 2
           fi
