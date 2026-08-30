@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.coding_claims import ClaimMode, ClaimStatus, CodeClaimLedger
+from nolane.external_core.coding_claims import (
+    ClaimMode,
+    ClaimStatus,
+    CodeClaim,
+    CodeClaimLedger,
+)
 from nolane.external_core.software_engineering import (
     EngineeringEvidenceLedger,
     EngineeringPhase,
@@ -15,7 +20,7 @@ from nolane.external_core.software_engineering import (
 
 
 COMPONENT_ID = "external.software_engineering.validity"
-COMPONENT_VERSION = "0.1.2"
+COMPONENT_VERSION = "0.2.0"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -32,10 +37,43 @@ def _optional_text(value: Any) -> str | None:
     return result or None
 
 
+def _refs(values: Sequence[Any]) -> tuple[str, ...]:
+    return tuple(sorted({_text(value, field="reference") for value in values}))
+
+
 def _path_under(path: str, prefix: str) -> bool:
     normalized_path = str(path).replace("\\", "/").strip()
     normalized_prefix = str(prefix).replace("\\", "/").strip().rstrip("/")
     return normalized_path == normalized_prefix or normalized_path.startswith(normalized_prefix + "/")
+
+
+def _scopes_cover_patch(scopes: Sequence[Any], patch: Any) -> bool:
+    required_attrs = ("producer_agent_id", "task_id", "touched_files", "touched_symbols")
+    if not scopes or not all(hasattr(patch, name) for name in required_attrs):
+        return False
+    producer = str(patch.producer_agent_id)
+    task_id = str(patch.task_id)
+    for scope in scopes:
+        if (
+            scope.status is not ClaimStatus.ACTIVE
+            or scope.mode is not ClaimMode.EXCLUSIVE_WRITE
+            or scope.agent_id != producer
+            or scope.task_id != task_id
+        ):
+            return False
+    for raw_path in tuple(patch.touched_files):
+        path = str(raw_path).replace("\\", "/").strip()
+        if not any(
+            path in scope.file_paths
+            or any(_path_under(path, prefix) for prefix in scope.directory_prefixes)
+            for scope in scopes
+        ):
+            return False
+    for raw_symbol in tuple(patch.touched_symbols):
+        symbol = str(raw_symbol).strip()
+        if not any(symbol in scope.symbol_ids for scope in scopes):
+            return False
+    return True
 
 
 class EngineeringValidityDecision(str, Enum):
@@ -44,35 +82,99 @@ class EngineeringValidityDecision(str, Enum):
     BLOCKED = "blocked"
 
 
+class EngineeringMutationAuthorityDecision(str, Enum):
+    AUTHORIZED = "authorized"
+    BLOCKED = "blocked"
+
+
+@dataclass(frozen=True, slots=True)
+class EngineeringBoundClaimSnapshot:
+    claim_id: str
+    agent_id: str
+    task_id: str
+    file_paths: tuple[str, ...]
+    symbol_ids: tuple[str, ...]
+    directory_prefixes: tuple[str, ...]
+    mode: ClaimMode
+    status: ClaimStatus
+    digest: str
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "claim_id": self.claim_id,
+            "agent_id": self.agent_id,
+            "task_id": self.task_id,
+            "file_paths": list(self.file_paths),
+            "symbol_ids": list(self.symbol_ids),
+            "directory_prefixes": list(self.directory_prefixes),
+            "mode": self.mode.value,
+            "status": self.status.value,
+        }
+
+    def to_state(self) -> dict[str, Any]:
+        return {**self.payload(), "digest": self.digest}
+
+    @classmethod
+    def from_claim(cls, claim: CodeClaim) -> "EngineeringBoundClaimSnapshot":
+        payload = claim.to_state()
+        digest = canonical_digest(payload)
+        return cls(
+            claim_id=claim.claim_id,
+            agent_id=claim.agent_id,
+            task_id=claim.task_id,
+            file_paths=tuple(claim.file_paths),
+            symbol_ids=tuple(claim.symbol_ids),
+            directory_prefixes=tuple(claim.directory_prefixes),
+            mode=claim.mode,
+            status=claim.status,
+            digest=digest,
+        )
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringBoundClaimSnapshot":
+        row = cls(
+            claim_id=_text(state["claim_id"], field="claim id"),
+            agent_id=_text(state["agent_id"], field="claim agent"),
+            task_id=_text(state["task_id"], field="claim task"),
+            file_paths=_refs(tuple(state.get("file_paths", ()))),
+            symbol_ids=_refs(tuple(state.get("symbol_ids", ()))),
+            directory_prefixes=tuple(value.rstrip("/") for value in _refs(tuple(state.get("directory_prefixes", ())))),
+            mode=ClaimMode(str(state["mode"])),
+            status=ClaimStatus(str(state["status"])),
+            digest=_text(state["digest"], field="claim snapshot digest"),
+        )
+        if canonical_digest(row.payload()) != row.digest:
+            raise ValueError("engineering bound claim snapshot digest mismatch")
+        return row
+
+
 @dataclass(frozen=True, slots=True)
 class EngineeringClaimBinding:
     binding_id: str
     transaction_id: str
-    claim_state_digests: tuple[tuple[str, str], ...]
+    claim_snapshots: tuple[EngineeringBoundClaimSnapshot, ...]
     authority: str
     digest: str
 
     def __post_init__(self) -> None:
         _text(self.binding_id, field="claim binding id")
         _text(self.transaction_id, field="transaction id")
-        if not self.claim_state_digests:
+        if not self.claim_snapshots:
             raise ValueError("engineering claim binding requires at least one claim")
-        claim_ids = [claim_id for claim_id, _ in self.claim_state_digests]
+        claim_ids = [row.claim_id for row in self.claim_snapshots]
         if len(claim_ids) != len(set(claim_ids)):
             raise ValueError("engineering claim binding contains duplicate claim ids")
-        for claim_id, state_digest in self.claim_state_digests:
-            _text(claim_id, field="claim id")
-            _text(state_digest, field="claim state digest")
         if self.authority != "mutation_scope_only":
             raise ValueError("claim binding cannot grant broader authority")
+
+    @property
+    def claim_state_digests(self) -> tuple[tuple[str, str], ...]:
+        return tuple((row.claim_id, row.digest) for row in self.claim_snapshots)
 
     def payload(self) -> dict[str, Any]:
         return {
             "transaction_id": self.transaction_id,
-            "claims": [
-                {"claim_id": claim_id, "state_digest": state_digest}
-                for claim_id, state_digest in self.claim_state_digests
-            ],
+            "claims": [row.to_state() for row in self.claim_snapshots],
             "authority": self.authority,
         }
 
@@ -81,17 +183,14 @@ class EngineeringClaimBinding:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EngineeringClaimBinding":
-        pairs = tuple(sorted(
-            (
-                _text(value["claim_id"], field="claim id"),
-                _text(value["state_digest"], field="claim state digest"),
-            )
-            for value in state.get("claims", ())
+        snapshots = tuple(sorted(
+            (EngineeringBoundClaimSnapshot.from_state(value) for value in state.get("claims", ())),
+            key=lambda row: row.claim_id,
         ))
         row = cls(
             binding_id=_text(state["binding_id"], field="claim binding id"),
             transaction_id=_text(state["transaction_id"], field="transaction id"),
-            claim_state_digests=pairs,
+            claim_snapshots=snapshots,
             authority=_text(state["authority"], field="claim binding authority"),
             digest=_text(state["digest"], field="claim binding digest"),
         )
@@ -102,13 +201,7 @@ class EngineeringClaimBinding:
 
 
 class EngineeringClaimBindingLedger:
-    """Immutable snapshots of the exact mutation claims authorizing a transaction.
-
-    `CodeClaimLedger` remains authoritative for current claim state. This ledger
-    prevents authority leakage by making the transaction's own bound claim set,
-    rather than every active claim owned by the same agent/task, the only scope
-    that may authorize the patch.
-    """
+    """Historical authorization proof plus current mutation-scope inspection."""
 
     def __init__(
         self,
@@ -141,28 +234,25 @@ class EngineeringClaimBindingLedger:
         if not tx.claim_refs:
             raise ValueError("engineering transaction has no mutation claims")
 
-        pairs: list[tuple[str, str]] = []
+        snapshots: list[EngineeringBoundClaimSnapshot] = []
         for claim_id in sorted(tx.claim_refs):
             claim = self.claims.get(claim_id)
             if claim.status is not ClaimStatus.ACTIVE:
                 raise PermissionError(f"mutation claim is not active: {claim_id}")
             if claim.mode is not ClaimMode.EXCLUSIVE_WRITE:
                 raise PermissionError(f"mutation claim must be exclusive write: {claim_id}")
-            pairs.append((claim.claim_id, canonical_digest(claim.to_state())))
+            snapshots.append(EngineeringBoundClaimSnapshot.from_claim(claim))
 
         payload = {
             "transaction_id": tx.transaction_id,
-            "claims": [
-                {"claim_id": claim_id, "state_digest": state_digest}
-                for claim_id, state_digest in pairs
-            ],
+            "claims": [row.to_state() for row in snapshots],
             "authority": "mutation_scope_only",
         }
         digest = canonical_digest(payload)
         row = EngineeringClaimBinding(
             binding_id=f"eng-claim-binding-{digest[:20]}",
             transaction_id=tx.transaction_id,
-            claim_state_digests=tuple(pairs),
+            claim_snapshots=tuple(snapshots),
             authority="mutation_scope_only",
             digest=digest,
         )
@@ -180,67 +270,36 @@ class EngineeringClaimBindingLedger:
         row = self.get(binding_id)
         reasons: list[str] = []
         tx = self.transactions.get(row.transaction_id)
-        bound_claim_ids = tuple(claim_id for claim_id, _ in row.claim_state_digests)
+        bound_claim_ids = tuple(snapshot.claim_id for snapshot in row.claim_snapshots)
         if tuple(sorted(tx.claim_refs)) != bound_claim_ids:
             reasons.append("claim_binding_scope_changed")
 
-        for claim_id, historical_digest in row.claim_state_digests:
+        for snapshot in row.claim_snapshots:
             try:
-                claim = self.claims.get(claim_id)
+                claim = self.claims.get(snapshot.claim_id)
             except KeyError:
-                reasons.append(f"claim_missing:{claim_id}")
+                reasons.append(f"claim_missing:{snapshot.claim_id}")
                 continue
-            if canonical_digest(claim.to_state()) != historical_digest:
-                reasons.append(f"claim_state_changed:{claim_id}")
+            if canonical_digest(claim.to_state()) != snapshot.digest:
+                reasons.append(f"claim_state_changed:{snapshot.claim_id}")
             if claim.status is not ClaimStatus.ACTIVE:
-                reasons.append(f"claim_not_active:{claim_id}")
+                reasons.append(f"claim_not_active:{snapshot.claim_id}")
             if claim.mode is not ClaimMode.EXCLUSIVE_WRITE:
-                reasons.append(f"claim_not_exclusive:{claim_id}")
+                reasons.append(f"claim_not_exclusive:{snapshot.claim_id}")
         return tuple(sorted(set(reasons)))
 
     def covers_patch(self, binding_id: str, patch: Any) -> bool:
-        """Return whether only this binding's current claims authorize `patch`.
-
-        This deliberately does not delegate to `CodeClaimLedger.covers()`, whose
-        semantics aggregate every active claim for an agent/task and therefore
-        are too broad for transaction-scoped mutation authority.
-        """
         binding = self.get(binding_id)
-        required_attrs = ("producer_agent_id", "task_id", "touched_files", "touched_symbols")
-        if not all(hasattr(patch, name) for name in required_attrs):
-            return False
-
-        producer = str(patch.producer_agent_id)
-        task_id = str(patch.task_id)
-        bound_claims = []
-        for claim_id, _ in binding.claim_state_digests:
+        current_claims: list[CodeClaim] = []
+        for snapshot in binding.claim_snapshots:
             try:
-                claim = self.claims.get(claim_id)
+                current_claims.append(self.claims.get(snapshot.claim_id))
             except KeyError:
                 return False
-            if (
-                claim.status is not ClaimStatus.ACTIVE
-                or claim.mode is not ClaimMode.EXCLUSIVE_WRITE
-                or claim.agent_id != producer
-                or claim.task_id != task_id
-            ):
-                return False
-            bound_claims.append(claim)
+        return _scopes_cover_patch(current_claims, patch)
 
-        for raw_path in tuple(patch.touched_files):
-            path = str(raw_path).replace("\\", "/").strip()
-            if not any(
-                path in claim.file_paths
-                or any(_path_under(path, prefix) for prefix in claim.directory_prefixes)
-                for claim in bound_claims
-            ):
-                return False
-
-        for raw_symbol in tuple(patch.touched_symbols):
-            symbol = str(raw_symbol).strip()
-            if not any(symbol in claim.symbol_ids for claim in bound_claims):
-                return False
-        return True
+    def historically_covers_patch(self, binding_id: str, patch: Any) -> bool:
+        return _scopes_cover_patch(self.get(binding_id).claim_snapshots, patch)
 
     def to_state(self) -> dict[str, Any]:
         return {"bindings": [row.to_state() for row in self.bindings()]}
@@ -257,13 +316,9 @@ class EngineeringClaimBindingLedger:
         for value in state.get("bindings", ()):
             row = EngineeringClaimBinding.from_state(value)
             tx = transactions.get(row.transaction_id)
-            bound_claim_ids = tuple(claim_id for claim_id, _ in row.claim_state_digests)
+            bound_claim_ids = tuple(snapshot.claim_id for snapshot in row.claim_snapshots)
             if tuple(sorted(tx.claim_refs)) != bound_claim_ids:
                 raise ValueError("claim binding snapshot transaction scope mismatch")
-            for claim_id in bound_claim_ids:
-                # Claims are append-only historical identities. Their current
-                # state may legitimately be released/aborted after the binding.
-                claims.get(claim_id)
             existing = ledger._bindings.get(row.binding_id)
             if existing is not None and existing != row:
                 raise ValueError("duplicate/rebound engineering claim binding")
@@ -273,6 +328,183 @@ class EngineeringClaimBindingLedger:
             ledger._bindings[row.binding_id] = row
             ledger._by_transaction[row.transaction_id] = row.binding_id
         return ledger
+
+
+@dataclass(frozen=True, slots=True)
+class EngineeringMutationAuthorityReceipt:
+    receipt_id: str
+    transaction_id: str
+    patch_ref: str
+    patch_digest: str
+    claim_binding_id: str | None
+    claim_binding_digest: str | None
+    authorized: bool
+    decision: EngineeringMutationAuthorityDecision
+    reasons: tuple[str, ...]
+    authority: str
+    digest: str
+
+    def __post_init__(self) -> None:
+        if self.authority != "mutation_scope_only":
+            raise ValueError("mutation authority receipt cannot grant broader authority")
+        if bool(self.claim_binding_id) != bool(self.claim_binding_digest):
+            raise ValueError("mutation authority claim identity must be complete")
+        if self.authorized:
+            if self.decision is not EngineeringMutationAuthorityDecision.AUTHORIZED or self.reasons:
+                raise ValueError("authorized mutation receipt must have no blocking reasons")
+        elif self.decision is EngineeringMutationAuthorityDecision.AUTHORIZED:
+            raise ValueError("blocked mutation receipt cannot claim authorization")
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "transaction_id": self.transaction_id,
+            "patch_ref": self.patch_ref,
+            "patch_digest": self.patch_digest,
+            "claim_binding_id": self.claim_binding_id,
+            "claim_binding_digest": self.claim_binding_digest,
+            "authorized": self.authorized,
+            "decision": self.decision.value,
+            "reasons": list(self.reasons),
+            "authority": self.authority,
+        }
+
+    def to_state(self) -> dict[str, Any]:
+        return {"receipt_id": self.receipt_id, **self.payload(), "digest": self.digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringMutationAuthorityReceipt":
+        row = cls(
+            receipt_id=_text(state["receipt_id"], field="mutation authority receipt id"),
+            transaction_id=_text(state["transaction_id"], field="transaction id"),
+            patch_ref=_text(state["patch_ref"], field="patch ref"),
+            patch_digest=_text(state["patch_digest"], field="patch digest"),
+            claim_binding_id=_optional_text(state.get("claim_binding_id")),
+            claim_binding_digest=_optional_text(state.get("claim_binding_digest")),
+            authorized=bool(state["authorized"]),
+            decision=EngineeringMutationAuthorityDecision(str(state["decision"])),
+            reasons=_refs(tuple(state.get("reasons", ()))),
+            authority=_text(state["authority"], field="mutation authority"),
+            digest=_text(state["digest"], field="mutation authority digest"),
+        )
+        expected = canonical_digest(row.payload())
+        if row.digest != expected or row.receipt_id != f"eng-mutation-authority-{expected[:20]}":
+            raise ValueError("engineering mutation authority digest/id mismatch")
+        return row
+
+
+class EngineeringMutationAuthorityEngine:
+    """Evaluates *current* right to apply one already-preconditioned transaction."""
+
+    def __init__(
+        self,
+        *,
+        transactions: PatchTransactionLedger,
+        claim_bindings: EngineeringClaimBindingLedger,
+    ) -> None:
+        self.transactions = transactions
+        self.claim_bindings = claim_bindings
+        self._receipts: dict[str, EngineeringMutationAuthorityReceipt] = {}
+
+    def receipts(self) -> tuple[EngineeringMutationAuthorityReceipt, ...]:
+        return tuple(self._receipts[key] for key in sorted(self._receipts))
+
+    def get(self, receipt_id: str) -> EngineeringMutationAuthorityReceipt:
+        try:
+            return self._receipts[str(receipt_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown engineering mutation authority receipt: {receipt_id}") from exc
+
+    def assess(self, transaction_id: str, *, patch: Any) -> EngineeringMutationAuthorityReceipt:
+        tx = self.transactions.get(transaction_id)
+        reasons: list[str] = []
+        if tx.phase is not EngineeringPhase.PRECONDITIONS_VERIFIED:
+            reasons.append("transaction_not_precondition_verified")
+        if not hasattr(patch, "to_state"):
+            patch_ref = str(getattr(patch, "patch_id", ""))
+            patch_digest = "unavailable"
+            reasons.append("missing_canonical_patch_state")
+        else:
+            patch_ref = str(getattr(patch, "patch_id", ""))
+            patch_digest = canonical_digest(patch.to_state())
+            if patch_ref != tx.patch_ref or patch_digest != tx.patch_digest:
+                reasons.append("transaction_patch_lineage_mismatch")
+
+        binding = self.claim_bindings.for_transaction(tx.transaction_id)
+        binding_id: str | None = None
+        binding_digest: str | None = None
+        if binding is None:
+            reasons.append("missing_claim_state_binding")
+        else:
+            binding_id = binding.binding_id
+            binding_digest = binding.digest
+            reasons.extend(self.claim_bindings.current_reasons(binding.binding_id))
+            if not self.claim_bindings.covers_patch(binding.binding_id, patch):
+                reasons.append("bound_claim_scope_does_not_cover_patch")
+
+        normalized_reasons = tuple(sorted(set(reasons)))
+        authorized = not normalized_reasons
+        decision = (
+            EngineeringMutationAuthorityDecision.AUTHORIZED
+            if authorized
+            else EngineeringMutationAuthorityDecision.BLOCKED
+        )
+        payload = {
+            "transaction_id": tx.transaction_id,
+            "patch_ref": tx.patch_ref,
+            "patch_digest": tx.patch_digest,
+            "claim_binding_id": binding_id,
+            "claim_binding_digest": binding_digest,
+            "authorized": authorized,
+            "decision": decision.value,
+            "reasons": list(normalized_reasons),
+            "authority": "mutation_scope_only",
+        }
+        digest = canonical_digest(payload)
+        row = EngineeringMutationAuthorityReceipt(
+            receipt_id=f"eng-mutation-authority-{digest[:20]}",
+            transaction_id=tx.transaction_id,
+            patch_ref=tx.patch_ref,
+            patch_digest=tx.patch_digest,
+            claim_binding_id=binding_id,
+            claim_binding_digest=binding_digest,
+            authorized=authorized,
+            decision=decision,
+            reasons=normalized_reasons,
+            authority="mutation_scope_only",
+            digest=digest,
+        )
+        existing = self._receipts.get(row.receipt_id)
+        if existing is not None and existing != row:
+            raise ValueError("engineering mutation authority receipt cannot be rebound")
+        self._receipts[row.receipt_id] = row
+        return existing or row
+
+    def to_state(self) -> dict[str, Any]:
+        return {"receipts": [row.to_state() for row in self.receipts()]}
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        transactions: PatchTransactionLedger,
+        claim_bindings: EngineeringClaimBindingLedger,
+        state: Mapping[str, Any],
+    ) -> "EngineeringMutationAuthorityEngine":
+        engine = cls(transactions=transactions, claim_bindings=claim_bindings)
+        for value in state.get("receipts", ()):
+            row = EngineeringMutationAuthorityReceipt.from_state(value)
+            tx = transactions.get(row.transaction_id)
+            if row.patch_ref != tx.patch_ref or row.patch_digest != tx.patch_digest:
+                raise ValueError("mutation authority snapshot transaction lineage mismatch")
+            if row.claim_binding_id is not None:
+                binding = claim_bindings.get(row.claim_binding_id)
+                if binding.digest != row.claim_binding_digest or binding.transaction_id != row.transaction_id:
+                    raise ValueError("mutation authority snapshot claim lineage mismatch")
+            existing = engine._receipts.get(row.receipt_id)
+            if existing is not None and existing != row:
+                raise ValueError("duplicate/rebound mutation authority receipt")
+            engine._receipts[row.receipt_id] = row
+        return engine
 
 
 @dataclass(frozen=True, slots=True)
@@ -342,7 +574,7 @@ class EngineeringCurrentValidityReceipt:
             claim_binding_id=_optional_text(state.get("claim_binding_id")),
             current=bool(state["current"]),
             decision=EngineeringValidityDecision(str(state["decision"])),
-            reasons=tuple(sorted({str(value) for value in state.get("reasons", ()) if str(value)})),
+            reasons=_refs(tuple(state.get("reasons", ()))),
             authority=_text(state["authority"], field="validity authority"),
             digest=_text(state["digest"], field="validity digest"),
         )
@@ -353,7 +585,7 @@ class EngineeringCurrentValidityReceipt:
 
 
 class EngineeringValidityEngine:
-    """Revalidates immutable engineering closure against mutable current state."""
+    """Revalidates candidate truth without conflating it with a transient lease."""
 
     def __init__(
         self,
@@ -435,14 +667,8 @@ class EngineeringValidityEngine:
             reasons.append("missing_claim_state_binding")
         else:
             binding_id = binding.binding_id
-            reasons.extend(self.claim_bindings.current_reasons(binding.binding_id))
-            if not self.claim_bindings.covers_patch(binding.binding_id, patch):
-                reasons.append("bound_claim_scope_no_longer_covers_patch")
-
-        if not all(hasattr(patch, name) for name in (
-            "producer_agent_id", "task_id", "touched_files", "touched_symbols"
-        )):
-            reasons.append("current_patch_scope_unavailable")
+            if not self.claim_bindings.historically_covers_patch(binding.binding_id, patch):
+                reasons.append("historical_claim_binding_does_not_cover_patch")
 
         normalized_reasons = tuple(sorted(set(reasons)))
         current = historical.ready and not normalized_reasons
@@ -545,8 +771,12 @@ class EngineeringValidityEngine:
 
 __all__ = (
     "EngineeringValidityDecision",
+    "EngineeringMutationAuthorityDecision",
+    "EngineeringBoundClaimSnapshot",
     "EngineeringClaimBinding",
     "EngineeringClaimBindingLedger",
+    "EngineeringMutationAuthorityReceipt",
+    "EngineeringMutationAuthorityEngine",
     "EngineeringCurrentValidityReceipt",
     "EngineeringValidityEngine",
 )
