@@ -89,25 +89,42 @@ jobs:
                   'assert canonical.COMPONENT_VERSION == "0.0.1"',
                   'assert canonical.COMPONENT_VERSION == "0.1.0"',
               ),
+              Path('tests/test_refoundation_wave5aa_native_execution_control.py'): (
+                  'assert canonical.COMPONENT_VERSION == "0.0.1"',
+                  'assert canonical.COMPONENT_VERSION == "0.0.2"',
+              ),
           }
           for target, (old, new) in version_cases.items():
               data = target.read_text(encoding='utf-8')
               if data.count(old) != 1:
                   raise SystemExit(f'{target}: expected exactly one stale version assertion')
               target.write_text(data.replace(old, new, 1), encoding='utf-8')
+
+          digest_path = Path('tests/test_refoundation_wave2_zero_loss_runtime_digest.py')
+          digest_text = digest_path.read_text(encoding='utf-8')
+          old_block = '''# Wave 5N intentionally advances the persisted TaskGraph authority schema:\n# plan_version becomes the read-only Planning projection, fresh state starts at\n# zero, and plan_revision_authority is explicit. The historical Wave-1 digest\n# remains preserved above as provenance rather than being silently rewritten.\nWAVE5N_RUNTIME_STATE_DIGEST = (\n    "5af45189c960dc0dca4ebe7e00859708e162a6a06aa3d063910156d9e86076ae"\n)\n'''
+          new_block = old_block + '''\n# E. Acting advances canonical persistence again by making the transactional\n# executor ledger part of Execution Control state. Wave-1 and Wave-5N remain\n# immutable provenance anchors; this is an append-only cutover authority.\nE_ACTING_RUNTIME_STATE_DIGEST = (\n    "eda96a54b833dee2a3eb2a3e697fb658f4ff73729fff76fa6746ba554a6d602e"\n)\n'''
+          if digest_text.count(old_block) != 1:
+              raise SystemExit('runtime digest provenance block did not match exactly once')
+          digest_text = digest_text.replace(old_block, new_block, 1)
+          old_test = '''def test_runtime_state_fingerprint_tracks_the_explicit_wave5n_persistence_cutover() -> None:\n    first = CanonicalOrganization.first_generation()\n    second = CanonicalOrganization.first_generation()\n    first_state = first.to_state()\n    second_state = second.to_state()\n\n    assert canonical_digest(first_state) == WAVE5N_RUNTIME_STATE_DIGEST\n    assert first.state_digest == WAVE5N_RUNTIME_STATE_DIGEST\n    assert canonical_digest(second_state) == WAVE5N_RUNTIME_STATE_DIGEST\n    assert second.state_digest == WAVE5N_RUNTIME_STATE_DIGEST\n    assert first_state == second_state\n    assert WAVE5N_RUNTIME_STATE_DIGEST != WAVE1_ACCEPTED_RUNTIME_STATE_DIGEST\n'''
+          new_test = '''def test_runtime_state_fingerprint_tracks_the_explicit_e_acting_persistence_cutover() -> None:\n    first = CanonicalOrganization.first_generation()\n    second = CanonicalOrganization.first_generation()\n    first_state = first.to_state()\n    second_state = second.to_state()\n\n    assert canonical_digest(first_state) == E_ACTING_RUNTIME_STATE_DIGEST\n    assert first.state_digest == E_ACTING_RUNTIME_STATE_DIGEST\n    assert canonical_digest(second_state) == E_ACTING_RUNTIME_STATE_DIGEST\n    assert second.state_digest == E_ACTING_RUNTIME_STATE_DIGEST\n    assert first_state == second_state\n    assert E_ACTING_RUNTIME_STATE_DIGEST != WAVE5N_RUNTIME_STATE_DIGEST\n    assert WAVE5N_RUNTIME_STATE_DIGEST != WAVE1_ACCEPTED_RUNTIME_STATE_DIGEST\n'''
+          if digest_text.count(old_test) != 1:
+              raise SystemExit('runtime digest test did not match exactly once')
+          digest_path.write_text(digest_text.replace(old_test, new_test, 1), encoding='utf-8')
           PY
       - name: Compile and run E Acting contracts
         run: |
           python -m pip install -q pytest
           python -m py_compile nolane/external_core/*.py
           python -m pytest -q tests/test_refoundation_acting_protocol.py tests/test_refoundation_acting_workspace.py tests/test_refoundation_acting_runtime.py
-      - name: Run full Refoundation regression to expose final digest
+      - name: Run full Refoundation regression
         run: python -m pytest -q tests/test_refoundation_*.py
       - name: Commit green integration
         if: success()
         run: |
           git config user.name "nolane-e-acting-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add nolane/external_core/execution.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py
+          git add nolane/external_core/execution.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5aa_native_execution_control.py tests/test_refoundation_wave2_zero_loss_runtime_digest.py
           git commit -m "feat(e-acting): make transactional executor canonical authority [e-acting-patch]"
           git push origin HEAD:refoundation/e-acting-transactional-runtime-gpt56sol
