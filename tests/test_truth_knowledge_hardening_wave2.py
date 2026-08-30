@@ -43,17 +43,35 @@ def test_derived_claim_is_unknown_when_parent_is_refuted():
 def test_strict_assurance_binds_canonical_snapshot_and_rejects_stale_verification():
     ev = EvidenceLedger()
     ev.record(evidence("e1", "claim.alpha", family="fa", channel=EvidenceChannel.TEST))
+    ev.record(evidence("e2", "claim.alpha", family="fb", channel=EvidenceChannel.REPRODUCTION))
     knowledge = KnowledgeLedger()
-    knowledge.add(KnowledgeClaim.create(claim_id="claim.alpha", subject="alpha", relation="is", object="true", risk=KnowledgeRisk.HIGH, evidence_ids=("e1",)))
+    knowledge.add(KnowledgeClaim.create(
+        claim_id="claim.alpha", subject="alpha", relation="is", object="true",
+        risk=KnowledgeRisk.HIGH, evidence_ids=("e1", "e2"),
+    ))
     snapshot = EpistemicJudge().snapshot(knowledge=knowledge, evidence=ev)
     verification = TruthVerificationLedger()
-    verification.record(TruthVerificationReceipt.create(receipt_id="v1", claim_id="claim.alpha", verifier_id="a", source_family="fa", channel=EvidenceChannel.TEST, passed=True, knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest))
-    verification.record(TruthVerificationReceipt.create(receipt_id="v2", claim_id="claim.alpha", verifier_id="b", source_family="fb", channel=EvidenceChannel.REPRODUCTION, passed=True, knowledge_digest=knowledge.digest, epistemic_digest=snapshot.digest))
+    verification.record(TruthVerificationReceipt.create(
+        receipt_id="v1", claim_id="claim.alpha", verifier_id="source:e1", source_family="fa",
+        channel=EvidenceChannel.TEST, passed=True, knowledge_digest=knowledge.digest,
+        epistemic_digest=snapshot.digest, evidence_ids=("e1",),
+    ))
+    verification.record(TruthVerificationReceipt.create(
+        receipt_id="v2", claim_id="claim.alpha", verifier_id="source:e2", source_family="fb",
+        channel=EvidenceChannel.REPRODUCTION, passed=True, knowledge_digest=knowledge.digest,
+        epistemic_digest=snapshot.digest, evidence_ids=("e2",),
+    ))
     gate = TruthAssuranceGate()
-    assert gate.close_snapshot(claim_id="claim.alpha", knowledge=knowledge, epistemic=snapshot, verification=verification).closed
+    assert gate.close_snapshot(
+        claim_id="claim.alpha", knowledge=knowledge, evidence=ev,
+        epistemic=snapshot, verification=verification,
+    ).closed
     ev.revoke("e1", reason="withdrawn")
     changed = EpistemicJudge().snapshot(knowledge=knowledge, evidence=ev)
-    stale = gate.close_snapshot(claim_id="claim.alpha", knowledge=knowledge, epistemic=changed, verification=verification)
+    stale = gate.close_snapshot(
+        claim_id="claim.alpha", knowledge=knowledge, evidence=ev,
+        epistemic=changed, verification=verification,
+    )
     assert not stale.closed
     assert "epistemic_claim_not_supported" in stale.reasons
     assert "insufficient_independent_verification" in stale.reasons
