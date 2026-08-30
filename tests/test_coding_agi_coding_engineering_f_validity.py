@@ -4,7 +4,7 @@ import pytest
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.coding import CodingReadinessReceipt, PatchVerificationEvidence
-from nolane.external_core.coding_claims import ClaimMode, CodeClaimLedger
+from nolane.external_core.coding_claims import ClaimMode, ClaimStatus, CodeClaimLedger
 from nolane.external_core.coding_patches import CodingPatchCandidate, CodingPatchStatus
 from nolane.external_core.software_engineering import (
     EngineeringEvidenceKind,
@@ -135,11 +135,11 @@ def _candidate():
         claims=claims,
         claim_bindings=claim_bindings,
     )
-    return patch, claims, claim, evidence, attestations, transactions, binding, closure, historical, validity
+    return patch, claims, claim, evidence, attestations, transactions, claim_bindings, binding, closure, historical, validity
 
 
 def test_live_revalidation_is_current_before_any_drift():
-    patch, _, _, _, _, _, binding, _, historical, validity = _candidate()
+    patch, _, _, _, _, _, _, binding, _, historical, validity = _candidate()
     current = validity.revalidate(
         historical.receipt_id,
         patch=patch,
@@ -153,7 +153,7 @@ def test_live_revalidation_is_current_before_any_drift():
 
 
 def test_evidence_revocation_invalidates_current_view_without_rewriting_history():
-    patch, _, _, evidence, _, transactions, _, _, historical, validity = _candidate()
+    patch, _, _, evidence, _, transactions, _, _, _, historical, validity = _candidate()
     historical_digest = historical.digest
     evidence.revoke('artifact:test:1', reason='artifact checksum mismatch')
 
@@ -169,9 +169,10 @@ def test_evidence_revocation_invalidates_current_view_without_rewriting_history(
     assert transactions.get(historical.transaction_id).phase is EngineeringPhase.CANDIDATE_READY
 
 
-def test_released_claim_invalidates_current_view_but_preserves_historical_binding():
-    patch, claims, claim, _, _, _, binding, _, historical, validity = _candidate()
-    original_digest = dict(binding.claim_state_digests)[claim.claim_id]
+def test_released_claim_does_not_retroactively_invalidate_verified_candidate():
+    patch, claims, claim, _, _, _, bindings, binding, _, historical, validity = _candidate()
+    historical_binding_digest = binding.digest
+    assert binding.claim_snapshots[0].status is ClaimStatus.ACTIVE
     claims.release(claim.claim_id, actor_agent_id=claim.agent_id)
 
     current = validity.revalidate(
@@ -179,14 +180,16 @@ def test_released_claim_invalidates_current_view_but_preserves_historical_bindin
         patch=patch,
         current_source_revision='git:source-a',
     )
-    assert not current.current
-    assert any(reason.startswith('claim_state_changed:') for reason in current.reasons)
-    assert any(reason.startswith('claim_not_active:') for reason in current.reasons)
-    assert dict(binding.claim_state_digests)[claim.claim_id] == original_digest
+    assert current.current
+    assert current.reasons == ()
+    assert binding.digest == historical_binding_digest
+    assert binding.claim_snapshots[0].status is ClaimStatus.ACTIVE
+    assert any(reason.startswith('claim_not_active:') for reason in bindings.current_reasons(binding.binding_id))
+    assert bindings.historically_covers_patch(binding.binding_id, patch)
 
 
 def test_source_or_patch_state_drift_is_visible_without_mutating_closure_receipt():
-    patch, _, _, _, _, _, _, _, historical, validity = _candidate()
+    patch, _, _, _, _, _, _, _, _, historical, validity = _candidate()
     source_stale = validity.revalidate(
         historical.receipt_id,
         patch=patch,
@@ -230,35 +233,29 @@ def test_claim_binding_must_be_exclusive_active_and_created_before_apply():
         bindings.bind(tx.transaction_id)
 
 
-def test_claim_binding_snapshot_restores_history_even_after_claim_becomes_stale():
-    _, claims, claim, _, _, transactions, binding, _, _, _ = _candidate()
-    state = binding_state = EngineeringClaimBindingLedger(
+def test_claim_binding_snapshot_is_self_contained_historical_authorization_proof():
+    patch, claims, claim, _, _, transactions, bindings, binding, _, _, _ = _candidate()
+    assert binding.claim_snapshots[0].agent_id == patch.producer_agent_id
+    assert binding.claim_snapshots[0].task_id == patch.task_id
+    assert binding.claim_snapshots[0].file_paths == patch.touched_files
+    assert binding.claim_snapshots[0].symbol_ids == patch.touched_symbols
+    snapshot = bindings.to_state()
+
+    claims.release(claim.claim_id, actor_agent_id=claim.agent_id)
+    restored = EngineeringClaimBindingLedger.from_state(
         transactions=transactions,
         claims=claims,
-    )
-    # Rebuild a ledger with the actual binding to exercise the snapshot codec.
-    # The source ledger is obtained from a fresh candidate because bindings are immutable.
-    _, claims2, claim2, _, _, transactions2, binding2, _, _, _ = _candidate()
-    ledger2 = EngineeringClaimBindingLedger(transactions=transactions2, claims=claims2)
-    rebound = ledger2.bindings()
-    if not rebound:
-        # The candidate helper's binding ledger is independent; serialize through the binding itself.
-        snapshot = {'bindings': [binding2.to_state()]}
-    else:
-        snapshot = ledger2.to_state()
-    claims2.release(claim2.claim_id, actor_agent_id=claim2.agent_id)
-    restored = EngineeringClaimBindingLedger.from_state(
-        transactions=transactions2,
-        claims=claims2,
         state=snapshot,
     )
-    restored_binding = restored.get(binding2.binding_id)
-    assert restored_binding.digest == binding2.digest
-    assert any(reason.startswith('claim_') for reason in restored.current_reasons(binding2.binding_id))
+    restored_binding = restored.get(binding.binding_id)
+    assert restored_binding.digest == binding.digest
+    assert restored_binding.claim_snapshots[0].status is ClaimStatus.ACTIVE
+    assert restored.historically_covers_patch(binding.binding_id, patch)
+    assert any(reason.startswith('claim_') for reason in restored.current_reasons(binding.binding_id))
 
 
 def test_live_validity_receipt_is_deterministic():
-    patch, _, _, _, _, _, _, _, historical, validity = _candidate()
+    patch, _, _, _, _, _, _, _, _, historical, validity = _candidate()
     first = validity.revalidate(
         historical.receipt_id,
         patch=patch,
