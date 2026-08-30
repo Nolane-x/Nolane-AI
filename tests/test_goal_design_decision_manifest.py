@@ -194,3 +194,10 @@ def test_identical_complete_decision_inputs_remain_deterministic():
     second = _admit()
     assert first.receipt_id == second.receipt_id
     assert first.input_manifest_digest == second.input_manifest_digest
+
+
+def test_receipt_inherits_evidence_from_every_evaluated_option():
+    receipt = _admit()
+
+    assert "ev:selected" in receipt.evidence_refs
+    assert "ev:alternate" in receipt.evidence_refs
