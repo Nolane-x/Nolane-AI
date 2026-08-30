@@ -7,7 +7,7 @@ from typing import Any, Mapping
 from ._truth_digest import truth_digest
 
 COMPONENT_ID = "external.evidence.truth"
-COMPONENT_VERSION = "0.1.0"
+COMPONENT_VERSION = "0.2.0"
 
 
 class EvidencePolarity(str, Enum):
@@ -26,10 +26,10 @@ class EvidenceChannel(str, Enum):
 
 
 def _explicit(value: str, field: str) -> str:
-    out = str(value).strip()
-    if not out:
+    value = str(value).strip()
+    if not value:
         raise ValueError(f"{field} must be explicit")
-    return out
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,34 +55,24 @@ class TruthEvidence:
             "polarity": EvidencePolarity(polarity).value,
             "payload_digest": _explicit(payload_digest, "payload_digest"),
         }
-        return cls(
-            payload["evidence_id"], payload["subject_id"], payload["source_id"], payload["source_family"],
-            EvidenceChannel(payload["channel"]), EvidencePolarity(payload["polarity"]), payload["payload_digest"],
-            truth_digest(payload),
-        )
+        return cls(payload["evidence_id"], payload["subject_id"], payload["source_id"], payload["source_family"],
+                   EvidenceChannel(payload["channel"]), EvidencePolarity(payload["polarity"]),
+                   payload["payload_digest"], truth_digest(payload))
 
     def payload(self) -> dict[str, Any]:
-        return {
-            "evidence_id": self.evidence_id,
-            "subject_id": self.subject_id,
-            "source_id": self.source_id,
-            "source_family": self.source_family,
-            "channel": self.channel.value,
-            "polarity": self.polarity.value,
-            "payload_digest": self.payload_digest,
-        }
+        return {"evidence_id": self.evidence_id, "subject_id": self.subject_id, "source_id": self.source_id,
+                "source_family": self.source_family, "channel": self.channel.value,
+                "polarity": self.polarity.value, "payload_digest": self.payload_digest}
 
     def to_state(self) -> dict[str, Any]:
         return {**self.payload(), "content_digest": self.content_digest}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "TruthEvidence":
-        row = cls.create(
-            evidence_id=str(state["evidence_id"]), subject_id=str(state["subject_id"]),
-            source_id=str(state["source_id"]), source_family=str(state["source_family"]),
-            channel=EvidenceChannel(str(state["channel"])), polarity=EvidencePolarity(str(state["polarity"])),
-            payload_digest=str(state["payload_digest"]),
-        )
+        row = cls.create(evidence_id=str(state["evidence_id"]), subject_id=str(state["subject_id"]),
+                         source_id=str(state["source_id"]), source_family=str(state["source_family"]),
+                         channel=EvidenceChannel(str(state["channel"])), polarity=EvidencePolarity(str(state["polarity"])),
+                         payload_digest=str(state["payload_digest"]))
         if str(state["content_digest"]) != row.content_digest:
             raise ValueError("evidence content digest mismatch")
         return row
@@ -96,24 +86,30 @@ class EvidenceRevocation:
 
     @classmethod
     def create(cls, evidence_id: str, reason: str) -> "EvidenceRevocation":
-        evidence_id = _explicit(evidence_id, "evidence_id")
-        reason = _explicit(reason, "revocation reason")
+        evidence_id, reason = _explicit(evidence_id, "evidence_id"), _explicit(reason, "revocation reason")
         return cls(evidence_id, reason, truth_digest({"evidence_id": evidence_id, "reason": reason}))
 
     def to_state(self) -> dict[str, str]:
         return {"evidence_id": self.evidence_id, "reason": self.reason, "revocation_id": self.revocation_id}
 
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EvidenceRevocation":
+        row = cls.create(str(state["evidence_id"]), str(state["reason"]))
+        if str(state["revocation_id"]) != row.revocation_id:
+            raise ValueError("evidence revocation digest mismatch")
+        return row
+
 
 class EvidenceLedger:
-    """Append-only truth evidence plus explicit revocation tombstones."""
+    """Append-only provenance-aware evidence; revocation changes admissibility, never history."""
 
     def __init__(self) -> None:
         self._records: dict[str, TruthEvidence] = {}
         self._revocations: dict[str, EvidenceRevocation] = {}
 
     def record(self, row: TruthEvidence) -> TruthEvidence:
-        previous = self._records.get(row.evidence_id)
-        if previous is not None and previous != row:
+        old = self._records.get(row.evidence_id)
+        if old is not None and old != row:
             raise ValueError("evidence id collision")
         self._records[row.evidence_id] = row
         return row
@@ -127,33 +123,44 @@ class EvidenceLedger:
     def revoke(self, evidence_id: str, *, reason: str) -> EvidenceRevocation:
         self.get(evidence_id)
         row = EvidenceRevocation.create(str(evidence_id), reason)
-        previous = self._revocations.get(row.evidence_id)
-        if previous is not None and previous != row:
+        old = self._revocations.get(row.evidence_id)
+        if old is not None and old != row:
             raise ValueError("evidence already revoked with different reason")
         self._revocations[row.evidence_id] = row
         return row
 
     def is_active(self, evidence_id: str) -> bool:
-        return str(evidence_id) in self._records and str(evidence_id) not in self._revocations
+        evidence_id = str(evidence_id)
+        return evidence_id in self._records and evidence_id not in self._revocations
 
     def records(self, *, subject_id: str | None = None, active_only: bool = False) -> tuple[TruthEvidence, ...]:
-        rows = self._records.values()
+        rows = tuple(self._records.values())
         if subject_id is not None:
-            rows = (row for row in rows if row.subject_id == str(subject_id))
+            rows = tuple(row for row in rows if row.subject_id == str(subject_id))
         if active_only:
-            rows = (row for row in rows if self.is_active(row.evidence_id))
+            rows = tuple(row for row in rows if self.is_active(row.evidence_id))
         return tuple(sorted(rows, key=lambda row: row.evidence_id))
+
+    def to_state(self) -> dict[str, Any]:
+        return {"protocol": "truth-evidence-v1", "records": [row.to_state() for row in self.records()],
+                "revocations": [self._revocations[key].to_state() for key in sorted(self._revocations)]}
 
     @property
     def digest(self) -> str:
         return truth_digest(self.to_state())
 
-    def to_state(self) -> dict[str, Any]:
-        return {
-            "protocol": "truth-evidence-v1",
-            "records": [row.to_state() for row in self.records()],
-            "revocations": [self._revocations[key].to_state() for key in sorted(self._revocations)],
-        }
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EvidenceLedger":
+        if str(state.get("protocol", "")) != "truth-evidence-v1":
+            raise ValueError("unsupported truth evidence protocol")
+        ledger = cls()
+        for value in state.get("records", ()):
+            ledger.record(TruthEvidence.from_state(value))
+        for value in state.get("revocations", ()):
+            row = EvidenceRevocation.from_state(value)
+            ledger.get(row.evidence_id)
+            ledger._revocations[row.evidence_id] = row
+        return ledger
 
 
 __all__ = ("EvidencePolarity", "EvidenceChannel", "TruthEvidence", "EvidenceRevocation", "EvidenceLedger")
