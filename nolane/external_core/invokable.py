@@ -7,7 +7,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.organization.identity import AgentRegistry
 
 COMPONENT_ID = "external.invokable_cores"
-COMPONENT_VERSION = "0.1.0"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.external_core"
 
 
@@ -45,7 +45,6 @@ class ExternalCoreSpec:
                 raise ValueError(f"{label} must be explicit")
         for values, label in (
             (self.capabilities, "capabilities"),
-            (self.side_effects, "side effects"),
             (self.required_permissions, "required permissions"),
             (self.failure_modes, "failure modes"),
             (self.verification_hooks, "verification hooks"),
@@ -55,6 +54,13 @@ class ExternalCoreSpec:
                 raise ValueError(f"external core {label} must be explicit")
             if len(set(values)) != len(values):
                 raise ValueError(f"external core {label} must be unique")
+        # An empty side_effects tuple is an explicit and important contract: the
+        # core is read-only. Reject malformed/duplicate declarations, not the
+        # legitimate no-side-effect case preserved by the Refoundation API.
+        if any(not str(x).strip() for x in self.side_effects):
+            raise ValueError("external core side effects cannot contain empty values")
+        if len(set(self.side_effects)) != len(self.side_effects):
+            raise ValueError("external core side effects must be unique")
         if isinstance(self.max_attempts, bool) or int(self.max_attempts) <= 0:
             raise ValueError("external core max_attempts must be positive")
 
