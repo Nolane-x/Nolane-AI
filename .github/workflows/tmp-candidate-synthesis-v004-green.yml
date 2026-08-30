@@ -1,0 +1,31 @@
+name: Candidate Synthesis v0.0.4 Focused GREEN
+
+on:
+  push:
+    branches:
+      - verify/candidate-synthesis-v004-green
+    paths:
+      - .github/workflows/tmp-candidate-synthesis-v004-green.yml
+
+permissions:
+  contents: read
+
+jobs:
+  focused-green:
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.13']
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: verify/candidate-synthesis-v004-green
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: python -m pip install -q pytest
+      - name: Run structural synthesis focused contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_candidate_synthesis_structural_composition.py \
+            tests/test_refoundation_post_epoch0_candidate_synthesis_structural_hardening.py
