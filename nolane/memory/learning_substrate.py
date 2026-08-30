@@ -158,6 +158,16 @@ class MemoryTombstone:
     reason: str
     evidence_refs: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        if not str(self.memory_id).strip():
+            raise ValueError("memory tombstone requires a memory id")
+        if not str(self.content_digest).strip():
+            raise ValueError("memory tombstone requires a content digest")
+        if not str(self.reason).strip():
+            raise ValueError("memory tombstone requires a reason")
+        if not self.evidence_refs or any(not str(value).strip() for value in self.evidence_refs):
+            raise ValueError("memory tombstone requires non-empty evidence")
+
     def to_state(self) -> dict[str, Any]:
         return {
             "memory_id": self.memory_id,
@@ -472,7 +482,7 @@ class LearningSubstrate:
         retrieval_policy = policy or MemoryRetrievalPolicy()
         if not isinstance(retrieval_policy, MemoryRetrievalPolicy):
             raise TypeError("learning retrieval policy must be MemoryRetrievalPolicy")
-        self._retrieval_policies.setdefault(retrieval_policy.policy_id, retrieval_policy)
+        self.register_retrieval_policy(retrieval_policy)
 
         wanted = {str(x) for x in tags}
         rejected: dict[str, str] = {}
@@ -568,6 +578,17 @@ class LearningSubstrate:
         )
         self._retrieval_receipts.setdefault(receipt.receipt_id, receipt)
         return LearningRetrievalBundle(tuple(selected), rejected_rows, receipt)
+
+    def register_retrieval_policy(self, policy: MemoryRetrievalPolicy) -> MemoryRetrievalPolicy:
+        if not isinstance(policy, MemoryRetrievalPolicy):
+            raise TypeError("retrieval policy registration requires MemoryRetrievalPolicy")
+        if policy.parent_policy_id is not None and policy.parent_policy_id not in self._retrieval_policies:
+            raise ValueError("retrieval policy parent must be registered before its child")
+        existing = self._retrieval_policies.get(policy.policy_id)
+        if existing is not None and existing != policy:
+            raise ValueError("retrieval policy id cannot be rebound")
+        self._retrieval_policies[policy.policy_id] = policy
+        return policy
 
     def retrieval_policy(self, policy_id: str) -> MemoryRetrievalPolicy:
         try:
@@ -875,6 +896,78 @@ class LearningSubstrate:
         self._require_independent_skill_validation(validation)
         return self.skills.promote(skill_id, scope)
 
+    @staticmethod
+    def _index_unique(rows, *, key, label: str):
+        indexed = {}
+        for row in rows:
+            identity = key(row)
+            if identity in indexed:
+                raise ValueError(f"duplicate {label}: {identity}")
+            indexed[identity] = row
+        return indexed
+
+    def _validate_policy_lineage(self) -> None:
+        for policy in self._retrieval_policies.values():
+            parent_id = policy.parent_policy_id
+            if parent_id is not None and parent_id not in self._retrieval_policies:
+                raise ValueError(f"retrieval policy parent is missing: {parent_id}")
+        for policy_id in self._retrieval_policies:
+            seen: set[str] = set()
+            current = policy_id
+            while current is not None:
+                if current in seen:
+                    raise ValueError("retrieval policy parent lineage contains a cycle")
+                seen.add(current)
+                current = self._retrieval_policies[current].parent_policy_id
+
+    def _validate_compaction_receipt_semantics(self, receipt: MemoryCompactionReceipt) -> None:
+        self.registry.get(receipt.actor_agent_id)
+        compacted = self.memory.get(receipt.compacted_memory_id)
+        compacted_metadata = self.metadata(compacted.memory_id)
+        source_rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
+        source_metadata = tuple(self.metadata(memory_id) for memory_id in receipt.source_memory_ids)
+        owners = {row.owner_agent_id for row in source_rows}
+        if len(owners) != 1 or compacted.owner_agent_id not in owners:
+            raise ValueError("memory compaction restore cannot cross memory owners")
+        owner = next(iter(owners))
+        if receipt.actor_agent_id == owner:
+            raise PermissionError("memory compaction restore requires external review; owner cannot self-certify")
+        scopes = {row.scope for row in source_rows}
+        if len(scopes) != 1 or compacted.scope not in scopes:
+            raise ValueError("memory compaction restore cannot change memory scope")
+        kinds = {row.kind for row in source_metadata}
+        if len(kinds) != 1 or compacted_metadata.kind not in kinds:
+            raise ValueError("memory compaction restore must preserve memory kind")
+        epistemic_types = {row.epistemic_type for row in source_metadata}
+        if len(epistemic_types) != 1:
+            raise ValueError("memory compaction restore cannot mix epistemic type classes")
+        epistemic_type = next(iter(epistemic_types))
+        if receipt.epistemic_type != epistemic_type.value or compacted_metadata.epistemic_type is not epistemic_type:
+            raise ValueError("memory compaction restore epistemic type mismatch")
+        regions = {row.region for row in source_rows}
+        tasks = {row.task_id for row in source_rows}
+        if len(regions) != 1 or compacted.region not in regions or len(tasks) != 1 or compacted.task_id not in tasks:
+            raise ValueError("memory compaction restore region/task binding mismatch")
+        versions = {row.version_scope for row in source_metadata}
+        if len(versions) != 1 or compacted_metadata.version_scope not in versions:
+            raise ValueError("memory compaction restore version scope mismatch")
+        if not set(receipt.source_memory_ids).issubset(compacted.dependencies):
+            raise ValueError("memory compaction restore lost source dependency bindings")
+        if not set(receipt.source_memory_ids).issubset(compacted_metadata.source_refs):
+            raise ValueError("memory compaction restore lost source provenance bindings")
+        if not set(receipt.evidence_refs).issubset(compacted.evidence_ids):
+            raise ValueError("memory compaction restore lost review evidence")
+        self.reconstruct_compaction(receipt.compaction_id)
+
+    def _validate_anchor_health_receipt_semantics(self, receipt: MemoryAnchorHealthReceipt) -> None:
+        row = self.memory.get(receipt.memory_id)
+        metadata = self.metadata(receipt.memory_id)
+        self.registry.get(receipt.actor_agent_id)
+        if receipt.actor_agent_id == row.owner_agent_id:
+            raise PermissionError("anchor health restore requires external observation; owner cannot self-certify")
+        if receipt.healthy and metadata.version_scope is not None and receipt.observed_version_scope != metadata.version_scope:
+            raise ValueError("healthy anchor restore cannot contradict its bound version scope")
+
     def to_state(self) -> dict[str, Any]:
         return {
             "memory": self.memory.to_state(),
@@ -925,31 +1018,39 @@ class LearningSubstrate:
                 state=state.get("experiences", {}),
             ),
         )
-        result._metadata = {
-            row.memory_id: row
-            for row in (LearningMemoryMetadata.from_state(raw) for raw in state.get("metadata", ()))
-        }
-        result._tombstones = {
-            row.memory_id: row
-            for row in (MemoryTombstone.from_state(raw) for raw in state.get("tombstones", ()))
-        }
-        result._skill_validations = {
-            row.skill_id: row
-            for row in (SkillValidation.from_state(raw) for raw in state.get("skill_validations", ()))
-        }
+        metadata_rows = tuple(LearningMemoryMetadata.from_state(raw) for raw in state.get("metadata", ()))
+        result._metadata = cls._index_unique(
+            metadata_rows, key=lambda row: row.memory_id, label="learning metadata row"
+        )
+        tombstones = tuple(MemoryTombstone.from_state(raw) for raw in state.get("tombstones", ()))
+        result._tombstones = cls._index_unique(
+            tombstones, key=lambda row: row.memory_id, label="memory tombstone row"
+        )
+        skill_validations = tuple(SkillValidation.from_state(raw) for raw in state.get("skill_validations", ()))
+        result._skill_validations = cls._index_unique(
+            skill_validations, key=lambda row: row.skill_id, label="skill validation row"
+        )
         retrieval_policies = tuple(
             MemoryRetrievalPolicy.from_state(raw) for raw in state.get("retrieval_policies", ())
         )
-        result._retrieval_policies = {row.policy_id: row for row in retrieval_policies}
+        result._retrieval_policies = cls._index_unique(
+            retrieval_policies, key=lambda row: row.policy_id, label="retrieval policy row"
+        )
+        result._validate_policy_lineage()
         retrieval_receipts = tuple(
             MemoryRetrievalReceipt.from_state(raw) for raw in state.get("retrieval_receipts", ())
         )
-        result._retrieval_receipts = {row.receipt_id: row for row in retrieval_receipts}
+        result._retrieval_receipts = cls._index_unique(
+            retrieval_receipts, key=lambda row: row.receipt_id, label="retrieval receipt row"
+        )
         compactions = tuple(MemoryCompactionReceipt.from_state(raw) for raw in state.get("compactions", ()))
-        result._compactions = {row.compaction_id: row for row in compactions}
+        result._compactions = cls._index_unique(
+            compactions, key=lambda row: row.compaction_id, label="compaction receipt row"
+        )
         anchor_health = tuple(
             MemoryAnchorHealthReceipt.from_state(raw) for raw in state.get("anchor_health", ())
         )
+        cls._index_unique(anchor_health, key=lambda row: row.receipt_id, label="anchor health receipt row")
         expected_health_sequence = list(range(1, len(anchor_health) + 1))
         actual_health_sequence = [row.sequence for row in anchor_health]
         if actual_health_sequence != expected_health_sequence:
@@ -957,8 +1058,13 @@ class LearningSubstrate:
         for row in anchor_health:
             result._anchor_health.setdefault(row.memory_id, []).append(row)
 
-        for memory_id in (*result._metadata, *result._tombstones):
+        for memory_id in result._metadata:
             memory.get(memory_id)
+        for memory_id, tombstone in result._tombstones.items():
+            row = memory.get(memory_id)
+            expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
+            if tombstone.content_digest != expected_digest:
+                raise ValueError("memory tombstone content digest mismatch")
         for skill_id in result._skill_validations:
             result.skills.get(skill_id)
         for receipt in retrieval_receipts:
@@ -969,10 +1075,9 @@ class LearningSubstrate:
             for memory_id, _ in receipt.rejected:
                 memory.get(memory_id)
         for receipt in compactions:
-            memory.get(receipt.compacted_memory_id)
-            result.reconstruct_compaction(receipt.compaction_id)
+            result._validate_compaction_receipt_semantics(receipt)
         for receipt in anchor_health:
-            memory.get(receipt.memory_id)
+            result._validate_anchor_health_receipt_semantics(receipt)
         return result
 
 
