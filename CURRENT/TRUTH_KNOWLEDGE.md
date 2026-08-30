@@ -1,8 +1,8 @@
 # Truth / Knowledge — External Core A
 
-Status: Refoundation hardening candidate on `refoundation/truth-knowledge-a-hardening`.
+Status: **A1–A7 accepted on `main`; A8 dependency-scoped binding candidate on `refoundation/truth-knowledge-a8-scoped-binding`.**
 
-## Authority model
+## Canonical authority model
 
 External Core family A remains exactly five canonical component authorities:
 
@@ -12,117 +12,151 @@ External Core family A remains exactly five canonical component authorities:
 4. `external.verification` → `nolane.external_core.verification`
 5. `external.assurance` → `nolane.external_core.assurance`
 
-The Truth Closure implementation is an additive protocol under those authorities, not a second component registry:
+Truth Closure is additive protocol semantics beneath those authorities. The helper modules `evidence_truth.py`, `knowledge_truth.py`, `epistemic_truth.py`, `verification_truth.py`, and `assurance_truth.py` must never declare `COMPONENT_ID`. `nolane.metadata.subprotocols` remains a metadata binding registry, not a sixth runtime component. A8 adds no parent authority and no sixth helper binding.
 
-- `evidence_truth.py` has `PARENT_COMPONENT_ID = "external.evidence"`;
-- `knowledge_truth.py` has `PARENT_COMPONENT_ID = "external.knowledge"`;
-- `epistemic_truth.py` has `PARENT_COMPONENT_ID = "external.epistemic"`;
-- `verification_truth.py` has `PARENT_COMPONENT_ID = "external.verification"`;
-- `assurance_truth.py` has `PARENT_COMPONENT_ID = "external.assurance"`.
+All Truth content identity uses `nolane.core.canonical_digest.canonical_digest`; no private digest authority is permitted.
 
-Protocol helpers must never declare `COMPONENT_ID`. Canonical component identity belongs only to the repository component registry and its accepted canonical-native modules. The protocol uses `nolane.core.canonical_digest.canonical_digest`; it does not introduce a private digest authority.
+## A1–A7 accepted baseline
 
-The canonical metadata package owns one orthogonal subprotocol-binding registry, `nolane.metadata.subprotocols`, with `REGISTRY_ID = "metadata.subprotocol_bindings"`. This registry is **not** a sixth External Core component. It content-binds each Truth protocol helper to exactly one canonical A parent and validates the relationship in both directions against the live implementation ledger and imported modules. Its registry version is a metadata-registry version and does not advance the software revision of a parent component whose own canonical implementation has not changed.
+The accepted baseline provides:
 
-## Truth-closure pipeline
+- immutable provenance-aware Evidence with source identity/family binding, polarity, channels, append-only revocation, anti-rebinding, anti-cross-subject laundering and tamper-evident restore;
+- content-addressed Knowledge propositions with evidence references, derivation DAGs, topological restore, transitive invalidation and canonical set ordering;
+- first-class Epistemic `UNKNOWN`, `SUPPORTED`, `REFUTED`, `CONTRADICTED`, competing propositions and epistemic debt;
+- exact-state Verification receipts, live provenance validation, source-family independence, channel diversity and retained negative results;
+- risk-sensitive Assurance, live canonical recomputation and non-self-authenticating closure certificates;
+- bidirectional subprotocol ownership metadata without duplicate canonical authority;
+- canonical ordering for set-semantic references.
+
+A1–A7 deliberately used whole-ledger Knowledge/Evidence/Epistemic/Verification digests. That maximized invalidation safety but caused unrelated state changes to stale otherwise valid claim closures.
+
+## A8 canonical dependency scope
+
+A8 introduces `truth-dependency-scope-v2` under canonical `external.epistemic` Truth semantics. A `TruthDependencyScope` is a content-addressed state projection derived from live canonical Knowledge and Evidence; it is not caller-declared authority.
+
+For target claim `T`, the scope is a fixed point:
 
 ```text
-canonical external.evidence
-        |
-        +-- TruthEvidence / EvidenceRevocation
-        v
-canonical external.knowledge
-        |
-        +-- KnowledgeClaim + derivation DAG
-        v
-canonical external.epistemic
-        |
-        +-- EpistemicSnapshot
-        |     - UNKNOWN / SUPPORTED / REFUTED / CONTRADICTED
-        |     - competing propositions
-        |     - epistemic debt
-        v
-canonical external.verification
-        |
-        +-- TruthVerificationReceipt[]
-        |     - exact knowledge state
-        |     - exact epistemic state
-        |     - live evidence provenance
-        v
-canonical external.assurance
-        |
-        +-- TruthClosureCertificate
-        |     - content-addressed decision receipt
-        |     - NOT self-authenticating authority
-        v
-validate_certificate(live state)
+lineage(T)
+  = T + every transitive parent
+
+scope(T)
+  = fixed_point(
+      lineage(T)
+      + every claim sharing (subject, relation) with any scoped claim
+      + every transitive parent of those competitors
+    )
 ```
 
-No stage may silently perform the next stage's decision.
+The fixed point is mandatory. A target-only scope could hide a competing proposition. A target+parents scope could hide a competitor for an ancestor. A competitor without its own lineage could be judged without the state needed to establish whether it is supported.
 
-## Evidence protocol invariants
+`lineage_claim_ids` and `scope_claim_ids` are canonical sorted unique sets.
 
-- Evidence identity, subject, source identity, source family, channel, polarity and payload digest are explicit.
-- Same evidence ID with changed semantics fails closed.
-- One source identity cannot be rebound to multiple source families inside the ledger.
-- Revocation is append-only admissibility state; the original evidence record is retained.
-- Restore recomputes content identity and rejects tampered evidence or revocation state.
-- Cross-subject evidence cannot support another claim merely because its evidence ID is referenced.
-- Serialized restore is canonical: duplicate evidence identities or duplicate revocation rows are rejected instead of silently collapsed.
+## Scoped Knowledge projection
 
-## Knowledge protocol invariants
+`KnowledgeLedger.lineage_claim_ids()` derives target lineage. `KnowledgeLedger.truth_scope_claim_ids()` derives the fixed-point scope. The scoped Knowledge digest contains only exact `KnowledgeClaim.to_state()` rows for the canonical scope claim IDs.
 
-- `external.knowledge` remains the existing canonical reusable knowledge fabric in `nolane.memory.knowledge`.
-- `knowledge_truth.py` adds proposition/derivation semantics needed by truth closure; it does not replace retrieval/document/chunk authority.
-- A truth claim is content-addressed over `(claim_id, subject, relation, object, risk, evidence_ids, parent_claim_ids)`.
-- `evidence_ids` and `parent_claim_ids` have set semantics: constructors reject duplicates and store them as sorted tuples, so semantic identity and content digest are independent of caller ordering.
-- Parent references form a DAG; cycles and missing parents fail closed.
-- Restore is topological and independent of serialized claim-ID sort order.
-- Duplicate serialized claim identities fail closed; restore cannot normalize ambiguous/malleable state by silently deduplicating it.
-- Evidence lifecycle never rewrites knowledge identity; invalidated evidence marks dependent claims impacted and propagates to descendants.
+Therefore an unrelated claim append does not change a target scope, while any change in target, ancestor, competitor, or competitor lineage does.
 
-## Epistemic protocol invariants
+Knowledge ownership does not move: reusable document/chunk/retrieval authority remains `nolane.memory.knowledge`; `knowledge_truth.py` owns only Truth proposition/derivation protocol semantics beneath that parent.
 
-- Epistemic judgment is recomputed from exact Knowledge + Evidence state.
-- Missing or revoked support produces `UNKNOWN`, never implicit truth or falsehood.
-- Support plus refutation produces `CONTRADICTED`; neither side is discarded.
-- A derived claim cannot stay supported when a parent is no longer `SUPPORTED`.
-- Separately supported claims sharing `(subject, relation)` but disagreeing on object remain explicit competing propositions.
-- Missing, revoked or cross-subject evidence generates epistemic debt.
-- Critical unresolved debt can veto Assurance.
-- `EpistemicSnapshot` is content-addressed and tamper-evident.
+## Scoped Evidence projection
 
-## Verification protocol invariants
+The scoped Evidence projection contains exactly the evidence IDs referenced by scope claims. Every referenced ID has explicit canonical state:
 
-A `TruthVerificationReceipt` binds:
+- `missing` — the reference exists but no evidence record exists;
+- `active` — exact `TruthEvidence.to_state()`;
+- `revoked` — exact evidence record plus exact `EvidenceRevocation.to_state()`.
 
-- claim ID;
-- verifier/source identity;
-- source family;
-- verification channel;
-- pass/fail result;
-- exact Knowledge digest;
-- exact Epistemic snapshot digest;
+Consequences:
+
+- unrelated evidence additions/revocations do not stale a target scope;
+- target/ancestor/competitor evidence changes do;
+- missing/revoked references remain visible;
+- cross-subject evidence can remain referenced for audit but cannot become support.
+
+## Scoped Epistemic projection
+
+A8 does not reuse the content digest of global `EpistemicAssessment` inside the scoped identity, because that digest intentionally binds whole-ledger Knowledge/Evidence state. Instead `TruthScopeAssessment` projects only the epistemic semantics relevant to the scoped claim: claim ID, disposition, support evidence IDs and refute evidence IDs.
+
+A `TruthDependencyScope` binds:
+
+- target claim ID;
+- lineage claim IDs;
+- full fixed-point scope claim IDs;
+- referenced evidence IDs;
+- scoped Knowledge digest;
+- scoped Evidence digest;
+- scoped assessments;
+- contradictions touching the scope;
+- epistemic debts attached to scope claims;
+- final canonical scope digest.
+
+`from_state()` proves serialization/content integrity only. `EpistemicJudge.validate_dependency_scope()` recomputes from live canonical ledgers and requires exact equality before a supplied scope can be trusted.
+
+## Lineage conflict and debt law
+
+Global Epistemic semantics continue to preserve competing supported propositions as explicit contradictions rather than overwriting either claim.
+
+For strict A8 descendant closure:
+
+- target disposition must be `SUPPORTED`;
+- a contradiction containing the target blocks closure with target-conflict semantics;
+- a contradiction containing any transitive ancestor blocks descendant closure with `epistemic_lineage_conflicted`;
+- critical debt on the target retains `critical_epistemic_debt` compatibility semantics;
+- critical debt on a transitive ancestor blocks descendant closure with `critical_epistemic_lineage_debt`;
+- an ancestor that ceases to be `SUPPORTED` continues to make its descendant unsupported through the existing parent-state rule.
+
+Competitor-only debt is retained inside scoped identity but is not independently promoted into a lineage veto unless it affects the target/ancestor lineage under the rules above.
+
+## Verification binding modes
+
+`TruthVerificationReceipt` remains one compatibility type.
+
+### Global v1
+
+A v1 receipt retains its historical payload exactly:
+
+- claim/verifier/source-family/channel/pass state;
+- whole Knowledge digest;
+- whole Epistemic snapshot digest;
 - cited evidence IDs.
 
-Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source. Duplicate serialized receipt identities fail closed rather than collapsing into one row. Cited evidence IDs are a canonical sorted unique set, so a receipt cannot acquire a different digest merely by permuting equivalent references.
+No `binding_mode` or `scope_digest` keys are injected into v1 serialized state.
 
-## Assurance protocol invariants
+### Dependency-scope v2
 
-`TruthAssuranceGate.close_snapshot()` and `close_live()` are the strict issuance paths.
+A scoped receipt has `binding_mode = dependency-scope-v2` and binds the canonical `scope_digest`. It does not include whole-ledger Knowledge/Epistemic digests in v2 identity. Mixed global+scoped binding state is invalid and fails closed.
 
-Strict closure requires:
+`TruthVerificationLedger.coverage_scoped()` applies the same live provenance law as v1: cited evidence must be active, belong to the receipt claim, and match verifier identity, source family and channel. Negative receipts remain retained.
 
-- the snapshot Knowledge digest equals the live Knowledge digest;
-- the snapshot Evidence digest equals the live Evidence digest;
-- Assurance recomputation produces the same canonical Epistemic snapshot;
-- the target claim is `SUPPORTED` and not in an unresolved competing-proposition contradiction;
-- no critical epistemic debt applies;
-- verification coverage is exact-state-bound and live-provenance-valid;
-- no bound negative verification exists;
-- risk-specific independent source-family and channel diversity requirements pass.
+The scoped verification projection digest contains only receipts for the target bound to the exact current scope. Unrelated claim receipts and stale-scope receipts therefore do not change the target verification projection.
 
-Current minimum diversity policy:
+## Assurance binding modes
+
+`TruthClosureCertificate` also remains one compatibility type.
+
+### Global v1 compatibility path
+
+`TruthAssuranceGate.close_snapshot()` remains strict whole-ledger v1 issuance. V1 certificate serialization retains its historical payload exactly and remains conservatively stale after unrelated global state changes.
+
+A caller with only historical v1 verification receipts remains on the v1 path when using `close_live()`. A8 does not reinterpret or auto-upgrade v1 receipts as scoped evidence.
+
+### Dependency-scope v2 canonical live path
+
+If a target has scoped verification history, `TruthAssuranceGate.close_live()` derives a fresh canonical dependency scope internally and stays on the v2 path even if relevant state changes make all old scoped receipts stale. This prevents a changed target from silently falling back to v1 and losing scoped conflict/revocation semantics.
+
+V2 closure requires:
+
+- canonical live dependency scope;
+- target `SUPPORTED`;
+- no target or ancestor conflict veto;
+- no target or ancestor critical-debt veto;
+- provenance-valid verification bound to the exact current scope;
+- no current-scope negative verification;
+- unchanged risk-specific independent source-family/channel diversity policy.
+
+Current policy remains:
 
 | Risk | independent source families | distinct channels |
 | --- | ---: | ---: |
@@ -131,49 +165,59 @@ Current minimum diversity policy:
 | HIGH | 2 | 2 |
 | CRITICAL | 3 | 3 |
 
-A `TruthClosureCertificate` is a content-addressed decision receipt, not self-authenticating authority. `TruthClosureCertificate.from_state()` proves only serialization/content integrity. A consumer that wants to rely on `closed=True` must call `TruthAssuranceGate.validate_certificate(...)`, which re-derives canonical closure from current live Knowledge, Evidence and Verification state and requires exact certificate equality. A digest-valid self-issued certificate therefore does not acquire authority, and a formerly valid certificate stops validating when live evidence/verification state changes.
+A v2 certificate identity binds the target/risk, `scope_digest`, scoped verification projection digest, relevant receipt IDs, lineage debt IDs, decision and reasons. It intentionally excludes whole-ledger digests.
 
-Certificate receipt-ID/debt-ID lists and reasons are canonical sets represented as sorted unique tuples; equivalent permutations therefore produce one certificate identity. Duplicates or inconsistent `closed`/`reasons` combinations fail closed. The digest-only legacy `close()` surface remains deliberately fail-closed and cannot return an accepted truth certificate.
+## Certificate authenticity and validation
 
-## Subprotocol binding invariants
+Neither v1 nor v2 certificates are self-authenticating authority. A content-valid restored certificate is only a receipt.
 
-`nolane.metadata.subprotocols` is canonical architecture metadata for additive protocol ownership; it is not a runtime cognitive component.
+`TruthAssuranceGate.validate_certificate()` dispatches by binding mode:
 
-- The registry covers exactly the five A parents and exactly five distinct Truth protocol modules/IDs.
-- Every binding is content-addressed and registry state is tamper-evident.
-- A parent must exist in the canonical implementation ledger, be `canonical_native`, retain canonical write authority, and resolve to the exact canonical module in the binding.
-- The imported parent module must declare the same `COMPONENT_ID`.
-- The imported helper must not declare `COMPONENT_ID`; its `PARENT_COMPONENT_ID` and `TRUTH_PROTOCOL` must exactly match the registry binding.
-- Parent component software versions remain orthogonal to subprotocol registry versioning. Adding this metadata binding does not manufacture a parent implementation revision.
+- v1: recompute the current global Epistemic snapshot and re-run strict `close_snapshot()`;
+- v2: recompute current dependency scope and scoped live closure through `close_live()`.
+
+Exact certificate equality is required. A digest-valid self-issued or stale certificate cannot acquire authority merely by deserializing successfully.
+
+## Serialization law
+
+- Set-semantic IDs remain sorted and unique before identity computation.
+- V1 payloads do not gain v2-only keys.
+- V2 receipt/certificate payloads cannot contain v1 global binding fields.
+- Unknown/mixed binding modes fail closed.
+- Duplicate serialized ledger identities fail closed.
+- Content-valid but semantically incomplete scoped state still fails live canonical revalidation.
 
 ## Compatibility boundary
 
 The existing canonical APIs remain authoritative for their established duties:
 
-- `EvidenceRecord` for existing verification/evaluation flows;
-- `nolane.memory.knowledge` for reusable knowledge retrieval and provenance chunks;
-- `EpistemicWorkspace` for the accepted version-aware epistemic workspace;
+- `EvidenceRecord` for existing evidence/evaluation flows;
+- `nolane.memory.knowledge` for reusable knowledge retrieval/provenance chunks;
+- `EpistemicWorkspace` for the accepted version-aware workspace;
 - `VerificationAuthority` for bounded candidate evaluation/promotion/rollback;
 - `AssuranceControlPlane` for policy/domain engineering and promotion assurance.
 
-Truth Closure is additive protocol semantics under those components. Any future integration into their public surfaces must be adapter-based and contract-tested; protocol helpers may not seize canonical component identity.
+Truth Closure remains additive protocol semantics. A8 does not seize those public surfaces.
 
-## Adversarial hardening waves
+## Hardening lineage
 
-- **A1**: introduced explicit Evidence → Knowledge → Epistemic → Verification → Assurance truth semantics.
-- **A2**: added competing-proposition preservation, parent-state propagation, canonical snapshots and tamper-resistant restore.
-- **A3**: attacked cross-subject evidence laundering, source-family rebinding, stale snapshot replay, forged snapshots, ungrounded verification, legacy closure bypass and restore-order failure.
-- **A4**: discovered and forbids duplicate canonical authority, removes the private truth digest, moves proposition semantics to `knowledge_truth.py`, and binds every helper to one existing canonical parent component.
-- **A5**: separates content integrity from authority authenticity: closure certificates require live revalidation, and duplicate serialized ledger/certificate identities fail closed instead of being normalized away.
-- **A6**: adds canonical metadata acknowledgement without mutating parent component identity/version: a content-addressed subprotocol registry validates all five parent↔helper bindings bidirectionally and prevents helper-declared ownership from becoming one-sided authority.
-- **A7**: closes order-based state malleability by canonical-sorting every set-semantic reference used in Knowledge claims, Verification receipts and Assurance certificates before content identity is computed.
+- **A1** — explicit Evidence → Knowledge → Epistemic → Verification → Assurance semantics.
+- **A2** — canonical snapshots, parent-state propagation, competing-proposition retention, tamper-resistant restore.
+- **A3** — evidence laundering, source-family rebinding, stale replay, forged state, ungrounded verification, legacy bypass and restore-order attacks.
+- **A4** — duplicate-authority removal and canonical parent/helper binding.
+- **A5** — certificate content integrity separated from live authority authenticity; duplicate serialization fails closed.
+- **A6** — bidirectional subprotocol metadata binding without fake parent software revisions.
+- **A7** — canonical set ordering / order-malleability closure.
+- **A8** — fixed-point dependency-scoped state binding, unrelated-state stability, ancestor conflict/debt propagation and explicit v1/v2 compatibility.
 
 ## Acceptance gates
 
-The dedicated `Truth Knowledge A Layer` workflow runs on Python 3.11 and 3.13 and must:
+A8 is accepted only if the exact final head passes:
 
-1. compile the five canonical A authorities, all Truth Closure protocol modules, and the canonical subprotocol-binding registry;
-2. pass every `tests/test_truth_knowledge_*.py` contract (A1 through the latest hardening wave);
-3. pass repository authority projection audit.
+1. Python 3.11 and 3.13 compile for the five canonical A authorities, Truth helpers and metadata registry;
+2. every `tests/test_truth_knowledge_*.py` contract, including A1–A8 adversarial/serialization tests;
+3. repository authority projection audit with no new migration debt or duplicate authority;
+4. full Refoundation Epoch 0 on Python 3.11 and 3.13, including 67/67 dossier freshness, repository audit, zero-loss evidence, organization/campaign/execution regressions and frozen Neural metadata;
+5. manual PR scope/review check showing no ownership changes outside family A and no unresolved blocking threads.
 
-The Refoundation Epoch 0 workflow remains the broader repository regression gate. Historical R-series workflows do not define current architecture authority.
+Historical R-series workflows do not define current architecture authority.
