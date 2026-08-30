@@ -18,6 +18,7 @@ from nolane.external_core.software_engineering import (
     PatchTransactionLedger,
     SoftwareEngineeringClosureEngine,
 )
+from nolane.external_core.software_engineering_mutation import EvidenceBoundMutationAuthorityEngine
 from nolane.external_core.software_engineering_policy import (
     EngineeringChangeManifestLedger,
     EngineeringGateReceipt,
@@ -28,7 +29,6 @@ from nolane.external_core.software_engineering_policy import (
 from nolane.external_core.software_engineering_validity import (
     EngineeringClaimBindingLedger,
     EngineeringCurrentValidityReceipt,
-    EngineeringMutationAuthorityEngine,
     EngineeringMutationAuthorityReceipt,
     EngineeringValidityEngine,
 )
@@ -173,7 +173,7 @@ class SoftwareEngineeringControlPlane:
         closure: SoftwareEngineeringClosureEngine | None = None,
         policy: EngineeringVerificationPolicy | None = None,
         gate: GovernedEngineeringGate | None = None,
-        mutation_authority: EngineeringMutationAuthorityEngine | None = None,
+        mutation_authority: EvidenceBoundMutationAuthorityEngine | None = None,
         validity: EngineeringValidityEngine | None = None,
         works: Mapping[str, EngineeringWorkRecord] | None = None,
     ) -> None:
@@ -207,9 +207,10 @@ class SoftwareEngineeringControlPlane:
         self.mutation_authority = (
             mutation_authority
             if mutation_authority is not None
-            else EngineeringMutationAuthorityEngine(
+            else EvidenceBoundMutationAuthorityEngine(
                 transactions=self.transactions,
                 claim_bindings=self.claim_bindings,
+                evidence=self.evidence,
             )
         )
         self.validity = (
@@ -379,10 +380,7 @@ class SoftwareEngineeringControlPlane:
         return self.mutation_authority.assess(work.transaction_id, patch=patch)
 
     def mark_applied(self, transaction_id: str, *, application_ref: str) -> EngineeringPatchTransaction:
-        binding = self.claim_bindings.for_transaction(transaction_id)
-        if binding is None:
-            raise PermissionError("patch application denied by mutation authority: missing claim-state binding")
-        reasons = self.claim_bindings.current_reasons(binding.binding_id)
+        reasons = self.mutation_authority.preapply_reasons(transaction_id)
         if reasons:
             raise PermissionError(
                 "patch application denied by mutation authority: " + ", ".join(reasons)
@@ -521,9 +519,10 @@ class SoftwareEngineeringControlPlane:
             manifests=manifests,
             state=state["gate"],
         )
-        mutation_authority = EngineeringMutationAuthorityEngine.from_state(
+        mutation_authority = EvidenceBoundMutationAuthorityEngine.from_state(
             transactions=transactions,
             claim_bindings=claim_bindings,
+            evidence=evidence,
             state=state["mutation_authority"],
         )
         validity = EngineeringValidityEngine.from_state(
