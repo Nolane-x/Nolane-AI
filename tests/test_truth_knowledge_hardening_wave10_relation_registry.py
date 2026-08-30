@@ -149,7 +149,11 @@ def test_a10_registry_roundtrip_rejects_duplicate_and_tampered_revision_state():
         RelationSemanticsRegistry.from_state(duplicate)
 
     tampered = deepcopy(state)
-    tampered["revisions"][0]["cardinality"] = RelationCardinality.MULTI_VALUED.value
+    status_v1 = next(
+        row for row in tampered["revisions"]
+        if row["relation"] == "status" and row["revision"] == 1
+    )
+    status_v1["cardinality"] = RelationCardinality.MULTI_VALUED.value
     with pytest.raises(ValueError, match="relation semantics revision digest mismatch"):
         RelationSemanticsRegistry.from_state(tampered)
 
