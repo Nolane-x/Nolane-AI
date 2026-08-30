@@ -4,12 +4,13 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 from ._truth_digest import truth_digest
-from .epistemic_truth import EpistemicDebt, EpistemicDisposition, EpistemicSnapshot
+from .epistemic_truth import EpistemicDebt, EpistemicDisposition, EpistemicJudge, EpistemicSnapshot
+from .evidence_truth import EvidenceLedger
 from .knowledge import KnowledgeLedger, KnowledgeRisk
 from .verification_truth import TruthVerificationLedger
 
 COMPONENT_ID = "external.assurance.truth"
-COMPONENT_VERSION = "0.2.0"
+COMPONENT_VERSION = "0.3.0"
 
 _REQUIREMENTS = {
     KnowledgeRisk.LOW: (1, 1), KnowledgeRisk.STANDARD: (1, 1),
@@ -23,6 +24,7 @@ class TruthClosureCertificate:
     claim_id: str
     risk: KnowledgeRisk
     knowledge_digest: str
+    evidence_digest: str
     epistemic_digest: str
     verification_digest: str
     verification_receipt_ids: tuple[str, ...]
@@ -32,21 +34,23 @@ class TruthClosureCertificate:
     digest: str
 
     @classmethod
-    def create(cls, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, epistemic_digest: str,
-               verification_digest: str, verification_receipt_ids: tuple[str, ...],
+    def create(cls, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, evidence_digest: str,
+               epistemic_digest: str, verification_digest: str, verification_receipt_ids: tuple[str, ...],
                epistemic_debt_ids: tuple[str, ...], closed: bool, reasons: tuple[str, ...]) -> "TruthClosureCertificate":
         payload = {"claim_id": str(claim_id), "risk": KnowledgeRisk(risk).value,
-                   "knowledge_digest": str(knowledge_digest), "epistemic_digest": str(epistemic_digest),
-                   "verification_digest": str(verification_digest), "verification_receipt_ids": list(verification_receipt_ids),
+                   "knowledge_digest": str(knowledge_digest), "evidence_digest": str(evidence_digest),
+                   "epistemic_digest": str(epistemic_digest), "verification_digest": str(verification_digest),
+                   "verification_receipt_ids": list(verification_receipt_ids),
                    "epistemic_debt_ids": list(epistemic_debt_ids), "closed": bool(closed), "reasons": list(reasons)}
         digest = truth_digest(payload)
         return cls(f"truth-closure-{digest[:24]}", str(claim_id), KnowledgeRisk(risk), str(knowledge_digest),
-                   str(epistemic_digest), str(verification_digest), tuple(verification_receipt_ids),
-                   tuple(epistemic_debt_ids), bool(closed), tuple(reasons), digest)
+                   str(evidence_digest), str(epistemic_digest), str(verification_digest),
+                   tuple(verification_receipt_ids), tuple(epistemic_debt_ids), bool(closed), tuple(reasons), digest)
 
     def payload(self) -> dict[str, Any]:
         return {"claim_id": self.claim_id, "risk": self.risk.value, "knowledge_digest": self.knowledge_digest,
-                "epistemic_digest": self.epistemic_digest, "verification_digest": self.verification_digest,
+                "evidence_digest": self.evidence_digest, "epistemic_digest": self.epistemic_digest,
+                "verification_digest": self.verification_digest,
                 "verification_receipt_ids": list(self.verification_receipt_ids),
                 "epistemic_debt_ids": list(self.epistemic_debt_ids), "closed": self.closed, "reasons": list(self.reasons)}
 
@@ -56,7 +60,8 @@ class TruthClosureCertificate:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "TruthClosureCertificate":
         row = cls.create(claim_id=str(state["claim_id"]), risk=KnowledgeRisk(str(state["risk"])),
-                         knowledge_digest=str(state["knowledge_digest"]), epistemic_digest=str(state["epistemic_digest"]),
+                         knowledge_digest=str(state["knowledge_digest"]), evidence_digest=str(state["evidence_digest"]),
+                         epistemic_digest=str(state["epistemic_digest"]),
                          verification_digest=str(state["verification_digest"]),
                          verification_receipt_ids=tuple(str(x) for x in state.get("verification_receipt_ids", ())),
                          epistemic_debt_ids=tuple(str(x) for x in state.get("epistemic_debt_ids", ())),
@@ -67,58 +72,92 @@ class TruthClosureCertificate:
 
 
 class TruthAssuranceGate:
-    """Final closure only. Strict closure consumes canonical epistemic state rather than caller assertions."""
+    """Final truth closure authority.
+
+    `close_snapshot` and `close_live` are the only strict closure paths. The legacy digest-only
+    `close` method is retained as a compatibility diagnostic surface but is permanently fail-closed:
+    caller-asserted digests/debt can never manufacture a truth certificate.
+    """
 
     @staticmethod
-    def _verification(*, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str,
-                      epistemic_digest: str, verification: TruthVerificationLedger):
-        rows = verification.bound_receipts(claim_id, knowledge_digest=knowledge_digest, epistemic_digest=epistemic_digest)
-        reasons: list[str] = []
-        if any(not row.passed for row in rows):
+    def _strict_verification(*, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str,
+                             epistemic_digest: str, verification: TruthVerificationLedger,
+                             evidence: EvidenceLedger):
+        coverage = verification.coverage(
+            claim_id, knowledge_digest=knowledge_digest, epistemic_digest=epistemic_digest, evidence=evidence,
+        )
+        reasons: list[str] = list(coverage.issues)
+        if coverage.negative_receipt_ids:
             reasons.append("negative_verification")
         required_sources, required_channels = _REQUIREMENTS[risk]
-        if len({row.source_family for row in rows if row.passed}) < required_sources:
+        if coverage.independent_source_count < required_sources:
             reasons.append("insufficient_independent_verification")
-        if len({row.channel for row in rows if row.passed}) < required_channels:
+        if coverage.channel_count < required_channels:
             reasons.append("insufficient_verification_channel_diversity")
-        return rows, reasons
+        return coverage.receipts, reasons
 
     def close(self, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, epistemic_digest: str,
               verification: TruthVerificationLedger, debts: tuple[EpistemicDebt, ...] = ()) -> TruthClosureCertificate:
+        """Compatibility-only unbound path. It intentionally cannot return `closed=True`."""
         risk = KnowledgeRisk(risk)
-        rows, reasons = self._verification(claim_id=str(claim_id), risk=risk, knowledge_digest=str(knowledge_digest),
-                                           epistemic_digest=str(epistemic_digest), verification=verification)
+        rows = verification.bound_receipts(
+            str(claim_id), knowledge_digest=str(knowledge_digest), epistemic_digest=str(epistemic_digest),
+        )
         claim_debts = tuple(sorted((row for row in debts if row.claim_id == str(claim_id)), key=lambda row: row.debt_id))
+        reasons = ["noncanonical_closure_path"]
+        if any(not row.passed for row in rows):
+            reasons.append("negative_verification")
         if any(row.critical for row in claim_debts):
-            reasons.insert(0, "critical_epistemic_debt")
-        reasons = list(dict.fromkeys(reasons))
-        return TruthClosureCertificate.create(claim_id=str(claim_id), risk=risk, knowledge_digest=str(knowledge_digest),
-                                              epistemic_digest=str(epistemic_digest), verification_digest=verification.digest,
-                                              verification_receipt_ids=tuple(row.receipt_id for row in rows),
-                                              epistemic_debt_ids=tuple(row.debt_id for row in claim_debts),
-                                              closed=not reasons, reasons=tuple(reasons))
+            reasons.append("critical_epistemic_debt")
+        return TruthClosureCertificate.create(
+            claim_id=str(claim_id), risk=risk, knowledge_digest=str(knowledge_digest), evidence_digest="unbound",
+            epistemic_digest=str(epistemic_digest), verification_digest=verification.digest,
+            verification_receipt_ids=tuple(row.receipt_id for row in rows),
+            epistemic_debt_ids=tuple(row.debt_id for row in claim_debts),
+            closed=False, reasons=tuple(dict.fromkeys(reasons)),
+        )
 
-    def close_snapshot(self, *, claim_id: str, knowledge: KnowledgeLedger, epistemic: EpistemicSnapshot,
-                       verification: TruthVerificationLedger) -> TruthClosureCertificate:
+    def close_snapshot(self, *, claim_id: str, knowledge: KnowledgeLedger, evidence: EvidenceLedger,
+                       epistemic: EpistemicSnapshot, verification: TruthVerificationLedger) -> TruthClosureCertificate:
         if epistemic.knowledge_digest != knowledge.digest:
             raise ValueError("epistemic snapshot is bound to a different knowledge state")
+        if epistemic.evidence_digest != evidence.digest:
+            raise ValueError("epistemic snapshot is bound to a different evidence state")
+
+        canonical = EpistemicJudge().snapshot(knowledge=knowledge, evidence=evidence)
+        if canonical.digest != epistemic.digest:
+            raise ValueError("noncanonical epistemic snapshot")
+
         claim = knowledge.get(claim_id)
-        assessment = epistemic.assessment(claim.claim_id)
-        rows, reasons = self._verification(claim_id=claim.claim_id, risk=claim.risk, knowledge_digest=knowledge.digest,
-                                           epistemic_digest=epistemic.digest, verification=verification)
-        claim_debts = tuple(row for row in epistemic.debts if row.claim_id == claim.claim_id)
+        assessment = canonical.assessment(claim.claim_id)
+        rows, reasons = self._strict_verification(
+            claim_id=claim.claim_id, risk=claim.risk, knowledge_digest=knowledge.digest,
+            epistemic_digest=canonical.digest, verification=verification, evidence=evidence,
+        )
+        claim_debts = tuple(row for row in canonical.debts if row.claim_id == claim.claim_id)
         if assessment.disposition is not EpistemicDisposition.SUPPORTED:
             reasons.insert(0, "epistemic_claim_not_supported")
-        if any(claim.claim_id in row.claim_ids for row in epistemic.contradictions):
+        if any(claim.claim_id in row.claim_ids for row in canonical.contradictions):
             reasons.insert(0, "epistemic_claim_conflicted")
         if any(row.critical for row in claim_debts):
             reasons.insert(0, "critical_epistemic_debt")
         reasons = list(dict.fromkeys(reasons))
-        return TruthClosureCertificate.create(claim_id=claim.claim_id, risk=claim.risk, knowledge_digest=knowledge.digest,
-                                              epistemic_digest=epistemic.digest, verification_digest=verification.digest,
-                                              verification_receipt_ids=tuple(row.receipt_id for row in rows),
-                                              epistemic_debt_ids=tuple(sorted(row.debt_id for row in claim_debts)),
-                                              closed=not reasons, reasons=tuple(reasons))
+        return TruthClosureCertificate.create(
+            claim_id=claim.claim_id, risk=claim.risk, knowledge_digest=knowledge.digest,
+            evidence_digest=evidence.digest, epistemic_digest=canonical.digest, verification_digest=verification.digest,
+            verification_receipt_ids=tuple(row.receipt_id for row in rows),
+            epistemic_debt_ids=tuple(sorted(row.debt_id for row in claim_debts)),
+            closed=not reasons, reasons=tuple(reasons),
+        )
+
+    def close_live(self, *, claim_id: str, knowledge: KnowledgeLedger, evidence: EvidenceLedger,
+                   verification: TruthVerificationLedger) -> TruthClosureCertificate:
+        """Compute canonical epistemic state from live ledgers and attempt strict closure."""
+        snapshot = EpistemicJudge().snapshot(knowledge=knowledge, evidence=evidence)
+        return self.close_snapshot(
+            claim_id=claim_id, knowledge=knowledge, evidence=evidence,
+            epistemic=snapshot, verification=verification,
+        )
 
 
 __all__ = ("TruthClosureCertificate", "TruthAssuranceGate")
