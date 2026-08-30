@@ -196,3 +196,110 @@ def test_goal_design_ledger_restore_rejects_tampered_event_identity():
 
     with pytest.raises(ValueError, match="identity digest mismatch"):
         GoalDesignLedger.from_state(state)
+
+
+def test_revoked_decision_is_terminal_and_cannot_be_downgraded_or_superseded():
+    index = DecisionAuthorityIndex()
+    revoked = _receipt("receipt:revoked")
+    replacement = _receipt("receipt:replacement")
+    index.register(revoked)
+    index.register(replacement)
+    index.revoke(revoked.receipt_id, "explicit withdrawal")
+
+    with pytest.raises(ValueError, match="terminal"):
+        index.mark_stale(revoked.receipt_id, ("later authority drift",))
+    with pytest.raises(ValueError, match="terminal"):
+        index.supersede(revoked.receipt_id, by_receipt_id=replacement.receipt_id)
+
+    assert index.get(revoked.receipt_id).lifecycle is DecisionLifecycle.REVOKED
+
+
+def test_superseded_decision_is_terminal_and_cannot_be_rewritten():
+    index = DecisionAuthorityIndex()
+    original = _receipt("receipt:original")
+    replacement = _receipt("receipt:replacement")
+    index.register(original)
+    index.register(replacement)
+    index.supersede(original.receipt_id, by_receipt_id=replacement.receipt_id)
+
+    with pytest.raises(ValueError, match="terminal"):
+        index.mark_stale(original.receipt_id, ("later drift",))
+    with pytest.raises(ValueError, match="terminal"):
+        index.revoke(original.receipt_id, "late withdrawal")
+
+    record = index.get(original.receipt_id)
+    assert record.lifecycle is DecisionLifecycle.SUPERSEDED
+    assert record.superseded_by == replacement.receipt_id
+
+
+def test_stale_decision_may_move_forward_to_terminal_state():
+    index = DecisionAuthorityIndex()
+    stale_for_revoke = _receipt("receipt:stale-revoke")
+    stale_for_supersede = _receipt("receipt:stale-supersede")
+    replacement = _receipt("receipt:replacement")
+    for receipt in (stale_for_revoke, stale_for_supersede, replacement):
+        index.register(receipt)
+
+    index.mark_stale(stale_for_revoke.receipt_id, ("requirements drift",))
+    index.mark_stale(stale_for_supersede.receipt_id, ("architecture drift",))
+
+    assert index.revoke(stale_for_revoke.receipt_id, "withdraw stale decision").lifecycle is DecisionLifecycle.REVOKED
+    superseded = index.supersede(stale_for_supersede.receipt_id, by_receipt_id=replacement.receipt_id)
+    assert superseded.lifecycle is DecisionLifecycle.SUPERSEDED
+    assert superseded.superseded_by == replacement.receipt_id
+
+
+def test_supersession_cycle_is_rejected_at_runtime():
+    index = DecisionAuthorityIndex()
+    first = _receipt("receipt:first")
+    second = _receipt("receipt:second")
+    index.register(first)
+    index.register(second)
+    index.supersede(first.receipt_id, by_receipt_id=second.receipt_id)
+
+    with pytest.raises(ValueError, match="cycle|terminal"):
+        index.supersede(second.receipt_id, by_receipt_id=first.receipt_id)
+
+    assert index.get(second.receipt_id).lifecycle is DecisionLifecycle.ACTIVE
+
+
+def test_restore_rejects_tampered_supersession_cycle():
+    index = DecisionAuthorityIndex()
+    first = _receipt("receipt:first")
+    second = _receipt("receipt:second")
+    index.register(first)
+    index.register(second)
+    state = index.to_state()
+    rows = {row["receipt"]["receipt_id"]: row for row in state["records"]}
+    rows[first.receipt_id]["lifecycle"] = DecisionLifecycle.SUPERSEDED.value
+    rows[first.receipt_id]["superseded_by"] = second.receipt_id
+    rows[second.receipt_id]["lifecycle"] = DecisionLifecycle.SUPERSEDED.value
+    rows[second.receipt_id]["superseded_by"] = first.receipt_id
+
+    with pytest.raises(ValueError, match="cycle"):
+        DecisionAuthorityIndex.from_state(state)
+
+
+def test_mark_stale_requires_at_least_one_authority_reason():
+    index = DecisionAuthorityIndex()
+    receipt = _receipt("receipt:no-reason")
+    index.register(receipt)
+
+    with pytest.raises(ValueError, match="reason"):
+        index.mark_stale(receipt.receipt_id, ())
+
+    assert index.get(receipt.receipt_id).lifecycle is DecisionLifecycle.ACTIVE
+
+
+def test_supersession_requires_an_active_replacement_decision():
+    index = DecisionAuthorityIndex()
+    original = _receipt("receipt:original")
+    replacement = _receipt("receipt:replacement")
+    index.register(original)
+    index.register(replacement)
+    index.mark_stale(replacement.receipt_id, ("replacement drift",))
+
+    with pytest.raises(ValueError, match="replacement.*active"):
+        index.supersede(original.receipt_id, by_receipt_id=replacement.receipt_id)
+
+    assert index.get(original.receipt_id).lifecycle is DecisionLifecycle.ACTIVE

@@ -40,7 +40,7 @@ from .goal_design_contracts import (
 )
 from .goal_design_ledger import GoalDesignLedger
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 
 class DecisionLifecycle(str, Enum):
@@ -121,6 +121,7 @@ class DecisionAuthorityIndex:
     """Persistent authority index over immutable content-addressed receipts."""
 
     SCHEMA_VERSION = 1
+    TERMINAL_LIFECYCLES = frozenset({DecisionLifecycle.SUPERSEDED, DecisionLifecycle.REVOKED})
 
     def __init__(self) -> None:
         self._records: dict[str, DecisionAuthorityRecord] = {}
@@ -171,6 +172,13 @@ class DecisionAuthorityIndex:
             input_manifest_digest=str(state.get("input_manifest_digest", "")),
         )
 
+    @classmethod
+    def _ensure_mutable(cls, record: DecisionAuthorityRecord, *, action: str) -> None:
+        if record.lifecycle in cls.TERMINAL_LIFECYCLES:
+            raise ValueError(
+                f"decision lifecycle is terminal ({record.lifecycle.value}); cannot {action}"
+            )
+
     def register(
         self,
         receipt: DecisionReceipt,
@@ -206,10 +214,12 @@ class DecisionAuthorityIndex:
         return tuple(record for record in self.records() if record.lifecycle is DecisionLifecycle.ACTIVE)
 
     def mark_stale(self, receipt_id: str, reasons: Iterable[str]) -> DecisionAuthorityRecord:
+        normalized = tuple(sorted({str(reason).strip() for reason in reasons if str(reason).strip()}))
+        if not normalized:
+            raise ValueError("decision staleness requires at least one authority reason")
         record = self.get(receipt_id)
-        merged = tuple(
-            sorted(set(record.invalidation_reasons) | {str(reason) for reason in reasons if str(reason).strip()})
-        )
+        self._ensure_mutable(record, action="mark stale")
+        merged = tuple(sorted(set(record.invalidation_reasons) | set(normalized)))
         if record.lifecycle is DecisionLifecycle.STALE and merged == record.invalidation_reasons:
             return record
         updated = replace(record, lifecycle=DecisionLifecycle.STALE, invalidation_reasons=merged)
@@ -221,6 +231,7 @@ class DecisionAuthorityIndex:
         if not reason:
             raise ValueError("decision revocation requires a reason")
         record = self.get(receipt_id)
+        self._ensure_mutable(record, action="revoke")
         updated = replace(
             record,
             lifecycle=DecisionLifecycle.REVOKED,
@@ -230,10 +241,17 @@ class DecisionAuthorityIndex:
         return updated
 
     def supersede(self, receipt_id: str, *, by_receipt_id: str) -> DecisionAuthorityRecord:
-        self.get(by_receipt_id)
-        record = self.get(receipt_id)
         if receipt_id == by_receipt_id:
             raise ValueError("a decision cannot supersede itself")
+        record = self.get(receipt_id)
+        replacement = self.get(by_receipt_id)
+        self._ensure_mutable(record, action="supersede")
+        if replacement.lifecycle is not DecisionLifecycle.ACTIVE:
+            qualifier = "terminal " if replacement.lifecycle in self.TERMINAL_LIFECYCLES else ""
+            raise ValueError(
+                "replacement decision must be active; "
+                f"observed {qualifier}{replacement.lifecycle.value}"
+            )
         updated = replace(record, lifecycle=DecisionLifecycle.SUPERSEDED, superseded_by=by_receipt_id)
         self._records[receipt_id] = updated
         return updated
@@ -288,6 +306,17 @@ class DecisionAuthorityIndex:
                     raise ValueError("superseded decision references unknown replacement receipt")
             elif record.superseded_by is not None:
                 raise ValueError("non-superseded decision cannot carry superseded_by")
+
+        for start_id in sorted(index._records):
+            seen: set[str] = set()
+            current_id = start_id
+            while index._records[current_id].lifecycle is DecisionLifecycle.SUPERSEDED:
+                target_id = index._records[current_id].superseded_by
+                assert target_id is not None
+                if target_id in seen:
+                    raise ValueError("decision authority supersession cycle detected")
+                seen.add(current_id)
+                current_id = target_id
         return index
 
 
