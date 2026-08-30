@@ -33,14 +33,23 @@ def test_runtime_state_mapping_preserves_every_legacy_section_byte_semantically(
         assert projected["canonical_owner"] == binding.canonical_owner
 
 
-def test_governed_learning_validation_state_stays_inside_skill_authority() -> None:
+def test_governed_learning_state_is_partitioned_by_canonical_owner() -> None:
     state = OrganizationRuntime.first_generation().to_state()
     envelope = RuntimeStateMapper().map_state(state)
-    learning = envelope.section("learning_substrate")
 
-    assert learning["canonical_owner"] == "external.skills"
-    assert learning["legacy_semantics"] is False
-    assert learning["legacy_state"] == state["learning_substrate"]
+    skills = envelope.section("learning_substrate")
+    lifecycle = envelope.section("memory_learning_lifecycle")
+    retrieval = envelope.section("memory_learning_retrieval")
+
+    assert skills["canonical_owner"] == "external.skills"
+    assert lifecycle["canonical_owner"] == "external.memory.lifecycle"
+    assert retrieval["canonical_owner"] == "external.memory.retrieval"
+    assert skills["legacy_semantics"] is False
+    assert lifecycle["legacy_semantics"] is False
+    assert retrieval["legacy_semantics"] is False
+    assert skills["legacy_state"] == state["learning_substrate"]
+    assert lifecycle["legacy_state"] == state["memory_learning_lifecycle"]
+    assert retrieval["legacy_state"] == state["memory_learning_retrieval"]
 
 
 def test_unknown_runtime_state_section_fails_closed() -> None:
