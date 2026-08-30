@@ -1,0 +1,348 @@
+from __future__ import annotations
+
+import time
+from dataclasses import dataclass
+from typing import Any, Iterable, Mapping, Protocol
+
+from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.acting_protocol import (
+    ActionBudget,
+    ActionPhase,
+    ActionRecord,
+    ActingProtocolLedger,
+    EffectClass,
+    ExecutionContract,
+    ExecutionRisk,
+    ProtocolViolation,
+    VerifierLevel,
+)
+from nolane.external_core.execution_types import ToolAction
+from nolane.external_core.execution_workspace import RepositoryWorkspace, WorkspaceCheckpoint
+
+
+COMPONENT_ID = "external.acting.runtime"
+COMPONENT_VERSION = "0.1.1"
+
+
+class CoreReceipt(Protocol):
+    receipt_id: str
+    success: bool
+    failure_kind: str | None
+    output_artifact_ids: tuple[str, ...]
+    evidence_artifact_id: str
+
+
+class CoreExecutor(Protocol):
+    def invoke(
+        self,
+        *,
+        agent_id: str,
+        task_id: str,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        **kwargs: Any,
+    ) -> CoreReceipt: ...
+
+    def get_receipt(self, receipt_id: str) -> CoreReceipt: ...
+
+
+@dataclass(frozen=True, slots=True)
+class ActingInvocationResult:
+    record: ActionRecord
+    core_receipt_id: str
+    output_artifact_ids: tuple[str, ...]
+    replayed: bool = False
+
+
+class TransactionalExternalCoreExecutor:
+    """Transactional gate around the concrete ExternalCoreExecutor.
+
+    This class is the E. Acting execution boundary. Upstream systems choose and
+    authorize an action; this kernel only enforces execution contracts, leases,
+    capabilities, effect budgets, evidence gates, idempotency and recovery.
+    """
+
+    def __init__(self, *, executor: CoreExecutor, protocol: ActingProtocolLedger | None = None) -> None:
+        self.executor = executor
+        self.protocol = protocol or ActingProtocolLedger()
+
+    @staticmethod
+    def _default_budget(effect_class: EffectClass) -> ActionBudget:
+        effect = EffectClass(effect_class)
+        return ActionBudget(
+            max_attempts=1,
+            max_local_mutations=1 if effect is EffectClass.LOCAL_MUTATION else 0,
+            max_external_effects=1 if effect in {EffectClass.EXTERNAL_MUTATION, EffectClass.IRREVERSIBLE} else 0,
+        )
+
+    @staticmethod
+    def _action_id(*, agent_id: str, task_id: str, idempotency_key: str) -> str:
+        digest = canonical_digest(
+            {
+                "agent_id": str(agent_id),
+                "task_id": str(task_id),
+                "idempotency_key": str(idempotency_key),
+            }
+        )
+        return "acting-action-" + digest[:24]
+
+    def _replay(self, row: ActionRecord) -> ActingInvocationResult:
+        if row.phase not in {
+            ActionPhase.COMMITTED,
+            ActionPhase.ROLLED_BACK,
+            ActionPhase.DEGRADED,
+            ActionPhase.CANCELLED,
+        }:
+            raise ProtocolViolation(
+                "idempotent action is already in progress; explicit resume/recovery is required"
+            )
+        receipt_id = row.outcome_ref
+        outputs: tuple[str, ...] = ()
+        if receipt_id:
+            receipt = self.executor.get_receipt(receipt_id)
+            outputs = tuple(str(x) for x in receipt.output_artifact_ids)
+        return ActingInvocationResult(
+            record=row,
+            core_receipt_id=receipt_id,
+            output_artifact_ids=outputs,
+            replayed=True,
+        )
+
+    @staticmethod
+    def _safe_release(workspace: RepositoryWorkspace, checkpoint: WorkspaceCheckpoint | None) -> None:
+        if checkpoint is None:
+            return
+        try:
+            workspace.release_checkpoint(checkpoint)
+        except FileNotFoundError:
+            return
+
+    def _recover_after_effect(
+        self,
+        *,
+        action_id: str,
+        workspace: RepositoryWorkspace,
+        checkpoint: WorkspaceCheckpoint | None,
+        effect_class: EffectClass,
+        failure_reason: str,
+        recovery_evidence_ref: str,
+    ) -> ActionRecord:
+        effect = EffectClass(effect_class)
+        if effect is EffectClass.LOCAL_MUTATION:
+            if checkpoint is None:
+                return self.protocol.degrade(
+                    action_id,
+                    recovery_ref=recovery_evidence_ref,
+                    failure_reason="local mutation has no rollback checkpoint: " + failure_reason,
+                )
+            try:
+                restored = workspace.restore(checkpoint)
+            except Exception as exc:
+                return self.protocol.degrade(
+                    action_id,
+                    recovery_ref=recovery_evidence_ref,
+                    failure_reason=f"workspace rollback failed: {type(exc).__name__}: {exc}; original={failure_reason}",
+                )
+            finally:
+                self._safe_release(workspace, checkpoint)
+            return self.protocol.rollback(
+                action_id,
+                rollback_ref=f"{checkpoint.checkpoint_id}:{restored}",
+                failure_reason=failure_reason,
+            )
+        if effect is EffectClass.READ:
+            return self.protocol.rollback(
+                action_id,
+                rollback_ref="no-side-effect:" + recovery_evidence_ref,
+                failure_reason=failure_reason,
+            )
+        return self.protocol.degrade(
+            action_id,
+            recovery_ref=recovery_evidence_ref,
+            failure_reason=failure_reason,
+        )
+
+    def invoke(
+        self,
+        *,
+        agent_id: str,
+        task_id: str,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        risk_class: ExecutionRisk,
+        effect_class: EffectClass,
+        required_capabilities: Iterable[str],
+        capability_grants: Iterable[str],
+        authorization_ref: str,
+        preconditions: Iterable[str] = (),
+        precondition_evidence_refs: Iterable[str] = (),
+        postconditions: Iterable[str] = (),
+        postcondition_evidence_refs: Iterable[str] = (),
+        verifier_level: VerifierLevel | int | str = VerifierLevel.V1,
+        idempotency_key: str,
+        recovery_plan: str = "",
+        budget: ActionBudget | None = None,
+        now_ms: int,
+        lease_ttl_ms: int,
+        timeout_seconds: float = 30.0,
+        max_output_chars: int = 200_000,
+    ) -> ActingInvocationResult:
+        effect = EffectClass(effect_class)
+        risk = ExecutionRisk(risk_class)
+        resolved_verifier_level = VerifierLevel.coerce(verifier_level)
+        minimum_verifier_level = self.protocol.minimum_verifier_level(risk)
+        if resolved_verifier_level < minimum_verifier_level:
+            raise PermissionError(
+                f'{risk.value} postcondition verification requires {minimum_verifier_level.name}'
+            )
+        key = str(idempotency_key).strip()
+        if not key:
+            raise ValueError("transactional invocation requires an idempotency key")
+        action_id = self._action_id(agent_id=agent_id, task_id=task_id, idempotency_key=key)
+        contract = ExecutionContract(
+            action_id=action_id,
+            core_id=action.tool_id,
+            operation=action.operation,
+            input_digest=canonical_digest(action.to_state()),
+            risk_class=risk,
+            effect_class=effect,
+            required_capabilities=tuple(str(x) for x in required_capabilities),
+            preconditions=tuple(str(x) for x in preconditions),
+            postconditions=tuple(str(x) for x in postconditions),
+            idempotency_key=key,
+            recovery_plan=str(recovery_plan),
+            budget=budget or self._default_budget(effect),
+        )
+        row = self.protocol.propose(contract)
+        if row.action_id != action_id or row.phase is not ActionPhase.PROPOSED:
+            return self._replay(row)
+
+        lease_clock_started_ns = time.monotonic_ns()
+        base_now_ms = int(now_ms)
+
+        def current_now_ms() -> int:
+            elapsed_ms = max(0, (time.monotonic_ns() - lease_clock_started_ns) // 1_000_000)
+            return base_now_ms + int(elapsed_ms)
+
+        row = self.protocol.acquire_lease(
+            action_id,
+            owner_id=str(agent_id),
+            authorization_ref=str(authorization_ref),
+            capability_grants=tuple(str(x) for x in capability_grants),
+            now_ms=base_now_ms,
+            ttl_ms=int(lease_ttl_ms),
+        )
+        row = self.protocol.verify_preconditions(
+            action_id,
+            evidence_refs=tuple(str(x) for x in precondition_evidence_refs),
+            now_ms=current_now_ms(),
+        )
+
+        checkpoint: WorkspaceCheckpoint | None = None
+        if effect is EffectClass.LOCAL_MUTATION:
+            checkpoint = workspace.checkpoint(label=f"{action_id}:before-core")
+
+        receipt: CoreReceipt | None = None
+        try:
+            self.protocol.begin_execution(action_id, now_ms=current_now_ms())
+            receipt = self.executor.invoke(
+                agent_id=str(agent_id),
+                task_id=str(task_id),
+                workspace=workspace,
+                action=action,
+                timeout_seconds=float(timeout_seconds),
+                max_output_chars=int(max_output_chars),
+            )
+            self.protocol.observe_outcome(
+                action_id,
+                outcome_ref=str(receipt.receipt_id),
+                success=bool(receipt.success),
+                now_ms=current_now_ms(),
+            )
+            if not receipt.success:
+                failure = str(receipt.failure_kind or "core execution failed")
+                row = self._recover_after_effect(
+                    action_id=action_id,
+                    workspace=workspace,
+                    checkpoint=checkpoint,
+                    effect_class=effect,
+                    failure_reason=failure,
+                    recovery_evidence_ref=str(receipt.evidence_artifact_id or receipt.receipt_id),
+                )
+                return ActingInvocationResult(
+                    record=row,
+                    core_receipt_id=str(receipt.receipt_id),
+                    output_artifact_ids=tuple(str(x) for x in receipt.output_artifact_ids),
+                    replayed=False,
+                )
+
+            postcondition_refs = tuple(
+                dict.fromkeys(str(x).strip() for x in postcondition_evidence_refs if str(x).strip())
+            )
+            receipt_evidence_ref = str(receipt.evidence_artifact_id or receipt.receipt_id).strip()
+            if receipt_evidence_ref and receipt_evidence_ref not in postcondition_refs:
+                postcondition_refs = postcondition_refs + (receipt_evidence_ref,)
+            self.protocol.verify_postconditions(
+                action_id,
+                evidence_refs=postcondition_refs,
+                verifier_level=resolved_verifier_level,
+                now_ms=current_now_ms(),
+            )
+            row = self.protocol.commit(
+                action_id,
+                commit_ref=str(receipt.receipt_id),
+                now_ms=current_now_ms(),
+            )
+            self._safe_release(workspace, checkpoint)
+            return ActingInvocationResult(
+                record=row,
+                core_receipt_id=str(receipt.receipt_id),
+                output_artifact_ids=tuple(str(x) for x in receipt.output_artifact_ids),
+                replayed=False,
+            )
+        except Exception as exc:
+            current = self.protocol.get(action_id)
+            if current.phase in {
+                ActionPhase.EXECUTING,
+                ActionPhase.OUTCOME_OBSERVED,
+                ActionPhase.POSTCONDITION_VERIFIED,
+            }:
+                recovery_ref = (
+                    str(receipt.evidence_artifact_id)
+                    if receipt is not None and str(receipt.evidence_artifact_id).strip()
+                    else f"exception:{type(exc).__name__}"
+                )
+                self._recover_after_effect(
+                    action_id=action_id,
+                    workspace=workspace,
+                    checkpoint=checkpoint,
+                    effect_class=effect,
+                    failure_reason=f"{type(exc).__name__}: {exc}",
+                    recovery_evidence_ref=recovery_ref,
+                )
+            else:
+                self._safe_release(workspace, checkpoint)
+            raise
+
+    def to_state(self) -> dict[str, Any]:
+        return {"protocol": self.protocol.to_state()}
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        executor: CoreExecutor,
+        state: Mapping[str, Any],
+    ) -> "TransactionalExternalCoreExecutor":
+        return cls(
+            executor=executor,
+            protocol=ActingProtocolLedger.from_state(state.get("protocol", {})),
+        )
+
+
+__all__ = (
+    "ActingInvocationResult",
+    "TransactionalExternalCoreExecutor",
+    "COMPONENT_ID",
+    "COMPONENT_VERSION",
+)

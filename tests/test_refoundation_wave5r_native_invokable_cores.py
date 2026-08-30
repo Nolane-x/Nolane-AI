@@ -26,7 +26,7 @@ def test_wave5r_canonical_invokable_core_owns_complete_public_implementation() -
 
     assert all(getattr(canonical, name).__module__ == "nolane.external_core.invokable" for name in _PUBLIC_SYMBOLS)
     assert canonical.COMPONENT_ID == "external.invokable_cores"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.external_core"
 
 
@@ -107,8 +107,8 @@ def test_wave5r_invokable_core_component_version_and_authority_cutover() -> None
     assert row.canonical_module == "nolane.external_core.invokable"
     assert row.legacy_sources == ("cogcoder/organization/external_core.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.invokable_cores")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.invokable_cores")) == "0.0.2"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.invokable_cores" not in facade_ids
