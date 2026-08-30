@@ -45,7 +45,7 @@ def _imports(path: Path) -> set[str]:
 def test_wave5ao_canonical_individual_evolution_cluster_owns_public_authority() -> None:
     canonical = importlib.import_module("nolane.external_core.individual_evolution")
     assert canonical.COMPONENT_ID == "external.individual_evolution"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.3"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.individual_evolution"
 
     for suffix, names in _MODULE_OBJECTS.items():
@@ -108,10 +108,10 @@ def test_wave5ao_individual_evolution_authority_version_facade_and_debt_cutover(
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.individual_evolution"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
+    assert row.component_version == "0.0.3"
     assert "cogcoder/organization/individual_evolution.py" in row.legacy_sources
     assert "cogcoder/organization/evolution_profiles.py" in row.legacy_sources
-    assert str(component_version("external.individual_evolution")) == "0.0.1"
+    assert str(component_version("external.individual_evolution")) == "0.0.3"
     assert all(binding.component_id != "external.individual_evolution" for binding in build_active_facade_bindings())
 
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
