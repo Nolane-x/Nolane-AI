@@ -8,6 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 PARENT_COMPONENT_ID = "external.knowledge"
 TRUTH_PROTOCOL = "truth-knowledge-v1"
+SCOPE_PROJECTION_PROTOCOL = "truth-knowledge-scope-v2"
 
 
 class KnowledgeRisk(str, Enum):
@@ -138,6 +139,61 @@ class KnowledgeLedger:
                     changed = True
         return tuple(sorted(impacted))
 
+    def lineage_claim_ids(self, claim_id: str) -> tuple[str, ...]:
+        """Return the target plus every transitive parent in canonical order."""
+        target = self.get(str(claim_id))
+        seen: set[str] = set()
+        pending = [target.claim_id]
+        while pending:
+            current = pending.pop()
+            if current in seen:
+                continue
+            claim = self.get(current)
+            seen.add(claim.claim_id)
+            pending.extend(claim.parent_claim_ids)
+        return tuple(sorted(seen))
+
+    def truth_scope_claim_ids(self, claim_id: str) -> tuple[str, ...]:
+        """Derive the fixed-point lineage + competing-proposition neighborhood for a target."""
+        scope = set(self.lineage_claim_ids(str(claim_id)))
+        changed = True
+        while changed:
+            changed = False
+            proposition_keys = {
+                (self.get(current).subject, self.get(current).relation)
+                for current in scope
+            }
+            competitors = {
+                row.claim_id for row in self._claims.values()
+                if (row.subject, row.relation) in proposition_keys
+            }
+            expanded = set(scope)
+            for competitor in competitors:
+                expanded.update(self.lineage_claim_ids(competitor))
+            if expanded != scope:
+                scope = expanded
+                changed = True
+        return tuple(sorted(scope))
+
+    def evidence_ids_for_claims(self, claim_ids: tuple[str, ...]) -> tuple[str, ...]:
+        ids = _uniq(tuple(claim_ids), "scope claim ids")
+        if not ids:
+            raise ValueError("scope claim ids must not be empty")
+        evidence_ids: set[str] = set()
+        for claim_id in ids:
+            evidence_ids.update(self.get(claim_id).evidence_ids)
+        return tuple(sorted(evidence_ids))
+
+    def scoped_state(self, claim_ids: tuple[str, ...]) -> dict[str, Any]:
+        ids = _uniq(tuple(claim_ids), "scope claim ids")
+        if not ids:
+            raise ValueError("scope claim ids must not be empty")
+        rows = [self.get(claim_id).to_state() for claim_id in ids]
+        return {"protocol": SCOPE_PROJECTION_PROTOCOL, "claims": rows}
+
+    def scoped_digest(self, claim_ids: tuple[str, ...]) -> str:
+        return canonical_digest(self.scoped_state(claim_ids))
+
     def to_state(self) -> dict[str, Any]:
         return {"protocol": TRUTH_PROTOCOL, "claims": [row.to_state() for row in self.claims()]}
 
@@ -180,5 +236,6 @@ class KnowledgeLedger:
 
 
 __all__ = (
-    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "KnowledgeRisk", "KnowledgeClaim", "KnowledgeLedger",
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "SCOPE_PROJECTION_PROTOCOL", "KnowledgeRisk",
+    "KnowledgeClaim", "KnowledgeLedger",
 )
