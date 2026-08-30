@@ -95,7 +95,7 @@ def test_runtime_restore_preserves_governed_skill_validation_and_shared_authorit
     assert promoted.scope is SkillScope.PERSONAL
 
 
-def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay() -> None:
+def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay_by_canonical_owner() -> None:
     runtime = OrganizationRuntime.first_generation()
     substrate = runtime.learning_substrate
 
@@ -112,7 +112,7 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay() -> None:
     )
     health = substrate.record_anchor_health(
         anchor.memory_id,
-        actor_agent_id="memory.worker",
+        actor_agent_id="verification.unit-property.01",
         healthy=True,
         evidence_ref="runtime-anchor-health",
         observed_version_scope="runtime-v1",
@@ -132,11 +132,12 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay() -> None:
     )
 
     state = runtime.to_state()
-    learning_state = state["learning_substrate"]
-    assert learning_state["metadata"]
-    assert learning_state["retrieval_policies"]
-    assert learning_state["retrieval_receipts"]
-    assert learning_state["anchor_health"]
+    lifecycle_state = state["memory_learning_lifecycle"]
+    retrieval_state = state["memory_learning_retrieval"]
+    assert lifecycle_state["metadata"]
+    assert lifecycle_state["anchor_health"]
+    assert retrieval_state["retrieval_policies"]
+    assert retrieval_state["retrieval_receipts"]
 
     restored = OrganizationRuntime.from_state(state)
     restored_substrate = restored.learning_substrate
