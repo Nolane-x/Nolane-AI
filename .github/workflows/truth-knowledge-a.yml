@@ -49,4 +49,4 @@ jobs:
             nolane/external_core/verification_truth.py \
             nolane/external_core/assurance_truth.py
       - name: Run Truth Knowledge contracts
-        run: python -m pytest -q tests/test_truth_knowledge_architecture.py tests/test_truth_knowledge_hardening_wave2.py
+        run: python -m pytest -q tests/test_truth_knowledge_architecture.py tests/test_truth_knowledge_hardening_wave2.py tests/test_truth_knowledge_hardening_wave3.py
