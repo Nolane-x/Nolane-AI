@@ -187,6 +187,11 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
         (),
         "Native stateless post-Epoch-0 proposal-generation authority over canonical Cognitive Library/CapabilityCandidate boundaries; owns no persistence, probation, promotion, Assurance or neural mutation authority, and historical invention engines remain design provenance only.",
     ),
+    "external.reasoning_invention": (
+        "nolane.external_core.reasoning_invention",
+        (),
+        "Native stateless post-Epoch-0 Reasoning/Invention protocol spine for evidence-bound hypotheses, falsification plans, independent challenge, deterministic Pareto frontiers, capability-gap envelopes and destination-bound transfer intents. It owns canonical protocol identity only: Cognitive Library registration, Capability Acquisition lifecycle, Transfer/Meta acceptance, Assurance and neural mutation remain separate authorities; Nolane World 0.12.0 is design provenance only.",
+    ),
     "external.transfer_meta": (
         "nolane.external_core.transfer_meta",
         (
