@@ -154,3 +154,11 @@ def test_organization_control_plane_persists_transactional_ledger_state() -> Non
     restore_source = inspect.getsource(OrganizationExecutionControlPlane.from_state)
     assert "acting_executor" in source
     assert "TransactionalExternalCoreExecutor.from_state" in restore_source
+
+
+def test_canonical_adapter_uses_risk_appropriate_verifier_levels() -> None:
+    source = inspect.getsource(OrganizationExecutionControlPlane.step)
+    assert "verifier_level = VerifierLevel.V2" in source
+    assert "verifier_level = VerifierLevel.V3" in source
+    assert "verifier_level = VerifierLevel.V1" in source
+    assert "verifier_level=verifier_level" in source
