@@ -30,6 +30,10 @@ on:
       - 'tests/test_coding_agi_self_*.py'
       - '.github/workflows/memory-learning-substrate.yml'
 
+concurrency:
+  group: memory-learning-substrate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   memory-learning-substrate:
     if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
