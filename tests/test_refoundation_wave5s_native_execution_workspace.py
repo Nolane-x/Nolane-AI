@@ -29,7 +29,7 @@ def test_wave5s_canonical_execution_workspace_owns_complete_public_implementatio
         for name in _PUBLIC_SYMBOLS
     )
     assert canonical.COMPONENT_ID == "external.execution.workspace"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.1.0"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution_workspace"
 
 

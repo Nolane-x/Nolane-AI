@@ -65,7 +65,7 @@ def test_wave5aa_canonical_module_owns_execution_control_semantics() -> None:
     import nolane.external_core.execution as canonical
 
     assert canonical.COMPONENT_ID == "external.execution.control"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution"
     for name in _PUBLIC_SYMBOLS:
         assert getattr(canonical, name).__module__ == "nolane.external_core.execution"

@@ -6,6 +6,8 @@ from enum import Enum
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
+from nolane.external_core.acting_protocol import EffectClass, ExecutionRisk, VerifierLevel
+from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.external_core.artifacts import ArtifactStore
 from nolane.external_core.execution_executor import ExternalCoreExecutor
 from nolane.external_core.execution_types import (
@@ -23,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -264,6 +266,7 @@ class OrganizationExecutionControlPlane:
         coding: Any,
         encoder: CognitiveStateEncoder | None = None,
         executor: ExternalCoreExecutor | None = None,
+        acting_executor: TransactionalExternalCoreExecutor | None = None,
         sessions: tuple[ExecutionSession, ...] = (),
         decisions: tuple[AgentDecisionReceipt, ...] = (),
         steps: tuple[ExecutionStepReceipt, ...] = (),
@@ -284,6 +287,7 @@ class OrganizationExecutionControlPlane:
             coding_patches=getattr(coding, 'patches', None),
             code_claims=getattr(coding, 'claims', None),
         )
+        self.acting_executor = acting_executor or TransactionalExternalCoreExecutor(executor=self.executor)
         self._sessions = {row.session_id: row for row in sessions}
         self._decisions = {row.receipt_id: row for row in decisions}
         self._steps = {row.receipt_id: row for row in steps}
@@ -551,12 +555,40 @@ class OrganizationExecutionControlPlane:
             if identity.status is AgentStatus.PAUSED:
                 return self._terminal(session, ExecutionState.PAUSED, 'agent paused by authority')
 
-            core = self.executor.invoke(
+            if action.tool_action.mutation_paths:
+                effect_class = EffectClass.LOCAL_MUTATION
+                risk_class = ExecutionRisk.R2
+                recovery_plan = 'restore isolated workspace checkpoint'
+            elif is_external:
+                effect_class = EffectClass.EXTERNAL_MUTATION
+                risk_class = ExecutionRisk.R3
+                recovery_plan = 'reconcile externally observed effect from core receipt evidence'
+            else:
+                effect_class = EffectClass.READ
+                risk_class = ExecutionRisk.R1
+                recovery_plan = ''
+
+            acting = self.acting_executor.invoke(
                 agent_id=session.agent_id,
                 task_id=session.task_id,
                 workspace=workspace,
                 action=action.tool_action,
+                risk_class=risk_class,
+                effect_class=effect_class,
+                required_capabilities=(),
+                capability_grants=(),
+                authorization_ref=f'decision:{decision.receipt_id}',
+                preconditions=(),
+                precondition_evidence_refs=(),
+                postconditions=(),
+                postcondition_evidence_refs=(),
+                verifier_level=VerifierLevel.V1,
+                idempotency_key=f'{session.session_id}:{decision.receipt_id}',
+                recovery_plan=recovery_plan,
+                now_ms=int(time.time() * 1000),
+                lease_ttl_ms=60_000,
             )
+            core = self.executor.get_receipt(acting.core_receipt_id)
             counters = ExecutionCounters(
                 steps=session.counters.steps,
                 tool_calls=session.counters.tool_calls + 1,
@@ -643,6 +675,7 @@ class OrganizationExecutionControlPlane:
             'steps': [self._steps[k].to_state() for k in sorted(self._steps)],
             'terminals': [self._terminals[k].to_state() for k in sorted(self._terminals)],
             'executor': self.executor.to_state(),
+            'acting_executor': self.acting_executor.to_state(),
         }
 
     @classmethod
@@ -666,6 +699,10 @@ class OrganizationExecutionControlPlane:
             code_claims=getattr(coding, 'claims', None),
             state=state.get('executor', {}),
         )
+        acting_executor = TransactionalExternalCoreExecutor.from_state(
+            executor=executor,
+            state=state.get('acting_executor', {}),
+        )
         return cls(
             registry=registry,
             tasks=tasks,
@@ -675,6 +712,7 @@ class OrganizationExecutionControlPlane:
             coding=coding,
             encoder=encoder,
             executor=executor,
+            acting_executor=acting_executor,
             sessions=tuple(ExecutionSession.from_state(x) for x in state.get('sessions', ())),
             decisions=tuple(AgentDecisionReceipt.from_state(x) for x in state.get('decisions', ())),
             steps=tuple(ExecutionStepReceipt.from_state(x) for x in state.get('steps', ())),

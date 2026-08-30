@@ -26,7 +26,7 @@ def test_wave5r_canonical_invokable_core_owns_complete_public_implementation() -
 
     assert all(getattr(canonical, name).__module__ == "nolane.external_core.invokable" for name in _PUBLIC_SYMBOLS)
     assert canonical.COMPONENT_ID == "external.invokable_cores"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.external_core"
 
 
