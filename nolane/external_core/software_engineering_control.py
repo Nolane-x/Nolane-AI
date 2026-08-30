@@ -18,6 +18,7 @@ from nolane.external_core.software_engineering import (
     PatchTransactionLedger,
     SoftwareEngineeringClosureEngine,
 )
+from nolane.external_core.software_engineering_claims import AnchoredEngineeringClaimBindingLedger
 from nolane.external_core.software_engineering_gate import HistoricalAuthorizationEngineeringGate
 from nolane.external_core.software_engineering_mutation import EvidenceBoundMutationAuthorityEngine
 from nolane.external_core.software_engineering_policy import (
@@ -38,6 +39,7 @@ from nolane.external_core.software_engineering_validity import (
 
 COMPONENT_ID = "external.software_engineering.control"
 COMPONENT_VERSION = "0.4.0"
+CANONICAL_WRITE_AUTHORITY = False
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -161,7 +163,7 @@ class SoftwareEngineeringControlPlane:
     evidence, reversible patch transactions, policy-derived verification,
     explicit pre-apply mutation authority, canonical upstream receipt integrity,
     cross-surface closure and post-closure live validity. It never promotes
-    beyond the candidate boundary.
+    beyond the candidate boundary and is not a canonical component write owner.
     """
 
     def __init__(
@@ -519,7 +521,7 @@ class SoftwareEngineeringControlPlane:
             evidence=evidence,
             state=state["transactions"],
         )
-        claim_bindings = EngineeringClaimBindingLedger.from_state(
+        claim_bindings = AnchoredEngineeringClaimBindingLedger.from_state(
             transactions=transactions,
             claims=claims,
             state=state["claim_bindings"],
