@@ -16,6 +16,10 @@ on:
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
 
+concurrency:
+  group: goal-design-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   goal-design:
     runs-on: ubuntu-latest
