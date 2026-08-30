@@ -68,11 +68,22 @@ def test_mutation_authority_is_explicit_and_green_only_before_application():
     assert receipt.reasons == ()
     assert receipt.authority == 'mutation_scope_only'
 
-    plane.mark_applied(work.transaction_id, application_ref='workspace:apply-a')
+    plane.mark_applied(
+        work.transaction_id,
+        application_ref='workspace:apply-a',
+        mutation_authority_receipt_id=receipt.receipt_id,
+    )
     after = plane.assess_mutation_authority(work.work_id, patch=patch)
     assert not after.authorized
     assert after.decision is EngineeringMutationAuthorityDecision.BLOCKED
     assert 'transaction_not_precondition_verified' in after.reasons
+
+
+def test_apply_boundary_cannot_bypass_explicit_mutation_authority_receipt():
+    _, _, _, plane, work = _precondition_ready_plane()
+    with pytest.raises(PermissionError, match='mutation authority receipt'):
+        plane.mark_applied(work.transaction_id, application_ref='workspace:bypass')
+    assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.PRECONDITIONS_VERIFIED
 
 
 def test_releasing_claim_before_apply_revokes_mutation_authority_and_blocks_application():
@@ -88,7 +99,11 @@ def test_releasing_claim_before_apply_revokes_mutation_authority_and_blocks_appl
     assert 'bound_claim_scope_does_not_cover_patch' in second.reasons
 
     with pytest.raises(PermissionError, match='mutation authority'):
-        plane.mark_applied(work.transaction_id, application_ref='workspace:should-not-apply')
+        plane.mark_applied(
+            work.transaction_id,
+            application_ref='workspace:should-not-apply',
+            mutation_authority_receipt_id=first.receipt_id,
+        )
     assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.PRECONDITIONS_VERIFIED
 
 
@@ -107,6 +122,8 @@ def test_mutation_authority_receipts_are_historical_and_content_addressed():
 
 def test_revoked_precondition_evidence_revokes_mutation_authority_before_apply():
     patch, _, _, plane, work = _precondition_ready_plane()
+    allowed = plane.assess_mutation_authority(work.work_id, patch=patch)
+    assert allowed.authorized
     tx = plane.transactions.get(work.transaction_id)
     precondition_id = tx.precondition_attestation_ids[0]
     plane.evidence.revoke(precondition_id, reason='precondition artifact invalidated')
@@ -116,5 +133,9 @@ def test_revoked_precondition_evidence_revokes_mutation_authority_before_apply()
     assert f'precondition_evidence_invalid:{precondition_id}' in receipt.reasons
 
     with pytest.raises(PermissionError, match='mutation authority'):
-        plane.mark_applied(work.transaction_id, application_ref='workspace:stale-precondition')
+        plane.mark_applied(
+            work.transaction_id,
+            application_ref='workspace:stale-precondition',
+            mutation_authority_receipt_id=allowed.receipt_id,
+        )
     assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.PRECONDITIONS_VERIFIED
