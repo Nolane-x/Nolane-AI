@@ -54,8 +54,19 @@ def test_registry_validates_parent_and_helper_authority_bidirectionally_without_
         assert helper.PARENT_COMPONENT_ID == row.parent_component_id
         assert helper.TRUTH_PROTOCOL == row.protocol_id
         assert not hasattr(helper, "COMPONENT_ID")
-        # Subprotocol binding metadata is orthogonal to parent component software revision.
-        assert str(component_version(row.parent_component_id)) == "0.0.1"
+        # Binding metadata is orthogonal to component software revision: the canonical
+        # manifest and implementation ledger must agree, while a parent may legitimately
+        # advance when its own accepted API/semantics change (A10 advances Knowledge only).
+        assert str(component_version(row.parent_component_id)) == parent.component_version
+
+    assert str(component_version("external.knowledge")) == "0.0.2"
+    for component_id in (
+        "external.evidence",
+        "external.epistemic",
+        "external.verification",
+        "external.assurance",
+    ):
+        assert str(component_version(component_id)) == "0.0.1"
 
 
 def test_subprotocol_registry_is_content_addressed_total_unique_and_tamper_evident():
