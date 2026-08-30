@@ -22,6 +22,7 @@ class AttemptBoundEngineeringPatchTransaction(EngineeringPatchTransaction):
     """Patch transaction whose immutable origin is fenced by one operation ref."""
 
     operation_ref: str = ""
+    initiation_digest: str = ""
 
     def __post_init__(self) -> None:
         # dataclass(slots=True) may synthesize a replacement class object on
@@ -29,11 +30,13 @@ class AttemptBoundEngineeringPatchTransaction(EngineeringPatchTransaction):
         # cell. Call the immutable base implementation explicitly.
         EngineeringPatchTransaction.__post_init__(self)
         _text(self.operation_ref, field="engineering operation ref")
+        _text(self.initiation_digest, field="engineering initiation digest")
 
     def to_state(self) -> dict[str, Any]:
         return {
             **EngineeringPatchTransaction.to_state(self),
             "operation_ref": self.operation_ref,
+            "initiation_digest": self.initiation_digest,
         }
 
     @classmethod
@@ -55,6 +58,7 @@ class AttemptBoundEngineeringPatchTransaction(EngineeringPatchTransaction):
             rollback_ref=base.rollback_ref,
             failure_reason=base.failure_reason,
             operation_ref=_text(state["operation_ref"], field="engineering operation ref"),
+            initiation_digest=_text(state["initiation_digest"], field="engineering initiation digest"),
         )
 
 
@@ -94,6 +98,7 @@ class IdempotentPatchTransactionLedger(PatchTransactionLedger):
         patch_digest: str,
         source_revision: str,
         rollback_artifact_ref: str,
+        initiation_digest: str,
         operation_ref: str | None = None,
     ) -> AttemptBoundEngineeringPatchTransaction:
         operation = (
@@ -101,6 +106,7 @@ class IdempotentPatchTransactionLedger(PatchTransactionLedger):
             if operation_ref is None
             else _text(operation_ref, field="engineering operation ref")
         )
+        initiation = _text(initiation_digest, field="engineering initiation digest")
         patch_identity = _text(patch_ref, field="patch ref")
         patch_state = _text(patch_digest, field="patch digest")
         source = _text(source_revision, field="source revision")
@@ -109,7 +115,8 @@ class IdempotentPatchTransactionLedger(PatchTransactionLedger):
         existing = self.transaction_for_operation(operation)
         if existing is not None:
             if (
-                existing.patch_ref != patch_identity
+                existing.initiation_digest != initiation
+                or existing.patch_ref != patch_identity
                 or existing.patch_digest != patch_state
                 or existing.source_revision != source
                 or existing.rollback_artifact_ref != rollback
@@ -139,6 +146,7 @@ class IdempotentPatchTransactionLedger(PatchTransactionLedger):
             rollback_ref=base.rollback_ref,
             failure_reason=base.failure_reason,
             operation_ref=operation,
+            initiation_digest=initiation,
         )
         self._transactions[row.transaction_id] = row
         self._operation_to_transaction[operation] = row.transaction_id
