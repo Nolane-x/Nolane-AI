@@ -31,6 +31,8 @@ def _ids(values: tuple[str, ...], field: str) -> tuple[str, ...]:
 class KnowledgeTemporalBinding:
     claim_id: str
     claim_digest: str
+    revision: int
+    previous_digest: str
     interval: TruthInterval
     digest: str
 
@@ -39,64 +41,120 @@ class KnowledgeTemporalBinding:
         cls,
         claim: KnowledgeClaim,
         *,
+        revision: int = 1,
+        previous_digest: str = "",
         valid_from: str | None = None,
         valid_until: str | None = None,
     ) -> "KnowledgeTemporalBinding":
         if not isinstance(claim, KnowledgeClaim):
             raise TypeError("knowledge temporal binding requires canonical KnowledgeClaim")
+        revision = int(revision)
+        previous_digest = str(previous_digest).strip()
+        if revision < 1:
+            raise ValueError("knowledge temporal revision must be positive")
+        if revision == 1 and previous_digest:
+            raise ValueError("first knowledge temporal revision cannot declare predecessor")
+        if revision > 1 and not previous_digest:
+            raise ValueError("later knowledge temporal revision requires predecessor")
         interval = TruthInterval.create(valid_from=valid_from, valid_until=valid_until)
         payload = {
             "protocol": TRUTH_PROTOCOL,
             "claim_id": claim.claim_id,
             "claim_digest": claim.content_digest,
+            "revision": revision,
+            "previous_digest": previous_digest,
             "interval": interval.to_state(),
         }
-        return cls(claim.claim_id, claim.content_digest, interval, canonical_digest(payload))
+        return cls(
+            claim.claim_id,
+            claim.content_digest,
+            revision,
+            previous_digest,
+            interval,
+            canonical_digest(payload),
+        )
 
     def to_state(self) -> dict[str, Any]:
         return {
             "protocol": TRUTH_PROTOCOL,
             "claim_id": self.claim_id,
             "claim_digest": self.claim_digest,
+            "revision": self.revision,
+            "previous_digest": self.previous_digest,
             "interval": self.interval.to_state(),
             "digest": self.digest,
         }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "KnowledgeTemporalBinding":
-        _unexpected(state, {"protocol", "claim_id", "claim_digest", "interval", "digest"}, "knowledge temporal binding")
+        _unexpected(
+            state,
+            {"protocol", "claim_id", "claim_digest", "revision", "previous_digest", "interval", "digest"},
+            "knowledge temporal binding",
+        )
         if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported knowledge temporal binding protocol")
         claim_id = str(state["claim_id"]).strip()
         claim_digest = str(state["claim_digest"]).strip()
         if not claim_id or not claim_digest:
             raise ValueError("knowledge temporal binding identity must be explicit")
+        revision = int(state["revision"])
+        previous_digest = str(state.get("previous_digest", "")).strip()
+        if revision < 1:
+            raise ValueError("knowledge temporal revision must be positive")
+        if revision == 1 and previous_digest:
+            raise ValueError("first knowledge temporal revision cannot declare predecessor")
+        if revision > 1 and not previous_digest:
+            raise ValueError("later knowledge temporal revision requires predecessor")
         interval = TruthInterval.from_state(state["interval"])
         payload = {
             "protocol": TRUTH_PROTOCOL,
             "claim_id": claim_id,
             "claim_digest": claim_digest,
+            "revision": revision,
+            "previous_digest": previous_digest,
             "interval": interval.to_state(),
         }
-        row = cls(claim_id, claim_digest, interval, canonical_digest(payload))
+        row = cls(
+            claim_id,
+            claim_digest,
+            revision,
+            previous_digest,
+            interval,
+            canonical_digest(payload),
+        )
         if str(state["digest"]) != row.digest:
             raise ValueError("knowledge temporal binding digest mismatch")
         return row
 
 
 class TemporalKnowledgeView:
-    """Append-only temporal applicability sidecar for canonical KnowledgeClaim rows."""
+    """Append-only temporal applicability revision lineage for KnowledgeClaim rows."""
 
     def __init__(self) -> None:
-        self._bindings: dict[str, KnowledgeTemporalBinding] = {}
+        self._revisions: dict[str, list[KnowledgeTemporalBinding]] = {}
 
     def record(self, row: KnowledgeTemporalBinding) -> KnowledgeTemporalBinding:
         if not isinstance(row, KnowledgeTemporalBinding):
             raise TypeError("temporal knowledge view accepts KnowledgeTemporalBinding only")
-        old = self._bindings.get(row.claim_id)
-        if old is not None and old != row:
-            raise ValueError("knowledge temporal binding rebind collision")
-        self._bindings[row.claim_id] = row
+        history = self._revisions.setdefault(row.claim_id, [])
+        if not history:
+            if row.revision != 1:
+                raise ValueError("knowledge temporal revision sequence must start at 1")
+            history.append(row)
+            return row
+        current = history[-1]
+        if row.claim_digest != current.claim_digest:
+            raise ValueError("knowledge temporal lineage cannot rebind base claim")
+        if row.revision == current.revision:
+            if row != current:
+                raise ValueError("knowledge temporal revision collision")
+            return current
+        if row.revision != current.revision + 1:
+            raise ValueError("knowledge temporal revision sequence must advance exactly once")
+        if row.previous_digest != current.digest:
+            raise ValueError("knowledge temporal predecessor mismatch")
+        history.append(row)
         return row
 
     def bind(
@@ -108,12 +166,38 @@ class TemporalKnowledgeView:
     ) -> KnowledgeTemporalBinding:
         return self.record(KnowledgeTemporalBinding.create(
             claim,
+            revision=1,
+            previous_digest="",
             valid_from=valid_from,
             valid_until=valid_until,
         ))
 
+    def revise(
+        self,
+        claim: KnowledgeClaim,
+        *,
+        valid_from: str | None = None,
+        valid_until: str | None = None,
+    ) -> KnowledgeTemporalBinding:
+        current = self.binding(claim.claim_id)
+        if current is None:
+            raise ValueError("knowledge temporal revision requires existing lineage")
+        if current.claim_digest != claim.content_digest:
+            raise ValueError("knowledge temporal revision cannot rebind base claim")
+        return self.record(KnowledgeTemporalBinding.create(
+            claim,
+            revision=current.revision + 1,
+            previous_digest=current.digest,
+            valid_from=valid_from,
+            valid_until=valid_until,
+        ))
+
+    def revisions(self, claim_id: str) -> tuple[KnowledgeTemporalBinding, ...]:
+        return tuple(self._revisions.get(str(claim_id), ()))
+
     def binding(self, claim_id: str) -> KnowledgeTemporalBinding | None:
-        return self._bindings.get(str(claim_id))
+        rows = self.revisions(claim_id)
+        return rows[-1] if rows else None
 
     def state_at(
         self,
@@ -155,15 +239,15 @@ class TemporalKnowledgeView:
             for current in tuple(scope):
                 if self.state_at(current, knowledge=knowledge, temporal_context=temporal_context) != "active":
                     continue
-                claim = knowledge.get(current)
-                if relation_semantics.cardinality(claim.relation) is RelationCardinality.MULTI_VALUED:
+                current_claim = knowledge.get(current)
+                if relation_semantics.cardinality(current_claim.relation) is RelationCardinality.MULTI_VALUED:
                     continue
                 for row in knowledge.claims():
                     if (
-                        row.claim_id != claim.claim_id
-                        and row.subject == claim.subject
-                        and row.relation == claim.relation
-                        and row.object != claim.object
+                        row.claim_id != current_claim.claim_id
+                        and row.subject == current_claim.subject
+                        and row.relation == current_claim.relation
+                        and row.object != current_claim.object
                         and self.state_at(row.claim_id, knowledge=knowledge, temporal_context=temporal_context) == "active"
                     ):
                         competitors.add(row.claim_id)
@@ -217,7 +301,11 @@ class TemporalKnowledgeView:
     def to_state(self) -> dict[str, Any]:
         return {
             "protocol": TRUTH_PROTOCOL,
-            "bindings": [self._bindings[key].to_state() for key in sorted(self._bindings)],
+            "bindings": [
+                row.to_state()
+                for claim_id in sorted(self._revisions)
+                for row in self._revisions[claim_id]
+            ],
         }
 
     @classmethod
@@ -226,12 +314,13 @@ class TemporalKnowledgeView:
         if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported temporal knowledge view protocol")
         view = cls()
-        seen: set[str] = set()
+        seen: set[tuple[str, int]] = set()
         for value in state.get("bindings", ()):
             row = KnowledgeTemporalBinding.from_state(value)
-            if row.claim_id in seen:
-                raise ValueError("duplicate serialized knowledge temporal binding")
-            seen.add(row.claim_id)
+            key = (row.claim_id, row.revision)
+            if key in seen:
+                raise ValueError("duplicate serialized knowledge temporal revision")
+            seen.add(key)
             view.record(row)
         return view
 
