@@ -28,12 +28,14 @@ from nolane.external_core.software_engineering_policy import (
 from nolane.external_core.software_engineering_validity import (
     EngineeringClaimBindingLedger,
     EngineeringCurrentValidityReceipt,
+    EngineeringMutationAuthorityEngine,
+    EngineeringMutationAuthorityReceipt,
     EngineeringValidityEngine,
 )
 
 
 COMPONENT_ID = "external.software_engineering.control"
-COMPONENT_VERSION = "0.3.0"
+COMPONENT_VERSION = "0.4.0"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -153,9 +155,11 @@ class EngineeringWorkRecord:
 class SoftwareEngineeringControlPlane:
     """Unified governed entry point for F. Software Engineering.
 
-    This object composes existing canonical claim authority with the new
-    evidence, reversible transaction, blast-radius policy, closure and live
-    validity layers. It never promotes beyond `candidate_only`.
+    The control plane composes the canonical Coding claim authority with
+    content-addressed evidence, reversible patch transactions, change manifests,
+    policy-derived verification, explicit pre-apply mutation authority,
+    cross-surface closure and post-closure current validity. No layer here can
+    promote beyond the candidate boundary.
     """
 
     def __init__(
@@ -169,6 +173,7 @@ class SoftwareEngineeringControlPlane:
         closure: SoftwareEngineeringClosureEngine | None = None,
         policy: EngineeringVerificationPolicy | None = None,
         gate: GovernedEngineeringGate | None = None,
+        mutation_authority: EngineeringMutationAuthorityEngine | None = None,
         validity: EngineeringValidityEngine | None = None,
         works: Mapping[str, EngineeringWorkRecord] | None = None,
     ) -> None:
@@ -197,6 +202,14 @@ class SoftwareEngineeringControlPlane:
                 claims=self.claims,
                 claim_bindings=self.claim_bindings,
                 policy=self.policy,
+            )
+        )
+        self.mutation_authority = (
+            mutation_authority
+            if mutation_authority is not None
+            else EngineeringMutationAuthorityEngine(
+                transactions=self.transactions,
+                claim_bindings=self.claim_bindings,
             )
         )
         self.validity = (
@@ -346,12 +359,34 @@ class SoftwareEngineeringControlPlane:
             attestation_ids=attestation_ids,
         )
 
+    def assess_mutation_authority(
+        self,
+        work_id: str,
+        *,
+        patch: Any,
+    ) -> EngineeringMutationAuthorityReceipt:
+        work = self.work(work_id)
+        if not hasattr(patch, "to_state"):
+            raise TypeError("mutation authority requires canonical patch state")
+        if (
+            str(getattr(patch, "patch_id", "")) != work.patch_ref
+            or canonical_digest(patch.to_state()) != work.patch_digest
+        ):
+            raise ValueError("engineering work patch lineage mismatch")
+        binding = self.claim_bindings.get(work.claim_binding_id)
+        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
+            raise ValueError("engineering work claim binding lineage mismatch")
+        return self.mutation_authority.assess(work.transaction_id, patch=patch)
+
     def mark_applied(self, transaction_id: str, *, application_ref: str) -> EngineeringPatchTransaction:
         binding = self.claim_bindings.for_transaction(transaction_id)
         if binding is None:
-            raise PermissionError("patch application requires immutable claim-state binding")
-        if self.claim_bindings.current_reasons(binding.binding_id):
-            raise PermissionError("patch application requires unchanged active bound claims")
+            raise PermissionError("patch application denied by mutation authority: missing claim-state binding")
+        reasons = self.claim_bindings.current_reasons(binding.binding_id)
+        if reasons:
+            raise PermissionError(
+                "patch application denied by mutation authority: " + ", ".join(reasons)
+            )
         return self.transactions.mark_applied(transaction_id, application_ref=application_ref)
 
     def observe_outcome(
@@ -435,6 +470,7 @@ class SoftwareEngineeringControlPlane:
             "policy": self.policy.to_state(),
             "closure": self.closure.to_state(),
             "gate": self.gate.to_state(),
+            "mutation_authority": self.mutation_authority.to_state(),
             "validity": self.validity.to_state(),
         }
 
@@ -485,6 +521,11 @@ class SoftwareEngineeringControlPlane:
             manifests=manifests,
             state=state["gate"],
         )
+        mutation_authority = EngineeringMutationAuthorityEngine.from_state(
+            transactions=transactions,
+            claim_bindings=claim_bindings,
+            state=state["mutation_authority"],
+        )
         validity = EngineeringValidityEngine.from_state(
             evidence=evidence,
             transactions=transactions,
@@ -529,6 +570,7 @@ class SoftwareEngineeringControlPlane:
             closure=closure,
             policy=policy,
             gate=gate,
+            mutation_authority=mutation_authority,
             validity=validity,
             works=works,
         )
