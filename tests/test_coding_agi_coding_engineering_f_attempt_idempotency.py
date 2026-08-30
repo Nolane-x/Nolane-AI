@@ -55,10 +55,12 @@ def test_same_operation_retry_reuses_exact_work_and_transaction_without_counter_
 
     first = _begin(plane, patch, claim.claim_id, operation_ref='eng-op:attempt-a')
     second = _begin(plane, patch, claim.claim_id, operation_ref='eng-op:attempt-a')
+    transaction = plane.transactions.get(first.transaction_id)
 
     assert second == first
     assert second.operation_ref == 'eng-op:attempt-a'
-    assert plane.transactions.get(first.transaction_id).operation_ref == 'eng-op:attempt-a'
+    assert transaction.operation_ref == 'eng-op:attempt-a'
+    assert transaction.initiation_digest == first.initiation_digest
     assert len(plane.works()) == 1
     assert len(plane.transactions.transactions()) == 1
     assert plane.transactions.to_state()['counter'] == 1
@@ -139,4 +141,19 @@ def test_restore_rejects_cross_ledger_operation_ref_forgery_with_recomputed_oute
     state['digest'] = canonical_digest({key: value for key, value in state.items() if key != 'digest'})
 
     with pytest.raises(ValueError, match='operation'):
+        SoftwareEngineeringControlPlane.from_state(claims=claims, state=state)
+
+
+def test_restore_rejects_work_initiation_digest_forgery_with_recomputed_work_and_outer_digests():
+    patch, claims, claim, plane = _plane_and_claim()
+    _begin(plane, patch, claim.claim_id, operation_ref='eng-op:attempt-a')
+    state = plane.to_state()
+    work = state['works'][0]
+    work['initiation_digest'] = canonical_digest({'forged': 'attempt-semantics'})
+    work_payload = {key: value for key, value in work.items() if key not in {'work_id', 'digest'}}
+    work['digest'] = canonical_digest(work_payload)
+    work['work_id'] = f"eng-work-{work['digest'][:20]}"
+    state['digest'] = canonical_digest({key: value for key, value in state.items() if key != 'digest'})
+
+    with pytest.raises(ValueError, match='initiation'):
         SoftwareEngineeringControlPlane.from_state(claims=claims, state=state)
