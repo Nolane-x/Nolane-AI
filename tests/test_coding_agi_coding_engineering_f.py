@@ -252,3 +252,47 @@ def test_closure_digest_is_deterministic_under_attestation_input_order():
         attestation_ids=tuple(reversed([row.attestation_id for row in attestations_b])),
     )
     assert a.digest == b.digest
+
+
+def test_revocation_history_cannot_be_rebound_to_a_new_reason():
+    evidence = EngineeringEvidenceLedger()
+    evidence.revoke('artifact:test', reason='first-observed corruption')
+    with pytest.raises(ValueError, match='revocation'):
+        evidence.revoke('artifact:test', reason='rewritten history')
+
+
+def test_transaction_snapshot_rejects_candidate_ready_without_closure_receipt():
+    evidence = EngineeringEvidenceLedger()
+    _, txs, _, _ = _prepared_transaction(evidence)
+    state = txs.to_state()
+    state['transactions'][0]['phase'] = EngineeringPhase.CANDIDATE_READY.value
+    state['transactions'][0]['closure_receipt_id'] = None
+
+    with pytest.raises(ValueError, match='candidate-ready'):
+        PatchTransactionLedger.from_state(evidence=evidence, state=state)
+
+
+def test_closure_snapshot_rejects_forged_transaction_closure_linkage():
+    evidence = EngineeringEvidenceLedger()
+    patch, txs, tx, attestations = _prepared_transaction(evidence)
+    engine = SoftwareEngineeringClosureEngine(evidence=evidence, transactions=txs)
+    receipt = engine.assess(
+        patch=patch,
+        coding_readiness=_CodingReady(patch.patch_id),
+        transaction_id=tx.transaction_id,
+        current_source_revision='repo-a',
+        required_attestation_kinds=(EngineeringEvidenceKind.TEST,),
+        attestation_ids=tuple(row.attestation_id for row in attestations),
+    )
+    assert receipt.ready
+
+    tx_state = txs.to_state()
+    tx_state['transactions'][0]['closure_receipt_id'] = 'eng-closure-forged'
+    restored_transactions = PatchTransactionLedger.from_state(evidence=evidence, state=tx_state)
+
+    with pytest.raises(ValueError, match='closure.*lineage'):
+        SoftwareEngineeringClosureEngine.from_state(
+            evidence=evidence,
+            transactions=restored_transactions,
+            state=engine.to_state(),
+        )
