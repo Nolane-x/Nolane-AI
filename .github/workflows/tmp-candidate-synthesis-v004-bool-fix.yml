@@ -1,0 +1,60 @@
+name: Temporary Candidate Synthesis v0.0.4 Bool Fix
+
+on:
+  push:
+    branches:
+      - post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+    paths:
+      - .github/workflows/tmp-candidate-synthesis-v004-bool-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+      - name: Patch structural v2 integer-state validation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('nolane/external_core/candidate_synthesis.py')
+          text = path.read_text(encoding='utf-8')
+
+          anchor = '''def _normalize_structural_evidence(values: Sequence[EvidenceRef]) -> tuple[EvidenceRef, ...]:\n'''
+          helper = '''def _structural_state_int(value: object, name: str) -> int:\n    if isinstance(value, bool) or not isinstance(value, int):\n        raise TypeError(f"{name} must be an integer")\n    return value\n\n\n'''
+          if text.count(anchor) != 1:
+              raise SystemExit('structural evidence anchor mismatch')
+          if '_structural_state_int' in text:
+              raise SystemExit('structural state integer helper already exists')
+          text = text.replace(anchor, helper + anchor)
+
+          old_request = '''            generation_budget=int(state.get("generation_budget", 0)),\n            mode=SynthesisMode(str(state["mode"])),\n'''
+          new_request = '''            generation_budget=_structural_state_int(\n                state.get("generation_budget", 0),\n                "generation budget",\n            ),\n            mode=SynthesisMode(str(state["mode"])),\n'''
+          if text.count(old_request) != 1:
+              raise SystemExit('structural request budget restore anchor mismatch')
+          text = text.replace(old_request, new_request)
+
+          old_receipt = '''            generation_budget=int(state["generation_budget"]),\n            candidates_considered=int(state["candidates_considered"]),\n            candidate_id=None if state.get("candidate_id") is None else str(state["candidate_id"]),\n'''
+          new_receipt = '''            generation_budget=_structural_state_int(\n                state["generation_budget"],\n                "generation budget",\n            ),\n            candidates_considered=_structural_state_int(\n                state["candidates_considered"],\n                "candidates considered",\n            ),\n            candidate_id=None if state.get("candidate_id") is None else str(state["candidate_id"]),\n'''
+          # This exact sequence appears once in the structural receipt restore; legacy v1 stays untouched.
+          if text.count(old_receipt) != 1:
+              raise SystemExit(f'structural receipt budget restore anchor mismatch: {text.count(old_receipt)}')
+          text = text.replace(old_receipt, new_receipt)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit minimal production fix
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add nolane/external_core/candidate_synthesis.py
+          git diff --cached --check
+          git commit -m "fix: reject boolean structural synthesis budget state"
+          git push origin HEAD:post-epoch0/candidate-synthesis-v0.0.4-structural-composition
