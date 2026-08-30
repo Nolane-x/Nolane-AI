@@ -118,7 +118,7 @@ def test_a10_unspecified_ancestor_ambiguity_blocks_descendant_v3_closure():
 
     semantics = RelationSemanticsRegistry()
     _policy(semantics, "depends", RelationCardinality.EXCLUSIVE)
-    scope = EpistemicJudge().relation_aware_scope(
+    scope = EpistemicJudge().relation_aware_dependency_scope(
         "claim.child", knowledge=knowledge, evidence=evidence, relation_semantics=semantics,
     )
     verification = TruthVerificationLedger()
@@ -139,7 +139,7 @@ def test_a10_unspecified_ancestor_ambiguity_blocks_descendant_v3_closure():
         verification=verification, relation_semantics=semantics,
     )
     assert not certificate.closed
-    assert "relation_semantics_lineage_unspecified" in certificate.reasons
+    assert "relation_semantics_lineage_ambiguous" in certificate.reasons
 
 
 def test_a10_v3_serialization_rejects_global_binding_smuggling():
