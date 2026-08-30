@@ -111,8 +111,11 @@ class MemoryFabric:
         confidence: float = 1.0,
         dependencies: tuple[str, ...] = (),
         supersedes: str | None = None,
+        initial_status: MemoryStatus = MemoryStatus.ACTIVE,
+        status_reason: str | None = None,
     ) -> MemoryEntry:
         scope = MemoryScope(scope)
+        initial_status = MemoryStatus(initial_status)
         if not str(text).strip():
             raise ValueError("memory text must be non-empty")
         if not str(owner_agent_id).strip():
@@ -121,6 +124,8 @@ class MemoryFabric:
             raise ValueError("regional memory requires a region")
         if scope is MemoryScope.TASK and not task_id:
             raise ValueError("task memory requires a task id")
+        if initial_status is not MemoryStatus.ACTIVE and not str(status_reason or "").strip():
+            raise ValueError("inactive memory state requires a reason")
         if supersedes is not None:
             self.get(supersedes)
         sequence = len(self._entries) + 1
@@ -135,14 +140,15 @@ class MemoryFabric:
             tags=tuple(sorted({str(tag) for tag in tags})),
             parent_memory_id=None if parent_memory_id is None else str(parent_memory_id),
             promotion_receipt_id=None if promotion_receipt_id is None else str(promotion_receipt_id),
-            status=MemoryStatus.ACTIVE,
+            status=initial_status,
             evidence_ids=tuple(sorted({str(value) for value in evidence_ids})),
             confidence=float(confidence),
             dependencies=tuple(sorted({str(value) for value in dependencies})),
             supersedes=None if supersedes is None else str(supersedes),
+            status_reason=None if initial_status is MemoryStatus.ACTIVE else str(status_reason),
         )
         self._entries.append(row)
-        if supersedes is not None:
+        if supersedes is not None and row.status is MemoryStatus.ACTIVE:
             self.set_status(supersedes, MemoryStatus.SUPERSEDED, reason=f"superseded by {row.memory_id}")
         return row
 
