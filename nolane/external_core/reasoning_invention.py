@@ -174,7 +174,7 @@ class VerificationPlan:
     def __post_init__(self) -> None:
         object.__setattr__(self, "metric_id", _nonempty(self.metric_id, "metric id"))
         object.__setattr__(self, "baseline_id", _nonempty(self.baseline_id, "baseline id"))
-        object.__setattr__(self, "success_threshold", _bounded_score(self.success_threshold, "success threshold"))
+        object.__setattr__(self, "success_threshold", _finite_number(self.success_threshold, "success threshold"))
         object.__setattr__(self, "perturbation_ids", _sorted_unique_ids(self.perturbation_ids, "perturbation ids", minimum=1))
         object.__setattr__(self, "negative_control_ids", _sorted_unique_ids(self.negative_control_ids, "negative control ids", minimum=1))
         object.__setattr__(self, "ablation_ids", _sorted_unique_ids(self.ablation_ids, "ablation ids", minimum=1))
