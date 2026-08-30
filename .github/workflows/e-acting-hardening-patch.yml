@@ -73,6 +73,25 @@ jobs:
               text = text.replace(old, new, 1)
           metadata.write_text(text, encoding='utf-8')
 
+          accepted = Path('tests/test_refoundation_component_versions.py')
+          text = accepted.read_text(encoding='utf-8')
+          revision_replacements = {
+              '    "external.invokable_cores": 1,': '    "external.invokable_cores": 2,',
+              '    "external.execution.workspace": 1,': '    "external.execution.workspace": 2,',
+              '    "external.execution.control": 1,': '    "external.execution.control": 2,',
+              'assert str(component_version("external.invokable_cores")) == "0.0.1"': 'assert str(component_version("external.invokable_cores")) == "0.0.2"',
+              'assert str(next_component_version("external.invokable_cores")) == "0.0.2"': 'assert str(next_component_version("external.invokable_cores")) == "0.0.3"',
+              'assert str(component_version("external.execution.workspace")) == "0.0.1"': 'assert str(component_version("external.execution.workspace")) == "0.0.2"',
+              'assert str(next_component_version("external.execution.workspace")) == "0.0.2"': 'assert str(next_component_version("external.execution.workspace")) == "0.0.3"',
+              'assert str(component_version("external.execution.control")) == "0.0.1"': 'assert str(component_version("external.execution.control")) == "0.0.2"',
+              'assert str(next_component_version("external.execution.control")) == "0.0.2"': 'assert str(next_component_version("external.execution.control")) == "0.0.3"',
+          }
+          for old, new in revision_replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f'component-version authority: expected one {old!r}')
+              text = text.replace(old, new, 1)
+          accepted.write_text(text, encoding='utf-8')
+
           for path in (
               'tests/test_refoundation_wave5r_native_invokable_cores.py',
               'tests/test_refoundation_wave5aa_native_execution_control.py',
@@ -152,6 +171,6 @@ jobs:
         run: |
           git config user.name "nolane-e-acting-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add nolane/external_core/execution.py nolane/external_core/acting_runtime.py nolane/external_core/execution_workspace.py nolane/metadata/component_versions.py tests/test_refoundation_acting_runtime.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5aa_native_execution_control.py CURRENT/E_ACTING.md docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md
+          git add nolane/external_core/execution.py nolane/external_core/acting_runtime.py nolane/external_core/execution_workspace.py nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py tests/test_refoundation_acting_runtime.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5aa_native_execution_control.py CURRENT/E_ACTING.md docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md
           git commit -m "fix(e-acting): harden verifier evidence and version authority [e-acting-hardening]"
           git push origin HEAD:refoundation/e-acting-transactional-runtime-gpt56sol
