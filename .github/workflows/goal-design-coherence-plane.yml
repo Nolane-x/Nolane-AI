@@ -35,9 +35,4 @@ jobs:
       - name: Install test dependency
         run: python -m pip install --disable-pip-version-check pytest
       - name: Goal/Design authority tests
-        run: >-
-          python -m pytest -q
-          tests/test_goal_design_coherence_plane.py
-          tests/test_goal_design_contracts.py
-          tests/test_goal_design_ledger.py
-          tests/test_goal_design_runtime.py
+        run: python -m pytest -q tests/test_goal_design*.py
