@@ -234,3 +234,76 @@ def test_anchor_health_cannot_be_self_certified() -> None:
             observed_version_scope="v4",
             reason="self-certified",
         )
+
+
+def test_retrieval_policy_registry_persists_for_receipt_audit() -> None:
+    from nolane.memory.adaptive_policy import MemoryRetrievalPolicy
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    substrate.remember(
+        text="auditable verified anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-audit",),
+    )
+    policy = MemoryRetrievalPolicy(information_weight=1.5, cost_weight=0.4, max_estimated_units=16)
+    bundle = substrate.retrieve(
+        agent_id="memory.chief",
+        region="memory-context-knowledge",
+        as_of="2026-08-30T00:00:00+00:00",
+        policy=policy,
+    )
+
+    state = substrate.to_state()
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+    assert restored.retrieval_policy(bundle.receipt.policy_id) == policy
+    assert restored.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
+    assert restored.to_state() == state
+
+
+def test_anchor_health_state_serializes_in_global_sequence_order() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+
+    substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
+    first = substrate.remember(
+        text="first anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.PROJECT_STATE,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-first",),
+    )
+    second = substrate.remember(
+        text="second anchor",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.PROJECT_STATE,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("evidence-second",),
+    )
+
+    substrate.record_anchor_health(
+        second.memory_id,
+        actor_agent_id="memory.worker",
+        healthy=True,
+        evidence_ref="health-second",
+        observed_version_scope=None,
+        reason="second observed first",
+    )
+    substrate.record_anchor_health(
+        first.memory_id,
+        actor_agent_id="memory.worker",
+        healthy=True,
+        evidence_ref="health-first",
+        observed_version_scope=None,
+        reason="first observed second",
+    )
+
+    state = substrate.to_state()
+    assert [row["sequence"] for row in state["anchor_health"]] == [1, 2]
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    assert restored.to_state() == state
