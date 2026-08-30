@@ -42,9 +42,18 @@ jobs:
           python -m py_compile nolane/external_core/self_model.py
           python -m py_compile nolane/external_core/individual_evolution.py
       - name: Run Memory Learning substrate contracts
+        shell: bash
         run: |
-          python -m pytest -q \
-            tests/test_memory_learning_substrate_v005.py \
-            tests/test_memory_learning_substrate_v005_integration.py \
-            tests/test_coding_agi_memory_*.py \
+          shopt -s nullglob
+          tests=(
+            tests/test_memory_learning_substrate_v005.py
+            tests/test_memory_learning_substrate_v005_integration.py
+            tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py
+          )
+          if (( ${#tests[@]} < 2 )); then
+            echo "Memory/Learning contract discovery failed" >&2
+            exit 2
+          fi
+          printf 'Running %s\n' "${tests[@]}"
+          python -m pytest -q "${tests[@]}"
