@@ -4,10 +4,14 @@ import pytest
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.software_engineering_impact import (
+    EngineeringDependencyGraph,
     EngineeringDependencyGraphLedger,
     EngineeringImpactAnalyzer,
+    EngineeringImpactReceipt,
+    EngineeringTestCoverage,
     EngineeringTestCoverageLedger,
     EngineeringTestSelectionEngine,
+    EngineeringTestSelectionProof,
 )
 
 
@@ -55,6 +59,7 @@ def _graph():
 def test_impact_is_transitive_and_derived_not_caller_declared():
     graph = _graph()
     receipt = EngineeringImpactAnalyzer().analyze(patch=_Patch(), graph=graph)
+    assert receipt.direct_nodes == ('symbol:pkg.a:A.run',)
     assert receipt.impacted_nodes == (
         'symbol:pkg.a:A.run',
         'symbol:pkg.b:B.call',
@@ -72,16 +77,26 @@ def test_impact_rejects_patch_scope_missing_from_graph():
         EngineeringImpactAnalyzer().analyze(patch=patch, graph=graph)
 
 
-def test_graph_rejects_cycles():
-    ledger = EngineeringDependencyGraphLedger()
-    with pytest.raises(ValueError, match='cycle'):
-        ledger.register(
-            source_revision='git:cycle',
-            nodes=('symbol:a', 'symbol:b'),
-            dependency_edges=(('symbol:a', 'symbol:b'), ('symbol:b', 'symbol:a')),
-            component_membership={},
-            provenance_refs=('static-analysis:cycle',),
-        )
+def test_dependency_cycles_are_cycle_safe_and_fully_impacted():
+    graph = EngineeringDependencyGraphLedger().register(
+        source_revision='git:cycle',
+        nodes=('symbol:a', 'symbol:b', 'symbol:c'),
+        dependency_edges=(
+            ('symbol:a', 'symbol:b'),
+            ('symbol:b', 'symbol:a'),
+            ('symbol:b', 'symbol:c'),
+        ),
+        component_membership={
+            'symbol:a': 'component:cycle',
+            'symbol:b': 'component:cycle',
+            'symbol:c': 'component:downstream',
+        },
+        provenance_refs=('static-analysis:cycle',),
+    )
+    patch = _Patch(touched_files=(), touched_symbols=('a',))
+    impact = EngineeringImpactAnalyzer().analyze(patch=patch, graph=graph)
+    assert impact.impacted_nodes == ('symbol:a', 'symbol:b', 'symbol:c')
+    assert impact.impacted_component_refs == ('component:cycle', 'component:downstream')
 
 
 def test_differential_test_selection_must_cover_every_impacted_node():
@@ -104,6 +119,30 @@ def test_differential_test_selection_must_cover_every_impacted_node():
     assert proof.selected_tests == (
         'tests/test_a.py::test_run',
         'tests/test_b.py::test_call',
+        'tests/test_c.py::test_use',
+    )
+
+
+def test_selection_is_deterministic_greedy_set_cover():
+    graph = _graph()
+    impact = EngineeringImpactAnalyzer().analyze(patch=_Patch(), graph=graph)
+    coverage = EngineeringTestCoverageLedger().register(
+        source_revision='git:impact-a',
+        graph_id=graph.graph_id,
+        graph_digest=graph.digest,
+        test_to_nodes={
+            'tests/test_all.py::test_ab': (
+                'symbol:pkg.a:A.run',
+                'symbol:pkg.b:B.call',
+            ),
+            'tests/test_a.py::test_run': ('symbol:pkg.a:A.run',),
+            'tests/test_c.py::test_use': ('symbol:pkg.c:C.use',),
+        },
+        provenance_refs=('coverage:greedy',),
+    )
+    proof = EngineeringTestSelectionEngine().select(impact=impact, coverage=coverage)
+    assert proof.selected_tests == (
+        'tests/test_all.py::test_ab',
         'tests/test_c.py::test_use',
     )
 
@@ -135,3 +174,28 @@ def test_selection_rejects_stale_coverage_source_revision():
     )
     with pytest.raises(ValueError, match='source revision'):
         EngineeringTestSelectionEngine().select(impact=impact, coverage=coverage)
+
+
+def test_impact_artifacts_round_trip_and_reject_tampering():
+    graph = _graph()
+    impact = EngineeringImpactAnalyzer().analyze(patch=_Patch(), graph=graph)
+    coverage = EngineeringTestCoverageLedger().register(
+        source_revision='git:impact-a',
+        graph_id=graph.graph_id,
+        graph_digest=graph.digest,
+        test_to_nodes={
+            'tests/test_all.py::test_all': impact.impacted_nodes,
+        },
+        provenance_refs=('coverage:roundtrip',),
+    )
+    proof = EngineeringTestSelectionEngine().select(impact=impact, coverage=coverage)
+
+    assert EngineeringDependencyGraph.from_state(graph.to_state()) == graph
+    assert EngineeringImpactReceipt.from_state(impact.to_state()) == impact
+    assert EngineeringTestCoverage.from_state(coverage.to_state()) == coverage
+    assert EngineeringTestSelectionProof.from_state(proof.to_state()) == proof
+
+    forged = proof.to_state()
+    forged['complete'] = False
+    with pytest.raises(ValueError, match='digest'):
+        EngineeringTestSelectionProof.from_state(forged)
