@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping, Protocol
 
@@ -216,27 +217,34 @@ class TransactionalExternalCoreExecutor:
         if row.action_id != action_id or row.phase is not ActionPhase.PROPOSED:
             return self._replay(row)
 
+        lease_clock_started_ns = time.monotonic_ns()
+        base_now_ms = int(now_ms)
+
+        def current_now_ms() -> int:
+            elapsed_ms = max(0, (time.monotonic_ns() - lease_clock_started_ns) // 1_000_000)
+            return base_now_ms + int(elapsed_ms)
+
         row = self.protocol.acquire_lease(
             action_id,
             owner_id=str(agent_id),
             authorization_ref=str(authorization_ref),
             capability_grants=tuple(str(x) for x in capability_grants),
-            now_ms=int(now_ms),
+            now_ms=base_now_ms,
             ttl_ms=int(lease_ttl_ms),
         )
         row = self.protocol.verify_preconditions(
             action_id,
             evidence_refs=tuple(str(x) for x in precondition_evidence_refs),
-            now_ms=int(now_ms),
+            now_ms=current_now_ms(),
         )
 
         checkpoint: WorkspaceCheckpoint | None = None
         if effect is EffectClass.LOCAL_MUTATION:
             checkpoint = workspace.checkpoint(label=f"{action_id}:before-core")
 
-        self.protocol.begin_execution(action_id, now_ms=int(now_ms))
         receipt: CoreReceipt | None = None
         try:
+            self.protocol.begin_execution(action_id, now_ms=current_now_ms())
             receipt = self.executor.invoke(
                 agent_id=str(agent_id),
                 task_id=str(task_id),
@@ -249,7 +257,7 @@ class TransactionalExternalCoreExecutor:
                 action_id,
                 outcome_ref=str(receipt.receipt_id),
                 success=bool(receipt.success),
-                now_ms=int(now_ms),
+                now_ms=current_now_ms(),
             )
             if not receipt.success:
                 failure = str(receipt.failure_kind or "core execution failed")
@@ -278,12 +286,12 @@ class TransactionalExternalCoreExecutor:
                 action_id,
                 evidence_refs=postcondition_refs,
                 verifier_level=resolved_verifier_level,
-                now_ms=int(now_ms),
+                now_ms=current_now_ms(),
             )
             row = self.protocol.commit(
                 action_id,
                 commit_ref=str(receipt.receipt_id),
-                now_ms=int(now_ms),
+                now_ms=current_now_ms(),
             )
             self._safe_release(workspace, checkpoint)
             return ActingInvocationResult(
