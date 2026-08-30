@@ -26,7 +26,7 @@ jobs:
         run: |
           git apply --check -p0 tools/tmp_memory_v006.patch
           git apply -p0 tools/tmp_memory_v006.patch
-      - name: Verify exact production blobs
+      - name: Verify exact GREEN blobs
         shell: bash
         run: |
           set -euo pipefail
@@ -75,11 +75,15 @@ jobs:
             tests/test_coding_agi_self_*.py
           )
           python -m pytest -q "${tests[@]}"
-      - name: Commit GREEN tree atomically
+      - name: Commit GREEN production and version contracts
         shell: bash
         run: |
           set -euo pipefail
-          git rm .github/workflows/memory-learning-v006-apply.yml tools/tmp_memory_v006.patch
+          # GITHUB_TOKEN intentionally has no workflows permission. Keep workflow
+          # files byte-identical to this commit; the connector will update/clean
+          # workflow files after the production commit lands.
+          git checkout HEAD -- .github/workflows/memory-learning-substrate.yml .github/workflows/memory-learning-v006-apply.yml
+          git rm tools/tmp_memory_v006.patch
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
@@ -92,8 +96,7 @@ jobs:
             tests/test_refoundation_memory_public_layout.py \
             tests/test_refoundation_wave5d_native_memory_lifecycle.py \
             tests/test_refoundation_wave5e_native_memory_retrieval.py \
-            tests/test_refoundation_wave5j_native_skills.py \
-            .github/workflows/memory-learning-substrate.yml
+            tests/test_refoundation_wave5j_native_skills.py
           git diff --cached --check
           git commit -m "fix(memory): reauthorize forgetting and restored learning proofs"
           git push origin HEAD:codex/memory-learning-reauthorization-v0.0.6
