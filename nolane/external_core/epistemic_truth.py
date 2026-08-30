@@ -9,7 +9,7 @@ from .evidence_truth import EvidenceLedger, EvidencePolarity
 from .knowledge import KnowledgeLedger, KnowledgeRisk
 
 COMPONENT_ID = "external.epistemic.truth"
-COMPONENT_VERSION = "0.2.0"
+COMPONENT_VERSION = "0.2.1"
 
 
 class EpistemicDisposition(str, Enum):
@@ -30,14 +30,18 @@ class EpistemicAssessment:
     digest: str
 
     @classmethod
-    def create(cls, *, claim_id: str, disposition: EpistemicDisposition,
-               support_evidence_ids: tuple[str, ...], refute_evidence_ids: tuple[str, ...],
-               knowledge_digest: str, evidence_digest: str) -> "EpistemicAssessment":
+    def create(cls, *, claim_id: str, disposition: EpistemicDisposition, support_evidence_ids: tuple[str, ...],
+               refute_evidence_ids: tuple[str, ...], knowledge_digest: str, evidence_digest: str) -> "EpistemicAssessment":
         payload = {"claim_id": str(claim_id), "disposition": EpistemicDisposition(disposition).value,
                    "support_evidence_ids": list(support_evidence_ids), "refute_evidence_ids": list(refute_evidence_ids),
                    "knowledge_digest": str(knowledge_digest), "evidence_digest": str(evidence_digest)}
         return cls(str(claim_id), EpistemicDisposition(disposition), tuple(support_evidence_ids), tuple(refute_evidence_ids),
                    str(knowledge_digest), str(evidence_digest), truth_digest(payload))
+
+    def to_state(self) -> dict[str, Any]:
+        return {"claim_id": self.claim_id, "disposition": self.disposition.value,
+                "support_evidence_ids": list(self.support_evidence_ids), "refute_evidence_ids": list(self.refute_evidence_ids),
+                "knowledge_digest": self.knowledge_digest, "evidence_digest": self.evidence_digest, "digest": self.digest}
 
 
 @dataclass(frozen=True, slots=True)
@@ -97,12 +101,10 @@ class EpistemicSnapshot:
         assessments = tuple(sorted(assessments, key=lambda row: row.claim_id))
         contradictions = tuple(sorted(contradictions, key=lambda row: row.contradiction_id))
         debts = tuple(sorted(debts, key=lambda row: row.debt_id))
-        state = {"protocol": "epistemic-snapshot-v1", "knowledge_digest": str(knowledge_digest),
-                 "evidence_digest": str(evidence_digest),
-                 "assessments": [vars(row) | {"disposition": row.disposition.value} for row in assessments],
-                 "contradictions": [row.to_state() for row in contradictions],
-                 "debts": [row.to_state() for row in debts]}
-        return cls(str(knowledge_digest), str(evidence_digest), assessments, contradictions, debts, truth_digest(state))
+        payload = {"protocol": "epistemic-snapshot-v1", "knowledge_digest": str(knowledge_digest),
+                   "evidence_digest": str(evidence_digest), "assessments": [row.to_state() for row in assessments],
+                   "contradictions": [row.to_state() for row in contradictions], "debts": [row.to_state() for row in debts]}
+        return cls(str(knowledge_digest), str(evidence_digest), assessments, contradictions, debts, truth_digest(payload))
 
     def assessment(self, claim_id: str) -> EpistemicAssessment:
         for row in self.assessments:
@@ -112,7 +114,7 @@ class EpistemicSnapshot:
 
 
 class EpistemicJudge:
-    """Uncertainty/conflict authority. Evidence and proposition storage remain separate."""
+    """Uncertainty/conflict authority; Evidence and Knowledge retain storage authority."""
 
     def _assess(self, claim_id: str, *, knowledge: KnowledgeLedger, evidence: EvidenceLedger,
                 memo: dict[str, EpistemicAssessment]) -> EpistemicAssessment:
@@ -129,19 +131,14 @@ class EpistemicJudge:
                 rows = tuple(evidence.get(eid) for eid in claim.evidence_ids if evidence.is_active(eid))
                 support = tuple(sorted(row.evidence_id for row in rows if row.polarity is EvidencePolarity.SUPPORT))
                 refute = tuple(sorted(row.evidence_id for row in rows if row.polarity is EvidencePolarity.REFUTE))
-                if support and refute:
-                    disposition = EpistemicDisposition.CONTRADICTED
-                elif support:
-                    disposition = EpistemicDisposition.SUPPORTED
-                elif refute:
-                    disposition = EpistemicDisposition.REFUTED
-                else:
-                    disposition = EpistemicDisposition.UNKNOWN
-        row = EpistemicAssessment.create(claim_id=claim.claim_id, disposition=disposition,
-                                         support_evidence_ids=support, refute_evidence_ids=refute,
-                                         knowledge_digest=knowledge.digest, evidence_digest=evidence.digest)
-        memo[claim_id] = row
-        return row
+                disposition = (EpistemicDisposition.CONTRADICTED if support and refute else
+                               EpistemicDisposition.SUPPORTED if support else
+                               EpistemicDisposition.REFUTED if refute else EpistemicDisposition.UNKNOWN)
+        result = EpistemicAssessment.create(claim_id=claim.claim_id, disposition=disposition,
+                                            support_evidence_ids=support, refute_evidence_ids=refute,
+                                            knowledge_digest=knowledge.digest, evidence_digest=evidence.digest)
+        memo[claim_id] = result
+        return result
 
     def assess(self, claim_id: str, *, knowledge: KnowledgeLedger, evidence: EvidenceLedger) -> EpistemicAssessment:
         return self._assess(str(claim_id), knowledge=knowledge, evidence=evidence, memo={})
