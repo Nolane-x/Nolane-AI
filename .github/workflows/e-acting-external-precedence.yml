@@ -1,4 +1,4 @@
-name: E Acting Lease Expiry RED
+name: E Acting Workspace Process RED
 
 on:
   push:
@@ -23,5 +23,12 @@ jobs:
         with:
           python-version: '3.11'
       - run: python -m pip install -q pytest
-      - name: Prove elapsed lease expiry regression is RED
-        run: python -m pytest -q tests/test_refoundation_acting_runtime.py -k elapsed_core_time_can_expire_lease_before_commit
+      - name: Prove full-workspace digest regressions are RED
+        run: |
+          python -m pytest -q tests/test_refoundation_acting_workspace.py \
+            -k 'ignored_payload_is_part_of_digest_and_rollback_proof or empty_directory_is_part_of_workspace_digest'
+      - name: Prove unconfined process classification regression is RED
+        if: always()
+        run: |
+          python -m pytest -q tests/test_refoundation_acting_runtime.py \
+            -k unconfined_process_tools_use_external_like_risk_floor
