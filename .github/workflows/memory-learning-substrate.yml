@@ -8,7 +8,10 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/self_model.py'
       - 'nolane/external_core/individual_evolution.py'
-      - 'tests/test_memory_learning_substrate_v005*.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_memory_learning_*.py'
+      - 'tests/test_refoundation_memory_public_layout.py'
+      - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
       - 'tests/test_coding_agi_memory_*.py'
       - 'tests/test_coding_agi_self_*.py'
       - '.github/workflows/memory-learning-substrate.yml'
@@ -17,13 +20,17 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/self_model.py'
       - 'nolane/external_core/individual_evolution.py'
-      - 'tests/test_memory_learning_substrate_v005*.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_memory_learning_*.py'
+      - 'tests/test_refoundation_memory_public_layout.py'
+      - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
       - 'tests/test_coding_agi_memory_*.py'
       - 'tests/test_coding_agi_self_*.py'
       - '.github/workflows/memory-learning-substrate.yml'
 
 jobs:
   memory-learning-substrate:
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -41,6 +48,7 @@ jobs:
           python -m py_compile nolane/memory/*.py
           python -m py_compile nolane/external_core/self_model.py
           python -m py_compile nolane/external_core/individual_evolution.py
+          python -m py_compile nolane/metadata/component_versions.py
       - name: Run Memory Learning substrate contracts
         shell: bash
         run: |
@@ -48,10 +56,13 @@ jobs:
           tests=(
             tests/test_memory_learning_substrate_v005.py
             tests/test_memory_learning_substrate_v005_integration.py
+            tests/test_memory_learning_closure_v005.py
+            tests/test_refoundation_memory_public_layout.py
+            tests/test_refoundation_wave5ao_native_individual_evolution.py
             tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py
           )
-          if (( ${#tests[@]} < 2 )); then
+          if (( ${#tests[@]} < 5 )); then
             echo "Memory/Learning contract discovery failed" >&2
             exit 2
           fi
