@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-30  
 **Scope owner:** `E. Acting` only  
-**Status:** implemented architecture baseline (`0.1.x`)  
+**Status:** implemented and fail-closed hardened architecture baseline (`0.1.x`)  
 **Branch:** `refoundation/e-acting-transactional-runtime-gpt56sol`
 
 ## 1. Why E. Acting needs a separate execution architecture
@@ -64,6 +64,7 @@ AUTHORIZED EXECUTION INTENT
 | Transactional Core Kernel |  <-- Executor
 | checkpoint (local effect) |
 | invoke concrete core      |
+| elapsed-time lease gate   |
 | restore or commit         |
 | idempotent replay guard   |
 +-------------+-------------+
@@ -73,7 +74,7 @@ AUTHORIZED EXECUTION INTENT
 | Repository Workspace      |  <-- Execution Workspace
 | isolated Git worktree     |
 | reversible checkpoints    |
-| digest verification       |
+| full-payload digest proof |
 +---------------------------+
 ```
 
@@ -159,6 +160,8 @@ A pre-effect action may also become `CANCELLED`.
 
 `COMMITTED` is reachable only from `POSTCONDITION_VERIFIED` while the execution lease is still valid.
 
+Lease validity is evaluated using the caller's canonical `now_ms` as the deterministic acquisition epoch plus monotonic elapsed runtime time. A slow core therefore cannot reuse the acquisition timestamp and commit after its TTL has actually expired.
+
 A successful tool return is **not** a successful action. It is only an observed outcome that still requires postcondition verification.
 
 ### Recovery invariant
@@ -197,6 +200,8 @@ The execution lease contains:
 
 Forward transitions verify the lease. Observation and recovery remain possible after expiry.
 
+The transactional kernel tracks elapsed runtime with a monotonic clock and advances the protocol timestamp at precondition verification, execution start, outcome observation, postcondition verification, and commit. This closes the stale-clock class of lease bypasses while retaining deterministic caller-supplied acquisition time.
+
 Lease renewal creates a new generation and a receipt; it does not mutate history invisibly.
 
 ## 8. Effect budget model
@@ -212,6 +217,8 @@ The action budget currently bounds:
 The kernel reserves the budget before the concrete effect. A budget-exhausted action never reaches the core.
 
 This is intentionally separate from compute/token budgets. Compute budgets constrain thinking/execution cost; effect budgets constrain environmental impact.
+
+The organization-level `max_external_core_calls` counter remains specific to registered external-core invocations. It is not redefined as a generic external-effect counter merely because unconfined process tools receive external-like transactional semantics.
 
 ## 9. Idempotency semantics
 
@@ -240,6 +247,8 @@ A terminal failed/degraded/cancelled action also does not silently re-execute un
 
 No workspace mutation checkpoint is required. Failure records a no-side-effect rollback boundary.
 
+READ is reserved for effects E can conservatively treat as side-effect-free. `terminal`, `compiler`, and `test-runner` do not qualify merely because their repository input is a disposable copy: a repository copy is not an operating-system sandbox and does not confine process/network/host effects. The compatibility adapter therefore classifies these tools as external-like R3/V3 execution.
+
 ### LOCAL_MUTATION
 
 Immediately before concrete execution, the runtime owns a reversible workspace checkpoint. On failure or failed postcondition verification:
@@ -253,7 +262,9 @@ If restoration cannot be proven, the action becomes `DEGRADED`, never rolled bac
 
 ### EXTERNAL_MUTATION
 
-A local worktree snapshot cannot prove reversal of a remote effect. Therefore failures become `DEGRADED` unless a future core-specific compensation adapter supplies evidence-backed compensation.
+A local worktree snapshot cannot prove reversal of a remote or otherwise unconfined effect. Therefore failures become `DEGRADED` unless a future core-specific compensation adapter supplies evidence-backed compensation.
+
+External classification takes precedence over local mutation hints. If an already-selected tool action is both external and carries local mutation metadata, the compatibility adapter must not downgrade it to `LOCAL_MUTATION` merely because local rollback information exists.
 
 ### IRREVERSIBLE
 
@@ -261,7 +272,7 @@ The action requires an explicit recovery plan and strong verification. Failure c
 
 ## 11. Workspace checkpoint semantics
 
-`RepositoryWorkspace` now supports ephemeral checkpoints bound to exactly one isolated worktree.
+`RepositoryWorkspace` supports ephemeral checkpoints bound to exactly one isolated worktree.
 
 A checkpoint records:
 
@@ -271,7 +282,9 @@ A checkpoint records:
 - label;
 - private snapshot directory.
 
-The snapshot excludes Git administrative metadata but captures tracked and untracked worktree payloads, including symlinks. Restore refuses foreign-workspace checkpoints and verifies the resulting digest.
+The snapshot excludes Git administrative metadata and captures the complete worktree payload. The rollback digest traverses the same payload authority and includes tracked, untracked and ignored files, file byte hashes and sizes, symlink targets, directory entries, and empty directories. Git status and HEAD remain metadata inputs, but `git ls-files` is not the authority for rollback identity.
+
+Restore refuses foreign-workspace checkpoints and verifies the resulting full-payload digest. A rollback cannot be declared successful when ignored or structurally empty payload has drifted outside the old Git-visible file set.
 
 Checkpoints are automatically deleted when the workspace closes.
 
@@ -336,17 +349,22 @@ canonical E transactional runtime
 
 We deliberately do not rewrite candidate synthesis/context/neural ownership inside the E branch because other specialist agents are upgrading those domains concurrently.
 
+The adapter uses a fail-closed compatibility classification order: registered external cores and unconfined process tools first, local workspace mutation second, genuinely read-only operations last. `terminal`, `compiler`, and `test-runner` receive external-like `EXTERNAL_MUTATION` / R3 / V3 semantics because their host-level effects are not proven reversible by the disposable repository copy.
+
 ## 15. Failure semantics
 
 | Failure point | Required result |
 |---|---|
 | invalid capability grant | reject before lease/effect |
-| expired/revoked lease | reject forward progress |
+| expired/revoked lease before core | reject forward progress |
+| lease expires while core is running | observe/recover as required; never commit using the stale acquisition timestamp |
 | precondition evidence missing | reject before effect |
 | effect budget exhausted | reject before core invocation |
-| core local mutation fails | restore checkpoint, prove digest, `ROLLED_BACK` |
-| local postcondition verification fails | restore checkpoint, prove digest, `ROLLED_BACK`, propagate verification failure |
+| core local mutation fails | restore checkpoint, prove full-payload digest, `ROLLED_BACK` |
+| local postcondition verification fails | restore checkpoint, prove full-payload digest, `ROLLED_BACK`, propagate verification failure |
 | external effect fails | `DEGRADED` with recovery evidence |
+| unconfined process effect fails | `DEGRADED`; never a synthetic no-side-effect READ rollback |
+| external action also carries local mutation hints | external semantics dominate; never downgrade to local rollback semantics |
 | rollback cannot be proven | `DEGRADED`, never false rollback |
 | commit attempted before postconditions | protocol violation |
 | idempotency key reused for different work | conflict |
@@ -358,12 +376,16 @@ We deliberately do not rewrite candidate synthesis/context/neural ownership insi
 2. No capability escalation inside E.
 3. No local mutation without an explicit effect budget reservation.
 4. No commit without observed outcome and postcondition verification.
-5. No false rollback: restoration must match the checkpoint digest.
+5. No false rollback: restoration must match the full-payload checkpoint digest.
 6. No external/irreversible failure disguised as local rollback.
 7. No second invocation for a committed idempotency key.
 8. No lifecycle history rewrite; events append and hash-chain.
 9. No orphan receipt accepted on state restore.
 10. No strategic/candidate-selection logic inside E.
+11. No stale-clock lease bypass: elapsed core runtime participates in every post-acquisition forward lease check.
+12. No Git-visibility proof gap: ignored files and empty directories participate in workspace identity and rollback proof.
+13. No local-hint downgrade: external effect classification precedes local mutation rollback metadata.
+14. No process-as-read fiction: unconfined process tools require at least the external-like R3/V3 compatibility floor unless a future stronger sandbox proves a narrower effect class.
 
 ## 17. Verification strategy
 
@@ -373,13 +395,17 @@ The dedicated Refoundation E workflow runs on Python 3.11 and 3.13 and performs:
 - protocol contract tests;
 - workspace rollback tests;
 - transactional executor integration tests through the Refoundation wildcard suite;
+- elapsed-time lease-expiry regression tests;
+- ignored-file and empty-directory workspace identity regressions;
+- external-over-local effect-precedence regression tests;
+- unconfined process-tool R3/V3 regression tests;
 - full `tests/test_refoundation_*.py` regression gate.
 
-The implementation was developed test-first: the workflow and failing contracts were committed before the new protocol/runtime modules.
+The implementation was developed test-first. Each late forensic hardening issue was first reproduced as a failing contract and only then moved to GREEN implementation.
 
 ## 18. Canonical integration seam — implemented
 
-The compatibility integration is now closed on this branch:
+The compatibility integration is closed on this branch:
 
 1. the already-issued `AgentDecisionReceipt` is bound to the E execution contract as upstream authorization evidence;
 2. canonical TOOL execution routes through `TransactionalExternalCoreExecutor`, never directly through `ExternalCoreExecutor.invoke`;
@@ -387,6 +413,22 @@ The compatibility integration is now closed on this branch:
 4. task/identity authority state is bound into precondition evidence and existing identity permissions/bindings supply the capability grants;
 5. risk classes are paired with their minimum verifier levels before any effect can start;
 6. successful concrete-core receipts contribute their persisted evidence artifact to postcondition verification;
-7. reasoning/planning selection remains outside E.
+7. reasoning/planning selection remains outside E;
+8. elapsed lease time is enforced through the transactional kernel rather than frozen at invocation entry;
+9. local rollback proof is byte/structure-complete for the worktree payload outside Git administrative metadata;
+10. external effects cannot be downgraded by local mutation hints; and
+11. unconfined process tools are conservatively bound to external-like R3/V3 semantics.
 
 Core-specific compensation beyond the generic degraded/recovery contract remains an owner-core extension point rather than a reason to bypass E.
+
+## 19. Hardened semantic component revisions
+
+The forensic hardening advances only components whose execution semantics changed:
+
+| Component | Hardened version | Reason |
+|---|---:|---|
+| `external.execution.workspace` | `0.0.3` | full-payload rollback identity and proof |
+| `external.acting.runtime` | `0.1.1` | monotonic elapsed-time lease enforcement |
+| `external.execution.control` | `0.0.3` | fail-closed external precedence and process-tool R3/V3 mapping |
+
+These version changes do not alter canonical first-generation runtime state. The accepted E runtime-state fingerprint therefore remains `eda96a54b833dee2a3eb2a3e697fb658f4ff73729fff76fa6746ba554a6d602e` rather than creating a false new persistence cutover.
