@@ -55,7 +55,7 @@ def _contexts():
 def test_wave5av_native_causal_public_boundary_and_metadata() -> None:
     module = importlib.import_module("nolane.external_core.causal")
     assert module.COMPONENT_ID == "external.causal"
-    assert module.COMPONENT_VERSION == "0.0.1"
+    assert module.COMPONENT_VERSION == "0.0.2"
     assert module.MIGRATED_FROM == "cogcoder R2.58/R2.62 bounded causal-program lineage"
     for name in (
         "PositionalSchema",
@@ -166,8 +166,8 @@ def test_wave5av_authority_version_debt_and_readme_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.causal"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.causal")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.causal")) == "0.0.2"
     assert "cogcoder/r258_intervention_discovery.py" in row.legacy_sources
     assert "cogcoder/r262_complementary_experiment_program.py" in row.legacy_sources
 
