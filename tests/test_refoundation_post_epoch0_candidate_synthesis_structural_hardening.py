@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from nolane.external_core.candidate_synthesis import (
@@ -46,6 +48,15 @@ def test_structural_request_restore_rejects_boolean_budget() -> None:
         StructuralSynthesisRequest.from_state(state)
 
 
+@pytest.mark.parametrize("non_integer", ("1", 1.5))
+def test_structural_request_constructor_rejects_non_integer_budget(non_integer: object) -> None:
+    source = _unary_source()
+    program = StructuralCall(source.abstraction_id, (StructuralInput(0),))
+
+    with pytest.raises(TypeError, match="budget|integer"):
+        _request(program, budget=non_integer)  # type: ignore[arg-type]
+
+
 def test_structural_receipt_restore_rejects_boolean_budget_accounting() -> None:
     source = _unary_source()
     library = CognitiveLibrary(abstractions=(source,))
@@ -63,6 +74,22 @@ def test_structural_receipt_restore_rejects_boolean_budget_accounting() -> None:
     considered_state["candidates_considered"] = True
     with pytest.raises(TypeError, match="budget|integer|considered"):
         StructuralSynthesisReceipt.from_state(considered_state)
+
+
+@pytest.mark.parametrize("field_name", ("generation_budget", "candidates_considered"))
+@pytest.mark.parametrize("non_integer", ("1", 1.5))
+def test_structural_receipt_constructor_rejects_non_integer_budget_accounting(
+    field_name: str,
+    non_integer: object,
+) -> None:
+    source = _unary_source()
+    library = CognitiveLibrary(abstractions=(source,))
+    request = _request(StructuralCall(source.abstraction_id, (StructuralInput(0),)))
+    result = CandidateSynthesisEngine(library).synthesize(request)
+    assert result.candidate is None
+
+    with pytest.raises(TypeError, match="budget|integer|considered"):
+        replace(result.receipt, **{field_name: non_integer})
 
 
 def test_structural_depth_limit_accepts_exact_64_and_rejects_65() -> None:
