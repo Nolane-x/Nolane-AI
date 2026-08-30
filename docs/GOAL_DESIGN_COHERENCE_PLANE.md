@@ -36,6 +36,8 @@ and
 
 Local validity is not enough. Five individually valid planes can still form a globally stale design.
 
+A second closure problem also matters: IDs are not semantics. A proof with the same `proof_id` can move from `SATISFIED` to `WAIVED`; an uncertainty with the same ID can become resolved under a mitigation; a goal can keep its ID while assumptions change. Authority therefore cannot be content-addressed from identifiers alone.
+
 ---
 
 ## Core invariants
@@ -49,11 +51,14 @@ Local validity is not enough. Five individually valid planes can still form a gl
 7. **Vector goals remain vector goals.** Pareto dominance is evaluated per declared objective; scalar helper scores cannot override the Pareto authority set.
 8. **Irreversibility changes burden of proof.** Costly/irreversible decisions require alternatives, counterfactual/adversarial scenarios and stronger uncertainty closure.
 9. **Unknowns are first-class.** Uncertainty is prioritized by uncertainty × impact × decision sensitivity × observability penalty.
-10. **Evidence is inherited into receipts.** Goal, option, proof and uncertainty evidence is folded into deterministic decision receipts.
+10. **Evidence is inherited into receipts.** Goal, scenario, selected option, proof and uncertainty evidence is folded into deterministic decision receipts.
 11. **Traceability is cross-plane.** Active Requirements must reach Planning; Plans must reach Architecture; Integration refs must resolve to live Architecture; Context must bind exact authoritative artifact versions.
 12. **Historical identity is not live authority.** Removed/superseded architecture components, superseded plans and rejected/superseded integration candidates are not accepted merely because their IDs remain in historical graphs.
-13. **Authority survives restart.** Decision lifecycle and causal ledger state have canonical serialization and validation.
+13. **Authority survives restart.** Decision lifecycle, proof-carrying receipt fields and causal ledger state have canonical serialization and validation.
 14. **Transitive impact is directional.** A changed dependency invalidates its consumers and downstream integration chain; dependency direction is not reversed accidentally.
+15. **IDs never substitute for semantic state.** Receipt identity binds complete goal, scenario, option, proof, uncertainty and traceability semantics, not merely their IDs.
+16. **Evaluation identity binds its inputs.** `DesignEvaluation.digest` binds the full GoalSpec + scenario set + option set as well as computed outputs.
+17. **Authority events are manifest-aware.** Typed DECISION ledger events explicitly bind the decision input manifest digest in addition to the receipt ID.
 
 ---
 
@@ -89,6 +94,8 @@ Local validity is not enough. Five individually valid planes can still form a gl
                     five-plane version vector
                                    │
                     content-addressed snapshot
+                                   │
+                 proof-carrying input manifest
                                    │
                         DecisionReceipt
                                    │
@@ -259,6 +266,56 @@ If any token later differs, `verify_snapshot()` emits a blocking stale-plane iss
 
 ---
 
+## Proof-carrying decision manifest
+
+A successful decision is not identified from `goal_id`, `option_id`, proof IDs or uncertainty IDs alone. `admit_decision()` canonicalizes the complete semantic inputs and computes seven named digests:
+
+```text
+goal_digest
+scenario_set_digest
+option_set_digest
+proof_state_digest
+uncertainty_state_digest
+traceability_digest
+input_manifest_digest
+```
+
+The first six bind the complete immutable semantic state of their domains. `input_manifest_digest` then binds those six digests together with:
+
+- selected option ID,
+- exact Goal/Design snapshot digest,
+- exact five-plane version vector.
+
+The resulting `DecisionReceipt.receipt_id` binds the manifest, evaluation digest, snapshot/vector, selected option, proof/uncertainty IDs and inherited evidence references.
+
+### Consequences
+
+The following changes produce different authority identity even when high-level IDs remain unchanged:
+
+- a GoalSpec assumption, objective weight/description, constraint, success metric or evidence changes;
+- a scenario probability/tag/evidence changes;
+- an option dependency, rollback path, assumption, evidence, utility or objective value changes;
+- a proof moves between `SATISFIED` and `WAIVED`, or its waiver/evidence/claim changes;
+- an uncertainty changes probability/impact/sensitivity/observability, resolution state, mitigation or evidence;
+- cross-plane traceability changes;
+- the five-plane snapshot changes.
+
+Input sets that are semantically sets are canonicalized by stable IDs before hashing, so harmless caller ordering does not create false authority identities.
+
+### Evaluation binding
+
+`DesignEvaluation.digest` independently binds:
+
+- complete `GoalSpec`,
+- complete canonical scenario set,
+- complete canonical option set,
+- computed option evaluations,
+- Pareto authority set.
+
+This prevents two numerically identical evaluation outputs from being treated as the same evaluation when the goal semantics or option semantics that produced them differ.
+
+---
+
 ## Change-impact propagation
 
 `GoalDesignRuntime.analyze_change()` computes a deterministic transitive closure over real D graphs.
@@ -335,7 +392,7 @@ Even if no explicit change-set was supplied, `revalidate_decisions()` reconstruc
 
 `DecisionAuthorityIndex` has a canonical schema:
 
-- receipt payload,
+- complete proof-carrying receipt payload, including all seven manifest digests,
 - dependency refs,
 - snapshot digest,
 - lifecycle,
@@ -343,7 +400,7 @@ Even if no explicit change-set was supplied, `revalidate_decisions()` reconstruc
 - decision authority event ID,
 - supersession target.
 
-`to_state()` and `from_state()` preserve this state across restart. Restore validates:
+`to_state()` and `from_state()` preserve this state across restart. New manifest fields are serialized exactly; restore remains backward-compatible with older receipt state by treating absent manifest fields as empty legacy values. Restore validates:
 
 - schema version,
 - duplicate receipt identity,
@@ -383,6 +440,8 @@ Typed authority methods mint:
 
 An invalidation is intentionally authoritative because it withdraws permission to treat a prior decision as current closure.
 
+A typed DECISION event explicitly hashes `input_manifest_digest` into its payload in addition to `receipt_id`, goal, selected option, snapshot and evaluation digest. This makes the ledger audit trail self-describing at the decision-manifest boundary rather than requiring an external receipt lookup to establish which semantic input closure was authorized.
+
 ---
 
 ## Decision theory adapted from Nolane World 0.12.0
@@ -419,7 +478,7 @@ For each design option and scenario, D computes:
 
 The helper score is diagnostic/ranking support only. If objectives are declared, the selected option must still belong to the Pareto frontier.
 
-This avoids collapsing multi-objective design into one scalar that can optimize the wrong proxy.
+The evaluation digest binds complete goal/scenario/option semantics in addition to these numerical outputs. This avoids both collapsing multi-objective design into one scalar that can optimize the wrong proxy and treating equal numeric outputs produced under different design semantics as identical authority evidence.
 
 ---
 
@@ -436,7 +495,7 @@ A design decision is rejected when any blocker exists, including:
 - irreversible decision with unresolved high-risk uncertainty,
 - Pareto-dominated selected option.
 
-Successful admission emits deterministic `DecisionReceipt` authority and records it as a child of the exact snapshot event that justified it.
+Successful admission emits a deterministic proof-carrying `DecisionReceipt` and records it as a child of the exact snapshot event that justified it.
 
 ---
 
@@ -462,10 +521,10 @@ This is the intended coordination membrane between Goal/Design and the rest of N
 
 ### Core
 
-- `nolane/external_core/goal_design.py` — goals, objectives, uncertainty, scenarios, Pareto/robust evaluation, snapshots, coherence, admission, receipts.
+- `nolane/external_core/goal_design.py` — goals, objectives, uncertainty, scenarios, Pareto/robust evaluation, snapshots, coherence, proof-carrying admission and receipts.
 - `nolane/external_core/goal_design_contracts.py` — typed five-authority state bundle.
-- `nolane/external_core/goal_design_ledger.py` — causal authority ledger, typed invalidation and persistence.
-- `nolane/external_core/goal_design_runtime.py` — live adapters, impact propagation, decision lifecycle, integration/context guards and authority persistence.
+- `nolane/external_core/goal_design_ledger.py` — causal authority ledger, manifest-aware decision events, typed invalidation and persistence.
+- `nolane/external_core/goal_design_runtime.py` — live adapters, impact propagation, decision lifecycle, integration/context guards and manifest-safe authority persistence.
 - `cogcoder/organization/goal_design.py` — compatibility export surface.
 
 ### Tests
@@ -475,6 +534,7 @@ This is the intended coordination membrane between Goal/Design and the rest of N
 - `tests/test_goal_design_ledger.py`
 - `tests/test_goal_design_runtime.py`
 - `tests/test_goal_design_authority_persistence.py`
+- `tests/test_goal_design_decision_manifest.py`
 
 ### CI
 
@@ -498,6 +558,8 @@ GoalDesignStateBundle
 GoalDesignVersionVector
         ↓
 GoalDesignSnapshot
+        ↓
+proof-carrying input manifest
         ↓
 DecisionReceipt / IntegrationGuardReceipt / ContextBindingReceipt
         ↓
