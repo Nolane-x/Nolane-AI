@@ -36,6 +36,8 @@ def build_runtime_state_bindings() -> tuple[RuntimeStateBinding, ...]:
         RuntimeStateBinding("scheduler", "organization.lifecycle"),
         RuntimeStateBinding("evolution", "external.skills"),
         RuntimeStateBinding("learning_substrate", "external.skills"),
+        RuntimeStateBinding("memory_learning_lifecycle", "external.memory.lifecycle"),
+        RuntimeStateBinding("memory_learning_retrieval", "external.memory.retrieval"),
         RuntimeStateBinding("verification", "external.verification"),
         RuntimeStateBinding("artifacts", "external.artifacts"),
         RuntimeStateBinding("external_cores", "external.invokable_cores"),
