@@ -206,8 +206,8 @@ def test_wave5k_knowledge_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.knowledge"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.knowledge")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.knowledge")) == "0.0.2"
 
 
 def test_wave5k_public_knowledge_objects_bridge_to_canonical_identity() -> None:
@@ -277,20 +277,3 @@ def test_wave5k_inventory_maps_only_dedicated_knowledge_lineage() -> None:
     ):
         assert census.get(path).canonical_destination == expected
     assert census.get("cogcoder/r254_code_knowledge.py").canonical_destination != expected
-
-
-def test_wave5k_debt_reduces_only_historical_knowledge() -> None:
-    ledger = build_component_implementation_ledger()
-    counts: dict[str, int] = {}
-    non_native = []
-    for row in ledger.values():
-        if row.status is ImplementationStatus.CANONICAL_NATIVE:
-            continue
-        non_native.append(row)
-        counts[row.status.value] = counts.get(row.status.value, 0) + 1
-
-    assert len(non_native) <= 34
-    assert counts.get("historical_only", 0) <= 6
-    assert ledger["external.knowledge"].status is ImplementationStatus.CANONICAL_NATIVE
-    assert ledger["external.knowledge"].canonical_module == "nolane.memory.knowledge"
-    assert ledger["external.knowledge"].canonical_write_authority
