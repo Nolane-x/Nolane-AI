@@ -17,6 +17,9 @@ on:
 
 jobs:
   acting-contracts:
+    # Refoundation branches own their dedicated gate and must not be executed
+    # again as historical PR workflow jobs during repository quarantine.
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -24,6 +27,11 @@ jobs:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Refoundation inventory tests intentionally inspect pinned historical
+          # commits. A shallow checkout makes those tests fail for infrastructure
+          # reasons rather than product regressions.
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
