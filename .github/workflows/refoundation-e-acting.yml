@@ -15,6 +15,10 @@ on:
       - 'docs/superpowers/plans/2026-08-30-refoundation-e-acting-transactional-runtime.md'
       - '.github/workflows/refoundation-e-acting.yml'
 
+concurrency:
+  group: refoundation-e-acting-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   acting-contracts:
     # Refoundation branches own their dedicated gate and must not be executed
