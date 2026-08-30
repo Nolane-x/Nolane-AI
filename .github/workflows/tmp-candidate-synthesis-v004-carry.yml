@@ -1,0 +1,63 @@
+name: Temporary Candidate Synthesis v0.0.4 Carry Forward
+
+on:
+  push:
+    branches:
+      - post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+    paths:
+      - .github/workflows/tmp-candidate-synthesis-v004-carry.yml
+
+permissions:
+  contents: write
+
+jobs:
+  carry-forward:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Carry current-version declarations forward
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path('tests/test_refoundation_post_epoch0_candidate_synthesis_bounded_search.py'): [
+                  ('test_component_is_v003_while_bounded_search_schema_stays_v1', 'test_component_is_v004_while_bounded_search_schema_stays_v1'),
+                  ('assert str(manifest.version) == "0.0.3"', 'assert str(manifest.version) == "0.0.4"'),
+                  ('assert ledger.component_version == "0.0.3"', 'assert ledger.component_version == "0.0.4"'),
+              ],
+              Path('tests/test_refoundation_post_epoch0_candidate_synthesis_progressive_frontier.py'): [
+                  ('test_component_advances_to_v003_without_schema_bump', 'test_component_advances_to_v004_without_legacy_schema_bump'),
+                  ('assert str(manifest.version) == "0.0.3"', 'assert str(manifest.version) == "0.0.4"'),
+                  ('assert ledger.component_version == "0.0.3"', 'assert ledger.component_version == "0.0.4"'),
+              ],
+              Path('tests/test_refoundation_component_versions.py'): [
+                  ('"external.candidate_synthesis": 3,', '"external.candidate_synthesis": 4,'),
+              ],
+          }
+          for path, edits in replacements.items():
+              text = path.read_text(encoding='utf-8')
+              for old, new in edits:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{path}: expected exactly one occurrence of {old!r}, found {count}')
+                  text = text.replace(old, new)
+              path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit carry-forward only
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add tests/test_refoundation_post_epoch0_candidate_synthesis_bounded_search.py \
+                  tests/test_refoundation_post_epoch0_candidate_synthesis_progressive_frontier.py \
+                  tests/test_refoundation_component_versions.py
+          git diff --cached --check
+          git commit -m "test: carry candidate synthesis declarations to v0.0.4"
+          git push origin HEAD:post-epoch0/candidate-synthesis-v0.0.4-structural-composition
