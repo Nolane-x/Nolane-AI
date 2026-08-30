@@ -124,3 +124,33 @@ def test_goal_design_manifest_change_propagates_into_engineering_evidence_identi
     assert first_receipt.input_manifest_digest != second_receipt.input_manifest_digest
     assert first_attestation.subject_digest != second_attestation.subject_digest
     assert first_attestation.digest != second_attestation.digest
+
+
+def test_software_engineering_validates_exact_goal_design_manifest_binding():
+    receipt = _admit(_truth_evidence("payload:a").content_digest)
+    ledger = EngineeringEvidenceLedger()
+    attestation = ledger.record(
+        subject_ref=receipt.receipt_id,
+        subject_digest=receipt.input_manifest_digest,
+        producer_agent_id="agent:goal-design",
+        verifier_agent_id="agent:verification",
+        verifier_region="verification-testing",
+        kind=EngineeringEvidenceKind.REVIEW,
+        passed=True,
+        evidence_refs=receipt.evidence_refs,
+        source_revision=receipt.snapshot_digest,
+        environment_digest="environment:goal-design-refoundation-interop",
+    )
+
+    assert ledger.is_valid(
+        attestation.attestation_id,
+        subject_ref=receipt.receipt_id,
+        subject_digest=receipt.input_manifest_digest,
+        source_revision=receipt.snapshot_digest,
+    )
+    assert not ledger.is_valid(
+        attestation.attestation_id,
+        subject_ref=receipt.receipt_id,
+        subject_digest="tampered-goal-design-manifest",
+        source_revision=receipt.snapshot_digest,
+    )
