@@ -11,8 +11,37 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.memory.lifecycle"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
+
+
+_ALLOWED_MEMORY_TRANSITIONS: dict[MemoryStatus, frozenset[MemoryStatus]] = {
+    MemoryStatus.ACTIVE: frozenset({
+        MemoryStatus.QUARANTINED,
+        MemoryStatus.STALE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.QUARANTINED: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.STALE: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.CONTRADICTED: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.SUPERSEDED: frozenset({MemoryStatus.ARCHIVED}),
+    MemoryStatus.ARCHIVED: frozenset(),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +121,14 @@ class MemoryLifecycleLedger:
         self.memory.get(memory_id)
         return tuple(row for row in self._receipts if row.memory_id == str(memory_id))
 
+    @staticmethod
+    def _require_allowed_transition(previous: MemoryStatus, target: MemoryStatus) -> None:
+        allowed = _ALLOWED_MEMORY_TRANSITIONS[MemoryStatus(previous)]
+        if MemoryStatus(target) not in allowed:
+            raise PermissionError(
+                f'forbidden memory lifecycle transition: {MemoryStatus(previous).value} -> {MemoryStatus(target).value}'
+            )
+
     def _authorize(self, actor_agent_id: str, new_status: MemoryStatus) -> None:
         actor = self.registry.get(actor_agent_id)
         if actor.region != self.REGION:
@@ -114,6 +151,7 @@ class MemoryLifecycleLedger:
         self._authorize(actor_agent_id, target)
         if old.status is target:
             raise ValueError('memory lifecycle transition must change status')
+        self._require_allowed_transition(old.status, target)
         if not str(reason).strip() or not evidence_refs:
             raise ValueError('memory lifecycle transition requires explicit reason and evidence')
         if target is MemoryStatus.ACTIVE and not (correction_ref and str(correction_ref).strip()):
