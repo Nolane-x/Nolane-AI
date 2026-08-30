@@ -145,7 +145,16 @@ def test_control_plane_snapshot_roundtrip_preserves_every_f_closure_layer():
 def test_control_plane_restore_rejects_cross_layer_manifest_forgery():
     _, claims, _, plane, _, _, _ = _ready_plane()
     state = plane.to_state()
-    state['works'][0]['manifest_digest'] = 'forged-manifest-digest'
+    work_state = state['works'][0]
+    work_state['manifest_digest'] = 'forged-manifest-digest'
+    work_payload = {
+        key: value
+        for key, value in work_state.items()
+        if key not in {'work_id', 'digest'}
+    }
+    forged_work_digest = canonical_digest(work_payload)
+    work_state['digest'] = forged_work_digest
+    work_state['work_id'] = f'eng-work-{forged_work_digest[:20]}'
     state['digest'] = canonical_digest({key: value for key, value in state.items() if key != 'digest'})
 
     try:
