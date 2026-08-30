@@ -2,6 +2,12 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from nolane.memory.runtime_binding import (
+    bind_runtime_learning_authorities,
+    restore_runtime_learning_overlay,
+    split_runtime_learning_state,
+)
+
 from .campaign import EvaluationCampaignControlPlane
 from .execution import OrganizationExecutionControlPlane
 from .runtime_part15 import OrganizationRuntime as _OrganizationRuntimePart15
@@ -18,6 +24,11 @@ class OrganizationRuntime(_OrganizationRuntimePart15):
         **kwargs: Any,
     ) -> None:
         super().__init__(*args, **kwargs)
+        # The historical runtime layers independently constructed several B
+        # authorities. Collapse them at the public composition root so every
+        # Memory/Learning control plane operates over the same lifecycle,
+        # relation, skill and experience objects.
+        bind_runtime_learning_authorities(self)
         self.evaluation_campaign = evaluation_campaign or EvaluationCampaignControlPlane(
             registry=self.registry,
             artifacts=self.artifacts,
@@ -34,6 +45,14 @@ class OrganizationRuntime(_OrganizationRuntimePart15):
 
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
+        skill_state, lifecycle_state, retrieval_state = split_runtime_learning_state(
+            self.learning_substrate
+        )
+        # Keep the existing skill-governance section stable and project the
+        # adaptive memory overlay into the canonical lifecycle/retrieval owners.
+        state['learning_substrate'] = skill_state
+        state['memory_learning_lifecycle'] = lifecycle_state
+        state['memory_learning_retrieval'] = retrieval_state
         state['evaluation_campaign'] = self.evaluation_campaign.to_state()
         state['execution'] = self.execution.to_state()
         return state
@@ -56,4 +75,5 @@ class OrganizationRuntime(_OrganizationRuntimePart15):
             coding=runtime.coding,
             state=state.get('execution', {}),
         )
+        restore_runtime_learning_overlay(runtime, state)
         return runtime
