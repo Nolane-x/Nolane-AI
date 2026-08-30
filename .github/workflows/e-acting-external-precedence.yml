@@ -13,6 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 1
           ref: refoundation/e-acting-transactional-runtime-gpt56sol
       - uses: actions/setup-python@v5
         with:
