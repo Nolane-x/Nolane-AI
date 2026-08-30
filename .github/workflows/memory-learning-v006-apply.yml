@@ -1,0 +1,99 @@
+name: Memory Learning v0.0.6 Transactional Apply
+
+on:
+  push:
+    branches:
+      - codex/memory-learning-reauthorization-v0.0.6
+    paths:
+      - 'tools/tmp_memory_v006.patch'
+      - '.github/workflows/memory-learning-v006-apply.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-verify-commit:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Apply exact v0.0.6 patch
+        run: |
+          git apply --check -p0 tools/tmp_memory_v006.patch
+          git apply -p0 tools/tmp_memory_v006.patch
+      - name: Verify exact production blobs
+        shell: bash
+        run: |
+          set -euo pipefail
+          check_hash() {
+            actual="$(git hash-object "$1")"
+            test "$actual" = "$2" || { echo "blob mismatch: $1 expected=$2 actual=$actual"; exit 1; }
+          }
+          check_hash nolane/memory/learning_substrate.py 62052ae771b6b2d32337135a2017bae570a19461
+          check_hash nolane/memory/lifecycle.py 0c5f23001c158aeb1a46ce94d48a0bf28f863fa4
+          check_hash nolane/memory/retrieval.py 1375fb463ad4d11181a8a8c95f5ae757b2d5c8e0
+          check_hash nolane/memory/skills.py 0aa7eb695de45056246cd5dbc0b8898ec9e38f90
+          check_hash nolane/metadata/component_versions.py 406ecebc205bd1d2e1ddeacc40fe0f37aa9f21a9
+          check_hash tests/test_refoundation_component_versions.py a068391ecce7f9d49789c7b30463e1803fb9d75b
+          check_hash tests/test_refoundation_memory_public_layout.py c8340d1a755adf18dc393537211bd75ee9254e07
+          check_hash tests/test_refoundation_wave5d_native_memory_lifecycle.py ea489e739fcee850c43cfe56e4e0d6f6f371994d
+          check_hash tests/test_refoundation_wave5e_native_memory_retrieval.py 1af6de50e2c84de5929cf77102ea650346b5ebd4
+          check_hash tests/test_refoundation_wave5j_native_skills.py 83b5eef72b025da3ddf8807ea720f2ad58ae24cf
+          check_hash .github/workflows/memory-learning-substrate.yml 68c8c3c7f23d1cce953f87216bfc2370b63c4880
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile B authority namespaces
+        run: python -m compileall -q nolane/memory nolane/metadata cogcoder/organization
+      - name: Run complete Memory Learning gate
+        shell: bash
+        run: |
+          shopt -s nullglob
+          tests=(
+            tests/test_memory_learning_substrate_v005.py
+            tests/test_memory_learning_substrate_v005_integration.py
+            tests/test_memory_learning_closure_v005.py
+            tests/test_memory_learning_adaptive_policy_v005.py
+            tests/test_memory_learning_restore_authority_v005.py
+            tests/test_memory_learning_runtime_wiring_v005.py
+            tests/test_memory_learning_reauthorization_v006.py
+            tests/test_refoundation_component_versions.py
+            tests/test_refoundation_runtime_state_map.py
+            tests/test_refoundation_wave2_zero_loss_runtime_digest.py
+            tests/test_refoundation_memory_public_layout.py
+            tests/test_refoundation_wave5c_native_memory_fabric.py
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py
+            tests/test_refoundation_wave5e_native_memory_retrieval.py
+            tests/test_refoundation_wave5h_native_experience.py
+            tests/test_refoundation_wave5j_native_skills.py
+            tests/test_refoundation_wave5ao_native_individual_evolution.py
+            tests/test_coding_agi_memory_*.py
+            tests/test_coding_agi_self_*.py
+          )
+          python -m pytest -q "${tests[@]}"
+      - name: Commit GREEN tree atomically
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/memory-learning-v006-apply.yml tools/tmp_memory_v006.patch
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            nolane/memory/learning_substrate.py \
+            nolane/memory/lifecycle.py \
+            nolane/memory/retrieval.py \
+            nolane/memory/skills.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_memory_public_layout.py \
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py \
+            tests/test_refoundation_wave5e_native_memory_retrieval.py \
+            tests/test_refoundation_wave5j_native_skills.py \
+            .github/workflows/memory-learning-substrate.yml
+          git diff --cached --check
+          git commit -m "fix(memory): reauthorize forgetting and restored learning proofs"
+          git push origin HEAD:codex/memory-learning-reauthorization-v0.0.6
