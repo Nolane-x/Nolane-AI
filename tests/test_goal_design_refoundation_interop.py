@@ -10,6 +10,7 @@ from nolane.external_core.goal_design import (
     ObjectiveDirection,
     TraceabilityState,
 )
+from nolane.external_core.software_engineering import EngineeringEvidenceKind, EngineeringEvidenceLedger
 
 
 def _truth_evidence(payload_digest: str) -> TruthEvidence:
@@ -67,6 +68,22 @@ def _admit(evidence_ref: str):
     )
 
 
+def _engineering_attestation(receipt):
+    ledger = EngineeringEvidenceLedger()
+    return ledger.record(
+        subject_ref=receipt.receipt_id,
+        subject_digest=receipt.input_manifest_digest,
+        producer_agent_id="agent:goal-design",
+        verifier_agent_id="agent:verification",
+        verifier_region="verification-testing",
+        kind=EngineeringEvidenceKind.REVIEW,
+        passed=True,
+        evidence_refs=receipt.evidence_refs,
+        source_revision=receipt.snapshot_digest,
+        environment_digest="environment:goal-design-refoundation-interop",
+    )
+
+
 def test_truth_knowledge_content_identity_flows_into_goal_design_receipt():
     evidence = _truth_evidence("payload:a")
     receipt = _admit(evidence.content_digest)
@@ -86,3 +103,24 @@ def test_truth_knowledge_content_change_changes_goal_design_authority_identity()
     assert first.content_digest != second.content_digest
     assert first_receipt.goal_digest != second_receipt.goal_digest
     assert first_receipt.receipt_id != second_receipt.receipt_id
+
+
+def test_software_engineering_attests_goal_design_manifest_without_rebinding_it():
+    receipt = _admit(_truth_evidence("payload:a").content_digest)
+    attestation = _engineering_attestation(receipt)
+
+    assert attestation.subject_ref == receipt.receipt_id
+    assert attestation.subject_digest == receipt.input_manifest_digest
+    assert attestation.passed is True
+
+
+def test_goal_design_manifest_change_propagates_into_engineering_evidence_identity():
+    first_receipt = _admit(_truth_evidence("payload:a").content_digest)
+    second_receipt = _admit(_truth_evidence("payload:b").content_digest)
+
+    first_attestation = _engineering_attestation(first_receipt)
+    second_attestation = _engineering_attestation(second_receipt)
+
+    assert first_receipt.input_manifest_digest != second_receipt.input_manifest_digest
+    assert first_attestation.subject_digest != second_attestation.subject_digest
+    assert first_attestation.digest != second_attestation.digest
