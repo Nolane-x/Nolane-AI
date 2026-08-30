@@ -58,6 +58,36 @@ def test_checkpoint_restores_tracked_and_untracked_workspace_state(tmp_path: Pat
         workspace.close()
 
 
+def test_ignored_payload_is_part_of_digest_and_rollback_proof(tmp_path: Path) -> None:
+    repo = _repository(tmp_path)
+    workspace = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "workspace")
+    try:
+        workspace.write_text(".gitignore", "ignored/\n")
+        before = workspace.digest
+        checkpoint = workspace.checkpoint(label="before-ignored-payload")
+
+        workspace.write_text("ignored/cache.bin", "opaque-runtime-state")
+        assert workspace.digest != before
+
+        restored = workspace.restore(checkpoint)
+        assert restored == before
+        assert not workspace.resolve_repo_path("ignored/cache.bin").exists()
+        workspace.release_checkpoint(checkpoint)
+    finally:
+        workspace.close()
+
+
+def test_empty_directory_is_part_of_workspace_digest(tmp_path: Path) -> None:
+    repo = _repository(tmp_path)
+    workspace = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "workspace")
+    try:
+        before = workspace.digest
+        workspace.resolve_repo_path("empty-runtime-state").mkdir()
+        assert workspace.digest != before
+    finally:
+        workspace.close()
+
+
 def test_checkpoint_is_bound_to_its_origin_workspace(tmp_path: Path) -> None:
     repo = _repository(tmp_path)
     first = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "w1")
