@@ -14,15 +14,15 @@
 
 Candidate Synthesis v0.0.1–v0.0.3 can compose and search learned abstractions, but its expressive language is intentionally narrow. The engine resolves only unary sources (`parameter_count == 1`), composes them as a linear chain, and always emits a unary learned abstraction. v0.0.3 therefore improves depth of search without expanding the topology of inventions it can represent.
 
-This creates an architectural bottleneck. Cognitive Vocabulary already supports learned abstractions with arbitrary non-negative `parameter_count` and `AbstractionCall` nodes with ordered argument tuples. Capability Acquisition already transports canonical `LearnedAbstraction` payloads independently of arity. Candidate Synthesis is therefore the restricting boundary.
+Cognitive Vocabulary already supports learned abstractions with arbitrary non-negative `parameter_count` and `AbstractionCall` nodes with ordered argument tuples. Capability Acquisition already transports canonical `LearnedAbstraction` payloads independently of arity. Candidate Synthesis is therefore the restricting boundary.
 
-Optimizing permutation search before removing this restriction would make search more efficient inside an unnecessarily small hypothesis language. v0.0.4 should expand the proposal language first and leave intelligent structural search for a later revision.
+Optimizing permutation search before removing this restriction would make search more efficient inside an unnecessarily small hypothesis language. v0.0.4 expands the proposal language first; intelligent structural search remains a later revision.
 
 ## 2. Goal
 
 Add an explicit, deterministic structural-composition mode that can compose installed learned abstractions of arbitrary arity into a finite tree program and emit one fully expanded standalone `LearnedAbstraction` candidate.
 
-The new mode must support compositions such as:
+Examples:
 
 ```text
 ADD(
@@ -31,8 +31,6 @@ ADD(
 )
 ```
 
-and deeper trees such as:
-
 ```text
 MAX(
     ADD(ABS(input0), NEG(input1)),
@@ -40,7 +38,7 @@ MAX(
 )
 ```
 
-without installing generated intermediates, widening Candidate Synthesis authority, or changing any v0.0.1–v0.0.3 semantics.
+The mode must not install generated intermediates, widen Candidate Synthesis authority, or change v0.0.1–v0.0.3 semantics.
 
 ## 3. Non-goals
 
@@ -69,7 +67,7 @@ These modes retain their existing request/receipt semantics under `candidate-syn
 - `BOUNDED_LEARNED_ABSTRACTION_SEARCH`
 - `PROGRESSIVE_MULTI_DEPTH_SEARCH`
 
-Their source ordering rules, budget accounting, abstention reasons, ranking, request state, receipt state, and synthesis identities must remain behaviorally unchanged.
+Their source-ordering rules, budget accounting, abstention reasons, ranking, request state, receipt state, and synthesis identities remain behaviorally unchanged.
 
 `SCHEMA_VERSION` remains the compatibility alias for `candidate-synthesis-v1` so existing callers and exact-state tests do not silently migrate.
 
@@ -81,9 +79,9 @@ Add:
 STRUCTURAL_COMPOSITION_PROGRAM = "structural_composition_program"
 ```
 
-The structural mode must never be accepted by the legacy `SynthesisRequest` or legacy `SynthesisReceipt`. Attempting to construct a v1 request/receipt with the structural mode fails closed and directs the caller to the v2 structural protocol.
+The structural mode must never be accepted by legacy `SynthesisRequest` or legacy `SynthesisReceipt`. Constructing a v1 request/receipt with the structural mode fails closed and directs the caller to the v2 structural protocol.
 
-Introduce a distinct structural request/receipt contract with:
+Introduce:
 
 ```text
 STRUCTURAL_SCHEMA_VERSION = "candidate-synthesis-v2"
@@ -109,11 +107,11 @@ Canonical state:
 {"input": 0}
 ```
 
-Rules:
+Static rules:
 
 - `index` is an integer >= 0;
 - booleans are rejected as indices;
-- input nodes are placeholders for the parameters of the generated candidate;
+- input nodes are placeholders for generated candidate parameters;
 - an input may appear multiple times;
 - globally used input indices must be contiguous from zero.
 
@@ -121,7 +119,7 @@ If the program uses `{0, 1, 2}`, the generated abstraction has `parameter_count 
 
 If the program uses `{0, 2}` but not `1`, the request is non-canonical and rejected.
 
-A program may use no inputs only when its call tree can be satisfied entirely by nullary installed abstractions; the resulting candidate has `parameter_count = 0`.
+A program may use no inputs. Such a request can succeed only if library-bound validation proves that the complete call tree can be satisfied by nullary installed abstractions; the resulting candidate then has `parameter_count = 0`.
 
 ### 5.2 Call node
 
@@ -143,14 +141,21 @@ Canonical state:
 }
 ```
 
-Rules:
+Static protocol rules:
 
-- `source_abstraction_id` must identify an exact installed `LearnedAbstraction` in the current Cognitive Library;
+- source ID is non-empty;
 - argument order is semantic;
-- `len(args)` must equal the installed source abstraction's `parameter_count`;
-- the same source abstraction may be called multiple times in one program;
+- the same source ID may appear multiple times;
 - every child is another structural input or call node;
-- unknown fields, non-canonical state, malformed child sequences, and empty source IDs fail closed.
+- unknown fields, malformed child sequences, or non-canonical state fail closed.
+
+Library-bound rules, evaluated only by a `CandidateSynthesisEngine` with an exact Cognitive Library state:
+
+- the source ID must resolve to an installed `LearnedAbstraction`;
+- `len(args)` must equal that installed abstraction's `parameter_count`;
+- the source template must not collide with the synthesis-reserved field namespace.
+
+A structurally valid request may therefore be constructed without a Cognitive Library and later abstain deterministically when evaluated against a library where a source is missing, has different arity, or violates reserved-field safety.
 
 ### 5.3 Tree-only encoding
 
@@ -164,9 +169,38 @@ ADD(ABS(input0), ABS(input0))
 
 is encoded by two explicit `ABS` call nodes.
 
+### 5.4 Two validation phases
+
+The implementation must keep protocol validity and library-bound validity separate.
+
+**Static request validation** has no library dependency and covers:
+
+- canonical node shapes;
+- non-empty source IDs;
+- contiguous input indices;
+- at least one call node;
+- evidence phase rules;
+- sorted/deduplicated set-like provenance;
+- generation-budget type/range;
+- structural node/depth limits;
+- exact v2 serialization.
+
+**Library-bound synthesis validation** occurs after budget admission and covers:
+
+- source existence;
+- source type;
+- source arity;
+- reserved-field collision;
+- expansion safety;
+- generated-source equivalence;
+- already-installed candidates;
+- generated identity collisions.
+
+This split is normative. Implementations must not move missing-source or arity checks into request construction, because doing so would make request semantics depend on ambient library state and break portable content-addressed request identity.
+
 ## 6. Structural request
 
-Introduce a dedicated immutable `StructuralSynthesisRequest`.
+Introduce immutable `StructuralSynthesisRequest`.
 
 Semantic fields:
 
@@ -178,21 +212,21 @@ Semantic fields:
 - causal program IDs;
 - `generation_budget`.
 
-`source_item_ids` is **derived**, not caller-authoritative. It is the sorted unique set of every source abstraction ID referenced by call nodes in the program.
+`source_item_ids` is **derived**, never caller-authoritative. It is the sorted unique set of every source ID referenced by call nodes in the program.
 
-The serialized v2 request includes this derived set for auditability. Restoration recomputes it from the program and rejects any mismatch. This prevents a request from claiming one source envelope while executing another.
+Serialized v2 request state includes this derived set for auditability. Restoration recomputes it from the program and rejects any mismatch. This prevents a request from claiming one source envelope while executing another.
 
-The structural program must contain at least one call node. A raw input-only program is rejected because it does not synthesize from Cognitive Library capability.
+The program must contain at least one call node. An input-only program is rejected statically because it does not synthesize from Cognitive Library capability.
 
 ### 6.1 Budget semantics
 
 An explicit structural program is exactly one synthesis hypothesis.
 
-- `generation_budget == 0` -> abstain with `generation_budget_exhausted`, considered `0`;
-- `generation_budget >= 1` -> the program may be attempted once, considered `1`;
+- `generation_budget == 0` -> abstain `generation_budget_exhausted`, considered `0`, before library-bound validation;
+- `generation_budget >= 1` -> attempt the program exactly once, considered `1`;
 - values greater than one do not create hidden search or repeated execution.
 
-This keeps budget semantics explicit while reserving multi-hypothesis structural search for a later mode.
+Checking the zero budget before source resolution is normative and mirrors the hard-budget role of existing search modes.
 
 ## 7. Structural receipt
 
@@ -210,47 +244,45 @@ The receipt binds:
 - generation budget;
 - candidates considered;
 - candidate ID or abstention reason;
-- semantic fingerprint for a successful candidate;
+- semantic fingerprint for success;
 - content-addressed synthesis ID.
 
-The full program is carried in receipt semantic state rather than only a program digest. A receipt can therefore prove the exact wiring topology that generated its candidate without relying on a separately retained request object.
+The full program is carried in receipt semantic state rather than only a digest. The receipt therefore proves exact wiring topology without requiring a separately retained request object.
 
-`from_state()` must reparse the program, recompute source IDs, recompute the receipt identity, and reject tampering or non-canonical state.
+`from_state()` reparses the program, recomputes source IDs and receipt identity, and rejects tampering or non-canonical state.
 
 ## 8. Compilation and expansion
 
 Structural programs are proposal IR only. They never enter Cognitive Library.
 
-Compilation proceeds recursively:
+Compilation proceeds:
 
-1. Validate the canonical tree and global input-index set.
-2. Resolve each call source from the exact current Cognitive Library.
-3. Validate source type and arity before composing.
-4. Lower each `StructuralInput(i)` to a synthesis-reserved temporary field unique to index `i`.
-5. Lower each structural call to transient canonical `AbstractionCall(source_id, compiled_args)`.
-6. Expand the complete root expression against the exact existing Cognitive Vocabulary.
-7. Replace the synthesis-reserved temporary fields with `TemplateParam(i)`.
-8. Assert no unresolved `AbstractionCall` remains.
-9. Create one standalone `LearnedAbstraction` whose `parameter_count` equals the canonical number of program inputs.
-10. Convert that abstraction through the existing `CapabilityCandidate.for_learned_abstraction()` contract.
+1. statically validate canonical tree and global input-index set;
+2. after budget admission, resolve every call source from the exact current Cognitive Library;
+3. validate source type, arity, and reserved namespace safety;
+4. lower each `StructuralInput(i)` to a synthesis-reserved temporary field unique to index `i`;
+5. lower each structural call to transient `AbstractionCall(source_id, compiled_args)`;
+6. expand the complete root against the exact existing Cognitive Vocabulary;
+7. replace synthesis-reserved temporary fields with `TemplateParam(i)`;
+8. assert no unresolved `AbstractionCall` remains;
+9. create one standalone `LearnedAbstraction` whose `parameter_count` equals the canonical number of program inputs;
+10. convert it through `CapabilityCandidate.for_learned_abstraction()`.
 
-No generated intermediate expression is registered in the vocabulary and no generated candidate becomes visible to another call within the same synthesis.
+No generated intermediate is registered in the vocabulary and no generated candidate becomes visible to another call within the same synthesis.
 
 ## 9. Reserved-field safety
 
-The existing unary synthesis path uses one internal reserved field. General structural composition requires one temporary reserved field per input index.
-
-Use a dedicated internal prefix, conceptually:
+General structural composition requires one temporary reserved field per input index. Use a dedicated internal namespace conceptually shaped as:
 
 ```text
 __nolane_candidate_synthesis_param_<index>__
 ```
 
-Before structural compilation, every referenced installed source template is checked recursively. If any source contains a `Field` whose name belongs to the synthesis-reserved namespace, structural synthesis fails closed with a reserved-field-collision abstention.
+Before structural compilation, every referenced installed source template is checked recursively. If any source contains a `Field` whose name belongs to the synthesis-reserved namespace, structural synthesis abstains with `reserved_field_collision:<id>`.
 
-The check is namespace-wide, not limited to the input indices used by the current program. This prevents a source from colliding with a future temporary parameter index.
+The check is namespace-wide, not limited to indices used in the current program. This prevents collision with future temporary parameter indices.
 
-The temporary namespace is an implementation mechanism only and never appears in the emitted candidate template.
+The temporary namespace is an implementation mechanism only and never appears in an emitted candidate template.
 
 ## 10. Resource bounds
 
@@ -262,34 +294,34 @@ v0.0.4 defines deterministic component bounds:
 - maximum structural IR depth: `64`;
 - maximum expanded cognitive-expression nodes: existing `10_000` expansion ceiling.
 
-A request exceeding the structural node or depth limit is rejected before candidate construction. Expansion that exceeds the existing cognitive expansion bound fails closed and produces no candidate.
+Node/depth violations are static request-validation failures. Expansion overflow occurs during library-bound synthesis and produces no candidate.
 
-These are implementation safety bounds, not proposal-quality judgments.
+These are safety bounds, not proposal-quality judgments.
 
 ## 11. Candidate semantics
 
-The generated standalone abstraction is canonicalized through existing `make_abstraction()` semantics.
+The generated standalone abstraction uses existing `make_abstraction()` semantics.
 
 - `parameter_count` = number of contiguous structural inputs;
 - `support_task_ids` = sorted unique union of support task IDs from every referenced source call;
 - `raw_occurrence_cost` = final expanded template cost;
 - `rewritten_cost` = final expanded template cost;
 - abstraction identity remains content-derived from template + parameter count;
-- candidate identity remains derived by Capability Acquisition's existing `CapabilityCandidate` contract.
+- candidate identity remains derived by the existing `CapabilityCandidate` contract.
 
-Calling a source multiple times does not duplicate its support-task IDs.
+Calling a source multiple times does not duplicate support-task IDs.
 
 ### 11.1 Source-equivalent and installed results
 
-If the generated abstraction identity equals any source abstraction referenced by the structural program, synthesis abstains with `candidate_matches_source`.
+If generated abstraction identity equals any source abstraction referenced by the program, abstain `candidate_matches_source`.
 
-If the generated abstraction is already installed in Cognitive Library with the exact same payload, synthesis abstains with `candidate_already_in_library`.
+If the generated abstraction is already installed with the exact same payload, abstain `candidate_already_in_library`.
 
-If the generated abstraction identity collides with a different installed payload, synthesis fails closed with the existing collision discipline rather than selecting or mutating anything.
+If generated identity collides with a different installed payload, fail closed with existing collision discipline rather than selecting or mutating anything.
 
 ## 12. Evidence and authority boundary
 
-Structural composition preserves the Candidate Synthesis authority model exactly.
+Structural composition preserves Candidate Synthesis authority exactly.
 
 Allowed during generation:
 
@@ -307,13 +339,13 @@ Forbidden as generation authority:
 - final reliability decisions;
 - neural mutation or training state.
 
-The engine remains stateless with respect to lifecycle authority. It may return a `CapabilityCandidate` only. A caller must separately invoke Capability Acquisition for lifecycle admission.
+The engine may return a `CapabilityCandidate` only. Lifecycle admission remains a separate Capability Acquisition call.
 
-Before and after every structural synthesis attempt, the Cognitive Library digest must remain identical.
+Cognitive Library digest must be identical before and after every structural synthesis success, abstention, and handled failure path.
 
 ## 13. Engine API
 
-The engine may extend its public dispatch surface to accept either the legacy v1 request or the new structural v2 request, but legacy valid inputs must preserve existing behavior.
+The engine may extend public dispatch to accept legacy v1 or structural v2 requests while preserving behavior for every valid legacy input.
 
 Conceptually:
 
@@ -323,31 +355,25 @@ CandidateSynthesisEngine.synthesize(
 ) -> SynthesisResult | StructuralSynthesisResult
 ```
 
-The exact Python typing may use a shared protocol/union, but the serialized v1 and v2 contracts remain distinct.
+Exact typing may use a union/shared protocol, but serialized v1 and v2 contracts remain distinct.
 
-A legacy `SynthesisRequest` cannot smuggle structural mode without a structural program. A v2 structural request cannot invoke legacy search modes.
+A legacy `SynthesisRequest` cannot smuggle structural mode without a structural program. A v2 structural request cannot invoke legacy modes.
 
 ## 14. Determinism
 
-For a fixed:
+For fixed Cognitive Library state, structural request state, and component version, synthesis produces the same candidate/abstention and exact receipt identity independent of process history.
 
-- Cognitive Library state;
-- structural request state;
-- component version;
+Caller ordering of evidence, experiment IDs, causal IDs, or derived source set is non-semantic and canonicalized. Program child order is semantic.
 
-structural synthesis must produce the same candidate/abstention and exact receipt identity independent of process history.
+Two programs referencing the same source set but wiring arguments differently have different request/receipt semantic states unless their canonical program states are identical.
 
-Caller ordering of evidence, experiment IDs, causal IDs, or the derived source set is non-semantic and canonicalized. Program child order remains semantic.
-
-Two structural programs that reference the same source set but wire arguments differently must have different request/receipt semantic states unless their canonical program states are literally identical.
-
-If two different programs expand to the same final learned abstraction, their candidate IDs may legitimately be equal while their synthesis receipt IDs remain different because the receipts bind different program provenance.
+Two different programs may expand to the same final learned abstraction. When their final canonical payloads are equal, candidate IDs are equal while synthesis receipt IDs remain different because receipts bind different program provenance.
 
 ## 15. Failure behavior
 
-Malformed protocol state fails closed with exceptions during construction/restoration.
+Malformed protocol state fails closed during construction/restoration.
 
-Valid structural requests may abstain for runtime/domain conditions such as:
+Statically valid structural requests may abstain during library-bound synthesis for:
 
 - `generation_budget_exhausted`;
 - `source_not_found:<id>`;
@@ -356,13 +382,13 @@ Valid structural requests may abstain for runtime/domain conditions such as:
 - `candidate_matches_source`;
 - `candidate_already_in_library`.
 
-Program-size/depth violations are request-validation errors rather than quality abstentions because the request itself lies outside the accepted protocol envelope.
+Program-size/depth violations are static request-validation errors. Expansion overflow and generated identity collision fail closed and produce no candidate.
 
-No failure path may partially mutate Cognitive Library or Capability Acquisition state.
+No path may partially mutate Cognitive Library or Capability Acquisition state.
 
 ## 16. Testing contract
 
-Implementation must be driven by RED tests before production changes.
+Implementation is driven by RED tests before production changes.
 
 Minimum focused contracts:
 
@@ -371,40 +397,44 @@ Minimum focused contracts:
 3. legacy request rejects structural mode;
 4. v2 request/receipt round-trip canonically;
 5. source IDs are derived from program and tampered serialized source sets are rejected;
-6. binary source composition produces a valid two-parameter standalone candidate;
-7. mixed unary/binary nested composition produces expected expanded template;
-8. three-input nested structural program produces `parameter_count == 3`;
-9. repeated use of the same source is allowed and deterministic;
-10. repeated use of the same input is allowed;
-11. non-contiguous input indices are rejected;
-12. nullary structural candidate works when built entirely from valid nullary installed sources;
-13. input-only program is rejected;
-14. missing source abstains without mutation;
-15. arity mismatch abstains without mutation;
-16. reserved namespace collision abstains without mutation;
-17. unresolved abstraction calls cannot survive candidate emission;
-18. candidate matching a source abstains;
-19. already-installed exact candidate abstains;
-20. same-ID/different-payload library collision fails closed;
-21. challenge/final-Assurance evidence remains forbidden;
-22. zero generation budget considers zero hypotheses;
-23. positive budget considers exactly one explicit program;
-24. program node/depth limits are enforced;
-25. expansion node budget is enforced;
-26. library digest is unchanged on success and every abstention/error path tested;
-27. Capability Acquisition remains empty until a separate explicit `admit()`;
-28. explicit admission after structural synthesis yields only `CapabilityState.CANDIDATE`;
-29. two different wiring programs over the same source set receive distinct synthesis receipt identities;
-30. two different wiring programs that expand to the same candidate preserve candidate identity equality but receipt provenance inequality.
+6. request construction succeeds without a library for syntactically valid unknown source IDs;
+7. the same request later abstains `source_not_found` against a library lacking that source;
+8. binary source composition produces a valid two-parameter standalone candidate;
+9. mixed unary/binary nested composition produces expected expanded template;
+10. three-input nested program produces `parameter_count == 3`;
+11. repeated use of the same source is allowed and deterministic;
+12. repeated use of the same input is allowed;
+13. non-contiguous input indices are rejected statically;
+14. nullary candidate works when built entirely from valid nullary sources;
+15. input-only program is rejected statically;
+16. arity mismatch abstains without mutation;
+17. reserved namespace collision abstains without mutation;
+18. unresolved abstraction calls cannot survive candidate emission;
+19. candidate matching a source abstains;
+20. already-installed exact candidate abstains;
+21. same-ID/different-payload library collision fails closed;
+22. challenge/final-Assurance evidence remains forbidden;
+23. zero budget considers zero hypotheses **before** missing-source/arity checks;
+24. positive budget considers exactly one explicit program;
+25. program node/depth limits are enforced statically;
+26. expansion node budget is enforced;
+27. library digest is unchanged on success and all tested abstention/error paths;
+28. Capability Acquisition remains empty until separate explicit `admit()`;
+29. explicit admission yields only `CapabilityState.CANDIDATE`;
+30. different wiring over the same source set yields distinct receipt identities;
+31. different wiring that expands to an equal final canonical payload preserves candidate identity equality but receipt provenance inequality.
 
-Run focused Refoundation suites under Python 3.11 and 3.13, then the canonical Refoundation workflow and broad coding-AGI regressions on the exact final feature head before merge.
+Run focused Refoundation suites on Python 3.11 and 3.13, then canonical Refoundation workflow and broad coding-AGI regressions on the exact final feature head before merge.
 
 ## 17. Expected implementation scope
 
-Primary files expected to change:
+Expected production changes:
 
 - `nolane/external_core/candidate_synthesis.py`
 - `nolane/metadata/component_versions.py`
+
+Expected supporting changes:
+
 - focused Candidate Synthesis tests, including a new structural-composition suite;
 - `CURRENT/EXTERNAL_CORE.md` after behavior is green;
 - this design spec and its implementation plan.
@@ -417,11 +447,9 @@ No production changes are expected in:
 - `assurance.py`;
 - neural code.
 
-If implementation discovers that one of those boundaries must change, the task is reclassified and this design must be revised before continuing.
+If implementation discovers one of those boundaries must change, stop and revise this design before continuing.
 
 ## 18. Version progression
-
-The intended progression becomes:
 
 ```text
 v0.0.1  explicit unary composition
@@ -433,19 +461,21 @@ v0.0.6  intelligent structural search policy
 v0.0.7+ objective/evidence/causal-guided invention, subject to separate authority design
 ```
 
-v0.0.4 therefore expands what Candidate Synthesis can represent before later revisions optimize how that larger space is explored.
+v0.0.4 expands what Candidate Synthesis can represent before later revisions optimize how that larger space is explored.
 
 ## 19. Acceptance criteria
 
-v0.0.4 is complete only when all of the following hold:
+v0.0.4 is complete only when all hold:
 
-- structural composition can consume installed learned abstractions with arbitrary valid arity;
-- the result is one standalone canonical abstraction with no unresolved calls;
+- structural composition consumes installed learned abstractions with arbitrary valid arity;
+- result is one standalone canonical abstraction with no unresolved calls;
 - exact structural wiring is content-bound in v2 request/receipt provenance;
-- old v1 modes retain their established semantics and identities;
+- old v1 modes retain established semantics and identities;
+- static request identity is independent of ambient Cognitive Library state;
+- library-bound source existence/arity checks occur only during synthesis;
 - no shadow library or generated intermediate vocabulary exists;
-- no Candidate Synthesis lifecycle/Assurance authority is added;
+- no lifecycle/Assurance authority is added;
 - deterministic resource bounds are enforced;
-- RED evidence demonstrates the new behavior was absent before production changes;
-- focused and broad regression suites pass on supported Python versions;
-- final PR is non-draft, exact-head CI is green, merge uses an expected-head guard, and post-merge `main` is verified content-equivalent to the tested feature tree.
+- RED evidence proves new behavior was absent before production changes;
+- focused and broad regressions pass on supported Python versions;
+- final PR is non-draft, exact-head CI is green, merge uses expected-head guard, and post-merge `main` is verified content-equivalent to the tested feature tree.
