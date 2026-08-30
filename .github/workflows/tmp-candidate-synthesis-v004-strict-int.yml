@@ -1,0 +1,65 @@
+name: Temporary Candidate Synthesis v0.0.4 Strict Integer Fix
+
+on:
+  push:
+    branches:
+      - post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+    paths:
+      - .github/workflows/tmp-candidate-synthesis-v004-strict-int.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: post-epoch0/candidate-synthesis-v0.0.4-structural-composition
+      - name: Patch strict structural integer constructors
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('nolane/external_core/candidate_synthesis.py')
+          text = path.read_text(encoding='utf-8')
+
+          request_old = '''        if isinstance(self.generation_budget, bool):\n            raise TypeError("generation budget must be an integer")\n        budget = int(self.generation_budget)\n        if budget < 0:\n            raise ValueError("generation budget must be non-negative")\n'''
+          request_new = '''        if isinstance(self.generation_budget, bool) or not isinstance(self.generation_budget, int):\n            raise TypeError("generation budget must be an integer")\n        budget = self.generation_budget\n        if budget < 0:\n            raise ValueError("generation budget must be non-negative")\n'''
+
+          # The request pattern exists in legacy v1 and structural v2. Scope to v2 only.
+          request_start = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisRequest:'
+          request_end = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisReceipt:'
+          if text.count(request_start) != 1 or text.count(request_end) != 1:
+              raise SystemExit('structural request class boundary mismatch')
+          before, request_and_after = text.split(request_start, 1)
+          request_body, receipt_and_after = request_and_after.split(request_end, 1)
+          if request_body.count(request_old) != 1:
+              raise SystemExit(f'structural request integer anchor mismatch: {request_body.count(request_old)}')
+          request_body = request_body.replace(request_old, request_new)
+          text = before + request_start + request_body + request_end + receipt_and_after
+
+          receipt_start = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisReceipt:'
+          receipt_end = '@dataclass(frozen=True, slots=True)\nclass StructuralSynthesisResult:'
+          before, receipt_and_after = text.split(receipt_start, 1)
+          receipt_body, after = receipt_and_after.split(receipt_end, 1)
+          receipt_old = '''        if isinstance(self.generation_budget, bool) or isinstance(self.candidates_considered, bool):\n            raise TypeError("structural synthesis receipt budget values must be integers")\n        budget = int(self.generation_budget)\n        considered = int(self.candidates_considered)\n'''
+          receipt_new = '''        if (\n            isinstance(self.generation_budget, bool)\n            or not isinstance(self.generation_budget, int)\n            or isinstance(self.candidates_considered, bool)\n            or not isinstance(self.candidates_considered, int)\n        ):\n            raise TypeError("structural synthesis receipt budget values must be integers")\n        budget = self.generation_budget\n        considered = self.candidates_considered\n'''
+          if receipt_body.count(receipt_old) != 1:
+              raise SystemExit(f'structural receipt integer anchor mismatch: {receipt_body.count(receipt_old)}')
+          receipt_body = receipt_body.replace(receipt_old, receipt_new)
+          text = before + receipt_start + receipt_body + receipt_end + after
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit minimal production fix
+        shell: bash
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add nolane/external_core/candidate_synthesis.py
+          git diff --cached --check
+          git commit -m "fix: require strict structural synthesis integer budgets"
+          git push origin HEAD:post-epoch0/candidate-synthesis-v0.0.4-structural-composition
