@@ -46,7 +46,7 @@ def _hypothesis(native, probes, fn, *, display_name: str):
 def test_wave5aw_native_experimentation_public_boundary_and_no_reverse_imports() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.experimentation"
-    assert native.COMPONENT_VERSION == "0.0.1"
+    assert native.COMPONENT_VERSION == "0.0.2"
     assert native.MIGRATED_FROM == "cogcoder R2.60 active-probe lineage"
     for name in (
         "ExperimentProbe",
