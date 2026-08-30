@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping, Protocol
 
-from ._truth_digest import truth_digest
+from nolane.core.canonical_digest import canonical_digest
 
-COMPONENT_ID = "external.knowledge"
-COMPONENT_VERSION = "0.2.0"
+PARENT_COMPONENT_ID = "external.knowledge"
+TRUTH_PROTOCOL = "truth-knowledge-v1"
 
 
 class KnowledgeRisk(str, Enum):
@@ -61,7 +61,7 @@ class KnowledgeClaim:
         }
         return cls(
             fields["claim_id"], fields["subject"], fields["relation"], fields["object"],
-            KnowledgeRisk(risk), evidence_ids, parent_claim_ids, truth_digest(payload),
+            KnowledgeRisk(risk), evidence_ids, parent_claim_ids, canonical_digest(payload),
         )
 
     def payload(self) -> dict[str, Any]:
@@ -89,7 +89,12 @@ class KnowledgeClaim:
 
 
 class KnowledgeLedger:
-    """Immutable proposition/derivation authority; does not decide epistemic truth."""
+    """Immutable proposition/derivation truth protocol under ``external.knowledge``.
+
+    The parent Knowledge component still owns retrieval/reusable knowledge fabric. This ledger only
+    owns proposition identity and derivation lineage required by truth closure; it never decides
+    epistemic truth.
+    """
 
     def __init__(self) -> None:
         self._claims: dict[str, KnowledgeClaim] = {}
@@ -117,7 +122,7 @@ class KnowledgeLedger:
 
     @property
     def digest(self) -> str:
-        return truth_digest(self.to_state())
+        return canonical_digest(self.to_state())
 
     def impacted_claim_ids(self, evidence: _EvidenceLedgerLike) -> tuple[str, ...]:
         impacted = {
@@ -134,11 +139,11 @@ class KnowledgeLedger:
         return tuple(sorted(impacted))
 
     def to_state(self) -> dict[str, Any]:
-        return {"protocol": "knowledge-ledger-v1", "claims": [row.to_state() for row in self.claims()]}
+        return {"protocol": TRUTH_PROTOCOL, "claims": [row.to_state() for row in self.claims()]}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "KnowledgeLedger":
-        if str(state.get("protocol", "")) != "knowledge-ledger-v1":
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported knowledge protocol")
 
         parsed: dict[str, KnowledgeClaim] = {}
@@ -173,4 +178,6 @@ class KnowledgeLedger:
         return ledger
 
 
-__all__ = ("KnowledgeRisk", "KnowledgeClaim", "KnowledgeLedger")
+__all__ = (
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "KnowledgeRisk", "KnowledgeClaim", "KnowledgeLedger",
+)

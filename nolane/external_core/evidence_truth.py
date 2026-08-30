@@ -4,10 +4,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from ._truth_digest import truth_digest
+from nolane.core.canonical_digest import canonical_digest
 
-COMPONENT_ID = "external.evidence.truth"
-COMPONENT_VERSION = "0.3.0"
+PARENT_COMPONENT_ID = "external.evidence"
+TRUTH_PROTOCOL = "truth-evidence-v1"
 
 
 class EvidencePolarity(str, Enum):
@@ -57,7 +57,7 @@ class TruthEvidence:
         }
         return cls(payload["evidence_id"], payload["subject_id"], payload["source_id"], payload["source_family"],
                    EvidenceChannel(payload["channel"]), EvidencePolarity(payload["polarity"]),
-                   payload["payload_digest"], truth_digest(payload))
+                   payload["payload_digest"], canonical_digest(payload))
 
     def payload(self) -> dict[str, Any]:
         return {"evidence_id": self.evidence_id, "subject_id": self.subject_id, "source_id": self.source_id,
@@ -87,7 +87,7 @@ class EvidenceRevocation:
     @classmethod
     def create(cls, evidence_id: str, reason: str) -> "EvidenceRevocation":
         evidence_id, reason = _explicit(evidence_id, "evidence_id"), _explicit(reason, "revocation reason")
-        return cls(evidence_id, reason, truth_digest({"evidence_id": evidence_id, "reason": reason}))
+        return cls(evidence_id, reason, canonical_digest({"evidence_id": evidence_id, "reason": reason}))
 
     def to_state(self) -> dict[str, str]:
         return {"evidence_id": self.evidence_id, "reason": self.reason, "revocation_id": self.revocation_id}
@@ -101,11 +101,11 @@ class EvidenceRevocation:
 
 
 class EvidenceLedger:
-    """Append-only provenance-aware evidence; revocation changes admissibility, never history.
+    """Append-only provenance-aware truth protocol under ``external.evidence``.
 
-    A source identity is permanently bound to one source family inside a ledger. This does not
-    attempt to authenticate the external world; it prevents the Truth layer itself from laundering
-    one canonical source identity into multiple artificial independence families.
+    Revocation changes admissibility, never history. A source identity is permanently bound to one
+    source family inside a ledger, preventing the protocol from laundering one canonical source
+    identity into multiple artificial independence families.
     """
 
     def __init__(self) -> None:
@@ -160,16 +160,16 @@ class EvidenceLedger:
         return tuple(sorted(rows, key=lambda row: row.evidence_id))
 
     def to_state(self) -> dict[str, Any]:
-        return {"protocol": "truth-evidence-v1", "records": [row.to_state() for row in self.records()],
+        return {"protocol": TRUTH_PROTOCOL, "records": [row.to_state() for row in self.records()],
                 "revocations": [self._revocations[key].to_state() for key in sorted(self._revocations)]}
 
     @property
     def digest(self) -> str:
-        return truth_digest(self.to_state())
+        return canonical_digest(self.to_state())
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EvidenceLedger":
-        if str(state.get("protocol", "")) != "truth-evidence-v1":
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported truth evidence protocol")
         ledger = cls()
         for value in state.get("records", ()):
@@ -181,4 +181,7 @@ class EvidenceLedger:
         return ledger
 
 
-__all__ = ("EvidencePolarity", "EvidenceChannel", "TruthEvidence", "EvidenceRevocation", "EvidenceLedger")
+__all__ = (
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "EvidencePolarity", "EvidenceChannel",
+    "TruthEvidence", "EvidenceRevocation", "EvidenceLedger",
+)

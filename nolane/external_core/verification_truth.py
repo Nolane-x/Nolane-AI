@@ -3,11 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from ._truth_digest import truth_digest
+from nolane.core.canonical_digest import canonical_digest
 from .evidence_truth import EvidenceChannel, EvidenceLedger
 
-COMPONENT_ID = "external.verification.truth"
-COMPONENT_VERSION = "0.3.0"
+PARENT_COMPONENT_ID = "external.verification"
+TRUTH_PROTOCOL = "truth-verification-ledger-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -38,7 +38,7 @@ class TruthVerificationReceipt:
             raise ValueError("verification evidence ids must be explicit and unique")
         return cls(payload["receipt_id"], payload["claim_id"], payload["verifier_id"], payload["source_family"],
                    EvidenceChannel(payload["channel"]), payload["passed"], payload["knowledge_digest"],
-                   payload["epistemic_digest"], tuple(payload["evidence_ids"]), truth_digest(payload))
+                   payload["epistemic_digest"], tuple(payload["evidence_ids"]), canonical_digest(payload))
 
     def payload(self) -> dict[str, Any]:
         return {"receipt_id": self.receipt_id, "claim_id": self.claim_id, "verifier_id": self.verifier_id,
@@ -81,10 +81,11 @@ class TruthVerificationCoverage:
 
 
 class TruthVerificationLedger:
-    """Append-only exact-state challenge ledger; negative results are retained.
+    """Append-only exact-state challenge protocol under ``external.verification``.
 
-    Raw receipts may be recorded for audit, including incomplete/failed receipts. Only `coverage()`
-    establishes whether a receipt is provenance-grounded enough to count toward Assurance.
+    Raw receipts remain available for audit, including incomplete/failed receipts. Only
+    :meth:`coverage` establishes whether a receipt is provenance-grounded enough to count toward
+    truth Assurance.
     """
 
     def __init__(self) -> None:
@@ -156,25 +157,25 @@ class TruthVerificationLedger:
         )
 
     def independent_passing_channels(self, claim_id: str, *, knowledge_digest: str, epistemic_digest: str) -> int:
-        """Compatibility metric over raw receipts; strict Assurance uses provenance-validated coverage()."""
+        """Compatibility metric over raw receipts; strict Assurance uses validated coverage()."""
         return len({row.source_family for row in self.bound_receipts(claim_id, knowledge_digest=knowledge_digest,
                                                                       epistemic_digest=epistemic_digest) if row.passed})
 
     def distinct_passing_channel_kinds(self, claim_id: str, *, knowledge_digest: str, epistemic_digest: str) -> int:
-        """Compatibility metric over raw receipts; strict Assurance uses provenance-validated coverage()."""
+        """Compatibility metric over raw receipts; strict Assurance uses validated coverage()."""
         return len({row.channel for row in self.bound_receipts(claim_id, knowledge_digest=knowledge_digest,
                                                                 epistemic_digest=epistemic_digest) if row.passed})
 
     def to_state(self) -> dict[str, Any]:
-        return {"protocol": "truth-verification-ledger-v1", "receipts": [row.to_state() for row in self.receipts()]}
+        return {"protocol": TRUTH_PROTOCOL, "receipts": [row.to_state() for row in self.receipts()]}
 
     @property
     def digest(self) -> str:
-        return truth_digest(self.to_state())
+        return canonical_digest(self.to_state())
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "TruthVerificationLedger":
-        if str(state.get("protocol", "")) != "truth-verification-ledger-v1":
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported truth verification protocol")
         ledger = cls()
         for value in state.get("receipts", ()):
@@ -182,4 +183,7 @@ class TruthVerificationLedger:
         return ledger
 
 
-__all__ = ("TruthVerificationReceipt", "TruthVerificationCoverage", "TruthVerificationLedger")
+__all__ = (
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "TruthVerificationReceipt",
+    "TruthVerificationCoverage", "TruthVerificationLedger",
+)

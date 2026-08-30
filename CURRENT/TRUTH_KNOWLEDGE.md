@@ -1,127 +1,119 @@
-# Truth / Knowledge — A-layer canonical semantics
+# Truth / Knowledge — External Core A
 
-Status: candidate architecture on `feat/truth-knowledge-a-hardening`.
+Status: Refoundation hardening candidate on `refoundation/truth-knowledge-a-hardening`.
 
-## Scope
+## Authority model
 
-This document owns only External Core family A:
+External Core family A remains exactly five canonical component authorities:
 
-`Evidence -> Knowledge -> Epistemic -> Verification -> Assurance`
+1. `external.evidence` → `nolane.external_core.evidence`
+2. `external.knowledge` → `nolane.memory.knowledge`
+3. `external.epistemic` → `nolane.external_core.epistemic`
+4. `external.verification` → `nolane.external_core.verification`
+5. `external.assurance` → `nolane.external_core.assurance`
 
-It does not take authority from Memory/Learning, Candidate Synthesis, Capability Acquisition, Planning, Execution, Coding, Organization coordination, or `nolane.evaluation`.
+The Truth Closure implementation is an additive protocol under those authorities, not a second component registry:
 
-## Separation invariant
+- `evidence_truth.py` has `PARENT_COMPONENT_ID = "external.evidence"`;
+- `knowledge_truth.py` has `PARENT_COMPONENT_ID = "external.knowledge"`;
+- `epistemic_truth.py` has `PARENT_COMPONENT_ID = "external.epistemic"`;
+- `verification_truth.py` has `PARENT_COMPONENT_ID = "external.verification"`;
+- `assurance_truth.py` has `PARENT_COMPONENT_ID = "external.assurance"`.
 
-The five stages are independently bounded semantic authorities. No stage may silently perform the next stage's decision.
+Protocol helpers must never declare `COMPONENT_ID`. Canonical component identity belongs only to the repository component registry and its accepted canonical-native modules.
 
-1. **Evidence** records immutable observations with explicit provenance, source family, channel and polarity. Revocation is a tombstone; historical evidence is never rewritten or deleted.
-2. **Knowledge** owns proposition identity, evidence references and derivation lineage. It does not decide whether a proposition is true.
-3. **Epistemic** owns uncertainty and contradiction. `UNKNOWN`, `SUPPORTED`, `REFUTED`, and `CONTRADICTED` are explicit states. Derived claims cannot remain supported if a parent is no longer supported.
-4. **Verification** owns independent challenge receipts bound to the exact Knowledge + Epistemic state. Negative results remain in the ledger. Correlated mirrors sharing one source family count as one independent source.
-5. **Assurance** owns final closure only. Strict closure consumes a canonical `EpistemicSnapshot`; it cannot accept caller-asserted epistemic state as equivalent authority.
+The protocol uses `nolane.core.canonical_digest.canonical_digest`; it does not introduce a private digest authority.
 
-## Canonical pipeline
+## Truth-closure pipeline
 
 ```text
-TruthEvidence / EvidenceRevocation
+canonical external.evidence
         |
+        +-- TruthEvidence / EvidenceRevocation
         v
-KnowledgeClaim + derivation DAG
+canonical external.knowledge
         |
+        +-- KnowledgeClaim + derivation DAG
         v
-EpistemicSnapshot
-  - claim assessments
-  - contradiction records
-  - epistemic debt
+canonical external.epistemic
         |
+        +-- EpistemicSnapshot
+        |     - UNKNOWN / SUPPORTED / REFUTED / CONTRADICTED
+        |     - competing propositions
+        |     - epistemic debt
         v
-TruthVerificationReceipt[]
-  - exact knowledge digest
-  - exact epistemic snapshot digest
-  - verifier/source family
-  - channel
-  - positive or negative result
+canonical external.verification
         |
+        +-- TruthVerificationReceipt[]
+        |     - exact knowledge state
+        |     - exact epistemic state
+        |     - live evidence provenance
         v
-TruthClosureCertificate
+canonical external.assurance
+        |
+        +-- TruthClosureCertificate
 ```
 
-## Evidence invariants
+No stage may silently perform the next stage's decision.
 
-- IDs are immutable; same-ID rebinding fails closed.
-- Evidence carries a content digest over semantic identity/provenance.
-- `source_id` and `source_family` are distinct so mirrors can be recognized as correlated.
-- Channel is explicit (`observation`, `test`, `reproduction`, `adversarial`, `audit`, `external`).
-- Polarity is explicit (`support`, `refute`, `neutral`).
-- Revocation does not mutate the original evidence record.
-- Restore recomputes content identity and rejects tampered evidence/revocation state.
+## Evidence protocol invariants
 
-The historical `nolane.external_core.evidence.EvidenceRecord` remains compatibility authority for existing execution/evaluation flows. `evidence_truth` is additive and does not change that public contract.
+- Evidence identity, subject, source identity, source family, channel, polarity and payload digest are explicit.
+- Same evidence ID with changed semantics fails closed.
+- One source identity cannot be rebound to multiple source families inside the ledger.
+- Revocation is append-only admissibility state; the original evidence record is retained.
+- Restore recomputes content identity and rejects tampered evidence or revocation state.
+- Cross-subject evidence cannot support another claim merely because its evidence ID is referenced.
 
-## Knowledge invariants
+## Knowledge protocol invariants
 
-`nolane.external_core.knowledge` is a new canonical semantic boundary.
+- `external.knowledge` remains the existing canonical reusable knowledge fabric in `nolane.memory.knowledge`.
+- `knowledge_truth.py` adds proposition/derivation semantics needed by truth closure; it does not replace retrieval/document/chunk authority.
+- A truth claim is content-addressed over `(claim_id, subject, relation, object, risk, evidence_ids, parent_claim_ids)`.
+- Parent references form a DAG; cycles and missing parents fail closed.
+- Restore is topological and independent of serialized claim-ID sort order.
+- Evidence lifecycle never rewrites knowledge identity; invalidated evidence marks dependent claims impacted and propagates to descendants.
 
-- A claim is a content-addressed proposition: `(claim_id, subject, relation, object, risk, evidence_ids, parent_claim_ids)`.
-- Parent claims must already exist; this construction rule keeps the derivation graph acyclic without trusting serialized graph metadata.
-- Evidence lifecycle cannot rewrite Knowledge identity.
-- Evidence revocation or absence marks directly dependent claims impacted and propagates transitively to descendants.
-- Same-ID claim rebinding fails closed.
-- Restore recomputes every claim digest.
+## Epistemic protocol invariants
 
-Risk classes are `LOW`, `STANDARD`, `HIGH`, `CRITICAL` and control downstream verification diversity; they do not alter proposition identity after creation.
+- Epistemic judgment is recomputed from exact Knowledge + Evidence state.
+- Missing or revoked support produces `UNKNOWN`, never implicit truth or falsehood.
+- Support plus refutation produces `CONTRADICTED`; neither side is discarded.
+- A derived claim cannot stay supported when a parent is no longer `SUPPORTED`.
+- Separately supported claims sharing `(subject, relation)` but disagreeing on object remain explicit competing propositions.
+- Missing, revoked or cross-subject evidence generates epistemic debt.
+- Critical unresolved debt can veto Assurance.
+- `EpistemicSnapshot` is content-addressed and tamper-evident.
 
-## Epistemic invariants
-
-Epistemic state is a judgment over exact Evidence + Knowledge state, not a second knowledge store.
-
-- Missing/revoked support produces `UNKNOWN`, never an implicit false or true.
-- Support and refutation together produce `CONTRADICTED`; neither side is discarded.
-- A derived claim becomes `UNKNOWN` whenever any parent is not `SUPPORTED`.
-- Separately supported propositions with the same `(subject, relation)` and different objects are retained as an `EpistemicContradiction` rather than winner-take-all overwrite.
-- Unresolved unknowns/contradictions create explicit epistemic debt.
-- Critical-claim debt is marked critical and can veto Assurance.
-- `EpistemicSnapshot` binds Knowledge digest, Evidence digest, all assessments, all contradictions and all debt into one deterministic digest.
-
-The historical `EpistemicWorkspace` remains compatibility-preserving and is not silently widened into Knowledge authority.
-
-## Verification invariants
+## Verification protocol invariants
 
 A `TruthVerificationReceipt` binds:
 
-- claim ID,
-- verifier identity,
-- source family,
-- verification channel,
-- positive/negative result,
-- exact Knowledge digest,
-- exact Epistemic snapshot digest,
-- referenced evidence IDs.
+- claim ID;
+- verifier/source identity;
+- source family;
+- verification channel;
+- pass/fail result;
+- exact Knowledge digest;
+- exact Epistemic snapshot digest;
+- cited evidence IDs.
 
-Rules:
+Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source.
 
-- stale receipts cannot verify a changed Knowledge/Epistemic state;
-- negative receipts are append-only evidence and are never filtered from history;
-- a receipt-ID collision with changed semantics fails closed;
-- independent-source coverage counts unique source families, not raw verifier count;
-- channel diversity is measured independently from source-family diversity;
-- restore recomputes receipt identity and rejects tampering.
+## Assurance protocol invariants
 
-The existing neural-candidate `VerificationAuthority` remains unchanged.
+`TruthAssuranceGate.close_snapshot()` and `close_live()` are the strict paths.
 
-## Assurance invariants
+Strict closure requires:
 
-`TruthAssuranceGate.close_snapshot()` is the authoritative strict path.
-
-It requires:
-
-- Knowledge digest exactly matches the snapshot's Knowledge binding;
-- target claim is `SUPPORTED` in that snapshot;
-- target claim is not a member of an unresolved competing-proposition contradiction;
-- no critical epistemic debt applies to the claim;
-- all considered verification receipts are bound to that exact Knowledge + Epistemic state;
+- the snapshot Knowledge digest equals the live Knowledge digest;
+- the snapshot Evidence digest equals the live Evidence digest;
+- Assurance recomputation produces the same canonical Epistemic snapshot;
+- the target claim is `SUPPORTED` and not in an unresolved competing-proposition contradiction;
+- no critical epistemic debt applies;
+- verification coverage is exact-state-bound and live-provenance-valid;
 - no bound negative verification exists;
-- risk-specific independent-source and channel diversity thresholds pass.
+- risk-specific independent source-family and channel diversity requirements pass.
 
 Current minimum diversity policy:
 
@@ -132,42 +124,33 @@ Current minimum diversity policy:
 | HIGH | 2 | 2 |
 | CRITICAL | 3 | 3 |
 
-A closure certificate is content-addressed over the exact state bindings, receipt IDs, debt IDs, disposition and reasons. Restore recomputes the certificate digest.
+The digest-only legacy `close()` surface is deliberately fail-closed and cannot return an accepted truth certificate.
 
-The existing general `AssuranceControlPlane` remains unchanged; truth closure is additive rather than a hidden widening of software/promotion Assurance semantics.
+## Compatibility boundary
 
-## Nolane World adversarial transfer
+The existing canonical APIs remain authoritative for their established duties:
 
-The design deliberately transfers only architecture-compatible invariants from Nolane World 0.12.0's epistemic substrate:
+- `EvidenceRecord` for existing verification/evaluation flows;
+- `nolane.memory.knowledge` for reusable knowledge retrieval and provenance chunks;
+- `EpistemicWorkspace` for the accepted version-aware epistemic workspace;
+- `VerificationAuthority` for bounded candidate evaluation/promotion/rollback;
+- `AssuranceControlPlane` for policy/domain engineering and promotion assurance.
 
-- first-class unknowns and contradictions;
-- revocation reopens dependencies;
-- source mirrors do not manufacture independence;
-- unresolved critical epistemic debt blocks closure;
-- high-risk closure requires independent channels;
-- negative trials/results remain visible;
-- state/certificates are content-bound;
-- fake or unbound coverage must fail closed.
+Truth Closure is additive protocol semantics under those components. Any future integration into their public surfaces must be adapter-based and contract-tested; protocol helpers may not seize canonical component identity.
 
-Nolane World is used as an adversarial reasoning harness, not copied as a replacement architecture.
+## Adversarial hardening waves
 
-## Compatibility and rollout
+- **A1**: introduced explicit Evidence → Knowledge → Epistemic → Verification → Assurance truth semantics.
+- **A2**: added competing-proposition preservation, parent-state propagation, canonical snapshots and tamper-resistant restore.
+- **A3**: attacked cross-subject evidence laundering, source-family rebinding, stale snapshot replay, forged snapshots, ungrounded verification, legacy closure bypass and restore-order failure.
+- **A4**: discovered and forbids duplicate canonical authority, removes the private truth digest, moves proposition semantics to `knowledge_truth.py`, and binds every helper to one existing canonical parent component.
 
-This candidate is additive. Existing public APIs in `evidence.py`, `epistemic.py`, `verification.py`, and `assurance.py` are left intact so concurrent B/C/etc workstreams are not forced through a cross-domain migration.
+## Acceptance gates
 
-The next safe cutover after acceptance is adapter-based: existing evidence chunks can be projected into Truth Evidence + Knowledge claims and compared against legacy `EpistemicWorkspace` behavior before any authority migration. A cutover must not make the legacy parser an implicit Knowledge owner again.
+The dedicated `Truth Knowledge A Layer` workflow runs on Python 3.11 and 3.13 and must:
 
-## Acceptance contracts
+1. compile the five canonical A authorities plus all Truth Closure protocol modules;
+2. pass A1/A2/A3/A4 truth contracts;
+3. pass repository authority projection audit.
 
-The dedicated `Truth Knowledge A Layer` workflow compiles all new boundaries and runs focused contracts on Python 3.11 and 3.13. The contracts cover:
-
-- content-addressed Knowledge and revocation propagation;
-- correlated-source independence;
-- first-class unknown/contradiction;
-- negative-result retention;
-- risk-sensitive closure;
-- same-ID collision rejection;
-- competing supported proposition preservation;
-- parent-refutation propagation;
-- canonical snapshot Assurance binding;
-- fail-closed restore/tamper rejection.
+The Refoundation Epoch 0 workflow remains the broader repository regression gate. Historical R-series workflows do not define current architecture authority.

@@ -17,7 +17,7 @@ from nolane.external_core.evidence_truth import (
     EvidencePolarity,
     TruthEvidence,
 )
-from nolane.external_core.knowledge import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
+from nolane.external_core.knowledge_truth import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
 from nolane.external_core.verification_truth import TruthVerificationLedger, TruthVerificationReceipt
 
 

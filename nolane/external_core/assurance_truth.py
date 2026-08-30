@@ -3,14 +3,14 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Mapping
 
-from ._truth_digest import truth_digest
+from nolane.core.canonical_digest import canonical_digest
 from .epistemic_truth import EpistemicDebt, EpistemicDisposition, EpistemicJudge, EpistemicSnapshot
 from .evidence_truth import EvidenceLedger
-from .knowledge import KnowledgeLedger, KnowledgeRisk
+from .knowledge_truth import KnowledgeLedger, KnowledgeRisk
 from .verification_truth import TruthVerificationLedger
 
-COMPONENT_ID = "external.assurance.truth"
-COMPONENT_VERSION = "0.3.0"
+PARENT_COMPONENT_ID = "external.assurance"
+TRUTH_PROTOCOL = "truth-assurance-v1"
 
 _REQUIREMENTS = {
     KnowledgeRisk.LOW: (1, 1), KnowledgeRisk.STANDARD: (1, 1),
@@ -37,28 +37,31 @@ class TruthClosureCertificate:
     def create(cls, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, evidence_digest: str,
                epistemic_digest: str, verification_digest: str, verification_receipt_ids: tuple[str, ...],
                epistemic_debt_ids: tuple[str, ...], closed: bool, reasons: tuple[str, ...]) -> "TruthClosureCertificate":
-        payload = {"claim_id": str(claim_id), "risk": KnowledgeRisk(risk).value,
+        payload = {"protocol": TRUTH_PROTOCOL, "claim_id": str(claim_id), "risk": KnowledgeRisk(risk).value,
                    "knowledge_digest": str(knowledge_digest), "evidence_digest": str(evidence_digest),
                    "epistemic_digest": str(epistemic_digest), "verification_digest": str(verification_digest),
                    "verification_receipt_ids": list(verification_receipt_ids),
                    "epistemic_debt_ids": list(epistemic_debt_ids), "closed": bool(closed), "reasons": list(reasons)}
-        digest = truth_digest(payload)
+        digest = canonical_digest(payload)
         return cls(f"truth-closure-{digest[:24]}", str(claim_id), KnowledgeRisk(risk), str(knowledge_digest),
                    str(evidence_digest), str(epistemic_digest), str(verification_digest),
                    tuple(verification_receipt_ids), tuple(epistemic_debt_ids), bool(closed), tuple(reasons), digest)
 
     def payload(self) -> dict[str, Any]:
-        return {"claim_id": self.claim_id, "risk": self.risk.value, "knowledge_digest": self.knowledge_digest,
-                "evidence_digest": self.evidence_digest, "epistemic_digest": self.epistemic_digest,
-                "verification_digest": self.verification_digest,
+        return {"protocol": TRUTH_PROTOCOL, "claim_id": self.claim_id, "risk": self.risk.value,
+                "knowledge_digest": self.knowledge_digest, "evidence_digest": self.evidence_digest,
+                "epistemic_digest": self.epistemic_digest, "verification_digest": self.verification_digest,
                 "verification_receipt_ids": list(self.verification_receipt_ids),
-                "epistemic_debt_ids": list(self.epistemic_debt_ids), "closed": self.closed, "reasons": list(self.reasons)}
+                "epistemic_debt_ids": list(self.epistemic_debt_ids), "closed": self.closed,
+                "reasons": list(self.reasons)}
 
     def to_state(self) -> dict[str, Any]:
         return {"certificate_id": self.certificate_id, **self.payload(), "digest": self.digest}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "TruthClosureCertificate":
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
+            raise ValueError("unsupported truth assurance protocol")
         row = cls.create(claim_id=str(state["claim_id"]), risk=KnowledgeRisk(str(state["risk"])),
                          knowledge_digest=str(state["knowledge_digest"]), evidence_digest=str(state["evidence_digest"]),
                          epistemic_digest=str(state["epistemic_digest"]),
@@ -72,11 +75,11 @@ class TruthClosureCertificate:
 
 
 class TruthAssuranceGate:
-    """Final truth closure authority.
+    """Truth-closure protocol under the canonical ``external.assurance`` authority.
 
-    `close_snapshot` and `close_live` are the only strict closure paths. The legacy digest-only
-    `close` method is retained as a compatibility diagnostic surface but is permanently fail-closed:
-    caller-asserted digests/debt can never manufacture a truth certificate.
+    ``close_snapshot`` and ``close_live`` are the only strict paths. The legacy digest-only
+    ``close`` surface is deliberately retained only as a fail-closed diagnostic compatibility path:
+    caller-asserted digests or debt can never manufacture an accepted truth certificate.
     """
 
     @staticmethod
@@ -98,7 +101,7 @@ class TruthAssuranceGate:
 
     def close(self, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, epistemic_digest: str,
               verification: TruthVerificationLedger, debts: tuple[EpistemicDebt, ...] = ()) -> TruthClosureCertificate:
-        """Compatibility-only unbound path. It intentionally cannot return `closed=True`."""
+        """Compatibility-only unbound path. It intentionally cannot return ``closed=True``."""
         risk = KnowledgeRisk(risk)
         rows = verification.bound_receipts(
             str(claim_id), knowledge_digest=str(knowledge_digest), epistemic_digest=str(epistemic_digest),
@@ -160,4 +163,6 @@ class TruthAssuranceGate:
         )
 
 
-__all__ = ("TruthClosureCertificate", "TruthAssuranceGate")
+__all__ = (
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "TruthClosureCertificate", "TruthAssuranceGate",
+)

@@ -4,12 +4,12 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from ._truth_digest import truth_digest
+from nolane.core.canonical_digest import canonical_digest
 from .evidence_truth import EvidenceLedger, EvidencePolarity
-from .knowledge import KnowledgeLedger, KnowledgeRisk
+from .knowledge_truth import KnowledgeLedger, KnowledgeRisk
 
-COMPONENT_ID = "external.epistemic.truth"
-COMPONENT_VERSION = "0.3.0"
+PARENT_COMPONENT_ID = "external.epistemic"
+TRUTH_PROTOCOL = "truth-epistemic-snapshot-v1"
 
 
 class EpistemicDisposition(str, Enum):
@@ -59,7 +59,7 @@ class EpistemicAssessment:
                    "support_evidence_ids": list(support_evidence_ids), "refute_evidence_ids": list(refute_evidence_ids),
                    "knowledge_digest": knowledge_digest, "evidence_digest": evidence_digest}
         return cls(claim_id, EpistemicDisposition(disposition), support_evidence_ids, refute_evidence_ids,
-                   knowledge_digest, evidence_digest, truth_digest(payload))
+                   knowledge_digest, evidence_digest, canonical_digest(payload))
 
     def to_state(self) -> dict[str, Any]:
         return {"claim_id": self.claim_id, "disposition": self.disposition.value,
@@ -95,7 +95,7 @@ class EpistemicDebt:
                    "critical": bool(critical), "reason": str(reason).strip()}
         if not payload["debt_id"] or not payload["claim_id"] or not payload["reason"]:
             raise ValueError("epistemic debt identity, claim, and reason must be explicit")
-        return cls(payload["debt_id"], payload["claim_id"], payload["critical"], payload["reason"], truth_digest(payload))
+        return cls(payload["debt_id"], payload["claim_id"], payload["critical"], payload["reason"], canonical_digest(payload))
 
     def to_state(self) -> dict[str, Any]:
         return {"debt_id": self.debt_id, "claim_id": self.claim_id, "critical": self.critical,
@@ -130,7 +130,7 @@ class EpistemicContradiction:
         if len(claim_ids) < 2 or len(object_values) < 2:
             raise ValueError("epistemic contradiction requires competing claims and values")
         payload = {"subject": subject, "relation": relation, "claim_ids": list(claim_ids), "object_values": list(object_values)}
-        digest = truth_digest(payload)
+        digest = canonical_digest(payload)
         return cls(f"epistemic-contradiction-{digest[:24]}", subject, relation, claim_ids, object_values, digest)
 
     def to_state(self) -> dict[str, Any]:
@@ -162,7 +162,7 @@ class EpistemicSnapshot:
     def _payload(*, knowledge_digest: str, evidence_digest: str,
                  assessments: tuple[EpistemicAssessment, ...],
                  contradictions: tuple[EpistemicContradiction, ...], debts: tuple[EpistemicDebt, ...]) -> dict[str, Any]:
-        return {"protocol": "epistemic-snapshot-v1", "knowledge_digest": knowledge_digest,
+        return {"protocol": TRUTH_PROTOCOL, "knowledge_digest": knowledge_digest,
                 "evidence_digest": evidence_digest, "assessments": [row.to_state() for row in assessments],
                 "contradictions": [row.to_state() for row in contradictions], "debts": [row.to_state() for row in debts]}
 
@@ -195,7 +195,7 @@ class EpistemicSnapshot:
             knowledge_digest=knowledge_digest, evidence_digest=evidence_digest,
             assessments=assessments, contradictions=contradictions, debts=debts,
         )
-        return cls(knowledge_digest, evidence_digest, assessments, contradictions, debts, truth_digest(payload))
+        return cls(knowledge_digest, evidence_digest, assessments, contradictions, debts, canonical_digest(payload))
 
     def assessment(self, claim_id: str) -> EpistemicAssessment:
         for row in self.assessments:
@@ -211,7 +211,7 @@ class EpistemicSnapshot:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EpistemicSnapshot":
-        if str(state.get("protocol", "")) != "epistemic-snapshot-v1":
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported epistemic snapshot protocol")
         row = cls.create(
             knowledge_digest=str(state["knowledge_digest"]),
@@ -226,7 +226,7 @@ class EpistemicSnapshot:
 
 
 class EpistemicJudge:
-    """Uncertainty/conflict authority; Evidence and Knowledge retain storage authority."""
+    """Truth-closure uncertainty/conflict protocol under ``external.epistemic``."""
 
     def _assess(self, claim_id: str, *, knowledge: KnowledgeLedger, evidence: EvidenceLedger,
                 memo: dict[str, EpistemicAssessment]) -> EpistemicAssessment:
@@ -318,4 +318,7 @@ class EpistemicJudge:
         return self.snapshot(knowledge=knowledge, evidence=evidence).debts
 
 
-__all__ = ("EpistemicDisposition", "EpistemicAssessment", "EpistemicDebt", "EpistemicContradiction", "EpistemicSnapshot", "EpistemicJudge")
+__all__ = (
+    "PARENT_COMPONENT_ID", "TRUTH_PROTOCOL", "EpistemicDisposition", "EpistemicAssessment",
+    "EpistemicDebt", "EpistemicContradiction", "EpistemicSnapshot", "EpistemicJudge",
+)

@@ -5,7 +5,7 @@ import pytest
 from nolane.external_core.assurance_truth import TruthAssuranceGate
 from nolane.external_core.epistemic_truth import EpistemicDisposition, EpistemicJudge
 from nolane.external_core.evidence_truth import EvidenceChannel, EvidenceLedger, EvidencePolarity, TruthEvidence
-from nolane.external_core.knowledge import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
+from nolane.external_core.knowledge_truth import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
 from nolane.external_core.verification_truth import TruthVerificationLedger, TruthVerificationReceipt
 
 
@@ -40,7 +40,7 @@ def test_knowledge_is_content_addressed_and_revocation_propagates_to_derived_cla
     assert knowledge.impacted_claim_ids(evidence) == ()
     evidence.revoke("e1", reason="source withdrawn")
     assert knowledge.impacted_claim_ids(evidence) == ("claim.alpha", "claim.beta")
-    assert knowledge.digest == before  # evidence lifecycle cannot rewrite knowledge identity
+    assert knowledge.digest == before
 
 
 def test_correlated_mirrors_do_not_count_as_independent_verification_channels():

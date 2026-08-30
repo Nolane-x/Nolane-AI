@@ -5,7 +5,7 @@ import pytest
 from nolane.external_core.assurance_truth import TruthAssuranceGate
 from nolane.external_core.epistemic_truth import EpistemicDisposition, EpistemicJudge
 from nolane.external_core.evidence_truth import EvidenceChannel, EvidenceLedger, EvidencePolarity, TruthEvidence
-from nolane.external_core.knowledge import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
+from nolane.external_core.knowledge_truth import KnowledgeClaim, KnowledgeLedger, KnowledgeRisk
 from nolane.external_core.verification_truth import TruthVerificationLedger, TruthVerificationReceipt
 
 
