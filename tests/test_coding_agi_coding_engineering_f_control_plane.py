@@ -90,6 +90,8 @@ def _ready_plane():
         work.transaction_id,
         attestation_ids=(attestations[0].attestation_id,),
     )
+    mutation = plane.assess_mutation_authority(work.work_id, patch=patch)
+    assert mutation.authorized
     plane.mark_applied(work.transaction_id, application_ref='workspace:apply-a')
     plane.observe_outcome(work.transaction_id, evidence_refs=('runtime:outcome-a',))
     plane.verify_postconditions(
@@ -119,6 +121,8 @@ def test_control_plane_is_single_entry_point_for_f_governed_lifecycle():
     assert work.authority == 'candidate_only'
     assert gate.authority == 'candidate_only'
     assert validity.authority == 'candidate_only'
+    assert len(plane.mutation_authority.receipts()) == 1
+    assert plane.mutation_authority.receipts()[0].authority == 'mutation_scope_only'
     assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.CANDIDATE_READY
     state = plane.to_state()
     assert plane.digest == state['digest']
@@ -127,12 +131,14 @@ def test_control_plane_is_single_entry_point_for_f_governed_lifecycle():
 
 def test_control_plane_snapshot_roundtrip_preserves_every_f_closure_layer():
     patch, claims, _, plane, work, gate, validity = _ready_plane()
+    mutation = plane.mutation_authority.receipts()[0]
     restored = SoftwareEngineeringControlPlane.from_state(
         claims=claims,
         state=plane.to_state(),
     )
     assert restored.digest == plane.digest
     assert restored.work(work.work_id).digest == work.digest
+    assert restored.mutation_authority.get(mutation.receipt_id).digest == mutation.digest
     assert restored.gate.get(gate.receipt_id).digest == gate.digest
     assert restored.validity.get(validity.receipt_id).digest == validity.digest
     assert restored.revalidate(
