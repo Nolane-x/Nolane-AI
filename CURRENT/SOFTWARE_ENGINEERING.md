@@ -1,0 +1,78 @@
+# CURRENT — F. Software Engineering
+
+Date: 2026-08-30
+
+## Canonical authority
+
+F has exactly five canonical component authorities:
+
+1. `external.coding.claims`
+2. `external.coding.patches`
+3. `external.coding.control`
+4. `external.debugging`
+5. `external.ui_ux`
+
+The `software_engineering*` modules are cross-surface composition/control protocols. Their internal identities are not canonical component registrations and do not add canonical write authority.
+
+## Governed lifecycle
+
+```text
+patch + source claims
+  -> change manifest
+  -> immutable claim-state binding
+  -> precondition evidence
+  -> current mutation-authority receipt
+  -> consume receipt + revalidate live authority
+  -> apply
+  -> observe outcome
+  -> postcondition evidence
+  -> risk/surface-derived verification gate
+  -> canonical Coding/Debug/UI receipt integrity
+  -> cross-surface closure
+  -> CANDIDATE_READY / candidate_only
+  -> live current-validity revalidation
+```
+
+## Critical invariants
+
+- Successful engineering evidence cannot self-verify and must come from `verification-testing`.
+- Evidence is bound to exact patch digest, source revision and environment.
+- Revoking evidence or an upstream dependency invalidates dependent attestations without deleting history.
+- Mutation requires active exclusive bound claims and live precondition evidence at the instant of apply.
+- Apply consumes an explicit content-addressed mutation-authority receipt; the unified control plane has no receipt-less apply path.
+- Claim scope is transaction-bound; unrelated claims owned by the same agent/task cannot authorize the transaction.
+- Historical claim-state snapshots prove mutation authority at action time.
+- Releasing a claim after successful apply is normal lifecycle and does not retroactively invalidate a technically valid candidate.
+- Required verification is derived from patch risk and sensitive surfaces, not chosen downward by the caller.
+- Cross-surface receipts are canonical-codec validated before composition.
+- Debug and UI receipts must share exact patch/Coding-readiness lineage when required.
+- Historical closure is immutable; current validity is emitted separately.
+- Positive terminal authority is `candidate_only`; mutation receipts are `mutation_scope_only`.
+- F owns no release, deployment, Assurance acceptance, capability promotion or repository canonical authority.
+
+## Policy floor
+
+Every candidate requires compile, test and static evidence.
+
+Additional policy requirements:
+
+- UI-sensitive: visual, responsive, accessibility, interaction;
+- security-sensitive: security;
+- performance-sensitive: performance;
+- debug-origin: reproduction and root-cause evidence plus Debug closure;
+- high/critical risk: independent review.
+
+## State integrity
+
+The unified `SoftwareEngineeringControlPlane` snapshot is content-addressed and includes work, manifests, evidence, transactions, claim bindings, policy, mutation-authority history, closure/gate history and current-validity history.
+
+Restore is fail-closed on cross-layer lineage mismatch even when an attacker recomputes local and outer digests after tampering.
+
+## Validation gates
+
+F acceptance requires the current PR merge-ref to pass:
+
+- `Coding AGI Coding Organization Part V` on Python 3.11 and 3.13;
+- `Nolane-AI Refoundation Epoch 0` on Python 3.11 and 3.13.
+
+These gates must execute against current `main`, including independently upgraded subsystem work, before F is merged.
