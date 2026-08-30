@@ -104,7 +104,7 @@ def _ready(native, *, library: CognitiveLibrary | None = None, display_name: str
 def test_wave5ax_native_capability_acquisition_public_boundary_and_no_reverse_imports() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.capability_acquisition"
-    assert native.COMPONENT_VERSION == "0.0.1"
+    assert native.COMPONENT_VERSION == "0.0.2"
     assert native.MIGRATED_FROM == "cogcoder R2.55 hardened capability-acquisition lineage"
     for name in (
         "CapabilityKind",
@@ -294,8 +294,6 @@ def test_wave5ax_retrieval_firewall_revokes_promoted_capability_after_live_failu
     assert governor.retrievable_ids() == ()
     with pytest.raises(PermissionError):
         governor.retrieve(candidate.candidate_id)
-    # CognitiveLibrary is append-only; the acquisition firewall is therefore the
-    # authority boundary that makes the rolled-back capability non-actionable.
     assert library.family("wave5ax_candidate") == _family()
 
 
@@ -345,8 +343,8 @@ def test_wave5ax_authority_version_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.capability_acquisition"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.capability_acquisition")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.capability_acquisition")) == "0.0.2"
     assert any("r255" in source for source in row.legacy_sources)
 
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
