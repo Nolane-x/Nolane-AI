@@ -18,7 +18,7 @@ from nolane.external_core.cognitive_vocabulary import LearnedAbstraction
 
 
 COMPONENT_ID = "external.capability_acquisition"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder R2.55 hardened capability-acquisition lineage"
 _SCHEMA_VERSION = "capability-acquisition-v1"
 _DEFAULT_MIN_RELIABILITY = 0.75
@@ -96,8 +96,6 @@ class CapabilityCandidate:
         kind = CapabilityKind(self.kind)
         payload_json = str(self.payload_json)
         payload = _payload_from_json(payload_json)
-        # Decode through the canonical Cognitive Library parser so malformed or
-        # non-canonical payloads never acquire a stable capability identity.
         _decode_payload(kind, payload)
         display_name = str(self.display_name).strip()
         semantic = {"kind": kind.value, "payload": payload}
@@ -412,8 +410,6 @@ class CapabilityAcquisitionGovernor:
             raise TypeError("assurance must be native AssuranceControlPlane")
         if not isinstance(receipt, PromotionAssuranceReceipt):
             raise TypeError("receipt must be PromotionAssuranceReceipt")
-        # Recompute the native receipt digest instead of trusting a detached
-        # dataclass instance supplied by the caller.
         PromotionAssuranceReceipt.from_state(receipt.to_state())
         try:
             persisted = AssuranceControlPlane.promotion_receipt(assurance, receipt.receipt_id)
