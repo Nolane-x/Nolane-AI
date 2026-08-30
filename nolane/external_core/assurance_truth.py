@@ -19,7 +19,7 @@ _REQUIREMENTS = {
 
 
 def _unique_ids(values: tuple[str, ...], field: str) -> tuple[str, ...]:
-    rows = tuple(str(value).strip() for value in values)
+    rows = tuple(sorted(str(value).strip() for value in values))
     if any(not value for value in rows):
         raise ValueError(f"{field} must be explicit")
     if len(set(rows)) != len(rows):
@@ -55,7 +55,7 @@ class TruthClosureCertificate:
             raise ValueError("truth closure identity and state bindings must be explicit")
         verification_receipt_ids = _unique_ids(tuple(verification_receipt_ids), "verification receipt ids")
         epistemic_debt_ids = _unique_ids(tuple(epistemic_debt_ids), "epistemic debt ids")
-        reasons = tuple(str(value).strip() for value in reasons)
+        reasons = tuple(sorted(str(value).strip() for value in reasons))
         if any(not value for value in reasons):
             raise ValueError("closure reasons must be explicit")
         if len(set(reasons)) != len(reasons):
