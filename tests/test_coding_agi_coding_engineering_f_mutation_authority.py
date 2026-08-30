@@ -103,3 +103,18 @@ def test_mutation_authority_receipts_are_historical_and_content_addressed():
     assert plane.mutation_authority.get(allowed.receipt_id).authorized
     assert not plane.mutation_authority.get(blocked.receipt_id).authorized
     assert allowed.receipt_id != blocked.receipt_id
+
+
+def test_revoked_precondition_evidence_revokes_mutation_authority_before_apply():
+    patch, _, _, plane, work = _precondition_ready_plane()
+    tx = plane.transactions.get(work.transaction_id)
+    precondition_id = tx.precondition_attestation_ids[0]
+    plane.evidence.revoke(precondition_id, reason='precondition artifact invalidated')
+
+    receipt = plane.assess_mutation_authority(work.work_id, patch=patch)
+    assert not receipt.authorized
+    assert f'precondition_evidence_invalid:{precondition_id}' in receipt.reasons
+
+    with pytest.raises(PermissionError, match='mutation authority'):
+        plane.mark_applied(work.transaction_id, application_ref='workspace:stale-precondition')
+    assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.PRECONDITIONS_VERIFIED
