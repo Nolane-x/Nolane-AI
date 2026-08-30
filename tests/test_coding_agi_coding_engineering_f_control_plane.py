@@ -92,7 +92,11 @@ def _ready_plane():
     )
     mutation = plane.assess_mutation_authority(work.work_id, patch=patch)
     assert mutation.authorized
-    plane.mark_applied(work.transaction_id, application_ref='workspace:apply-a')
+    plane.mark_applied(
+        work.transaction_id,
+        application_ref='workspace:apply-a',
+        mutation_authority_receipt_id=mutation.receipt_id,
+    )
     plane.observe_outcome(work.transaction_id, evidence_refs=('runtime:outcome-a',))
     plane.verify_postconditions(
         work.transaction_id,
