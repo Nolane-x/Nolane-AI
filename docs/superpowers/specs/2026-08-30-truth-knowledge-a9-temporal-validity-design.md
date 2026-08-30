@@ -1,82 +1,118 @@
-# A9 Temporal Truth — Design Specification
+# A9 Temporal Truth — Relation-Aware Temporal v4 Design
 
-Status: proposed RED-first Refoundation continuation for External Core family A.
+Status: **implementation candidate for External Core family A; not accepted until integrated full Refoundation + expected-head merge + post-merge proof.**
 
-## 1. Problem
+## 1. Purpose
 
-A8 made canonical Truth closure dependency-local, but its live state is still timeless. `EvidenceLedger.is_active()` distinguishes present/revoked evidence, while dependency scopes and live certificates do not express *when* a fact or evidence item is applicable.
+A8 made Truth closure dependency-local. A10 then made that dependency scope relation-aware through canonical `RelationSemanticsRegistry` and binding mode `relation-aware-scope-v3`.
 
-This creates four semantic hazards:
+The remaining gap is temporal applicability. Without an explicit truth horizon:
 
-1. evidence that should have expired can continue supporting a claim indefinitely;
-2. two facts that are both valid but belong to disjoint historical periods can be treated as simultaneous competitors;
-3. verification receipts can be reused at a different evaluation time without any temporal binding;
-4. assurance certificates can remain structurally valid even when the requested truth horizon moves outside the validity interval that justified closure.
+- expired evidence can remain usable indefinitely;
+- sequential historical states can look simultaneously contradictory;
+- verification can be replayed under a different evaluation time;
+- closure can remain apparently valid after a relevant validity rule changes.
 
-A9 closes this gap without creating a sixth family-A authority.
+A9 closes only this gap. It does not create a clock, scheduler, causal-time engine, sixth Truth authority, or replacement for A10.
 
-## 2. Authority invariant
+## 2. Authority model
 
 Family A remains exactly five canonical authorities:
 
-- Evidence
-- Knowledge
-- Epistemic
-- Verification
-- Assurance
+1. `external.evidence`
+2. `external.knowledge`
+3. `external.epistemic`
+4. `external.verification`
+5. `external.assurance`
 
-A9 is a subprotocol spanning those authorities. A helper module may own deterministic temporal normalization and interval predicates, but it MUST NOT declare `COMPONENT_ID`, own a ledger, or become a peer authority.
+A9 consists of authority-bound sidecars:
 
-## 3. Determinism invariant
+- `temporal_truth.py` — deterministic temporal value primitives;
+- `evidence_temporal_truth.py` — Evidence-owned validity lineage;
+- `knowledge_temporal_truth.py` — Knowledge-owned applicability lineage;
+- `epistemic_temporal_truth.py` — Epistemic relation-aware temporal scope;
+- `verification_temporal_truth.py` — Verification temporal receipts;
+- `assurance_temporal_truth.py` — Assurance temporal closure.
 
-A9 MUST NOT call `datetime.now()`, `time.time()`, or any implicit wall clock while deriving canonical state.
+None may declare `COMPONENT_ID`. Existing A1–A10 canonical parents keep authority.
 
-Temporal evaluation is always explicit input:
+The A6 five-parent subprotocol metadata registry remains unchanged: A9 sidecars are layered protocol refinements under those already-bound parent Truth protocols, not six new canonical components.
+
+## 3. Version ordering
+
+A9 was designed before A10, but A10 was accepted first and already owns:
 
 ```text
-caller supplied as_of
-        ↓
-canonical TemporalContext
-        ↓
-Knowledge/Evidence applicability
-        ↓
-Epistemic dependency scope
-        ↓
-Verification binding
-        ↓
-Assurance binding + live revalidation
+relation-aware-scope-v3
 ```
 
-The same repository state plus the same canonical `as_of` MUST produce the same temporal scope digest and closure result.
+Therefore A9 MUST NOT introduce a parallel temporal v3. Its canonical binding generation is:
 
-## 4. Canonical timestamp form
+```text
+relation-aware-temporal-v4
+```
 
-A9 canonical timestamps use UTC RFC3339 second precision:
+The protocol order is exact and non-interchangeable:
+
+```text
+global-v1
+  ↓
+dependency-scope-v2
+  ↓
+relation-aware-scope-v3
+  ↓
+relation-aware-temporal-v4
+```
+
+A v1/v2/v3 receipt or certificate cannot satisfy v4. V4 cannot be interpreted as any legacy generation.
+
+## 4. Explicit-time determinism
+
+Canonical A9 state never reads wall time. `datetime.now()`, `time.time()`, local timezone defaults and implicit "current time" are forbidden in canonical derivation.
+
+Every temporal operation receives explicit caller input:
+
+```text
+explicit as_of
+    ↓
+TemporalContext
+    ↓
+Evidence + Knowledge temporal applicability
+    ↓
+A10 relation-aware competitor selection
+    ↓
+Temporal Epistemic scope v4
+    ↓
+Temporal Verification v4
+    ↓
+Temporal Assurance v4
+```
+
+Same canonical repository state + same sidecar histories + same `as_of` must produce the same scope and closure identities.
+
+## 5. Canonical timestamp
+
+Only UTC RFC3339 second precision is accepted:
 
 ```text
 YYYY-MM-DDTHH:MM:SSZ
 ```
 
-Examples:
+The parser fails closed on:
 
-- `2026-08-30T13:00:00Z`
-- `2030-01-01T00:00:00Z`
-
-Rejected forms include:
-
-- timezone-less timestamps;
-- non-UTC offsets;
+- timezone-less values;
+- numeric offsets such as `+00:00`;
 - fractional seconds;
-- non-zero-padded components;
-- impossible calendar values;
 - surrounding whitespace;
-- alternate textual spellings that normalize to the same instant.
+- non-zero-padded fields;
+- invalid dates/times;
+- alternate spellings of the same instant.
 
-Canonicalization is fail-closed rather than silently rewriting caller input.
+Input is validated, not silently normalized.
 
-## 5. Interval model
+## 6. Half-open validity intervals
 
-Temporal records use half-open validity intervals:
+`TruthInterval` is:
 
 ```text
 [valid_from, valid_until)
@@ -84,198 +120,242 @@ Temporal records use half-open validity intervals:
 
 Rules:
 
-- `valid_from` is inclusive;
-- `valid_until` is exclusive;
-- either bound may be absent for an open-ended interval;
-- when both are present, `valid_from < valid_until` is required;
-- an interval with neither bound is equivalent to timeless applicability only for the new temporal protocol object itself;
-- legacy A1–A8 records remain governed by legacy timeless semantics and are not rewritten.
+- lower bound inclusive;
+- upper bound exclusive;
+- either bound may be open;
+- both open means unbounded applicability for that A9 sidecar revision;
+- if both exist, `valid_from < valid_until`;
+- at `valid_until` the row is already expired.
 
-Half-open intervals guarantee adjacent epochs do not overlap accidentally:
+This permits adjacent state epochs without overlap.
 
-```text
-old: [2020-01-01, 2025-01-01)
-new: [2025-01-01, ∞)
-```
+## 7. TemporalContext
 
-At exactly `2025-01-01T00:00:00Z`, only the new fact applies.
+`TemporalContext` is immutable and content-addressed. It binds:
 
-## 6. TemporalContext
+- protocol identity;
+- exact canonical `as_of`;
+- canonical digest.
 
-A9 introduces a content-addressed `TemporalContext` subprotocol value containing at minimum:
+There is no default context. Receipts and certificates bind both `TemporalContext.digest` and canonical `as_of`.
 
-- `as_of`
-- protocol/version identity
-- canonical digest
+## 8. Evidence temporal lineage
 
-It is immutable and deterministic. Its digest is bound into A9 scope, verification, and assurance identities.
+`EvidenceTemporalBinding` does not mutate `TruthEvidence`. It binds the exact `TruthEvidence.content_digest` to one validity interval and now uses append-only revisions:
 
-A temporal closure MUST receive an explicit `TemporalContext` or explicit canonical `as_of` from which one is constructed. No default current time exists.
+- first revision exactly `1` with no predecessor;
+- every later revision increments exactly by one;
+- every later revision binds `previous_digest` to the exact prior revision;
+- same revision semantic rebinding fails closed;
+- a lineage cannot switch to a different base evidence digest;
+- restore rejects duplicate identities, sequence gaps and predecessor mismatch.
 
-## 7. Evidence temporal semantics
+`TemporalEvidenceView.binding(evidence_id)` resolves the latest revision while `revisions(evidence_id)` preserves history.
 
-A9 temporal evidence carries an interval in its new serialization/version while preserving the exact A1–A8 `TruthEvidence` v1 state shape for legacy records.
-
-At an explicit `as_of`, evidence state is one of:
+At explicit `as_of`, state is one of:
 
 - `missing`
 - `revoked`
+- `binding_mismatch`
 - `not_yet_valid`
 - `expired`
 - `active`
 
-Only `active` temporal evidence can support or oppose a temporal assessment.
+Revocation dominates temporal applicability. An unbound legacy evidence row remains timeless/active unless revoked.
 
-Revocation remains stronger than temporal applicability: a revoked row is `revoked` regardless of interval.
+Only current binding state for relevant evidence enters a v4 projection. Because every current digest commits its predecessor, the projection transitively commits the whole revision history without serializing unrelated histories.
 
-## 8. Knowledge temporal semantics
+## 9. Knowledge temporal lineage
 
-A9 temporal claims carry their applicability interval in a new protocol/version. Legacy `KnowledgeClaim` serialization and content digests remain exact.
+`KnowledgeTemporalBinding` mirrors Evidence rules but binds the exact `KnowledgeClaim.content_digest`.
 
-A temporal claim is eligible for the requested closure only if its interval contains `as_of`.
+`TemporalKnowledgeView` preserves append-only revisions and resolves latest applicability. An unbound legacy claim remains timeless.
 
-Parent lineage is fail-closed: if a required temporal parent is not applicable at `as_of`, the descendant cannot be canonically supported through that parent.
+Required lineage is never erased for convenience: a non-applicable parent remains visible in the scope for audit and causes its descendant to fail closed with `parent_not_applicable` rather than being silently ignored.
 
-## 9. Temporal competition
+## 10. Relation-aware temporal fixed point
 
-A8 defines potential competitors by `(subject, relation)` and includes competitor ancestry in the fixed point.
+A9 inherits A10 relation semantics rather than replacing them.
 
-A9 refines this rule for temporal closure:
+Starting from the target and all required ancestors:
 
-- only claims applicable at the requested `as_of` may become live competitors;
-- a non-applicable historical claim MUST NOT create a present-time contradiction;
-- competitor ancestry is still expanded to a fixed point after temporal filtering;
-- legacy non-temporal closure retains A8 behavior exactly.
+1. only temporally `active` claims may generate live competitors;
+2. `MULTI_VALUED` relations do not add distinct-object siblings merely because values differ;
+3. `EXCLUSIVE` relations add applicable sibling objects as competitors;
+4. `UNSPECIFIED` relations keep applicable competing values visible so Epistemic can issue ambiguity debt;
+5. every admitted competitor contributes its complete parent lineage for audit;
+6. non-applicable historical siblings do not fabricate current contradiction.
 
-This prevents false contradictions between sequential world states.
+The fixed point is deterministic and set-canonical.
 
-## 10. Temporal dependency scope
+## 11. Temporal Epistemic scope v4
 
-A9 temporal dependency scope extends A8 scope identity with the temporal context digest and temporal applicability state.
+`TemporalTruthRelationAwareScope` binds all relevant live authority projections:
 
-Its canonical identity binds at minimum:
+- target claim ID;
+- target lineage IDs;
+- relation-aware temporal fixed-point claim IDs;
+- referenced evidence IDs;
+- relevant relation IDs;
+- base scoped Knowledge digest;
+- base scoped Evidence digest;
+- A10 relevant Relation Semantics projection digest;
+- scoped Knowledge temporal projection digest;
+- scoped Evidence temporal projection digest;
+- exact TemporalContext digest and `as_of`;
+- Epistemic assessments;
+- relation-authorized contradictions;
+- Epistemic/temporal/relation ambiguity debts;
+- final canonical scope digest.
 
-- target claim;
-- lineage claims applicable at `as_of`;
-- live competitors applicable at `as_of`;
-- evidence state at `as_of`;
-- contradictions/debts derived at `as_of`;
-- `TemporalContext.digest`.
+`TemporalEpistemicJudge.validate_relation_aware_scope()` never trusts serialized scope as authority. It re-derives it from live canonical Knowledge, Evidence, Relation Semantics, temporal sidecars and explicit context.
 
-Changing only `as_of` MAY change the scope digest when applicability changes. It MUST NOT rely on wall-clock mutation.
+## 12. Temporal assessment law
 
-## 11. Verification v3
+A claim cannot be `SUPPORTED` when:
 
-A9 introduces a temporal verification binding mode/version, conceptually:
+- the claim itself is not applicable;
+- any required parent is not applicable;
+- any required parent is not supported;
+- cited evidence is missing/revoked/not-yet-valid/expired;
+- temporal binding mismatches base content identity;
+- evidence subject binding does not equal the claim;
+- active support and refutation contradict each other.
+
+Temporal causes become explicit Epistemic debt such as:
+
+- `claim_not_yet_valid`
+- `claim_expired`
+- `parent_not_applicable`
+- `evidence_not_yet_valid`
+- `evidence_expired`
+- `evidence_revoked`
+- `evidence_binding_mismatch`
+- `evidence_subject_mismatch`
+
+A10 relation laws still apply to the temporally active supported rows:
+
+- `EXCLUSIVE` → contradiction;
+- `MULTI_VALUED` → coexistence;
+- `UNSPECIFIED` → relation ambiguity debt.
+
+## 13. Verification v4
+
+A9 uses the separate `TemporalTruthVerificationReceipt` and `TemporalTruthVerificationLedger` rather than widening the A1–A10 receipt type.
+
+Binding mode is exactly:
 
 ```text
-dependency-scope-temporal-v3
+relation-aware-temporal-v4
 ```
 
-A v3 receipt binds:
+A receipt binds:
 
 - claim ID;
-- temporal dependency scope digest;
-- temporal context digest / canonical `as_of`;
+- verifier identity;
+- source family;
+- verification channel;
+- pass/fail result;
+- exact temporal scope digest;
+- exact temporal context digest;
+- exact canonical `as_of`;
 - evidence IDs;
-- existing verifier/source/channel/pass semantics.
+- content digest.
 
-A receipt for time T1 MUST NOT satisfy closure for T2 unless the exact canonical temporal scope identity and temporal context binding match the T2 request.
+A receipt is current only if claim, scope, context digest and `as_of` all match exactly.
 
-A1–A8 v1 global and v2 dependency-scoped receipt serialization remains byte-for-byte unchanged.
+Live provenance additionally requires every verification evidence row to be temporally active and to match claim, verifier, source family and channel. Negative results remain retained. Source mirrors sharing one family count once.
 
-## 12. Assurance v3
+## 14. Assurance v4
 
-A9 temporal assurance produces a v3 certificate bound to:
+`TemporalTruthClosureCertificate` is a dedicated v4 decision receipt. It binds:
 
-- claim ID and risk;
-- temporal scope digest;
-- verification temporal-scope digest;
-- temporal context digest / canonical `as_of`;
-- accepted receipt IDs;
-- debt IDs;
-- closure result and reasons.
+- claim and risk;
+- exact temporal scope digest;
+- exact temporal verification projection digest;
+- TemporalContext digest and `as_of`;
+- accepted passing receipt IDs;
+- Epistemic debt IDs;
+- closure decision and reasons;
+- content digest.
 
-Live validation MUST recompute the canonical temporal scope at the certificate's bound temporal context and reject:
+`TemporalTruthAssuranceGate` uses the same family-A risk thresholds:
 
-- interval drift caused by changed underlying records;
-- evidence revocation;
-- verification mismatch;
-- forged temporal state;
-- caller attempts to validate the certificate under a different `as_of`.
+- LOW/STANDARD: 1 independent family + 1 channel;
+- HIGH: 2 + 2;
+- CRITICAL: 3 + 3.
 
-No implicit revalidation at "now" is allowed.
+Closure fails on unsupported target, target/ancestor conflict, relation ambiguity, unsupported lineage, critical debt, invalid provenance, negative verification or insufficient independent verification diversity.
 
-## 13. Compatibility rules
+A certificate is not self-authenticating. `validate_certificate()` recomputes the entire v4 closure against live canonical state and the exact caller-provided context.
 
-A9 has a strict compatibility floor:
+## 15. Invalidation scope
 
-1. v1 `TruthEvidence` and `KnowledgeClaim` state/digest identity is unchanged.
-2. v1 global `TruthVerificationReceipt` state is unchanged.
-3. v2 dependency-scoped `TruthVerificationReceipt` state is unchanged.
-4. v1 global `TruthClosureCertificate` state is unchanged.
-5. v2 dependency-scoped `TruthClosureCertificate` state is unchanged.
-6. A8 non-temporal `dependency_scope(...)`, `close_live(...)`, and certificate validation retain current behavior.
-7. No legacy state receives new `None`, empty, or default temporal keys.
-8. New temporal state cannot be deserialized as a legacy binding mode and vice versa.
+A relevant change must stale old v4 authority:
 
-## 14. Fail-closed rules
+- relevant Evidence revocation;
+- relevant Evidence temporal revision;
+- relevant Knowledge temporal revision;
+- relevant Knowledge/Evidence base state change;
+- relevant relation policy revision;
+- verification projection change;
+- different `as_of`.
 
-A9 rejects:
+An unrelated change outside the dependency/relation/temporal scope must not stale an otherwise identical certificate. This preserves A8/A10 locality.
 
-- malformed or noncanonical timestamps;
-- inverted or zero-width bounded intervals;
-- temporal state without explicit temporal protocol identity;
-- mixed global/scoped/temporal binding fields;
-- temporal receipt or certificate missing its temporal context binding;
-- temporal receipt/certificate used with a different `as_of`;
-- temporal lineage whose required parent is not applicable;
-- forged temporal scope state even if its internal digest was recomputed by the attacker.
+## 16. Serialization compatibility
 
-## 15. RED proof requirements
+A9 is additive and structural:
 
-Before production implementation, tests must demonstrate that A8 cannot currently satisfy A9 semantics. At minimum RED must prove:
+- `TruthEvidence` A1–A10 state does not gain temporal keys;
+- `KnowledgeClaim` A1–A10 state does not gain temporal keys;
+- v1/v2/v3 `TruthVerificationReceipt` states remain unchanged;
+- v1/v2/v3 `TruthClosureCertificate` states remain unchanged;
+- A9 sidecars use their own protocol identities;
+- mixed global/v2/v3/v4 fields fail closed;
+- forged digest state fails closed;
+- serialized duplicate temporal revision identity fails closed.
 
-1. temporal evidence validity is unsupported, allowing the expired-evidence hazard;
-2. temporal claim applicability is unsupported, allowing historical false competition;
-3. verification has no `as_of`/temporal scope binding;
-4. assurance has no `as_of`/temporal live revalidation;
-5. half-open boundary semantics are absent;
-6. canonical malformed timestamp rejection is absent as a family-A protocol.
+No accepted legacy digest is rewritten.
 
-RED failures must be caused by missing A9 capability, not unrelated regressions.
+## 17. Canonical authority/non-authority boundary
 
-## 16. GREEN acceptance requirements
+A9 does not advance canonical parent component versions because parent module APIs and write authorities are not modified. It introduces sidecar protocol software under those parents.
 
-Focused Truth gate on Python 3.11 and 3.13 must prove:
+The current component revision law remains:
 
-- all A1–A8 contracts remain GREEN;
-- all A9 temporal contracts are GREEN;
-- repository authority audit remains GREEN;
-- helpers expose no `COMPONENT_ID`;
-- canonical serialization round-trips and forged-state rejection work.
+- `external.knowledge = 0.0.2` from accepted A10;
+- other A parents keep their accepted revisions;
+- temporal helper modules expose no `COMPONENT_ID`.
 
-Before merge, full Refoundation Epoch 0 must additionally prove:
+Repository audit must remain at zero new migration/reference debt.
 
-- 67/67 AI dossiers fresh;
-- repository quarantine audit fresh;
-- zero-loss evidence generation;
-- organization/campaign/execution regressions;
-- frozen Neural R2.3 invariants.
+## 18. Acceptance gates
 
-## 17. Non-goals
+A9 is accepted only after an exact final candidate integrated with then-current `main` passes:
 
-A9 does not introduce:
+1. compile of canonical A modules, A1–A10 Truth helpers and all six A9 sidecars on Python 3.11/3.13;
+2. every `tests/test_truth_knowledge_*.py`, including temporal semantics, serialization and revision-lineage attacks;
+3. repository authority audit with no duplicate authority/new debt;
+4. full Refoundation Epoch 0 on Python 3.11/3.13: 67/67 dossiers, repository audit, Refoundation contracts, Truth contracts, zero-loss evidence, organization/campaign/execution regressions and frozen Neural R2.3;
+5. PR diff/review gate showing only intended family-A/workflow/docs/tests changes;
+6. expected-head merge;
+7. post-merge proof that canonical `main` contains the exact tested tree semantics or an ancestry-preserving subsequent merge with unchanged A9 blobs.
 
-- a scheduler;
-- a global system clock;
-- event-time ordering for all Nolane subsystems;
-- causal temporal reasoning;
-- prediction/forecast semantics;
-- TTL mutation jobs;
-- automatic deletion of expired evidence;
-- a sixth Truth authority.
+## 19. Non-goals
 
-It only gives canonical family-A Truth closure an explicit, deterministic answer to the question:
+A9 deliberately does not implement:
 
-> "True/verified/assured **as of when**?"
+- a system clock;
+- scheduling;
+- automatic expiry jobs;
+- deletion of expired state;
+- event ordering across all Nolane subsystems;
+- bitemporal databases;
+- causal temporal inference;
+- forecasting;
+- a new authority.
+
+Its only question is:
+
+> What does canonical family-A Truth justify **as of this explicit time**, under the exact relation semantics and exact validity histories that apply?
