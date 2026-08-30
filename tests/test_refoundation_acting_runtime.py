@@ -264,3 +264,9 @@ def test_external_effect_classification_precedes_local_mutation_rollback_hints()
     assert external_branch in source
     assert local_branch in source
     assert source.index(external_branch) < source.index(local_branch)
+
+
+def test_unconfined_process_tools_use_external_like_risk_floor() -> None:
+    source = inspect.getsource(OrganizationExecutionControlPlane.step)
+    assert "unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})" in source
+    assert "if is_external or action.tool_action.tool_id in unconfined_process_tools:" in source
