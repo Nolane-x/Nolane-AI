@@ -29,7 +29,7 @@ _COMPONENT_REVISIONS.update(
         "external.research": 1,
         "external.cognitive_library": 1,
         "external.causal": 1,
-        "external.capability_acquisition": 1,
+        "external.capability_acquisition": 2,
         "external.candidate_synthesis": 4,
         "external.reasoning_invention": 1,
         "external.transfer_meta": 1,
