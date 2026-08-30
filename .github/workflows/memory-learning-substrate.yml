@@ -1,0 +1,50 @@
+name: Memory Learning Substrate
+
+on:
+  push:
+    branches:
+      - codex/memory-learning-substrate-v0.0.5
+    paths:
+      - 'nolane/memory/**'
+      - 'nolane/external_core/self_model.py'
+      - 'nolane/external_core/individual_evolution.py'
+      - 'tests/test_memory_learning_substrate_v005*.py'
+      - 'tests/test_coding_agi_memory_*.py'
+      - 'tests/test_coding_agi_self_*.py'
+      - '.github/workflows/memory-learning-substrate.yml'
+  pull_request:
+    paths:
+      - 'nolane/memory/**'
+      - 'nolane/external_core/self_model.py'
+      - 'nolane/external_core/individual_evolution.py'
+      - 'tests/test_memory_learning_substrate_v005*.py'
+      - 'tests/test_coding_agi_memory_*.py'
+      - 'tests/test_coding_agi_self_*.py'
+      - '.github/workflows/memory-learning-substrate.yml'
+
+jobs:
+  memory-learning-substrate:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile Memory Learning authority surface
+        run: |
+          python -m py_compile nolane/memory/*.py
+          python -m py_compile nolane/external_core/self_model.py
+          python -m py_compile nolane/external_core/individual_evolution.py
+      - name: Run Memory Learning substrate contracts
+        run: |
+          python -m pytest -q \
+            tests/test_memory_learning_substrate_v005.py \
+            tests/test_memory_learning_substrate_v005_integration.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_self_*.py
