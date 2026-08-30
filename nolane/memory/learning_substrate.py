@@ -61,6 +61,26 @@ def _parse_time(value: str | None) -> datetime | None:
     return parsed
 
 
+def _normalize_family_map(
+    evidence_ids: tuple[str, ...],
+    families: Mapping[str, str] | None,
+    *,
+    label: str,
+) -> tuple[tuple[str, str], ...]:
+    if families is None:
+        raise ValueError(f"{label} evidence requires provenance family metadata")
+    normalized: dict[str, str] = {}
+    for evidence_id, family_id in families.items():
+        evidence_key = str(evidence_id).strip()
+        family_value = str(family_id).strip()
+        if not evidence_key or not family_value:
+            raise ValueError(f"{label} evidence family ids must be non-empty")
+        normalized[evidence_key] = family_value
+    if set(normalized) != set(evidence_ids):
+        raise ValueError(f"{label} evidence family mapping must exactly cover evidence ids")
+    return tuple(sorted(normalized.items()))
+
+
 @dataclass(frozen=True, slots=True)
 class LearningMemoryMetadata:
     memory_id: str
@@ -150,15 +170,27 @@ class SkillValidation:
     skill_id: str
     regression_evidence_ids: tuple[str, ...]
     causal_ablation_evidence_ids: tuple[str, ...]
+    regression_evidence_families: tuple[tuple[str, str], ...] = ()
+    causal_ablation_evidence_families: tuple[tuple[str, str], ...] = ()
 
     def to_state(self) -> dict[str, Any]:
-        return {"skill_id": self.skill_id, "regression_evidence_ids": list(self.regression_evidence_ids),
-                "causal_ablation_evidence_ids": list(self.causal_ablation_evidence_ids)}
+        return {
+            "skill_id": self.skill_id,
+            "regression_evidence_ids": list(self.regression_evidence_ids),
+            "causal_ablation_evidence_ids": list(self.causal_ablation_evidence_ids),
+            "regression_evidence_families": [list(pair) for pair in self.regression_evidence_families],
+            "causal_ablation_evidence_families": [list(pair) for pair in self.causal_ablation_evidence_families],
+        }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "SkillValidation":
-        return cls(str(state["skill_id"]), tuple(str(x) for x in state.get("regression_evidence_ids", ())),
-                   tuple(str(x) for x in state.get("causal_ablation_evidence_ids", ())))
+        return cls(
+            str(state["skill_id"]),
+            tuple(str(x) for x in state.get("regression_evidence_ids", ())),
+            tuple(str(x) for x in state.get("causal_ablation_evidence_ids", ())),
+            tuple((str(pair[0]), str(pair[1])) for pair in state.get("regression_evidence_families", ())),
+            tuple((str(pair[0]), str(pair[1])) for pair in state.get("causal_ablation_evidence_families", ())),
+        )
 
 
 class LearningSubstrate:
@@ -338,18 +370,50 @@ class LearningSubstrate:
         except KeyError as exc:
             raise KeyError(f"missing tombstone for {memory_id}") from exc
 
-    def record_skill_validation(self, skill_id: str, *, regression_evidence_ids: tuple[str, ...],
-                                causal_ablation_evidence_ids: tuple[str, ...]) -> SkillValidation:
+    def record_skill_validation(
+        self,
+        skill_id: str,
+        *,
+        regression_evidence_ids: tuple[str, ...],
+        causal_ablation_evidence_ids: tuple[str, ...],
+        regression_evidence_families: Mapping[str, str] | None = None,
+        causal_ablation_evidence_families: Mapping[str, str] | None = None,
+    ) -> SkillValidation:
         self.skills.get(skill_id)
-        regressions = tuple(sorted({str(x) for x in regression_evidence_ids if str(x)}))
-        causal = tuple(sorted({str(x) for x in causal_ablation_evidence_ids if str(x)}))
+        regressions = tuple(sorted({str(x).strip() for x in regression_evidence_ids if str(x).strip()}))
+        causal = tuple(sorted({str(x).strip() for x in causal_ablation_evidence_ids if str(x).strip()}))
         if not regressions:
             raise ValueError("skill validation requires executed regression evidence")
         if not causal:
             raise ValueError("skill validation requires causal ablation evidence")
-        row = SkillValidation(str(skill_id), regressions, causal)
+        regression_families = _normalize_family_map(
+            regressions, regression_evidence_families, label="regression"
+        )
+        causal_families = _normalize_family_map(
+            causal, causal_ablation_evidence_families, label="causal ablation"
+        )
+        regression_family_ids = {family_id for _, family_id in regression_families}
+        causal_family_ids = {family_id for _, family_id in causal_families}
+        if len(regression_family_ids) < 2:
+            raise ValueError("skill validation requires independent regression evidence families")
+        if regression_family_ids.intersection(causal_family_ids):
+            raise ValueError("causal ablation evidence families must be independent of regression families")
+        row = SkillValidation(
+            str(skill_id), regressions, causal, regression_families, causal_families
+        )
         self._skill_validations[row.skill_id] = row
         return row
+
+    @staticmethod
+    def _require_independent_skill_validation(validation: SkillValidation) -> None:
+        regression_family_ids = {family_id for _, family_id in validation.regression_evidence_families}
+        causal_family_ids = {family_id for _, family_id in validation.causal_ablation_evidence_families}
+        if len(regression_family_ids) < 2:
+            raise PermissionError("persistent skill promotion requires independent regression evidence families")
+        if not causal_family_ids:
+            raise PermissionError("persistent skill promotion requires causal ablation evidence families")
+        if regression_family_ids.intersection(causal_family_ids):
+            raise PermissionError("persistent skill promotion requires causal evidence independent of regression families")
 
     def promote_skill(self, skill_id: str, scope: SkillScope) -> SkillRecord:
         validation = self._skill_validations.get(str(skill_id))
@@ -357,6 +421,7 @@ class LearningSubstrate:
             raise PermissionError("persistent skill promotion requires executed regression evidence")
         if not validation.causal_ablation_evidence_ids:
             raise PermissionError("persistent skill promotion requires causal ablation evidence")
+        self._require_independent_skill_validation(validation)
         return self.skills.promote(skill_id, scope)
 
     def to_state(self) -> dict[str, Any]:
