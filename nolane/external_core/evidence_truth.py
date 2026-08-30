@@ -7,7 +7,7 @@ from typing import Any, Mapping
 from ._truth_digest import truth_digest
 
 COMPONENT_ID = "external.evidence.truth"
-COMPONENT_VERSION = "0.2.0"
+COMPONENT_VERSION = "0.3.0"
 
 
 class EvidencePolarity(str, Enum):
@@ -101,17 +101,29 @@ class EvidenceRevocation:
 
 
 class EvidenceLedger:
-    """Append-only provenance-aware evidence; revocation changes admissibility, never history."""
+    """Append-only provenance-aware evidence; revocation changes admissibility, never history.
+
+    A source identity is permanently bound to one source family inside a ledger. This does not
+    attempt to authenticate the external world; it prevents the Truth layer itself from laundering
+    one canonical source identity into multiple artificial independence families.
+    """
 
     def __init__(self) -> None:
         self._records: dict[str, TruthEvidence] = {}
         self._revocations: dict[str, EvidenceRevocation] = {}
+        self._source_families: dict[str, str] = {}
 
     def record(self, row: TruthEvidence) -> TruthEvidence:
         old = self._records.get(row.evidence_id)
         if old is not None and old != row:
             raise ValueError("evidence id collision")
+
+        bound_family = self._source_families.get(row.source_id)
+        if bound_family is not None and bound_family != row.source_family:
+            raise ValueError("source identity family rebinding")
+
         self._records[row.evidence_id] = row
+        self._source_families[row.source_id] = row.source_family
         return row
 
     def get(self, evidence_id: str) -> TruthEvidence:
@@ -119,6 +131,12 @@ class EvidenceLedger:
             return self._records[str(evidence_id)]
         except KeyError as exc:
             raise KeyError(f"unknown truth evidence: {evidence_id}") from exc
+
+    def source_family(self, source_id: str) -> str:
+        try:
+            return self._source_families[str(source_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown evidence source identity: {source_id}") from exc
 
     def revoke(self, evidence_id: str, *, reason: str) -> EvidenceRevocation:
         self.get(evidence_id)
