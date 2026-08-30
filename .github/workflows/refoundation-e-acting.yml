@@ -1,89 +1,71 @@
-name: Refoundation E Acting GREEN Staging
+name: Refoundation E Acting Transactional Runtime
 
 on:
   push:
     branches:
       - refoundation/e-acting-transactional-runtime-gpt56sol
-
-permissions:
-  contents: write
+  pull_request:
+    paths:
+      - 'nolane/external_core/acting_protocol.py'
+      - 'nolane/external_core/acting_runtime.py'
+      - 'nolane/external_core/execution.py'
+      - 'nolane/external_core/execution_workspace.py'
+      - 'nolane/external_core/invokable.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_refoundation_acting_*.py'
+      - 'tests/test_refoundation_component_versions.py'
+      - 'tests/test_refoundation_wave5r_native_invokable_cores.py'
+      - 'tests/test_refoundation_wave5s_native_execution_workspace.py'
+      - 'tests/test_refoundation_wave5aa_native_execution_control.py'
+      - 'CURRENT/E_ACTING.md'
+      - 'docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md'
+      - 'docs/superpowers/plans/2026-08-30-refoundation-e-acting-transactional-runtime.md'
+      - '.github/workflows/refoundation-e-acting.yml'
 
 concurrency:
-  group: refoundation-e-acting-green-staging
+  group: refoundation-e-acting-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  green:
+  acting-contracts:
+    # Refoundation branches own their dedicated gate and must not be executed
+    # again as historical PR workflow jobs during repository quarantine.
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
     runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
         with:
+          # Refoundation inventory tests intentionally inspect pinned historical
+          # commits. A shallow checkout makes those tests fail for infrastructure
+          # reasons rather than product regressions.
           fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
-      - name: Apply lifecycle-bound lease integrity patch
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('nolane/external_core/acting_protocol.py')
-          text = path.read_text(encoding='utf-8')
-
-          def replace_once(old: str, new: str) -> None:
-              global text
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'expected exactly one patch target, found {count}: {old[:80]!r}')
-              text = text.replace(old, new, 1)
-
-          if 'COMPONENT_VERSION = "0.1.2"' not in text:
-              replace_once('COMPONENT_VERSION = "0.1.1"', 'COMPONENT_VERSION = "0.1.2"')
-              replace_once(
-                  '''        supplied_digest = str(state.get("digest", ""))\n        if supplied_digest != row.digest:\n            raise ValueError("action record digest mismatch")''',
-                  '''        supplied_digest = state.get("digest")\n        if supplied_digest is not None and str(supplied_digest) != row.digest:\n            raise ValueError("action record digest mismatch")''',
-              )
-              replace_once(
-                  '''            event_type="lease_acquired",\n            evidence_refs=(auth,),\n            payload={"lease": lease.to_state(), "capability_grants": sorted(grants)},''',
-                  '''            event_type="lease_acquired",\n            evidence_refs=(auth, "lease:" + lease.lease_id),\n            payload={"lease": lease.to_state(), "capability_grants": sorted(grants)},''',
-              )
-              replace_once(
-                  '''            event_type="lease_renewed",\n            evidence_refs=(ref,),\n            payload={"lease": lease.to_state(), "previous_lease_id": current.lease_id},''',
-                  '''            event_type="lease_renewed",\n            evidence_refs=(ref, "lease:" + lease.lease_id, "previous-lease:" + current.lease_id),\n            payload={"lease": lease.to_state(), "previous_lease_id": current.lease_id},''',
-              )
-              replace_once(
-                  '''            event_type="lease_revoked",\n            evidence_refs=(ref,),\n            payload={"reason": reason_text, "lease_id": lease.lease_id},''',
-                  '''            event_type="lease_revoked",\n            evidence_refs=(ref, "lease:" + lease.lease_id),\n            payload={"reason": reason_text, "lease_id": lease.lease_id},''',
-              )
-              replace_once(
-                  '''        lease_acquired = self._single_event(history, "lease_acquired")\n        if lease_acquired is None:\n            if row.authorization_ref or row.lease is not None:\n                raise ValueError("action record lease/authorization disagrees with lifecycle events")\n        else:\n            if lease_acquired.evidence_refs != (row.authorization_ref,):\n                raise ValueError("action record authorization disagrees with lease event")\n            if row.lease is None:\n                raise ValueError("action record lease missing despite lease event")''',
-                  '''        lease_acquired = self._single_event(history, "lease_acquired")\n        renewal_events = tuple(event for event in history if event.event_type == "lease_renewed")\n        revocation_events = tuple(event for event in history if event.event_type == "lease_revoked")\n        if lease_acquired is None:\n            if row.authorization_ref or row.lease is not None:\n                raise ValueError("action record lease/authorization disagrees with lifecycle events")\n        else:\n            if row.lease is None:\n                raise ValueError("action record lease missing despite lease event")\n            acquired_refs = lease_acquired.evidence_refs\n            if not acquired_refs or acquired_refs[0] != row.authorization_ref:\n                raise ValueError("action record authorization disagrees with lease event")\n            if len(acquired_refs) not in {1, 2}:\n                raise ValueError("action record lease acquisition evidence is non-canonical")\n\n            lifecycle_lease_id: str | None = None\n            if len(acquired_refs) == 2:\n                if not acquired_refs[1].startswith("lease:"):\n                    raise ValueError("action record lease acquisition evidence is non-canonical")\n                lifecycle_lease_id = acquired_refs[1][len("lease:"):]\n\n            if row.lease.generation != 1 + len(renewal_events):\n                raise ValueError("action record lease generation disagrees with lifecycle events")\n\n            last_modern_previous_id: str | None = None\n            for renewal in renewal_events:\n                refs = renewal.evidence_refs\n                if len(refs) == 1:  # schema-1 legacy renewal evidence\n                    lifecycle_lease_id = None\n                    last_modern_previous_id = None\n                    continue\n                if (\n                    len(refs) != 3\n                    or not refs[1].startswith("lease:")\n                    or not refs[2].startswith("previous-lease:")\n                ):\n                    raise ValueError("action record lease renewal evidence is non-canonical")\n                renewed_id = refs[1][len("lease:"):]\n                previous_id = refs[2][len("previous-lease:"):]\n                if lifecycle_lease_id is not None and previous_id != lifecycle_lease_id:\n                    raise ValueError("action record lease renewal chain disagrees with lifecycle events")\n                lifecycle_lease_id = renewed_id\n                last_modern_previous_id = previous_id\n\n            for revocation in revocation_events:\n                refs = revocation.evidence_refs\n                if len(refs) == 1:  # schema-1 legacy revocation evidence\n                    lifecycle_lease_id = None\n                    continue\n                if len(refs) != 2 or not refs[1].startswith("lease:"):\n                    raise ValueError("action record lease revocation evidence is non-canonical")\n                revoked_id = refs[1][len("lease:"):]\n                if lifecycle_lease_id is not None and revoked_id != lifecycle_lease_id:\n                    raise ValueError("action record lease revocation disagrees with lifecycle events")\n                lifecycle_lease_id = revoked_id\n\n            if lifecycle_lease_id is not None and lifecycle_lease_id != row.lease.lease_id:\n                raise ValueError("action record lease disagrees with lifecycle event evidence")\n            if revocation_events and not row.lease.revoked:\n                raise ValueError("action record lease revocation state disagrees with lifecycle events")\n            if not revocation_events and row.lease.revoked:\n                raise ValueError("action record lease is revoked without lifecycle evidence")\n\n            if row.lease.generation == 1:\n                expected_lease_digest = canonical_digest(\n                    {\n                        "action_id": row.action_id,\n                        "owner_id": row.lease.owner_id,\n                        "generation": row.lease.generation,\n                        "issued_at_ms": row.lease.issued_at_ms,\n                        "expires_at_ms": row.lease.expires_at_ms,\n                        "authorization_ref": row.authorization_ref,\n                    }\n                )\n                if row.lease.lease_id != "execution-lease-" + expected_lease_digest[:24]:\n                    raise ValueError("action record lease digest is invalid")\n            elif last_modern_previous_id is not None:\n                expected_lease_digest = canonical_digest(\n                    {\n                        "action_id": row.action_id,\n                        "owner_id": row.lease.owner_id,\n                        "generation": row.lease.generation,\n                        "issued_at_ms": row.lease.issued_at_ms,\n                        "expires_at_ms": row.lease.expires_at_ms,\n                        "previous_lease_id": last_modern_previous_id,\n                    }\n                )\n                if row.lease.lease_id != "execution-lease-" + expected_lease_digest[:24]:\n                    raise ValueError("action record renewed lease digest is invalid")''',
-              )
-              path.write_text(text, encoding='utf-8')
-          else:
-              print('acting protocol already patched; verifying existing tree')
-          PY
-      - name: Compile canonical E Acting modules
-        run: python -m py_compile nolane/external_core/*.py
+          python-version: ${{ matrix.python-version }}
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Run E Acting contracts
+      - name: Compile canonical E Acting modules
+        run: python -m py_compile nolane/external_core/*.py
+      - name: Run E Acting transactional contracts
         run: |
           python -m pytest -q \
             tests/test_refoundation_acting_protocol.py \
             tests/test_refoundation_acting_record_integrity.py \
             tests/test_refoundation_acting_workspace.py \
-            tests/test_refoundation_acting_runtime.py
+            tests/test_refoundation_acting_runtime.py \
+            --junitxml=e-acting-contracts-${{ matrix.python-version }}.xml
       - name: Run Refoundation regression suite
-        run: python -m pytest -q tests/test_refoundation_*.py
-      - name: Publish exact tested production delta
         run: |
-          if git diff --quiet -- nolane/external_core/acting_protocol.py; then
-            echo 'No production delta to publish.'
-            exit 0
-          fi
-          git config user.name 'Nolane E Acting Closure'
-          git config user.email 'actions@users.noreply.github.com'
-          git add nolane/external_core/acting_protocol.py
-          git commit -m 'fix(e-acting): bind lease state to lifecycle evidence'
-          git push origin HEAD:refoundation/e-acting-transactional-runtime-gpt56sol
+          python -m pytest -q tests/test_refoundation_*.py \
+            --junitxml=e-acting-regression-${{ matrix.python-version }}.xml
+      - name: Preserve test diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e-acting-junit-${{ matrix.python-version }}
+          path: e-acting-*.xml
+          if-no-files-found: error
