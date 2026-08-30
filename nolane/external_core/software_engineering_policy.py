@@ -17,7 +17,7 @@ from nolane.external_core.software_engineering_validity import EngineeringClaimB
 
 
 COMPONENT_ID = "external.software_engineering.policy"
-COMPONENT_VERSION = "0.2.0"
+COMPONENT_VERSION = "0.2.1"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -462,18 +462,12 @@ class GovernedEngineeringGate:
             binding_id = binding.binding_id
             binding_digest = binding.digest
             reasons.extend(self.claim_bindings.current_reasons(binding.binding_id))
+            if not self.claim_bindings.covers_patch(binding.binding_id, patch):
+                reasons.append("bound_claim_scope_does_not_cover_patch")
 
-        if all(hasattr(patch, name) for name in (
+        if not all(hasattr(patch, name) for name in (
             "producer_agent_id", "task_id", "touched_files", "touched_symbols"
         )):
-            if not self.claims.covers(
-                agent_id=str(patch.producer_agent_id),
-                task_id=str(patch.task_id),
-                file_paths=tuple(patch.touched_files),
-                symbol_ids=tuple(patch.touched_symbols),
-            ):
-                reasons.append("claim_scope_does_not_cover_patch")
-        else:
             reasons.append("patch_scope_unavailable")
 
         closure_receipt_id: str | None = None
