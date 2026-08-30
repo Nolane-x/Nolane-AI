@@ -13,10 +13,12 @@
 ## Global Constraints
 
 - Requirements, Planning, Architecture, Integration and Context remain separate specialist authorities.
+- Truth / Knowledge and Software Engineering remain separate external-core authorities; Goal/Design consumes immutable identity/evidence and does not take ownership of either surface.
 - Exact five-plane snapshot binding remains fail-closed.
 - Decision receipt identity must be deterministic for identical semantic inputs.
 - Semantic changes to goal, scenarios, options, proof state, uncertainty state or traceability must change the appropriate manifest digest and decision receipt identity.
-- No new runtime dependency is introduced.
+- Receipt audit lineage must retain evidence from every option actually evaluated, not only the selected option.
+- No new runtime dependency is introduced into the Goal/Design production authority.
 - Existing Goal/Design tests must remain green on Python 3.11 and 3.12.
 
 ---
@@ -43,26 +45,7 @@ Observed RED: seven manifest tests failed while 32 existing Goal/Design tests re
 
 - [x] **Step 3: Implement canonical manifest digests**
 
-Use the existing canonicalizer, hashing complete immutable domain objects rather than only IDs:
-
-```python
-goal_digest = stable_digest({"goal": goal})
-scenario_set_digest = stable_digest({"scenarios": tuple(scenarios)})
-option_set_digest = stable_digest({"options": tuple(options)})
-proof_state_digest = stable_digest({"proof_obligations": tuple(proof_obligations)})
-uncertainty_state_digest = stable_digest({"uncertainties": tuple(uncertainties)})
-traceability_digest = stable_digest({"traceability": traceability})
-input_manifest_digest = stable_digest({
-    "goal_digest": goal_digest,
-    "scenario_set_digest": scenario_set_digest,
-    "option_set_digest": option_set_digest,
-    "proof_state_digest": proof_state_digest,
-    "uncertainty_state_digest": uncertainty_state_digest,
-    "traceability_digest": traceability_digest,
-})
-```
-
-`traceability=None` is a real semantic state and is hashed as such. The implemented manifest additionally binds the selected option and exact snapshot/version vector so authority closure cannot be replayed against different five-plane state.
+The implementation hashes complete canonical immutable state for GoalSpec, scenarios, options, proof obligations, uncertainties and traceability. `traceability=None` is a real semantic state and is hashed as such. The manifest additionally binds the selected option and exact snapshot/version vector so authority closure cannot be replayed against different five-plane state.
 
 - [x] **Step 4: Bind evaluation and receipt identities**
 
@@ -70,66 +53,56 @@ input_manifest_digest = stable_digest({
 
 - [x] **Step 5: Run focused tests GREEN**
 
-Run: `python -m pytest -q tests/test_goal_design_decision_manifest.py`
-
-Observed GREEN as part of the final Goal/Design suite.
+Observed GREEN as part of the complete Goal/Design suite.
 
 ### Task 2: Persistence and causal ledger compatibility
 
 **Files:**
-- Modify if required: `nolane/external_core/goal_design_runtime.py`
-- Modify if required: `nolane/external_core/goal_design_ledger.py`
-- Test: `tests/test_goal_design_authority_persistence.py`
-- Test: `tests/test_goal_design_runtime.py`
-- Test: `tests/test_goal_design_ledger.py`
+- `nolane/external_core/goal_design_runtime.py`
+- `nolane/external_core/goal_design_ledger.py`
+- `tests/test_goal_design_authority_persistence.py`
+- `tests/test_goal_design_runtime.py`
+- `tests/test_goal_design_ledger.py`
 
-**Interfaces:**
-- Consumes: enriched immutable `DecisionReceipt`.
-- Produces: restart-safe authority index and deterministic ledger events with no loss of new receipt fields.
+- [x] Serialization/deserialization round-trips every proof-carrying digest with backward-compatible defaults for legacy state.
+- [x] Typed DECISION ledger events bind `input_manifest_digest` directly.
+- [x] Decision lifecycle, dependencies, invalidation and supersession survive restart.
 
-- [x] **Step 1: Run persistence/runtime tests after Task 1**
-
-Run: `python -m pytest -q tests/test_goal_design_authority_persistence.py tests/test_goal_design_runtime.py tests/test_goal_design_ledger.py`
-
-Observed boundary failure: the new receipt digests were lost during `DecisionAuthorityIndex` restore while the remaining tests passed.
-
-- [x] **Step 2: Re-run focused persistence/runtime tests**
-
-Serialization/deserialization now round-trips every proof-carrying digest with backward-compatible defaults for legacy state. A second RED→GREEN audit test also required typed DECISION ledger events to bind `input_manifest_digest` directly.
-
-### Task 3: Documentation and complete verification
+### Task 3: Complete evaluated-option evidence lineage
 
 **Files:**
-- Modify: `docs/GOAL_DESIGN_COHERENCE_PLANE.md`
-- Verify: `.github/workflows/goal-design-coherence-plane.yml`
+- Modify: `nolane/external_core/goal_design.py`
+- Test: `tests/test_goal_design_decision_manifest.py`
 
-**Interfaces:**
-- Produces: documented proof-carrying authority identity and CI evidence on Python 3.11/3.12.
+- [x] **RED proof:** exact commit `02505bb6b88bef2f1e335baf36e0586d77e39595` produced one intended failure on Python 3.12 while 45 tests passed. `DecisionReceipt.evidence_refs` contained `ev:selected` but omitted `ev:alternate`, proving the receipt materialized evidence only from the selected option even though the alternative participated in evaluation/Pareto authority.
+- [x] **Production fix:** receipt evidence collection now unions evidence from every `canonical_options` entry before scenarios/proofs/uncertainties are added. No scoring, manifest, lifecycle or specialist-authority semantics changed.
+- [x] **GREEN proof:** exact commit `ab3c6c6fa9505b245549bffbc5b3e638830f8582`, workflow run `33313174733`, passed 46/46 on Python 3.11 and 46/46 on Python 3.12.
 
-- [x] **Step 1: Document manifest semantics**
+### Task 4: Cross-authority composition gates
 
-The architecture spec documents that a receipt is content-addressed over complete GoalSpec, scenarios, options, proof/waiver state, uncertainty/mitigation state, traceability and exact five-plane snapshot; IDs alone are not authority evidence.
+**A — Truth / Knowledge**
 
-- [x] **Step 2: Run the full Goal/Design test suite**
+- [x] Pre-A RED proof `d7d27b01eff2952913648f5055b12b894acdee95` failed exactly at import of the then-absent `nolane.external_core.evidence_truth` authority.
+- [x] TruthEvidence `content_digest` is treated as immutable evidence identity and flows into D receipt identity without D becoming the Truth authority.
+- [x] Truth content identity changes alter Goal/Design goal/receipt identity.
 
-Run: `python -m pytest -q tests/test_goal_design*.py`
+**F — Software Engineering**
 
-Exact implementation head `01761ed8d96918d1f23dd5fb099ddd2073aa4964` produced 41/41 passes on both Python 3.11 and 3.12.
+- [x] F treats a D `input_manifest_digest` as an opaque immutable `subject_digest`; F does not gain Goal/Design decision authority.
+- [x] F evidence identity changes when the D manifest changes.
+- [x] `EngineeringEvidenceLedger.is_valid()` accepts the exact D manifest binding and rejects a tampered subject digest.
+- [x] Pre-A8 merged-baseline head `0180ae7c486d1fb6f23654d8a25b6a606a2f8cad`, workflow run `33313296451`, passed 47/47 on Python 3.11 and 47/47 on Python 3.12.
 
-- [x] **Step 3: Verify GitHub Actions**
+**Refoundation A8 — dependency-scoped Truth binding**
 
-Dedicated Goal Design Coherence Plane run `33306747928` completed with 41/41 passes on Python 3.11 and 41/41 passes on Python 3.12 for the exact implementation head. Final merged-baseline interop verification is tracked by the branch-closing gate below.
+- [x] Current A8 main `64d1ed5ad816e731068f0612db90c5b32288a465` is integrated as the specialist baseline through merge commit `5741b84332edcfed0c540e72d6d5ab82528381de`.
+- [x] The A8 tree is preserved byte-for-byte outside the 15 D-owned paths by constructing the union from A8 tree `132a8203b895eb03071440c0ad80b18cbbddffef` and overlaying only verified D blobs.
+- [x] The A8 interop contract uses `EvidenceLedger.scoped_digest()` as an immutable dependency-scope identity and requires active→revoked scoped Truth state to change D authority identity, while keeping Truth state ownership in A8.
 
-- [x] **Step 4: Review branch diff against `main`**
+### Task 5: Final verification and PR closure
 
-The D delta remains scoped to Goal/Design implementation, tests, documentation and its dedicated workflow. Specialist work merged into `main` is treated as baseline and must not reappear as D-owned changes.
-
-## Branch-closing merged-baseline gate
-
-- [x] Refoundation A main (`a38bd47daef1d28e16d9487c3db9355301e6113e`) was first integrated through merge commit `8ac794b00daf5a9b8ef8db63ae69c27c72961aee`, preserving the verified D implementation head as first parent.
-- [x] `test_goal_design_refoundation_interop.py` has an execution-backed RED proof on pre-A D commit `d7d27b01eff2952913648f5055b12b894acdee95`: Python 3.12 failed during collection exactly because `nolane.external_core.evidence_truth` did not yet exist.
-- [x] The same interop contract on the combined baseline requires Truth/Knowledge `content_digest` to flow into Goal/Design receipt evidence and to alter D authority identity when upstream truth content changes.
-- [x] Current main advanced again to F Software Engineering commit `37360b9c889170d789634abab823e4a0de191e85`. GitHub computed conflict-free synthetic merge tree `f18526ccd51acbb303c7765cfba0dee3643998be`; that exact tree was integrated into the feature branch by merge commit `2171e9cbad8decbc4a553bf4e5f8d162b0e63b26` with D as first parent and current main as second parent.
-- [x] F remains a separate authority surface. The closing interop contract binds a D `input_manifest_digest` as an opaque F engineering-evidence `subject_digest`; F verifies the artifact without acquiring Goal/Design decision authority.
-- [ ] Final combined A+D+F head passes all `tests/test_goal_design*.py` on Python 3.11 and 3.12.
-- [ ] PR #239 final diff is rechecked against the then-current `main`, remains mergeable, has `behind_by=0`, and contains no unrelated specialist-domain delta.
+- [ ] Exact A8+D+F final candidate passes every `tests/test_goal_design*.py` test on Python 3.11 and Python 3.12.
+- [ ] Refresh `main`; if it materially changed after A8 integration, integrate and re-run the merged-baseline gate.
+- [ ] `main...feat/goal-design-coherence-plane-gpt56sol` is `behind_by=0`, mergeable, and its changed-file set contains only Goal/Design implementation, tests, documentation, compatibility export and dedicated workflow.
+- [ ] Reopen PR #239 with final RED→GREEN and cross-authority evidence.
+- [ ] Merge PR #239 with exact-head protection and verify the returned merge SHA is the new `main` SHA.

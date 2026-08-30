@@ -1,4 +1,4 @@
-from nolane.external_core.evidence_truth import EvidenceChannel, EvidencePolarity, TruthEvidence
+from nolane.external_core.evidence_truth import EvidenceChannel, EvidenceLedger, EvidencePolarity, TruthEvidence
 from nolane.external_core.goal_design import (
     DecisionClass,
     DesignOption,
@@ -103,6 +103,23 @@ def test_truth_knowledge_content_change_changes_goal_design_authority_identity()
     assert first.content_digest != second.content_digest
     assert first_receipt.goal_digest != second_receipt.goal_digest
     assert first_receipt.receipt_id != second_receipt.receipt_id
+
+
+def test_a8_scoped_truth_state_change_changes_goal_design_authority_identity():
+    ledger = EvidenceLedger()
+    evidence = ledger.record(_truth_evidence("payload:a"))
+    active_scope = ledger.scoped_digest((evidence.evidence_id,))
+    active_receipt = _admit(active_scope)
+
+    ledger.revoke(evidence.evidence_id, reason="superseded")
+    revoked_scope = ledger.scoped_digest((evidence.evidence_id,))
+    revoked_receipt = _admit(revoked_scope)
+
+    assert active_scope != revoked_scope
+    assert active_scope in active_receipt.evidence_refs
+    assert revoked_scope in revoked_receipt.evidence_refs
+    assert active_receipt.goal_digest != revoked_receipt.goal_digest
+    assert active_receipt.receipt_id != revoked_receipt.receipt_id
 
 
 def test_software_engineering_attests_goal_design_manifest_without_rebinding_it():
