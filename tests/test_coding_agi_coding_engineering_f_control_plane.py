@@ -120,7 +120,9 @@ def test_control_plane_is_single_entry_point_for_f_governed_lifecycle():
     assert gate.authority == 'candidate_only'
     assert validity.authority == 'candidate_only'
     assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.CANDIDATE_READY
-    assert plane.digest == canonical_digest(plane.to_state())
+    state = plane.to_state()
+    assert plane.digest == state['digest']
+    assert plane.digest == canonical_digest({key: value for key, value in state.items() if key != 'digest'})
 
 
 def test_control_plane_snapshot_roundtrip_preserves_every_f_closure_layer():
