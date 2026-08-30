@@ -27,6 +27,20 @@ def _require_weight(value: float, *, label: str) -> float:
     return normalized
 
 
+def _require_content_address(
+    state: Mapping[str, Any],
+    *,
+    key: str,
+    expected: str,
+    label: str,
+) -> None:
+    supplied = state.get(key)
+    if supplied is None or not str(supplied).strip():
+        raise ValueError(f"{label} requires persisted {key}")
+    if str(supplied) != expected:
+        raise ValueError(f"{label} content-address mismatch")
+
+
 @dataclass(frozen=True, slots=True)
 class MemoryRetrievalPolicy:
     """Deterministic, content-addressed retrieval policy for External Core B.
@@ -77,9 +91,12 @@ class MemoryRetrievalPolicy:
             max_estimated_units=None if state.get("max_estimated_units") is None else int(state["max_estimated_units"]),
             parent_policy_id=None if state.get("parent_policy_id") is None else str(state["parent_policy_id"]),
         )
-        supplied = state.get("policy_id")
-        if supplied is not None and str(supplied) != result.policy_id:
-            raise ValueError("memory retrieval policy content-address mismatch")
+        _require_content_address(
+            state,
+            key="policy_id",
+            expected=result.policy_id,
+            label="memory retrieval policy",
+        )
         return result
 
     def migrate(self, **overrides: Any) -> "MemoryRetrievalPolicy":
@@ -152,9 +169,24 @@ class MemoryRetrievalReceipt:
             rejected=tuple((str(pair[0]), str(pair[1])) for pair in state.get("rejected", ())),
             estimated_units=int(state.get("estimated_units", 0)),
         )
-        supplied = state.get("receipt_id")
-        if supplied is not None and str(supplied) != result.receipt_id:
-            raise ValueError("memory retrieval receipt content-address mismatch")
+        selected = result.selected_memory_ids
+        if any(not str(memory_id).strip() for memory_id in selected):
+            raise ValueError("memory retrieval receipt selected ids must be non-empty")
+        if len(set(selected)) != len(selected):
+            raise ValueError("memory retrieval receipt selected ids must be unique")
+        rejected_ids = tuple(memory_id for memory_id, _ in result.rejected)
+        if any(not str(memory_id).strip() or not str(reason).strip() for memory_id, reason in result.rejected):
+            raise ValueError("memory retrieval receipt rejection ids/reasons must be non-empty")
+        if len(set(rejected_ids)) != len(rejected_ids):
+            raise ValueError("memory retrieval receipt rejected ids must be unique")
+        if set(selected).intersection(rejected_ids):
+            raise ValueError("memory retrieval receipt selected/rejected overlap")
+        _require_content_address(
+            state,
+            key="receipt_id",
+            expected=result.receipt_id,
+            label="memory retrieval receipt",
+        )
         return result
 
 
@@ -212,9 +244,12 @@ class MemoryCompactionReceipt:
             actor_agent_id=str(state["actor_agent_id"]),
             evidence_refs=tuple(str(value) for value in state.get("evidence_refs", ())),
         )
-        supplied = state.get("compaction_id")
-        if supplied is not None and str(supplied) != result.compaction_id:
-            raise ValueError("memory compaction receipt content-address mismatch")
+        _require_content_address(
+            state,
+            key="compaction_id",
+            expected=result.compaction_id,
+            label="memory compaction receipt",
+        )
         return result
 
 
@@ -273,9 +308,12 @@ class MemoryAnchorHealthReceipt:
             observed_version_scope=None if state.get("observed_version_scope") is None else str(state["observed_version_scope"]),
             reason=str(state["reason"]),
         )
-        supplied = state.get("receipt_id")
-        if supplied is not None and str(supplied) != result.receipt_id:
-            raise ValueError("memory anchor health receipt content-address mismatch")
+        _require_content_address(
+            state,
+            key="receipt_id",
+            expected=result.receipt_id,
+            label="memory anchor health receipt",
+        )
         return result
 
 
