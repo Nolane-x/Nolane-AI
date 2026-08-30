@@ -9,6 +9,7 @@ on:
       - 'nolane/external_core/self_model.py'
       - 'nolane/external_core/individual_evolution.py'
       - 'nolane/metadata/component_versions.py'
+      - 'cogcoder/organization/runtime_core.py'
       - 'tests/test_memory_learning_*.py'
       - 'tests/test_refoundation_memory_public_layout.py'
       - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
@@ -21,6 +22,7 @@ on:
       - 'nolane/external_core/self_model.py'
       - 'nolane/external_core/individual_evolution.py'
       - 'nolane/metadata/component_versions.py'
+      - 'cogcoder/organization/runtime_core.py'
       - 'tests/test_memory_learning_*.py'
       - 'tests/test_refoundation_memory_public_layout.py'
       - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
@@ -51,6 +53,7 @@ jobs:
           python -m py_compile nolane/external_core/self_model.py
           python -m py_compile nolane/external_core/individual_evolution.py
           python -m py_compile nolane/metadata/component_versions.py
+          python -m py_compile cogcoder/organization/runtime_core.py
       - name: Run Memory Learning substrate contracts
         shell: bash
         run: |
@@ -61,6 +64,7 @@ jobs:
             tests/test_memory_learning_closure_v005.py
             tests/test_memory_learning_adaptive_policy_v005.py
             tests/test_memory_learning_restore_authority_v005.py
+            tests/test_memory_learning_runtime_wiring_v005.py
             tests/test_refoundation_component_versions.py
             tests/test_refoundation_memory_public_layout.py
             tests/test_refoundation_wave5c_native_memory_fabric.py
@@ -70,7 +74,7 @@ jobs:
             tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py
           )
-          if (( ${#tests[@]} < 6 )); then
+          if (( ${#tests[@]} < 7 )); then
             echo "Memory/Learning contract discovery failed" >&2
             exit 2
           fi
