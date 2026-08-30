@@ -53,6 +53,21 @@ def _recompute_local_record_digest(record: dict[str, object]) -> None:
     record["digest"] = canonical_digest(payload)
 
 
+def _recompute_acquired_lease_id(record: dict[str, object]) -> None:
+    lease = record["lease"]
+    digest = canonical_digest(
+        {
+            "action_id": lease["action_id"],
+            "owner_id": lease["owner_id"],
+            "generation": lease["generation"],
+            "issued_at_ms": lease["issued_at_ms"],
+            "expires_at_ms": lease["expires_at_ms"],
+            "authorization_ref": record["authorization_ref"],
+        }
+    )
+    lease["lease_id"] = "execution-lease-" + digest[:24]
+
+
 def test_persisted_record_contract_cannot_be_rebound_even_with_local_digest_recomputed() -> None:
     state = copy.deepcopy(_ready_state())
     record = state["records"][0]
@@ -73,27 +88,28 @@ def test_persisted_record_evidence_cannot_diverge_from_lifecycle_event() -> None
         ActingProtocolLedger.from_state(state)
 
 
-def test_schema1_snapshot_without_record_digest_restores_and_migrates() -> None:
+def test_schema1_snapshot_without_record_digest_restores_and_enriches_on_write() -> None:
     state = copy.deepcopy(_ready_state())
     assert state["schema_version"] == 1
     record = state["records"][0]
     record.pop("digest")
 
     restored = ActingProtocolLedger.from_state(state)
-    migrated = restored.to_state()
+    enriched = restored.to_state()
 
-    assert migrated["schema_version"] == 1
-    assert migrated["records"][0]["digest"]
+    assert enriched["schema_version"] == 1
+    assert enriched["records"][0]["digest"]
     assert restored.validate_chain("record-integrity-action") is True
 
 
-def test_persisted_lease_cannot_be_rebound_even_with_record_digest_recomputed() -> None:
+def test_persisted_lease_cannot_be_rebound_even_when_local_id_and_record_digest_are_recomputed() -> None:
     state = copy.deepcopy(_ready_state())
     record = state["records"][0]
     lease = record["lease"]
     lease["owner_id"] = "attacker"
     lease["expires_at_ms"] += 5_000
+    _recompute_acquired_lease_id(record)
     _recompute_local_record_digest(record)
 
-    with pytest.raises(ValueError, match="lease.*event|event.*lease|lease.*digest"):
+    with pytest.raises(ValueError, match="lease.*event|event.*lease|lease.*evidence"):
         ActingProtocolLedger.from_state(state)
