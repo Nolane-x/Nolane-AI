@@ -108,24 +108,32 @@ class RepositoryWorkspace:
             raise PermissionError('path escapes isolated workspace') from exc
         return candidate
 
+    def _payload_rows(self) -> list[dict[str, str | int]]:
+        rows: list[dict[str, str | int]] = []
+        for path in sorted(self.root.rglob('*'), key=lambda item: item.relative_to(self.root).as_posix()):
+            relative = path.relative_to(self.root).as_posix()
+            if relative == '.git' or relative.startswith('.git/'):
+                continue
+            if path.is_symlink():
+                rows.append({'path': relative, 'kind': 'symlink', 'target': str(path.readlink())})
+            elif path.is_dir():
+                rows.append({'path': relative, 'kind': 'directory'})
+            elif path.is_file():
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+                rows.append({'path': relative, 'kind': 'file', 'size': path.stat().st_size, 'sha256': digest})
+            else:
+                raise RuntimeError(f'unsupported workspace payload entry: {relative}')
+        return rows
+
     @property
     def digest(self) -> str:
         self._ensure_open()
         status = self._git(self.root, 'status', '--porcelain=v1', '--untracked-files=all').stdout
-        files = self._git(self.root, 'ls-files', '-co', '--exclude-standard').stdout.splitlines()
-        rows: list[dict[str, str | int]] = []
-        for relative in sorted(set(x for x in files if x.strip())):
-            path = self.resolve_repo_path(relative)
-            if path.is_symlink():
-                rows.append({'path': relative, 'kind': 'symlink', 'target': str(path.readlink())})
-            elif path.is_file():
-                digest = hashlib.sha256(path.read_bytes()).hexdigest()
-                rows.append({'path': relative, 'kind': 'file', 'size': path.stat().st_size, 'sha256': digest})
         return canonical_digest({
             'base_revision': self.base_revision,
             'head': self._git(self.root, 'rev-parse', 'HEAD').stdout.strip(),
             'status': status,
-            'files': rows,
+            'payload': self._payload_rows(),
         })
 
     def read_text(self, path: str | Path, *, encoding: str = 'utf-8') -> str:
