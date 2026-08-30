@@ -35,6 +35,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.transfer_meta": 1,
     "external.causal": 1,
     "external.experimentation": 1,
+    "external.reasoning_invention": 1,
     "external.verification": 1,
     "external.evidence": 1,
     "external.experience": 1,
