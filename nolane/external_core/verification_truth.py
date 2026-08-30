@@ -27,18 +27,19 @@ class TruthVerificationReceipt:
     def create(cls, *, receipt_id: str, claim_id: str, verifier_id: str, source_family: str,
                channel: EvidenceChannel, passed: bool, knowledge_digest: str, epistemic_digest: str,
                evidence_ids: tuple[str, ...] = ()) -> "TruthVerificationReceipt":
+        evidence_ids = tuple(sorted(str(x).strip() for x in evidence_ids))
         payload = {"receipt_id": str(receipt_id).strip(), "claim_id": str(claim_id).strip(),
                    "verifier_id": str(verifier_id).strip(), "source_family": str(source_family).strip(),
                    "channel": EvidenceChannel(channel).value, "passed": bool(passed),
                    "knowledge_digest": str(knowledge_digest).strip(), "epistemic_digest": str(epistemic_digest).strip(),
-                   "evidence_ids": list(tuple(str(x).strip() for x in evidence_ids))}
+                   "evidence_ids": list(evidence_ids)}
         if any(not payload[key] for key in ("receipt_id", "claim_id", "verifier_id", "source_family", "knowledge_digest", "epistemic_digest")):
             raise ValueError("verification identity and state binding must be explicit")
-        if any(not x for x in payload["evidence_ids"]) or len(set(payload["evidence_ids"])) != len(payload["evidence_ids"]):
+        if any(not x for x in evidence_ids) or len(set(evidence_ids)) != len(evidence_ids):
             raise ValueError("verification evidence ids must be explicit and unique")
         return cls(payload["receipt_id"], payload["claim_id"], payload["verifier_id"], payload["source_family"],
                    EvidenceChannel(payload["channel"]), payload["passed"], payload["knowledge_digest"],
-                   payload["epistemic_digest"], tuple(payload["evidence_ids"]), canonical_digest(payload))
+                   payload["epistemic_digest"], evidence_ids, canonical_digest(payload))
 
     def payload(self) -> dict[str, Any]:
         return {"receipt_id": self.receipt_id, "claim_id": self.claim_id, "verifier_id": self.verifier_id,
