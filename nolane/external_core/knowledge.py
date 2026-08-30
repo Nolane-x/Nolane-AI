@@ -7,7 +7,7 @@ from typing import Any, Mapping, Protocol
 from ._truth_digest import truth_digest
 
 COMPONENT_ID = "external.knowledge"
-COMPONENT_VERSION = "0.1.0"
+COMPONENT_VERSION = "0.2.0"
 
 
 class KnowledgeRisk(str, Enum):
@@ -138,9 +138,38 @@ class KnowledgeLedger:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "KnowledgeLedger":
-        ledger = cls()
+        if str(state.get("protocol", "")) != "knowledge-ledger-v1":
+            raise ValueError("unsupported knowledge protocol")
+
+        parsed: dict[str, KnowledgeClaim] = {}
         for value in state.get("claims", ()):
-            ledger.add(KnowledgeClaim.from_state(value))
+            row = KnowledgeClaim.from_state(value)
+            previous = parsed.get(row.claim_id)
+            if previous is not None and previous != row:
+                raise ValueError("knowledge claim id collision")
+            parsed[row.claim_id] = row
+
+        missing = sorted({
+            parent
+            for row in parsed.values()
+            for parent in row.parent_claim_ids
+            if parent not in parsed
+        })
+        if missing:
+            raise ValueError(f"unknown parent knowledge claim(s): {','.join(missing)}")
+
+        ledger = cls()
+        pending = dict(parsed)
+        while pending:
+            ready = [
+                row for row in pending.values()
+                if all(parent in ledger._claims for parent in row.parent_claim_ids)
+            ]
+            if not ready:
+                raise ValueError("knowledge derivation graph contains a cycle")
+            for row in sorted(ready, key=lambda item: item.claim_id):
+                ledger.add(row)
+                pending.pop(row.claim_id)
         return ledger
 
 
