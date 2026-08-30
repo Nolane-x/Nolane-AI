@@ -21,7 +21,7 @@ from nolane.external_core.execution_workspace import RepositoryWorkspace, Worksp
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.0"
+COMPONENT_VERSION = "0.1.1"
 
 
 class CoreReceipt(Protocol):

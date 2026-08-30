@@ -29,7 +29,7 @@ def test_wave5s_canonical_execution_workspace_owns_complete_public_implementatio
         for name in _PUBLIC_SYMBOLS
     )
     assert canonical.COMPONENT_ID == "external.execution.workspace"
-    assert canonical.COMPONENT_VERSION == "0.0.2"
+    assert canonical.COMPONENT_VERSION == "0.0.3"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution_workspace"
 
 
@@ -146,8 +146,8 @@ def test_wave5s_execution_workspace_component_version_and_authority_cutover() ->
     assert row.canonical_module == "nolane.external_core.execution_workspace"
     assert row.legacy_sources == ("cogcoder/organization/execution_workspace.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
-    assert str(component_version("external.execution.workspace")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("external.execution.workspace")) == "0.0.3"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.execution.workspace" not in facade_ids
