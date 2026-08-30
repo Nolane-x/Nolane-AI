@@ -20,9 +20,7 @@ The Truth Closure implementation is an additive protocol under those authorities
 - `verification_truth.py` has `PARENT_COMPONENT_ID = "external.verification"`;
 - `assurance_truth.py` has `PARENT_COMPONENT_ID = "external.assurance"`.
 
-Protocol helpers must never declare `COMPONENT_ID`. Canonical component identity belongs only to the repository component registry and its accepted canonical-native modules.
-
-The protocol uses `nolane.core.canonical_digest.canonical_digest`; it does not introduce a private digest authority.
+Protocol helpers must never declare `COMPONENT_ID`. Canonical component identity belongs only to the repository component registry and its accepted canonical-native modules. The protocol uses `nolane.core.canonical_digest.canonical_digest`; it does not introduce a private digest authority.
 
 ## Truth-closure pipeline
 
@@ -52,6 +50,10 @@ canonical external.verification
 canonical external.assurance
         |
         +-- TruthClosureCertificate
+        |     - content-addressed decision receipt
+        |     - NOT self-authenticating authority
+        v
+validate_certificate(live state)
 ```
 
 No stage may silently perform the next stage's decision.
@@ -64,6 +66,7 @@ No stage may silently perform the next stage's decision.
 - Revocation is append-only admissibility state; the original evidence record is retained.
 - Restore recomputes content identity and rejects tampered evidence or revocation state.
 - Cross-subject evidence cannot support another claim merely because its evidence ID is referenced.
+- Serialized restore is canonical: duplicate evidence identities or duplicate revocation rows are rejected instead of silently collapsed.
 
 ## Knowledge protocol invariants
 
@@ -72,6 +75,7 @@ No stage may silently perform the next stage's decision.
 - A truth claim is content-addressed over `(claim_id, subject, relation, object, risk, evidence_ids, parent_claim_ids)`.
 - Parent references form a DAG; cycles and missing parents fail closed.
 - Restore is topological and independent of serialized claim-ID sort order.
+- Duplicate serialized claim identities fail closed; restore cannot normalize ambiguous/malleable state by silently deduplicating it.
 - Evidence lifecycle never rewrites knowledge identity; invalidated evidence marks dependent claims impacted and propagates to descendants.
 
 ## Epistemic protocol invariants
@@ -98,11 +102,11 @@ A `TruthVerificationReceipt` binds:
 - exact Epistemic snapshot digest;
 - cited evidence IDs.
 
-Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source.
+Raw receipts remain audit history. Only provenance-valid receipts count toward strict Assurance. A counted receipt must cite active evidence for the same claim whose source identity, source family and channel match the receipt. Negative receipts are retained. Correlated mirrors sharing one source family count as one independent source. Duplicate serialized receipt identities fail closed rather than collapsing into one row.
 
 ## Assurance protocol invariants
 
-`TruthAssuranceGate.close_snapshot()` and `close_live()` are the strict paths.
+`TruthAssuranceGate.close_snapshot()` and `close_live()` are the strict issuance paths.
 
 Strict closure requires:
 
@@ -124,7 +128,9 @@ Current minimum diversity policy:
 | HIGH | 2 | 2 |
 | CRITICAL | 3 | 3 |
 
-The digest-only legacy `close()` surface is deliberately fail-closed and cannot return an accepted truth certificate.
+A `TruthClosureCertificate` is a content-addressed decision receipt, not self-authenticating authority. `TruthClosureCertificate.from_state()` proves only serialization/content integrity. A consumer that wants to rely on `closed=True` must call `TruthAssuranceGate.validate_certificate(...)`, which re-derives canonical closure from current live Knowledge, Evidence and Verification state and requires exact certificate equality. A digest-valid self-issued certificate therefore does not acquire authority, and a formerly valid certificate stops validating when live evidence/verification state changes.
+
+Certificate receipt-ID/debt-ID lists and reasons are canonical sets represented as unique ordered tuples; duplicates or inconsistent `closed`/`reasons` combinations fail closed. The digest-only legacy `close()` surface remains deliberately fail-closed and cannot return an accepted truth certificate.
 
 ## Compatibility boundary
 
@@ -144,13 +150,14 @@ Truth Closure is additive protocol semantics under those components. Any future 
 - **A2**: added competing-proposition preservation, parent-state propagation, canonical snapshots and tamper-resistant restore.
 - **A3**: attacked cross-subject evidence laundering, source-family rebinding, stale snapshot replay, forged snapshots, ungrounded verification, legacy closure bypass and restore-order failure.
 - **A4**: discovered and forbids duplicate canonical authority, removes the private truth digest, moves proposition semantics to `knowledge_truth.py`, and binds every helper to one existing canonical parent component.
+- **A5**: separates content integrity from authority authenticity: closure certificates require live revalidation, and duplicate serialized ledger/certificate identities fail closed instead of being normalized away.
 
 ## Acceptance gates
 
 The dedicated `Truth Knowledge A Layer` workflow runs on Python 3.11 and 3.13 and must:
 
 1. compile the five canonical A authorities plus all Truth Closure protocol modules;
-2. pass A1/A2/A3/A4 truth contracts;
+2. pass every `tests/test_truth_knowledge_*.py` contract (A1 through the latest hardening wave);
 3. pass repository authority projection audit.
 
 The Refoundation Epoch 0 workflow remains the broader repository regression gate. Historical R-series workflows do not define current architecture authority.

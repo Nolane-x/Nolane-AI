@@ -18,6 +18,15 @@ _REQUIREMENTS = {
 }
 
 
+def _unique_ids(values: tuple[str, ...], field: str) -> tuple[str, ...]:
+    rows = tuple(str(value).strip() for value in values)
+    if any(not value for value in rows):
+        raise ValueError(f"{field} must be explicit")
+    if len(set(rows)) != len(rows):
+        raise ValueError(f"{field} must be unique")
+    return rows
+
+
 @dataclass(frozen=True, slots=True)
 class TruthClosureCertificate:
     certificate_id: str
@@ -37,15 +46,32 @@ class TruthClosureCertificate:
     def create(cls, *, claim_id: str, risk: KnowledgeRisk, knowledge_digest: str, evidence_digest: str,
                epistemic_digest: str, verification_digest: str, verification_receipt_ids: tuple[str, ...],
                epistemic_debt_ids: tuple[str, ...], closed: bool, reasons: tuple[str, ...]) -> "TruthClosureCertificate":
-        payload = {"protocol": TRUTH_PROTOCOL, "claim_id": str(claim_id), "risk": KnowledgeRisk(risk).value,
-                   "knowledge_digest": str(knowledge_digest), "evidence_digest": str(evidence_digest),
-                   "epistemic_digest": str(epistemic_digest), "verification_digest": str(verification_digest),
+        claim_id = str(claim_id).strip()
+        knowledge_digest = str(knowledge_digest).strip()
+        evidence_digest = str(evidence_digest).strip()
+        epistemic_digest = str(epistemic_digest).strip()
+        verification_digest = str(verification_digest).strip()
+        if not all((claim_id, knowledge_digest, evidence_digest, epistemic_digest, verification_digest)):
+            raise ValueError("truth closure identity and state bindings must be explicit")
+        verification_receipt_ids = _unique_ids(tuple(verification_receipt_ids), "verification receipt ids")
+        epistemic_debt_ids = _unique_ids(tuple(epistemic_debt_ids), "epistemic debt ids")
+        reasons = tuple(str(value).strip() for value in reasons)
+        if any(not value for value in reasons):
+            raise ValueError("closure reasons must be explicit")
+        if len(set(reasons)) != len(reasons):
+            raise ValueError("closure reasons must be unique")
+        closed = bool(closed)
+        if closed != (not reasons):
+            raise ValueError("closure decision and reasons are inconsistent")
+        payload = {"protocol": TRUTH_PROTOCOL, "claim_id": claim_id, "risk": KnowledgeRisk(risk).value,
+                   "knowledge_digest": knowledge_digest, "evidence_digest": evidence_digest,
+                   "epistemic_digest": epistemic_digest, "verification_digest": verification_digest,
                    "verification_receipt_ids": list(verification_receipt_ids),
-                   "epistemic_debt_ids": list(epistemic_debt_ids), "closed": bool(closed), "reasons": list(reasons)}
+                   "epistemic_debt_ids": list(epistemic_debt_ids), "closed": closed, "reasons": list(reasons)}
         digest = canonical_digest(payload)
-        return cls(f"truth-closure-{digest[:24]}", str(claim_id), KnowledgeRisk(risk), str(knowledge_digest),
-                   str(evidence_digest), str(epistemic_digest), str(verification_digest),
-                   tuple(verification_receipt_ids), tuple(epistemic_debt_ids), bool(closed), tuple(reasons), digest)
+        return cls(f"truth-closure-{digest[:24]}", claim_id, KnowledgeRisk(risk), knowledge_digest,
+                   evidence_digest, epistemic_digest, verification_digest,
+                   verification_receipt_ids, epistemic_debt_ids, closed, reasons, digest)
 
     def payload(self) -> dict[str, Any]:
         return {"protocol": TRUTH_PROTOCOL, "claim_id": self.claim_id, "risk": self.risk.value,
@@ -77,9 +103,10 @@ class TruthClosureCertificate:
 class TruthAssuranceGate:
     """Truth-closure protocol under the canonical ``external.assurance`` authority.
 
-    ``close_snapshot`` and ``close_live`` are the only strict paths. The legacy digest-only
-    ``close`` surface is deliberately retained only as a fail-closed diagnostic compatibility path:
-    caller-asserted digests or debt can never manufacture an accepted truth certificate.
+    ``close_snapshot`` and ``close_live`` are the only strict issuance paths. A certificate is a
+    content-addressed decision receipt, not self-authenticating authority: consumers must call
+    :meth:`validate_certificate` against current live state before treating ``closed=True`` as an
+    accepted truth closure. The legacy digest-only ``close`` surface remains permanently fail-closed.
     """
 
     @staticmethod
@@ -161,6 +188,19 @@ class TruthAssuranceGate:
             claim_id=claim_id, knowledge=knowledge, evidence=evidence,
             epistemic=snapshot, verification=verification,
         )
+
+    def validate_certificate(self, certificate: TruthClosureCertificate, *, knowledge: KnowledgeLedger,
+                             evidence: EvidenceLedger, verification: TruthVerificationLedger) -> bool:
+        """Re-derive strict closure from live authority state; serialized/digest validity alone is insufficient."""
+        if not isinstance(certificate, TruthClosureCertificate) or not certificate.closed:
+            return False
+        try:
+            canonical = self.close_live(
+                claim_id=certificate.claim_id, knowledge=knowledge, evidence=evidence, verification=verification,
+            )
+        except (KeyError, TypeError, ValueError):
+            return False
+        return bool(canonical.closed and canonical == certificate)
 
 
 __all__ = (

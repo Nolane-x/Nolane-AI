@@ -178,8 +178,13 @@ class TruthVerificationLedger:
         if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported truth verification protocol")
         ledger = cls()
+        seen: set[str] = set()
         for value in state.get("receipts", ()):
-            ledger.record(TruthVerificationReceipt.from_state(value))
+            row = TruthVerificationReceipt.from_state(value)
+            if row.receipt_id in seen:
+                raise ValueError("duplicate serialized verification receipt id")
+            seen.add(row.receipt_id)
+            ledger.record(row)
         return ledger
 
 

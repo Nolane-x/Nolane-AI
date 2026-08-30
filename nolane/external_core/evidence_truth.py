@@ -172,10 +172,19 @@ class EvidenceLedger:
         if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
             raise ValueError("unsupported truth evidence protocol")
         ledger = cls()
+        seen_records: set[str] = set()
         for value in state.get("records", ()):
-            ledger.record(TruthEvidence.from_state(value))
+            row = TruthEvidence.from_state(value)
+            if row.evidence_id in seen_records:
+                raise ValueError("duplicate serialized evidence id")
+            seen_records.add(row.evidence_id)
+            ledger.record(row)
+        seen_revocations: set[str] = set()
         for value in state.get("revocations", ()):
             row = EvidenceRevocation.from_state(value)
+            if row.evidence_id in seen_revocations:
+                raise ValueError("duplicate serialized evidence revocation")
+            seen_revocations.add(row.evidence_id)
             ledger.get(row.evidence_id)
             ledger._revocations[row.evidence_id] = row
         return ledger

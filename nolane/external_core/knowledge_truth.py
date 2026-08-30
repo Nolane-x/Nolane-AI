@@ -147,11 +147,12 @@ class KnowledgeLedger:
             raise ValueError("unsupported knowledge protocol")
 
         parsed: dict[str, KnowledgeClaim] = {}
+        seen: set[str] = set()
         for value in state.get("claims", ()):
             row = KnowledgeClaim.from_state(value)
-            previous = parsed.get(row.claim_id)
-            if previous is not None and previous != row:
-                raise ValueError("knowledge claim id collision")
+            if row.claim_id in seen:
+                raise ValueError("duplicate serialized knowledge claim id")
+            seen.add(row.claim_id)
             parsed[row.claim_id] = row
 
         missing = sorted({
