@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import subprocess
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -12,6 +13,7 @@ from nolane.external_core.acting_protocol import (
     ActingProtocolLedger,
     EffectClass,
     ExecutionRisk,
+    LeaseExpired,
     VerifierLevel,
 )
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
@@ -65,6 +67,29 @@ class _MutatingExecutor:
             failure_kind=None if self.success else "simulated_failure",
             output_artifact_ids=(f"artifact-{self.calls}",),
             evidence_artifact_id=f"evidence-{self.calls}",
+        )
+        self._receipts[receipt.receipt_id] = receipt
+        return receipt
+
+    def get_receipt(self, receipt_id: str) -> _Receipt:
+        return self._receipts[receipt_id]
+
+
+class _SleepingReadExecutor:
+    def __init__(self, *, sleep_seconds: float) -> None:
+        self.sleep_seconds = float(sleep_seconds)
+        self.calls = 0
+        self._receipts: dict[str, _Receipt] = {}
+
+    def invoke(self, **_: object) -> _Receipt:
+        self.calls += 1
+        time.sleep(self.sleep_seconds)
+        receipt = _Receipt(
+            receipt_id=f"read-receipt-{self.calls}",
+            success=True,
+            failure_kind=None,
+            output_artifact_ids=(),
+            evidence_artifact_id=f"read-evidence-{self.calls}",
         )
         self._receipts[receipt.receipt_id] = receipt
         return receipt
@@ -175,6 +200,38 @@ def test_core_receipt_evidence_satisfies_declared_postcondition_evidence(tmp_pat
         result = _invoke(kernel, workspace, postcondition_evidence_refs=())
         assert result.record.phase is ActionPhase.COMMITTED
         assert "evidence-1" in result.record.postcondition_evidence_refs
+    finally:
+        workspace.close()
+
+
+def test_elapsed_core_time_can_expire_lease_before_commit(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    protocol = ActingProtocolLedger()
+    raw = _SleepingReadExecutor(sleep_seconds=0.12)
+    kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)
+    try:
+        with pytest.raises(LeaseExpired):
+            kernel.invoke(
+                agent_id="nolane.coder",
+                task_id="task-lease-expiry",
+                workspace=workspace,
+                action=ToolAction.from_arguments("filesystem", "read_text", {"path": "README.md"}),
+                risk_class=ExecutionRisk.R1,
+                effect_class=EffectClass.READ,
+                required_capabilities=("filesystem.read",),
+                capability_grants=("filesystem.read",),
+                authorization_ref="authorization:lease-expiry",
+                preconditions=("task-lease-valid",),
+                precondition_evidence_refs=("evidence:task-lease",),
+                postconditions=("core-outcome-evidenced",),
+                postcondition_evidence_refs=(),
+                verifier_level=VerifierLevel.V1,
+                idempotency_key="task-lease-expiry:read:v1",
+                now_ms=1_000,
+                lease_ttl_ms=50,
+            )
+        assert raw.calls == 1
+        assert protocol.records()[0].phase is ActionPhase.ROLLED_BACK
     finally:
         workspace.close()
 
