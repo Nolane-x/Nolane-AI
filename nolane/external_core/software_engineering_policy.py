@@ -17,7 +17,7 @@ from nolane.external_core.software_engineering_validity import EngineeringClaimB
 
 
 COMPONENT_ID = "external.software_engineering.policy"
-COMPONENT_VERSION = "0.2.1"
+COMPONENT_VERSION = "0.2.2"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -25,6 +25,13 @@ def _text(value: Any, *, field: str) -> str:
     if not result:
         raise ValueError(f"{field} must be explicit")
     return result
+
+
+def _optional_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    result = str(value).strip()
+    return result or None
 
 
 def _refs(values: Sequence[Any]) -> tuple[str, ...]:
@@ -288,6 +295,32 @@ class EngineeringVerificationRequirements:
             "require_ui": self.require_ui,
         }
 
+    def to_state(self) -> dict[str, Any]:
+        return {"requirement_id": self.requirement_id, **self.payload(), "digest": self.digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringVerificationRequirements":
+        row = cls(
+            requirement_id=_text(state["requirement_id"], field="requirement id"),
+            policy_id=_text(state["policy_id"], field="policy id"),
+            policy_digest=_text(state["policy_digest"], field="policy digest"),
+            manifest_id=_text(state["manifest_id"], field="manifest id"),
+            manifest_digest=_text(state["manifest_digest"], field="manifest digest"),
+            attestation_kinds=tuple(sorted(
+                {EngineeringEvidenceKind(str(value)) for value in state.get("attestation_kinds", ())},
+                key=lambda kind: kind.value,
+            )),
+            require_debug=bool(state["require_debug"]),
+            require_ui=bool(state["require_ui"]),
+            digest=_text(state["digest"], field="requirement digest"),
+        )
+        if not row.attestation_kinds:
+            raise ValueError("engineering verification requirements cannot be empty")
+        expected = canonical_digest(row.payload())
+        if row.digest != expected or row.requirement_id != f"eng-requirements-{expected[:20]}":
+            raise ValueError("engineering verification requirements digest/id mismatch")
+        return row
+
 
 class EngineeringVerificationPolicy:
     """Deterministically derives minimum verification from patch risk/surfaces."""
@@ -303,6 +336,18 @@ class EngineeringVerificationPolicy:
             "debug": ["reproduction", "root_cause"],
             "high_or_critical": ["review"],
         })
+
+    def to_state(self) -> dict[str, str]:
+        return {"policy_id": self.policy_id, "policy_digest": self.policy_digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringVerificationPolicy":
+        policy = cls()
+        if _text(state["policy_id"], field="policy id") != policy.policy_id:
+            raise ValueError("engineering verification policy id mismatch")
+        if _text(state["policy_digest"], field="policy digest") != policy.policy_digest:
+            raise ValueError("engineering verification policy digest mismatch")
+        return policy
 
     def requirements(self, manifest: EngineeringChangeManifest) -> EngineeringVerificationRequirements:
         kinds = {
@@ -368,6 +413,18 @@ class EngineeringGateReceipt:
     authority: str
     digest: str
 
+    def __post_init__(self) -> None:
+        if self.authority != "candidate_only":
+            raise ValueError("engineering gate cannot hold promotion authority")
+        if bool(self.claim_binding_id) != bool(self.claim_binding_digest):
+            raise ValueError("engineering gate claim binding identity must be complete")
+        if bool(self.closure_receipt_id) != bool(self.closure_digest):
+            raise ValueError("engineering gate closure identity must be complete")
+        if not self.required_attestation_kinds:
+            raise ValueError("engineering gate requires policy attestation kinds")
+        if self.ready and (self.reasons or self.closure_receipt_id is None):
+            raise ValueError("ready engineering gate requires clean closure")
+
     def payload(self) -> dict[str, Any]:
         return {
             "manifest_id": self.manifest_id,
@@ -386,9 +443,37 @@ class EngineeringGateReceipt:
             "authority": self.authority,
         }
 
+    def to_state(self) -> dict[str, Any]:
+        return {"receipt_id": self.receipt_id, **self.payload(), "digest": self.digest}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringGateReceipt":
+        row = cls(
+            receipt_id=_text(state["receipt_id"], field="gate receipt id"),
+            manifest_id=_text(state["manifest_id"], field="manifest id"),
+            manifest_digest=_text(state["manifest_digest"], field="manifest digest"),
+            requirement_id=_text(state["requirement_id"], field="requirement id"),
+            requirement_digest=_text(state["requirement_digest"], field="requirement digest"),
+            claim_binding_id=_optional_text(state.get("claim_binding_id")),
+            claim_binding_digest=_optional_text(state.get("claim_binding_digest")),
+            closure_receipt_id=_optional_text(state.get("closure_receipt_id")),
+            closure_digest=_optional_text(state.get("closure_digest")),
+            required_attestation_kinds=_refs(tuple(state.get("required_attestation_kinds", ()))),
+            require_debug=bool(state["require_debug"]),
+            require_ui=bool(state["require_ui"]),
+            ready=bool(state["ready"]),
+            reasons=_refs(tuple(state.get("reasons", ()))),
+            authority=_text(state["authority"], field="gate authority"),
+            digest=_text(state["digest"], field="gate digest"),
+        )
+        expected = canonical_digest(row.payload())
+        if row.digest != expected or row.receipt_id != f"eng-gate-{expected[:20]}":
+            raise ValueError("engineering gate receipt digest/id mismatch")
+        return row
+
 
 class GovernedEngineeringGate:
-    """Canonical v0.2 entry gate for policy-derived engineering closure.
+    """Canonical entry gate for policy-derived engineering closure.
 
     The caller cannot provide or weaken the required evidence family. Required
     evidence is derived from the content-addressed change manifest and policy.
@@ -534,6 +619,77 @@ class GovernedEngineeringGate:
             raise ValueError("engineering gate receipt cannot be rebound")
         self._receipts[row.receipt_id] = row
         return existing or row
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "policy": self.policy.to_state(),
+            "receipts": [row.to_state() for row in self.receipts()],
+        }
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        evidence: EngineeringEvidenceLedger,
+        transactions: PatchTransactionLedger,
+        closure: SoftwareEngineeringClosureEngine,
+        claims: CodeClaimLedger,
+        claim_bindings: EngineeringClaimBindingLedger,
+        policy: EngineeringVerificationPolicy,
+        manifests: EngineeringChangeManifestLedger,
+        state: Mapping[str, Any],
+    ) -> "GovernedEngineeringGate":
+        restored_policy = EngineeringVerificationPolicy.from_state(state["policy"])
+        if restored_policy.policy_digest != policy.policy_digest:
+            raise ValueError("engineering gate snapshot policy lineage mismatch")
+        gate = cls(
+            evidence=evidence,
+            transactions=transactions,
+            closure=closure,
+            claims=claims,
+            claim_bindings=claim_bindings,
+            policy=policy,
+        )
+        for value in state.get("receipts", ()):
+            row = EngineeringGateReceipt.from_state(value)
+            manifest = manifests.get(row.manifest_id)
+            if manifest.digest != row.manifest_digest:
+                raise ValueError("engineering gate snapshot manifest lineage mismatch")
+            requirements = policy.requirements(manifest)
+            if (
+                row.requirement_id != requirements.requirement_id
+                or row.requirement_digest != requirements.digest
+                or row.required_attestation_kinds != tuple(kind.value for kind in requirements.attestation_kinds)
+                or row.require_debug != requirements.require_debug
+                or row.require_ui != requirements.require_ui
+            ):
+                raise ValueError("engineering gate snapshot policy requirements mismatch")
+            if row.claim_binding_id is not None:
+                binding = claim_bindings.get(row.claim_binding_id)
+                if binding.digest != row.claim_binding_digest:
+                    raise ValueError("engineering gate snapshot claim binding lineage mismatch")
+                tx = transactions.get(binding.transaction_id)
+                if tx.patch_ref != manifest.patch_ref or tx.patch_digest != manifest.patch_digest:
+                    raise ValueError("engineering gate snapshot transaction lineage mismatch")
+            if row.closure_receipt_id is not None:
+                inner = closure.get(row.closure_receipt_id)
+                if inner.digest != row.closure_digest:
+                    raise ValueError("engineering gate snapshot closure digest mismatch")
+                if (
+                    inner.patch_ref != manifest.patch_ref
+                    or inner.patch_digest != manifest.patch_digest
+                    or inner.source_revision != manifest.source_revision
+                ):
+                    raise ValueError("engineering gate snapshot closure lineage mismatch")
+                if row.ready and not inner.ready:
+                    raise ValueError("ready engineering gate references blocked closure")
+            elif row.ready:
+                raise ValueError("ready engineering gate missing closure")
+            existing = gate._receipts.get(row.receipt_id)
+            if existing is not None and existing != row:
+                raise ValueError("duplicate/rebound engineering gate receipt")
+            gate._receipts[row.receipt_id] = row
+        return gate
 
 
 __all__ = (
