@@ -1,0 +1,52 @@
+name: Truth Knowledge A Layer
+
+on:
+  push:
+    paths:
+      - 'nolane/external_core/_truth_digest.py'
+      - 'nolane/external_core/evidence_truth.py'
+      - 'nolane/external_core/knowledge.py'
+      - 'nolane/external_core/epistemic_truth.py'
+      - 'nolane/external_core/verification_truth.py'
+      - 'nolane/external_core/assurance_truth.py'
+      - 'tests/test_truth_knowledge_*.py'
+      - 'CURRENT/TRUTH_KNOWLEDGE.md'
+      - '.github/workflows/truth-knowledge-a.yml'
+  pull_request:
+    paths:
+      - 'nolane/external_core/_truth_digest.py'
+      - 'nolane/external_core/evidence_truth.py'
+      - 'nolane/external_core/knowledge.py'
+      - 'nolane/external_core/epistemic_truth.py'
+      - 'nolane/external_core/verification_truth.py'
+      - 'nolane/external_core/assurance_truth.py'
+      - 'tests/test_truth_knowledge_*.py'
+      - 'CURRENT/TRUTH_KNOWLEDGE.md'
+      - '.github/workflows/truth-knowledge-a.yml'
+  workflow_dispatch:
+
+jobs:
+  truth-knowledge:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile Truth Knowledge boundaries
+        run: |
+          python -m py_compile \
+            nolane/external_core/_truth_digest.py \
+            nolane/external_core/evidence_truth.py \
+            nolane/external_core/knowledge.py \
+            nolane/external_core/epistemic_truth.py \
+            nolane/external_core/verification_truth.py \
+            nolane/external_core/assurance_truth.py
+      - name: Run Truth Knowledge contracts
+        run: python -m pytest -q tests/test_truth_knowledge_architecture.py tests/test_truth_knowledge_hardening_wave2.py
