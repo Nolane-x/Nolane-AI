@@ -1,6 +1,7 @@
 # CURRENT — F. Software Engineering
 
-Date: 2026-08-30
+Date: 2026-08-31
+Control plane: `external.software_engineering.control` v0.6.0
 
 ## Canonical authority
 
@@ -17,13 +18,15 @@ The `software_engineering*` modules are cross-surface composition/control protoc
 ## Governed lifecycle
 
 ```text
-patch + source claims
+patch + source claims + engineering operation_ref
+  -> idempotent attempt initiation / immutable operation lineage
   -> change manifest
   -> immutable claim-state binding
   -> precondition evidence
   -> current mutation-authority receipt
+  -> application intent
   -> consume receipt + revalidate live authority
-  -> apply
+  -> executor commit receipt
   -> observe outcome
   -> postcondition evidence
   -> risk/surface-derived verification gate
@@ -31,18 +34,30 @@ patch + source claims
   -> cross-surface closure
   -> CANDIDATE_READY / candidate_only
   -> live current-validity revalidation
+
+failure/recovery after mutation
+  -> rollback intent
+  -> independent restored-state verification
+  -> rollback completion
 ```
 
 ## Critical invariants
 
+- An explicit `operation_ref` is the idempotency key for one engineering attempt.
+- Retrying an identical initiation under the same `operation_ref` returns the original work/transaction at its current phase without allocating a new transaction or replaying initiation mutations.
+- Reusing an `operation_ref` with different immutable initiation inputs fails closed.
+- Different `operation_ref` values may intentionally create independent attempts for the same patch; attempt fencing is not a global single-patch lock.
+- Work records and patch transactions bind the same immutable operation lineage, and restore rejects cross-ledger operation rebinding even when outer state digests are recomputed.
 - Successful engineering evidence cannot self-verify and must come from `verification-testing`.
 - Evidence is bound to exact patch digest, source revision and environment.
 - Revoking evidence or an upstream dependency invalidates dependent attestations without deleting history.
 - Mutation requires active exclusive bound claims and live precondition evidence at the instant of apply.
 - Apply consumes an explicit content-addressed mutation-authority receipt; the unified control plane has no receipt-less apply path.
+- External mutation is represented by a prepared application intent and a committed executor receipt; application references cannot be rebound across transactions.
 - Claim scope is transaction-bound; unrelated claims owned by the same agent/task cannot authorize the transaction.
 - Historical claim-state snapshots prove mutation authority at action time.
 - Releasing a claim after successful apply is normal lifecycle and does not retroactively invalidate a technically valid candidate.
+- Rollback becomes terminal only after independent verification proves the restored state matches the declared rollback target.
 - Required verification is derived from patch risk and sensitive surfaces, not chosen downward by the caller.
 - Cross-surface receipts are canonical-codec validated before composition.
 - Debug and UI receipts must share exact patch/Coding-readiness lineage when required.
@@ -64,9 +79,9 @@ Additional policy requirements:
 
 ## State integrity
 
-The unified `SoftwareEngineeringControlPlane` snapshot is content-addressed and includes work, manifests, evidence, transactions, claim bindings, policy, mutation-authority history, closure/gate history and current-validity history.
+The unified `SoftwareEngineeringControlPlane` snapshot is content-addressed and includes work, immutable operation lineage, manifests, evidence, transactions, claim bindings, policy, mutation-authority history, external-effect history, closure/gate history and current-validity history.
 
-Restore is fail-closed on cross-layer lineage mismatch even when an attacker recomputes local and outer digests after tampering.
+Restore is fail-closed on cross-layer lineage mismatch even when an attacker recomputes local and outer digests after tampering. Attempt-idempotency indices are reconstructed from canonical work/transaction history rather than trusted as an unaudited cache.
 
 ## Validation gates
 
