@@ -259,6 +259,22 @@ class EvidenceLedger:
                 output.append(Conflict(subject, relation, objects, tuple(value[1] for value in values)))
         return output
 
+    def semantic_conflicts(self, relation_semantics: "RelationSemanticsRegistry") -> list[Conflict]:
+        """Return only conflicts authorized by current canonical relation semantics.
+
+        The historical ``conflicts()`` API intentionally preserves its original same-key behavior.
+        MULTI_VALUED relations coexist; UNSPECIFIED relations are ambiguity, not contradiction, and
+        are handled fail-closed by the Truth/Epistemic v3 protocol.
+        """
+        if not isinstance(relation_semantics, RelationSemanticsRegistry):
+            raise TypeError("semantic conflicts require canonical relation semantics registry")
+        output = []
+        for (subject, relation), values in sorted(self._claims.items()):
+            objects = tuple(dict.fromkeys(value[0] for value in values))
+            if len(objects) > 1 and relation_semantics.cardinality(relation) is RelationCardinality.EXCLUSIVE:
+                output.append(Conflict(subject, relation, objects, tuple(value[1] for value in values)))
+        return output
+
     def working_set(self, *, max_chunks: int = 8, max_chars: int = 6000) -> list[EvidenceChunk]:
         if max_chunks < 1 or max_chars < 1:
             return []
