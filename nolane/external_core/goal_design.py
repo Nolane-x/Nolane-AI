@@ -15,7 +15,7 @@ import json
 import math
 from typing import Iterable, Mapping, Sequence
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 class CoherenceError(RuntimeError):
@@ -61,7 +61,12 @@ def _canonical(value):
 
 
 def stable_digest(value) -> str:
-    raw = json.dumps(_canonical(value), sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    raw = json.dumps(
+        _canonical(value),
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=False,
+    ).encode("utf-8")
     return hashlib.sha256(raw).hexdigest()
 
 
@@ -206,6 +211,7 @@ class GoalDesignVersionVector:
     def tokens(self) -> Mapping[str, str]:
         def token(value):
             return value.token if isinstance(value, PlaneState) else str(value)
+
         return {
             "requirements": token(self.requirements),
             "planning": token(self.planning),
@@ -283,6 +289,13 @@ class DecisionReceipt:
     proof_obligation_ids: tuple[str, ...]
     uncertainty_ids: tuple[str, ...]
     evidence_refs: tuple[str, ...]
+    goal_digest: str = ""
+    scenario_set_digest: str = ""
+    option_set_digest: str = ""
+    proof_state_digest: str = ""
+    uncertainty_state_digest: str = ""
+    traceability_digest: str = ""
+    input_manifest_digest: str = ""
 
 
 class GoalDesignCoherencePlane:
@@ -325,11 +338,21 @@ class GoalDesignCoherencePlane:
                         strictly_better = True
             return weakly_better and strictly_better
 
-        return tuple(option for option in options if not any(
-            other.option_id != option.option_id and dominates(other, option) for other in options
-        ))
+        return tuple(
+            option
+            for option in options
+            if not any(
+                other.option_id != option.option_id and dominates(other, option)
+                for other in options
+            )
+        )
 
-    def evaluate_options(self, goal: GoalSpec, scenarios: Sequence[DesignScenario], options: Sequence[DesignOption]) -> DesignEvaluation:
+    def evaluate_options(
+        self,
+        goal: GoalSpec,
+        scenarios: Sequence[DesignScenario],
+        options: Sequence[DesignOption],
+    ) -> DesignEvaluation:
         if not scenarios:
             raise ValueError("at least one design scenario is required")
         if not options:
@@ -349,18 +372,34 @@ class GoalDesignCoherencePlane:
             if missing:
                 raise ValueError(f"option {option.option_id} missing utilities for scenarios: {sorted(missing)}")
 
-        scenario_best = {sid: max(float(option.utilities[sid]) for option in options) for sid in scenario_ids}
-        optionality_map = {DecisionClass.REVERSIBLE: 1.0, DecisionClass.COSTLY_REVERSIBLE: 0.5, DecisionClass.IRREVERSIBLE: 0.0}
+        scenario_best = {
+            sid: max(float(option.utilities[sid]) for option in options)
+            for sid in scenario_ids
+        }
+        optionality_map = {
+            DecisionClass.REVERSIBLE: 1.0,
+            DecisionClass.COSTLY_REVERSIBLE: 0.5,
+            DecisionClass.IRREVERSIBLE: 0.0,
+        }
         evaluations: list[OptionEvaluation] = []
         for option in options:
             values = [float(option.utilities[sid]) for sid in scenario_ids]
-            expected = sum(probabilities[sid] * float(option.utilities[sid]) for sid in scenario_ids)
+            expected = sum(
+                probabilities[sid] * float(option.utilities[sid])
+                for sid in scenario_ids
+            )
             worst = min(values)
-            max_regret = max(scenario_best[sid] - float(option.utilities[sid]) for sid in scenario_ids)
+            max_regret = max(
+                scenario_best[sid] - float(option.utilities[sid])
+                for sid in scenario_ids
+            )
             remaining = 0.25
             tail_sum = 0.0
             tail_mass = 0.0
-            for scenario in sorted(scenarios, key=lambda s: float(option.utilities[s.scenario_id])):
+            for scenario in sorted(
+                scenarios,
+                key=lambda s: float(option.utilities[s.scenario_id]),
+            ):
                 mass = min(probabilities[scenario.scenario_id], remaining)
                 if mass > 0:
                     tail_sum += mass * float(option.utilities[scenario.scenario_id])
@@ -370,47 +409,143 @@ class GoalDesignCoherencePlane:
                     break
             lower_tail = tail_sum / tail_mass if tail_mass else worst
             optionality = optionality_map[option.decision_class]
-            robust_score = 0.35 * expected + 0.25 * worst + 0.20 * lower_tail + 0.15 * (1.0 - max_regret) + 0.05 * optionality
-            evaluations.append(OptionEvaluation(option.option_id, expected, worst, lower_tail, max_regret, optionality, robust_score))
+            robust_score = (
+                0.35 * expected
+                + 0.25 * worst
+                + 0.20 * lower_tail
+                + 0.15 * (1.0 - max_regret)
+                + 0.05 * optionality
+            )
+            evaluations.append(
+                OptionEvaluation(
+                    option.option_id,
+                    expected,
+                    worst,
+                    lower_tail,
+                    max_regret,
+                    optionality,
+                    robust_score,
+                )
+            )
 
         pareto = self.pareto_frontier(goal, options)
         evaluations.sort(key=lambda item: (-item.robust_score, item.option_id))
-        payload = {"options": evaluations, "pareto_option_ids": sorted(option.option_id for option in pareto), "scenarios": scenarios}
-        return DesignEvaluation(tuple(evaluations), tuple(sorted(option.option_id for option in pareto)), stable_digest(payload))
+        canonical_scenarios = tuple(sorted(scenarios, key=lambda item: item.scenario_id))
+        canonical_options = tuple(sorted(options, key=lambda item: item.option_id))
+        pareto_ids = tuple(sorted(option.option_id for option in pareto))
+        payload = {
+            "goal": goal,
+            "scenarios": canonical_scenarios,
+            "options": canonical_options,
+            "evaluations": tuple(evaluations),
+            "pareto_option_ids": pareto_ids,
+        }
+        return DesignEvaluation(tuple(evaluations), pareto_ids, stable_digest(payload))
 
     def freeze_snapshot(self, vector: GoalDesignVersionVector) -> GoalDesignSnapshot:
         digest = stable_digest({"goal_design_version_vector": vector.tokens()})
         return GoalDesignSnapshot(version_vector=vector, digest=digest)
 
-    def verify_snapshot(self, snapshot: GoalDesignSnapshot, current_vector: GoalDesignVersionVector) -> CoherenceReport:
+    def verify_snapshot(
+        self,
+        snapshot: GoalDesignSnapshot,
+        current_vector: GoalDesignVersionVector,
+    ) -> CoherenceReport:
         issues: list[CoherenceIssue] = []
         expected = snapshot.version_vector.tokens()
         current = current_vector.tokens()
         if snapshot.digest != stable_digest({"goal_design_version_vector": expected}):
-            issues.append(CoherenceIssue("CORRUPT_SNAPSHOT", "snapshot digest does not match its version vector", IssueSeverity.BLOCKER))
+            issues.append(
+                CoherenceIssue(
+                    "CORRUPT_SNAPSHOT",
+                    "snapshot digest does not match its version vector",
+                    IssueSeverity.BLOCKER,
+                )
+            )
         for plane in ("requirements", "planning", "architecture", "integration", "context"):
             if expected[plane] != current[plane]:
-                issues.append(CoherenceIssue(
-                    f"STALE_{plane.upper()}",
-                    f"{plane} changed after Goal/Design snapshot was frozen: {expected[plane]} -> {current[plane]}",
-                    IssueSeverity.BLOCKER,
-                    subject=plane,
-                ))
+                issues.append(
+                    CoherenceIssue(
+                        f"STALE_{plane.upper()}",
+                        f"{plane} changed after Goal/Design snapshot was frozen: "
+                        f"{expected[plane]} -> {current[plane]}",
+                        IssueSeverity.BLOCKER,
+                        subject=plane,
+                    )
+                )
         return CoherenceReport(tuple(issues))
 
     def coherence_report(self, state: TraceabilityState) -> CoherenceReport:
         issues: list[CoherenceIssue] = []
-        for requirement_id in sorted(set(state.active_requirement_ids) - set(state.planned_requirement_ids)):
-            issues.append(CoherenceIssue("UNPLANNED_REQUIREMENT", f"active requirement {requirement_id} has no planning trace", IssueSeverity.BLOCKER, requirement_id))
-        for component_id in sorted(set(state.planned_component_ids) - set(state.architecture_component_ids)):
-            issues.append(CoherenceIssue("MISSING_ARCHITECTURE_COMPONENT", f"planned component {component_id} has no architecture authority", IssueSeverity.BLOCKER, component_id))
-        for component_id in sorted(set(state.integration_component_refs) - set(state.architecture_component_ids)):
-            issues.append(CoherenceIssue("STALE_INTEGRATION_REFERENCE", f"integration references unknown architecture component {component_id}", IssueSeverity.BLOCKER, component_id))
-        for component_id in sorted(set(state.context_component_refs) - set(state.architecture_component_ids)):
-            issues.append(CoherenceIssue("STALE_CONTEXT_REFERENCE", f"context references unknown architecture component {component_id}", IssueSeverity.WARNING, component_id))
+        for requirement_id in sorted(
+            set(state.active_requirement_ids) - set(state.planned_requirement_ids)
+        ):
+            issues.append(
+                CoherenceIssue(
+                    "UNPLANNED_REQUIREMENT",
+                    f"active requirement {requirement_id} has no planning trace",
+                    IssueSeverity.BLOCKER,
+                    requirement_id,
+                )
+            )
+        for component_id in sorted(
+            set(state.planned_component_ids) - set(state.architecture_component_ids)
+        ):
+            issues.append(
+                CoherenceIssue(
+                    "MISSING_ARCHITECTURE_COMPONENT",
+                    f"planned component {component_id} has no architecture authority",
+                    IssueSeverity.BLOCKER,
+                    component_id,
+                )
+            )
+        for component_id in sorted(
+            set(state.integration_component_refs) - set(state.architecture_component_ids)
+        ):
+            issues.append(
+                CoherenceIssue(
+                    "STALE_INTEGRATION_REFERENCE",
+                    f"integration references unknown architecture component {component_id}",
+                    IssueSeverity.BLOCKER,
+                    component_id,
+                )
+            )
+        for component_id in sorted(
+            set(state.context_component_refs) - set(state.architecture_component_ids)
+        ):
+            issues.append(
+                CoherenceIssue(
+                    "STALE_CONTEXT_REFERENCE",
+                    f"context references unknown architecture component {component_id}",
+                    IssueSeverity.WARNING,
+                    component_id,
+                )
+            )
         if state.expected_snapshot_digest and state.context_snapshot_digest != state.expected_snapshot_digest:
-            issues.append(CoherenceIssue("CONTEXT_SNAPSHOT_MISMATCH", "context was compiled against a different Goal/Design snapshot", IssueSeverity.BLOCKER, "context"))
+            issues.append(
+                CoherenceIssue(
+                    "CONTEXT_SNAPSHOT_MISMATCH",
+                    "context was compiled against a different Goal/Design snapshot",
+                    IssueSeverity.BLOCKER,
+                    "context",
+                )
+            )
         return CoherenceReport(tuple(issues))
+
+    @staticmethod
+    def _traceability_manifest_state(traceability: TraceabilityState | None):
+        if traceability is None:
+            return None
+        return {
+            "active_requirement_ids": sorted(traceability.active_requirement_ids),
+            "planned_requirement_ids": sorted(traceability.planned_requirement_ids),
+            "planned_component_ids": sorted(traceability.planned_component_ids),
+            "architecture_component_ids": sorted(traceability.architecture_component_ids),
+            "integration_component_refs": sorted(traceability.integration_component_refs),
+            "context_component_refs": sorted(traceability.context_component_refs),
+            "context_snapshot_digest": traceability.context_snapshot_digest,
+            "expected_snapshot_digest": traceability.expected_snapshot_digest,
+        }
 
     def admit_decision(
         self,
@@ -425,49 +560,132 @@ class GoalDesignCoherencePlane:
         uncertainties: Sequence[UncertaintyItem] = (),
         traceability: TraceabilityState | None = None,
     ) -> DecisionReceipt:
-        selected = next((option for option in options if option.option_id == selected_option_id), None)
+        selected = next(
+            (option for option in options if option.option_id == selected_option_id),
+            None,
+        )
         if selected is None:
             raise CoherenceError(f"selected option {selected_option_id!r} does not exist")
+
         blockers: list[str] = []
-        blockers.extend(issue.message for issue in self.verify_snapshot(snapshot, current_vector).issues if issue.blocking)
+        blockers.extend(
+            issue.message
+            for issue in self.verify_snapshot(snapshot, current_vector).issues
+            if issue.blocking
+        )
         if traceability is not None:
-            blockers.extend(issue.message for issue in self.coherence_report(traceability).issues if issue.blocking)
-        open_proofs = [proof for proof in proof_obligations if proof.blocking and proof.status is ProofStatus.OPEN]
+            blockers.extend(
+                issue.message
+                for issue in self.coherence_report(traceability).issues
+                if issue.blocking
+            )
+        open_proofs = [
+            proof
+            for proof in proof_obligations
+            if proof.blocking and proof.status is ProofStatus.OPEN
+        ]
         if open_proofs:
-            blockers.append("open proof obligations: " + ", ".join(proof.proof_id for proof in open_proofs))
-        nontrivial = selected.decision_class in {DecisionClass.COSTLY_REVERSIBLE, DecisionClass.IRREVERSIBLE}
+            blockers.append(
+                "open proof obligations: "
+                + ", ".join(proof.proof_id for proof in open_proofs)
+            )
+        nontrivial = selected.decision_class in {
+            DecisionClass.COSTLY_REVERSIBLE,
+            DecisionClass.IRREVERSIBLE,
+        }
         if nontrivial and len(options) < 2:
-            blockers.append("costly or irreversible decision requires at least one explicit alternative")
+            blockers.append(
+                "costly or irreversible decision requires at least one explicit alternative"
+            )
         if nontrivial:
             tags = {tag.lower() for scenario in scenarios for tag in scenario.tags}
             if not ({"counterfactual", "adversarial"} & tags):
-                blockers.append("costly or irreversible decision requires a counterfactual or adversarial scenario")
-        if selected.decision_class is DecisionClass.COSTLY_REVERSIBLE and not selected.rollback_ref:
+                blockers.append(
+                    "costly or irreversible decision requires a counterfactual or adversarial scenario"
+                )
+        if (
+            selected.decision_class is DecisionClass.COSTLY_REVERSIBLE
+            and not selected.rollback_ref
+        ):
             blockers.append("costly reversible decision requires a rollback reference")
         if selected.decision_class is DecisionClass.IRREVERSIBLE:
-            high_risk = [item for item in uncertainties if not item.resolved and not item.mitigation_ref and item.risk_score >= self.irreversible_uncertainty_threshold]
+            high_risk = [
+                item
+                for item in uncertainties
+                if not item.resolved
+                and not item.mitigation_ref
+                and item.risk_score >= self.irreversible_uncertainty_threshold
+            ]
             if high_risk:
-                blockers.append("irreversible decision has unresolved high-risk uncertainty: " + ", ".join(item.uncertainty_id for item in high_risk))
+                blockers.append(
+                    "irreversible decision has unresolved high-risk uncertainty: "
+                    + ", ".join(item.uncertainty_id for item in high_risk)
+                )
         if blockers:
             raise CoherenceError("Goal/Design admission blocked: " + "; ".join(blockers))
 
         evaluation = self.evaluate_options(goal, scenarios, options)
         if goal.objectives and selected_option_id not in evaluation.pareto_option_ids:
-            raise CoherenceError(f"selected option {selected_option_id} is Pareto-dominated under the declared goal vector")
+            raise CoherenceError(
+                f"selected option {selected_option_id} is Pareto-dominated under the declared goal vector"
+            )
+
+        canonical_scenarios = tuple(sorted(scenarios, key=lambda item: item.scenario_id))
+        canonical_options = tuple(sorted(options, key=lambda item: item.option_id))
+        canonical_proofs = tuple(sorted(proof_obligations, key=lambda item: item.proof_id))
+        canonical_uncertainties = tuple(
+            sorted(uncertainties, key=lambda item: item.uncertainty_id)
+        )
+        traceability_state = self._traceability_manifest_state(traceability)
+
+        goal_digest = stable_digest({"goal": goal})
+        scenario_set_digest = stable_digest({"scenarios": canonical_scenarios})
+        option_set_digest = stable_digest({"options": canonical_options})
+        proof_state_digest = stable_digest({"proof_obligations": canonical_proofs})
+        uncertainty_state_digest = stable_digest(
+            {"uncertainties": canonical_uncertainties}
+        )
+        traceability_digest = stable_digest({"traceability": traceability_state})
+
+        input_manifest_payload = {
+            "goal_digest": goal_digest,
+            "scenario_set_digest": scenario_set_digest,
+            "option_set_digest": option_set_digest,
+            "proof_state_digest": proof_state_digest,
+            "uncertainty_state_digest": uncertainty_state_digest,
+            "traceability_digest": traceability_digest,
+            "selected_option_id": selected_option_id,
+            "snapshot_digest": snapshot.digest,
+            "version_vector": snapshot.version_vector.tokens(),
+        }
+        input_manifest_digest = stable_digest(
+            {"goal_design_decision_input_manifest": input_manifest_payload}
+        )
+
         evidence_refs = set(goal.evidence_refs) | set(selected.evidence_refs)
+        for scenario in scenarios:
+            evidence_refs.update(scenario.evidence_refs)
         for proof in proof_obligations:
             evidence_refs.update(proof.evidence_refs)
         for uncertainty in uncertainties:
             evidence_refs.update(uncertainty.evidence_refs)
+
         receipt_payload = {
             "goal_id": goal.goal_id,
             "selected_option_id": selected_option_id,
             "snapshot_digest": snapshot.digest,
             "version_vector": snapshot.version_vector.tokens(),
             "evaluation_digest": evaluation.digest,
-            "proof_obligation_ids": sorted(proof.proof_id for proof in proof_obligations),
-            "uncertainty_ids": sorted(item.uncertainty_id for item in uncertainties),
+            "proof_obligation_ids": [proof.proof_id for proof in canonical_proofs],
+            "uncertainty_ids": [item.uncertainty_id for item in canonical_uncertainties],
             "evidence_refs": sorted(evidence_refs),
+            "goal_digest": goal_digest,
+            "scenario_set_digest": scenario_set_digest,
+            "option_set_digest": option_set_digest,
+            "proof_state_digest": proof_state_digest,
+            "uncertainty_state_digest": uncertainty_state_digest,
+            "traceability_digest": traceability_digest,
+            "input_manifest_digest": input_manifest_digest,
         }
         return DecisionReceipt(
             receipt_id=stable_digest({"goal_design_decision": receipt_payload}),
@@ -479,4 +697,11 @@ class GoalDesignCoherencePlane:
             proof_obligation_ids=tuple(receipt_payload["proof_obligation_ids"]),
             uncertainty_ids=tuple(receipt_payload["uncertainty_ids"]),
             evidence_refs=tuple(receipt_payload["evidence_refs"]),
+            goal_digest=goal_digest,
+            scenario_set_digest=scenario_set_digest,
+            option_set_digest=option_set_digest,
+            proof_state_digest=proof_state_digest,
+            uncertainty_state_digest=uncertainty_state_digest,
+            traceability_digest=traceability_digest,
+            input_manifest_digest=input_manifest_digest,
         )
