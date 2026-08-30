@@ -22,6 +22,8 @@ The Truth Closure implementation is an additive protocol under those authorities
 
 Protocol helpers must never declare `COMPONENT_ID`. Canonical component identity belongs only to the repository component registry and its accepted canonical-native modules. The protocol uses `nolane.core.canonical_digest.canonical_digest`; it does not introduce a private digest authority.
 
+The canonical metadata package owns one orthogonal subprotocol-binding registry, `nolane.metadata.subprotocols`, with `REGISTRY_ID = "metadata.subprotocol_bindings"`. This registry is **not** a sixth External Core component. It content-binds each Truth protocol helper to exactly one canonical A parent and validates the relationship in both directions against the live implementation ledger and imported modules. Its registry version is a metadata-registry version and does not advance the software revision of a parent component whose own canonical implementation has not changed.
+
 ## Truth-closure pipeline
 
 ```text
@@ -132,6 +134,17 @@ A `TruthClosureCertificate` is a content-addressed decision receipt, not self-au
 
 Certificate receipt-ID/debt-ID lists and reasons are canonical sets represented as unique ordered tuples; duplicates or inconsistent `closed`/`reasons` combinations fail closed. The digest-only legacy `close()` surface remains deliberately fail-closed and cannot return an accepted truth certificate.
 
+## Subprotocol binding invariants
+
+`nolane.metadata.subprotocols` is canonical architecture metadata for additive protocol ownership; it is not a runtime cognitive component.
+
+- The registry covers exactly the five A parents and exactly five distinct Truth protocol modules/IDs.
+- Every binding is content-addressed and registry state is tamper-evident.
+- A parent must exist in the canonical implementation ledger, be `canonical_native`, retain canonical write authority, and resolve to the exact canonical module in the binding.
+- The imported parent module must declare the same `COMPONENT_ID`.
+- The imported helper must not declare `COMPONENT_ID`; its `PARENT_COMPONENT_ID` and `TRUTH_PROTOCOL` must exactly match the registry binding.
+- Parent component software versions remain orthogonal to subprotocol registry versioning. Adding this metadata binding does not manufacture a parent implementation revision.
+
 ## Compatibility boundary
 
 The existing canonical APIs remain authoritative for their established duties:
@@ -151,12 +164,13 @@ Truth Closure is additive protocol semantics under those components. Any future 
 - **A3**: attacked cross-subject evidence laundering, source-family rebinding, stale snapshot replay, forged snapshots, ungrounded verification, legacy closure bypass and restore-order failure.
 - **A4**: discovered and forbids duplicate canonical authority, removes the private truth digest, moves proposition semantics to `knowledge_truth.py`, and binds every helper to one existing canonical parent component.
 - **A5**: separates content integrity from authority authenticity: closure certificates require live revalidation, and duplicate serialized ledger/certificate identities fail closed instead of being normalized away.
+- **A6**: adds canonical metadata acknowledgement without mutating parent component identity/version: a content-addressed subprotocol registry validates all five parent↔helper bindings bidirectionally and prevents helper-declared ownership from becoming one-sided authority.
 
 ## Acceptance gates
 
 The dedicated `Truth Knowledge A Layer` workflow runs on Python 3.11 and 3.13 and must:
 
-1. compile the five canonical A authorities plus all Truth Closure protocol modules;
+1. compile the five canonical A authorities, all Truth Closure protocol modules, and the canonical subprotocol-binding registry;
 2. pass every `tests/test_truth_knowledge_*.py` contract (A1 through the latest hardening wave);
 3. pass repository authority projection audit.
 
