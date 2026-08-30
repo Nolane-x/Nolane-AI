@@ -198,3 +198,10 @@ def test_canonical_adapter_uses_risk_appropriate_verifier_levels() -> None:
     assert "verifier_level = VerifierLevel.V3" in source
     assert "verifier_level = VerifierLevel.V1" in source
     assert "verifier_level=verifier_level" in source
+
+
+def test_external_effect_classification_precedes_local_mutation_rollback_hints() -> None:
+    source = inspect.getsource(OrganizationExecutionControlPlane.step)
+    external_branch = source.index("if is_external:\n                effect_class = EffectClass.EXTERNAL_MUTATION")
+    local_branch = source.index("elif action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION")
+    assert external_branch < local_branch
