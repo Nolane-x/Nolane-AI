@@ -15,7 +15,7 @@ from nolane.external_core.software_engineering import (
 
 
 COMPONENT_ID = "external.software_engineering.validity"
-COMPONENT_VERSION = "0.1.1"
+COMPONENT_VERSION = "0.1.2"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -30,6 +30,12 @@ def _optional_text(value: Any) -> str | None:
         return None
     result = str(value).strip()
     return result or None
+
+
+def _path_under(path: str, prefix: str) -> bool:
+    normalized_path = str(path).replace("\\", "/").strip()
+    normalized_prefix = str(prefix).replace("\\", "/").strip().rstrip("/")
+    return normalized_path == normalized_prefix or normalized_path.startswith(normalized_prefix + "/")
 
 
 class EngineeringValidityDecision(str, Enum):
@@ -96,11 +102,12 @@ class EngineeringClaimBinding:
 
 
 class EngineeringClaimBindingLedger:
-    """Immutable snapshots of the mutation claims that authorized a transaction.
+    """Immutable snapshots of the exact mutation claims authorizing a transaction.
 
-    CodeClaimLedger remains the source of truth for claim state. This ledger only
-    records the exact claim states observed before mutation and can later compare
-    those immutable snapshots with the current claim ledger.
+    `CodeClaimLedger` remains authoritative for current claim state. This ledger
+    prevents authority leakage by making the transaction's own bound claim set,
+    rather than every active claim owned by the same agent/task, the only scope
+    that may authorize the patch.
     """
 
     def __init__(
@@ -190,6 +197,50 @@ class EngineeringClaimBindingLedger:
             if claim.mode is not ClaimMode.EXCLUSIVE_WRITE:
                 reasons.append(f"claim_not_exclusive:{claim_id}")
         return tuple(sorted(set(reasons)))
+
+    def covers_patch(self, binding_id: str, patch: Any) -> bool:
+        """Return whether only this binding's current claims authorize `patch`.
+
+        This deliberately does not delegate to `CodeClaimLedger.covers()`, whose
+        semantics aggregate every active claim for an agent/task and therefore
+        are too broad for transaction-scoped mutation authority.
+        """
+        binding = self.get(binding_id)
+        required_attrs = ("producer_agent_id", "task_id", "touched_files", "touched_symbols")
+        if not all(hasattr(patch, name) for name in required_attrs):
+            return False
+
+        producer = str(patch.producer_agent_id)
+        task_id = str(patch.task_id)
+        bound_claims = []
+        for claim_id, _ in binding.claim_state_digests:
+            try:
+                claim = self.claims.get(claim_id)
+            except KeyError:
+                return False
+            if (
+                claim.status is not ClaimStatus.ACTIVE
+                or claim.mode is not ClaimMode.EXCLUSIVE_WRITE
+                or claim.agent_id != producer
+                or claim.task_id != task_id
+            ):
+                return False
+            bound_claims.append(claim)
+
+        for raw_path in tuple(patch.touched_files):
+            path = str(raw_path).replace("\\", "/").strip()
+            if not any(
+                path in claim.file_paths
+                or any(_path_under(path, prefix) for prefix in claim.directory_prefixes)
+                for claim in bound_claims
+            ):
+                return False
+
+        for raw_symbol in tuple(patch.touched_symbols):
+            symbol = str(raw_symbol).strip()
+            if not any(symbol in claim.symbol_ids for claim in bound_claims):
+                return False
+        return True
 
     def to_state(self) -> dict[str, Any]:
         return {"bindings": [row.to_state() for row in self.bindings()]}
@@ -302,13 +353,7 @@ class EngineeringCurrentValidityReceipt:
 
 
 class EngineeringValidityEngine:
-    """Revalidates immutable engineering closure against mutable current state.
-
-    Historical closure receipts are never rewritten. This engine emits a new,
-    content-addressed view describing whether the historical candidate remains
-    valid against the current source, patch state, evidence graph and claim
-    authority.
-    """
+    """Revalidates immutable engineering closure against mutable current state."""
 
     def __init__(
         self,
@@ -365,8 +410,6 @@ class EngineeringValidityEngine:
 
         if not hasattr(patch, "to_state"):
             reasons.append("missing_current_patch_state")
-            current_patch_digest = "unavailable"
-            current_patch_ref = str(getattr(patch, "patch_id", ""))
         else:
             current_patch_digest = canonical_digest(patch.to_state())
             current_patch_ref = str(getattr(patch, "patch_id", ""))
@@ -393,18 +436,12 @@ class EngineeringValidityEngine:
         else:
             binding_id = binding.binding_id
             reasons.extend(self.claim_bindings.current_reasons(binding.binding_id))
+            if not self.claim_bindings.covers_patch(binding.binding_id, patch):
+                reasons.append("bound_claim_scope_no_longer_covers_patch")
 
-        if all(hasattr(patch, name) for name in (
+        if not all(hasattr(patch, name) for name in (
             "producer_agent_id", "task_id", "touched_files", "touched_symbols"
         )):
-            if not self.claims.covers(
-                agent_id=str(patch.producer_agent_id),
-                task_id=str(patch.task_id),
-                file_paths=tuple(patch.touched_files),
-                symbol_ids=tuple(patch.touched_symbols),
-            ):
-                reasons.append("claim_scope_no_longer_covers_patch")
-        else:
             reasons.append("current_patch_scope_unavailable")
 
         normalized_reasons = tuple(sorted(set(reasons)))
