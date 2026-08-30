@@ -1,7 +1,7 @@
 """Append-only causal ledger for Goal/Design cognition and authority events.
 
 The ledger deliberately separates speculative cognition, evidence, and closure
-authority.  Authority transitions are available only through typed methods so a
+authority. Authority transitions are available only through typed methods so a
 generic proposal/observation path cannot grant or revoke design authority.
 """
 from __future__ import annotations
@@ -116,6 +116,7 @@ class GoalDesignLedger:
                 "selected_option_id": receipt.selected_option_id,
                 "snapshot_digest": receipt.snapshot_digest,
                 "evaluation_digest": receipt.evaluation_digest,
+                "input_manifest_digest": receipt.input_manifest_digest,
             },
             AuthorityLevel.AUTHORITY,
             parent_ids,
