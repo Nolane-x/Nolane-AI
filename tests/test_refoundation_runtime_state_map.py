@@ -33,6 +33,16 @@ def test_runtime_state_mapping_preserves_every_legacy_section_byte_semantically(
         assert projected["canonical_owner"] == binding.canonical_owner
 
 
+def test_governed_learning_validation_state_stays_inside_skill_authority() -> None:
+    state = OrganizationRuntime.first_generation().to_state()
+    envelope = RuntimeStateMapper().map_state(state)
+    learning = envelope.section("learning_substrate")
+
+    assert learning["canonical_owner"] == "external.skills"
+    assert learning["legacy_semantics"] is False
+    assert learning["legacy_state"] == state["learning_substrate"]
+
+
 def test_unknown_runtime_state_section_fails_closed() -> None:
     state = OrganizationRuntime.first_generation().to_state()
     state["future_unknown_component"] = {"important": "must not disappear"}
