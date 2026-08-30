@@ -107,6 +107,42 @@ def test_decision_authority_index_roundtrips_across_restart_without_losing_lifec
     assert restored.digest == index.digest
 
 
+def test_decision_authority_index_roundtrips_proof_carrying_manifest_digests():
+    receipt = DecisionReceipt(
+        receipt_id="receipt:manifest",
+        goal_id="goal:manifest",
+        selected_option_id="option:manifest",
+        snapshot_digest="snapshot:manifest",
+        version_vector={
+            "requirements": "r2",
+            "planning": "p2",
+            "architecture": "a2",
+            "integration": "i2",
+            "context": "c2",
+        },
+        evaluation_digest="evaluation:manifest",
+        proof_obligation_ids=("proof:manifest",),
+        uncertainty_ids=("uncertainty:manifest",),
+        evidence_refs=("evidence:manifest",),
+        goal_digest="digest:goal",
+        scenario_set_digest="digest:scenarios",
+        option_set_digest="digest:options",
+        proof_state_digest="digest:proofs",
+        uncertainty_state_digest="digest:uncertainties",
+        traceability_digest="digest:traceability",
+        input_manifest_digest="digest:manifest",
+    )
+    index = DecisionAuthorityIndex()
+    index.register(receipt, dependency_refs=("req:manifest", "cmp:manifest"))
+
+    state = index.to_state()
+    restored = DecisionAuthorityIndex.from_state(state)
+
+    assert restored.get(receipt.receipt_id).receipt == receipt
+    assert restored.to_state() == state
+    assert restored.digest == index.digest
+
+
 def test_decision_authority_state_rejects_duplicate_receipt_identity():
     receipt = _receipt()
     index = DecisionAuthorityIndex()
