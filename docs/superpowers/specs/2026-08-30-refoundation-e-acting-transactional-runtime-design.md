@@ -204,6 +204,10 @@ The transactional kernel tracks elapsed runtime with a monotonic clock and advan
 
 Lease renewal creates a new generation and a receipt; it does not mutate history invisibly.
 
+Protocol `0.1.2` additionally binds **modern** lease identity to the immutable event chain. Acquisition receipts include `lease:<lease_id>` beside authorization evidence; renewal receipts include both `lease:<new_id>` and `previous-lease:<old_id>`; revocation receipts bind the revoked lease id. Restore checks generation count, modern renewal linkage, revocation state, and the final persisted lease against those lifecycle references. Recomputing a local lease id and `ActionRecord` digest is therefore insufficient to rebind a modern persisted lease.
+
+Historical schema-1 events created before this binding existed remain loadable. They retain weaker compatibility semantics because E cannot retroactively manufacture lease evidence that an old event never recorded; compatibility is explicit rather than misrepresented as modern proof strength.
+
 ## 8. Effect budget model
 
 Per-action budgets complement the existing session budgets in `execution_types.py`.
@@ -290,7 +294,7 @@ Checkpoints are automatically deleted when the workspace closes.
 
 The checkpoint itself is not the durable evidence store. Durable proof belongs to protocol/core/artifact receipts; the snapshot is only the local undo mechanism.
 
-## 12. Receipt-chain model
+## 12. Receipt-chain and persisted-state model
 
 Every lifecycle event is canonicalized into an `ExecutionEvent` containing:
 
@@ -303,7 +307,11 @@ Every lifecycle event is canonicalized into an `ExecutionEvent` containing:
 - payload digest;
 - event digest and receipt id.
 
-For each action, receipts form a hash chain. `from_state()` validates event digests, ids, sequence, previous-digest linkage, ownership, phase/head agreement, and rejects orphan events. Persisted `ActionRecord` snapshots are independently content-addressed and then cross-checked against the immutable lifecycle events: the proposed contract, authorization, pre/postcondition evidence, execution counters, outcome, verifier state, and terminal references cannot be rebound by recomputing only the local record digest.
+For each action, receipts form a hash chain. `from_state()` validates event digests, ids, sequence, previous-digest linkage, ownership, phase/head agreement, and rejects orphan events. Persisted modern `ActionRecord` snapshots are independently content-addressed and cross-checked against immutable lifecycle events: the proposed contract, authorization, pre/postcondition evidence, execution counters, outcome, verifier state, terminal references, and modern lease bindings cannot be rebound merely by recomputing local state digests.
+
+Schema version remains `1` for backward compatibility. Records written before local `ActionRecord.digest` existed may therefore omit that field. Such a record is not trusted because it lacks the field: it is accepted only if the event chain and complete record projection validate. The next `to_state()` deterministically enriches it with the content digest. If a digest is present, it must match exactly.
+
+Modern lease transitions have stronger lifecycle evidence than historical schema-1 transitions. The restore path explicitly distinguishes those cases and does not claim that legacy receipts provide evidence they never stored.
 
 This is tamper-evident rather than cryptographically signed. Signature/trust-root integration is a separate authority concern and must not be invented inside E.
 
@@ -368,7 +376,9 @@ The adapter uses a fail-closed compatibility classification order: registered ex
 | rollback cannot be proven | `DEGRADED`, never false rollback |
 | commit attempted before postconditions | protocol violation |
 | idempotency key reused for different work | conflict |
-| persisted receipt tampered | state load fails |
+| supplied persisted record digest tampered | state load fails |
+| modern persisted lease identity/revocation/generation diverges from lifecycle evidence | state load fails |
+| legacy schema-1 record omits local digest but lifecycle projection is invalid | state load fails |
 
 ## 16. Non-negotiable invariants
 
@@ -386,6 +396,8 @@ The adapter uses a fail-closed compatibility classification order: registered ex
 12. No Git-visibility proof gap: ignored files and empty directories participate in workspace identity and rollback proof.
 13. No local-hint downgrade: external effect classification precedes local mutation rollback metadata.
 14. No process-as-read fiction: unconfined process tools require at least the external-like R3/V3 compatibility floor unless a future stronger sandbox proves a narrower effect class.
+15. No local-digest rebinding: modern record/lease state must agree with immutable lifecycle projections even if an attacker recomputes local content identifiers.
+16. No false migration claim: legacy schema-1 records may be enriched on write only after their available lifecycle evidence validates; missing historical lease-binding evidence is treated as compatibility debt, not retroactive proof.
 
 ## 17. Verification strategy
 
@@ -393,6 +405,8 @@ The dedicated Refoundation E workflow runs on Python 3.11 and 3.13 and performs:
 
 - compile of canonical external-core modules;
 - protocol contract tests;
+- persisted-record and lifecycle-bound lease integrity tests;
+- schema-1 digest-less restore/enrichment regression tests;
 - workspace rollback tests;
 - transactional executor integration tests through the Refoundation wildcard suite;
 - elapsed-time lease-expiry regression tests;
@@ -428,7 +442,8 @@ The forensic hardening advances only components whose execution semantics change
 | Component | Hardened version | Reason |
 |---|---:|---|
 | `external.execution.workspace` | `0.0.3` | full-payload rollback identity and proof |
+| `external.acting.protocol` | `0.1.2` | legacy digest-less record enrichment plus lifecycle-bound modern lease identity/revocation integrity |
 | `external.acting.runtime` | `0.1.1` | monotonic elapsed-time lease enforcement |
 | `external.execution.control` | `0.0.3` | fail-closed external precedence and process-tool R3/V3 mapping |
 
-These version changes do not alter canonical first-generation runtime state. The accepted E runtime-state fingerprint therefore remains `eda96a54b833dee2a3eb2a3e697fb658f4ff73729fff76fa6746ba554a6d602e` rather than creating a false new persistence cutover.
+These version changes do not alter canonical first-generation runtime state. The accepted E runtime-state fingerprint therefore remains `eda96a54b833dee2a3eb2a3e697fb658f4ff73729fff76fa6746ba554a6d602e` rather than creating a false new persistence cutover. Protocol `0.1.2` preserves schema version 1 and changes validation/enrichment semantics rather than the empty canonical first-generation ledger shape.
