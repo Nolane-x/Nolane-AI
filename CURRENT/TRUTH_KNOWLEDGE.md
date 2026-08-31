@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A11 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A12 Truth Maintenance / Multiple Independent Justifications v6 is an implementation candidate and is not accepted until its exact final merge-state passes focused Truth/Knowledge and full Refoundation gates.**
+Status: **A1–A12 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A12 Truth Maintenance / Multiple Independent Justifications v6 was accepted from exact candidate `80d0513e152829afbfeb9b141b234c390162ede6` and merged to `main` as `ca1e8ee0f726c33a9b3e805e6713aae93a6b5c26`.**
 
 ## Canonical authority model
 
@@ -362,13 +362,13 @@ A v5 certificate exact-binds v5 scope, v5 verification projection, context/as-of
 
 Relevant verifier provenance revision invalidates stale authority. Unrelated provenance mutation does not.
 
-## A12 candidate — truth maintenance / multiple independent justifications v6
+## Accepted A12 — truth maintenance / multiple independent justifications v6
 
 A11 secures who is independent. A12 addresses the next Knowledge semantics gap: one accepted `KnowledgeClaim` historically has one conjunction of `evidence_ids` and `parent_claim_ids`, so failure of any member invalidates that single derivation. Real propositions can have several alternative derivations, but introducing OR semantics without a canonical truth-maintenance layer would create proof laundering and stale-authority hazards.
 
 A12 therefore adds an additive v6 derivation sidecar while leaving every A1–A11 identity and protocol unchanged.
 
-The candidate progression is:
+The canonical progression through A12 is:
 
 ```text
 global v1
@@ -521,7 +521,7 @@ A11 remains structurally additive and accepted:
 - no canonical parent component version is bumped solely by A11;
 - family A remains exactly five canonical authorities.
 
-A12 candidate preserves the same compatibility boundary:
+A12 preserves the same compatibility boundary:
 
 - `TruthEvidence` and `KnowledgeClaim` historical shapes are unchanged;
 - implicit legacy justification reproduces the accepted A11/A9 epistemic result when no explicit A12 rows exist;
@@ -545,7 +545,7 @@ The A6 five-parent subprotocol registry remains authority metadata for canonical
 - **A10** — accepted canonical relation semantics and relation-aware v3.
 - **A9** — accepted explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
 - **A11** — accepted append-only source-provenance lineage, protocol-domain separation, controller-derived verification independence, and origin-controller self-verification exclusion v5.
-- **A12 candidate** — append-only alternative justification lineage, OR-of-AND truth maintenance, contribution-traced live lineage/source origins, and relevant-only v6 staleness.
+- **A12** — accepted append-only alternative justification lineage, OR-of-AND truth maintenance, contribution-traced live lineage/source origins, and relevant-only v6 staleness.
 
 ## A9 acceptance proof
 
@@ -576,9 +576,11 @@ The acceptance chain is explicit:
 9. PR #269 was merged with expected-head protection from exact head `e5b2aa3b8e7ad9e389889c90129939b741d10079`.
 10. Canonical `main` advanced to merge commit `b44f3601c14ad6039faeee2565b412fc60832e8c`, whose parents are the then-current `main` and the exact tested A11 candidate.
 
-## A12 candidate proof state
+## A12 acceptance proof
 
-A12 is **not yet accepted**. Its TDD chain currently includes:
+A12 is accepted from exact final candidate `80d0513e152829afbfeb9b141b234c390162ede6`.
+
+The acceptance chain is explicit:
 
 1. Initial RED head `5df53b695cdbc279fcae62591f27ce6365b2b412`, run `33355398941`: accepted A1–A11 compile stayed green and collection failed exactly because the v6 assurance sidecar did not exist yet.
 2. The first complete v6 implementation reached focused GREEN at head `0b50e416c63bc788e16b58b619d4ced7ca4c9071`, run `33355739175`: Python 3.11/3.13 passed **133 Truth/Knowledge tests** and repository audit stayed clean.
@@ -587,10 +589,13 @@ A12 is **not yet accepted**. Its TDD chain currently includes:
 5. Authority/domain/legacy-equivalence contracts prove exact parent ownership, no `COMPONENT_ID`, v6 protocol separation, anti-rebind behavior, and that no explicit justification preserves the accepted A11/A9 epistemic semantics.
 6. Dead-branch assurance RED head `fbe6071616bc2979e4a6fcc85b901a4c99ff1bbe`, run `33356064294`: **138 passed / 1 targeted failure** proved an unsupported parent reachable only through a dead alternative could still veto a live target branch.
 7. Supporting-lineage fix head `6f241b9ea928eef7e8b3bb8e7ac46f9bfa1046a8` derives assurance veto lineage only from target-reachable `supported` paths while retaining the full alternative graph for audit and staleness. Python 3.11 fresh log in run `33356186788` reports **139 passed** and repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
-8. Head `475e094fbd485b09972742e8c25b22a292fc5bc3` adds final regression contracts proving the inverse boundary: a parent on a live supported path remains mandatory, unrelated justification revisions preserve scope/certificate validity, and relevant revisions stale both.
+8. Head `475e094fbd485b09972742e8c25b22a292fc5bc3` added final regression contracts proving the inverse boundary: a parent on a live supported path remains mandatory, unrelated justification revisions preserve scope/certificate validity, and relevant revisions stale both.
+9. Exact final candidate `80d0513e152829afbfeb9b141b234c390162ede6` passed Truth Knowledge A Layer run `33356450779` on Python 3.11 and 3.13: **141/141 Truth/Knowledge tests** on both versions, direct compile of all four A12 sidecars, and repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
+10. PR #273 synthetic merge commit `34ccf629f98e25ac654fa1c3f15e882f59110820` merged exact head `80d0513e152829afbfeb9b141b234c390162ede6` into exact base `0c1beb3e16a5c502793f8d1fd0e592022ee5554c`. Full Refoundation Epoch 0 run `33356534176` passed on Python 3.11 and 3.13: **653 Refoundation + 141 Truth A + 413 downstream tests**, 67/67 dossiers, clean repository audit, zero-loss evidence gates, all organization/campaign/execution regressions, and frozen Neural R2.3 PASS.
+11. PR #273 had the intended A12-only 13-file diff, was `mergeable=true` / `mergeable_state=clean`, and had 0 reviews and 0 inline review comments blocking acceptance.
+12. PR #273 was merged with expected-head protection from exact head `80d0513e152829afbfeb9b141b234c390162ede6`.
+13. Canonical `main` advanced to production merge commit `ca1e8ee0f726c33a9b3e805e6713aae93a6b5c26`, whose exact parents are pre-A12 `main` `0c1beb3e16a5c502793f8d1fd0e592022ee5554c` and exact tested A12 candidate `80d0513e152829afbfeb9b141b234c390162ede6`.
 
-Final acceptance still requires a fresh exact final-head focused matrix on Python 3.11/3.13, intended-only diff/review verification, and full Refoundation Epoch 0 on the exact PR merge state. Only after those gates pass may A12 production be merged and a separate acceptance seal advance this document to **A1–A12 accepted**.
-
-Canonical family-A status at this revision is therefore **A1–A11 accepted; A12 candidate**.
+Canonical family-A status at this revision is therefore **A1–A12 accepted**.
 
 Historical R-series workflows do not define current family-A architecture authority.
