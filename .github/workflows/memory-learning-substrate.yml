@@ -3,6 +3,7 @@ name: Memory Learning Substrate
 on:
   push:
     branches:
+      - main
       - codex/memory-learning-substrate-v0.0.5
       - codex/memory-learning-reauthorization-v0.0.6
       - codex/memory-learning-retrieval-receipt-replay-v0.0.7
