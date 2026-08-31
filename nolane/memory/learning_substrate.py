@@ -159,6 +159,10 @@ class MemoryTombstone:
     content_digest: str
     reason: str
     evidence_refs: tuple[str, ...]
+    archive_receipt_id: str | None = None
+    actor_agent_id: str | None = None
+    tombstone_id: str | None = None
+    schema: str = "memory-tombstone-v1"
 
     def __post_init__(self) -> None:
         if not str(self.memory_id).strip():
@@ -169,22 +173,94 @@ class MemoryTombstone:
             raise ValueError("memory tombstone requires a reason")
         if not self.evidence_refs or any(not str(value).strip() for value in self.evidence_refs):
             raise ValueError("memory tombstone requires non-empty evidence")
+        if self.schema not in {"memory-tombstone-v1", "memory-tombstone-v2"}:
+            raise ValueError("unknown memory tombstone schema")
+        if self.schema == "memory-tombstone-v1":
+            if any(value is not None for value in (self.archive_receipt_id, self.actor_agent_id, self.tombstone_id)):
+                raise ValueError("legacy memory tombstone cannot carry v2 authority fields")
+            return
+        if not str(self.archive_receipt_id or "").strip():
+            raise ValueError("memory tombstone v2 requires archive receipt authority")
+        if not str(self.actor_agent_id or "").strip():
+            raise ValueError("memory tombstone v2 requires actor authority")
+        if not str(self.tombstone_id or "").strip():
+            raise ValueError("memory tombstone v2 requires a content address")
+        if canonical_digest(self._v2_payload()) != self.tombstone_id:
+            raise ValueError("memory tombstone content address mismatch")
 
-    def to_state(self) -> dict[str, Any]:
+    def _v2_payload(self) -> dict[str, Any]:
         return {
+            "schema": "memory-tombstone-v2",
             "memory_id": self.memory_id,
             "content_digest": self.content_digest,
+            "archive_receipt_id": self.archive_receipt_id,
+            "actor_agent_id": self.actor_agent_id,
             "reason": self.reason,
             "evidence_refs": list(self.evidence_refs),
         }
 
     @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> "MemoryTombstone":
+    def bound(
+        cls,
+        *,
+        memory_id: str,
+        content_digest: str,
+        archive_receipt_id: str,
+        actor_agent_id: str,
+        reason: str,
+        evidence_refs: tuple[str, ...],
+    ) -> "MemoryTombstone":
+        payload = {
+            "schema": "memory-tombstone-v2",
+            "memory_id": str(memory_id),
+            "content_digest": str(content_digest),
+            "archive_receipt_id": str(archive_receipt_id),
+            "actor_agent_id": str(actor_agent_id),
+            "reason": str(reason),
+            "evidence_refs": list(evidence_refs),
+        }
         return cls(
-            str(state["memory_id"]),
-            str(state["content_digest"]),
-            str(state["reason"]),
-            tuple(str(x) for x in state.get("evidence_refs", ())),
+            memory_id=str(memory_id),
+            content_digest=str(content_digest),
+            reason=str(reason),
+            evidence_refs=tuple(str(value) for value in evidence_refs),
+            archive_receipt_id=str(archive_receipt_id),
+            actor_agent_id=str(actor_agent_id),
+            tombstone_id=canonical_digest(payload),
+            schema="memory-tombstone-v2",
+        )
+
+    def to_state(self) -> dict[str, Any]:
+        if self.schema == "memory-tombstone-v1":
+            return {
+                "memory_id": self.memory_id,
+                "content_digest": self.content_digest,
+                "reason": self.reason,
+                "evidence_refs": list(self.evidence_refs),
+            }
+        return {**self._v2_payload(), "tombstone_id": self.tombstone_id}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "MemoryTombstone":
+        schema = state.get("schema")
+        if schema is None:
+            return cls(
+                str(state["memory_id"]),
+                str(state["content_digest"]),
+                str(state["reason"]),
+                tuple(str(x) for x in state.get("evidence_refs", ())),
+            )
+        if str(schema) != "memory-tombstone-v2":
+            raise ValueError("unknown memory tombstone schema")
+        return cls(
+            memory_id=str(state["memory_id"]),
+            content_digest=str(state["content_digest"]),
+            reason=str(state["reason"]),
+            evidence_refs=tuple(str(x) for x in state.get("evidence_refs", ())),
+            archive_receipt_id=str(state["archive_receipt_id"]),
+            actor_agent_id=str(state["actor_agent_id"]),
+            tombstone_id=str(state["tombstone_id"]),
+            schema="memory-tombstone-v2",
         )
 
 
@@ -474,6 +550,93 @@ class LearningSubstrate:
         if canonical_digest(snapshot) != str(memory_state_digest):
             raise ValueError("retrieval replay snapshot digest mismatch")
 
+    @staticmethod
+    def _immutable_memory_projection(row: MemoryEntry) -> dict[str, Any]:
+        state = row.to_state()
+        state.pop("status", None)
+        state.pop("status_reason", None)
+        return state
+
+    @staticmethod
+    def _immutable_metadata_projection(metadata: LearningMemoryMetadata) -> dict[str, Any]:
+        state = metadata.to_state()
+        state.pop("epistemic_type", None)
+        state.pop("source_refs", None)
+        state.pop("last_verified_ref", None)
+        return state
+
+    def _validate_retrieval_snapshot_authority(self, snapshot: Mapping[str, Any]) -> None:
+        replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
+        replay_entries = tuple(
+            replay_memory.get(f"mem-{sequence:08d}")
+            for sequence in range(1, len(replay_memory.to_state().get("entries", ())) + 1)
+        )
+        current_entries = tuple(
+            self.memory.get(f"mem-{sequence:08d}")
+            for sequence in range(1, len(self.memory.to_state().get("entries", ())) + 1)
+        )
+        if len(replay_entries) > len(current_entries):
+            raise ValueError("retrieval replay snapshot exceeds current memory authority")
+        for historical, current in zip(replay_entries, current_entries):
+            if self._immutable_memory_projection(historical) != self._immutable_memory_projection(current):
+                raise ValueError("retrieval replay snapshot violates immutable memory authority")
+
+        replay_metadata_rows = tuple(
+            LearningMemoryMetadata.from_state(raw) for raw in snapshot.get("metadata", ())
+        )
+        replay_metadata = self._index_unique(
+            replay_metadata_rows, key=lambda row: row.memory_id, label="retrieval replay authority metadata row"
+        )
+        replay_memory_ids = {row.memory_id for row in replay_entries}
+        expected_metadata = {
+            memory_id: metadata
+            for memory_id, metadata in self._metadata.items()
+            if memory_id in replay_memory_ids
+        }
+        if set(replay_metadata) != set(expected_metadata):
+            raise ValueError("retrieval replay snapshot metadata authority coverage mismatch")
+        for memory_id, historical in replay_metadata.items():
+            current = expected_metadata[memory_id]
+            if self._immutable_metadata_projection(historical) != self._immutable_metadata_projection(current):
+                raise ValueError("retrieval replay snapshot violates immutable metadata authority")
+            if not set(historical.source_refs).issubset(current.source_refs):
+                raise ValueError("retrieval replay snapshot metadata source authority mismatch")
+            if historical.epistemic_type is not current.epistemic_type:
+                if current.epistemic_type is not EpistemicType.VERIFIED or historical.epistemic_type is EpistemicType.VERIFIED:
+                    raise ValueError("retrieval replay snapshot epistemic authority mismatch")
+            if historical.last_verified_ref != current.last_verified_ref:
+                if current.epistemic_type is not EpistemicType.VERIFIED:
+                    raise ValueError("retrieval replay snapshot verification authority mismatch")
+
+        replay_tombstones = tuple(
+            MemoryTombstone.from_state(raw) for raw in snapshot.get("tombstones", ())
+        )
+        replay_tombstone_index = self._index_unique(
+            replay_tombstones, key=lambda row: row.memory_id, label="retrieval replay authority tombstone row"
+        )
+        for memory_id, historical in replay_tombstone_index.items():
+            current = self._tombstones.get(memory_id)
+            if current is None or current != historical:
+                raise ValueError("retrieval replay snapshot tombstone authority mismatch")
+
+        replay_relations_state = snapshot.get("relations", {})
+        replay_relation_rows = tuple(replay_relations_state.get("relations", ()))
+        replay_relation_counter = int(replay_relations_state.get("counter", len(replay_relation_rows)))
+        if replay_relation_counter != len(replay_relation_rows):
+            raise ValueError("retrieval replay snapshot relation counter mismatch")
+        current_relation_rows = tuple(self.relations.to_state().get("relations", ()))
+        if len(replay_relation_rows) > len(current_relation_rows):
+            raise ValueError("retrieval replay snapshot exceeds current relation authority")
+        if replay_relation_rows != current_relation_rows[: len(replay_relation_rows)]:
+            raise ValueError("retrieval replay snapshot relation authority is not an append-only prefix")
+
+        replay_health_rows = tuple(snapshot.get("anchor_health", ()))
+        current_health_rows = tuple(row.to_state() for row in self._ordered_anchor_health())
+        if len(replay_health_rows) > len(current_health_rows):
+            raise ValueError("retrieval replay snapshot exceeds current anchor-health authority")
+        if replay_health_rows != current_health_rows[: len(replay_health_rows)]:
+            raise ValueError("retrieval replay snapshot anchor-health authority is not an append-only prefix")
+
     def _replay_retrieval_receipt(self, receipt: MemoryRetrievalReceipt) -> None:
         if not receipt.replayable or receipt.query is None:
             raise ValueError("retrieval receipt replay requires a v2 query envelope")
@@ -482,6 +645,7 @@ class LearningSubstrate:
         except KeyError as exc:
             raise ValueError("retrieval receipt replay snapshot is missing") from exc
         self._validate_retrieval_snapshot_digest(receipt.memory_state_digest, snapshot)
+        self._validate_retrieval_snapshot_authority(snapshot)
 
         replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
         replay_relations = MemoryRelationGraph.from_state(
@@ -897,25 +1061,45 @@ class LearningSubstrate:
             raise ValueError("forgetting requires an explicit reason")
         if not evidence:
             raise ValueError("forgetting requires evidence")
-        candidate = MemoryTombstone(
-            row.memory_id,
-            canonical_digest({"memory_id": row.memory_id, "text": row.text}),
-            reason,
-            evidence,
-        )
         existing = self._tombstones.get(row.memory_id)
-        if existing is not None:
-            if existing != candidate:
-                raise ValueError("memory tombstone cannot be rebound")
-            return existing
         if row.status is not MemoryStatus.ARCHIVED:
-            self.lifecycle.transition(
+            archive_receipt = self.lifecycle.transition(
                 row.memory_id,
                 actor_agent_id=actor_agent_id,
                 new_status=MemoryStatus.ARCHIVED,
                 reason=reason,
                 evidence_refs=evidence,
             )
+        else:
+            archive_authority = tuple(
+                receipt
+                for receipt in self.lifecycle.receipts_for(row.memory_id)
+                if receipt.new_status is MemoryStatus.ARCHIVED
+                and receipt.actor_agent_id == str(actor_agent_id).strip()
+                and receipt.reason == reason
+                and receipt.evidence_refs == evidence
+            )
+            if len(archive_authority) != 1:
+                raise ValueError(
+                    "forgetting already archived memory requires matching archive lifecycle authority"
+                )
+            archive_receipt = archive_authority[0]
+        candidate = MemoryTombstone.bound(
+            memory_id=row.memory_id,
+            content_digest=canonical_digest({"memory_id": row.memory_id, "text": row.text}),
+            archive_receipt_id=archive_receipt.receipt_id,
+            actor_agent_id=archive_receipt.actor_agent_id,
+            reason=reason,
+            evidence_refs=evidence,
+        )
+        if existing is not None:
+            if existing.schema == "memory-tombstone-v1":
+                if existing.reason != reason or existing.evidence_refs != evidence:
+                    raise ValueError("memory tombstone cannot be rebound")
+                return existing
+            if existing != candidate:
+                raise ValueError("memory tombstone cannot be rebound")
+            return existing
         self._tombstones[row.memory_id] = candidate
         return candidate
 
@@ -1122,12 +1306,31 @@ class LearningSubstrate:
         row = self.memory.get(tombstone.memory_id)
         if row.status is not MemoryStatus.ARCHIVED:
             raise ValueError("memory tombstone requires archived memory state")
-        archived = any(
-            receipt.new_status is MemoryStatus.ARCHIVED
+        archive_receipts = tuple(
+            receipt
             for receipt in self.lifecycle.receipts_for(tombstone.memory_id)
+            if receipt.new_status is MemoryStatus.ARCHIVED
         )
-        if not archived:
-            raise ValueError("memory tombstone requires archived lifecycle authority")
+        if tombstone.schema == "memory-tombstone-v2":
+            archive_authority = tuple(
+                receipt
+                for receipt in archive_receipts
+                if receipt.receipt_id == tombstone.archive_receipt_id
+                and receipt.actor_agent_id == tombstone.actor_agent_id
+                and receipt.reason == tombstone.reason
+                and receipt.evidence_refs == tombstone.evidence_refs
+            )
+            if len(archive_authority) != 1:
+                raise ValueError("memory tombstone archive receipt authority mismatch")
+            return
+        archive_authority = tuple(
+            receipt
+            for receipt in archive_receipts
+            if receipt.reason == tombstone.reason
+            and receipt.evidence_refs == tombstone.evidence_refs
+        )
+        if len(archive_authority) != 1:
+            raise ValueError("legacy memory tombstone requires unique matching archive lifecycle authority")
 
     def to_state(self) -> dict[str, Any]:
         return {
