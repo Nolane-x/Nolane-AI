@@ -11,6 +11,7 @@ on:
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
       - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
       - "docs/GOAL_DESIGN_TRUTH_MAINTENANCE.md"
+      - "docs/superpowers/plans/2026-08-31-goal-design-truth-maintenance-wave.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
   pull_request:
     paths:
@@ -22,6 +23,7 @@ on:
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
       - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
       - "docs/GOAL_DESIGN_TRUTH_MAINTENANCE.md"
+      - "docs/superpowers/plans/2026-08-31-goal-design-truth-maintenance-wave.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
 
 concurrency:
