@@ -40,6 +40,8 @@ class CoreReceipt(Protocol):
     after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
+    core_contract_digest: str
+    workspace_epoch_id: str
 
 
 class CoreExecutor(Protocol):
@@ -144,6 +146,8 @@ class TransactionalExternalCoreExecutor:
         input_digest: str,
         before_workspace_digest: str,
         after_workspace_digest: str,
+        core_contract_digest: str,
+        workspace_epoch_id: str,
     ) -> None:
         expected = {
             "agent_id": str(agent_id),
@@ -153,6 +157,8 @@ class TransactionalExternalCoreExecutor:
             "input_digest": str(input_digest),
             "before_workspace_digest": str(before_workspace_digest),
             "after_workspace_digest": str(after_workspace_digest),
+            "core_contract_digest": str(core_contract_digest),
+            "workspace_epoch_id": str(workspace_epoch_id),
         }
         mismatches = [
             field
@@ -263,6 +269,8 @@ class TransactionalExternalCoreExecutor:
         verifier_level: VerifierLevel | int | str = VerifierLevel.V1,
         idempotency_key: str,
         recovery_plan: str = "",
+        core_contract_digest: str = "",
+        workspace_epoch_id: str = "",
         budget: ActionBudget | None = None,
         now_ms: int,
         lease_ttl_ms: int,
@@ -293,6 +301,12 @@ class TransactionalExternalCoreExecutor:
         key = str(idempotency_key).strip()
         if not key:
             raise ValueError("transactional invocation requires an idempotency key")
+        epoch_id = str(workspace_epoch_id).strip()
+        if not epoch_id:
+            raise ValueError("transactional invocation requires workspace execution epoch")
+        if workspace.active_execution_epoch_id != epoch_id:
+            raise PermissionError("workspace execution epoch does not authorize transactional invocation")
+        core_digest = str(core_contract_digest).strip()
         action_id = self._action_id(agent_id=agent_id, task_id=task_id, idempotency_key=key)
         contract = ExecutionContract(
             action_id=action_id,
@@ -307,6 +321,8 @@ class TransactionalExternalCoreExecutor:
             idempotency_key=key,
             recovery_plan=str(recovery_plan),
             budget=budget or self._default_budget(effect),
+            core_contract_digest=core_digest,
+            workspace_epoch_id=epoch_id,
         )
         row = self.protocol.propose(contract)
         if row.action_id != action_id or row.phase is not ActionPhase.PROPOSED:
@@ -346,6 +362,8 @@ class TransactionalExternalCoreExecutor:
                 task_id=str(task_id),
                 workspace=workspace,
                 action=action,
+                core_contract_digest=core_digest,
+                workspace_epoch_id=epoch_id,
                 timeout_seconds=float(timeout_seconds),
                 max_output_chars=int(max_output_chars),
             )
@@ -357,6 +375,8 @@ class TransactionalExternalCoreExecutor:
                 input_digest=contract.input_digest,
                 before_workspace_digest=dispatch_workspace_digest,
                 after_workspace_digest=workspace.digest,
+                core_contract_digest=core_digest,
+                workspace_epoch_id=epoch_id,
             )
             self.protocol.observe_outcome(
                 action_id,
