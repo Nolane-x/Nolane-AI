@@ -657,6 +657,46 @@ class JustificationEpistemicJudge:
         memo[claim.claim_id] = row
         return row
 
+    @staticmethod
+    def _contributing_support_evidence_ids(
+        target_claim_id: str,
+        *,
+        knowledge: KnowledgeLedger,
+        evidence: EvidenceLedger,
+        justifications: KnowledgeJustificationRegistry,
+        status_map: Mapping[str, JustificationStatus],
+    ) -> tuple[str, ...]:
+        """Trace only supported proof paths reachable from the target.
+
+        The full v6 lineage remains audit-relevant, but a supported parent that is
+        reachable only through a dead target justification is not an origin of the
+        target's live support and therefore must not reduce verifier independence.
+        """
+        support_ids: set[str] = set()
+        visited_claims: set[str] = set()
+
+        def visit(claim_id: str) -> None:
+            if claim_id in visited_claims:
+                return
+            visited_claims.add(claim_id)
+            knowledge.get(claim_id)
+            for basis in justifications.effective_justifications(claim_id, knowledge=knowledge):
+                status = status_map.get(basis.justification_id)
+                if status is None or status.status != "supported":
+                    continue
+                for evidence_id in basis.evidence_ids:
+                    try:
+                        item = evidence.get(evidence_id)
+                    except KeyError:
+                        continue
+                    if item.polarity is EvidencePolarity.SUPPORT:
+                        support_ids.add(evidence_id)
+                for parent_id in basis.parent_claim_ids:
+                    visit(parent_id)
+
+        visit(str(target_claim_id))
+        return tuple(sorted(support_ids))
+
     def relation_aware_temporal_scope(
         self,
         claim_id: str,
@@ -790,11 +830,13 @@ class JustificationEpistemicJudge:
                 source_ids.add(evidence.get(evidence_id).source_id)
             except KeyError:
                 continue
-        supporting_evidence_ids = {
-            evidence_id
-            for assessment in assessments
-            for evidence_id in assessment.support_evidence_ids
-        }
+        supporting_evidence_ids = self._contributing_support_evidence_ids(
+            target,
+            knowledge=knowledge,
+            evidence=evidence,
+            justifications=justifications,
+            status_map=status_map,
+        )
         supporting_source_ids: set[str] = set()
         for evidence_id in supporting_evidence_ids:
             try:
