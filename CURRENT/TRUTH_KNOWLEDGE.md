@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A12 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A12 Truth Maintenance / Multiple Independent Justifications v6 was accepted from exact candidate `80d0513e152829afbfeb9b141b234c390162ede6` and merged to `main` as `ca1e8ee0f726c33a9b3e805e6713aae93a6b5c26`.**
+Status: **A1–A12 remain accepted as the canonical External Core family-A Truth / Knowledge baseline. A13 Defeasible Truth Maintenance / Justification Undercutters v7 is the active production candidate and is not accepted until exact-head focused CI, synthetic merge-state Refoundation proof, expected-head production merge, and a separate acceptance seal all succeed.**
 
 ## Canonical authority model
 
@@ -599,3 +599,83 @@ The acceptance chain is explicit:
 Canonical family-A status at this revision is therefore **A1–A12 accepted**.
 
 Historical R-series workflows do not define current family-A architecture authority.
+
+## A13 candidate — defeasible truth maintenance / justification undercutters v7
+
+A13 closes the inference-validity gap left intentionally open by A12. A12 can maintain several independent OR-of-AND justifications, but a justification whose Evidence and parents remain live has no canonical way to express that the **inference from those premises to the claim has itself been invalidated**. Revoking the original Evidence would destroy historical truth, while adding a refuting claim would attack the proposition rather than the derivation.
+
+A13 therefore adds exact-basis **justification undercutters** as additive sidecars beneath the existing five authorities. It does not create a sixth authority and does not mutate A1–A12 serialized identities.
+
+The candidate progression is:
+
+```text
+global v1
+    ↓
+dependency-scope v2
+    ↓
+relation-aware-scope v3
+    ↓
+relation-aware-temporal v4
+    ↓
+provenance-lineage-temporal v5
+    ↓
+justification-provenance-lineage-temporal v6
+    ↓
+defeasible-justification-provenance-lineage-temporal v7
+```
+
+V7 binding mode is exactly:
+
+```text
+defeasible-justification-provenance-lineage-temporal-v7
+```
+
+### Knowledge undercutter law
+
+`knowledge_undercutter_truth.py` belongs to `external.knowledge` through `PARENT_COMPONENT_ID` only. `JustificationUndercutterRevision` binds an immutable undercutter identity to the exact target claim content digest, exact target justification ID and exact target basis digest, together with its own Evidence/parent basis, strict revision/predecessor lineage, enabled state and canonical digest.
+
+A newly registered undercutter must target the **currently effective exact basis**. It cannot silently follow a later justification revision. Historical restore is stricter in a different dimension: an old attack may be replayed only when its target exact basis can be proven to have existed in canonical legacy or explicit justification history. Thus live stale-basis attacks fail closed while append-only historical audit remains durable after the target justification evolves.
+
+The combined justification/undercutter parent graph is cycle-checked. Projection is relevant-only and serialized restore rejects protocol, digest, duplicate, revision-gap, predecessor and target-rebinding attacks.
+
+### Defeasible Epistemic v7
+
+Each A12 path keeps an `intrinsic_status`; A13 then evaluates exact-bound undercutters before deriving its final path status.
+
+- supported undercutter → target path `defeated`;
+- contradicted undercutter → target path `contested`;
+- refuted undercutter → does not defeat the path;
+- unknown undercutter → creates explicit debt but cannot DoS support;
+- dead undercutter → remains audit-visible but has no live defeating force.
+
+A defeated path does not kill a clean OR alternative. The audit fixed point still retains enabled alternatives, undercutter parent lineages, relation competitors, temporal state, Evidence and provenance so relevant changes stale the scope even when a different branch keeps the proposition live.
+
+`decision_source_ids` is narrower than the audit source set. It traces sources that actually determine the target decision: live supporting derivations plus evidence that decisively refutes or defeats otherwise decision-relevant paths. If a decisive supported undercutter depends on supported parent claims, those parent proof sources are also decision origins. Parents of nondecisive/refuted undercutters are deliberately excluded so audit reachability cannot falsely reduce verification independence.
+
+### Verification v7
+
+`verification_defeasible_truth.py` defines a dedicated v7 receipt/ledger domain. V6 receipts cannot masquerade as v7. Receipts exact-bind claim, v7 scope digest, explicit temporal context/as-of, verifier, channel, Evidence and verifier provenance projection. Invalid and negative receipts remain retained.
+
+Controller-root independence inherits A11 but is evaluated against v7 `decision_source_ids`: a verifier controlled by any source that contributed to the actual truth decision remains auditable but receives zero independent-verification credit. This includes decisive undercutter-parent proof controllers and excludes dead/nondecisive branch-only controllers.
+
+### Assurance v7
+
+`assurance_defeasible_truth.py` preserves accepted risk thresholds: LOW/STANDARD 1 controller + 1 channel, HIGH 2 + 2, CRITICAL 3 + 3. Closure recomputes the complete live v7 scope and follows only final `supported` justification paths for contributing-lineage vetoes. Defeated/dead alternative parents remain audit-visible but cannot veto a separate clean branch. Relevant undercutter revisions stale certificates; unrelated revisions do not.
+
+### Compatibility and candidate evidence
+
+With an empty undercutter registry, dedicated regression contracts compare v7 directly against accepted v6 for target/parent dispositions, final justification statuses, lineage and decision/source-origin behavior. A1–A12 protocol constants and serialized contracts remain untouched. All four A13 modules declare only their accepted `PARENT_COMPONENT_ID` and expose no `COMPONENT_ID`.
+
+The candidate evidence chain includes:
+
+1. initial missing-surface RED `cd515205c6b4ec02376b3ae6b2a10910fbebdce8`, Truth run `33359057965`;
+2. exact-basis/defeater hardening through focused GREEN `0530480a2d93d84b929e777ab4cb48e0e2fa7359`, run `33359548496`;
+3. verification-domain RED `28cc1d5cee0d4387853de10aa97e3eeac1a812de`, run `33359584832`;
+4. assurance-domain RED `f71f474078418fc1b906746d9cf91b31016549d0`, run `33359701048`;
+5. v7 authority/assurance hardening with full focused GREEN including run `33359958842`;
+6. historical exact-basis restore RED `4e32c95346caaecda30e27a3e654ed6c93621acc`, run `33360024839`, exposing 170 pass / 2 targeted failures, then durability fix `e02a4b430cbaf15e51eaa3983a481d20f79b7cae`, run `33360207531` GREEN;
+7. decisive undercutter-parent provenance RED `f5e3096c3f21ca252e03432013f58360b9ed06e5`, run `33360239099`, exposing 172 pass / 1 targeted failure;
+8. decision-origin fix `37bf60576fe206203aa23137cb19f82f450301d5`, followed by relevance hardening and empty-registry v6→v7 compatibility;
+9. pre-documentation candidate evidence head `7ecbf2687095915c0f1d69bd160a1a397ce55f3b`, focused Truth run `33361121764`: Python 3.11 and 3.13 each pass **175 tests**, compile all v1–v7 sidecars, and report repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
+
+This section records **candidate** semantics only. A13 becomes accepted only after the frozen post-documentation head passes fresh focused CI and exact synthetic merge-state Refoundation integration against then-current `main`, is merged with expected-head protection, and is sealed in a separate documentation-only acceptance PR.
