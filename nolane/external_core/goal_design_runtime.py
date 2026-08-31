@@ -27,7 +27,7 @@ from .goal_design import (
 from .goal_design_ledger import GoalDesignLedger
 from .goal_design_truth import AssumptionImpactReport, AssumptionTruthMaintenance
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -113,7 +113,38 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         self.truth = truth
 
     @staticmethod
-    def _declared_assumption_refs(goal: GoalSpec, selected: DesignOption) -> tuple[str, ...]:
+    def _binding_assumption_refs(
+        goal: GoalSpec,
+        options: Sequence[DesignOption],
+    ) -> tuple[str, ...]:
+        """Assumptions whose truth state participates in decision identity.
+
+        Every evaluated option contributes semantics to robust/Pareto evaluation,
+        even when it is not selected. The receipt must therefore bind the truth
+        state of the goal plus the complete evaluated option set.
+        """
+
+        return _refs(
+            tuple(getattr(goal, "assumption_refs", ()))
+            + tuple(
+                ref
+                for option in options
+                for ref in getattr(option, "assumption_refs", ())
+            )
+        )
+
+    @staticmethod
+    def _policy_assumption_refs(
+        goal: GoalSpec,
+        selected: DesignOption,
+    ) -> tuple[str, ...]:
+        """Assumptions that can block execution of the selected decision.
+
+        Alternative options are identity-bound because they influenced the
+        evaluation, but their assumptions do not become prerequisites of the
+        selected action merely by being considered.
+        """
+
         return _refs(
             tuple(getattr(goal, "assumption_refs", ()))
             + tuple(getattr(selected, "assumption_refs", ()))
@@ -137,19 +168,24 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         if selected is None:
             raise CoherenceError(f"selected option {selected_option_id!r} does not exist")
 
-        declared_assumptions = self._declared_assumption_refs(goal, selected)
+        binding_assumptions = self._binding_assumption_refs(goal, options)
+        policy_assumptions = self._policy_assumption_refs(goal, selected)
         bound_assumptions: tuple[str, ...] = ()
         assumption_state_digest = ""
-        if declared_assumptions:
+        if binding_assumptions:
             if self.truth is None:
                 raise CoherenceError(
                     "Goal/Design admission blocked: truth authority is required for assumption-bound decisions"
                 )
             try:
-                truth_snapshot = self.truth.snapshot(declared_assumptions)
-                truth_blockers = self.truth.decision_blockers(
-                    declared_assumptions,
-                    selected.decision_class,
+                truth_snapshot = self.truth.snapshot(binding_assumptions)
+                truth_blockers = (
+                    self.truth.decision_blockers(
+                        policy_assumptions,
+                        selected.decision_class,
+                    )
+                    if policy_assumptions
+                    else ()
                 )
             except ValueError as exc:
                 raise CoherenceError(
