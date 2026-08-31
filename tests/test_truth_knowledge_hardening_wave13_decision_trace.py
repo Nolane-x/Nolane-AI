@@ -199,3 +199,89 @@ def test_a13_supported_parent_of_decisive_undercutter_is_a_decision_origin():
 
     assert coverage.independent_source_count == 0
     assert coverage.non_independent_receipt_ids == ("r-parent-controller",)
+
+
+def test_a13_parent_of_refuted_nondecisive_undercutter_is_not_a_decision_origin():
+    knowledge = KnowledgeLedger()
+    evidence = EvidenceLedger()
+    semantics = RelationSemanticsRegistry()
+    knowledge_temporal = TemporalKnowledgeView()
+    evidence_temporal = TemporalEvidenceView()
+    provenance = SourceProvenanceRegistry()
+    justifications = KnowledgeJustificationRegistry()
+    undercutters = JustificationUndercutterRegistry()
+    context = TemporalContext.create(as_of=AS_OF)
+
+    _record(
+        evidence,
+        evidence_id="target-support-nondecisive",
+        subject_id="target-nondecisive",
+        source_id="target-source-nondecisive",
+    )
+    provenance.register(_prov("target-source-nondecisive", "target-controller-nondecisive"))
+    target = knowledge.add(
+        KnowledgeClaim.create(
+            claim_id="target-nondecisive",
+            subject="system",
+            relation="works_nondecisive",
+            object="yes",
+            evidence_ids=("target-support-nondecisive",),
+        )
+    )
+
+    _record(
+        evidence,
+        evidence_id="parent-support-nondecisive",
+        subject_id="attack-parent-nondecisive",
+        source_id="parent-source-nondecisive",
+    )
+    provenance.register(_prov("parent-source-nondecisive", "parent-controller-nondecisive"))
+    parent = knowledge.add(
+        KnowledgeClaim.create(
+            claim_id="attack-parent-nondecisive",
+            subject="method",
+            relation="is_applicable",
+            object="yes",
+            evidence_ids=("parent-support-nondecisive",),
+        )
+    )
+
+    _record(
+        evidence,
+        evidence_id="attack-refute-nondecisive",
+        subject_id="u-nondecisive",
+        source_id="attack-refute-source",
+        polarity=EvidencePolarity.REFUTE,
+    )
+    provenance.register(_prov("attack-refute-source", "attack-refute-controller"))
+    legacy = justifications.legacy_basis(target)
+    undercutters.register(
+        JustificationUndercutterRevision.create(
+            undercutter_id="u-nondecisive",
+            claim=target,
+            target_basis=legacy,
+            evidence_ids=("attack-refute-nondecisive",),
+            parent_claim_ids=(parent.claim_id,),
+        ),
+        knowledge=knowledge,
+        justifications=justifications,
+    )
+
+    scope = DefeasibleEpistemicJudge().relation_aware_temporal_scope(
+        target.claim_id,
+        temporal_context=context,
+        knowledge=knowledge,
+        evidence=evidence,
+        relation_semantics=semantics,
+        knowledge_temporal=knowledge_temporal,
+        evidence_temporal=evidence_temporal,
+        source_provenance=provenance,
+        justifications=justifications,
+        undercutters=undercutters,
+    )
+
+    assert scope.undercutter_status("u-nondecisive").status == "refuted"
+    assert scope.assessment(target.claim_id).disposition.value == "supported"
+    assert "target-source-nondecisive" in scope.decision_source_ids
+    assert "attack-refute-source" in scope.decision_source_ids
+    assert "parent-source-nondecisive" not in scope.decision_source_ids
