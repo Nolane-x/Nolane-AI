@@ -1,716 +1,257 @@
-"""Runtime enforcement for terminal-intent integrity in D. Goal / Design.
+"""Goal/Design integrity runtime with explicit contract-evolution authority.
 
-``goal_design_integrity`` defines immutable integrity contracts and companion
-receipts. This module turns those artifacts into live authority: decisions are
-admitted only against the current contract, contract supersession invalidates
-older authority, and the integrity layer is content-addressed and persistable.
-
-The historical ``GoalDesignRuntime`` and ``DecisionReceipt`` surfaces are not
-modified. Consumers opt into this stricter runtime explicitly.
+The v0.1 runtime is frozen in ``_goal_design_integrity_runtime_v01``. This
+module preserves that authority surface while adding restart-verifiable,
+content-addressed permission for every non-root contract revision.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
-from .goal_design import (
-    CoherenceError,
-    DecisionReceipt,
-    DesignOption,
-    DesignScenario,
-    GoalDesignSnapshot,
-    GoalSpec,
-    ProofObligation,
-    UncertaintyItem,
-    stable_digest,
-)
-from .goal_design_integrity import (
-    GoalIntegrityAttestation,
-    GoalIntegrityClause,
-    GoalIntegrityClauseKind,
-    GoalIntegrityContract,
-    GoalIntegrityMetricBinding,
-    GoalIntegrityReceipt,
-    assess_goal_integrity,
-    mint_goal_integrity_receipt,
-    verify_goal_integrity_receipt,
-)
-from .goal_design_runtime import (
-    DecisionAuthorityIndex,
-    DecisionLifecycle,
-    GoalDesignRuntime,
+from . import _goal_design_integrity_runtime_v01 as _base
+from ._goal_design_integrity_runtime_v01 import *  # noqa: F401,F403
+from .goal_design import CoherenceError, stable_digest
+from .goal_design_integrity import GoalIntegrityContract
+from .goal_design_integrity_evolution import (
+    EXPLICIT_EVOLUTION_TRUST,
+    LEGACY_UNATTESTED_TRUST,
+    GoalIntegrityEvolutionReceipt,
+    goal_integrity_evolution_receipt_from_state,
+    goal_integrity_evolution_receipt_to_state,
+    verify_goal_integrity_evolution_receipt,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
-@dataclass(frozen=True)
-class GoalIntegrityRuntimeAdmission:
-    """Atomic result of ordinary decision authority plus terminal integrity."""
+class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
+    """v0.2 terminal-integrity runtime with explicit revision authority."""
 
-    decision_receipt: DecisionReceipt
-    integrity_receipt: GoalIntegrityReceipt
-
-
-@dataclass(frozen=True)
-class GoalIntegrityAuthorityRecord:
-    """Persistent companion authority for one immutable decision receipt."""
-
-    decision_receipt: DecisionReceipt
-    integrity_receipt: GoalIntegrityReceipt
-    lifecycle: DecisionLifecycle = DecisionLifecycle.ACTIVE
-    invalidation_reasons: tuple[str, ...] = ()
-
-    @property
-    def decision_receipt_id(self) -> str:
-        return self.decision_receipt.receipt_id
-
-    @property
-    def goal_id(self) -> str:
-        return self.decision_receipt.goal_id
-
-    @property
-    def contract_digest(self) -> str:
-        return self.integrity_receipt.contract_digest
-
-
-class GoalIntegrityAuthorityIndex:
-    """Content-addressed lifecycle index for companion integrity authority."""
-
-    SCHEMA_VERSION = 1
-
-    def __init__(self) -> None:
-        self._records: dict[str, GoalIntegrityAuthorityRecord] = {}
-
-    @staticmethod
-    def _copy_record(record: GoalIntegrityAuthorityRecord) -> GoalIntegrityAuthorityRecord:
-        decision = replace(
-            record.decision_receipt,
-            version_vector=dict(record.decision_receipt.version_vector),
-        )
-        return replace(record, decision_receipt=decision)
-
-    def register(
-        self,
-        decision_receipt: DecisionReceipt,
-        integrity_receipt: GoalIntegrityReceipt,
-    ) -> GoalIntegrityAuthorityRecord:
-        verify_goal_integrity_receipt(integrity_receipt, decision_receipt)
-        receipt_id = decision_receipt.receipt_id
-        candidate = GoalIntegrityAuthorityRecord(
-            decision_receipt=replace(
-                decision_receipt,
-                version_vector=dict(decision_receipt.version_vector),
-            ),
-            integrity_receipt=integrity_receipt,
-        )
-        existing = self._records.get(receipt_id)
-        if existing is not None:
-            if existing.decision_receipt != candidate.decision_receipt:
-                raise ValueError(
-                    "integrity authority cannot rebind a decision receipt identity"
-                )
-            if existing.integrity_receipt != candidate.integrity_receipt:
-                raise ValueError(
-                    "integrity authority cannot rebind a decision to another integrity receipt"
-                )
-            return self._copy_record(existing)
-        self._records[receipt_id] = candidate
-        return self._copy_record(candidate)
-
-    def get(self, decision_receipt_id: str) -> GoalIntegrityAuthorityRecord:
-        try:
-            return self._copy_record(self._records[str(decision_receipt_id)])
-        except KeyError as exc:
-            raise KeyError(
-                f"unknown Goal/Design integrity authority: {decision_receipt_id}"
-            ) from exc
-
-    def records(self) -> tuple[GoalIntegrityAuthorityRecord, ...]:
-        return tuple(
-            self._copy_record(self._records[key]) for key in sorted(self._records)
-        )
-
-    def active(self) -> tuple[GoalIntegrityAuthorityRecord, ...]:
-        return tuple(
-            record
-            for record in self.records()
-            if record.lifecycle is DecisionLifecycle.ACTIVE
-        )
-
-    def mark_stale(
-        self,
-        decision_receipt_id: str,
-        reasons: Sequence[str],
-    ) -> GoalIntegrityAuthorityRecord:
-        normalized = tuple(
-            sorted({str(reason).strip() for reason in reasons if str(reason).strip()})
-        )
-        if not normalized:
-            raise ValueError("integrity authority staleness requires a reason")
-        record = self.get(decision_receipt_id)
-        if record.lifecycle in {
-            DecisionLifecycle.SUPERSEDED,
-            DecisionLifecycle.REVOKED,
-        }:
-            raise ValueError(
-                f"integrity authority lifecycle is terminal ({record.lifecycle.value})"
-            )
-        merged = tuple(sorted(set(record.invalidation_reasons) | set(normalized)))
-        if (
-            record.lifecycle is DecisionLifecycle.STALE
-            and merged == record.invalidation_reasons
-        ):
-            return record
-        updated = replace(
-            record,
-            lifecycle=DecisionLifecycle.STALE,
-            invalidation_reasons=merged,
-        )
-        self._records[decision_receipt_id] = updated
-        return self._copy_record(updated)
-
-    @staticmethod
-    def _receipt_to_state(receipt: GoalIntegrityReceipt) -> dict[str, Any]:
-        return {
-            "receipt_id": receipt.receipt_id,
-            "decision_receipt_id": receipt.decision_receipt_id,
-            "goal_id": receipt.goal_id,
-            "selected_option_id": receipt.selected_option_id,
-            "contract_digest": receipt.contract_digest,
-            "assessment_digest": receipt.assessment_digest,
-            "attestation_ids": list(receipt.attestation_ids),
-        }
-
-    @staticmethod
-    def _receipt_from_state(state: Mapping[str, Any]) -> GoalIntegrityReceipt:
-        return GoalIntegrityReceipt(
-            receipt_id=str(state["receipt_id"]),
-            decision_receipt_id=str(state["decision_receipt_id"]),
-            goal_id=str(state["goal_id"]),
-            selected_option_id=str(state["selected_option_id"]),
-            contract_digest=str(state["contract_digest"]),
-            assessment_digest=str(state["assessment_digest"]),
-            attestation_ids=tuple(str(x) for x in state.get("attestation_ids", ())),
-        )
-
-    def to_state(self) -> dict[str, Any]:
-        rows = []
-        for record in self.records():
-            rows.append(
-                {
-                    "decision_receipt": DecisionAuthorityIndex._receipt_to_state(
-                        record.decision_receipt
-                    ),
-                    "integrity_receipt": self._receipt_to_state(
-                        record.integrity_receipt
-                    ),
-                    "lifecycle": record.lifecycle.value,
-                    "invalidation_reasons": list(record.invalidation_reasons),
-                }
-            )
-        return {"schema_version": self.SCHEMA_VERSION, "records": rows}
-
-    @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> "GoalIntegrityAuthorityIndex":
-        if int(state.get("schema_version", cls.SCHEMA_VERSION)) != cls.SCHEMA_VERSION:
-            raise ValueError("unsupported Goal/Design integrity authority schema")
-        index = cls()
-        for row in state.get("records", ()):
-            decision = DecisionAuthorityIndex._receipt_from_state(
-                row["decision_receipt"]
-            )
-            integrity = cls._receipt_from_state(row["integrity_receipt"])
-            verify_goal_integrity_receipt(integrity, decision)
-            receipt_id = decision.receipt_id
-            if receipt_id in index._records:
-                raise ValueError(
-                    f"duplicate Goal/Design integrity authority: {receipt_id}"
-                )
-            lifecycle = DecisionLifecycle(
-                str(row.get("lifecycle", DecisionLifecycle.ACTIVE.value))
-            )
-            reasons = tuple(
-                sorted(
-                    {
-                        str(reason).strip()
-                        for reason in row.get("invalidation_reasons", ())
-                        if str(reason).strip()
-                    }
-                )
-            )
-            if lifecycle is DecisionLifecycle.ACTIVE and reasons:
-                raise ValueError(
-                    "active Goal/Design integrity authority cannot carry invalidation reasons"
-                )
-            if lifecycle is DecisionLifecycle.STALE and not reasons:
-                raise ValueError(
-                    "stale Goal/Design integrity authority requires an invalidation reason"
-                )
-            index._records[receipt_id] = GoalIntegrityAuthorityRecord(
-                decision_receipt=decision,
-                integrity_receipt=integrity,
-                lifecycle=lifecycle,
-                invalidation_reasons=reasons,
-            )
-        return index
-
-    @property
-    def digest(self) -> str:
-        return stable_digest({"goal_integrity_authority_index": self.to_state()})
-
-
-def _contract_to_state(contract: GoalIntegrityContract) -> dict[str, Any]:
-    return {
-        "goal_id": contract.goal_id,
-        "clauses": [
-            {
-                "clause_id": clause.clause_id,
-                "goal_id": clause.goal_id,
-                "kind": clause.kind.value,
-                "statement": clause.statement,
-                "provenance_ref": clause.provenance_ref,
-                "required_planes": list(clause.required_planes),
-            }
-            for clause in contract.clauses
-        ],
-        "metric_bindings": [
-            {
-                "metric_id": binding.metric_id,
-                "goal_id": binding.goal_id,
-                "criterion_ref": binding.criterion_ref,
-                "metric_ref": binding.metric_ref,
-                "provenance_ref": binding.provenance_ref,
-            }
-            for binding in contract.metric_bindings
-        ],
-    }
-
-
-def _contract_from_state(state: Mapping[str, Any]) -> GoalIntegrityContract:
-    return GoalIntegrityContract(
-        goal_id=str(state["goal_id"]),
-        clauses=tuple(
-            GoalIntegrityClause(
-                clause_id=str(row["clause_id"]),
-                goal_id=str(row["goal_id"]),
-                kind=GoalIntegrityClauseKind(str(row["kind"])),
-                statement=str(row["statement"]),
-                provenance_ref=str(row["provenance_ref"]),
-                required_planes=tuple(
-                    str(x) for x in row.get("required_planes", ())
-                ),
-            )
-            for row in state.get("clauses", ())
-        ),
-        metric_bindings=tuple(
-            GoalIntegrityMetricBinding(
-                metric_id=str(row["metric_id"]),
-                goal_id=str(row["goal_id"]),
-                criterion_ref=str(row["criterion_ref"]),
-                metric_ref=str(row["metric_ref"]),
-                provenance_ref=str(row["provenance_ref"]),
-            )
-            for row in state.get("metric_bindings", ())
-        ),
-    )
-
-
-def _validate_contract_history(
-    contracts: Mapping[str, GoalIntegrityContract],
-    predecessors: Mapping[str, str | None],
-    current: Mapping[str, str],
-) -> None:
-    """Validate that persisted supersession history is exact, linear and current.
-
-    Live installation can only build one append-only chain per goal. Restore must
-    prove the same invariant instead of trusting a serialized current pointer;
-    otherwise a historical contract could be reactivated after persistence.
-    """
-
-    contract_goals = {contract.goal_id for contract in contracts.values()}
-    if set(current) != contract_goals:
-        raise ValueError(
-            "Goal/Design integrity current registry does not cover exact contract goals"
-        )
-
-    by_goal: dict[str, set[str]] = {}
-    for digest, contract in contracts.items():
-        by_goal.setdefault(contract.goal_id, set()).add(digest)
-        if digest not in predecessors:
-            raise ValueError(
-                f"integrity contract {digest} has no persisted predecessor record"
-            )
-
-    for goal_id, digests in by_goal.items():
-        successors: dict[str, str] = {}
-        roots: list[str] = []
-        for digest in digests:
-            predecessor = predecessors[digest]
-            if predecessor is None:
-                roots.append(digest)
-                continue
-            if predecessor == digest:
-                raise ValueError(
-                    f"integrity contract {digest} cannot supersede itself"
-                )
-            predecessor_contract = contracts.get(predecessor)
-            if predecessor_contract is None:
-                raise ValueError(
-                    f"integrity contract {digest} references unknown predecessor"
-                )
-            if predecessor_contract.goal_id != goal_id:
-                raise ValueError(
-                    "Goal/Design integrity predecessor cannot cross goal authority"
-                )
-            if predecessor in successors:
-                raise ValueError(
-                    "Goal/Design integrity supersession history cannot branch"
-                )
-            successors[predecessor] = digest
-
-        if len(roots) != 1:
-            raise ValueError(
-                "Goal/Design integrity supersession history requires exactly one root per goal"
-            )
-
-        visited: set[str] = set()
-        cursor = roots[0]
-        while True:
-            if cursor in visited:
-                raise ValueError("Goal/Design integrity supersession history contains a cycle")
-            visited.add(cursor)
-            successor = successors.get(cursor)
-            if successor is None:
-                head = cursor
-                break
-            cursor = successor
-
-        if visited != digests:
-            raise ValueError(
-                "Goal/Design integrity supersession history is disconnected or cyclic"
-            )
-        if current.get(goal_id) != head:
-            raise ValueError(
-                "historical Goal/Design integrity contract cannot be reactivated; current must be the supersession head"
-            )
-
-
-class GoalIntegrityRuntime(GoalDesignRuntime):
-    """Fail-closed Goal/Design runtime with terminal-intent continuity."""
-
-    INTEGRITY_STATE_SCHEMA_VERSION = 1
+    EVOLUTION_STATE_SCHEMA_VERSION = 2
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self.integrity_authority = GoalIntegrityAuthorityIndex()
-        self._integrity_contracts: dict[str, GoalIntegrityContract] = {}
-        self._current_contracts: dict[str, str] = {}
-        self._contract_predecessors: dict[str, str | None] = {}
+        self._evolution_receipts: dict[str, GoalIntegrityEvolutionReceipt] = {}
+        self._legacy_unattested_evolution_digests: set[str] = set()
 
-    def current_integrity_contract(self, goal_id: str) -> GoalIntegrityContract:
-        goal_id = str(goal_id).strip()
-        digest = self._current_contracts.get(goal_id)
-        if digest is None:
-            raise KeyError(f"no current Goal/Design integrity contract for {goal_id}")
-        return self._integrity_contracts[digest]
+    def _ensure_evolution_state(self) -> None:
+        # Some authority tests intentionally construct the bounded integrity
+        # layer with __new__ and no five-plane runtime. Keep that seam valid.
+        if not hasattr(self, "_evolution_receipts"):
+            self._evolution_receipts = {}
+        if not hasattr(self, "_legacy_unattested_evolution_digests"):
+            self._legacy_unattested_evolution_digests = set()
 
     def install_integrity_contract(
         self,
         contract: GoalIntegrityContract,
         *,
         supersedes_digest: str | None = None,
+        evolution_receipt: GoalIntegrityEvolutionReceipt | None = None,
     ) -> str:
-        """Install or explicitly supersede terminal-intent authority.
+        """Install root authority or supersede only with exact evolution proof."""
 
-        A changed contract must name the exact current predecessor. Historical
-        digests cannot be reactivated, preventing rollback-based authority
-        laundering.
-        """
-
+        self._ensure_evolution_state()
         current_digest = self._current_contracts.get(contract.goal_id)
-        if current_digest is None:
-            if supersedes_digest not in (None, ""):
-                raise CoherenceError(
-                    "Goal/Design integrity contract has no predecessor to supersede"
-                )
-            self._integrity_contracts[contract.digest] = contract
-            self._current_contracts[contract.goal_id] = contract.digest
-            self._contract_predecessors.setdefault(contract.digest, None)
-            return contract.digest
 
-        if current_digest == contract.digest:
-            if supersedes_digest not in (None, "", current_digest):
+        if current_digest is None or current_digest == contract.digest:
+            if evolution_receipt is not None:
                 raise CoherenceError(
-                    "Goal/Design integrity contract predecessor does not match current authority"
+                    "Goal/Design evolution authority is only valid for a changed non-root contract"
                 )
-            return contract.digest
+            return super().install_integrity_contract(
+                contract,
+                supersedes_digest=supersedes_digest,
+            )
 
+        # Preserve the v0.1 ordering for lineage errors and historical replay:
+        # a caller cannot hide a wrong predecessor behind a missing receipt.
         supplied = "" if supersedes_digest is None else str(supersedes_digest).strip()
-        if supplied != current_digest:
+        if supplied != current_digest or contract.digest in self._integrity_contracts:
+            return super().install_integrity_contract(
+                contract,
+                supersedes_digest=supersedes_digest,
+            )
+
+        if evolution_receipt is None:
             raise CoherenceError(
-                "Goal/Design integrity contract supersession requires the exact current predecessor digest"
-            )
-        if contract.digest in self._integrity_contracts:
-            raise CoherenceError(
-                "historical Goal/Design integrity contract cannot be reactivated"
+                "Goal/Design integrity contract evolution requires explicit evolution authority; "
+                "an exact predecessor digest proves lineage but cannot authorize semantic revision"
             )
 
-        reason = (
-            "goal integrity contract superseded: "
-            f"{current_digest} -> {contract.digest}"
-        )
-
-        self._integrity_contracts[contract.digest] = contract
-        self._contract_predecessors[contract.digest] = current_digest
-        self._current_contracts[contract.goal_id] = contract.digest
-
-        for integrity_record in tuple(self.integrity_authority.active()):
-            if (
-                integrity_record.goal_id != contract.goal_id
-                or integrity_record.contract_digest != current_digest
-            ):
-                continue
-            receipt_id = integrity_record.decision_receipt_id
-            try:
-                decision_record = self.decisions.get(receipt_id)
-            except KeyError:
-                decision_record = None
-            if (
-                decision_record is not None
-                and decision_record.lifecycle is DecisionLifecycle.ACTIVE
-            ):
-                self.decisions.mark_stale(receipt_id, (reason,))
-                self._record_invalidation(decision_record, (reason,))
-            self.integrity_authority.mark_stale(receipt_id, (reason,))
-        return contract.digest
-
-    @staticmethod
-    def _integrity_blockers(assessment: Any) -> tuple[str, ...]:
-        blockers: list[str] = []
-        if assessment.missing_preservations:
-            rendered = ", ".join(
-                f"{plane}:{clause_id}"
-                for plane, clause_id in assessment.missing_preservations
-            )
-            blockers.append("missing terminal integrity preservation: " + rendered)
-        if assessment.violated_clause_ids:
-            blockers.append(
-                "violated terminal integrity clauses: "
-                + ", ".join(assessment.violated_clause_ids)
-            )
-        if assessment.stale_attestation_ids:
-            blockers.append(
-                "stale integrity attestations: "
-                + ", ".join(assessment.stale_attestation_ids)
-            )
-        if not blockers:
-            blockers.append("terminal integrity assessment is not authorized")
-        return tuple(blockers)
-
-    def admit(
-        self,
-        *,
-        goal: GoalSpec,
-        scenarios: Sequence[DesignScenario],
-        options: Sequence[DesignOption],
-        selected_option_id: str,
-        snapshot: GoalDesignSnapshot,
-        proof_obligations: Sequence[ProofObligation] = (),
-        uncertainties: Sequence[UncertaintyItem] = (),
-        integrity_attestations: Sequence[GoalIntegrityAttestation] = (),
-    ) -> GoalIntegrityRuntimeAdmission:
-        """Admit only after terminal integrity is proven, before side effects."""
-
+        predecessor = self._integrity_contracts[current_digest]
         try:
-            contract = self.current_integrity_contract(goal.goal_id)
-        except KeyError as exc:
-            raise CoherenceError(
-                f"Goal/Design admission blocked: integrity contract is required for {goal.goal_id}"
-            ) from exc
-
-        try:
-            assessment = assess_goal_integrity(contract, integrity_attestations)
+            verify_goal_integrity_evolution_receipt(
+                evolution_receipt,
+                predecessor=predecessor,
+                successor=contract,
+            )
         except ValueError as exc:
             raise CoherenceError(
-                f"Goal/Design admission blocked by terminal integrity authority: {exc}"
+                f"Goal/Design integrity evolution authority is invalid: {exc}"
             ) from exc
-        if not assessment.authorized:
-            raise CoherenceError(
-                "Goal/Design admission blocked by terminal integrity authority: "
-                + "; ".join(self._integrity_blockers(assessment))
-            )
 
-        decision_receipt = super().admit(
-            goal=goal,
-            scenarios=scenarios,
-            options=options,
-            selected_option_id=selected_option_id,
-            snapshot=snapshot,
-            proof_obligations=proof_obligations,
-            uncertainties=uncertainties,
+        result = super().install_integrity_contract(
+            contract,
+            supersedes_digest=supersedes_digest,
         )
-        integrity_receipt = mint_goal_integrity_receipt(
-            decision_receipt=decision_receipt,
-            contract=contract,
-            assessment=assessment,
-        )
-        self.integrity_authority.register(decision_receipt, integrity_receipt)
-        return GoalIntegrityRuntimeAdmission(
-            decision_receipt=decision_receipt,
-            integrity_receipt=integrity_receipt,
-        )
+        self._evolution_receipts[contract.digest] = evolution_receipt
+        self._legacy_unattested_evolution_digests.discard(contract.digest)
+        return result
 
-    def _stale_integrity_authority(
-        self,
-        receipt_id: str,
-        reasons: Sequence[str],
-    ) -> None:
+    def evolution_receipt_for(self, contract_digest: str) -> GoalIntegrityEvolutionReceipt:
+        self._ensure_evolution_state()
+        digest = str(contract_digest).strip()
         try:
-            integrity_record = self.integrity_authority.get(receipt_id)
-        except KeyError:
-            return
-        if integrity_record.lifecycle is DecisionLifecycle.ACTIVE:
-            self.integrity_authority.mark_stale(receipt_id, reasons)
+            return self._evolution_receipts[digest]
+        except KeyError as exc:
+            raise KeyError(f"no explicit Goal/Design evolution receipt for {digest}") from exc
 
-    def revalidate_decisions(self) -> tuple[str, ...]:
-        """Revalidate plane/truth authority and terminal-intent continuity."""
+    def evolution_trust_label(self, contract_digest: str) -> str:
+        self._ensure_evolution_state()
+        digest = str(contract_digest).strip()
+        if digest in self._evolution_receipts:
+            return EXPLICIT_EVOLUTION_TRUST
+        if digest in self._legacy_unattested_evolution_digests:
+            return LEGACY_UNATTESTED_TRUST
+        raise KeyError(f"contract {digest} is not a Goal/Design integrity revision")
 
-        stale = set(super().revalidate_decisions())
-        for receipt_id in tuple(stale):
-            self._stale_integrity_authority(
-                receipt_id,
-                ("underlying Goal/Design decision authority became stale",),
-            )
-
-        for decision_record in tuple(self.decisions.active()):
-            receipt_id = decision_record.receipt.receipt_id
-            reasons: tuple[str, ...] = ()
-            try:
-                integrity_record = self.integrity_authority.get(receipt_id)
-            except KeyError:
-                integrity_record = None
-                reasons = ("decision has no companion terminal integrity authority",)
-            else:
-                current_digest = self._current_contracts.get(
-                    decision_record.receipt.goal_id
-                )
-                if current_digest is None:
-                    reasons = ("current goal integrity contract is unavailable",)
-                elif integrity_record.contract_digest != current_digest:
-                    reasons = (
-                        "goal integrity contract changed after decision admission: "
-                        f"{integrity_record.contract_digest} -> {current_digest}",
-                    )
-                elif integrity_record.lifecycle is not DecisionLifecycle.ACTIVE:
-                    reasons = (
-                        "companion terminal integrity authority is not active",
-                    )
-            if not reasons:
-                continue
-            self.decisions.mark_stale(receipt_id, reasons)
-            self._record_invalidation(decision_record, reasons)
-            if (
-                integrity_record is not None
-                and integrity_record.lifecycle is DecisionLifecycle.ACTIVE
-            ):
-                self.integrity_authority.mark_stale(receipt_id, reasons)
-            stale.add(receipt_id)
-        return tuple(sorted(stale))
+    @staticmethod
+    def _state_digest(payload: Mapping[str, Any]) -> str:
+        return stable_digest({"goal_integrity_runtime_state_v2": dict(payload)})
 
     def integrity_state(self) -> dict[str, Any]:
-        contracts = [
-            {
-                "digest": digest,
-                "contract": _contract_to_state(self._integrity_contracts[digest]),
-                "predecessor_digest": self._contract_predecessors.get(digest),
-            }
-            for digest in sorted(self._integrity_contracts)
-        ]
-        return {
-            "schema_version": self.INTEGRITY_STATE_SCHEMA_VERSION,
-            "contracts": contracts,
-            "current_contracts": {
-                goal_id: self._current_contracts[goal_id]
-                for goal_id in sorted(self._current_contracts)
-            },
-            "authority": self.integrity_authority.to_state(),
+        self._ensure_evolution_state()
+        base_state = super().integrity_state()
+        payload: dict[str, Any] = {
+            "schema_version": self.EVOLUTION_STATE_SCHEMA_VERSION,
+            "contracts": base_state["contracts"],
+            "current_contracts": base_state["current_contracts"],
+            "authority": base_state["authority"],
+            "evolution_receipts": [
+                {
+                    "successor_digest": digest,
+                    "receipt": goal_integrity_evolution_receipt_to_state(
+                        self._evolution_receipts[digest]
+                    ),
+                }
+                for digest in sorted(self._evolution_receipts)
+            ],
+            "legacy_unattested_evolution_digests": tuple(
+                sorted(self._legacy_unattested_evolution_digests)
+            ),
         }
+        return {**payload, "state_digest": self._state_digest(payload)}
+
+    @staticmethod
+    def _validated_base_runtime(state: Mapping[str, Any]) -> _base.GoalIntegrityRuntime:
+        temporary = _base.GoalIntegrityRuntime.__new__(_base.GoalIntegrityRuntime)
+        temporary.integrity_authority = _base.GoalIntegrityAuthorityIndex()
+        temporary._integrity_contracts = {}
+        temporary._current_contracts = {}
+        temporary._contract_predecessors = {}
+        temporary.restore_integrity_state(state)
+        return temporary
 
     def restore_integrity_state(self, state: Mapping[str, Any]) -> None:
-        """Restore a self-verifying integrity layer into an otherwise fresh runtime."""
+        """Atomically restore v2 authority, or explicitly migrate historical v1."""
 
+        self._ensure_evolution_state()
         if (
             self._integrity_contracts
             or self._current_contracts
             or self._contract_predecessors
             or self.integrity_authority.records()
+            or self._evolution_receipts
+            or self._legacy_unattested_evolution_digests
         ):
             raise ValueError("Goal/Design integrity runtime state is already populated")
-        if int(
-            state.get("schema_version", self.INTEGRITY_STATE_SCHEMA_VERSION)
-        ) != self.INTEGRITY_STATE_SCHEMA_VERSION:
+
+        schema = int(state.get("schema_version", _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION))
+        if schema == _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION:
+            # Historical state predates evolution receipts. Preserve it without
+            # fabricating evidence, and make that trust boundary explicit on the
+            # first v2 reserialization.
+            temporary = self._validated_base_runtime(state)
+            receipts: dict[str, GoalIntegrityEvolutionReceipt] = {}
+            legacy = {
+                digest
+                for digest, predecessor in temporary._contract_predecessors.items()
+                if predecessor is not None
+            }
+        elif schema == self.EVOLUTION_STATE_SCHEMA_VERSION:
+            payload = {
+                "schema_version": schema,
+                "contracts": state.get("contracts", ()),
+                "current_contracts": state.get("current_contracts", {}),
+                "authority": state.get("authority", {}),
+                "evolution_receipts": state.get("evolution_receipts", ()),
+                "legacy_unattested_evolution_digests": tuple(
+                    state.get("legacy_unattested_evolution_digests", ())
+                ),
+            }
+            if str(state.get("state_digest", "")) != self._state_digest(payload):
+                raise ValueError("Goal/Design integrity runtime v2 state digest mismatch")
+
+            base_state = {
+                "schema_version": _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION,
+                "contracts": payload["contracts"],
+                "current_contracts": payload["current_contracts"],
+                "authority": payload["authority"],
+            }
+            temporary = self._validated_base_runtime(base_state)
+
+            receipts = {}
+            for row in payload["evolution_receipts"]:
+                successor_digest = str(row["successor_digest"])
+                if successor_digest in receipts:
+                    raise ValueError("duplicate Goal/Design integrity evolution receipt")
+                receipt = goal_integrity_evolution_receipt_from_state(row["receipt"])
+                successor = temporary._integrity_contracts.get(successor_digest)
+                predecessor_digest = temporary._contract_predecessors.get(successor_digest)
+                predecessor = temporary._integrity_contracts.get(predecessor_digest)
+                if successor is None or predecessor is None:
+                    raise ValueError(
+                        "Goal/Design evolution receipt references a non-revision contract"
+                    )
+                verify_goal_integrity_evolution_receipt(
+                    receipt,
+                    predecessor=predecessor,
+                    successor=successor,
+                )
+                receipts[successor_digest] = receipt
+
+            legacy = {
+                str(value)
+                for value in payload["legacy_unattested_evolution_digests"]
+            }
+            revision_digests = {
+                digest
+                for digest, predecessor in temporary._contract_predecessors.items()
+                if predecessor is not None
+            }
+            if set(receipts) & legacy:
+                raise ValueError(
+                    "Goal/Design integrity revision cannot be both explicit and legacy-unattested"
+                )
+            if set(receipts) | legacy != revision_digests:
+                raise ValueError(
+                    "every Goal/Design integrity revision requires explicit or legacy trust provenance"
+                )
+        else:
             raise ValueError("unsupported Goal/Design integrity runtime schema")
 
-        contracts: dict[str, GoalIntegrityContract] = {}
-        predecessors: dict[str, str | None] = {}
-        for row in state.get("contracts", ()):
-            contract = _contract_from_state(row["contract"])
-            digest = str(row["digest"])
-            if digest != contract.digest:
-                raise ValueError("persisted Goal/Design integrity contract digest mismatch")
-            if digest in contracts:
-                raise ValueError("duplicate persisted Goal/Design integrity contract")
-            contracts[digest] = contract
-            predecessor = row.get("predecessor_digest")
-            predecessors[digest] = None if predecessor is None else str(predecessor)
-
-        for digest, predecessor in predecessors.items():
-            if predecessor is not None and predecessor not in contracts:
-                raise ValueError(
-                    f"integrity contract {digest} references unknown predecessor"
-                )
-
-        current = {
-            str(goal_id): str(digest)
-            for goal_id, digest in dict(state.get("current_contracts", {})).items()
-        }
-        for goal_id, digest in current.items():
-            contract = contracts.get(digest)
-            if contract is None or contract.goal_id != goal_id:
-                raise ValueError(
-                    "current Goal/Design integrity contract registry is inconsistent"
-                )
-
-        _validate_contract_history(contracts, predecessors, current)
-
-        authority = GoalIntegrityAuthorityIndex.from_state(state.get("authority", {}))
-        for record in authority.records():
-            contract = contracts.get(record.contract_digest)
-            if contract is None or contract.goal_id != record.goal_id:
-                raise ValueError(
-                    "Goal/Design integrity authority references an unknown or foreign contract"
-                )
-            if record.lifecycle is DecisionLifecycle.ACTIVE:
-                current_digest = current.get(record.goal_id)
-                if current_digest != record.contract_digest:
-                    raise ValueError(
-                        "active integrity authority is not bound to the current contract"
-                    )
-
-        self._integrity_contracts = contracts
-        self._current_contracts = current
-        self._contract_predecessors = predecessors
-        self.integrity_authority = authority
-
-    @property
-    def integrity_digest(self) -> str:
-        return stable_digest({"goal_integrity_runtime": self.integrity_state()})
+        # Publish only after base topology, authority, receipt identity and every
+        # evolution edge have all been proven on the temporary runtime.
+        self._integrity_contracts = dict(temporary._integrity_contracts)
+        self._current_contracts = dict(temporary._current_contracts)
+        self._contract_predecessors = dict(temporary._contract_predecessors)
+        self.integrity_authority = temporary.integrity_authority
+        self._evolution_receipts = dict(receipts)
+        self._legacy_unattested_evolution_digests = set(legacy)
 
 
-__all__ = [
-    "GoalIntegrityAuthorityIndex",
-    "GoalIntegrityAuthorityRecord",
+__all__ = tuple(_base.__all__) + (
+    "GoalIntegrityEvolutionReceipt",
     "GoalIntegrityRuntime",
-    "GoalIntegrityRuntimeAdmission",
-]
+)

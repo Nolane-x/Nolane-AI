@@ -24,6 +24,9 @@ from nolane.external_core.goal_design_integrity import (
     GoalIntegrityContract,
     verify_goal_integrity_receipt,
 )
+from nolane.external_core.goal_design_integrity_evolution import (
+    mint_goal_integrity_evolution_receipt,
+)
 from nolane.external_core.goal_design_integrity_runtime import GoalIntegrityRuntime
 from nolane.external_core.goal_design_runtime import DecisionLifecycle
 from nolane.external_core.integration import ChangeCandidate, IntegrationGraph
@@ -168,6 +171,19 @@ def _contract(statement="Preserve explicit user intent and control."):
     )
 
 
+def _evolution(predecessor, successor):
+    return mint_goal_integrity_evolution_receipt(
+        predecessor=predecessor,
+        successor=successor,
+        authority_ref="authority:goal-owner",
+        reason="Reviewed Goal/Design integrity contract revision.",
+        source_refs=("source:goal-owner",),
+        evidence_refs=("evidence:goal-review",),
+        freshness_ref="freshness:test:v2",
+        confidence_milli=1000,
+    )
+
+
 def _attestations(contract, *, missing_plane=None):
     result = []
     for plane in GOAL_DESIGN_PLANES:
@@ -281,7 +297,11 @@ def test_contract_supersession_atomically_stales_old_decision_and_integrity_auth
     snapshot = runtime.freeze()
     admission = _admit(runtime, snapshot, original)
 
-    runtime.install_integrity_contract(revised, supersedes_digest=original.digest)
+    runtime.install_integrity_contract(
+        revised,
+        supersedes_digest=original.digest,
+        evolution_receipt=_evolution(original, revised),
+    )
 
     decision_id = admission.decision_receipt.receipt_id
     decision_record = runtime.decisions.get(decision_id)
@@ -298,7 +318,11 @@ def test_old_attestations_cannot_launder_authority_after_contract_supersession()
     original = _contract()
     revised = _contract("Preserve explicit user intent, control, and reversible choice.")
     runtime.install_integrity_contract(original)
-    runtime.install_integrity_contract(revised, supersedes_digest=original.digest)
+    runtime.install_integrity_contract(
+        revised,
+        supersedes_digest=original.digest,
+        evolution_receipt=_evolution(original, revised),
+    )
     snapshot = runtime.freeze()
     ledger_events_before = runtime.ledger.events
 
@@ -321,7 +345,11 @@ def test_fresh_attestations_under_superseding_contract_authorize_new_decision():
     original = _contract()
     revised = _contract("Preserve explicit user intent, control, and reversible choice.")
     runtime.install_integrity_contract(original)
-    runtime.install_integrity_contract(revised, supersedes_digest=original.digest)
+    runtime.install_integrity_contract(
+        revised,
+        supersedes_digest=original.digest,
+        evolution_receipt=_evolution(original, revised),
+    )
     snapshot = runtime.freeze()
 
     admission = _admit(runtime, snapshot, revised)

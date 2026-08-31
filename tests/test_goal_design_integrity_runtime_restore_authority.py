@@ -5,6 +5,9 @@ from nolane.external_core.goal_design_integrity import (
     GoalIntegrityClauseKind,
     GoalIntegrityContract,
 )
+from nolane.external_core.goal_design_integrity_evolution import (
+    mint_goal_integrity_evolution_receipt,
+)
 from nolane.external_core.goal_design_integrity_runtime import (
     GoalIntegrityAuthorityIndex,
     GoalIntegrityRuntime,
@@ -32,7 +35,21 @@ def _blank_runtime() -> GoalIntegrityRuntime:
     runtime._integrity_contracts = {}
     runtime._current_contracts = {}
     runtime._contract_predecessors = {}
+    runtime._evolution_receipts = {}
+    runtime._legacy_unattested_evolution_digests = set()
     return runtime
+
+
+def _evolution(predecessor, successor):
+    return mint_goal_integrity_evolution_receipt(
+        predecessor=predecessor,
+        successor=successor,
+        authority_ref="authority:goal-owner",
+        reason="Reviewed restore-authority revision.",
+        source_refs=("source:goal-owner",),
+        evidence_refs=("evidence:restore-review",),
+        freshness_ref="freshness:test:v2",
+    )
 
 
 def test_restore_rejects_reactivation_of_historical_integrity_contract():
@@ -41,10 +58,16 @@ def test_restore_rejects_reactivation_of_historical_integrity_contract():
     revised = _contract("Preserve terminal intent and reversible user control.")
 
     runtime.install_integrity_contract(original)
-    runtime.install_integrity_contract(revised, supersedes_digest=original.digest)
+    runtime.install_integrity_contract(
+        revised,
+        supersedes_digest=original.digest,
+        evolution_receipt=_evolution(original, revised),
+    )
     state = runtime.integrity_state()
 
     state["current_contracts"][original.goal_id] = original.digest
+    payload = {key: value for key, value in state.items() if key != "state_digest"}
+    state["state_digest"] = GoalIntegrityRuntime._state_digest(payload)
 
     restored = _blank_runtime()
     with pytest.raises(ValueError, match="historical|head|reactivat|supersed"):
