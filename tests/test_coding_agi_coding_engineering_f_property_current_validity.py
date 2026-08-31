@@ -219,8 +219,12 @@ def _systems():
     )
     return {
         "patch": patch,
+        "claims": claims,
         "evidence": evidence,
         "legacy_attestations": tuple(legacy_attestations),
+        "transactions": transactions,
+        "claim_bindings": claim_bindings,
+        "closure": closure,
         "historical": historical,
         "validity": validity,
         "property_evidence": property_evidence,
@@ -331,4 +335,68 @@ def test_current_property_validity_snapshot_rejects_recomputed_truth_upgrade() -
             validity=systems["validity"],
             property_gate=systems["property_gate"],
             state=state,
+        )
+
+
+def test_cross_layer_recomputed_truth_upgrade_cannot_launder_revoked_legacy_evidence() -> None:
+    systems = _systems()
+    systems["evidence"].revoke(
+        systems["legacy_attestations"][1].attestation_id,
+        reason="legacy verifier artifact revoked",
+    )
+    blocked = _assess(systems)
+    assert blocked.current is False
+    assert "legacy_current_validity:revoked_or_invalid_evidence" in blocked.reasons
+
+    validity_state = deepcopy(systems["validity"].to_state())
+    validity_row = next(
+        row
+        for row in validity_state["receipts"]
+        if row["receipt_id"] == blocked.current_validity_receipt_id
+    )
+    validity_row["current"] = True
+    validity_row["decision"] = "current_valid"
+    validity_row["reasons"] = []
+    validity_payload = {
+        key: value
+        for key, value in validity_row.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    validity_digest = canonical_digest(validity_payload)
+    validity_row["digest"] = validity_digest
+    validity_row["receipt_id"] = f"eng-validity-{validity_digest[:20]}"
+
+    forged_validity = EngineeringValidityEngine.from_state(
+        evidence=systems["evidence"],
+        transactions=systems["transactions"],
+        closure=systems["closure"],
+        claims=systems["claims"],
+        claim_bindings=systems["claim_bindings"],
+        state=validity_state,
+    )
+
+    current_state = deepcopy(systems["current"].to_state())
+    current_row = next(
+        row
+        for row in current_state["receipts"]
+        if row["receipt_id"] == blocked.receipt_id
+    )
+    current_row["current_validity_receipt_id"] = validity_row["receipt_id"]
+    current_row["current_validity_digest"] = validity_row["digest"]
+    current_row["current"] = True
+    current_row["reasons"] = []
+    current_payload = {
+        key: value
+        for key, value in current_row.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    current_digest = canonical_digest(current_payload)
+    current_row["digest"] = current_digest
+    current_row["receipt_id"] = f"eng-current-property-{current_digest[:20]}"
+
+    with pytest.raises(ValueError, match="truth|validity|evidence|current"):
+        SoftwareEngineeringCurrentPropertyValidity.from_state(
+            validity=forged_validity,
+            property_gate=systems["property_gate"],
+            state=current_state,
         )
