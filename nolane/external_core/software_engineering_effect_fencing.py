@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from nolane.external_core.software_engineering import PatchTransactionLedger
+from nolane.external_core.software_engineering import EngineeringPhase, PatchTransactionLedger
 from nolane.external_core.software_engineering_effects import (
     EngineeringApplicationIntent,
     EngineeringEffectLedger,
@@ -30,6 +30,10 @@ class FencedEngineeringEffectLedger(EngineeringEffectLedger):
     transaction could prepare multiple distinct application or rollback intents
     before any executor acknowledgement existed.
 
+    Phase legality is checked before idempotent lookup. A historical intent is
+    therefore never returned as a newly prepared capability after its transaction
+    has advanced beyond the preparation phase.
+
     The transaction indices are derived caches only. They are rebuilt from the
     canonical intent rows during restore and therefore do not change the effects
     serialized state schema or create another authority surface.
@@ -48,6 +52,10 @@ class FencedEngineeringEffectLedger(EngineeringEffectLedger):
         application_ref: str,
     ) -> EngineeringApplicationIntent:
         tx_id = _text(transaction_id, field="transaction id")
+        tx = self.transactions.get(tx_id)
+        if tx.phase is not EngineeringPhase.PRECONDITIONS_VERIFIED:
+            raise ValueError("application preparation requires precondition-verified transaction phase")
+
         receipt_id = _text(mutation_authority_receipt_id, field="mutation authority receipt id")
         app_ref = _text(application_ref, field="application ref")
         prior_intent_id = self._application_intent_by_transaction.get(tx_id)
@@ -80,6 +88,10 @@ class FencedEngineeringEffectLedger(EngineeringEffectLedger):
         target_state_digest: str,
     ) -> EngineeringRollbackIntent:
         tx_id = _text(transaction_id, field="transaction id")
+        tx = self.transactions.get(tx_id)
+        if tx.phase not in self._PRE_ROLLBACK_PHASES:
+            raise ValueError("rollback preparation requires an applied recoverable transaction phase")
+
         operation_ref = _text(rollback_operation_ref, field="rollback operation ref")
         why = _text(reason, field="rollback reason")
         target = _text(target_state_digest, field="target state digest")
