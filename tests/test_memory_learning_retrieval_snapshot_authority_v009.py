@@ -86,9 +86,7 @@ def test_restore_rejects_rehashed_snapshot_with_active_unverified_memory() -> No
 
     state = substrate.to_state()
     snapshot = deepcopy(state["retrieval_snapshots"][0]["state"])
-    # Give the forged historical snapshot a legitimate lifecycle envelope so this
-    # contract can only pass by revalidating the snapshot's epistemic semantics.
-    snapshot["lifecycle"] = deepcopy(state["lifecycle"])
+    assert snapshot["lifecycle"] == state["lifecycle"]
     snapshot["metadata"][0]["epistemic_type"] = EpistemicType.HYPOTHESIS.value
     _rebind_snapshot_receipt(state, bundle.receipt, snapshot)
 
