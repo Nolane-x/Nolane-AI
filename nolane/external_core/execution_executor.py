@@ -18,7 +18,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.execution.executor"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.execution_tools"
 
 
