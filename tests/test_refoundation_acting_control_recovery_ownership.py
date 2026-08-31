@@ -97,14 +97,16 @@ def _session(decision: AgentDecisionReceipt) -> ExecutionSession:
 def test_control_recovery_rejects_idempotency_only_ownership_spoof() -> None:
     decision = _decision()
     session = _session(decision)
+    assert decision.action.tool_action is not None
     protocol = ActingProtocolLedger()
     action_id = "acting-action-spoofed-owner"
+    tool = decision.action.tool_action
     protocol.propose(
         ExecutionContract(
             action_id=action_id,
-            core_id="external-api",
-            operation="mutate",
-            input_digest="spoofed-input-digest",
+            core_id=tool.tool_id,
+            operation=tool.operation,
+            input_digest=canonical_digest(tool.to_state()),
             risk_class=ExecutionRisk.R3,
             effect_class=EffectClass.EXTERNAL_MUTATION,
             required_capabilities=("capability:execute",),
@@ -118,7 +120,7 @@ def test_control_recovery_rejects_idempotency_only_ownership_spoof() -> None:
     protocol.acquire_lease(
         action_id,
         owner_id="direct-e-client",
-        authorization_ref="authorization:spoofed",
+        authorization_ref=f"decision:{decision.receipt_id}",
         capability_grants=("capability:execute",),
         now_ms=100,
         ttl_ms=10_000,
