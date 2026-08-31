@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
+from nolane.external_core._software_engineering_property_evidence_v01 import (
+    EngineeringPropertyEvidenceLedger as FrozenPropertyEvidenceLedger,
+)
 from nolane.external_core.software_engineering import EngineeringEvidenceKind, EngineeringEvidenceLedger
 from nolane.external_core.software_engineering_property_evidence import (
     EngineeringClaimClass,
@@ -88,3 +93,38 @@ def test_falsifier_must_be_bound_by_verifier_attestation() -> None:
     bound_attestation = _attest(evidence, obligation, EngineeringEvidenceKind.ROOT_CAUSE, "causal-bound", (falsifier,))
     bound = _witness(ledger, obligation, bound_attestation, EngineeringProofMethod.CAUSAL_PROBE, role=EngineeringWitnessRole.FALSIFIER, falsifier=falsifier)
     assert ledger.assess(obligation.obligation_id, witness_ids=(reproduction.witness_id, bound.witness_id)).ready is True
+
+
+def test_restore_rejects_frozen_ready_snapshot_with_unattested_baseline() -> None:
+    evidence = EngineeringEvidenceLedger()
+    frozen = FrozenPropertyEvidenceLedger(evidence=evidence)
+    obligation = _obligation(
+        frozen,
+        EngineeringClaimClass.PERFORMANCE_PROPERTY,
+        "performance:dispatch-p95-not-regressed",
+    )
+    baseline = "git:performance-baseline"
+    attestation = _attest(
+        evidence,
+        obligation,
+        EngineeringEvidenceKind.PERFORMANCE,
+        "performance-frozen",
+    )
+    witness = _witness(
+        frozen,
+        obligation,
+        attestation,
+        EngineeringProofMethod.PERFORMANCE_BENCHMARK,
+        baseline=baseline,
+    )
+    historical = frozen.assess(
+        obligation.obligation_id,
+        witness_ids=(witness.witness_id,),
+    )
+    assert historical.ready is True
+
+    with pytest.raises(ValueError, match="grounded|proof context|baseline"):
+        EngineeringPropertyEvidenceLedger.from_state(
+            evidence=evidence,
+            state=frozen.to_state(),
+        )
