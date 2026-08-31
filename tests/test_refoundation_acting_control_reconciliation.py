@@ -4,6 +4,7 @@ from dataclasses import dataclass
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
     ActionBudget,
     ActingProtocolLedger,
@@ -17,7 +18,12 @@ from nolane.external_core.execution import (
     ExecutionState,
     OrganizationExecutionControlPlane,
 )
-from nolane.external_core.execution_types import ExecutionBudget, ExecutionCounters
+from nolane.external_core.execution_types import (
+    ExecutionAction,
+    ExecutionBudget,
+    ExecutionCounters,
+    ToolAction,
+)
 
 
 @dataclass(frozen=True)
@@ -25,9 +31,25 @@ class _Artifact:
     artifact_id: str
 
 
+_TOOL_ACTION = ToolAction.from_arguments(
+    "filesystem",
+    "write_text",
+    {"path": "README.md", "content": "changed\n"},
+)
+_ACTION_SCHEMA = ("filesystem.write_text",)
+_ACTION_SCHEMA_DIGEST = canonical_digest(list(_ACTION_SCHEMA))
+_TOOL_INPUT_DIGEST = canonical_digest(_TOOL_ACTION.to_state())
+
+
 @dataclass(frozen=True)
 class _Decision:
     receipt_id: str
+    agent_id: str = "agent-1"
+    backend_id: str = "backend-v1"
+    checkpoint_digest: str = "checkpoint-v1"
+    action_schema_digest: str = _ACTION_SCHEMA_DIGEST
+    step_index: int = 0
+    action: ExecutionAction = ExecutionAction.tool(_TOOL_ACTION)
 
 
 class _Artifacts:
@@ -66,15 +88,18 @@ def _session(
         session_id=session_id,
         agent_id="agent-1",
         task_id=f"task-{session_id[-1]}",
-        action_schema=("filesystem.write_text",),
+        action_schema=_ACTION_SCHEMA,
         budget=ExecutionBudget(
             max_steps=4,
             max_tool_calls=2,
             max_external_core_calls=1,
             max_compute_units=4,
         ),
-        counters=ExecutionCounters(steps=1, compute_units=1),
-        step_index=1,
+        counters=ExecutionCounters(
+            steps=len(decision_ids),
+            compute_units=len(decision_ids),
+        ),
+        step_index=len(decision_ids),
         state=state,
         backend_id="backend-v1",
         checkpoint_digest="checkpoint-v1",
@@ -101,7 +126,7 @@ def _prepare_interrupted(
         action_id=f"action-{session_id}",
         core_id="filesystem",
         operation="write_text",
-        input_digest=f"input:{session_id}",
+        input_digest=_TOOL_INPUT_DIGEST,
         risk_class=risk,
         effect_class=effect,
         required_capabilities=("filesystem",),

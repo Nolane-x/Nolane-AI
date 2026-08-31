@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -299,6 +299,9 @@ class OrganizationExecutionControlPlane:
 
     def _validate_state(self) -> None:
         max_counter = 0
+        decision_owners: dict[str, str] = {}
+        step_owners: dict[str, str] = {}
+        terminal_owners: dict[str, str] = {}
         for session_id, session in self._sessions.items():
             if session_id != session.session_id:
                 raise ValueError('execution session key mismatch')
@@ -306,14 +309,92 @@ class OrganizationExecutionControlPlane:
                 max_counter = max(max_counter, int(session_id.rsplit('-', 1)[1]))
             except Exception as exc:
                 raise ValueError('non-canonical execution session id') from exc
-            for receipt_id in session.decision_receipt_ids:
-                if receipt_id not in self._decisions:
+            if session.step_index != len(session.decision_receipt_ids):
+                raise ValueError('execution session step index does not match decision history')
+            if session.counters.steps != len(session.decision_receipt_ids):
+                raise ValueError('execution session step counter does not match decision history')
+            if len(set(session.decision_receipt_ids)) != len(session.decision_receipt_ids):
+                raise ValueError('execution session contains duplicate decision receipt')
+            if len(set(session.step_receipt_ids)) != len(session.step_receipt_ids):
+                raise ValueError('execution session contains duplicate step receipt')
+            if len(set(session.core_receipt_ids)) != len(session.core_receipt_ids):
+                raise ValueError('execution session contains duplicate core receipt')
+
+            expected_schema_digest = canonical_digest(list(session.action_schema))
+            for position, receipt_id in enumerate(session.decision_receipt_ids):
+                decision = self._decisions.get(receipt_id)
+                if decision is None:
                     raise ValueError('execution session references unknown decision receipt')
+                previous_owner = decision_owners.setdefault(receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution decision receipt is shared across sessions')
+                if decision.agent_id != session.agent_id:
+                    raise ValueError('execution decision agent binding mismatch')
+                if decision.backend_id != session.backend_id:
+                    raise ValueError('execution decision backend binding mismatch')
+                if decision.checkpoint_digest != session.checkpoint_digest:
+                    raise ValueError('execution decision checkpoint binding mismatch')
+                if decision.action_schema_digest != expected_schema_digest:
+                    raise ValueError('execution decision action-schema binding mismatch')
+                if decision.step_index != position:
+                    raise ValueError('execution decision step ordering mismatch')
+
             for receipt_id in session.step_receipt_ids:
-                if receipt_id not in self._steps:
+                step = self._steps.get(receipt_id)
+                if step is None:
                     raise ValueError('execution session references unknown step receipt')
-            if session.terminal_receipt_id is not None and session.terminal_receipt_id not in self._terminals:
-                raise ValueError('execution session references unknown terminal receipt')
+                previous_owner = step_owners.setdefault(receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution step receipt is shared across sessions')
+                if step.session_id != session_id:
+                    raise ValueError('execution step receipt session binding mismatch')
+                if step.decision_receipt_id not in session.decision_receipt_ids:
+                    raise ValueError('execution step receipt decision binding mismatch')
+                decision = self._decisions[step.decision_receipt_id]
+                if step.step_index != decision.step_index:
+                    raise ValueError('execution step receipt index binding mismatch')
+                if step.core_receipt_id is not None and step.core_receipt_id not in session.core_receipt_ids:
+                    raise ValueError('execution step receipt core binding mismatch')
+
+            if session.terminal_receipt_id is not None:
+                terminal = self._terminals.get(session.terminal_receipt_id)
+                if terminal is None:
+                    raise ValueError('execution session references unknown terminal receipt')
+                previous_owner = terminal_owners.setdefault(terminal.receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution terminal receipt is shared across sessions')
+                if terminal.session_id != session_id:
+                    raise ValueError('execution terminal receipt session binding mismatch')
+                if terminal.agent_id != session.agent_id:
+                    raise ValueError('execution terminal receipt agent binding mismatch')
+                if terminal.task_id != session.task_id:
+                    raise ValueError('execution terminal receipt task binding mismatch')
+                if terminal.state is not session.state:
+                    raise ValueError('execution terminal receipt state binding mismatch')
+                terminal_counters = (
+                    terminal.steps,
+                    terminal.tool_calls,
+                    terminal.external_core_calls,
+                    terminal.compute_units,
+                )
+                session_counters = (
+                    session.counters.steps,
+                    session.counters.tool_calls,
+                    session.counters.external_core_calls,
+                    session.counters.compute_units,
+                )
+                if terminal_counters != session_counters:
+                    raise ValueError('execution terminal receipt counter binding mismatch')
+                if terminal.wall_clock_ms != session.wall_clock_ms:
+                    raise ValueError('execution terminal receipt wall-clock binding mismatch')
+                if terminal.decision_receipt_ids != session.decision_receipt_ids:
+                    raise ValueError('execution terminal receipt decision-history mismatch')
+                if terminal.step_receipt_ids != session.step_receipt_ids:
+                    raise ValueError('execution terminal receipt step-history mismatch')
+                if terminal.core_receipt_ids != session.core_receipt_ids:
+                    raise ValueError('execution terminal receipt core-history mismatch')
+                if terminal.output_artifact_ids != session.output_artifact_ids:
+                    raise ValueError('execution terminal receipt output-history mismatch')
         if self._session_counter < max_counter:
             raise ValueError('execution session counter is behind history')
 
@@ -657,6 +738,18 @@ class OrganizationExecutionControlPlane:
             return None
         return session_id, decision_id
 
+    @staticmethod
+    def _acting_row_matches_decision(row: Any, decision: AgentDecisionReceipt) -> bool:
+        action = decision.action
+        if action.kind is not ExecutionActionKind.TOOL or action.tool_action is None:
+            return False
+        tool_action = action.tool_action
+        return (
+            row.contract.core_id == tool_action.tool_id
+            and row.contract.operation == tool_action.operation
+            and row.contract.input_digest == canonical_digest(tool_action.to_state())
+        )
+
     def _acting_row_is_projected(self, row: Any, session: ExecutionSession, decision_id: str) -> bool:
         if row.outcome_ref:
             for receipt_id in session.step_receipt_ids:
@@ -709,6 +802,9 @@ class OrganizationExecutionControlPlane:
                 raise ValueError('interrupted action has no owning execution session')
             if decision_id not in session.decision_receipt_ids:
                 raise ValueError('interrupted action decision is not owned by execution session')
+            decision = self._decisions[decision_id]
+            if not self._acting_row_matches_decision(row, decision):
+                raise ValueError('acting action contract does not match bound decision')
             if self._acting_row_is_projected(row, session, decision_id):
                 continue
             if session.state is not ExecutionState.RUNNING or session.terminal_receipt_id is not None:

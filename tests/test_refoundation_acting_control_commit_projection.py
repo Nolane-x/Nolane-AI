@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
     ActionBudget,
     ActingProtocolLedger,
@@ -17,18 +18,44 @@ from nolane.external_core.execution import (
     ExecutionStepReceipt,
     OrganizationExecutionControlPlane,
 )
-from nolane.external_core.execution_types import ExecutionBudget, ExecutionCounters
+from nolane.external_core.execution_types import (
+    ExecutionAction,
+    ExecutionBudget,
+    ExecutionCounters,
+    ToolAction,
+)
+
+
+_TOOL_ACTION = ToolAction.from_arguments(
+    "filesystem",
+    "write_text",
+    {"path": "README.md", "content": "changed\n"},
+)
+_ACTION_SCHEMA = ("filesystem.write_text",)
+_ACTION_SCHEMA_DIGEST = canonical_digest(list(_ACTION_SCHEMA))
+_TOOL_INPUT_DIGEST = canonical_digest(_TOOL_ACTION.to_state())
 
 
 @dataclass(frozen=True)
 class _Decision:
     receipt_id: str
+    agent_id: str = "agent-1"
+    backend_id: str = "backend-v1"
+    checkpoint_digest: str = "checkpoint-v1"
+    action_schema_digest: str = _ACTION_SCHEMA_DIGEST
     step_index: int = 0
+    action: ExecutionAction = ExecutionAction.tool(_TOOL_ACTION)
 
 
 @dataclass(frozen=True)
 class _CoreReceipt:
     receipt_id: str
+    agent_id: str = "agent-1"
+    task_id: str = "task-1"
+    tool_id: str = "filesystem"
+    operation: str = "write_text"
+    input_digest: str = _TOOL_INPUT_DIGEST
+    authorized: bool = True
     success: bool = True
     failure_kind: str | None = None
     output_artifact_ids: tuple[str, ...] = ("artifact-1",)
@@ -71,7 +98,7 @@ def _session() -> ExecutionSession:
         session_id="execution-00000001",
         agent_id="agent-1",
         task_id="task-1",
-        action_schema=("filesystem.write_text",),
+        action_schema=_ACTION_SCHEMA,
         budget=ExecutionBudget(
             max_steps=4,
             max_tool_calls=2,
@@ -94,7 +121,7 @@ def _committed_protocol() -> ActingProtocolLedger:
         action_id="action-committed",
         core_id="filesystem",
         operation="write_text",
-        input_digest="input:commit-projection",
+        input_digest=_TOOL_INPUT_DIGEST,
         risk_class=ExecutionRisk.R2,
         effect_class=EffectClass.LOCAL_MUTATION,
         required_capabilities=("filesystem",),

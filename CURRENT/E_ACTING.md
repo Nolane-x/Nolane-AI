@@ -1,7 +1,7 @@
 # E. Acting — Canonical Refoundation Boundary
 
 **Component family:** E  
-**Revision:** transactional baseline with canonical execution integration, fail-closed hardening, and crash-safe in-flight reconciliation
+**Revision:** transactional baseline with canonical execution integration, crash-safe reconciliation, and provenance-closed persisted execution graphs
 **Authority:** this document describes the implemented E ownership boundary on the canonical refoundation surface.
 
 ## Scope
@@ -26,7 +26,7 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 | Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.3` | isolated Git worktree + reversible local checkpoints + full-payload digest-proven restore, including ignored files and empty directories |
 | Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.3` | lifecycle, lifecycle-bound modern leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts, legacy schema-1 restore enrichment, fail-closed interrupted-action reconciliation |
 | Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.2` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor, monotonic elapsed-time lease enforcement, and executor-free in-flight restart reconciliation |
-| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.4` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger and conservatively classifies unconfined process tools |
+| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.5` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger, validates receipt provenance, and conservatively classifies unconfined process tools |
 
 ## Canonical flow
 
@@ -68,7 +68,9 @@ A concrete tool returning success is not enough to commit. `OrganizationExecutio
 16. External-core classification dominates local mutation hints, preventing an external effect from being represented as locally reversible merely because mutation metadata is also present.
 17. `terminal`, `compiler`, and `test-runner` are treated as external-like R3/V3 effects by the compatibility adapter because a disposable repository copy is not an operating-system sandbox; their failure therefore cannot be disguised as a no-effect read rollback.
 18. Crash recovery is projected across the acting/control boundary: ownership is preflighted before mutation, uncertain recovered effects terminalize only their owning session, and already-committed effects are reconstructed as step receipts without re-invocation.
-18. Persisted non-terminal actions are never blindly resumed after process/runtime interruption. Pre-dispatch actions are cancelled; interrupted reads may be closed as explicit no-side-effect rollback; any mutating action at or beyond `EXECUTING` is degraded because completion and rollback evidence are not provable after restart. Reconciliation itself must not invoke the concrete executor.
+19. Persisted execution provenance is closed across session → decision → step/terminal ownership. Existing receipt IDs are not sufficient evidence: agent/backend/checkpoint/action-schema/step ordering and terminal snapshot bindings must agree before restored state is accepted.
+20. Recovery binds the acting contract back to the exact selected tool action by `core_id`, `operation`, and canonical input digest before any acting mutation or terminal evidence write. A valid-looking `session:decision` idempotency key cannot authorize a semantically different effect.
+21. Persisted non-terminal actions are never blindly resumed after process/runtime interruption. Pre-dispatch actions are cancelled; interrupted reads may be closed as explicit no-side-effect rollback; any mutating action at or beyond `EXECUTING` is degraded because completion and rollback evidence are not provable after restart. Reconciliation itself must not invoke the concrete executor.
 
 ## Crash-safe restart reconciliation
 
