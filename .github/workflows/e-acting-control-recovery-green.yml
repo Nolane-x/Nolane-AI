@@ -21,68 +21,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Apply control-plane reconciliation bridge
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('nolane/external_core/execution.py')
-          text = path.read_text(encoding='utf-8')
-
-          def replace_once(old: str, new: str) -> None:
-              global text
-              count = text.count(old)
-              if count != 1:
-                  raise SystemExit(f'execution.py expected one match, found {count}: {old[:100]!r}')
-              text = text.replace(old, new, 1)
-
-          replace_once(
-              'from nolane.external_core.acting_protocol import EffectClass, ExecutionRisk, VerifierLevel',
-              'from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel',
-          )
-          replace_once('COMPONENT_VERSION = "0.0.3"', 'COMPONENT_VERSION = "0.0.4"')
-          marker = '''    def run(self, session_id: str) -> ExecutionTerminalReceipt:\n'''
-          bridge = '''    @staticmethod\n    def _acting_execution_binding(idempotency_key: str) -> tuple[str, str] | None:\n        key = str(idempotency_key).strip()\n        session_id, sep, decision_id = key.rpartition(':')\n        if not sep or not session_id.startswith('execution-') or not decision_id:\n            return None\n        return session_id, decision_id\n\n    def _acting_row_is_projected(self, row: Any, session: ExecutionSession, decision_id: str) -> bool:\n        if row.phase is ActionPhase.COMMITTED:\n            return any(\n                self._steps[receipt_id].decision_receipt_id == decision_id\n                and self._steps[receipt_id].core_receipt_id == row.outcome_ref\n                for receipt_id in session.step_receipt_ids\n            )\n        if row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK, ActionPhase.DEGRADED}:\n            if session.terminal_receipt_id is None:\n                return False\n            terminal = self._terminals[session.terminal_receipt_id]\n            return f'acting-action={row.action_id}' in terminal.termination_reason\n        return False\n\n    def reconcile_interrupted_sessions(\n        self,\n        *,\n        evidence_ref: str,\n        reason: str,\n    ) -> tuple[ExecutionStepReceipt | ExecutionTerminalReceipt, ...]:\n        \"\"\"Project crash-reconciled acting state into owning execution sessions.\n\n        Recovery is explicit and never runs inference or invokes a side effect. All\n        control-plane ownership is validated before any acting lifecycle mutation.\n        \"\"\"\n\n        ref = str(evidence_ref).strip()\n        why = str(reason).strip()\n        if not ref or not why:\n            raise ValueError('control-plane reconciliation requires evidence and a reason')\n\n        terminal_phases = {\n            ActionPhase.COMMITTED,\n            ActionPhase.ROLLED_BACK,\n            ActionPhase.DEGRADED,\n            ActionPhase.CANCELLED,\n        }\n        candidates: list[tuple[Any, ExecutionSession, str]] = []\n        per_session: dict[str, str] = {}\n        committed_receipts: dict[str, Any] = {}\n\n        # Preflight the complete ownership set before mutating the acting ledger.\n        for row in self.acting_executor.protocol.records():\n            binding = self._acting_execution_binding(row.contract.idempotency_key)\n            if binding is None:\n                continue\n            session_id, decision_id = binding\n            session = self._sessions.get(session_id)\n            if session is None:\n                raise ValueError('interrupted action has no owning execution session')\n            if decision_id not in session.decision_receipt_ids:\n                raise ValueError('interrupted action decision is not owned by execution session')\n            if self._acting_row_is_projected(row, session, decision_id):\n                continue\n            if session.state is not ExecutionState.RUNNING or session.terminal_receipt_id is not None:\n                raise ValueError('interrupted action belongs to non-running execution session')\n            previous = per_session.get(session_id)\n            if previous is not None and previous != row.action_id:\n                raise ValueError('execution session has multiple unprojected acting actions')\n            per_session[session_id] = row.action_id\n            if row.phase is ActionPhase.COMMITTED:\n                if not row.outcome_ref:\n                    raise ValueError('committed acting action is missing its core receipt')\n                try:\n                    core = self.executor.get_receipt(row.outcome_ref)\n                except Exception as exc:\n                    raise ValueError('committed acting action references unavailable core receipt') from exc\n                if not bool(core.success):\n                    raise ValueError('committed acting action references unsuccessful core receipt')\n                committed_receipts[row.action_id] = core\n            candidates.append((row, session, decision_id))\n\n        results: list[ExecutionStepReceipt | ExecutionTerminalReceipt] = []\n        for original, session, decision_id in candidates:\n            row = original\n            if row.phase not in terminal_phases:\n                row = self.acting_executor.protocol.reconcile_interrupted(\n                    row.action_id,\n                    evidence_ref=ref,\n                    reason=why,\n                )\n\n            if row.phase is ActionPhase.COMMITTED:\n                core = committed_receipts[row.action_id]\n                decision = self._decisions[decision_id]\n                step_receipt = ExecutionStepReceipt.create(\n                    session_id=session.session_id,\n                    step_index=int(decision.step_index),\n                    decision_receipt_id=decision_id,\n                    core_receipt_id=str(core.receipt_id),\n                    before_workspace_digest=str(core.before_workspace_digest),\n                    after_workspace_digest=str(core.after_workspace_digest),\n                    state_after=ExecutionState.RUNNING,\n                    output_artifact_ids=tuple(str(x) for x in core.output_artifact_ids),\n                )\n                existing = self._steps.get(step_receipt.receipt_id)\n                if existing is not None and existing != step_receipt:\n                    raise ValueError('execution step receipt id collision during recovery')\n                self._steps[step_receipt.receipt_id] = step_receipt\n                external_ids = frozenset(getattr(self.executor, 'external_core_ids', ()))\n                counters = ExecutionCounters(\n                    steps=session.counters.steps,\n                    tool_calls=session.counters.tool_calls + 1,\n                    external_core_calls=session.counters.external_core_calls + (\n                        1 if row.contract.core_id in external_ids else 0\n                    ),\n                    compute_units=session.counters.compute_units,\n                )\n                outputs = tuple(dict.fromkeys(\n                    session.output_artifact_ids + tuple(str(x) for x in core.output_artifact_ids)\n                ))\n                updated = replace(\n                    session,\n                    counters=counters,\n                    state=ExecutionState.RUNNING,\n                    output_artifact_ids=outputs,\n                    core_receipt_ids=session.core_receipt_ids + (str(core.receipt_id),),\n                    step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),\n                )\n                self._sessions[session.session_id] = updated\n                results.append(step_receipt)\n                continue\n\n            if row.phase is ActionPhase.DEGRADED:\n                state = ExecutionState.FAILED\n            elif row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK}:\n                state = ExecutionState.ABORTED\n            else:\n                raise ValueError(f'acting reconciliation produced unsupported phase: {row.phase.value}')\n            termination = (\n                f'{why}; acting-action={row.action_id}; phase={row.phase.value}; '\n                f'decision={decision_id}; recovery-evidence={ref}'\n            )\n            results.append(self._terminal(session, state, termination))\n\n        return tuple(results)\n\n'''
-          if text.count(marker) != 1:
-              raise SystemExit('execution.py run marker not found exactly once')
-          text = text.replace(marker, bridge + marker, 1)
-          path.write_text(text, encoding='utf-8')
-
-          meta = Path('nolane/metadata/component_versions.py')
-          data = meta.read_text(encoding='utf-8')
-          old = '        "external.execution.control": 3,'
-          if data.count(old) != 1:
-              raise SystemExit('component version revision entry mismatch')
-          meta.write_text(data.replace(old, '        "external.execution.control": 4,', 1), encoding='utf-8')
-
-          versions = Path('tests/test_refoundation_component_versions.py')
-          data = versions.read_text(encoding='utf-8')
-          replacements = {\n              '    "external.execution.control": 3,': '    "external.execution.control": 4,',\n              'assert str(component_version("external.execution.control")) == "0.0.3"': 'assert str(component_version("external.execution.control")) == "0.0.4"',\n              'assert str(next_component_version("external.execution.control")) == "0.0.4"': 'assert str(next_component_version("external.execution.control")) == "0.0.5"',\n          }\n          for old, new in replacements.items():\n              if data.count(old) != 1:\n                  raise SystemExit(f'component-version test mismatch: {old}')\n              data = data.replace(old, new, 1)\n          versions.write_text(data, encoding='utf-8')
-
-          wave = Path('tests/test_refoundation_wave5aa_native_execution_control.py')
-          data = wave.read_text(encoding='utf-8')
-          if data.count('"0.0.3"') < 2:
-              raise SystemExit('wave5aa version witnesses not found')
-          data = data.replace('"0.0.3"', '"0.0.4"')
-          wave.write_text(data, encoding='utf-8')
-
-          current = Path('CURRENT/E_ACTING.md')
-          data = current.read_text(encoding='utf-8')
-          old = '| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.3` |'
-          new = '| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.4` |'
-          if data.count(old) != 1:
-              raise SystemExit('CURRENT execution-control version row mismatch')
-          data = data.replace(old, new, 1)
-          anchor = '17. `terminal`, `compiler`, and `test-runner` are treated as external-like R3/V3 effects by the compatibility adapter because a disposable repository copy is not an operating-system sandbox; their failure therefore cannot be disguised as a no-effect read rollback.\n'
-          addition = anchor + '18. Crash recovery is projected across the acting/control boundary: ownership is preflighted before mutation, uncertain recovered effects terminalize only their owning session, and already-committed effects are reconstructed as step receipts without re-invocation.\n'
-          if data.count(anchor) != 1:
-              raise SystemExit('CURRENT invariant anchor mismatch')
-          current.write_text(data.replace(anchor, addition, 1), encoding='utf-8')
-          PY
+      - name: Apply deterministic control recovery patch
+        run: python .github/e_acting_control_recovery_patch.py
       - name: Compile canonical E modules
         run: python -m py_compile nolane/external_core/*.py
-      - name: Run control-recovery contracts
+      - name: Run control recovery contracts
         run: |
           python -m pip install -q pytest
           python -m pytest -q \
