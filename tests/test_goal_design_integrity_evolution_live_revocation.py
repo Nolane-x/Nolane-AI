@@ -10,6 +10,7 @@ from nolane.external_core.goal_design_integrity_evolution import (
     mint_verified_goal_integrity_evolution_receipt,
 )
 from nolane.external_core.goal_design_integrity_evolution_authority import (
+    GOAL_INTEGRITY_EVOLUTION_ACTION,
     GoalIntegrityEvolutionAuthorityVerifier,
 )
 from nolane.external_core.goal_design_integrity_runtime import (
@@ -56,7 +57,7 @@ def _runtime(verifier: GoalIntegrityEvolutionAuthorityVerifier) -> GoalIntegrity
     return runtime
 
 
-def _prepared_transition():
+def _prepared_transition(*, can_delegate: bool = False, depth: int = 0):
     clock = _Clock(100)
     verifier = GoalIntegrityEvolutionAuthorityVerifier(
         trusted_root_issuers=("authority:root",),
@@ -71,6 +72,8 @@ def _prepared_transition():
         goal_ids=(original.goal_id,),
         valid_from_epoch_s=50,
         valid_until_epoch_s=500,
+        can_delegate=can_delegate,
+        delegation_depth_remaining=depth,
     )
     proof = verifier.authorize_contract_transition(
         grant.grant_id,
@@ -120,3 +123,54 @@ def test_live_revocation_cannot_be_bypassed_by_authority_clock_rollback():
     clock.value = 110
 
     _assert_live_mutation_rejected(runtime, original, revised, receipt)
+
+
+def test_revocation_timestamp_is_immutable_under_clock_rollback_and_history_stays_valid():
+    clock, verifier, grant, original, revised, receipt, _ = _prepared_transition()
+
+    clock.value = 120
+    assert verifier.revoke_grant(grant.grant_id) == 120
+    clock.value = 90
+    assert verifier.revoke_grant(grant.grant_id) == 120
+
+    verifier.verify_contract_transition(
+        receipt.authority_ref,
+        predecessor=original,
+        successor=revised,
+    )
+
+
+def test_revoked_grant_cannot_issue_new_proof_after_clock_rollback():
+    clock, verifier, grant, original, revised, _, _ = _prepared_transition()
+
+    clock.value = 120
+    verifier.revoke_grant(grant.grant_id)
+    clock.value = 110
+
+    with pytest.raises(ValueError, match="revoked"):
+        verifier.authorize_contract_transition(
+            grant.grant_id,
+            predecessor=original,
+            successor=revised,
+        )
+
+
+def test_revoked_parent_cannot_delegate_after_clock_rollback():
+    clock, verifier, grant, original, _, _, _ = _prepared_transition(
+        can_delegate=True,
+        depth=1,
+    )
+
+    clock.value = 120
+    verifier.revoke_grant(grant.grant_id)
+    clock.value = 110
+
+    with pytest.raises(ValueError, match="revoked"):
+        verifier.delegate_grant(
+            grant.grant_id,
+            subject_ref="authority:delegate-after-revoke",
+            goal_ids=(original.goal_id,),
+            actions=(GOAL_INTEGRITY_EVOLUTION_ACTION,),
+            valid_from_epoch_s=60,
+            valid_until_epoch_s=400,
+        )
