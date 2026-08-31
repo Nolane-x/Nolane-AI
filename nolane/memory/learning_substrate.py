@@ -1122,12 +1122,15 @@ class LearningSubstrate:
         row = self.memory.get(tombstone.memory_id)
         if row.status is not MemoryStatus.ARCHIVED:
             raise ValueError("memory tombstone requires archived memory state")
-        archived = any(
-            receipt.new_status is MemoryStatus.ARCHIVED
+        archive_authority = tuple(
+            receipt
             for receipt in self.lifecycle.receipts_for(tombstone.memory_id)
+            if receipt.new_status is MemoryStatus.ARCHIVED
+            and receipt.reason == tombstone.reason
+            and receipt.evidence_refs == tombstone.evidence_refs
         )
-        if not archived:
-            raise ValueError("memory tombstone requires archived lifecycle authority")
+        if not archive_authority:
+            raise ValueError("memory tombstone requires matching archive lifecycle authority")
 
     def to_state(self) -> dict[str, Any]:
         return {
