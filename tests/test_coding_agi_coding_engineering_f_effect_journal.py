@@ -1,5 +1,6 @@
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.coding_claims import ClaimMode, CodeClaimLedger
 from nolane.external_core.coding_patches import CodingPatchCandidate, CodingPatchStatus
 from nolane.external_core.software_engineering import EngineeringEvidenceKind, EngineeringPhase
@@ -78,6 +79,14 @@ def _committed_application():
     return patch, claims, plane, work, mutation, intent, commit
 
 
+def _recompute_nested_digest(state: dict, key: str) -> None:
+    nested = state[key]
+    nested_payload = {name: value for name, value in nested.items() if name != "digest"}
+    nested["digest"] = canonical_digest(nested_payload)
+    outer_payload = {name: value for name, value in state.items() if name != "digest"}
+    state["digest"] = canonical_digest(outer_payload)
+
+
 def test_application_acknowledgement_survives_restart_before_local_apply_and_finalizes_without_reexecution():
     _, claims, plane, work, _, intent = _application_intent()
 
@@ -135,6 +144,24 @@ def test_application_acknowledgement_keys_cannot_be_rebound():
             executor_receipt_ref="executor:receipt:effect-journal-apply",
             observed_state_digest="state:after-effect-journal-apply",
         )
+
+
+def test_persisted_application_acknowledgement_preserves_history_after_later_claim_release():
+    patch, claims, plane, work, _, intent = _application_intent()
+    acknowledgement = plane.acknowledge_application(
+        intent.intent_id,
+        executor_namespace="executor.integration.test",
+        executor_receipt_ref="executor:receipt:effect-journal-apply",
+        observed_state_digest="state:after-effect-journal-apply",
+    )
+
+    binding = plane.claim_bindings.get(work.claim_binding_id)
+    claims.release(binding.claim_snapshots[0].claim_id, actor_agent_id=patch.producer_agent_id)
+    assert plane.mutation_authority.preapply_reasons(work.transaction_id)
+
+    commit = plane.finalize_application(acknowledgement.acknowledgement_id)
+    assert commit.executor_receipt_ref == acknowledgement.executor_receipt_ref
+    assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.APPLIED
 
 
 def test_rollback_acknowledgement_survives_restart_before_terminal_transition_and_requires_independent_verification():
@@ -198,3 +225,72 @@ def test_rollback_acknowledgement_target_mismatch_fails_closed():
             executor_receipt_ref="executor:receipt:effect-journal-rollback",
             observed_state_digest="state:not-the-declared-rollback-target",
         )
+
+
+def test_compatibility_application_and_rollback_paths_emit_acknowledgement_backed_history():
+    _, _, plane, work, _, intent, commit = _committed_application()
+    app_ack = plane.effect_journal.application_acknowledgement_for_transaction(work.transaction_id)
+    assert app_ack is not None
+    assert app_ack.intent_id == intent.intent_id
+    assert app_ack.executor_receipt_ref == commit.executor_receipt_ref
+    assert app_ack.authority == "observation_only"
+
+    rollback = plane.prepare_rollback(
+        transaction_id=work.transaction_id,
+        rollback_operation_ref="executor:idempotency:effect-journal-rollback",
+        reason="post-apply regression",
+        target_state_digest="state:before-effect-journal-patch",
+    )
+    verification = plane.verify_rollback(
+        rollback.intent_id,
+        verifier_agent_id="verification.testing.01",
+        verifier_region="verification-testing",
+        restored_state_digest="state:before-effect-journal-patch",
+        evidence_refs=("rollback:effect-journal-proof",),
+        passed=True,
+    )
+    completion = plane.complete_rollback(
+        rollback.intent_id,
+        verification_receipt_id=verification.receipt_id,
+    )
+    rollback_ack = plane.effect_journal.rollback_acknowledgement_for_transaction(work.transaction_id)
+    assert rollback_ack is not None
+    assert rollback_ack.rollback_intent_id == rollback.intent_id
+    assert rollback_ack.rollback_operation_ref == completion.rollback_operation_ref
+    assert rollback_ack.authority == "observation_only"
+
+
+def test_restore_rejects_application_commit_with_missing_durable_acknowledgement_even_after_digest_recompute():
+    _, claims, plane, _, _, _, _ = _committed_application()
+    state = plane.to_state()
+    state["effect_journal"]["application_acknowledgements"] = []
+    _recompute_nested_digest(state, "effect_journal")
+
+    with pytest.raises(ValueError, match="acknowledgement|durable"):
+        SoftwareEngineeringControlPlane.from_state(claims=claims, state=state)
+
+
+def test_restore_rejects_rollback_completion_with_missing_durable_acknowledgement_even_after_digest_recompute():
+    _, claims, plane, work, _, _, _ = _committed_application()
+    rollback = plane.prepare_rollback(
+        transaction_id=work.transaction_id,
+        rollback_operation_ref="executor:idempotency:effect-journal-rollback",
+        reason="post-apply regression",
+        target_state_digest="state:before-effect-journal-patch",
+    )
+    verification = plane.verify_rollback(
+        rollback.intent_id,
+        verifier_agent_id="verification.testing.01",
+        verifier_region="verification-testing",
+        restored_state_digest="state:before-effect-journal-patch",
+        evidence_refs=("rollback:effect-journal-proof",),
+        passed=True,
+    )
+    plane.complete_rollback(rollback.intent_id, verification_receipt_id=verification.receipt_id)
+
+    state = plane.to_state()
+    state["effect_journal"]["rollback_acknowledgements"] = []
+    _recompute_nested_digest(state, "effect_journal")
+
+    with pytest.raises(ValueError, match="acknowledgement|durable"):
+        SoftwareEngineeringControlPlane.from_state(claims=claims, state=state)
