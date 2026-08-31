@@ -68,3 +68,29 @@ def test_restore_rejects_tombstone_not_bound_to_archive_authority() -> None:
     # lifecycle authority rather than accepting any archived state.
     with pytest.raises(ValueError, match="tombstone.*archive|archive.*tombstone|forget"):
         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_forget_rejects_new_semantics_for_already_archived_memory() -> None:
+    substrate = _substrate()
+    row = _remember_verified(substrate)
+    substrate.lifecycle.transition(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        new_status=MemoryStatus.ARCHIVED,
+        reason="retention_window_elapsed",
+        evidence_refs=("evidence-retention",),
+    )
+
+    # Once lifecycle authority has already archived the memory, forget() may only
+    # reuse that exact authorization. It must not manufacture a tombstone carrying
+    # a new reason/evidence pair that cannot be justified by the lifecycle ledger.
+    with pytest.raises(ValueError, match="archive.*authority|forget.*archive|already archived"):
+        substrate.forget(
+            row.memory_id,
+            actor_agent_id="memory.worker",
+            reason="different_forgetting_reason",
+            evidence_refs=("evidence-different-forgetting",),
+        )
+
+    with pytest.raises(KeyError, match="tombstone"):
+        substrate.tombstone(row.memory_id)
