@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.reasoning_invention"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 SCHEMA_VERSION = "reasoning-review-v1"
 DESIGN_LINEAGE = (
     "post-Epoch-0 fresh-context information partition and adversarial specification-gaming review; "

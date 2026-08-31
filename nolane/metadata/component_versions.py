@@ -31,7 +31,7 @@ _COMPONENT_REVISIONS.update(
         "external.causal": 2,
         "external.capability_acquisition": 2,
         "external.candidate_synthesis": 4,
-        "external.reasoning_invention": 2,
+        "external.reasoning_invention": 3,
         "external.transfer_meta": 2,
         "external.experimentation": 2,
         "external.verification": 1,
