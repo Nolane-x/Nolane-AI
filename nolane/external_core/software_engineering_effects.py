@@ -547,6 +547,50 @@ class EngineeringEffectLedger:
         self._application_ref_to_intent[app_ref] = row.intent_id
         return existing or row
 
+    def _build_application_commit(
+        self,
+        *,
+        intent: EngineeringApplicationIntent,
+        transaction_id: str,
+        executor_receipt_ref: str,
+    ) -> EngineeringApplicationCommit:
+        payload = {
+            "intent_id": intent.intent_id,
+            "intent_digest": intent.digest,
+            "transaction_id": transaction_id,
+            "application_ref": intent.application_ref,
+            "executor_receipt_ref": executor_receipt_ref,
+            "decision": EngineeringEffectDecision.COMMITTED.value,
+            "authority": "mutation_scope_only",
+        }
+        digest = canonical_digest(payload)
+        return EngineeringApplicationCommit(
+            commit_id=f"eng-application-commit-{digest[:20]}",
+            intent_id=intent.intent_id,
+            intent_digest=intent.digest,
+            transaction_id=transaction_id,
+            application_ref=intent.application_ref,
+            executor_receipt_ref=executor_receipt_ref,
+            decision=EngineeringEffectDecision.COMMITTED,
+            authority="mutation_scope_only",
+            digest=digest,
+        )
+
+    def _store_application_commit(self, row: EngineeringApplicationCommit) -> EngineeringApplicationCommit:
+        prior_intent = self._application_commit_by_intent.get(row.intent_id)
+        if prior_intent is not None and prior_intent != row.commit_id:
+            raise ValueError("application intent cannot have multiple commits")
+        prior_tx = self._application_commit_by_transaction.get(row.transaction_id)
+        if prior_tx is not None and prior_tx != row.commit_id:
+            raise ValueError("engineering transaction cannot have multiple application commits")
+        existing = self._application_commits.get(row.commit_id)
+        if existing is not None and existing != row:
+            raise ValueError("application commit id cannot be rebound")
+        self._application_commits[row.commit_id] = row
+        self._application_commit_by_intent[row.intent_id] = row.commit_id
+        self._application_commit_by_transaction[row.transaction_id] = row.commit_id
+        return existing or row
+
     def commit_application(self, intent_id: str, *, executor_receipt_ref: str) -> EngineeringApplicationCommit:
         intent = self.application_intent(intent_id)
         executor_ref = _text(executor_receipt_ref, field="executor receipt ref")
@@ -558,45 +602,49 @@ class EngineeringEffectLedger:
             return existing
 
         tx = self.transactions.get(intent.transaction_id)
-        if tx.phase is not EngineeringPhase.PRECONDITIONS_VERIFIED:
-            raise ValueError("application commit requires precondition-verified transaction phase")
+        if (
+            tx.transaction_id != intent.transaction_id
+            or tx.patch_ref != intent.patch_ref
+            or tx.patch_digest != intent.patch_digest
+        ):
+            raise ValueError("application intent transaction lineage mismatch")
         receipt = self._mutation_receipt(intent.mutation_authority_receipt_id)
-        if receipt.digest != intent.mutation_authority_receipt_digest or not receipt.authorized:
-            raise PermissionError("application mutation authority receipt changed or is not authorized")
+        if (
+            receipt.digest != intent.mutation_authority_receipt_digest
+            or not receipt.authorized
+            or receipt.transaction_id != tx.transaction_id
+            or receipt.patch_ref != tx.patch_ref
+            or receipt.patch_digest != tx.patch_digest
+        ):
+            raise PermissionError("application mutation authority receipt changed or is not authorized for transaction lineage")
+
+        if tx.phase is EngineeringPhase.APPLIED:
+            if tx.application_ref != intent.application_ref:
+                raise ValueError("applied transaction application ref does not match application intent")
+            row = self._build_application_commit(
+                intent=intent,
+                transaction_id=tx.transaction_id,
+                executor_receipt_ref=executor_ref,
+            )
+            return self._store_application_commit(row)
+
+        if tx.phase is not EngineeringPhase.PRECONDITIONS_VERIFIED:
+            raise ValueError("application commit requires precondition-verified or matching applied transaction phase")
         reasons = self._preapply_reasons(tx.transaction_id)
         if reasons:
             raise PermissionError("application denied by live mutation authority: " + ", ".join(reasons))
 
-        payload = {
-            "intent_id": intent.intent_id,
-            "intent_digest": intent.digest,
-            "transaction_id": tx.transaction_id,
-            "application_ref": intent.application_ref,
-            "executor_receipt_ref": executor_ref,
-            "decision": EngineeringEffectDecision.COMMITTED.value,
-            "authority": "mutation_scope_only",
-        }
-        digest = canonical_digest(payload)
-        row = EngineeringApplicationCommit(
-            commit_id=f"eng-application-commit-{digest[:20]}",
-            intent_id=intent.intent_id,
-            intent_digest=intent.digest,
+        row = self._build_application_commit(
+            intent=intent,
             transaction_id=tx.transaction_id,
-            application_ref=intent.application_ref,
             executor_receipt_ref=executor_ref,
-            decision=EngineeringEffectDecision.COMMITTED,
-            authority="mutation_scope_only",
-            digest=digest,
         )
-        tx_commit_id = self._application_commit_by_transaction.get(tx.transaction_id)
-        if tx_commit_id is not None and tx_commit_id != row.commit_id:
+        prior_tx = self._application_commit_by_transaction.get(tx.transaction_id)
+        if prior_tx is not None and prior_tx != row.commit_id:
             raise ValueError("engineering transaction cannot have multiple application commits")
 
         self.transactions.mark_applied(tx.transaction_id, application_ref=intent.application_ref)
-        self._application_commits[row.commit_id] = row
-        self._application_commit_by_intent[intent.intent_id] = row.commit_id
-        self._application_commit_by_transaction[tx.transaction_id] = row.commit_id
-        return row
+        return self._store_application_commit(row)
 
     def application_commit_for_transaction(self, transaction_id: str) -> EngineeringApplicationCommit | None:
         commit_id = self._application_commit_by_transaction.get(str(transaction_id))
@@ -745,6 +793,54 @@ class EngineeringEffectLedger:
         self._rollback_verifications[row.receipt_id] = row
         return existing or row
 
+    def _build_rollback_completion(
+        self,
+        *,
+        intent: EngineeringRollbackIntent,
+        verification: EngineeringRollbackVerificationReceipt,
+        transaction_id: str,
+    ) -> EngineeringRollbackCompletion:
+        payload = {
+            "rollback_intent_id": intent.intent_id,
+            "rollback_intent_digest": intent.digest,
+            "verification_receipt_id": verification.receipt_id,
+            "verification_receipt_digest": verification.digest,
+            "transaction_id": transaction_id,
+            "rollback_operation_ref": intent.rollback_operation_ref,
+            "target_state_digest": intent.target_state_digest,
+            "decision": EngineeringRollbackDecision.COMPLETED.value,
+            "authority": "recovery_scope_only",
+        }
+        digest = canonical_digest(payload)
+        return EngineeringRollbackCompletion(
+            completion_id=f"eng-rollback-completion-{digest[:20]}",
+            rollback_intent_id=intent.intent_id,
+            rollback_intent_digest=intent.digest,
+            verification_receipt_id=verification.receipt_id,
+            verification_receipt_digest=verification.digest,
+            transaction_id=transaction_id,
+            rollback_operation_ref=intent.rollback_operation_ref,
+            target_state_digest=intent.target_state_digest,
+            decision=EngineeringRollbackDecision.COMPLETED,
+            authority="recovery_scope_only",
+            digest=digest,
+        )
+
+    def _store_rollback_completion(self, row: EngineeringRollbackCompletion) -> EngineeringRollbackCompletion:
+        prior_intent = self._rollback_completion_by_intent.get(row.rollback_intent_id)
+        if prior_intent is not None and prior_intent != row.completion_id:
+            raise ValueError("rollback intent cannot have multiple completions")
+        prior_tx = self._rollback_completion_by_transaction.get(row.transaction_id)
+        if prior_tx is not None and prior_tx != row.completion_id:
+            raise ValueError("engineering transaction cannot have multiple rollback completions")
+        existing = self._rollback_completions.get(row.completion_id)
+        if existing is not None and existing != row:
+            raise ValueError("rollback completion id cannot be rebound")
+        self._rollback_completions[row.completion_id] = row
+        self._rollback_completion_by_intent[row.rollback_intent_id] = row.completion_id
+        self._rollback_completion_by_transaction[row.transaction_id] = row.completion_id
+        return existing or row
+
     def complete_rollback(self, intent_id: str, *, verification_receipt_id: str) -> EngineeringRollbackCompletion:
         intent = self.rollback_intent(intent_id)
         prior_completion_id = self._rollback_completion_by_intent.get(intent.intent_id)
@@ -772,36 +868,36 @@ class EngineeringEffectLedger:
             verifier_region=verification.verifier_region,
         )
         tx = self.transactions.get(intent.transaction_id)
-        if tx.phase not in self._PRE_ROLLBACK_PHASES:
-            raise ValueError("rollback completion requires an applied recoverable transaction phase")
+        if (
+            tx.transaction_id != intent.transaction_id
+            or tx.patch_ref != intent.patch_ref
+            or tx.patch_digest != intent.patch_digest
+            or tx.rollback_artifact_ref != intent.rollback_artifact_ref
+        ):
+            raise ValueError("rollback intent transaction lineage mismatch")
 
-        payload = {
-            "rollback_intent_id": intent.intent_id,
-            "rollback_intent_digest": intent.digest,
-            "verification_receipt_id": verification.receipt_id,
-            "verification_receipt_digest": verification.digest,
-            "transaction_id": tx.transaction_id,
-            "rollback_operation_ref": intent.rollback_operation_ref,
-            "target_state_digest": intent.target_state_digest,
-            "decision": EngineeringRollbackDecision.COMPLETED.value,
-            "authority": "recovery_scope_only",
-        }
-        digest = canonical_digest(payload)
-        row = EngineeringRollbackCompletion(
-            completion_id=f"eng-rollback-completion-{digest[:20]}",
-            rollback_intent_id=intent.intent_id,
-            rollback_intent_digest=intent.digest,
-            verification_receipt_id=verification.receipt_id,
-            verification_receipt_digest=verification.digest,
+        if tx.phase is EngineeringPhase.ROLLED_BACK:
+            if tx.rollback_ref != intent.rollback_operation_ref:
+                raise ValueError("rolled-back transaction rollback operation ref does not match rollback intent")
+            if tx.failure_reason != intent.reason:
+                raise ValueError("rolled-back transaction rollback reason does not match rollback intent")
+            row = self._build_rollback_completion(
+                intent=intent,
+                verification=verification,
+                transaction_id=tx.transaction_id,
+            )
+            return self._store_rollback_completion(row)
+
+        if tx.phase not in self._PRE_ROLLBACK_PHASES:
+            raise ValueError("rollback completion requires an applied recoverable or matching rolled-back transaction phase")
+
+        row = self._build_rollback_completion(
+            intent=intent,
+            verification=verification,
             transaction_id=tx.transaction_id,
-            rollback_operation_ref=intent.rollback_operation_ref,
-            target_state_digest=intent.target_state_digest,
-            decision=EngineeringRollbackDecision.COMPLETED,
-            authority="recovery_scope_only",
-            digest=digest,
         )
-        existing_tx_completion = self._rollback_completion_by_transaction.get(tx.transaction_id)
-        if existing_tx_completion is not None and existing_tx_completion != row.completion_id:
+        prior_tx = self._rollback_completion_by_transaction.get(tx.transaction_id)
+        if prior_tx is not None and prior_tx != row.completion_id:
             raise ValueError("engineering transaction cannot have multiple rollback completions")
 
         self.transactions.rollback(
@@ -809,10 +905,7 @@ class EngineeringEffectLedger:
             rollback_ref=intent.rollback_operation_ref,
             reason=intent.reason,
         )
-        self._rollback_completions[row.completion_id] = row
-        self._rollback_completion_by_intent[intent.intent_id] = row.completion_id
-        self._rollback_completion_by_transaction[tx.transaction_id] = row.completion_id
-        return row
+        return self._store_rollback_completion(row)
 
     def validate_transaction_coverage(self) -> None:
         for tx in self.transactions.transactions():
