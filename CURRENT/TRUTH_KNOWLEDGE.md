@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A13 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A13 Defeasible Truth Maintenance / Justification Undercutters v7 was accepted from integrated candidate `c3fca1d5fe3fd0c892797f29cbf427146bd256f6` and merged to `main` as `23d6e48b7d620d9fec9a80f93cd8f1d2a84dae52`.**
+Status: **A1–A14 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A14 Source Dependence / Common-Basis Independence v8 was accepted from integrated candidate `9290ba964cae34cfc83c8fd09de4ba04bd3ced2f` and merged to `main` as `7d472ec044c3e540d11d6e47775d8ef67c12f888`.**
 
 ## Canonical authority model
 
@@ -689,3 +689,64 @@ A13 acceptance is bound to the verified production chain below:
 - production merge `23d6e48b7d620d9fec9a80f93cd8f1d2a84dae52` is verified and has exact parents `7b80d826929c5aae44d31b1f3fb019452af5c0f6` and `c3fca1d5fe3fd0c892797f29cbf427146bd256f6`.
 
 This acceptance record does not make serialized runtime state self-authenticating; all v7 live scopes, verification receipts and assurance certificates continue to require canonical recomputation. Canonical family-A status at this revision is therefore **A1–A13 accepted**.
+
+## Accepted A14 — source dependence / common-basis independence v8
+
+A14 closes the epistemic-independence gap left after A11–A13. Distinct controller roots can still be observationally dependent when their verification evidence comes from the same dataset, instrument, measurement run, benchmark corpus, upstream observation batch, or another shared epistemic basis. Controller diversity is organizational independence; it is not sufficient proof of common-cause independence.
+
+A14 therefore adds canonical source-dependence state as additive sidecars beneath the existing five authorities. It does not modify accepted v1–v7 serialized identities and does not add a sixth canonical authority.
+
+The accepted progression through A14 is:
+
+```text
+global v1
+    ↓
+dependency-scope v2
+    ↓
+relation-aware-scope v3
+    ↓
+relation-aware-temporal v4
+    ↓
+provenance-lineage-temporal v5
+    ↓
+justification-provenance-lineage-temporal v6
+    ↓
+defeasible-justification-provenance-lineage-temporal v7
+    ↓
+dependence-defeasible-justification-provenance-lineage-temporal v8
+```
+
+V8 binding mode is exactly:
+
+```text
+dependence-defeasible-justification-provenance-lineage-temporal-v8
+```
+
+### Dependence and independence law
+
+`evidence_dependence_truth.py` is a sidecar under `external.evidence`. `SourceDependenceRevision` is append-only, content-addressed and binds a source to canonical non-empty basis IDs under strict revision-1 / `+1` predecessor semantics. Relevant-only projection ensures unrelated dependence revisions do not stale a target. Missing dependence metadata is represented explicitly and can never be interpreted as independence.
+
+`epistemic_dependence_truth.py` exact-binds the live accepted v7 scope together with the relevant dependence projection. `validate_scope()` recomputes the complete v8 scope from canonical state; serialized v8 scope is not self-authenticating.
+
+`verification_dependence_truth.py` uses a dedicated v8 receipt and ledger. V7 receipts cannot masquerade as v8. A passing verifier contributes independence credit only after accepted provenance-controller checks and current dependence checks. Any verifier controlled by a decision-origin controller, any verifier sharing a decision-source basis, or any verifier with missing/stale dependence state receives zero independent-source credit while remaining auditable. Eligible passing receipts are then conservatively collapsed into transitive dependence components by same controller or shared basis. The independent source count is the number of surviving components, not the number of distinct caller identities or controller labels.
+
+`assurance_dependence_truth.py` preserves every accepted A13 epistemic/undercutter/lineage/negative-verification veto and the risk thresholds LOW/STANDARD 1+1, HIGH 2+2, CRITICAL 3+3. Its source-diversity threshold uses v8 dependence components. Missing or stale relevant dependence metadata fails closed, and live certificate validation recomputes exact v8 scope and verification projection.
+
+All four A14 modules declare only their accepted `PARENT_COMPONENT_ID`; none declares `COMPONENT_ID`.
+
+### A14 acceptance proof
+
+A14 is accepted from exact latest-main integrated production candidate `9290ba964cae34cfc83c8fd09de4ba04bd3ced2f`.
+
+The production acceptance chain is explicit:
+
+1. Historical TDD/freeze head `ac98f8bbc557e252e9408f1fec7c274902aefc50` passed focused Truth Knowledge A run `33374871159` on Python 3.11 and 3.13 with **202 tests** on each matrix leg, v1–v8 sidecar compile, and clean repository audit.
+2. Because concurrent non-A work advanced `main`, the exact 14 tested A14 blobs were overlaid onto then-current `main` `4340859a711e469ba1bf65bdd57dee935760f8ba` without carrying historical branch drift. The resulting integrated candidate is `9290ba964cae34cfc83c8fd09de4ba04bd3ced2f` with tree `0c78e1f70b3d786a7d578d89954099630826734c`.
+3. Fresh exact-head Truth Knowledge A run `33383786898` on candidate `9290ba964cae...` passed Python 3.11 and 3.13 with **202/202 tests** on both versions, A1–A14 v1–v8 compile, and repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
+4. PR #292 synthetic merge `4b0f7ae02d7de7f8b8bb5a327100dd6d51c794f3` exactly merged candidate `9290ba964cae...` into base `4340859a711e469ba1bf65bdd57dee935760f8ba`.
+5. Full Refoundation Epoch 0 run `33383996831` on that exact synthetic merge passed on Python 3.11 and 3.13: **653 Refoundation tests + 202 Truth A tests + 434 downstream organization/campaign/execution tests**, 67/67 AI dossiers fresh, clean repository audit, zero-loss evidence generation/upload, and Neural R2.3 contracts PASS.
+6. PR #292 was `mergeable=true`, contained exactly 14 intended A14 Family-A/CI/docs/test files, and had **0 reviews, 0 review threads, and 0 comments** blocking acceptance.
+7. PR #292 was merged with expected-head protection against exact head `9290ba964cae34cfc83c8fd09de4ba04bd3ced2f`.
+8. Production `main` advanced to verified merge commit `7d472ec044c3e540d11d6e47775d8ef67c12f888`, whose exact parents are pre-A14 `main` `4340859a711e469ba1bf65bdd57dee935760f8ba` and exact integrated A14 candidate `9290ba964cae34cfc83c8fd09de4ba04bd3ced2f`.
+
+This acceptance record does not make v8 runtime state self-authenticating. Every v8 scope, verification receipt and assurance certificate continues to require canonical live recomputation. Canonical family-A status at this revision is therefore **A1–A14 accepted**.
