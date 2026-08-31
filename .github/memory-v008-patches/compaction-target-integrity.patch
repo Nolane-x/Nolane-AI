@@ -1,0 +1,117 @@
+diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
+--- a/nolane/memory/adaptive_policy.py
++++ b/nolane/memory/adaptive_policy.py
+@@ -10,7 +10,8 @@ from nolane.core.canonical_digest import canonical_digest
+ _POLICY_SCHEMA = "nolane-memory-retrieval-policy-v1"
+ _RETRIEVAL_RECEIPT_SCHEMA_V1 = "nolane-memory-retrieval-receipt-v1"
+ _RETRIEVAL_RECEIPT_SCHEMA_V2 = "nolane-memory-retrieval-receipt-v2"
+-_COMPACTION_RECEIPT_SCHEMA = "nolane-memory-compaction-receipt-v1"
++_COMPACTION_RECEIPT_SCHEMA_V1 = "nolane-memory-compaction-receipt-v1"
++_COMPACTION_RECEIPT_SCHEMA_V2 = "nolane-memory-compaction-receipt-v2"
+ _ANCHOR_HEALTH_RECEIPT_SCHEMA = "nolane-memory-anchor-health-receipt-v1"
+@@ -276,6 +277,7 @@ class MemoryCompactionReceipt:
+     epistemic_type: str
+     actor_agent_id: str
+     evidence_refs: tuple[str, ...]
++    compacted_digest: str | None = None
+ 
+     def __post_init__(self) -> None:
+         if len(self.source_memory_ids) < 2:
+@@ -294,16 +296,25 @@ class MemoryCompactionReceipt:
+             _require_nonempty(value, label=label)
+         if not self.evidence_refs:
+             raise ValueError("memory compaction receipt requires evidence")
++        if self.compacted_digest is not None:
++            _require_nonempty(self.compacted_digest, label="compacted_digest")
++
++    @property
++    def schema(self) -> str:
++        return _COMPACTION_RECEIPT_SCHEMA_V2 if self.compacted_digest is not None else _COMPACTION_RECEIPT_SCHEMA_V1
+ 
+     @property
+     def compaction_id(self) -> str:
+         return "mcr-" + canonical_digest(self._identity_state())[:24]
+ 
+     def _identity_state(self) -> dict[str, Any]:
+-        return {
+-            "schema": _COMPACTION_RECEIPT_SCHEMA,
++        state = {
++            "schema": self.schema,
+             "source_memory_ids": list(self.source_memory_ids),
+             "compacted_memory_id": self.compacted_memory_id,
+             "source_digest": self.source_digest,
+             "epistemic_type": self.epistemic_type,
+             "actor_agent_id": self.actor_agent_id,
+             "evidence_refs": list(self.evidence_refs),
+         }
++        if self.compacted_digest is not None:
++            state["compacted_digest"] = self.compacted_digest
++        return state
+@@ -315,8 +326,15 @@ class MemoryCompactionReceipt:
+ 
+     @classmethod
+     def from_state(cls, state: Mapping[str, Any]) -> "MemoryCompactionReceipt":
+-        if str(state.get("schema", _COMPACTION_RECEIPT_SCHEMA)) != _COMPACTION_RECEIPT_SCHEMA:
++        schema = str(state.get("schema", _COMPACTION_RECEIPT_SCHEMA_V1))
++        if schema not in {_COMPACTION_RECEIPT_SCHEMA_V1, _COMPACTION_RECEIPT_SCHEMA_V2}:
+             raise ValueError("unsupported memory compaction receipt schema")
++        compacted_digest = None if state.get("compacted_digest") is None else str(state["compacted_digest"])
++        if schema == _COMPACTION_RECEIPT_SCHEMA_V2 and not str(compacted_digest or "").strip():
++            raise ValueError("memory compaction receipt v2 requires compacted_digest")
+         result = cls(
+             source_memory_ids=tuple(str(value) for value in state.get("source_memory_ids", ())),
+             compacted_memory_id=str(state["compacted_memory_id"]),
+@@ -325,7 +343,10 @@ class MemoryCompactionReceipt:
+             epistemic_type=str(state["epistemic_type"]),
+             actor_agent_id=str(state["actor_agent_id"]),
+             evidence_refs=tuple(str(value) for value in state.get("evidence_refs", ())),
++            compacted_digest=compacted_digest,
+         )
++        if result.schema != schema:
++            raise ValueError("memory compaction receipt schema/target digest mismatch")
+         _require_content_address(
+             state,
+             key="compaction_id",
+diff --git a/nolane/memory/learning_substrate.py b/nolane/memory/learning_substrate.py
+--- a/nolane/memory/learning_substrate.py
++++ b/nolane/memory/learning_substrate.py
+@@ -711,6 +711,10 @@ class LearningSubstrate:
+             ]
+         )
+ 
++    def _compaction_target_digest(self, memory_id: str) -> str:
++        row = self.memory.get(memory_id)
++        return canonical_digest(self._source_projection(row, self.metadata(memory_id)))
++
+     @staticmethod
+     def _intersection_bound(
+         metadata_rows: tuple[LearningMemoryMetadata, ...],
+@@ -807,6 +811,7 @@ class LearningSubstrate:
+             epistemic_type=epistemic_type.value,
+             actor_agent_id=actor,
+             evidence_refs=evidence,
++            compacted_digest=self._compaction_target_digest(compacted.memory_id),
+         )
+         self._compactions[receipt.compaction_id] = receipt
+         return compacted, receipt
+@@ -820,6 +825,11 @@ class LearningSubstrate:
+     def reconstruct_compaction(self, compaction_id: str) -> tuple[MemoryEntry, ...]:
+         receipt = self.compaction_receipt(compaction_id)
+         rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
++        if receipt.compacted_digest is None:
++            raise ValueError("compaction receipt requires v2 target digest")
++        actual_target = self._compaction_target_digest(receipt.compacted_memory_id)
++        if actual_target != receipt.compacted_digest:
++            raise ValueError("compacted target digest mismatch")
+         actual = self._compaction_source_digest(receipt.source_memory_ids)
+         if actual != receipt.source_digest:
+             raise ValueError("memory compaction source digest mismatch")
+@@ -1055,6 +1065,8 @@ class LearningSubstrate:
+         owner = next(iter(owners))
+         if receipt.actor_agent_id == owner:
+             raise PermissionError("memory compaction restore requires external review; owner cannot self-certify")
++        if receipt.compacted_digest is None:
++            raise ValueError("compaction receipt requires v2 target digest")
+         scopes = {row.scope for row in source_rows}
+         if len(scopes) != 1 or compacted.scope not in scopes:
+             raise ValueError("memory compaction restore cannot change memory scope")
