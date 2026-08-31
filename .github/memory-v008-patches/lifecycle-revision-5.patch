@@ -37,7 +37,7 @@ diff --git a/tests/test_refoundation_memory_public_layout.py b/tests/test_refoun
 diff --git a/tests/test_refoundation_wave5d_native_memory_lifecycle.py b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
 --- a/tests/test_refoundation_wave5d_native_memory_lifecycle.py
 +++ b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
-@@ -58,4 +58,4 @@
+@@ -58,5 +58,5 @@
      assert row.status is ImplementationStatus.CANONICAL_NATIVE
      assert row.canonical_module == "nolane.memory.lifecycle"
      assert row.canonical_write_authority is True
