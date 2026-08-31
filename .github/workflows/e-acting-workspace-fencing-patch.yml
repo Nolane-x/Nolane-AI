@@ -1,0 +1,56 @@
+name: E Acting Workspace Provenance Production Patch
+
+on:
+  push:
+    branches:
+      - e-acting-control-reconciliation-gpt56sol
+    paths:
+      - '.github/workflows/e-acting-workspace-fencing-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: e-acting-control-reconciliation-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply deterministic workspace provenance patch
+        run: python .github/e_acting_workspace_fencing_patch.py
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile canonical E modules
+        run: python -m py_compile nolane/external_core/*.py
+      - name: Verify workspace provenance contracts before commit
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_workspace_fencing.py \
+            tests/test_refoundation_acting_control_commit_projection.py \
+            tests/test_refoundation_acting_control_provenance.py \
+            tests/test_refoundation_acting_control_reconciliation.py \
+            tests/test_refoundation_acting_runtime.py \
+            tests/test_refoundation_acting_effect_authority.py \
+            tests/test_refoundation_acting_receipt_provenance.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py
+          python -m pytest -q tests/test_refoundation_*.py
+          git diff --check
+      - name: Commit production delta only after GREEN
+        run: |
+          git config user.name 'nolane-e-acting-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add \
+            nolane/external_core/execution.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py \
+            CURRENT/E_ACTING.md
+          git diff --cached --check
+          git commit -m 'feat(e-acting): bind execution to workspace provenance'
+          git push origin HEAD:e-acting-control-reconciliation-gpt56sol
