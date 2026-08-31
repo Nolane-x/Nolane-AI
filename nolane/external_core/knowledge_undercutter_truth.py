@@ -239,6 +239,29 @@ class JustificationUndercutterRegistry:
             )
         }
 
+    @staticmethod
+    def _historical_basis_exists(
+        row: JustificationUndercutterRevision,
+        *,
+        claim: KnowledgeClaim,
+        justifications: KnowledgeJustificationRegistry,
+    ) -> bool:
+        legacy = justifications.legacy_basis(claim)
+        if (
+            row.target_justification_id == legacy.justification_id
+            and row.target_basis_digest == legacy.digest
+        ):
+            return True
+        for revision in justifications.revisions(row.target_justification_id):
+            basis = revision.basis()
+            if (
+                basis.claim_id == row.target_claim_id
+                and basis.claim_digest == row.target_claim_digest
+                and basis.digest == row.target_basis_digest
+            ):
+                return True
+        return False
+
     def _validate_binding(
         self,
         row: JustificationUndercutterRevision,
@@ -246,6 +269,7 @@ class JustificationUndercutterRegistry:
         knowledge: KnowledgeLedger,
         justifications: KnowledgeJustificationRegistry,
         require_live_basis: bool,
+        require_historical_basis: bool = False,
     ) -> None:
         try:
             claim = knowledge.get(row.target_claim_id)
@@ -264,10 +288,14 @@ class JustificationUndercutterRegistry:
                 knowledge=knowledge,
                 justifications=justifications,
             ).get(row.target_justification_id)
-            if basis is None:
+            if basis is None or basis.digest != row.target_basis_digest:
                 raise ValueError("undercutter target justification is not currently effective")
-            if basis.digest != row.target_basis_digest:
-                raise ValueError("undercutter target basis digest mismatch")
+        if require_historical_basis and not self._historical_basis_exists(
+            row,
+            claim=claim,
+            justifications=justifications,
+        ):
+            raise ValueError("undercutter target justification basis has no canonical history")
 
     def targeting_basis(
         self,
@@ -327,12 +355,13 @@ class JustificationUndercutterRegistry:
         for claim in knowledge.claims():
             visit(claim.claim_id)
 
-    def register(
+    def _register(
         self,
         row: JustificationUndercutterRevision,
         *,
         knowledge: KnowledgeLedger,
         justifications: KnowledgeJustificationRegistry,
+        allow_historical_target: bool,
     ) -> JustificationUndercutterRevision:
         if not isinstance(row, JustificationUndercutterRevision):
             raise TypeError("undercutter registry accepts JustificationUndercutterRevision only")
@@ -346,7 +375,8 @@ class JustificationUndercutterRegistry:
             row,
             knowledge=knowledge,
             justifications=justifications,
-            require_live_basis=not history,
+            require_live_basis=not history and not allow_historical_target,
+            require_historical_basis=not history and allow_historical_target,
         )
         if not history:
             if row.revision != 1:
@@ -397,6 +427,20 @@ class JustificationUndercutterRegistry:
             history.pop()
             raise
         return row
+
+    def register(
+        self,
+        row: JustificationUndercutterRevision,
+        *,
+        knowledge: KnowledgeLedger,
+        justifications: KnowledgeJustificationRegistry,
+    ) -> JustificationUndercutterRevision:
+        return self._register(
+            row,
+            knowledge=knowledge,
+            justifications=justifications,
+            allow_historical_target=False,
+        )
 
     def evidence_ids_for_claims(self, claim_ids: tuple[str, ...]) -> tuple[str, ...]:
         ids = _ids(tuple(claim_ids), "undercutter scope claim ids")
@@ -481,10 +525,11 @@ class JustificationUndercutterRegistry:
 
         registry = cls()
         for row in sorted(parsed, key=lambda item: (item.undercutter_id, item.revision)):
-            registry.register(
+            registry._register(
                 row,
                 knowledge=knowledge,
                 justifications=justifications,
+                allow_historical_target=True,
             )
         return registry
 
