@@ -70,3 +70,46 @@ def test_restore_rejects_tombstone_inserted_after_unrelated_archive() -> None:
 
     with pytest.raises(ValueError, match="memory tombstone requires forgetting authorization"):
         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_tombstone_actor_outside_memory_region() -> None:
+    substrate = _substrate()
+    row = _remember_verified(substrate, "wrong-region tombstone actor")
+    substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="legitimate forgetting",
+        evidence_refs=("evidence-forget",),
+    )
+    archive_receipt = substrate.lifecycle.receipts_for(row.memory_id)[-1]
+    state = deepcopy(substrate.to_state())
+    state["tombstones"][0]["actor_agent_id"] = "outside.worker"
+    state["tombstones"][0]["archive_receipt_id"] = archive_receipt.receipt_id
+
+    with pytest.raises(PermissionError, match="memory tombstone actor requires Memory/Context authority"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_tombstone_bound_to_other_memory_archive_receipt() -> None:
+    substrate = _substrate()
+    first = _remember_verified(substrate, "first tombstone target")
+    second = _remember_verified(substrate, "second archive authority")
+    substrate.forget(
+        first.memory_id,
+        actor_agent_id="memory.worker",
+        reason="legitimate forgetting",
+        evidence_refs=("evidence-first-forget",),
+    )
+    other_receipt = substrate.lifecycle.transition(
+        second.memory_id,
+        actor_agent_id="memory.worker",
+        new_status=MemoryStatus.ARCHIVED,
+        reason="archive second memory",
+        evidence_refs=("evidence-second-archive",),
+    )
+    state = deepcopy(substrate.to_state())
+    state["tombstones"][0]["actor_agent_id"] = "memory.worker"
+    state["tombstones"][0]["archive_receipt_id"] = other_receipt.receipt_id
+
+    with pytest.raises(ValueError, match="memory tombstone requires archived lifecycle authority"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
