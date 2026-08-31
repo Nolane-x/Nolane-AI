@@ -1,9 +1,8 @@
 """Authenticity proofs for Goal/Design decision receipts and authority events.
 
-Decision receipts are content-addressed authority artifacts. This module keeps
-identity verification separate from lifecycle/index persistence so every
-consumer can prove the artifact it is about to trust is the exact artifact
-that was originally admitted.
+Decision receipts are content-addressed authority artifacts. Verification is
+schema-aware and monotonic: v1 and v2 retain their historical identities while
+v3 adds an exact assumption truth snapshot and assumption dependency closure.
 """
 from __future__ import annotations
 
@@ -12,7 +11,7 @@ from typing import Any
 from .goal_design import DecisionReceipt, stable_digest
 
 
-_EXTENDED_RECEIPT_FIELDS = (
+_V2_RECEIPT_FIELDS = (
     "goal_digest",
     "scenario_set_digest",
     "option_set_digest",
@@ -27,12 +26,23 @@ def _sequence(value: Any) -> list[Any]:
     return list(value)
 
 
-def decision_receipt_payload(receipt: DecisionReceipt) -> dict[str, Any]:
-    """Return the canonical identity payload for a v1 or v2 receipt.
+def _v2_state(receipt: DecisionReceipt) -> dict[str, str]:
+    return {field: str(getattr(receipt, field, "")) for field in _V2_RECEIPT_FIELDS}
 
-    v1 is the original eight-field identity. v2 extends that identity with
-    seven manifests/state digests. A partially populated extension is not a
-    third implicit schema: it is ambiguous authority and therefore rejected.
+
+def _v3_state(receipt: DecisionReceipt) -> tuple[tuple[str, ...], str]:
+    refs = tuple(str(value) for value in getattr(receipt, "assumption_refs", ()))
+    digest = str(getattr(receipt, "assumption_state_digest", ""))
+    return refs, digest
+
+
+def decision_receipt_payload(receipt: DecisionReceipt) -> dict[str, Any]:
+    """Return the canonical identity payload for receipt schema v1/v2/v3.
+
+    v1 is the original eight-field identity. v2 extends it with seven manifest
+    digests. v3 extends v2 with the exact truth-maintained assumption closure
+    and the content-addressed assumption snapshot digest. Partial extensions are
+    ambiguous authority and are rejected fail-closed.
     """
 
     payload: dict[str, Any] = {
@@ -45,12 +55,25 @@ def decision_receipt_payload(receipt: DecisionReceipt) -> dict[str, Any]:
         "uncertainty_ids": _sequence(receipt.uncertainty_ids),
         "evidence_refs": _sequence(receipt.evidence_refs),
     }
-    extended = {field: str(getattr(receipt, field, "")) for field in _EXTENDED_RECEIPT_FIELDS}
-    populated = tuple(bool(value) for value in extended.values())
-    if any(populated) and not all(populated):
+
+    v2 = _v2_state(receipt)
+    v2_populated = tuple(bool(value) for value in v2.values())
+    if any(v2_populated) and not all(v2_populated):
         raise ValueError("decision receipt identity has a partially populated v2 manifest")
-    if all(populated):
-        payload.update(extended)
+    has_v2 = all(v2_populated)
+    if has_v2:
+        payload.update(v2)
+
+    assumption_refs, assumption_state_digest = _v3_state(receipt)
+    v3_populated = (bool(assumption_refs), bool(assumption_state_digest))
+    if any(v3_populated) and not all(v3_populated):
+        raise ValueError("decision receipt identity has a partially populated v3 assumption binding")
+    has_v3 = all(v3_populated)
+    if has_v3 and not has_v2:
+        raise ValueError("decision receipt v3 assumption binding requires a complete v2 manifest")
+    if has_v3:
+        payload["assumption_refs"] = list(assumption_refs)
+        payload["assumption_state_digest"] = assumption_state_digest
     return payload
 
 
@@ -67,8 +90,12 @@ def verify_decision_receipt(receipt: DecisionReceipt) -> str:
     expected = expected_decision_receipt_id(receipt)
     if actual != expected:
         raise ValueError("decision receipt identity digest mismatch")
-    extended = tuple(str(getattr(receipt, field, "")) for field in _EXTENDED_RECEIPT_FIELDS)
-    return "v2" if all(extended) else "v1"
+
+    assumption_refs, assumption_state_digest = _v3_state(receipt)
+    if assumption_refs and assumption_state_digest:
+        return "v3"
+    v2 = tuple(_v2_state(receipt).values())
+    return "v2" if all(v2) else "v1"
 
 
 def _decision_event_base_payload(receipt: DecisionReceipt) -> dict[str, Any]:
@@ -82,18 +109,15 @@ def _decision_event_base_payload(receipt: DecisionReceipt) -> dict[str, Any]:
 
 
 def decision_event_payload(receipt: DecisionReceipt) -> dict[str, Any]:
-    """Return the canonical DECISION-event payload minted for this receipt.
-
-    v1 receipts canonically mint the original pre-manifest payload. v2 receipts
-    require the manifest-aware payload. Verification additionally recognizes
-    the exact transitional v1 payload that a manifest-aware runtime could have
-    emitted for a restored v1 receipt with an empty manifest field.
-    """
+    """Return the canonical DECISION-event payload minted for this receipt."""
 
     receipt_version = verify_decision_receipt(receipt)
     payload = _decision_event_base_payload(receipt)
-    if receipt_version == "v2":
+    if receipt_version in {"v2", "v3"}:
         payload["input_manifest_digest"] = receipt.input_manifest_digest
+    if receipt_version == "v3":
+        payload["assumption_refs"] = list(receipt.assumption_refs)
+        payload["assumption_state_digest"] = receipt.assumption_state_digest
     return payload
 
 
@@ -102,6 +126,8 @@ def _accepted_decision_event_payload_digests(receipt: DecisionReceipt) -> frozen
     canonical = decision_event_payload(receipt)
     digests = {stable_digest(canonical)}
     if receipt_version == "v1":
+        # Historical transitional runtime briefly emitted the v2 field with an
+        # empty value for restored v1 receipts. Preserve that exact artifact.
         transitional = _decision_event_base_payload(receipt)
         transitional["input_manifest_digest"] = ""
         digests.add(stable_digest(transitional))
@@ -109,8 +135,11 @@ def _accepted_decision_event_payload_digests(receipt: DecisionReceipt) -> frozen
 
 
 def decision_event_subject_refs(receipt: DecisionReceipt) -> tuple[str, ...]:
-    verify_decision_receipt(receipt)
-    return (receipt.goal_id, receipt.selected_option_id, receipt.snapshot_digest)
+    version = verify_decision_receipt(receipt)
+    subjects = [receipt.goal_id, receipt.selected_option_id, receipt.snapshot_digest]
+    if version == "v3":
+        subjects.extend(receipt.assumption_refs)
+    return tuple(subjects)
 
 
 def verify_decision_authority_event(receipt: DecisionReceipt, event: Any) -> None:
