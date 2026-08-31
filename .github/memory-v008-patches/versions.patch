@@ -1,0 +1,101 @@
+diff --git a/nolane/memory/lifecycle.py b/nolane/memory/lifecycle.py
+index 0c5f230..0f5f9cc 100644
+--- a/nolane/memory/lifecycle.py
++++ b/nolane/memory/lifecycle.py
+@@ -11,7 +11,7 @@ from nolane.organization.identity import AgentRegistry
+ 
+ 
+ COMPONENT_ID = "external.memory.lifecycle"
+-COMPONENT_VERSION = "0.0.4"
++COMPONENT_VERSION = "0.0.5"
+ MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
+ 
+ 
+diff --git a/nolane/memory/retrieval.py b/nolane/memory/retrieval.py
+index 0ccfa17..fb03260 100644
+--- a/nolane/memory/retrieval.py
++++ b/nolane/memory/retrieval.py
+@@ -10,7 +10,7 @@ from nolane.memory.lifecycle import MemoryRelationGraph
+ 
+ 
+ COMPONENT_ID = "external.memory.retrieval"
+-COMPONENT_VERSION = "0.0.3"
++COMPONENT_VERSION = "0.0.4"
+ MIGRATED_FROM = "cogcoder.organization.memory_retrieval"
+ 
+ 
+diff --git a/nolane/metadata/component_versions.py b/nolane/metadata/component_versions.py
+index a6d87da..7632c28 100644
+--- a/nolane/metadata/component_versions.py
++++ b/nolane/metadata/component_versions.py
+@@ -39,8 +39,8 @@ _COMPONENT_REVISIONS.update(
+         "external.self_model": 2,
+         "external.skills": 3,
+         "external.memory.fabric": 2,
+-        "external.memory.lifecycle": 4,
+-        "external.memory.retrieval": 3,
++        "external.memory.lifecycle": 5,
++        "external.memory.retrieval": 4,
+         "external.knowledge": 2,
+         "external.epistemic": 1,
+         "external.requirements": 1,
+diff --git a/tests/test_refoundation_component_versions.py b/tests/test_refoundation_component_versions.py
+index d088f19..33d891d 100644
+--- a/tests/test_refoundation_component_versions.py
++++ b/tests/test_refoundation_component_versions.py
+@@ -41,8 +41,8 @@ ACCEPTED_COMPONENT_REVISIONS = {
+     "external.self_model": 2,
+     "external.skills": 3,
+     "external.memory.fabric": 2,
+-    "external.memory.lifecycle": 4,
+-    "external.memory.retrieval": 3,
++    "external.memory.lifecycle": 5,
++    "external.memory.retrieval": 4,
+     "external.knowledge": 2,
+     "external.epistemic": 1,
+     "external.requirements": 1,
+diff --git a/tests/test_refoundation_memory_public_layout.py b/tests/test_refoundation_memory_public_layout.py
+index 3d1d7c5..e39847f 100644
+--- a/tests/test_refoundation_memory_public_layout.py
++++ b/tests/test_refoundation_memory_public_layout.py
+@@ -58,8 +58,8 @@ def test_memory_public_modules_have_independent_component_ownership() -> None:
+ 
+     expected = {
+         fabric: ("external.memory.fabric", "0.0.2"),
+-        lifecycle: ("external.memory.lifecycle", "0.0.4"),
+-        retrieval: ("external.memory.retrieval", "0.0.3"),
++        lifecycle: ("external.memory.lifecycle", "0.0.5"),
++        retrieval: ("external.memory.retrieval", "0.0.4"),
+         context: ("external.context", "0.0.1"),
+         experience: ("external.experience", "0.0.2"),
+         skills: ("external.skills", "0.0.3"),
+diff --git a/tests/test_refoundation_wave5d_native_memory_lifecycle.py b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
+index ea489e7..872a688 100644
+--- a/tests/test_refoundation_wave5d_native_memory_lifecycle.py
++++ b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
+@@ -64,8 +64,8 @@ def test_wave5d_memory_lifecycle_is_canonical_native_and_versioned() -> None:
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.lifecycle"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.4"
+-    assert str(component_version("external.memory.lifecycle")) == "0.0.4"
++    assert row.component_version == "0.0.5"
++    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
+ 
+ 
+ def test_wave5d_memory_lifecycle_leaves_facades_but_retrieval_does_not() -> None:
+diff --git a/tests/test_refoundation_wave5e_native_memory_retrieval.py b/tests/test_refoundation_wave5e_native_memory_retrieval.py
+index d03eb56..08763d8 100644
+--- a/tests/test_refoundation_wave5e_native_memory_retrieval.py
++++ b/tests/test_refoundation_wave5e_native_memory_retrieval.py
+@@ -42,8 +42,8 @@ def test_wave5e_memory_retrieval_is_canonical_native_and_versioned() -> None:
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.retrieval"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.3"
+-    assert str(component_version("external.memory.retrieval")) == "0.0.3"
++    assert row.component_version == "0.0.4"
++    assert str(component_version("external.memory.retrieval")) == "0.0.4"
+ 
+ 
+ def test_wave5e_memory_retrieval_leaves_active_facades() -> None:
