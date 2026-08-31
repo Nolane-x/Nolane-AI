@@ -717,6 +717,10 @@ class LearningSubstrate:
             ]
         )
 
+    def _compaction_target_digest(self, memory_id: str) -> str:
+        row = self.memory.get(memory_id)
+        return canonical_digest(self._source_projection(row, self.metadata(memory_id)))
+
     @staticmethod
     def _intersection_bound(
         metadata_rows: tuple[LearningMemoryMetadata, ...],
@@ -820,6 +824,7 @@ class LearningSubstrate:
             epistemic_type=epistemic_type.value,
             actor_agent_id=actor,
             evidence_refs=evidence,
+            compacted_digest=self._compaction_target_digest(compacted.memory_id),
         )
         self._compactions[receipt.compaction_id] = receipt
         return compacted, receipt
@@ -833,6 +838,11 @@ class LearningSubstrate:
     def reconstruct_compaction(self, compaction_id: str) -> tuple[MemoryEntry, ...]:
         receipt = self.compaction_receipt(compaction_id)
         rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
+        if receipt.compacted_digest is None:
+            raise ValueError("compaction receipt requires v2 target digest")
+        actual_target = self._compaction_target_digest(receipt.compacted_memory_id)
+        if actual_target != receipt.compacted_digest:
+            raise ValueError("compacted target digest mismatch")
         actual = self._compaction_source_digest(receipt.source_memory_ids)
         if actual != receipt.source_digest:
             raise ValueError("memory compaction source digest mismatch")
@@ -1062,6 +1072,8 @@ class LearningSubstrate:
         owner = next(iter(owners))
         if receipt.actor_agent_id == owner:
             raise PermissionError("memory compaction restore requires external review; owner cannot self-certify")
+        if receipt.compacted_digest is None:
+            raise ValueError("compaction receipt requires v2 target digest")
         scopes = {row.scope for row in source_rows}
         if len(scopes) != 1 or compacted.scope not in scopes:
             raise ValueError("memory compaction restore cannot change memory scope")
