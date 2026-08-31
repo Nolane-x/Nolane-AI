@@ -213,12 +213,41 @@ class JustificationTruthAssuranceGate:
     """Risk-sensitive A12 closure over live v6 truth-maintenance state."""
 
     @staticmethod
+    def _supporting_lineage_claim_ids(scope: JustificationTruthScope) -> frozenset[str]:
+        """Return only claims reachable through target-contributing supported paths.
+
+        ``scope.lineage_claim_ids`` deliberately keeps every enabled alternative for
+        audit and stale-state detection. Assurance vetoes must be narrower: a parent
+        that is reachable only through a dead alternative cannot invalidate another
+        live OR branch. The scope's bound per-justification statuses provide the exact
+        contribution graph required to derive that live lineage deterministically.
+        """
+        by_claim: dict[str, list[Any]] = {}
+        for status in scope.justification_statuses:
+            by_claim.setdefault(status.claim_id, []).append(status)
+
+        seen: set[str] = set()
+
+        def visit(claim_id: str) -> None:
+            if claim_id in seen:
+                return
+            seen.add(claim_id)
+            for status in by_claim.get(claim_id, ()):
+                if status.status != "supported":
+                    continue
+                for parent_id in status.parent_claim_ids:
+                    visit(parent_id)
+
+        visit(scope.target_claim_id)
+        return frozenset(seen)
+
+    @staticmethod
     def _relation_target_conflict(scope: JustificationTruthScope, claim_id: str) -> bool:
         return any(str(claim_id) in row.claim_ids for row in scope.contradictions)
 
-    @staticmethod
-    def _relation_lineage_conflict(scope: JustificationTruthScope, claim_id: str) -> bool:
-        lineage = set(scope.lineage_claim_ids)
+    @classmethod
+    def _relation_lineage_conflict(cls, scope: JustificationTruthScope, claim_id: str) -> bool:
+        lineage = set(cls._supporting_lineage_claim_ids(scope))
         lineage.discard(str(claim_id))
         return any(set(row.claim_ids) & lineage for row in scope.contradictions)
 
@@ -262,6 +291,7 @@ class JustificationTruthAssuranceGate:
             evidence_temporal=evidence_temporal,
             source_provenance=source_provenance,
         )
+        supporting_lineage = set(self._supporting_lineage_claim_ids(scope))
 
         reasons: set[str] = set()
         if target.disposition is not EpistemicDisposition.SUPPORTED:
@@ -273,17 +303,16 @@ class JustificationTruthAssuranceGate:
         if self._relation_lineage_conflict(scope, claim.claim_id):
             reasons.add("epistemic_lineage_conflicted")
 
-        lineage = set(scope.lineage_claim_ids)
         for debt in scope.debts:
             if debt.reason == _RELATION_AMBIGUITY_REASON:
                 if debt.claim_id == claim.claim_id:
                     reasons.add("relation_semantics_ambiguous")
-                elif debt.claim_id in lineage:
+                elif debt.claim_id in supporting_lineage:
                     reasons.add("relation_semantics_lineage_ambiguous")
-            if debt.critical and debt.claim_id in lineage:
+            if debt.critical and debt.claim_id in supporting_lineage:
                 reasons.add("critical_epistemic_debt")
 
-        for lineage_claim_id in scope.lineage_claim_ids:
+        for lineage_claim_id in sorted(supporting_lineage):
             if lineage_claim_id == claim.claim_id:
                 continue
             disposition = scope.assessment(lineage_claim_id).disposition
