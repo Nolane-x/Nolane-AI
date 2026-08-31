@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A10 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A11 Provenance-Bound Source Independence v5 is the current candidate and is not accepted until its exact PR merge-state passes full Refoundation Epoch 0.**
+Status: **A1–A11 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A11 Provenance-Bound Source Independence v5 was accepted from exact candidate `e5b2aa3b8e7ad9e389889c90129939b741d10079` and merged to `main` as `b44f3601c14ad6039faeee2565b412fc60832e8c`.**
 
 ## Canonical authority model
 
@@ -259,13 +259,13 @@ Closure blocks unsupported target, target/ancestor conflict, target/ancestor rel
 
 Unrelated temporal revisions outside the v4 fixed point do not stale the certificate.
 
-## A11 candidate — provenance-bound source independence v5
+## Accepted A11 — provenance-bound source independence v5
 
 A11 closes a remaining authority hole in v1–v4 independence counting. Historical verification can bind a `source_family`, and `EvidenceLedger` prevents one `source_id` from rebinding that family, but multiple source identities controlled by the same real origin can still present distinct family labels. That can falsely look like independent corroboration.
 
 A11 therefore makes source independence a canonical provenance-lineage property rather than a receipt label.
 
-The candidate protocol progression is:
+The canonical protocol progression is:
 
 ```text
 global v1
@@ -291,6 +291,7 @@ provenance-lineage-temporal-v5
 
 `SourceProvenanceRevision` binds:
 
+- protocol domain `truth-source-provenance-v5`;
 - `source_id`;
 - strictly monotonic revision;
 - exact predecessor digest;
@@ -306,7 +307,8 @@ provenance-lineage-temporal-v5
 - existing parents only;
 - no direct or transitive source cycle;
 - no revision rebinding;
-- duplicate/gap/rollback/predecessor/cycle restore attacks fail closed.
+- duplicate/gap/rollback/predecessor/cycle restore attacks fail closed;
+- cross-protocol revision restore fails closed.
 
 For source `S`, the current controller-root set is the union of its own controller and every transitive provenance ancestor controller.
 
@@ -343,6 +345,8 @@ It binds verifier/source identity, channel, pass/fail result, exact v5 scope/con
 Coverage validates live temporal Evidence and exact subject/source/channel provenance, validates the live source-provenance projection, retains negative receipts, and groups passing independence only by `SourceProvenanceRegistry.independence_key(verifier_id)`.
 
 A multi-controller source can remain a valid audit receipt while contributing zero independence credit.
+
+In addition, every controller root already represented by an Evidence source in the exact epistemic v5 scope is an origin controller. A passing verifier whose independence key is one of those origin controllers remains retained and auditable but is placed in `non_independent_receipt_ids` and contributes zero independent-source credit. This prevents claim-producing evidence and its own controller aliases from self-certifying as independent verification.
 
 ### Assurance v5
 
@@ -386,7 +390,7 @@ The A6 five-parent subprotocol registry remains authority metadata for canonical
 - **A8** — dependency-scope v2 and unrelated-state stability.
 - **A10** — accepted canonical relation semantics and relation-aware v3.
 - **A9** — accepted explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
-- **A11 candidate** — append-only source-provenance lineage and controller-derived verification independence v5.
+- **A11** — accepted append-only source-provenance lineage, protocol-domain separation, controller-derived verification independence, and origin-controller self-verification exclusion v5.
 
 ## A9 acceptance proof
 
@@ -400,28 +404,23 @@ A9 is accepted because the exact final candidate integrated with then-current `m
 6. expected-head merge;
 7. post-merge proof that canonical `main` contains the exact tested A9 tree semantics.
 
-## A11 candidate proof
+## A11 acceptance proof
 
-A11 has completed its focused RED → GREEN proof but is **not yet accepted** at this document revision.
+A11 is accepted from exact final candidate `e5b2aa3b8e7ad9e389889c90129939b741d10079`.
 
-RED:
+The acceptance chain is explicit:
 
-- exact test-only head `3b94b249e09c64313838b08179daa7b499b52ccf`;
-- Truth Knowledge run `33351007591`;
-- existing A compile GREEN;
-- collection failed exactly because the new A11 production module did not yet exist.
+1. Initial RED at `3b94b249e09c64313838b08179daa7b499b52ccf` proved A11 production did not yet exist while existing A compile remained green.
+2. Source-provenance, v5 epistemic scope, v5 verification and v5 assurance were implemented additively without creating canonical authority.
+3. A domain-separation RED produced 121 pass / 1 targeted failure; the fix bound `truth-source-provenance-v5` into revision digest/state and made foreign-protocol restore fail closed.
+4. A claim-origin-independence RED at `3e398be35c6a66926714f8f58d548547d35a8850` produced 122 pass / 1 targeted failure because a verifier under the claim evidence controller was incorrectly counted as a third independent source.
+5. Exact final candidate `e5b2aa3b8e7ad9e389889c90129939b741d10079` corrected that by excluding epistemic-scope origin controllers from independent verification credit while retaining their receipts for audit.
+6. Truth Knowledge A Layer run `33354072239` passed on Python 3.11 and 3.13. Python 3.13 fresh log reports **123 passed** and repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
+7. Full Refoundation Epoch 0 run `33354075422` passed on Python 3.11 and 3.13, including canonical compile, 67/67 dossiers, repository audit, Refoundation contracts, Truth Knowledge contracts, zero-loss evidence generation/upload, all organization/campaign/execution regressions, and frozen Neural R2.3 metadata verification.
+8. PR #269 had an intended A11-only 12-file diff, was mergeable, and had 0 reviews / 0 review threads blocking acceptance.
+9. PR #269 was merged with expected-head protection from exact head `e5b2aa3b8e7ad9e389889c90129939b741d10079`.
+10. Canonical `main` advanced to merge commit `b44f3601c14ad6039faeee2565b412fc60832e8c`, whose parents are the then-current `main` and the exact tested A11 candidate.
 
-Focused GREEN:
-
-- exact pre-documentation head `7f120882a7c22dcfa0f5c8d5a4467487c8a38396`;
-- Truth Knowledge run `33351430149`;
-- Python 3.11: 120/120 Truth/Knowledge contracts GREEN and repository audit GREEN;
-- Python 3.13: 120/120 Truth/Knowledge contracts GREEN and repository audit GREEN;
-- repository audit: 173 historical artifacts, 173 moved, 0 quarantined, 0 reference debt, 1 non-native component record;
-- explicit authority-boundary contracts prove all four v5 modules remain sidecars.
-
-Final A11 acceptance still requires the exact PR merge-state to pass full Refoundation Epoch 0 on Python 3.11/3.13, clean intended-only diff/review surface, expected-head merge, and post-merge verification on canonical `main`.
-
-Canonical family-A status at this revision is therefore **A1–A10 accepted; A11 candidate**.
+Canonical family-A status at this revision is therefore **A1–A11 accepted**.
 
 Historical R-series workflows do not define current family-A architecture authority.
