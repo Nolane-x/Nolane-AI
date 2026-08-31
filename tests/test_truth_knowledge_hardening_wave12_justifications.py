@@ -367,6 +367,7 @@ def test_a12_projection_is_relevant_only_and_restore_is_domain_separated():
             subject="other",
             relation="state",
             object="ok",
+            evidence_ids=("unrelated-legacy",),
         )
     )
     state["justifications"].register(
