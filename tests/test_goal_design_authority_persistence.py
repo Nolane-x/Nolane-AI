@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from nolane.external_core.goal_design import (
@@ -5,6 +7,7 @@ from nolane.external_core.goal_design import (
     GoalDesignCoherencePlane,
     GoalDesignVersionVector,
 )
+from nolane.external_core.goal_design_authenticity import expected_decision_receipt_id
 from nolane.external_core.goal_design_ledger import AuthorityLevel, EventKind, GoalDesignLedger
 from nolane.external_core.goal_design_runtime import (
     DecisionAuthorityIndex,
@@ -13,23 +16,29 @@ from nolane.external_core.goal_design_runtime import (
 )
 
 
-def _receipt(receipt_id="receipt:1"):
-    return DecisionReceipt(
-        receipt_id=receipt_id,
-        goal_id="goal:1",
-        selected_option_id="option:1",
-        snapshot_digest="snapshot:1",
-        version_vector={
-            "requirements": "r1",
-            "planning": "p1",
-            "architecture": "a1",
-            "integration": "i1",
-            "context": "c1",
-        },
-        evaluation_digest="evaluation:1",
-        proof_obligation_ids=("proof:1",),
-        uncertainty_ids=("uncertainty:1",),
-        evidence_refs=("evidence:1",),
+def _content_address(receipt: DecisionReceipt) -> DecisionReceipt:
+    return replace(receipt, receipt_id=expected_decision_receipt_id(receipt))
+
+
+def _receipt(label="1"):
+    return _content_address(
+        DecisionReceipt(
+            receipt_id="pending",
+            goal_id=f"goal:{label}",
+            selected_option_id=f"option:{label}",
+            snapshot_digest="snapshot:1",
+            version_vector={
+                "requirements": "r1",
+                "planning": "p1",
+                "architecture": "a1",
+                "integration": "i1",
+                "context": "c1",
+            },
+            evaluation_digest=f"evaluation:{label}",
+            proof_obligation_ids=(f"proof:{label}",),
+            uncertainty_ids=(f"uncertainty:{label}",),
+            evidence_refs=(f"evidence:{label}",),
+        )
     )
 
 
@@ -108,29 +117,31 @@ def test_decision_authority_index_roundtrips_across_restart_without_losing_lifec
 
 
 def test_decision_authority_index_roundtrips_proof_carrying_manifest_digests():
-    receipt = DecisionReceipt(
-        receipt_id="receipt:manifest",
-        goal_id="goal:manifest",
-        selected_option_id="option:manifest",
-        snapshot_digest="snapshot:manifest",
-        version_vector={
-            "requirements": "r2",
-            "planning": "p2",
-            "architecture": "a2",
-            "integration": "i2",
-            "context": "c2",
-        },
-        evaluation_digest="evaluation:manifest",
-        proof_obligation_ids=("proof:manifest",),
-        uncertainty_ids=("uncertainty:manifest",),
-        evidence_refs=("evidence:manifest",),
-        goal_digest="digest:goal",
-        scenario_set_digest="digest:scenarios",
-        option_set_digest="digest:options",
-        proof_state_digest="digest:proofs",
-        uncertainty_state_digest="digest:uncertainties",
-        traceability_digest="digest:traceability",
-        input_manifest_digest="digest:manifest",
+    receipt = _content_address(
+        DecisionReceipt(
+            receipt_id="pending",
+            goal_id="goal:manifest",
+            selected_option_id="option:manifest",
+            snapshot_digest="snapshot:manifest",
+            version_vector={
+                "requirements": "r2",
+                "planning": "p2",
+                "architecture": "a2",
+                "integration": "i2",
+                "context": "c2",
+            },
+            evaluation_digest="evaluation:manifest",
+            proof_obligation_ids=("proof:manifest",),
+            uncertainty_ids=("uncertainty:manifest",),
+            evidence_refs=("evidence:manifest",),
+            goal_digest="digest:goal",
+            scenario_set_digest="digest:scenarios",
+            option_set_digest="digest:options",
+            proof_state_digest="digest:proofs",
+            uncertainty_state_digest="digest:uncertainties",
+            traceability_digest="digest:traceability",
+            input_manifest_digest="digest:manifest",
+        )
     )
     index = DecisionAuthorityIndex()
     index.register(receipt, dependency_refs=("req:manifest", "cmp:manifest"))
@@ -160,16 +171,18 @@ def test_goal_design_ledger_roundtrips_and_preserves_causal_authority_digest():
     vector = GoalDesignVersionVector("r1", "p1", "a1", "i1", "c1")
     snapshot = GoalDesignCoherencePlane().freeze_snapshot(vector)
     snapshot_event = ledger.record_snapshot(snapshot)
-    receipt = DecisionReceipt(
-        receipt_id="receipt:roundtrip",
-        goal_id="goal:roundtrip",
-        selected_option_id="option:roundtrip",
-        snapshot_digest=snapshot.digest,
-        version_vector=vector.tokens(),
-        evaluation_digest="evaluation:roundtrip",
-        proof_obligation_ids=(),
-        uncertainty_ids=(),
-        evidence_refs=("evidence:roundtrip",),
+    receipt = _content_address(
+        DecisionReceipt(
+            receipt_id="pending",
+            goal_id="goal:roundtrip",
+            selected_option_id="option:roundtrip",
+            snapshot_digest=snapshot.digest,
+            version_vector=vector.tokens(),
+            evaluation_digest="evaluation:roundtrip",
+            proof_obligation_ids=(),
+            uncertainty_ids=(),
+            evidence_refs=("evidence:roundtrip",),
+        )
     )
     decision = ledger.record_decision(receipt, parent_ids=(snapshot_event.event_id,))
     ledger.record_invalidation(
@@ -200,8 +213,8 @@ def test_goal_design_ledger_restore_rejects_tampered_event_identity():
 
 def test_revoked_decision_is_terminal_and_cannot_be_downgraded_or_superseded():
     index = DecisionAuthorityIndex()
-    revoked = _receipt("receipt:revoked")
-    replacement = _receipt("receipt:replacement")
+    revoked = _receipt("revoked")
+    replacement = _receipt("replacement")
     index.register(revoked)
     index.register(replacement)
     index.revoke(revoked.receipt_id, "explicit withdrawal")
@@ -216,8 +229,8 @@ def test_revoked_decision_is_terminal_and_cannot_be_downgraded_or_superseded():
 
 def test_superseded_decision_is_terminal_and_cannot_be_rewritten():
     index = DecisionAuthorityIndex()
-    original = _receipt("receipt:original")
-    replacement = _receipt("receipt:replacement")
+    original = _receipt("original")
+    replacement = _receipt("replacement")
     index.register(original)
     index.register(replacement)
     index.supersede(original.receipt_id, by_receipt_id=replacement.receipt_id)
@@ -234,9 +247,9 @@ def test_superseded_decision_is_terminal_and_cannot_be_rewritten():
 
 def test_stale_decision_may_move_forward_to_terminal_state():
     index = DecisionAuthorityIndex()
-    stale_for_revoke = _receipt("receipt:stale-revoke")
-    stale_for_supersede = _receipt("receipt:stale-supersede")
-    replacement = _receipt("receipt:replacement")
+    stale_for_revoke = _receipt("stale-revoke")
+    stale_for_supersede = _receipt("stale-supersede")
+    replacement = _receipt("replacement")
     for receipt in (stale_for_revoke, stale_for_supersede, replacement):
         index.register(receipt)
 
@@ -251,8 +264,8 @@ def test_stale_decision_may_move_forward_to_terminal_state():
 
 def test_supersession_cycle_is_rejected_at_runtime():
     index = DecisionAuthorityIndex()
-    first = _receipt("receipt:first")
-    second = _receipt("receipt:second")
+    first = _receipt("first")
+    second = _receipt("second")
     index.register(first)
     index.register(second)
     index.supersede(first.receipt_id, by_receipt_id=second.receipt_id)
@@ -265,8 +278,8 @@ def test_supersession_cycle_is_rejected_at_runtime():
 
 def test_restore_rejects_tampered_supersession_cycle():
     index = DecisionAuthorityIndex()
-    first = _receipt("receipt:first")
-    second = _receipt("receipt:second")
+    first = _receipt("first")
+    second = _receipt("second")
     index.register(first)
     index.register(second)
     state = index.to_state()
@@ -282,7 +295,7 @@ def test_restore_rejects_tampered_supersession_cycle():
 
 def test_mark_stale_requires_at_least_one_authority_reason():
     index = DecisionAuthorityIndex()
-    receipt = _receipt("receipt:no-reason")
+    receipt = _receipt("no-reason")
     index.register(receipt)
 
     with pytest.raises(ValueError, match="reason"):
@@ -293,8 +306,8 @@ def test_mark_stale_requires_at_least_one_authority_reason():
 
 def test_supersession_requires_an_active_replacement_decision():
     index = DecisionAuthorityIndex()
-    original = _receipt("receipt:original")
-    replacement = _receipt("receipt:replacement")
+    original = _receipt("original")
+    replacement = _receipt("replacement")
     index.register(original)
     index.register(replacement)
     index.mark_stale(replacement.receipt_id, ("replacement drift",))

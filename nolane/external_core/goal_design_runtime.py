@@ -30,6 +30,7 @@ from .goal_design import (
     UncertaintyItem,
     stable_digest,
 )
+from .goal_design_authenticity import verify_decision_authority_event, verify_decision_receipt
 from .goal_design_contracts import (
     ArchitectureState,
     ContextState,
@@ -40,7 +41,7 @@ from .goal_design_contracts import (
 )
 from .goal_design_ledger import GoalDesignLedger
 
-__version__ = "0.3.2"
+__version__ = "0.3.4"
 
 
 class DecisionLifecycle(str, Enum):
@@ -118,7 +119,13 @@ class DecisionAuthorityRecord:
 
 
 class DecisionAuthorityIndex:
-    """Persistent authority index over immutable content-addressed receipts."""
+    """Persistent authority index over immutable content-addressed receipts.
+
+    ``DecisionReceipt`` is frozen at the dataclass surface but its version
+    vector is a mapping and may be backed by a mutable ``dict``. The index is
+    therefore an explicit ownership boundary: it stores private copies and
+    returns defensive copies so external aliases cannot mutate authority state.
+    """
 
     SCHEMA_VERSION = 1
     TERMINAL_LIFECYCLES = frozenset({DecisionLifecycle.SUPERSEDED, DecisionLifecycle.REVOKED})
@@ -129,6 +136,14 @@ class DecisionAuthorityIndex:
     @property
     def digest(self) -> str:
         return stable_digest({"decision_authority_index": self.to_state()})
+
+    @staticmethod
+    def _copy_receipt(receipt: DecisionReceipt) -> DecisionReceipt:
+        return replace(receipt, version_vector=dict(receipt.version_vector))
+
+    @classmethod
+    def _copy_record(cls, record: DecisionAuthorityRecord) -> DecisionAuthorityRecord:
+        return replace(record, receipt=cls._copy_receipt(record.receipt))
 
     @staticmethod
     def _receipt_to_state(receipt: DecisionReceipt) -> dict[str, Any]:
@@ -186,29 +201,65 @@ class DecisionAuthorityIndex:
         dependency_refs: Iterable[str] = (),
         authority_event_id: str | None = None,
     ) -> DecisionAuthorityRecord:
+        private_receipt = self._copy_receipt(receipt)
+        verify_decision_receipt(private_receipt)
         dependencies = tuple(sorted({str(ref) for ref in dependency_refs if str(ref).strip()}))
-        existing = self._records.get(receipt.receipt_id)
+        existing = self._records.get(private_receipt.receipt_id)
         if existing is not None:
-            if existing.dependency_refs != dependencies or existing.snapshot_digest != receipt.snapshot_digest:
+            if existing.receipt != private_receipt:
+                raise ValueError("decision receipt identity cannot be rebound to a different receipt body")
+            if existing.dependency_refs != dependencies or existing.snapshot_digest != private_receipt.snapshot_digest:
                 raise ValueError("decision receipt identity cannot be rebound to different authority dependencies")
-            return existing
+            if authority_event_id is not None and existing.authority_event_id != authority_event_id:
+                raise ValueError("decision receipt identity cannot be rebound to a different authority event")
+            return self._copy_record(existing)
         record = DecisionAuthorityRecord(
-            receipt=receipt,
+            receipt=private_receipt,
             dependency_refs=dependencies,
-            snapshot_digest=receipt.snapshot_digest,
+            snapshot_digest=private_receipt.snapshot_digest,
             authority_event_id=authority_event_id,
         )
-        self._records[receipt.receipt_id] = record
-        return record
+        self._records[private_receipt.receipt_id] = record
+        return self._copy_record(record)
+
+    def validate_ledger_binding(self, ledger: GoalDesignLedger) -> None:
+        """Prove every indexed receipt is bound to its exact authority event.
+
+        Persistence restore deliberately remains ledger-agnostic so historical
+        index snapshots can be loaded independently. Any consumer that wants
+        to *trust* the restored authority must pair it with the ledger and call
+        this verifier; missing, non-authority or semantically rebound events
+        fail closed.
+        """
+
+        for record in self.records():
+            verify_decision_receipt(record.receipt)
+            event_id = (record.authority_event_id or "").strip()
+            if not event_id:
+                raise ValueError(
+                    f"decision authority record {record.receipt.receipt_id} has no ledger authority event binding"
+                )
+            try:
+                event = ledger.get(event_id)
+            except KeyError as exc:
+                raise ValueError(
+                    f"decision authority event {event_id} is missing from Goal/Design ledger"
+                ) from exc
+            try:
+                verify_decision_authority_event(record.receipt, event)
+            except ValueError as exc:
+                raise ValueError(
+                    f"decision authority event {event_id} does not prove receipt {record.receipt.receipt_id}: {exc}"
+                ) from exc
 
     def get(self, receipt_id: str) -> DecisionAuthorityRecord:
         try:
-            return self._records[str(receipt_id)]
+            return self._copy_record(self._records[str(receipt_id)])
         except KeyError as exc:
             raise KeyError(f"unknown Goal/Design decision receipt: {receipt_id}") from exc
 
     def records(self) -> tuple[DecisionAuthorityRecord, ...]:
-        return tuple(self._records[key] for key in sorted(self._records))
+        return tuple(self._copy_record(self._records[key]) for key in sorted(self._records))
 
     def active(self) -> tuple[DecisionAuthorityRecord, ...]:
         return tuple(record for record in self.records() if record.lifecycle is DecisionLifecycle.ACTIVE)
@@ -224,7 +275,7 @@ class DecisionAuthorityIndex:
             return record
         updated = replace(record, lifecycle=DecisionLifecycle.STALE, invalidation_reasons=merged)
         self._records[receipt_id] = updated
-        return updated
+        return self._copy_record(updated)
 
     def revoke(self, receipt_id: str, reason: str) -> DecisionAuthorityRecord:
         reason = str(reason).strip()
@@ -238,7 +289,7 @@ class DecisionAuthorityIndex:
             invalidation_reasons=tuple(sorted(set(record.invalidation_reasons) | {reason})),
         )
         self._records[receipt_id] = updated
-        return updated
+        return self._copy_record(updated)
 
     def supersede(self, receipt_id: str, *, by_receipt_id: str) -> DecisionAuthorityRecord:
         if receipt_id == by_receipt_id:
@@ -254,7 +305,7 @@ class DecisionAuthorityIndex:
             )
         updated = replace(record, lifecycle=DecisionLifecycle.SUPERSEDED, superseded_by=by_receipt_id)
         self._records[receipt_id] = updated
-        return updated
+        return self._copy_record(updated)
 
     def to_state(self) -> dict[str, Any]:
         records: list[dict[str, Any]] = []
@@ -278,7 +329,8 @@ class DecisionAuthorityIndex:
             raise ValueError("unsupported Goal/Design decision index schema version")
         index = cls()
         for row in state.get("records", ()):
-            receipt = cls._receipt_from_state(row["receipt"])
+            receipt = cls._copy_receipt(cls._receipt_from_state(row["receipt"]))
+            verify_decision_receipt(receipt)
             if receipt.receipt_id in index._records:
                 raise ValueError(f"duplicate Goal/Design decision receipt identity: {receipt.receipt_id}")
             snapshot_digest = str(row.get("snapshot_digest", receipt.snapshot_digest))

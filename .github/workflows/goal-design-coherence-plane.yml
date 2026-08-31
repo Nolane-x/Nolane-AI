@@ -7,6 +7,7 @@ on:
       - "cogcoder/organization/goal_design.py"
       - "tests/test_goal_design*.py"
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
+      - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
   pull_request:
     paths:
@@ -14,6 +15,7 @@ on:
       - "cogcoder/organization/goal_design.py"
       - "tests/test_goal_design*.py"
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
+      - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
 
 concurrency:

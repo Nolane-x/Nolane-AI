@@ -1,6 +1,9 @@
+from dataclasses import replace
+
 import pytest
 
 from nolane.external_core.goal_design import DecisionReceipt, GoalDesignCoherencePlane, GoalDesignVersionVector
+from nolane.external_core.goal_design_authenticity import expected_decision_receipt_id
 from nolane.external_core.goal_design_ledger import AuthorityLevel, EventKind, GoalDesignLedger
 
 
@@ -9,8 +12,8 @@ def _snapshot():
 
 
 def _receipt(*, manifest_digest: str) -> DecisionReceipt:
-    return DecisionReceipt(
-        receipt_id="receipt:audit",
+    provisional = DecisionReceipt(
+        receipt_id="pending",
         goal_id="goal:audit",
         selected_option_id="option:audit",
         snapshot_digest="snapshot:audit",
@@ -25,8 +28,15 @@ def _receipt(*, manifest_digest: str) -> DecisionReceipt:
         proof_obligation_ids=(),
         uncertainty_ids=(),
         evidence_refs=("evidence:audit",),
+        goal_digest="digest:goal",
+        scenario_set_digest="digest:scenarios",
+        option_set_digest="digest:options",
+        proof_state_digest="digest:proofs",
+        uncertainty_state_digest="digest:uncertainties",
+        traceability_digest="digest:traceability",
         input_manifest_digest=manifest_digest,
     )
+    return replace(provisional, receipt_id=expected_decision_receipt_id(provisional))
 
 
 def test_generic_cognition_cannot_self_grant_authority():
