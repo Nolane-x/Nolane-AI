@@ -329,15 +329,19 @@ def test_wave5ax_snapshot_roundtrip_is_deterministic_and_rejects_tampering() -> 
         evidence_ids=evidence_ids,
         predecessor_version=library.digest,
     )
-    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
+    assurance = _assurance_plane(receipt)
+    governor.promote(candidate.candidate_id, assurance=assurance, receipt=receipt)
 
     state = governor.to_state()
     encoded = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    restored_library = CognitiveLibrary.from_state(json.loads(json.dumps(library.to_state())))
+    restored_library = CognitiveLibrary.from_state(
+        json.loads(json.dumps(library.to_state())),
+        assurance=assurance,
+    )
     restored = native.CapabilityAcquisitionGovernor.from_state(
         json.loads(encoded),
         library=restored_library,
-        assurance=_assurance_plane(receipt),
+        assurance=assurance,
     )
     assert json.dumps(
         restored.to_state(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
