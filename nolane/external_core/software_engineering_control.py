@@ -171,20 +171,21 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV07):
     ) -> EngineeringApplicationAcknowledgement:
         namespace = _text(executor_namespace, field="executor namespace")
         dispatch = self._application_dispatch_for_intent(intent_id)
-        if dispatch is None:
-            dispatch = self.effect_dispatch.record_application(
-                intent_id,
-                executor_namespace=namespace,
-                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
-            )
-        elif dispatch.executor_namespace != namespace:
+        if dispatch is not None and dispatch.executor_namespace != namespace:
             raise ValueError("application acknowledgement executor namespace does not match dispatch lineage")
+
         acknowledgement = super().acknowledge_application(
             intent_id,
             executor_namespace=namespace,
             executor_receipt_ref=executor_receipt_ref,
             observed_state_digest=observed_state_digest,
         )
+        if dispatch is None:
+            self.effect_dispatch.record_application(
+                intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
         self._validate_dispatch_acknowledgement_lineage()
         return acknowledgement
 
@@ -198,20 +199,21 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV07):
     ) -> EngineeringRollbackAcknowledgement:
         namespace = _text(executor_namespace, field="executor namespace")
         dispatch = self._rollback_dispatch_for_intent(intent_id)
-        if dispatch is None:
-            dispatch = self.effect_dispatch.record_rollback(
-                intent_id,
-                executor_namespace=namespace,
-                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
-            )
-        elif dispatch.executor_namespace != namespace:
+        if dispatch is not None and dispatch.executor_namespace != namespace:
             raise ValueError("rollback acknowledgement executor namespace does not match dispatch lineage")
+
         acknowledgement = super().acknowledge_rollback(
             intent_id,
             executor_namespace=namespace,
             executor_receipt_ref=executor_receipt_ref,
             observed_state_digest=observed_state_digest,
         )
+        if dispatch is None:
+            self.effect_dispatch.record_rollback(
+                intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
         self._validate_dispatch_acknowledgement_lineage()
         return acknowledgement
 
@@ -229,13 +231,17 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV07):
             raise PermissionError(
                 "pre-dispatch application is externally uncertain; record/query acknowledgement before local finalization"
             )
+
+        commit = super().commit_application(intent.intent_id, executor_receipt_ref=executor_receipt_ref)
         if dispatch is None:
+            acknowledgement = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
+            if acknowledgement is None:
+                raise ValueError("compatibility application commit missing durable acknowledgement")
             self.effect_dispatch.record_application(
                 intent.intent_id,
-                executor_namespace="compatibility.effects.v0.1",
+                executor_namespace=acknowledgement.executor_namespace,
                 origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
             )
-        commit = super().commit_application(intent.intent_id, executor_receipt_ref=executor_receipt_ref)
         self._validate_dispatch_acknowledgement_lineage()
         return commit
 
@@ -253,16 +259,20 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV07):
             raise PermissionError(
                 "pre-dispatch rollback is externally uncertain; record/query acknowledgement before local finalization"
             )
-        if dispatch is None:
-            self.effect_dispatch.record_rollback(
-                intent.intent_id,
-                executor_namespace="compatibility.effects.v0.1",
-                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
-            )
+
         completion = super().complete_rollback(
             intent.intent_id,
             verification_receipt_id=verification_receipt_id,
         )
+        if dispatch is None:
+            acknowledgement = self.effect_journal.rollback_acknowledgement_for_transaction(tx.transaction_id)
+            if acknowledgement is None:
+                raise ValueError("compatibility rollback completion missing durable acknowledgement")
+            self.effect_dispatch.record_rollback(
+                intent.intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
         self._validate_dispatch_acknowledgement_lineage()
         return completion
 
