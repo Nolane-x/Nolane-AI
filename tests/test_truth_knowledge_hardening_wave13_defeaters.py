@@ -434,8 +434,15 @@ def test_a13_stale_exact_basis_attack_does_not_follow_revised_justification():
         subject_id=state["claim"].claim_id,
         source_id="alternate-source-2",
     )
+    _record(
+        state["evidence"],
+        evidence_id="u-revisable-support",
+        subject_id="u-revisable",
+        source_id="u-revisable-source",
+    )
     _register_source(state, "alternate-source-1")
     _register_source(state, "alternate-source-2")
+    _register_source(state, "u-revisable-source")
     first = state["justifications"].register(
         KnowledgeJustificationRevision.create(
             justification_id="j-revisable",
@@ -444,7 +451,12 @@ def test_a13_stale_exact_basis_attack_does_not_follow_revised_justification():
         ),
         knowledge=state["knowledge"],
     )
-    _register_attack(state, undercutter_id="u-revisable", target_basis=first.basis())
+    _register_attack(
+        state,
+        undercutter_id="u-revisable",
+        target_basis=first.basis(),
+        evidence_ids=("u-revisable-support",),
+    )
     state["evidence"].revoke("claim-support", reason="force explicit path")
 
     before = _scope(state)
