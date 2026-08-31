@@ -29,7 +29,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.individual_evolution": 1,
     "external.operations": 1,
     "external.research": 1,
-    "external.cognitive_library": 1,
+    "external.cognitive_library": 2,
     "external.capability_acquisition": 2,
     "external.candidate_synthesis": 4,
     "external.transfer_meta": 1,
