@@ -2,9 +2,9 @@
 
 ## Status
 
-`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.2**.
+`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.3**.
 
-The v0.0.2 cutover is additive. The original `reasoning-invention-v1` wire/state schema is intentionally unchanged, so C1 protocol identities and serialized artifacts remain backward compatible. v0.0.2 adds separate immutable schemas around that spine rather than widening the original objects until they become a monolith.
+The v0.0.3 cutover is additive. The original `reasoning-invention-v1` wire/state schema and every C8 schema remain unchanged, so prior serialized identities remain backward compatible. v0.0.3 adds the separate `reasoning-episode-v1` temporal protocol rather than widening frontier, control or review artifacts into a mutable monolith.
 
 Nolane World 0.12.0 is design provenance only. Nolane AI owns the runtime contracts, identities, authority boundaries and verification rules.
 
@@ -24,7 +24,7 @@ Reasoning/Invention is deliberately **not** a seventh mutable governor. It compo
 
 ## Architecture: Reasoning Ecology
 
-v0.0.2 turns C1–C7 into a bounded closed reasoning ecology:
+v0.0.3 composes C1–C9 into a bounded, replayable reasoning ecology:
 
 ```text
 Cognitive Library / evidence / observations
@@ -268,6 +268,28 @@ Schema: `reasoning-meta-learning-v1`.
 
 The resulting evidence has **no policy-update method, model-write method, promotion method or transfer-acceptance method**. A downstream authority may consume it explicitly when future meta-policy work is designed.
 
+## C9 — Replayable Reasoning Episodes
+
+Schema: `reasoning-episode-v1`.
+
+`nolane.external_core.reasoning_episode` closes the temporal-integrity gap between individually valid C8 artifacts. A `ReasoningEpisode` binds one root frontier, the exact current frontier, immutable initial action/cost limits, an ordered content-addressed transition chain, an optional terminal C8 control decision and a stable episode key.
+
+Every `ReasoningFrontierTransition` binds the exact generation, previous frontier, full next frontier, C8 control decision, selected Pareto-authorized action, derived semantic frontier delta, observed cost and overrun state. A transition is admitted only from the current frontier and current derived budget; stale control decisions, reused control/action authority and cross-frontier actions fail closed.
+
+### Continuity and evidence
+
+Within one episode the `reasoning_receipt_id`, objective, Cognitive Library digest, hard constraints and branch budget are immutable. Changing any of them starts a new epistemic context rather than laundering a context switch into an ordinary reasoning step. Unknowns, rivals and assumptions may evolve only through an evidence-carrying derived delta. A stable hypothesis whose rival content changes is recorded as a revision rather than silently retired and reintroduced.
+
+### Budget conservation
+
+Spent actions and cost are derived from the transition chain, never trusted as caller-supplied counters. Estimated cost must fit before a transition is authorized; observed cost is recorded without clipping. An observed overrun is preserved as evidence and terminalizes the episode as `ABSTAINED_BUDGET_OVERRUN`. Exact exhaustion still requires an explicit zero-budget C8 terminal decision, so compute exhaustion cannot masquerade as epistemic success.
+
+### Replay authority
+
+`to_state()` serializes the root plus ordered journal. `from_state()` replays that journal and requires the reconstructed current frontier, budget, terminal decision, status and derived identities to match exactly. Forged snapshots, skipped generations, duplicate authority consumption, non-canonical deltas and stale replay prefixes are rejected.
+
+Episode statuses are deliberately limited to `ACTIVE`, `HALTED_NO_FURTHER_VALUE`, `ABSTAINED_UNRESOLVED` and `ABSTAINED_BUDGET_OVERRUN`. There is no `ACCEPTED`, `SUCCESS` or `PROMOTED` state. C9 is reasoning-history authority only; it is not D planning authority, E execution authority, Cognitive Library write authority or Assurance.
+
 ## Global authority invariants
 
 ### I1 — Proposal is not authority
@@ -312,7 +334,7 @@ Outcome aggregation cannot modify its own policy, neural state, Cognitive Librar
 
 ## Canonical schemas
 
-The component version is `0.0.2` while schemas remain independently versioned:
+The component version is `0.0.3` while schemas remain independently versioned:
 
 | Module | Schema |
 | --- | --- |
@@ -321,13 +343,14 @@ The component version is `0.0.2` while schemas remain independently versioned:
 | `reasoning_metacontrol.py` | `reasoning-metacontrol-v1` |
 | `reasoning_review.py` | `reasoning-review-v1` |
 | `reasoning_meta_learning.py` | `reasoning-meta-learning-v1` |
+| `reasoning_episode.py` | `reasoning-episode-v1` |
 | `reasoning_evaluation.py` | existing C7 evaluation schema |
 
-The v1 core schema is intentionally retained during the component revision cutover so old C1 serialized states and content identities do not change merely because C8 exists.
+The v1 core schema and all C8 schemas are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9 exists.
 
 ## Fail-closed behavior
 
-C1–C8 reject, as applicable:
+C1–C9 reject, as applicable:
 
 - empty semantic identities;
 - duplicate set-like identities;
@@ -350,6 +373,11 @@ C1–C8 reject, as applicable:
 - `SUPPORTED_FOR_SCOPE` with objections, counterexamples or blocking specification gaming;
 - duplicate metareasoning outcomes;
 - meta-learning bundles too small to compare behavior;
+- stale frontier/control/budget authority and reused control or action identities;
+- episode continuity drift across objective, receipt, library, constraints or branch budget;
+- evidence-free frontier mutation, forged frontier deltas and skipped generations;
+- caller-invented spent-budget counters or replay states inconsistent with the transition journal;
+- continued reasoning authority after observed budget overrun;
 - non-canonical restored state.
 
 ## Cross-component integration contract
@@ -363,24 +391,27 @@ Reasoning/Invention consumes stable IDs and immutable snapshots rather than muta
 - Capability Acquisition through caller-mediated `CapabilityGap` handoff only;
 - Transfer/Meta through caller-mediated destination intent/trial evidence only;
 - Assurance remains downstream and unchanged;
-- C7 evaluation supplies outcome evidence to descriptive meta-learning.
+- C7 evaluation supplies outcome evidence to descriptive meta-learning;
+- C9 episodes consume exact C8 frontier/control/action identities and emit replayable transition history without executing the selected action.
 
 This boundary is intentionally narrow so A, B, D, E, F, Memory and Truth can evolve independently without C silently absorbing their authority.
 
 ## Verification contract
 
-C8 was developed RED -> GREEN. The closure gate requires:
+C8 and C9 were developed RED -> GREEN. The closure gate requires:
 
-1. coherent `external.reasoning_invention == 0.0.2` across runtime core, evaluation and canonical revision map;
-2. canonical round-trip and forged-ID rejection for new artifacts;
+1. coherent `external.reasoning_invention == 0.0.3` across all Reasoning/Invention modules and the canonical revision map;
+2. canonical round-trip and forged-ID rejection for every C8/C9 artifact;
 3. branch-budget and structural-rival constraints;
 4. Pareto/order-invariant metacontrol;
 5. continue/halt/abstain fail-closed semantics;
 6. fresh-context partition and anti-spec-gaming gates;
 7. descriptive-only meta-learning;
-8. source scans preventing mutable C/Assurance/model authority backdoors;
-9. exact-head repository Refoundation gates on Python 3.11 and 3.13;
-10. resynchronization with latest `main` before certification if the base advances.
+8. exact frontier-generation continuity and stale control/action rejection;
+9. transition-derived budget conservation, observed-overrun terminalization and critical-unknown preservation;
+10. root-plus-journal replay that rejects forged current snapshots, status, deltas or counters;
+11. source scans preventing mutable C/Assurance/model/execution authority backdoors;
+12. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.
 
 ## Non-goals
 
