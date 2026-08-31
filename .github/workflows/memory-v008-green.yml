@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   apply-green:
-    if: ${{ !contains(github.event.head_commit.message, 'bind tombstones to archive lifecycle authority') }}
+    if: ${{ !contains(github.event.head_commit.message, 'reuse existing archive authority') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -25,7 +25,7 @@ jobs:
           python-version: '3.13'
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Apply minimal GREEN invariant
+      - name: Apply already-archived GREEN invariant
         shell: bash
         run: |
           python - <<'PY'
@@ -33,10 +33,10 @@ jobs:
 
           path = Path('nolane/memory/learning_substrate.py')
           text = path.read_text(encoding='utf-8')
-          old = '''    def _validate_tombstone_semantics(self, tombstone: MemoryTombstone) -> None:\n        row = self.memory.get(tombstone.memory_id)\n        if row.status is not MemoryStatus.ARCHIVED:\n            raise ValueError("memory tombstone requires archived memory state")\n        archived = any(\n            receipt.new_status is MemoryStatus.ARCHIVED\n            for receipt in self.lifecycle.receipts_for(tombstone.memory_id)\n        )\n        if not archived:\n            raise ValueError("memory tombstone requires archived lifecycle authority")\n'''
-          new = '''    def _validate_tombstone_semantics(self, tombstone: MemoryTombstone) -> None:\n        row = self.memory.get(tombstone.memory_id)\n        if row.status is not MemoryStatus.ARCHIVED:\n            raise ValueError("memory tombstone requires archived memory state")\n        archive_authority = tuple(\n            receipt\n            for receipt in self.lifecycle.receipts_for(tombstone.memory_id)\n            if receipt.new_status is MemoryStatus.ARCHIVED\n            and receipt.reason == tombstone.reason\n            and receipt.evidence_refs == tombstone.evidence_refs\n        )\n        if not archive_authority:\n            raise ValueError("memory tombstone requires matching archive lifecycle authority")\n'''
+          old = '''        if row.status is not MemoryStatus.ARCHIVED:\n            self.lifecycle.transition(\n                row.memory_id,\n                actor_agent_id=actor_agent_id,\n                new_status=MemoryStatus.ARCHIVED,\n                reason=reason,\n                evidence_refs=evidence,\n            )\n        self._tombstones[row.memory_id] = candidate\n        return candidate\n'''
+          new = '''        if row.status is not MemoryStatus.ARCHIVED:\n            self.lifecycle.transition(\n                row.memory_id,\n                actor_agent_id=actor_agent_id,\n                new_status=MemoryStatus.ARCHIVED,\n                reason=reason,\n                evidence_refs=evidence,\n            )\n        else:\n            archive_authority = tuple(\n                receipt\n                for receipt in self.lifecycle.receipts_for(row.memory_id)\n                if receipt.new_status is MemoryStatus.ARCHIVED\n                and receipt.actor_agent_id == str(actor_agent_id).strip()\n                and receipt.reason == reason\n                and receipt.evidence_refs == evidence\n            )\n            if not archive_authority:\n                raise ValueError(\n                    "forgetting already archived memory requires matching archive lifecycle authority"\n                )\n        self._tombstones[row.memory_id] = candidate\n        return candidate\n'''
           if text.count(old) != 1:
-              raise SystemExit('expected tombstone validation block exactly once')
+              raise SystemExit('expected forget archive block exactly once')
           path.write_text(text.replace(old, new), encoding='utf-8')
           PY
           git diff --check
@@ -76,5 +76,5 @@ jobs:
           git config user.name "Nolane-x"
           git config user.email "casioreview20@gmail.com"
           git add nolane/memory/learning_substrate.py
-          git commit -m "fix(memory): bind tombstones to archive lifecycle authority"
+          git commit -m "fix(memory): reuse existing archive authority for forget"
           git push origin HEAD:codex/memory-learning-tombstone-authority-v0.0.8
