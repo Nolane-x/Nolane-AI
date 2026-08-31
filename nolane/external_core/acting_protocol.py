@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.2"
+COMPONENT_VERSION = "0.1.3"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -838,6 +838,48 @@ class ActingProtocolLedger:
             evidence_refs=(ref,),
             payload={"reason": reason_text},
             failure_reason=reason_text,
+        )
+
+    def reconcile_interrupted(
+        self,
+        action_id: str,
+        *,
+        evidence_ref: str,
+        reason: str,
+    ) -> ActionRecord:
+        """Resolve a persisted non-terminal action after runtime interruption.
+
+        Reconciliation is intentionally fail-closed. Before execution dispatch the
+        action is cancelled. Once dispatch may have happened, reads can be discarded
+        as no-side-effect work while every mutating effect is degraded because a
+        process restart cannot prove whether the side effect completed or whether an
+        ephemeral local checkpoint is still available. No lease is required because
+        this is recovery, not forward execution.
+        """
+
+        row = self.get(action_id)
+        if row.phase in _TERMINAL_PHASES:
+            return row
+        ref = str(evidence_ref).strip()
+        why = str(reason).strip()
+        if not ref or not why:
+            raise ValueError("interrupted reconciliation requires evidence and a reason")
+        if row.phase in {
+            ActionPhase.PROPOSED,
+            ActionPhase.LEASED,
+            ActionPhase.PRECONDITION_VERIFIED,
+        }:
+            return self.cancel(action_id, reason=why, evidence_ref=ref)
+        if row.contract.effect_class is EffectClass.READ:
+            return self.rollback(
+                action_id,
+                rollback_ref="no-side-effect:" + ref,
+                failure_reason=why,
+            )
+        return self.degrade(
+            action_id,
+            recovery_ref=ref,
+            failure_reason=why,
         )
 
     def validate_chain(self, action_id: str) -> bool:
