@@ -1,0 +1,74 @@
+name: E Acting Control Recovery Green Staging
+
+on:
+  push:
+    branches:
+      - refoundation/e-acting-control-recovery-gpt56sol
+    paths:
+      - '.github/workflows/e-acting-control-recovery-green.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  green:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: refoundation/e-acting-control-recovery-gpt56sol
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Apply minimal control recovery implementation
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              target = Path(path)
+              text = target.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}: {old[:120]!r}')
+              target.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          replace_once(
+              'nolane/external_core/acting_runtime.py',
+              '''    def reconcile_inflight(\n        self,\n        *,\n        evidence_ref: str,\n        reason: str,\n    ) -> tuple[ActionRecord, ...]:\n''',
+              '''    def reconcile_inflight(\n        self,\n        *,\n        evidence_ref: str,\n        reason: str,\n        action_ids: Iterable[str] | None = None,\n    ) -> tuple[ActionRecord, ...]:\n''',
+          )
+          replace_once(
+              'nolane/external_core/acting_runtime.py',
+              '''        if not ref or not why:\n            raise ValueError("in-flight reconciliation requires evidence and a reason")\n        reconciled: list[ActionRecord] = []\n        for row in self.protocol.records():\n            if row.phase in {\n                ActionPhase.COMMITTED,\n                ActionPhase.ROLLED_BACK,\n                ActionPhase.DEGRADED,\n                ActionPhase.CANCELLED,\n            }:\n                continue\n            reconciled.append(\n''',
+              '''        if not ref or not why:\n            raise ValueError("in-flight reconciliation requires evidence and a reason")\n        selected_action_ids = None\n        if action_ids is not None:\n            selected_action_ids = frozenset(\n                str(action_id).strip()\n                for action_id in action_ids\n                if str(action_id).strip()\n            )\n        reconciled: list[ActionRecord] = []\n        for row in self.protocol.records():\n            if row.phase in {\n                ActionPhase.COMMITTED,\n                ActionPhase.ROLLED_BACK,\n                ActionPhase.DEGRADED,\n                ActionPhase.CANCELLED,\n            }:\n                continue\n            if selected_action_ids is not None and row.action_id not in selected_action_ids:\n                continue\n            reconciled.append(\n''',
+          )
+
+          replace_once(
+              'nolane/external_core/execution.py',
+              'from nolane.external_core.acting_protocol import EffectClass, ExecutionRisk, VerifierLevel\n',
+              'from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel\n',
+          )
+          replace_once(
+              'nolane/external_core/execution.py',
+              '''    def get_terminal_receipt(self, receipt_id: str) -> ExecutionTerminalReceipt:\n        return self._terminals[str(receipt_id)]\n\n    def start(\n''',
+              '''    def get_terminal_receipt(self, receipt_id: str) -> ExecutionTerminalReceipt:\n        return self._terminals[str(receipt_id)]\n\n    def _owned_inflight_acting_actions(self) -> dict[str, str]:\n        terminal_phases = {\n            ActionPhase.COMMITTED,\n            ActionPhase.ROLLED_BACK,\n            ActionPhase.DEGRADED,\n            ActionPhase.CANCELLED,\n        }\n        owned: dict[str, str] = {}\n        for row in self.acting_executor.protocol.records():\n            if row.phase in terminal_phases:\n                continue\n            session_id, separator, decision_receipt_id = row.contract.idempotency_key.partition(':')\n            if not separator:\n                continue\n            session = self._sessions.get(session_id)\n            if session is None or session.terminal_receipt_id is not None:\n                continue\n            if decision_receipt_id not in session.decision_receipt_ids:\n                continue\n            decision = self._decisions.get(decision_receipt_id)\n            if decision is None:\n                raise ValueError('acting action references an unknown execution decision')\n            if decision.agent_id != session.agent_id:\n                raise ValueError('acting action decision owner does not match execution session')\n            owned[row.action_id] = session.session_id\n        return owned\n\n    def reconcile_interrupted_sessions(\n        self,\n        *,\n        evidence_ref: str,\n        reason: str,\n    ) -> tuple[ExecutionTerminalReceipt, ...]:\n        ref = str(evidence_ref).strip()\n        why = str(reason).strip()\n        if not ref or not why:\n            raise ValueError('execution-session recovery requires evidence and a reason')\n        owned = self._owned_inflight_acting_actions()\n        if not owned:\n            return ()\n        recovered = self.acting_executor.reconcile_inflight(\n            evidence_ref=ref,\n            reason=why,\n            action_ids=tuple(sorted(owned)),\n        )\n        receipts: list[ExecutionTerminalReceipt] = []\n        for row in recovered:\n            session_id = owned.get(row.action_id)\n            if session_id is None:\n                raise ValueError('acting recovery returned an unowned execution action')\n            session = self._sessions[session_id]\n            if session.terminal_receipt_id is not None:\n                continue\n            if row.phase is ActionPhase.DEGRADED:\n                state = ExecutionState.FAILED\n            elif row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK}:\n                state = ExecutionState.ABORTED\n            else:\n                raise ValueError('acting recovery did not produce a terminal phase')\n            receipts.append(\n                self._terminal(\n                    session,\n                    state,\n                    f'acting recovery action={row.action_id} phase={row.phase.value} evidence={ref}; {why}',\n                )\n            )\n        return tuple(receipts)\n\n    def start(\n''',
+          )
+          PY
+      - name: Compile canonical E modules
+        run: python -m py_compile nolane/external_core/*.py
+      - name: Run E Acting contracts
+        run: |
+          python -m pip install -q pytest
+          python -m pytest -q tests/test_refoundation_acting_*.py
+      - name: Run full Refoundation regression
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Publish exact tested production delta
+        run: |
+          git config user.name "nolane-e-acting-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add nolane/external_core/acting_runtime.py nolane/external_core/execution.py
+          git commit -m "feat(e-acting): reconcile interrupted execution sessions [control-recovery-green]"
+          git push origin HEAD:refoundation/e-acting-control-recovery-gpt56sol
