@@ -10,7 +10,7 @@ from nolane.memory.lifecycle import MemoryRelationGraph
 
 
 COMPONENT_ID = "external.memory.retrieval"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.memory_retrieval"
 
 

@@ -20,6 +20,7 @@ class EventKind(str, Enum):
     SNAPSHOT = "snapshot"
     VERIFICATION = "verification"
     DECISION = "decision"
+    ASSUMPTION_CHANGE = "assumption_change"
     INVALIDATION = "invalidation"
 
 
@@ -116,6 +117,40 @@ class GoalDesignLedger:
             AuthorityLevel.AUTHORITY,
             parent_ids,
             decision_event_subject_refs(receipt),
+        )
+
+    def record_assumption_change(
+        self,
+        *,
+        changed_assumption_ids: tuple[str, ...],
+        affected_assumption_ids: tuple[str, ...],
+        truth_state_digest: str,
+        impact_digest: str,
+        parent_ids: tuple[str, ...] = (),
+    ) -> GoalDesignEvent:
+        """Mint authority that a truth-maintained assumption closure changed."""
+
+        changed = tuple(sorted({str(value).strip() for value in changed_assumption_ids if str(value).strip()}))
+        affected = tuple(sorted({str(value).strip() for value in affected_assumption_ids if str(value).strip()}))
+        truth_state_digest = str(truth_state_digest).strip()
+        impact_digest = str(impact_digest).strip()
+        if not changed or not affected or not truth_state_digest or not impact_digest:
+            raise ValueError(
+                "assumption change authority requires changed/affected assumptions and truth/impact digests"
+            )
+        if not set(changed).issubset(affected):
+            raise ValueError("changed assumptions must be included in affected assumption closure")
+        return self._append(
+            EventKind.ASSUMPTION_CHANGE,
+            {
+                "changed_assumption_ids": list(changed),
+                "affected_assumption_ids": list(affected),
+                "truth_state_digest": truth_state_digest,
+                "impact_digest": impact_digest,
+            },
+            AuthorityLevel.AUTHORITY,
+            parent_ids,
+            affected,
         )
 
     def record_invalidation(
