@@ -11,8 +11,37 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.memory.lifecycle"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
+
+
+_ALLOWED_MEMORY_TRANSITIONS: dict[MemoryStatus, frozenset[MemoryStatus]] = {
+    MemoryStatus.ACTIVE: frozenset({
+        MemoryStatus.QUARANTINED,
+        MemoryStatus.STALE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.QUARANTINED: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.STALE: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.CONTRADICTED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.CONTRADICTED: frozenset({
+        MemoryStatus.ACTIVE,
+        MemoryStatus.SUPERSEDED,
+        MemoryStatus.ARCHIVED,
+    }),
+    MemoryStatus.SUPERSEDED: frozenset({MemoryStatus.ARCHIVED}),
+    MemoryStatus.ARCHIVED: frozenset(),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +121,14 @@ class MemoryLifecycleLedger:
         self.memory.get(memory_id)
         return tuple(row for row in self._receipts if row.memory_id == str(memory_id))
 
+    @staticmethod
+    def _require_allowed_transition(previous: MemoryStatus, target: MemoryStatus) -> None:
+        allowed = _ALLOWED_MEMORY_TRANSITIONS[MemoryStatus(previous)]
+        if MemoryStatus(target) not in allowed:
+            raise PermissionError(
+                f'forbidden memory lifecycle transition: {MemoryStatus(previous).value} -> {MemoryStatus(target).value}'
+            )
+
     def _authorize(self, actor_agent_id: str, new_status: MemoryStatus) -> None:
         actor = self.registry.get(actor_agent_id)
         if actor.region != self.REGION:
@@ -114,6 +151,7 @@ class MemoryLifecycleLedger:
         self._authorize(actor_agent_id, target)
         if old.status is target:
             raise ValueError('memory lifecycle transition must change status')
+        self._require_allowed_transition(old.status, target)
         if not str(reason).strip() or not evidence_refs:
             raise ValueError('memory lifecycle transition requires explicit reason and evidence')
         if target is MemoryStatus.ACTIVE and not (correction_ref and str(correction_ref).strip()):
@@ -167,23 +205,38 @@ class MemoryLifecycleLedger:
         state: Mapping[str, Any],
     ) -> 'MemoryLifecycleLedger':
         receipts = tuple(MemoryLifecycleReceipt.from_state(row) for row in state.get('receipts', ()))
+        counter = int(state.get('counter', len(receipts)))
+        if counter != len(receipts):
+            raise ValueError('memory lifecycle sequence counter mismatch')
         result = cls(
             registry=registry,
             memory=memory,
             events=events,
             receipts=receipts,
-            counter=int(state.get('counter', len(receipts))),
+            counter=counter,
         )
-        for row in receipts:
-            registry.get(row.actor_agent_id)
+        replay_status: dict[str, MemoryStatus] = {}
+        for sequence, row in enumerate(receipts, start=1):
+            expected_receipt_id = f'memory-lifecycle-{sequence:08d}'
+            if row.receipt_id != expected_receipt_id:
+                raise ValueError('memory lifecycle receipt sequence mismatch')
+            result._authorize(row.actor_agent_id, row.new_status)
             memory.get(row.memory_id)
+            result._require_allowed_transition(row.previous_status, row.new_status)
+            if not row.reason.strip() or not row.evidence_refs:
+                raise ValueError('restored memory lifecycle transition requires explicit reason and evidence')
+            if row.new_status is MemoryStatus.ACTIVE and not (
+                row.correction_ref and row.correction_ref.strip()
+            ):
+                raise ValueError('restored memory reactivation requires an explicit corrective reference')
             if row.event_anchor_id is not None:
                 events.get(row.event_anchor_id)
-        latest_by_memory: dict[str, MemoryLifecycleReceipt] = {}
-        for row in receipts:
-            latest_by_memory[row.memory_id] = row
-        for memory_id, row in latest_by_memory.items():
-            if memory.get(memory_id).status is not row.new_status:
+            previous_replayed = replay_status.get(row.memory_id)
+            if previous_replayed is not None and row.previous_status is not previous_replayed:
+                raise ValueError('memory lifecycle continuity mismatch')
+            replay_status[row.memory_id] = row.new_status
+        for memory_id, terminal_status in replay_status.items():
+            if memory.get(memory_id).status is not terminal_status:
                 raise ValueError('restored memory status disagrees with lifecycle history')
         return result
 

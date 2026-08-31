@@ -64,6 +64,18 @@ def test_runtime_snapshot_restore_preserves_exact_distributed_evolution_state_an
     runtime.individual_evolution.verify_skill(
         skill.skill_id, EvidenceRecord('EV-SNAPSHOT-SKILL', 'verification.unit-property.01', True),
     )
+    runtime.learning_substrate.record_skill_validation(
+        skill.skill_id,
+        regression_evidence_ids=('EV-SNAPSHOT-REG-A', 'EV-SNAPSHOT-REG-B'),
+        causal_ablation_evidence_ids=('EV-SNAPSHOT-CAUSAL',),
+        regression_evidence_families={
+            'EV-SNAPSHOT-REG-A': 'snapshot-regression-family-a',
+            'EV-SNAPSHOT-REG-B': 'snapshot-regression-family-b',
+        },
+        causal_ablation_evidence_families={
+            'EV-SNAPSHOT-CAUSAL': 'snapshot-causal-family',
+        },
+    )
     runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
     runtime.individual_evolution.update_self_model(
         agent_id='coding.backend.01', domain='snapshot', score=0.77,
@@ -72,6 +84,9 @@ def test_runtime_snapshot_restore_preserves_exact_distributed_evolution_state_an
     state = runtime.to_state()
     restored = OrganizationRuntime.from_state(state)
     assert restored.to_state() == state
+    assert restored.learning_substrate.skills is restored.evolution
+    assert restored.learning_substrate.memory is restored.memory
+    assert restored.individual_evolution.governed_skill_promoter is restored.learning_substrate
     assert restored.individual_evolution.to_state() == runtime.individual_evolution.to_state()
     assert len(restored.individual_evolution.profiles.profiles()) == 67
     assert restored.individual_evolution.lineage_for('coding.backend.01') == runtime.individual_evolution.lineage_for('coding.backend.01')

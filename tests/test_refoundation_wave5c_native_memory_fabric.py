@@ -23,8 +23,8 @@ def test_wave5c_memory_fabric_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.fabric"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.memory.fabric")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.memory.fabric")) == "0.0.2"
 
 
 def test_wave5c_memory_fabric_is_removed_from_active_facades_only() -> None:

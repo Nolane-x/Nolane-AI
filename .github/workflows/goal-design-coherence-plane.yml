@@ -1,0 +1,42 @@
+name: Goal Design Coherence Plane
+
+on:
+  push:
+    paths:
+      - "nolane/external_core/goal_design*.py"
+      - "cogcoder/organization/goal_design.py"
+      - "tests/test_goal_design*.py"
+      - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
+      - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
+      - ".github/workflows/goal-design-coherence-plane.yml"
+  pull_request:
+    paths:
+      - "nolane/external_core/goal_design*.py"
+      - "cogcoder/organization/goal_design.py"
+      - "tests/test_goal_design*.py"
+      - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
+      - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
+      - ".github/workflows/goal-design-coherence-plane.yml"
+
+concurrency:
+  group: goal-design-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  goal-design:
+    # REFOUNDATION_PR_ISOLATION
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Goal/Design authority tests
+        run: python -m pytest -q tests/test_goal_design*.py

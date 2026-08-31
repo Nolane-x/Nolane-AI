@@ -11,7 +11,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.experience"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.experience"
 
 
@@ -257,15 +257,46 @@ class ExperienceLedger:
         state: Mapping[str, Any],
     ) -> "ExperienceLedger":
         ledger = cls(registry=registry, events=events)
+        seen_experience_ids: set[str] = set()
         for raw in state.get("experiences", ()):
             row = ExperienceRecord.from_state(raw)
-            registry.get(row.agent_id)
-            ledger._experiences[row.experience_id] = row
+            if row.experience_id in seen_experience_ids:
+                raise ValueError("duplicate serialized experience id")
+            seen_experience_ids.add(row.experience_id)
+            canonical = ledger.record(
+                agent_id=row.agent_id,
+                author_agent_id=row.agent_id,
+                domain=row.domain,
+                outcome=row.outcome,
+                summary=row.summary,
+                task_id=row.task_id,
+                object_refs=row.object_refs,
+                evidence_refs=row.evidence_refs,
+            )
+            if canonical != row:
+                raise ValueError("experience restore is not canonical for registered identity and content address")
+
+        seen_attribution_ids: set[str] = set()
         for raw in state.get("attributions", ()):
             row = AttributionRecord.from_state(raw)
+            if row.attribution_id in seen_attribution_ids:
+                raise ValueError("duplicate serialized attribution id")
+            seen_attribution_ids.add(row.attribution_id)
             if row.experience_id not in ledger._experiences:
                 raise ValueError("attribution references missing experience")
-            ledger._attributions[row.attribution_id] = row
+            experience = ledger.get(row.experience_id)
+            if row.agent_id != experience.agent_id:
+                raise ValueError("attribution agent must match experience owner")
+            if row.verifier_agent_id != row.evidence.verifier_agent_id:
+                raise ValueError("attribution verifier must match embedded evidence verifier")
+            canonical = ledger.attribute(
+                row.experience_id,
+                learning_layer=row.learning_layer,
+                lesson=row.lesson,
+                evidence=row.evidence,
+            )
+            if canonical != row:
+                raise ValueError("attribution restore is not canonical")
         return ledger
 
 

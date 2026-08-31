@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any, Mapping, Protocol
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.assurance import AssuranceControlPlane
@@ -15,8 +15,15 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.individual_evolution"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.individual_evolution"
+
+
+class GovernedSkillPromoter(Protocol):
+    skills: SkillEvolutionEngine
+
+    def promote_skill(self, skill_id: str, scope: SkillScope) -> SkillRecord:
+        ...
 
 
 @dataclass(frozen=True, slots=True)
@@ -30,6 +37,20 @@ class EvolutionLineageEntry:
     specialization_signature: str
     evidence_ids: tuple[str, ...] = ()
     predecessor_version: str | None = None
+
+    def __post_init__(self) -> None:
+        if int(self.sequence) <= 0:
+            raise ValueError("evolution lineage sequence must be positive")
+        for label, value in (
+            ("entry_id", self.entry_id),
+            ("agent_id", self.agent_id),
+            ("transition", self.transition),
+            ("neural_version", self.neural_version),
+            ("self_model_version", self.self_model_version),
+            ("specialization_signature", self.specialization_signature),
+        ):
+            if not str(value).strip():
+                raise ValueError(f"evolution lineage {label} must be explicit")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -100,13 +121,17 @@ class IndividualEvolutionControlPlane:
         assurance: AssuranceControlPlane,
         profiles: EvolutionProfileRegistry | None = None,
         experiences: ExperienceLedger | None = None,
+        governed_skill_promoter: GovernedSkillPromoter | None = None,
         lineage: tuple[EvolutionLineageEntry, ...] = (),
         observations: tuple[BenchmarkObservation, ...] = (),
         initialize_lineage: bool = True,
     ) -> None:
+        if governed_skill_promoter is not None and governed_skill_promoter.skills is not evolution:
+            raise ValueError('governed skill promoter must share the individual evolution skill authority')
         self.registry = registry
         self.events = events
         self.evolution = evolution
+        self.governed_skill_promoter = governed_skill_promoter
         self.self_models = self_models
         self.verification = verification
         self.assurance = assurance
@@ -114,11 +139,25 @@ class IndividualEvolutionControlPlane:
         self.experiences = experiences or ExperienceLedger(registry=registry, events=events)
         self._lineage: dict[str, list[EvolutionLineageEntry]] = {row.agent_id: [] for row in self.profiles.profiles()}
         self._lineage_counter = 0
-        for row in lineage:
+        lineage_ids: set[str] = set()
+        lineage_sequences: set[int] = set()
+        for row in sorted(lineage, key=lambda value: value.sequence):
             self.registry.get(row.agent_id)
+            if row.entry_id in lineage_ids:
+                raise ValueError(f'duplicate evolution lineage entry id: {row.entry_id}')
+            if row.sequence in lineage_sequences:
+                raise ValueError(f'duplicate evolution lineage sequence: {row.sequence}')
+            lineage_ids.add(row.entry_id)
+            lineage_sequences.add(row.sequence)
             self._lineage.setdefault(row.agent_id, []).append(row)
             self._lineage_counter = max(self._lineage_counter, row.sequence)
-        self._observations = {row.observation_id: row for row in observations}
+
+        self._observations: dict[str, BenchmarkObservation] = {}
+        for row in observations:
+            self.registry.get(row.agent_id)
+            if row.observation_id in self._observations:
+                raise ValueError(f'duplicate benchmark observation id: {row.observation_id}')
+            self._observations[row.observation_id] = row
         if initialize_lineage and not lineage:
             for profile in self.profiles.profiles():
                 self._append_lineage(profile.agent_id, 'initial')
@@ -155,6 +194,14 @@ class IndividualEvolutionControlPlane:
         )
         self._lineage.setdefault(profile.agent_id, []).append(row)
         return row
+
+    def _ordered_lineage(self) -> tuple[EvolutionLineageEntry, ...]:
+        return tuple(
+            sorted(
+                (row for rows in self._lineage.values() for row in rows),
+                key=lambda row: row.sequence,
+            )
+        )
 
     def lineage_for(self, agent_id: str) -> tuple[EvolutionLineageEntry, ...]:
         self.registry.get(agent_id)
@@ -196,8 +243,13 @@ class IndividualEvolutionControlPlane:
             verifier_regions = {self.registry.get(verifier_id).region for verifier_id in clean_external}
             if not any(region != owner_region for region in verifier_regions):
                 raise PermissionError('global learning promotion requires cross-region evidence')
+        promoter = self.governed_skill_promoter
+        if promoter is None:
+            raise PermissionError('persistent skill promotion requires a governed skill promoter')
+        if promoter.skills is not self.evolution:
+            raise PermissionError('governed skill promoter is not bound to this skill authority')
         before_scope = skill.scope
-        promoted = self.evolution.promote(skill_id, scope)
+        promoted = promoter.promote_skill(skill_id, scope)
         if promoted.scope != before_scope:
             self._append_lineage(
                 promoted.owner_agent_id, 'skill_promoted',
@@ -288,7 +340,7 @@ class IndividualEvolutionControlPlane:
     def to_state(self) -> dict[str, Any]:
         return {
             'profiles': self.profiles.to_state(), 'experiences': self.experiences.to_state(),
-            'lineage': [row.to_state() for agent_id in sorted(self._lineage) for row in self._lineage[agent_id]],
+            'lineage': [row.to_state() for row in self._ordered_lineage()],
             'observations': [self._observations[key].to_state() for key in sorted(self._observations)],
             'lineage_counter': self._lineage_counter,
         }
@@ -298,21 +350,33 @@ class IndividualEvolutionControlPlane:
         cls, *, registry: AgentRegistry, events, evolution: SkillEvolutionEngine,
         self_models: SelfModelRegistry, verification: VerificationAuthority,
         assurance: AssuranceControlPlane, state: Mapping[str, Any],
+        governed_skill_promoter: GovernedSkillPromoter | None = None,
     ) -> 'IndividualEvolutionControlPlane':
         profiles = EvolutionProfileRegistry.from_state(registry=registry, self_models=self_models, state=state.get('profiles', {}))
         experiences = ExperienceLedger.from_state(registry=registry, events=events, state=state.get('experiences', {}))
         lineage = tuple(EvolutionLineageEntry.from_state(raw) for raw in state.get('lineage', ()))
+        sequences = [row.sequence for row in lineage]
+        if sequences != list(range(1, len(lineage) + 1)):
+            raise ValueError('individual evolution lineage sequence invariant violated')
+        if len({row.entry_id for row in lineage}) != len(lineage):
+            raise ValueError('duplicate individual evolution lineage entry id')
         observations = tuple(BenchmarkObservation.from_state(raw) for raw in state.get('observations', ()))
+        if len({row.observation_id for row in observations}) != len(observations):
+            raise ValueError('duplicate individual evolution benchmark observation id')
         result = cls(
             registry=registry, events=events, evolution=evolution, self_models=self_models,
             verification=verification, assurance=assurance, profiles=profiles, experiences=experiences,
+            governed_skill_promoter=governed_skill_promoter,
             lineage=lineage, observations=observations, initialize_lineage=not bool(lineage),
         )
-        result._lineage_counter = max(int(state.get('lineage_counter', result._lineage_counter)), result._lineage_counter)
+        declared_counter = int(state.get('lineage_counter', result._lineage_counter))
+        if declared_counter != result._lineage_counter:
+            raise ValueError('individual evolution lineage counter invariant violated')
         return result
 
 
 __all__ = (
+    "GovernedSkillPromoter",
     "EvolutionLineageEntry",
     "BenchmarkObservation",
     "LongitudinalAssessment",

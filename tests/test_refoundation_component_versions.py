@@ -26,7 +26,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "organization.central": 1,
     "external.artifacts": 1,
     "external.assurance": 1,
-    "external.individual_evolution": 1,
+    "external.individual_evolution": 3,
     "external.operations": 1,
     "external.research": 1,
     "external.cognitive_library": 2,
@@ -38,23 +38,23 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.reasoning_invention": 1,
     "external.verification": 1,
     "external.evidence": 1,
-    "external.experience": 1,
-    "external.self_model": 1,
-    "external.skills": 1,
-    "external.memory.fabric": 1,
-    "external.memory.lifecycle": 1,
-    "external.memory.retrieval": 1,
-    "external.knowledge": 1,
+    "external.experience": 2,
+    "external.self_model": 2,
+    "external.skills": 3,
+    "external.memory.fabric": 2,
+    "external.memory.lifecycle": 5,
+    "external.memory.retrieval": 3,
+    "external.knowledge": 2,
     "external.epistemic": 1,
     "external.requirements": 1,
     "external.planning": 1,
     "external.architecture": 1,
     "external.integration": 1,
     "external.context": 1,
-    "external.invokable_cores": 1,
-    "external.execution.workspace": 1,
+    "external.invokable_cores": 2,
+    "external.execution.workspace": 3,
     "external.execution.executor": 1,
-    "external.execution.control": 1,
+    "external.execution.control": 3,
     "external.coding.claims": 1,
     "external.coding.patches": 1,
     "external.coding.control": 1,
@@ -105,14 +105,14 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.architecture")) == "0.0.2"
     assert str(component_version("external.integration")) == "0.0.1"
     assert str(next_component_version("external.integration")) == "0.0.2"
-    assert str(component_version("external.invokable_cores")) == "0.0.1"
-    assert str(next_component_version("external.invokable_cores")) == "0.0.2"
-    assert str(component_version("external.execution.workspace")) == "0.0.1"
-    assert str(next_component_version("external.execution.workspace")) == "0.0.2"
+    assert str(component_version("external.invokable_cores")) == "0.0.2"
+    assert str(next_component_version("external.invokable_cores")) == "0.0.3"
+    assert str(component_version("external.execution.workspace")) == "0.0.3"
+    assert str(next_component_version("external.execution.workspace")) == "0.0.4"
     assert str(component_version("external.execution.executor")) == "0.0.1"
     assert str(next_component_version("external.execution.executor")) == "0.0.2"
-    assert str(component_version("external.execution.control")) == "0.0.1"
-    assert str(next_component_version("external.execution.control")) == "0.0.2"
+    assert str(component_version("external.execution.control")) == "0.0.3"
+    assert str(next_component_version("external.execution.control")) == "0.0.4"
     assert str(component_version("external.coding.claims")) == "0.0.1"
     assert str(next_component_version("external.coding.claims")) == "0.0.2"
     assert str(component_version("external.coding.patches")) == "0.0.1"

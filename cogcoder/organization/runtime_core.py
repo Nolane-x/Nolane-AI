@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
+from nolane.memory.learning_substrate import LearningSubstrate, SkillValidation
+
 from .adr import ADRDecisionLedger
 from .architecture import ArchitectureControlPlane
 from .artifacts import ArtifactStore
@@ -61,6 +63,7 @@ class OrganizationRuntime:
         operations: OperationsControlPlane | None = None,
         research: ResearchControlPlane | None = None,
         memory_context: MemoryContextControlPlane | None = None,
+        learning_substrate: LearningSubstrate | None = None,
         individual_evolution: IndividualEvolutionControlPlane | None = None,
     ) -> None:
         self.registry = registry
@@ -115,10 +118,30 @@ class OrganizationRuntime:
             registry=self.registry, ledger=self.ledger, authority=self.authority,
             artifacts=self.artifacts, evolution=self.evolution, verification=self.verification,
         )
-        self.individual_evolution = individual_evolution or IndividualEvolutionControlPlane(
-            registry=self.registry, events=self.ledger, evolution=self.evolution,
-            self_models=self.self_models, verification=self.verification, assurance=self.assurance,
+        if learning_substrate is None and individual_evolution is not None:
+            candidate = individual_evolution.governed_skill_promoter
+            if isinstance(candidate, LearningSubstrate):
+                learning_substrate = candidate
+        self.learning_substrate = learning_substrate or LearningSubstrate(
+            registry=self.registry,
+            events=self.ledger,
+            memory=self.memory,
+            skills=self.evolution,
         )
+        if self.learning_substrate.memory is not self.memory:
+            raise ValueError('runtime learning substrate must share the canonical memory authority')
+        if self.learning_substrate.skills is not self.evolution:
+            raise ValueError('runtime learning substrate must share the canonical skill authority')
+        if individual_evolution is not None:
+            if individual_evolution.governed_skill_promoter is not self.learning_substrate:
+                raise ValueError('individual evolution must share the runtime learning substrate')
+            self.individual_evolution = individual_evolution
+        else:
+            self.individual_evolution = IndividualEvolutionControlPlane(
+                registry=self.registry, events=self.ledger, evolution=self.evolution,
+                self_models=self.self_models, verification=self.verification, assurance=self.assurance,
+                governed_skill_promoter=self.learning_substrate,
+            )
         self.operations = operations or OperationsControlPlane(
             registry=self.registry, artifacts=self.artifacts, evolution=self.evolution,
             assurance=self.assurance,
@@ -264,6 +287,10 @@ class OrganizationRuntime:
         self.scheduler.wake(agent_id, reason=reason)
         return self.context.compile(agent_id, since_event_id=checkpoint)
 
+    def _learning_governance_state(self) -> dict[str, Any]:
+        substrate_state = self.learning_substrate.to_state()
+        return {'skill_validations': substrate_state['skill_validations']}
+
     def to_state(self) -> dict[str, Any]:
         return {
             'registry': self.registry.to_state(), 'ledger': self.ledger.to_state(),
@@ -278,6 +305,7 @@ class OrganizationRuntime:
             'ui': self.ui.to_state(), 'assurance': self.assurance.to_state(),
             'operations': self.operations.to_state(), 'research': self.research.to_state(),
             'memory_context': self.memory_context.to_state(),
+            'learning_substrate': self._learning_governance_state(),
             'individual_evolution': self.individual_evolution.to_state(),
             'central': self.central.to_state(),
         }
@@ -299,6 +327,25 @@ class OrganizationRuntime:
         tasks = TaskGraph.from_state(state['tasks'], ledger=ledger, registry=registry, authority=authority)
         scheduler = WakeSleepScheduler.from_state(registry=registry, ledger=ledger, state=state['scheduler'])
         evolution = SkillEvolutionEngine.from_state(state['evolution'])
+        learning_substrate = LearningSubstrate(
+            registry=registry,
+            events=ledger,
+            memory=memory,
+            skills=evolution,
+        )
+        seen_validation_ids: set[str] = set()
+        for raw in state.get('learning_substrate', {}).get('skill_validations', ()):
+            validation = SkillValidation.from_state(raw)
+            if validation.skill_id in seen_validation_ids:
+                raise ValueError(f'duplicate runtime skill validation row: {validation.skill_id}')
+            seen_validation_ids.add(validation.skill_id)
+            learning_substrate.record_skill_validation(
+                validation.skill_id,
+                regression_evidence_ids=validation.regression_evidence_ids,
+                causal_ablation_evidence_ids=validation.causal_ablation_evidence_ids,
+                regression_evidence_families=dict(validation.regression_evidence_families),
+                causal_ablation_evidence_families=dict(validation.causal_ablation_evidence_families),
+            )
         verification = VerificationAuthority.from_state(registry=registry, ledger=ledger, state=state['verification'])
         artifacts = ArtifactStore.from_state(state.get('artifacts', {}))
         external_cores = ExternalCoreRegistry.from_state(state.get('external_cores', {}))
@@ -339,6 +386,7 @@ class OrganizationRuntime:
         individual_evolution = IndividualEvolutionControlPlane.from_state(
             registry=registry, events=ledger, evolution=evolution, self_models=self_models,
             verification=verification, assurance=assurance, state=state.get('individual_evolution', {}),
+            governed_skill_promoter=learning_substrate,
         )
         operations = OperationsControlPlane.from_state(
             registry=registry, artifacts=artifacts, evolution=evolution, assurance=assurance,
@@ -375,5 +423,5 @@ class OrganizationRuntime:
             requirements=requirements, planning=planning, architecture=architecture, adr=adr,
             integration=integration, coding=coding, debugging=debugging, ui=ui, assurance=assurance,
             operations=operations, research=research, memory_context=memory_context,
-            individual_evolution=individual_evolution,
+            learning_substrate=learning_substrate, individual_evolution=individual_evolution,
         )

@@ -1,45 +1,33 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Any, Mapping, Sequence
+from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.coding_claims import (
-    ClaimMode,
-    ClaimStatus,
-    CodeClaim,
-    CodeClaimLedger,
+from nolane.external_core._software_engineering_control_v06 import (
+    CANONICAL_WRITE_AUTHORITY,
+    COMPONENT_ID as BASE_COMPONENT_ID,
+    COMPONENT_VERSION as BASE_COMPONENT_VERSION,
+    EngineeringWorkRecord,
+    SoftwareEngineeringControlPlane as _SoftwareEngineeringControlPlaneV06,
 )
-from nolane.external_core.software_engineering import (
-    EngineeringEvidenceAttestation,
-    EngineeringEvidenceKind,
-    EngineeringEvidenceLedger,
-    EngineeringPatchTransaction,
-    PatchTransactionLedger,
-    SoftwareEngineeringClosureEngine,
+from nolane.external_core.coding_claims import CodeClaimLedger
+from nolane.external_core.software_engineering import EngineeringPatchTransaction
+from nolane.external_core.software_engineering_effect_fencing import FencedEngineeringEffectLedger
+from nolane.external_core.software_engineering_effect_journal import (
+    EngineeringApplicationAcknowledgement,
+    EngineeringEffectJournal,
+    EngineeringRollbackAcknowledgement,
 )
-from nolane.external_core.software_engineering_claims import AnchoredEngineeringClaimBindingLedger
-from nolane.external_core.software_engineering_gate import HistoricalAuthorizationEngineeringGate
-from nolane.external_core.software_engineering_mutation import EvidenceBoundMutationAuthorityEngine
-from nolane.external_core.software_engineering_policy import (
-    EngineeringChangeManifestLedger,
-    EngineeringGateReceipt,
-    EngineeringRiskClass,
-    EngineeringVerificationPolicy,
-    GovernedEngineeringGate,
-)
-from nolane.external_core.software_engineering_receipts import CanonicalReceiptClosureEngine
-from nolane.external_core.software_engineering_validity import (
-    EngineeringClaimBindingLedger,
-    EngineeringCurrentValidityReceipt,
-    EngineeringMutationAuthorityReceipt,
-    EngineeringValidityEngine,
+from nolane.external_core.software_engineering_effect_recovery import EngineeringEffectFinalizer
+from nolane.external_core.software_engineering_effects import (
+    EngineeringApplicationCommit,
+    EngineeringRollbackCompletion,
+    EngineeringRollbackDecision,
 )
 
 
-COMPONENT_ID = "external.software_engineering.control"
-COMPONENT_VERSION = "0.4.0"
-CANONICAL_WRITE_AUTHORITY = False
+COMPONENT_ID = BASE_COMPONENT_ID
+COMPONENT_VERSION = "0.7.0"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -49,339 +37,126 @@ def _text(value: Any, *, field: str) -> str:
     return result
 
 
-def _refs(values: Sequence[Any]) -> tuple[str, ...]:
-    return tuple(sorted({_text(value, field="reference") for value in values}))
+class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
+    """F control plane with durable external-effect acknowledgement lineage.
 
-
-def _path_under(path: str, prefix: str) -> bool:
-    normalized_path = str(path).replace("\\", "/").strip()
-    normalized_prefix = str(prefix).replace("\\", "/").strip().rstrip("/")
-    return normalized_path == normalized_prefix or normalized_path.startswith(normalized_prefix + "/")
-
-
-def _claims_cover_patch(claims: tuple[CodeClaim, ...], patch: Any) -> bool:
-    required_attrs = ("producer_agent_id", "task_id", "touched_files", "touched_symbols")
-    if not claims or not all(hasattr(patch, name) for name in required_attrs):
-        return False
-    producer = str(patch.producer_agent_id)
-    task_id = str(patch.task_id)
-    for claim in claims:
-        if (
-            claim.status is not ClaimStatus.ACTIVE
-            or claim.mode is not ClaimMode.EXCLUSIVE_WRITE
-            or claim.agent_id != producer
-            or claim.task_id != task_id
-        ):
-            return False
-    for raw_path in tuple(patch.touched_files):
-        path = str(raw_path).replace("\\", "/").strip()
-        if not any(
-            path in claim.file_paths
-            or any(_path_under(path, prefix) for prefix in claim.directory_prefixes)
-            for claim in claims
-        ):
-            return False
-    for raw_symbol in tuple(patch.touched_symbols):
-        symbol = str(raw_symbol).strip()
-        if not any(symbol in claim.symbol_ids for claim in claims):
-            return False
-    return True
-
-
-@dataclass(frozen=True, slots=True)
-class EngineeringWorkRecord:
-    work_id: str
-    patch_ref: str
-    patch_digest: str
-    source_revision: str
-    manifest_id: str
-    manifest_digest: str
-    transaction_id: str
-    claim_binding_id: str
-    claim_binding_digest: str
-    authority: str
-    digest: str
-
-    def __post_init__(self) -> None:
-        for value, field in (
-            (self.work_id, "engineering work id"),
-            (self.patch_ref, "patch ref"),
-            (self.patch_digest, "patch digest"),
-            (self.source_revision, "source revision"),
-            (self.manifest_id, "manifest id"),
-            (self.manifest_digest, "manifest digest"),
-            (self.transaction_id, "transaction id"),
-            (self.claim_binding_id, "claim binding id"),
-            (self.claim_binding_digest, "claim binding digest"),
-            (self.digest, "engineering work digest"),
-        ):
-            _text(value, field=field)
-        if self.authority != "candidate_only":
-            raise ValueError("engineering work cannot hold promotion authority")
-
-    def payload(self) -> dict[str, Any]:
-        return {
-            "patch_ref": self.patch_ref,
-            "patch_digest": self.patch_digest,
-            "source_revision": self.source_revision,
-            "manifest_id": self.manifest_id,
-            "manifest_digest": self.manifest_digest,
-            "transaction_id": self.transaction_id,
-            "claim_binding_id": self.claim_binding_id,
-            "claim_binding_digest": self.claim_binding_digest,
-            "authority": self.authority,
-        }
-
-    def to_state(self) -> dict[str, Any]:
-        return {"work_id": self.work_id, **self.payload(), "digest": self.digest}
-
-    @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> "EngineeringWorkRecord":
-        row = cls(
-            work_id=_text(state["work_id"], field="engineering work id"),
-            patch_ref=_text(state["patch_ref"], field="patch ref"),
-            patch_digest=_text(state["patch_digest"], field="patch digest"),
-            source_revision=_text(state["source_revision"], field="source revision"),
-            manifest_id=_text(state["manifest_id"], field="manifest id"),
-            manifest_digest=_text(state["manifest_digest"], field="manifest digest"),
-            transaction_id=_text(state["transaction_id"], field="transaction id"),
-            claim_binding_id=_text(state["claim_binding_id"], field="claim binding id"),
-            claim_binding_digest=_text(state["claim_binding_digest"], field="claim binding digest"),
-            authority=_text(state["authority"], field="engineering work authority"),
-            digest=_text(state["digest"], field="engineering work digest"),
-        )
-        expected = canonical_digest(row.payload())
-        if row.digest != expected or row.work_id != f"eng-work-{expected[:20]}":
-            raise ValueError("engineering work digest/id mismatch")
-        return row
-
-
-class SoftwareEngineeringControlPlane:
-    """Unified governed entry point for F. Software Engineering.
-
-    The control plane composes canonical F authorities with content-addressed
-    evidence, reversible patch transactions, policy-derived verification,
-    explicit pre-apply mutation authority, canonical upstream receipt integrity,
-    cross-surface closure and post-closure live validity. It never promotes
-    beyond the candidate boundary and is not a canonical component write owner.
+    v0.7 of the control compatibility schema composes the established v0.6
+    governed engineering lifecycle with transaction-scoped effect-intent fencing,
+    an observation-only effect journal and a local-only recovery finalizer. The
+    public canonical owner remains this module; the frozen v0.6 class is an
+    internal compatibility implementation, not a second write authority.
     """
 
     def __init__(
         self,
         *,
         claims: CodeClaimLedger,
-        evidence: EngineeringEvidenceLedger | None = None,
-        transactions: PatchTransactionLedger | None = None,
-        claim_bindings: EngineeringClaimBindingLedger | None = None,
-        manifests: EngineeringChangeManifestLedger | None = None,
-        closure: SoftwareEngineeringClosureEngine | None = None,
-        policy: EngineeringVerificationPolicy | None = None,
-        gate: GovernedEngineeringGate | None = None,
-        mutation_authority: EvidenceBoundMutationAuthorityEngine | None = None,
-        validity: EngineeringValidityEngine | None = None,
-        works: Mapping[str, EngineeringWorkRecord] | None = None,
+        effect_journal: EngineeringEffectJournal | None = None,
+        **kwargs: Any,
     ) -> None:
-        self.claims = claims
-        self.evidence = evidence if evidence is not None else EngineeringEvidenceLedger()
-        self.transactions = transactions if transactions is not None else PatchTransactionLedger(self.evidence)
-        self.claim_bindings = (
-            claim_bindings
-            if claim_bindings is not None
-            else EngineeringClaimBindingLedger(transactions=self.transactions, claims=self.claims)
-        )
-        self.manifests = manifests if manifests is not None else EngineeringChangeManifestLedger()
-        self.closure = (
-            closure
-            if closure is not None
-            else CanonicalReceiptClosureEngine(evidence=self.evidence, transactions=self.transactions)
-        )
-        self.policy = policy if policy is not None else EngineeringVerificationPolicy()
-        self.gate = (
-            gate
-            if gate is not None
-            else HistoricalAuthorizationEngineeringGate(
-                evidence=self.evidence,
+        super().__init__(claims=claims, **kwargs)
+
+        if not isinstance(self.effects, FencedEngineeringEffectLedger):
+            self.effects = FencedEngineeringEffectLedger.from_state(
                 transactions=self.transactions,
-                closure=self.closure,
-                claims=self.claims,
-                claim_bindings=self.claim_bindings,
-                policy=self.policy,
+                mutation_authority=self.mutation_authority,
+                state=self.effects.to_state(),
             )
-        )
-        self.mutation_authority = (
-            mutation_authority
-            if mutation_authority is not None
-            else EvidenceBoundMutationAuthorityEngine(
+
+        if effect_journal is None:
+            self.effect_journal = EngineeringEffectJournal(
                 transactions=self.transactions,
-                claim_bindings=self.claim_bindings,
-                evidence=self.evidence,
+                effects=self.effects,
             )
-        )
-        self.validity = (
-            validity
-            if validity is not None
-            else EngineeringValidityEngine(
-                evidence=self.evidence,
-                transactions=self.transactions,
-                closure=self.closure,
-                claims=self.claims,
-                claim_bindings=self.claim_bindings,
-            )
-        )
-        self._works = dict(works or {})
-
-    @property
-    def digest(self) -> str:
-        return canonical_digest(self._state_payload())
-
-    def works(self) -> tuple[EngineeringWorkRecord, ...]:
-        return tuple(self._works[key] for key in sorted(self._works))
-
-    def work(self, work_id: str) -> EngineeringWorkRecord:
-        try:
-            return self._works[str(work_id)]
-        except KeyError as exc:
-            raise KeyError(f"unknown engineering work: {work_id}") from exc
-
-    def begin_patch(
-        self,
-        *,
-        patch: Any,
-        source_revision: str,
-        rollback_artifact_ref: str,
-        claim_refs: tuple[str, ...],
-        dependency_refs: tuple[str, ...] = (),
-        impacted_component_refs: tuple[str, ...] = (),
-        declared_risk: EngineeringRiskClass = EngineeringRiskClass.LOW,
-        ui_sensitive: bool = False,
-        security_sensitive: bool = False,
-        performance_sensitive: bool = False,
-        debug_origin: bool = False,
-    ) -> EngineeringWorkRecord:
-        if not hasattr(patch, "to_state"):
-            raise TypeError("governed engineering work requires canonical patch state")
-        patch_ref = _text(getattr(patch, "patch_id"), field="patch id")
-        patch_digest = canonical_digest(patch.to_state())
-        source = _text(source_revision, field="source revision")
-        rollback = _text(rollback_artifact_ref, field="rollback artifact")
-        refs = _refs(claim_refs)
-        if not refs:
-            raise ValueError("governed patch work requires bound claims")
-        bound_claims = tuple(self.claims.get(claim_id) for claim_id in refs)
-        if not _claims_cover_patch(bound_claims, patch):
-            raise PermissionError("transaction-bound claims do not authorize patch scope/lineage")
-
-        manifest = self.manifests.register(
-            patch=patch,
-            source_revision=source,
-            dependency_refs=dependency_refs,
-            impacted_component_refs=impacted_component_refs,
-            declared_risk=declared_risk,
-            ui_sensitive=ui_sensitive,
-            security_sensitive=security_sensitive,
-            performance_sensitive=performance_sensitive,
-            debug_origin=debug_origin,
-        )
-        tx = self.transactions.begin(
-            patch_ref=patch_ref,
-            patch_digest=patch_digest,
-            source_revision=source,
-            rollback_artifact_ref=rollback,
-        )
-        tx = self.transactions.bind_claims(tx.transaction_id, claim_refs=refs)
-        binding = self.claim_bindings.bind(tx.transaction_id)
-        if not self.claim_bindings.covers_patch(binding.binding_id, patch):
-            raise PermissionError("snapshotted transaction claims do not authorize patch")
-
-        payload = {
-            "patch_ref": patch_ref,
-            "patch_digest": patch_digest,
-            "source_revision": source,
-            "manifest_id": manifest.manifest_id,
-            "manifest_digest": manifest.digest,
-            "transaction_id": tx.transaction_id,
-            "claim_binding_id": binding.binding_id,
-            "claim_binding_digest": binding.digest,
-            "authority": "candidate_only",
-        }
-        digest = canonical_digest(payload)
-        row = EngineeringWorkRecord(
-            work_id=f"eng-work-{digest[:20]}",
-            patch_ref=patch_ref,
-            patch_digest=patch_digest,
-            source_revision=source,
-            manifest_id=manifest.manifest_id,
-            manifest_digest=manifest.digest,
-            transaction_id=tx.transaction_id,
-            claim_binding_id=binding.binding_id,
-            claim_binding_digest=binding.digest,
-            authority="candidate_only",
-            digest=digest,
-        )
-        existing = self._works.get(row.work_id)
-        if existing is not None and existing != row:
-            raise ValueError("engineering work id cannot be rebound")
-        self._works[row.work_id] = row
-        return existing or row
-
-    def record_evidence(
-        self,
-        *,
-        patch: Any,
-        source_revision: str,
-        environment_digest: str,
-        verifier_agent_id: str,
-        verifier_region: str,
-        kind: EngineeringEvidenceKind,
-        passed: bool,
-        evidence_refs: tuple[str, ...],
-        dependencies: tuple[str, ...] = (),
-    ) -> EngineeringEvidenceAttestation:
-        if not hasattr(patch, "to_state"):
-            raise TypeError("engineering evidence requires canonical patch state")
-        return self.evidence.record(
-            subject_ref=_text(getattr(patch, "patch_id"), field="patch id"),
-            subject_digest=canonical_digest(patch.to_state()),
-            producer_agent_id=_text(getattr(patch, "producer_agent_id"), field="patch producer"),
-            verifier_agent_id=verifier_agent_id,
-            verifier_region=verifier_region,
-            kind=kind,
-            passed=passed,
-            evidence_refs=evidence_refs,
-            source_revision=source_revision,
-            environment_digest=environment_digest,
-            dependencies=dependencies,
-        )
-
-    def verify_preconditions(
-        self,
-        transaction_id: str,
-        *,
-        attestation_ids: tuple[str, ...],
-    ) -> EngineeringPatchTransaction:
-        return self.transactions.verify_preconditions(
-            transaction_id,
-            attestation_ids=attestation_ids,
-        )
-
-    def assess_mutation_authority(
-        self,
-        work_id: str,
-        *,
-        patch: Any,
-    ) -> EngineeringMutationAuthorityReceipt:
-        work = self.work(work_id)
-        if not hasattr(patch, "to_state"):
-            raise TypeError("mutation authority requires canonical patch state")
-        if (
-            str(getattr(patch, "patch_id", "")) != work.patch_ref
-            or canonical_digest(patch.to_state()) != work.patch_digest
+        elif (
+            effect_journal.transactions is self.transactions
+            and effect_journal.effects is self.effects
         ):
-            raise ValueError("engineering work patch lineage mismatch")
-        binding = self.claim_bindings.get(work.claim_binding_id)
-        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
-            raise ValueError("engineering work claim binding lineage mismatch")
-        return self.mutation_authority.assess(work.transaction_id, patch=patch)
+            self.effect_journal = effect_journal
+        else:
+            self.effect_journal = EngineeringEffectJournal.from_state(
+                transactions=self.transactions,
+                effects=self.effects,
+                state=effect_journal.to_state(),
+            )
+
+        if (
+            self.effect_journal.transactions is not self.transactions
+            or self.effect_journal.effects is not self.effects
+        ):
+            raise ValueError("effect journal must share canonical transaction/effect ledgers")
+        self.effect_finalizer = EngineeringEffectFinalizer(
+            transactions=self.transactions,
+            effects=self.effects,
+            journal=self.effect_journal,
+        )
+
+    def acknowledge_application(
+        self,
+        intent_id: str,
+        *,
+        executor_namespace: str,
+        executor_receipt_ref: str,
+        observed_state_digest: str,
+    ) -> EngineeringApplicationAcknowledgement:
+        """Record an executor acknowledgement as an observation-only fact.
+
+        The caller is reporting an external effect that it observed. This method
+        therefore records history and does not pretend F can undo the fact if
+        live claim state changes between executor execution and acknowledgement.
+        New dispatch integrations must use the prepared, mutation-authorized
+        application intent as the executor boundary.
+        """
+        return self.effect_journal.acknowledge_application(
+            intent_id,
+            executor_namespace=executor_namespace,
+            executor_receipt_ref=executor_receipt_ref,
+            observed_state_digest=observed_state_digest,
+        )
+
+    def finalize_application(self, acknowledgement_id: str) -> EngineeringApplicationCommit:
+        return self.effect_finalizer.finalize_application(acknowledgement_id)
+
+    def commit_application(
+        self,
+        intent_id: str,
+        *,
+        executor_receipt_ref: str,
+    ) -> EngineeringApplicationCommit:
+        """Compatibility one-call path backed by the v0.8 durable journal."""
+        intent = self.effects.application_intent(intent_id)
+        tx = self.transactions.get(intent.transaction_id)
+        receipt_ref = _text(executor_receipt_ref, field="executor receipt ref")
+
+        existing_commit = self.effects.application_commit_for_transaction(tx.transaction_id)
+        if existing_commit is not None:
+            if existing_commit.intent_id != intent.intent_id:
+                raise ValueError("application intent conflicts with existing transaction commit")
+            if existing_commit.executor_receipt_ref != receipt_ref:
+                raise ValueError("application intent executor receipt cannot be rebound")
+            return existing_commit
+
+        existing_ack = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
+        if existing_ack is not None and existing_ack.executor_receipt_ref != receipt_ref:
+            raise ValueError("application intent executor receipt cannot be rebound")
+        if existing_ack is None:
+            # In this compatibility path the call is still the mutation action
+            # boundary, so preserve the v0.6 live revalidation before recording
+            # a new executor acknowledgement. Explicit acknowledge_application()
+            # instead records an already-observed external fact.
+            reasons = tuple(self.mutation_authority.preapply_reasons(tx.transaction_id))
+            if reasons and tx.application_ref is None:
+                raise PermissionError("application denied by live mutation authority: " + ", ".join(reasons))
+
+        acknowledgement = self.effect_journal.acknowledge_application(
+            intent.intent_id,
+            executor_namespace="compatibility.effects.v0.1",
+            executor_receipt_ref=receipt_ref,
+            observed_state_digest=canonical_digest(
+                {"compatibility_application_executor_receipt_ref": receipt_ref}
+            ),
+        )
+        return self.effect_finalizer.finalize_application(acknowledgement.acknowledgement_id)
 
     def mark_applied(
         self,
@@ -390,115 +165,81 @@ class SoftwareEngineeringControlPlane:
         application_ref: str,
         mutation_authority_receipt_id: str | None = None,
     ) -> EngineeringPatchTransaction:
+        """Legacy adapter that now routes through acknowledgement-backed commit."""
         if mutation_authority_receipt_id is None:
             raise PermissionError("patch application requires mutation authority receipt")
+        intent = self.effects.prepare_application(
+            transaction_id=transaction_id,
+            mutation_authority_receipt_id=mutation_authority_receipt_id,
+            application_ref=application_ref,
+        )
+        self.commit_application(intent.intent_id, executor_receipt_ref=application_ref)
+        return self.transactions.get(transaction_id)
+
+    def acknowledge_rollback(
+        self,
+        intent_id: str,
+        *,
+        executor_namespace: str,
+        executor_receipt_ref: str,
+        observed_state_digest: str,
+    ) -> EngineeringRollbackAcknowledgement:
+        return self.effect_journal.acknowledge_rollback(
+            intent_id,
+            executor_namespace=executor_namespace,
+            executor_receipt_ref=executor_receipt_ref,
+            observed_state_digest=observed_state_digest,
+        )
+
+    def finalize_rollback(
+        self,
+        acknowledgement_id: str,
+        *,
+        verification_receipt_id: str,
+    ) -> EngineeringRollbackCompletion:
+        return self.effect_finalizer.finalize_rollback(
+            acknowledgement_id,
+            verification_receipt_id=verification_receipt_id,
+        )
+
+    def complete_rollback(
+        self,
+        intent_id: str,
+        *,
+        verification_receipt_id: str,
+    ) -> EngineeringRollbackCompletion:
+        """Compatibility completion path backed by a durable rollback observation."""
+        intent = self.effects.rollback_intent(intent_id)
         try:
-            receipt = self.mutation_authority.get(mutation_authority_receipt_id)
+            verification = self.effects.rollback_verification(verification_receipt_id)
         except KeyError as exc:
-            raise PermissionError("patch application requires known mutation authority receipt") from exc
-        tx = self.transactions.get(transaction_id)
+            raise PermissionError("rollback completion requires known verification receipt") from exc
         if (
-            not receipt.authorized
-            or receipt.transaction_id != tx.transaction_id
-            or receipt.patch_ref != tx.patch_ref
-            or receipt.patch_digest != tx.patch_digest
+            not verification.passed
+            or verification.decision is not EngineeringRollbackDecision.VERIFIED
+            or verification.rollback_intent_id != intent.intent_id
+            or verification.rollback_intent_digest != intent.digest
+            or verification.transaction_id != intent.transaction_id
+            or verification.restored_state_digest != intent.target_state_digest
         ):
-            raise PermissionError("patch application denied by mutation authority receipt lineage")
-        reasons = self.mutation_authority.preapply_reasons(transaction_id)
-        if reasons:
-            raise PermissionError(
-                "patch application denied by mutation authority: " + ", ".join(reasons)
-            )
-        return self.transactions.mark_applied(transaction_id, application_ref=application_ref)
+            raise PermissionError("rollback verification is not verified for this rollback intent")
 
-    def observe_outcome(
-        self,
-        transaction_id: str,
-        *,
-        evidence_refs: tuple[str, ...],
-    ) -> EngineeringPatchTransaction:
-        return self.transactions.observe_outcome(transaction_id, evidence_refs=evidence_refs)
-
-    def verify_postconditions(
-        self,
-        transaction_id: str,
-        *,
-        attestation_ids: tuple[str, ...],
-    ) -> EngineeringPatchTransaction:
-        return self.transactions.verify_postconditions(
-            transaction_id,
-            attestation_ids=attestation_ids,
+        acknowledgement = self.effect_journal.acknowledge_rollback(
+            intent.intent_id,
+            executor_namespace="compatibility.effects.v0.1",
+            executor_receipt_ref=intent.rollback_operation_ref,
+            observed_state_digest=intent.target_state_digest,
         )
-
-    def assess_candidate(
-        self,
-        *,
-        work_id: str,
-        patch: Any,
-        coding_readiness: Any,
-        current_source_revision: str,
-        attestation_ids: tuple[str, ...],
-        debug_resolution: Any | None = None,
-        ui_readiness: Any | None = None,
-    ) -> EngineeringGateReceipt:
-        work = self.work(work_id)
-        if not hasattr(patch, "to_state"):
-            raise TypeError("candidate assessment requires canonical patch state")
-        patch_digest = canonical_digest(patch.to_state())
-        if str(getattr(patch, "patch_id", "")) != work.patch_ref or patch_digest != work.patch_digest:
-            raise ValueError("engineering work patch lineage mismatch")
-        manifest = self.manifests.get(work.manifest_id)
-        if manifest.digest != work.manifest_digest:
-            raise ValueError("engineering work manifest lineage mismatch")
-        binding = self.claim_bindings.get(work.claim_binding_id)
-        if binding.digest != work.claim_binding_digest or binding.transaction_id != work.transaction_id:
-            raise ValueError("engineering work claim binding lineage mismatch")
-        return self.gate.assess(
-            manifest=manifest,
-            patch=patch,
-            coding_readiness=coding_readiness,
-            transaction_id=work.transaction_id,
-            current_source_revision=current_source_revision,
-            attestation_ids=attestation_ids,
-            debug_resolution=debug_resolution,
-            ui_readiness=ui_readiness,
-        )
-
-    def revalidate(
-        self,
-        gate_receipt_id: str,
-        *,
-        patch: Any,
-        current_source_revision: str,
-    ) -> EngineeringCurrentValidityReceipt:
-        gate = self.gate.get(gate_receipt_id)
-        if gate.closure_receipt_id is None:
-            raise PermissionError("engineering gate has no historical closure to revalidate")
-        return self.validity.revalidate(
-            gate.closure_receipt_id,
-            patch=patch,
-            current_source_revision=current_source_revision,
+        return self.effect_finalizer.finalize_rollback(
+            acknowledgement.acknowledgement_id,
+            verification_receipt_id=verification.receipt_id,
         )
 
     def _state_payload(self) -> dict[str, Any]:
-        return {
-            "component_id": COMPONENT_ID,
-            "component_version": COMPONENT_VERSION,
-            "works": [row.to_state() for row in self.works()],
-            "evidence": self.evidence.to_state(),
-            "transactions": self.transactions.to_state(),
-            "claim_bindings": self.claim_bindings.to_state(),
-            "manifests": self.manifests.to_state(),
-            "policy": self.policy.to_state(),
-            "closure": self.closure.to_state(),
-            "gate": self.gate.to_state(),
-            "mutation_authority": self.mutation_authority.to_state(),
-            "validity": self.validity.to_state(),
-        }
-
-    def to_state(self) -> dict[str, Any]:
-        payload = self._state_payload()
-        return {**payload, "digest": canonical_digest(payload)}
+        payload = super()._state_payload()
+        payload["component_version"] = COMPONENT_VERSION
+        payload["effect_journal"] = self.effect_journal.to_state()
+        return payload
 
     @classmethod
     def from_state(
@@ -515,88 +256,49 @@ class SoftwareEngineeringControlPlane:
         payload = {key: value for key, value in state.items() if key != "digest"}
         if canonical_digest(payload) != supplied_digest:
             raise ValueError("software engineering control snapshot digest mismatch")
+        if "effect_journal" not in state:
+            raise ValueError("software engineering v0.7 snapshot requires durable effect journal")
 
-        evidence = EngineeringEvidenceLedger.from_state(state["evidence"])
-        transactions = PatchTransactionLedger.from_state(
-            evidence=evidence,
-            state=state["transactions"],
-        )
-        claim_bindings = AnchoredEngineeringClaimBindingLedger.from_state(
-            transactions=transactions,
+        # Explicit schema translation into the frozen v0.6 implementation.
+        # Missing acknowledgement history is never guessed or synthesized.
+        base_payload = {
+            key: value
+            for key, value in state.items()
+            if key not in {"digest", "effect_journal"}
+        }
+        base_payload["component_version"] = BASE_COMPONENT_VERSION
+        base_state = {**base_payload, "digest": canonical_digest(base_payload)}
+        base = _SoftwareEngineeringControlPlaneV06.from_state(
             claims=claims,
-            state=state["claim_bindings"],
-        )
-        manifests = EngineeringChangeManifestLedger.from_state(state["manifests"])
-        closure = CanonicalReceiptClosureEngine.from_state(
-            evidence=evidence,
-            transactions=transactions,
-            state=state["closure"],
-        )
-        policy = EngineeringVerificationPolicy.from_state(state["policy"])
-        gate = HistoricalAuthorizationEngineeringGate.from_state(
-            evidence=evidence,
-            transactions=transactions,
-            closure=closure,
-            claims=claims,
-            claim_bindings=claim_bindings,
-            policy=policy,
-            manifests=manifests,
-            state=state["gate"],
-        )
-        mutation_authority = EvidenceBoundMutationAuthorityEngine.from_state(
-            transactions=transactions,
-            claim_bindings=claim_bindings,
-            evidence=evidence,
-            state=state["mutation_authority"],
-        )
-        validity = EngineeringValidityEngine.from_state(
-            evidence=evidence,
-            transactions=transactions,
-            closure=closure,
-            claims=claims,
-            claim_bindings=claim_bindings,
-            state=state["validity"],
+            state=base_state,
         )
 
-        works: dict[str, EngineeringWorkRecord] = {}
-        for value in state.get("works", ()):
-            row = EngineeringWorkRecord.from_state(value)
-            manifest = manifests.get(row.manifest_id)
-            if (
-                manifest.digest != row.manifest_digest
-                or manifest.patch_ref != row.patch_ref
-                or manifest.patch_digest != row.patch_digest
-                or manifest.source_revision != row.source_revision
-            ):
-                raise ValueError("engineering work manifest lineage mismatch")
-            tx = transactions.get(row.transaction_id)
-            if (
-                tx.patch_ref != row.patch_ref
-                or tx.patch_digest != row.patch_digest
-                or tx.source_revision != row.source_revision
-            ):
-                raise ValueError("engineering work transaction lineage mismatch")
-            binding = claim_bindings.get(row.claim_binding_id)
-            if binding.digest != row.claim_binding_digest or binding.transaction_id != row.transaction_id:
-                raise ValueError("engineering work claim binding lineage mismatch")
-            existing = works.get(row.work_id)
-            if existing is not None and existing != row:
-                raise ValueError("duplicate/rebound engineering work")
-            works[row.work_id] = row
-
+        fenced_effects = FencedEngineeringEffectLedger.from_state(
+            transactions=base.transactions,
+            mutation_authority=base.mutation_authority,
+            state=base.effects.to_state(),
+        )
+        journal = EngineeringEffectJournal.from_state(
+            transactions=base.transactions,
+            effects=fenced_effects,
+            state=state["effect_journal"],
+        )
         plane = cls(
             claims=claims,
-            evidence=evidence,
-            transactions=transactions,
-            claim_bindings=claim_bindings,
-            manifests=manifests,
-            closure=closure,
-            policy=policy,
-            gate=gate,
-            mutation_authority=mutation_authority,
-            validity=validity,
-            works=works,
+            evidence=base.evidence,
+            transactions=base.transactions,
+            claim_bindings=base.claim_bindings,
+            manifests=base.manifests,
+            closure=base.closure,
+            policy=base.policy,
+            gate=base.gate,
+            mutation_authority=base.mutation_authority,
+            effects=fenced_effects,
+            validity=base.validity,
+            works={row.work_id: row for row in base.works()},
+            effect_journal=journal,
         )
+        plane.effect_journal.validate_effect_coverage()
         if plane.digest != supplied_digest:
             raise ValueError("software engineering control restore is not state-identical")
         return plane

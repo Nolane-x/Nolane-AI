@@ -19,6 +19,7 @@ INTERNAL_COMPOSITION_MODULES = (
 )
 
 PROTOCOL_HELPERS = (
+    'nolane.external_core.software_engineering_effects',
     'nolane.external_core.software_engineering_gate',
     'nolane.external_core.software_engineering_mutation',
     'nolane.external_core.software_engineering_receipts',

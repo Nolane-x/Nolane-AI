@@ -27,8 +27,8 @@ def test_wave5h_experience_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.experience"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.experience")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.experience")) == "0.0.2"
 
 
 def test_wave5h_experience_retires_facade_and_preserves_all_symbol_identities() -> None:
