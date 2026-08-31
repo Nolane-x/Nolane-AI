@@ -107,6 +107,17 @@ def test_c5_direct_mutation_and_mutable_vocabulary_escape_hatch_fail_closed() ->
     assert library.digest == baseline
 
 
+def test_c5_vocabulary_view_contains_snapshot_data_not_mutable_registry_authority() -> None:
+    abstraction = _abstraction()
+    library = CognitiveLibrary(abstractions=(abstraction,))
+    view = library.vocabulary
+    baseline = library.digest
+
+    assert view.get(abstraction.abstraction_id) == abstraction
+    assert not hasattr(view, "_CognitiveVocabularyView__vocabulary")
+    assert library.digest == baseline
+
+
 def test_c5_installation_requires_exact_persisted_authorized_receipt_and_baseline() -> None:
     library = CognitiveLibrary()
     family = _family()
@@ -225,11 +236,39 @@ def test_c5_authorized_installation_records_provenance_and_read_only_fit_diagnos
     assert abstraction_descriptor.descriptor_id in report.descriptor_ids
     assert library.digest == baseline
 
-    restored = CognitiveLibrary.from_state(library.to_state())
+    assurance = _assurance_plane(family_receipt, abstraction_receipt)
+    restored = CognitiveLibrary.from_state(library.to_state(), assurance=assurance)
     assert restored.to_state() == library.to_state()
     assert restored.digest == library.digest
     assert restored.descriptor(family_descriptor.descriptor_id) == family_descriptor
     assert restored.descriptor(abstraction_descriptor.descriptor_id) == abstraction_descriptor
+
+
+def test_c5_authority_bearing_snapshot_restore_requires_exact_persisted_assurance() -> None:
+    library = CognitiveLibrary()
+    family = _family()
+    candidate = CapabilityCandidate.for_operator_family(family)
+    receipt = _promotion_receipt(
+        receipt_id="assurance-promotion-c5-restore",
+        candidate_id=candidate.candidate_id,
+        predecessor_version=library.digest,
+    )
+    library.register_family(
+        family,
+        candidate_id=candidate.candidate_id,
+        assurance=_assurance_plane(receipt),
+        receipt=receipt,
+    )
+    state = library.to_state()
+
+    with pytest.raises(ValueError, match="assurance"):
+        CognitiveLibrary.from_state(state)
+    with pytest.raises(ValueError, match="persisted assurance"):
+        CognitiveLibrary.from_state(state, assurance=_assurance_plane())
+
+    restored = CognitiveLibrary.from_state(state, assurance=_assurance_plane(receipt))
+    assert restored.to_state() == state
+    assert restored.descriptor_for_candidate(candidate.candidate_id).assurance_receipt_id == receipt.receipt_id
 
 
 def test_c5_capability_acquisition_promotion_routes_through_library_authority_gate() -> None:
