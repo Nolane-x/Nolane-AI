@@ -132,7 +132,7 @@ def _proposed(native):
 def test_wave5ay_native_transfer_meta_authority_exists_and_has_no_reverse_imports() -> None:
     module = _native()
     assert module.COMPONENT_ID == "external.transfer_meta"
-    assert module.COMPONENT_VERSION == "0.0.1"
+    assert module.COMPONENT_VERSION == "0.0.2"
     assert module.MIGRATED_FROM == "cogcoder R2.69 autonomous transfer/meta-learning lineage"
 
     expected = {
