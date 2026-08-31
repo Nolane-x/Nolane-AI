@@ -68,8 +68,12 @@ jobs:
           if git apply --check "$patch"; then
             git apply "$patch"
             echo "applied=true" >> "$GITHUB_OUTPUT"
-          else
+          elif git apply --reverse --check "$patch"; then
             echo "applied=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "v0.0.8 semantic patch is neither applicable nor already applied" >&2
+            git apply --check "$patch"
+            exit 1
           fi
       - uses: actions/setup-python@v5
         with:
@@ -118,12 +122,30 @@ jobs:
           fi
           printf 'Running %s\n' "${tests[@]}"
           python -m pytest -q "${tests[@]}"
+
+  commit-green:
+    if: github.event_name == 'push' && github.ref_name == 'codex/memory-learning-compaction-target-v0.0.8'
+    needs: memory-learning-substrate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Commit verified v0.0.8 semantic production files
-        if: steps.semantic_patch.outputs.applied == 'true' && matrix.python-version == '3.13'
         shell: bash
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nolane/memory/adaptive_policy.py nolane/memory/learning_substrate.py
-          git commit -m "fix(memory): bind compaction receipts to target content"
-          git push origin HEAD:codex/memory-learning-compaction-target-v0.0.8
+          patch=.github/memory-v008-patches/compaction-target-integrity.patch
+          if git apply --check "$patch"; then
+            git apply "$patch"
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add nolane/memory/adaptive_policy.py nolane/memory/learning_substrate.py
+            git commit -m "fix(memory): bind compaction receipts to target content"
+            git push origin HEAD:codex/memory-learning-compaction-target-v0.0.8
+          elif git apply --reverse --check "$patch"; then
+            echo "Verified v0.0.8 semantic production patch is already committed."
+          else
+            echo "v0.0.8 semantic patch is neither applicable nor already applied" >&2
+            git apply --check "$patch"
+            exit 1
+          fi
