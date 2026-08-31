@@ -81,6 +81,42 @@ def _legacy_v1_receipt() -> DecisionReceipt:
     return DecisionReceipt(receipt_id=stable_digest({"goal_design_decision": payload}), **fields)
 
 
+def _historical_v1_decision_ledger(receipt: DecisionReceipt) -> tuple[GoalDesignLedger, str]:
+    payload = {
+        "receipt_id": receipt.receipt_id,
+        "goal_id": receipt.goal_id,
+        "selected_option_id": receipt.selected_option_id,
+        "snapshot_digest": receipt.snapshot_digest,
+        "evaluation_digest": receipt.evaluation_digest,
+    }
+    payload_digest = stable_digest(payload)
+    identity = {
+        "kind": EventKind.DECISION.value,
+        "authority_level": AuthorityLevel.AUTHORITY.value,
+        "payload_digest": payload_digest,
+        "parents": [],
+        "subjects": [receipt.goal_id, receipt.selected_option_id, receipt.snapshot_digest],
+    }
+    event_id = stable_digest({"goal_design_event": identity})
+    ledger = GoalDesignLedger.from_state(
+        {
+            "schema_version": 1,
+            "events": [
+                {
+                    "event_id": event_id,
+                    "sequence": 1,
+                    "kind": EventKind.DECISION.value,
+                    "authority_level": AuthorityLevel.AUTHORITY.value,
+                    "payload_digest": payload_digest,
+                    "parent_ids": [],
+                    "subject_refs": identity["subjects"],
+                }
+            ],
+        }
+    )
+    return ledger, event_id
+
+
 def test_authority_index_accepts_content_authentic_receipt():
     receipt = _receipt()
     record = DecisionAuthorityIndex().register(receipt)
@@ -95,6 +131,15 @@ def test_legacy_v1_receipt_remains_authentic_and_ledger_admissible():
     event = ledger.record_decision(receipt)
     index = DecisionAuthorityIndex()
     index.register(receipt, authority_event_id=event.event_id)
+    index.validate_ledger_binding(ledger)
+
+
+def test_historical_v1_receipt_and_pre_manifest_event_remain_jointly_verifiable():
+    receipt = _legacy_v1_receipt()
+    ledger, event_id = _historical_v1_decision_ledger(receipt)
+    index = DecisionAuthorityIndex()
+    index.register(receipt, authority_event_id=event_id)
+
     index.validate_ledger_binding(ledger)
 
 
