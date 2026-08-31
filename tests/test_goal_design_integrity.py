@@ -86,11 +86,13 @@ def _attestation(
     goal_id=None,
     attestation_id=None,
 ):
+    violated = tuple(violated)
     if preserved is None:
+        violated_set = set(violated)
         preserved = tuple(
             clause.clause_id
             for clause in contract.clauses
-            if plane in clause.required_planes
+            if plane in clause.required_planes and clause.clause_id not in violated_set
         )
     return GoalIntegrityAttestation(
         attestation_id=attestation_id or f"att:{plane}",
@@ -99,7 +101,7 @@ def _attestation(
         subject_ref=f"{plane}:rev-1",
         contract_digest=contract.digest if contract_digest is None else contract_digest,
         preserved_clause_ids=tuple(preserved),
-        violated_clause_ids=tuple(violated),
+        violated_clause_ids=violated,
         evidence_refs=(f"evidence:{plane}",),
     )
 
