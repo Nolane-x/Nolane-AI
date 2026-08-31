@@ -11,7 +11,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.memory.lifecycle"
-COMPONENT_VERSION = "0.0.5"
+COMPONENT_VERSION = "0.0.6"
 MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
 
 
