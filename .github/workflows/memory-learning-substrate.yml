@@ -85,6 +85,7 @@ jobs:
             tests/test_memory_learning_reauthorization_v006.py
             tests/test_memory_learning_retrieval_receipt_replay_v007.py
             tests/test_memory_learning_tombstone_authority_v008.py
+            tests/test_memory_learning_lifecycle_version_v008.py
             tests/test_refoundation_component_versions.py
             tests/test_refoundation_runtime_state_map.py
             tests/test_refoundation_wave2_zero_loss_runtime_digest.py
@@ -98,7 +99,7 @@ jobs:
             tests/test_coding_agi_memory_*.py
             tests/test_coding_agi_self_*.py
           )
-          if (( ${#tests[@]} < 9 )); then
+          if (( ${#tests[@]} < 10 )); then
             echo "Memory/Learning contract discovery failed" >&2
             exit 2
           fi
