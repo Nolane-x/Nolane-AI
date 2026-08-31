@@ -207,3 +207,53 @@ def test_justification_graph_rejects_unknown_premises_cycles_and_identity_rebind
     rebound.add_justification(_route("just:stable", "asm:a", "asm:b"))
     with pytest.raises(ValueError, match="cannot be rebound"):
         rebound.add_justification(_route("just:stable", "asm:b", "asm:a"))
+
+
+def test_direct_refutation_dominates_even_when_an_independent_route_survives():
+    truth = AssumptionTruthMaintenance()
+    truth.register(_claim("asm:base"))
+    truth.register(_claim("asm:derived"))
+    _support(truth, "asm:base")
+    _support(truth, "asm:derived")
+    truth.add_justification(_route("just:base", "asm:derived", "asm:base"))
+    assert truth.assessment("asm:derived").status is AssumptionStatus.SUPPORTED
+
+    _refute(truth, "asm:derived")
+    assessment = truth.assessment("asm:derived")
+    assert assessment.surviving_justification_ids == ("just:base",)
+    assert assessment.status is AssumptionStatus.REFUTED
+
+
+def test_no_surviving_route_never_upgrades_unknown_dependency_state_to_supported():
+    truth = AssumptionTruthMaintenance()
+    for assumption_id in ("asm:unknown", "asm:refuted", "asm:derived"):
+        truth.register(_claim(assumption_id))
+    _support(truth, "asm:derived")
+    _refute(truth, "asm:refuted")
+    truth.add_justification(_route("just:unknown", "asm:derived", "asm:unknown"))
+    truth.add_justification(_route("just:refuted", "asm:derived", "asm:refuted"))
+
+    assessment = truth.assessment("asm:derived")
+    assert assessment.status is AssumptionStatus.UNKNOWN
+    assert assessment.surviving_justification_ids == ()
+    assert assessment.failed_justification_ids == ("just:refuted",)
+    assert assessment.unsettled_justification_ids == ("just:unknown",)
+
+
+def test_schema_v1_state_migrates_without_rewriting_legacy_snapshot_semantics():
+    truth = AssumptionTruthMaintenance()
+    truth.register(_claim("asm:base"))
+    truth.register(_claim("asm:derived", depends_on=("asm:base",)))
+    _support(truth, "asm:base")
+    _support(truth, "asm:derived")
+    before = truth.snapshot(("asm:derived",))
+
+    legacy_state = truth.to_state()
+    legacy_state["schema_version"] = 1
+    legacy_state.pop("justifications")
+    restored = AssumptionTruthMaintenance.from_state(legacy_state)
+
+    after = restored.snapshot(("asm:derived",))
+    assert after == before
+    assert restored.to_state()["schema_version"] == 2
+    assert restored.to_state()["justifications"] == []
