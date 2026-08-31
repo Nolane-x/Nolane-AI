@@ -7,6 +7,8 @@ import pytest
 from nolane.core.canonical_digest import canonical_digest
 from nolane.memory.fabric import MemoryScope, MemoryStatus
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+from nolane.memory.lifecycle import COMPONENT_VERSION as LIFECYCLE_COMPONENT_VERSION
+from nolane.metadata.component_versions import component_version
 
 
 class _RegistryStub:
@@ -106,13 +108,19 @@ def test_forget_persists_actor_and_exact_archive_receipt_authority() -> None:
         evidence_refs=("forget-proof",),
     )
     archive = substrate.lifecycle.receipts_for(row.memory_id)[-1]
+    state = substrate.to_state()
 
     assert tombstone.actor_agent_id == "memory.worker"
     assert tombstone.archive_receipt_id == archive.receipt_id
+    assert tombstone.forget_receipt_id == "memory-forget-00000001"
     assert archive.new_status is MemoryStatus.ARCHIVED
+    assert state["forget_counter"] == 1
+    assert state["forget_receipts"][0]["receipt_id"] == tombstone.forget_receipt_id
+    assert state["forget_receipts"][0]["memory_id"] == row.memory_id
+    assert state["forget_receipts"][0]["archive_receipt_id"] == archive.receipt_id
 
     restored = LearningSubstrate.from_state(
-        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
+        registry=_RegistryStub(), events=_EventStub(), state=state
     )
     assert restored.tombstone(row.memory_id) == tombstone
 
@@ -136,6 +144,7 @@ def test_forget_of_prearchived_memory_binds_existing_terminal_archive_receipt() 
 
     assert tombstone.actor_agent_id == "memory.chief"
     assert tombstone.archive_receipt_id == archive.receipt_id
+    assert tombstone.forget_receipt_id == "memory-forget-00000001"
     assert substrate.lifecycle.receipts_for(row.memory_id) == (archive,)
     restored = LearningSubstrate.from_state(
         registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
@@ -192,3 +201,9 @@ def test_plain_archival_without_tombstone_remains_restorable() -> None:
     assert restored.memory.get(row.memory_id).status is MemoryStatus.ARCHIVED
     with pytest.raises(KeyError):
         restored.tombstone(row.memory_id)
+
+
+def test_tombstone_authorization_advances_lifecycle_component_revision() -> None:
+    assert LIFECYCLE_COMPONENT_VERSION == "0.0.6"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.6"
+    assert str(component_version("external.memory.retrieval")) == "0.0.4"
