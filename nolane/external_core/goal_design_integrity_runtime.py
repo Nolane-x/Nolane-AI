@@ -1,12 +1,12 @@
 """Runtime enforcement for terminal-intent integrity in D. Goal / Design.
 
 ``goal_design_integrity`` defines immutable integrity contracts and companion
-receipts.  This module turns those artifacts into live authority: decisions are
+receipts. This module turns those artifacts into live authority: decisions are
 admitted only against the current contract, contract supersession invalidates
 older authority, and the integrity layer is content-addressed and persistable.
 
 The historical ``GoalDesignRuntime`` and ``DecisionReceipt`` surfaces are not
-modified.  Consumers opt into this stricter runtime explicitly.
+modified. Consumers opt into this stricter runtime explicitly.
 """
 from __future__ import annotations
 
@@ -316,6 +316,86 @@ def _contract_from_state(state: Mapping[str, Any]) -> GoalIntegrityContract:
     )
 
 
+def _validate_contract_history(
+    contracts: Mapping[str, GoalIntegrityContract],
+    predecessors: Mapping[str, str | None],
+    current: Mapping[str, str],
+) -> None:
+    """Validate that persisted supersession history is exact, linear and current.
+
+    Live installation can only build one append-only chain per goal. Restore must
+    prove the same invariant instead of trusting a serialized current pointer;
+    otherwise a historical contract could be reactivated after persistence.
+    """
+
+    contract_goals = {contract.goal_id for contract in contracts.values()}
+    if set(current) != contract_goals:
+        raise ValueError(
+            "Goal/Design integrity current registry does not cover exact contract goals"
+        )
+
+    by_goal: dict[str, set[str]] = {}
+    for digest, contract in contracts.items():
+        by_goal.setdefault(contract.goal_id, set()).add(digest)
+        if digest not in predecessors:
+            raise ValueError(
+                f"integrity contract {digest} has no persisted predecessor record"
+            )
+
+    for goal_id, digests in by_goal.items():
+        successors: dict[str, str] = {}
+        roots: list[str] = []
+        for digest in digests:
+            predecessor = predecessors[digest]
+            if predecessor is None:
+                roots.append(digest)
+                continue
+            if predecessor == digest:
+                raise ValueError(
+                    f"integrity contract {digest} cannot supersede itself"
+                )
+            predecessor_contract = contracts.get(predecessor)
+            if predecessor_contract is None:
+                raise ValueError(
+                    f"integrity contract {digest} references unknown predecessor"
+                )
+            if predecessor_contract.goal_id != goal_id:
+                raise ValueError(
+                    "Goal/Design integrity predecessor cannot cross goal authority"
+                )
+            if predecessor in successors:
+                raise ValueError(
+                    "Goal/Design integrity supersession history cannot branch"
+                )
+            successors[predecessor] = digest
+
+        if len(roots) != 1:
+            raise ValueError(
+                "Goal/Design integrity supersession history requires exactly one root per goal"
+            )
+
+        visited: set[str] = set()
+        cursor = roots[0]
+        while True:
+            if cursor in visited:
+                raise ValueError("Goal/Design integrity supersession history contains a cycle")
+            visited.add(cursor)
+            successor = successors.get(cursor)
+            if successor is None:
+                head = cursor
+                break
+            cursor = successor
+
+        if visited != digests:
+            raise ValueError(
+                "Goal/Design integrity supersession history is disconnected or cyclic"
+            )
+        if current.get(goal_id) != head:
+            raise ValueError(
+                "historical Goal/Design integrity contract cannot be reactivated; current must be the supersession head"
+            )
+
+
 class GoalIntegrityRuntime(GoalDesignRuntime):
     """Fail-closed Goal/Design runtime with terminal-intent continuity."""
 
@@ -343,7 +423,7 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
     ) -> str:
         """Install or explicitly supersede terminal-intent authority.
 
-        A changed contract must name the exact current predecessor.  Historical
+        A changed contract must name the exact current predecessor. Historical
         digests cannot be reactivated, preventing rollback-based authority
         laundering.
         """
@@ -381,8 +461,6 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
             f"{current_digest} -> {contract.digest}"
         )
 
-        # Archive the new immutable contract before changing the current pointer;
-        # every operation below is deterministic for records already proven active.
         self._integrity_contracts[contract.digest] = contract
         self._contract_predecessors[contract.digest] = current_digest
         self._current_contracts[contract.goal_id] = contract.digest
@@ -463,8 +541,6 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
                 + "; ".join(self._integrity_blockers(assessment))
             )
 
-        # All user-controlled integrity failure modes are resolved above.  The
-        # historical runtime now performs its unchanged coherence/truth admission.
         decision_receipt = super().admit(
             goal=goal,
             scenarios=scenarios,
@@ -534,7 +610,10 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
                 continue
             self.decisions.mark_stale(receipt_id, reasons)
             self._record_invalidation(decision_record, reasons)
-            if integrity_record is not None and integrity_record.lifecycle is DecisionLifecycle.ACTIVE:
+            if (
+                integrity_record is not None
+                and integrity_record.lifecycle is DecisionLifecycle.ACTIVE
+            ):
                 self.integrity_authority.mark_stale(receipt_id, reasons)
             stale.add(receipt_id)
         return tuple(sorted(stale))
@@ -564,6 +643,7 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
         if (
             self._integrity_contracts
             or self._current_contracts
+            or self._contract_predecessors
             or self.integrity_authority.records()
         ):
             raise ValueError("Goal/Design integrity runtime state is already populated")
@@ -602,17 +682,21 @@ class GoalIntegrityRuntime(GoalDesignRuntime):
                     "current Goal/Design integrity contract registry is inconsistent"
                 )
 
+        _validate_contract_history(contracts, predecessors, current)
+
         authority = GoalIntegrityAuthorityIndex.from_state(state.get("authority", {}))
-        for record in authority.active():
-            current_digest = current.get(record.goal_id)
-            if current_digest != record.contract_digest:
+        for record in authority.records():
+            contract = contracts.get(record.contract_digest)
+            if contract is None or contract.goal_id != record.goal_id:
                 raise ValueError(
-                    "active integrity authority is not bound to the current contract"
+                    "Goal/Design integrity authority references an unknown or foreign contract"
                 )
-            if record.contract_digest not in contracts:
-                raise ValueError(
-                    "active integrity authority references an unknown contract"
-                )
+            if record.lifecycle is DecisionLifecycle.ACTIVE:
+                current_digest = current.get(record.goal_id)
+                if current_digest != record.contract_digest:
+                    raise ValueError(
+                        "active integrity authority is not bound to the current contract"
+                    )
 
         self._integrity_contracts = contracts
         self._current_contracts = current
