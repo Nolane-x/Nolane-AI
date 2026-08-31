@@ -67,7 +67,7 @@ class EngineeringEffectFinalizer:
 
         if tx.phase is EngineeringPhase.APPLIED:
             if tx.application_ref != acknowledgement.application_ref:
-                raise ValueError("applied transaction does not match application acknowledgement")
+                raise ValueError("applied transaction application ref does not match application acknowledgement")
         elif tx.phase is EngineeringPhase.PRECONDITIONS_VERIFIED:
             self.transactions.mark_applied(
                 tx.transaction_id,
