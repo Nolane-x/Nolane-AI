@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.4"
+COMPONENT_VERSION = "0.1.5"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -745,7 +745,7 @@ class ActingProtocolLedger:
         success: bool,
         now_ms: int,
     ) -> ActionRecord:
-        del now_ms
+        del now_ms  # observation/recovery must remain possible after lease expiry
         row = self.get(action_id)
         self._expect(row, ActionPhase.EXECUTING)
         ref = str(outcome_ref).strip()
@@ -896,7 +896,15 @@ class ActingProtocolLedger:
         evidence_ref: str,
         reason: str,
     ) -> ActionRecord:
-        """Resolve a persisted non-terminal action after runtime interruption."""
+        """Resolve a persisted non-terminal action after runtime interruption.
+
+        Reconciliation is intentionally fail-closed. Before execution dispatch the
+        action is cancelled. Once dispatch may have happened, reads can be discarded
+        as no-side-effect work while every mutating effect is degraded because a
+        process restart cannot prove whether the side effect completed or whether an
+        ephemeral local checkpoint is still available. No lease is required because
+        this is recovery, not forward execution.
+        """
 
         row = self.get(action_id)
         if row.phase in _TERMINAL_PHASES:
@@ -995,7 +1003,7 @@ class ActingProtocolLedger:
             last_modern_previous_id: str | None = None
             for renewal in renewal_events:
                 refs = renewal.evidence_refs
-                if len(refs) == 1:
+                if len(refs) == 1:  # schema-1 legacy renewal evidence
                     lifecycle_lease_id = None
                     last_modern_previous_id = None
                     continue
@@ -1014,7 +1022,7 @@ class ActingProtocolLedger:
 
             for revocation in revocation_events:
                 refs = revocation.evidence_refs
-                if len(refs) == 1:
+                if len(refs) == 1:  # schema-1 legacy revocation evidence
                     lifecycle_lease_id = None
                     continue
                 if len(refs) != 2 or not refs[1].startswith("lease:"):
