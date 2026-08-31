@@ -460,6 +460,7 @@ class LearningSubstrate:
     def _retrieval_state_snapshot(self) -> dict[str, Any]:
         return {
             "memory": self.memory.to_state(),
+            "lifecycle": self.lifecycle.to_state(),
             "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
             "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
             "relations": self.relations.to_state(),
@@ -482,8 +483,17 @@ class LearningSubstrate:
         except KeyError as exc:
             raise ValueError("retrieval receipt replay snapshot is missing") from exc
         self._validate_retrieval_snapshot_digest(receipt.memory_state_digest, snapshot)
+        raw_lifecycle = snapshot.get("lifecycle")
+        if not isinstance(raw_lifecycle, Mapping):
+            raise ValueError("retrieval replay snapshot requires lifecycle authority")
 
         replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
+        replay_lifecycle = MemoryLifecycleLedger.from_state(
+            registry=self.registry,
+            memory=replay_memory,
+            events=self.events,
+            state=raw_lifecycle,
+        )
         replay_relations = MemoryRelationGraph.from_state(
             registry=self.registry,
             memory=replay_memory,
@@ -494,6 +504,7 @@ class LearningSubstrate:
             registry=self.registry,
             events=self.events,
             memory=replay_memory,
+            lifecycle=replay_lifecycle,
             relations=replay_relations,
         )
         replay_metadata = tuple(
@@ -518,14 +529,13 @@ class LearningSubstrate:
         if [row.sequence for row in replay_health] != expected_health_sequence:
             raise ValueError("retrieval replay anchor health sequence invariant violated")
         for metadata in replay._metadata.values():
-            replay_memory.get(metadata.memory_id)
-            if metadata.source_refs != _clean_refs(metadata.source_refs):
-                raise ValueError("retrieval replay metadata source refs are not canonical")
+            replay._validate_learning_metadata_semantics(metadata)
         for memory_id, tombstone in replay._tombstones.items():
             row = replay_memory.get(memory_id)
             expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
             if tombstone.content_digest != expected_digest:
                 raise ValueError("retrieval replay tombstone content digest mismatch")
+            replay._validate_tombstone_semantics(tombstone)
         for row in replay_health:
             replay._anchor_health.setdefault(row.memory_id, []).append(row)
             replay._validate_anchor_health_receipt_semantics(row)
@@ -717,6 +727,10 @@ class LearningSubstrate:
             ]
         )
 
+    def _compaction_target_digest(self, memory_id: str) -> str:
+        row = self.memory.get(memory_id)
+        return canonical_digest(self._source_projection(row, self.metadata(memory_id)))
+
     @staticmethod
     def _intersection_bound(
         metadata_rows: tuple[LearningMemoryMetadata, ...],
@@ -820,6 +834,7 @@ class LearningSubstrate:
             epistemic_type=epistemic_type.value,
             actor_agent_id=actor,
             evidence_refs=evidence,
+            compacted_digest=self._compaction_target_digest(compacted.memory_id),
         )
         self._compactions[receipt.compaction_id] = receipt
         return compacted, receipt
@@ -833,6 +848,11 @@ class LearningSubstrate:
     def reconstruct_compaction(self, compaction_id: str) -> tuple[MemoryEntry, ...]:
         receipt = self.compaction_receipt(compaction_id)
         rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
+        if receipt.compacted_digest is None:
+            raise ValueError("compaction receipt requires v2 target digest")
+        actual_target = self._compaction_target_digest(receipt.compacted_memory_id)
+        if actual_target != receipt.compacted_digest:
+            raise ValueError("compacted target digest mismatch")
         actual = self._compaction_source_digest(receipt.source_memory_ids)
         if actual != receipt.source_digest:
             raise ValueError("memory compaction source digest mismatch")
@@ -1062,6 +1082,8 @@ class LearningSubstrate:
         owner = next(iter(owners))
         if receipt.actor_agent_id == owner:
             raise PermissionError("memory compaction restore requires external review; owner cannot self-certify")
+        if receipt.compacted_digest is None:
+            raise ValueError("compaction receipt requires v2 target digest")
         scopes = {row.scope for row in source_rows}
         if len(scopes) != 1 or compacted.scope not in scopes:
             raise ValueError("memory compaction restore cannot change memory scope")
