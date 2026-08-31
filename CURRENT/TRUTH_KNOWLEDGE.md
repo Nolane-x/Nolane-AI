@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A11 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A11 Provenance-Bound Source Independence v5 was accepted from exact candidate `e5b2aa3b8e7ad9e389889c90129939b741d10079` and merged to `main` as `b44f3601c14ad6039faeee2565b412fc60832e8c`.**
+Status: **A1–A11 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A12 Truth Maintenance / Multiple Independent Justifications v6 is an implementation candidate and is not accepted until its exact final merge-state passes focused Truth/Knowledge and full Refoundation gates.**
 
 ## Canonical authority model
 
@@ -12,7 +12,7 @@ External Core family A remains exactly five canonical component authorities:
 4. `external.verification` → `nolane.external_core.verification`
 5. `external.assurance` → `nolane.external_core.assurance`
 
-Truth Closure is additive protocol semantics beneath those authorities. No Truth, Temporal, or Provenance helper may declare `COMPONENT_ID`.
+Truth Closure is additive protocol semantics beneath those authorities. No Truth, Temporal, Provenance, or Justification helper may declare `COMPONENT_ID`.
 
 All canonical Truth identity uses `nolane.core.canonical_digest.canonical_digest`.
 
@@ -265,7 +265,7 @@ A11 closes a remaining authority hole in v1–v4 independence counting. Historic
 
 A11 therefore makes source independence a canonical provenance-lineage property rather than a receipt label.
 
-The canonical protocol progression is:
+The accepted progression through A11 is:
 
 ```text
 global v1
@@ -362,9 +362,154 @@ A v5 certificate exact-binds v5 scope, v5 verification projection, context/as-of
 
 Relevant verifier provenance revision invalidates stale authority. Unrelated provenance mutation does not.
 
+## A12 candidate — truth maintenance / multiple independent justifications v6
+
+A11 secures who is independent. A12 addresses the next Knowledge semantics gap: one accepted `KnowledgeClaim` historically has one conjunction of `evidence_ids` and `parent_claim_ids`, so failure of any member invalidates that single derivation. Real propositions can have several alternative derivations, but introducing OR semantics without a canonical truth-maintenance layer would create proof laundering and stale-authority hazards.
+
+A12 therefore adds an additive v6 derivation sidecar while leaving every A1–A11 identity and protocol unchanged.
+
+The candidate progression is:
+
+```text
+global v1
+    ↓
+dependency-scope v2
+    ↓
+relation-aware-scope v3
+    ↓
+relation-aware-temporal v4
+    ↓
+provenance-lineage-temporal v5
+    ↓
+justification-provenance-lineage-temporal v6
+```
+
+V6 binding mode is exactly:
+
+```text
+justification-provenance-lineage-temporal-v6
+```
+
+### Knowledge justification sidecar
+
+`knowledge_justification_truth.py` is a sidecar under `external.knowledge` and owns no sixth authority.
+
+Every canonical `KnowledgeClaim` contributes one deterministic implicit legacy basis containing exactly its accepted `evidence_ids` and `parent_claim_ids`. A12 may add explicit `KnowledgeJustificationRevision` lineages, but does not rewrite the base claim.
+
+A justification is one conjunction:
+
+```text
+J = evidence_1 AND ... AND evidence_n AND parent_1 AND ... AND parent_m
+```
+
+The claim is a disjunction across its implicit legacy basis and enabled explicit bases:
+
+```text
+claim = J_legacy OR J_1 OR J_2 OR ...
+```
+
+The OR is a liveness/derivation law only. It cannot mint source-independence, verifier, confidence, or assurance credit.
+
+`KnowledgeJustificationRegistry` enforces:
+
+- revision 1 exactly, with no predecessor;
+- later revisions exactly `+1` and exact predecessor digest;
+- exact claim ID and `KnowledgeClaim.content_digest` binding;
+- no claim/digest lineage rebind;
+- canonical unique evidence/parent sets;
+- existing parent claims only;
+- no self-parent or effective justification dependency cycle;
+- no duplicate live explicit basis;
+- no explicit duplication of the implicit legacy basis;
+- duplicate/gap/predecessor/domain attacks fail closed on restore;
+- relevant-only projection state/digest.
+
+### OR-of-AND Epistemic v6
+
+Each effective basis is evaluated independently at the exact A9 temporal context.
+
+Inside one basis, AND is strict: every required parent must be temporally active and `SUPPORTED`, and every required Evidence row must be active and bind the exact claim. If one required member fails, that path is `dead`; another path may still keep the proposition live.
+
+A live path is classified as:
+
+- `supported` for support-only evidence;
+- `refuted` for refute-only evidence;
+- `contradicted` for support and refute together;
+- `unknown` when it contains no decisive evidence;
+- `dead` when a required member is unavailable, mismatched, temporally inapplicable, revoked, or unsupported.
+
+Claim aggregation is fail-visible:
+
+- any supported path plus any refuted/contradicted path → `CONTRADICTED`;
+- otherwise at least one supported path → `SUPPORTED`;
+- otherwise at least one contradicted path → `CONTRADICTED`;
+- otherwise at least one refuted path → `REFUTED`;
+- otherwise → `UNKNOWN`.
+
+Therefore an alternative support path cannot hide a live refutation.
+
+### Audit lineage versus contributing lineage
+
+A12 deliberately separates two graphs:
+
+1. **audit/fixed-point lineage** retains every enabled alternative, its parent lineage, relevant Evidence, relation competitors and source provenance so stale state cannot disappear from the canonical projection;
+2. **contributing live lineage** is derived only by starting at the target and following justification statuses that are actually `supported`.
+
+This distinction is required for correct OR semantics.
+
+A parent that appears only on a dead alternative remains visible in the scope and can stale the scope when its relevant state changes, but it does not veto closure of a different live branch. Conversely, a parent on a live supported path remains mandatory and its loss invalidates that path and any certificate depending on it.
+
+The same contribution trace defines `supporting_source_ids`: only Evidence sources reached through target-contributing supported paths become verifier origin exclusions. Sources that occur only on dead alternatives remain auditable but cannot falsely reduce verification independence.
+
+### Epistemic scope v6
+
+`JustificationTruthScope` binds:
+
+- target claim;
+- full A12 audit lineage;
+- relation-aware temporal fixed-point claims;
+- all relevant justification Evidence IDs;
+- relevant relation IDs;
+- scoped base Knowledge and Evidence digests;
+- relevant relation-semantics projection;
+- relevant Knowledge/Evidence temporal projections;
+- relevant justification projection;
+- all relevant source IDs;
+- target-contributing supporting source IDs;
+- relevant source-provenance projection;
+- explicit TemporalContext digest and `as_of`;
+- per-claim assessments;
+- per-justification statuses/reasons;
+- contradictions and epistemic debt;
+- final v6 digest.
+
+`JustificationEpistemicJudge.validate_scope()` re-derives the scope from live canonical state. An unrelated justification revision outside the fixed point does not stale the scope; a relevant revision does.
+
+### Verification v6
+
+A12 uses a dedicated `JustificationTruthVerificationReceipt` and ledger. A v5 receipt cannot masquerade as v6 and v6 cannot silently downgrade.
+
+A v6 receipt exact-binds claim, verifier, channel, pass/fail result, v6 scope, temporal context/as-of, verification Evidence IDs and verifier provenance projection. Negative results remain retained.
+
+Coverage preserves A11 source-provenance validation and controller-derived independence. A verifier under any controller root of a target-contributing supporting source remains auditable but receives zero independence credit. Controllers found only on dead/non-contributing paths are not false origin exclusions.
+
+### Assurance v6
+
+Risk thresholds remain unchanged:
+
+- LOW/STANDARD → 1 independent controller + 1 channel;
+- HIGH → 2 + 2;
+- CRITICAL → 3 + 3.
+
+Closure blocks unsupported/contradicted target, conflict/ambiguity/critical debt on the contributing live lineage, incomplete relevant source provenance, invalid/negative verification, or insufficient independent verifier/channel diversity.
+
+Dead alternatives remain audit-visible but cannot veto a separate live OR branch. A parent that contributes through a supported path remains mandatory.
+
+`JustificationTruthClosureCertificate` is non-self-authenticating. Validation recomputes canonical v6 scope and closure from live state, so relevant justification changes stale certificates even when the final boolean decision happens to remain the same; unrelated justification changes do not.
+
 ## Compatibility law
 
-A11 is structurally additive:
+A11 remains structurally additive and accepted:
 
 - A1–A10 `TruthEvidence` shape unchanged;
 - A1–A10 `KnowledgeClaim` shape unchanged;
@@ -376,7 +521,16 @@ A11 is structurally additive:
 - no canonical parent component version is bumped solely by A11;
 - family A remains exactly five canonical authorities.
 
-The A6 five-parent subprotocol registry remains authority metadata for canonical Truth parents; temporal/provenance sidecars do not become registry parents.
+A12 candidate preserves the same compatibility boundary:
+
+- `TruthEvidence` and `KnowledgeClaim` historical shapes are unchanged;
+- implicit legacy justification reproduces the accepted A11/A9 epistemic result when no explicit A12 rows exist;
+- v1–v5 receipts/certificates remain historical exact modes and do not read v6 state;
+- all four A12 modules declare only `PARENT_COMPONENT_ID` under their accepted parent authority;
+- no canonical family-A component revision is advanced solely because the v6 sidecars exist;
+- family A remains exactly five authorities.
+
+The A6 five-parent subprotocol registry remains authority metadata for canonical Truth parents; temporal/provenance/justification sidecars do not become registry parents.
 
 ## Hardening lineage
 
@@ -391,6 +545,7 @@ The A6 five-parent subprotocol registry remains authority metadata for canonical
 - **A10** — accepted canonical relation semantics and relation-aware v3.
 - **A9** — accepted explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
 - **A11** — accepted append-only source-provenance lineage, protocol-domain separation, controller-derived verification independence, and origin-controller self-verification exclusion v5.
+- **A12 candidate** — append-only alternative justification lineage, OR-of-AND truth maintenance, contribution-traced live lineage/source origins, and relevant-only v6 staleness.
 
 ## A9 acceptance proof
 
@@ -421,6 +576,21 @@ The acceptance chain is explicit:
 9. PR #269 was merged with expected-head protection from exact head `e5b2aa3b8e7ad9e389889c90129939b741d10079`.
 10. Canonical `main` advanced to merge commit `b44f3601c14ad6039faeee2565b412fc60832e8c`, whose parents are the then-current `main` and the exact tested A11 candidate.
 
-Canonical family-A status at this revision is therefore **A1–A11 accepted**.
+## A12 candidate proof state
+
+A12 is **not yet accepted**. Its TDD chain currently includes:
+
+1. Initial RED head `5df53b695cdbc279fcae62591f27ce6365b2b412`, run `33355398941`: accepted A1–A11 compile stayed green and collection failed exactly because the v6 assurance sidecar did not exist yet.
+2. The first complete v6 implementation reached focused GREEN at head `0b50e416c63bc788e16b58b619d4ced7ca4c9071`, run `33355739175`: Python 3.11/3.13 passed **133 Truth/Knowledge tests** and repository audit stayed clean.
+3. Contribution-origin RED head `62698ca01124b8518682810a04271e131e4b8b36`, run `33355810736`: **133 passed / 1 targeted failure** proved a supported parent that existed only through a dead target path was incorrectly entering `supporting_source_ids`.
+4. Contribution-trace fix head `e5ec35a5cf50fdbb6e6ebbe7460233874a7f5777`, run `33355924680`, restored focused GREEN by tracing supporting Evidence only through target-reachable `supported` justification paths.
+5. Authority/domain/legacy-equivalence contracts prove exact parent ownership, no `COMPONENT_ID`, v6 protocol separation, anti-rebind behavior, and that no explicit justification preserves the accepted A11/A9 epistemic semantics.
+6. Dead-branch assurance RED head `fbe6071616bc2979e4a6fcc85b901a4c99ff1bbe`, run `33356064294`: **138 passed / 1 targeted failure** proved an unsupported parent reachable only through a dead alternative could still veto a live target branch.
+7. Supporting-lineage fix head `6f241b9ea928eef7e8b3bb8e7ac46f9bfa1046a8` derives assurance veto lineage only from target-reachable `supported` paths while retaining the full alternative graph for audit and staleness. Python 3.11 fresh log in run `33356186788` reports **139 passed** and repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
+8. Head `475e094fbd485b09972742e8c25b22a292fc5bc3` adds final regression contracts proving the inverse boundary: a parent on a live supported path remains mandatory, unrelated justification revisions preserve scope/certificate validity, and relevant revisions stale both.
+
+Final acceptance still requires a fresh exact final-head focused matrix on Python 3.11/3.13, intended-only diff/review verification, and full Refoundation Epoch 0 on the exact PR merge state. Only after those gates pass may A12 production be merged and a separate acceptance seal advance this document to **A1–A12 accepted**.
+
+Canonical family-A status at this revision is therefore **A1–A11 accepted; A12 candidate**.
 
 Historical R-series workflows do not define current family-A architecture authority.
