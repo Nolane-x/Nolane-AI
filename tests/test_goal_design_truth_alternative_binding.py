@@ -1,7 +1,10 @@
 from types import SimpleNamespace
 
+import pytest
+
 from nolane.external_core.architecture import ArchitectureGraph
 from nolane.external_core.goal_design import (
+    CoherenceError,
     DecisionClass,
     DesignOption,
     DesignScenario,
@@ -55,12 +58,9 @@ def _runtime(truth: AssumptionTruthMaintenance) -> GoalDesignRuntime:
     )
 
 
-def test_receipt_truth_snapshot_binds_goal_and_entire_option_set_assumptions():
-    truth = _supported_truth()
-    runtime = _runtime(truth)
+def _admit_with_alternative(runtime: GoalDesignRuntime):
     snapshot = runtime.freeze()
-
-    receipt = runtime.admit(
+    return runtime.admit(
         goal=GoalSpec(
             "goal:all-option-truth",
             "Bind the semantic truth state of the complete evaluated option set",
@@ -89,6 +89,34 @@ def test_receipt_truth_snapshot_binds_goal_and_entire_option_set_assumptions():
         snapshot=snapshot,
     )
 
+
+def test_receipt_truth_snapshot_binds_goal_and_entire_option_set_assumptions():
+    truth = _supported_truth()
+    runtime = _runtime(truth)
+
+    receipt = _admit_with_alternative(runtime)
+
     expected_refs = ("asm:alternative", "asm:goal", "asm:selected")
     assert receipt.assumption_refs == expected_refs
     assert receipt.assumption_state_digest == truth.snapshot(expected_refs).digest
+
+
+def test_refuted_alternative_assumption_fails_closed_before_robust_evaluation():
+    truth = _supported_truth()
+    truth.retract_evidence(
+        "ev:asm:alternative",
+        reason_ref="correction:alternative-support",
+    )
+    truth.add_evidence(
+        AssumptionEvidence(
+            "ev:asm:alternative:refute",
+            "asm:alternative",
+            AssumptionPolarity.REFUTES,
+            0.99,
+            "evidence:asm:alternative:refute",
+        )
+    )
+    runtime = _runtime(truth)
+
+    with pytest.raises(CoherenceError, match="refuted"):
+        _admit_with_alternative(runtime)
