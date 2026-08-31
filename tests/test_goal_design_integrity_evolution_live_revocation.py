@@ -56,7 +56,7 @@ def _runtime(verifier: GoalIntegrityEvolutionAuthorityVerifier) -> GoalIntegrity
     return runtime
 
 
-def test_pre_revocation_proof_cannot_authorize_a_new_mutation_after_revocation():
+def _prepared_transition():
     clock = _Clock(100)
     verifier = GoalIntegrityEvolutionAuthorityVerifier(
         trusted_root_issuers=("authority:root",),
@@ -88,11 +88,11 @@ def test_pre_revocation_proof_cannot_authorize_a_new_mutation_after_revocation()
     )
     runtime = _runtime(verifier)
     runtime.install_integrity_contract(original)
+    return clock, verifier, grant, original, revised, receipt, runtime
 
-    clock.value = 120
-    verifier.revoke_grant(grant.grant_id)
 
-    with pytest.raises(CoherenceError, match="revoked|live|current"):
+def _assert_live_mutation_rejected(runtime, original, revised, receipt):
+    with pytest.raises(CoherenceError, match="revoked|live|current|clock"):
         runtime.install_integrity_contract(
             revised,
             supersedes_digest=original.digest,
@@ -101,3 +101,22 @@ def test_pre_revocation_proof_cannot_authorize_a_new_mutation_after_revocation()
 
     assert runtime.current_integrity_contract(original.goal_id) == original
     assert revised.digest not in runtime._integrity_contracts
+
+
+def test_pre_revocation_proof_cannot_authorize_a_new_mutation_after_revocation():
+    clock, verifier, grant, original, revised, receipt, runtime = _prepared_transition()
+
+    clock.value = 120
+    verifier.revoke_grant(grant.grant_id)
+
+    _assert_live_mutation_rejected(runtime, original, revised, receipt)
+
+
+def test_live_revocation_cannot_be_bypassed_by_authority_clock_rollback():
+    clock, verifier, grant, original, revised, receipt, runtime = _prepared_transition()
+
+    clock.value = 120
+    verifier.revoke_grant(grant.grant_id)
+    clock.value = 110
+
+    _assert_live_mutation_rejected(runtime, original, revised, receipt)
