@@ -9,6 +9,7 @@ on:
       - 'nolane/external_core/acting_protocol.py'
       - 'nolane/external_core/acting_runtime.py'
       - 'nolane/external_core/execution.py'
+      - 'nolane/external_core/execution_executor.py'
       - 'nolane/external_core/execution_workspace.py'
       - 'nolane/external_core/invokable.py'
       - 'nolane/metadata/component_versions.py'
@@ -21,6 +22,8 @@ on:
       - 'docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md'
       - 'docs/superpowers/plans/2026-08-30-refoundation-e-acting-transactional-runtime.md'
       - 'docs/superpowers/specs/2026-08-31-e-acting-crash-reconciliation-design.md'
+      - 'docs/superpowers/specs/2026-08-31-e-acting-proof-continuity-design.md'
+      - 'docs/superpowers/plans/2026-08-31-e-acting-proof-continuity.md'
       - '.github/workflows/refoundation-e-acting.yml'
 
 concurrency:
@@ -57,6 +60,7 @@ jobs:
             tests/test_refoundation_acting_protocol.py \
             tests/test_refoundation_acting_record_integrity.py \
             tests/test_refoundation_acting_workspace.py \
+            tests/test_refoundation_acting_workspace_epochs.py \
             tests/test_refoundation_acting_runtime.py \
             tests/test_refoundation_acting_effect_authority.py \
             tests/test_refoundation_acting_receipt_provenance.py \
