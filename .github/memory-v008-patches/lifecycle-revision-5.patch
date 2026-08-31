@@ -1,0 +1,47 @@
+diff --git a/nolane/memory/lifecycle.py b/nolane/memory/lifecycle.py
+--- a/nolane/memory/lifecycle.py
++++ b/nolane/memory/lifecycle.py
+@@ -13,3 +13,3 @@
+ 
+ COMPONENT_ID = "external.memory.lifecycle"
+-COMPONENT_VERSION = "0.0.4"
++COMPONENT_VERSION = "0.0.5"
+ MIGRATED_FROM = "cogcoder.organization.memory_lifecycle"
+diff --git a/nolane/metadata/component_versions.py b/nolane/metadata/component_versions.py
+--- a/nolane/metadata/component_versions.py
++++ b/nolane/metadata/component_versions.py
+@@ -39,3 +39,3 @@
+         "external.skills": 3,
+         "external.memory.fabric": 2,
+-        "external.memory.lifecycle": 4,
++        "external.memory.lifecycle": 5,
+         "external.memory.retrieval": 3,
+diff --git a/tests/test_refoundation_component_versions.py b/tests/test_refoundation_component_versions.py
+--- a/tests/test_refoundation_component_versions.py
++++ b/tests/test_refoundation_component_versions.py
+@@ -40,3 +40,3 @@
+     "external.skills": 3,
+     "external.memory.fabric": 2,
+-    "external.memory.lifecycle": 4,
++    "external.memory.lifecycle": 5,
+     "external.memory.retrieval": 3,
+diff --git a/tests/test_refoundation_memory_public_layout.py b/tests/test_refoundation_memory_public_layout.py
+--- a/tests/test_refoundation_memory_public_layout.py
++++ b/tests/test_refoundation_memory_public_layout.py
+@@ -51,3 +51,3 @@
+     expected = {
+         fabric: ("external.memory.fabric", "0.0.2"),
+-        lifecycle: ("external.memory.lifecycle", "0.0.4"),
++        lifecycle: ("external.memory.lifecycle", "0.0.5"),
+         retrieval: ("external.memory.retrieval", "0.0.3"),
+diff --git a/tests/test_refoundation_wave5d_native_memory_lifecycle.py b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
+--- a/tests/test_refoundation_wave5d_native_memory_lifecycle.py
++++ b/tests/test_refoundation_wave5d_native_memory_lifecycle.py
+@@ -58,4 +58,4 @@
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.lifecycle"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.4"
+-    assert str(component_version("external.memory.lifecycle")) == "0.0.4"
++    assert row.component_version == "0.0.5"
++    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
