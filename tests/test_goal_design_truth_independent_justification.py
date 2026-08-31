@@ -43,6 +43,14 @@ def _support(truth: AssumptionTruthMaintenance, assumption_id: str) -> None:
 
 
 def _refute(truth: AssumptionTruthMaintenance, assumption_id: str) -> None:
+    support_id = f"ev:{assumption_id}:support"
+    try:
+        truth.retract_evidence(
+            support_id,
+            reason_ref=f"correction:{assumption_id}:support",
+        )
+    except ValueError:
+        pass
     truth.add_evidence(
         _evidence(f"ev:{assumption_id}:refute", assumption_id, AssumptionPolarity.REFUTES)
     )
