@@ -21,7 +21,7 @@ from nolane.external_core.execution_workspace import RepositoryWorkspace, Worksp
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.1"
+COMPONENT_VERSION = "0.1.2"
 
 
 class CoreReceipt(Protocol):
@@ -323,6 +323,41 @@ class TransactionalExternalCoreExecutor:
             else:
                 self._safe_release(workspace, checkpoint)
             raise
+
+    def reconcile_inflight(
+        self,
+        *,
+        evidence_ref: str,
+        reason: str,
+    ) -> tuple[ActionRecord, ...]:
+        """Fail closed every persisted non-terminal action after a restart.
+
+        This method never calls the concrete executor. The protocol decides whether
+        a row can be safely cancelled/discarded or must be degraded because effect
+        completion is uncertain.
+        """
+
+        ref = str(evidence_ref).strip()
+        why = str(reason).strip()
+        if not ref or not why:
+            raise ValueError("in-flight reconciliation requires evidence and a reason")
+        reconciled: list[ActionRecord] = []
+        for row in self.protocol.records():
+            if row.phase in {
+                ActionPhase.COMMITTED,
+                ActionPhase.ROLLED_BACK,
+                ActionPhase.DEGRADED,
+                ActionPhase.CANCELLED,
+            }:
+                continue
+            reconciled.append(
+                self.protocol.reconcile_interrupted(
+                    row.action_id,
+                    evidence_ref=ref,
+                    reason=why,
+                )
+            )
+        return tuple(reconciled)
 
     def to_state(self) -> dict[str, Any]:
         return {"protocol": self.protocol.to_state()}
