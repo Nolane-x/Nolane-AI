@@ -16,13 +16,12 @@ from nolane.external_core._software_engineering_property_evidence_v01 import (
 
 
 class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
-    """Property evidence with verifier-grounded independence lineage.
+    """Property evidence with verifier-grounded proof provenance.
 
-    A caller-owned source-family label may collapse witnesses into one lineage,
-    but it cannot by itself manufacture multiple independent lineages. When an
-    obligation requires more than one independent source, distinct family
-    labels must either be explicitly present in immutable verifier evidence
-    refs or be backed by non-shared verifier identities and environment digests.
+    Caller-owned labels may collapse evidence into a stricter lineage, but they
+    cannot manufacture stronger proof semantics. Independent source families,
+    version-bound baselines and debugging falsifiers are accepted only when the
+    immutable verifier attestation grounds the context required by the claim.
     """
 
     def _baseline_valid_family_rows(
@@ -59,6 +58,14 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
         return rows
 
     @staticmethod
+    def _attestation_context_refs(attestation: Any) -> set[str]:
+        return set(attestation.evidence_refs).union(attestation.dependencies)
+
+    @classmethod
+    def _context_ref_is_attested(cls, context_ref: str, attestation: Any) -> bool:
+        return str(context_ref) in cls._attestation_context_refs(attestation)
+
+    @staticmethod
     def _family_is_explicitly_attested(witness: EngineeringPropertyWitness, attestation: Any) -> bool:
         return witness.source_family in set(attestation.evidence_refs)
 
@@ -73,8 +80,6 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
         rows = self._baseline_valid_family_rows(obligation, witness_ids)
         families = {witness.source_family for witness, _ in rows}
         if len(families) < obligation.min_independent_sources:
-            # The base policy already blocks insufficient family count; no
-            # additional provenance claim is needed to explain that failure.
             return ()
 
         by_family: dict[str, list[tuple[EngineeringPropertyWitness, Any]]] = {}
@@ -114,6 +119,46 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
             )
         return tuple(sorted(set(reasons)))
 
+    def _proof_context_grounding_reasons(
+        self,
+        obligation: EngineeringPropertyObligation,
+        witness_ids: tuple[str, ...],
+    ) -> tuple[str, ...]:
+        rows = self._baseline_valid_family_rows(obligation, witness_ids)
+        reasons: list[str] = []
+
+        if obligation.require_version_bound_baseline:
+            baseline_rows = [
+                (witness, attestation)
+                for witness, attestation in rows
+                if witness.baseline_revision
+            ]
+            if baseline_rows and not any(
+                self._context_ref_is_attested(witness.baseline_revision, attestation)
+                for witness, attestation in baseline_rows
+            ):
+                reasons.extend(
+                    f"baseline_not_attested:{witness.witness_id}"
+                    for witness, _ in baseline_rows
+                )
+
+        if obligation.require_falsifier:
+            falsifier_rows = [
+                (witness, attestation)
+                for witness, attestation in rows
+                if witness.role is EngineeringWitnessRole.FALSIFIER and witness.falsifier_ref
+            ]
+            if falsifier_rows and not any(
+                self._context_ref_is_attested(witness.falsifier_ref, attestation)
+                for witness, attestation in falsifier_rows
+            ):
+                reasons.extend(
+                    f"falsifier_not_attested:{witness.witness_id}"
+                    for witness, _ in falsifier_rows
+                )
+
+        return tuple(sorted(set(reasons)))
+
     def assess(
         self,
         obligation_id: str,
@@ -122,7 +167,8 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
     ) -> EngineeringPropertyClosureReceipt:
         base = super().assess(obligation_id, witness_ids=witness_ids)
         obligation = self.get_obligation(obligation_id)
-        extra = self._independence_grounding_reasons(obligation, base.witness_ids)
+        extra = set(self._independence_grounding_reasons(obligation, base.witness_ids))
+        extra.update(self._proof_context_grounding_reasons(obligation, base.witness_ids))
         if not extra:
             return base
 
@@ -166,13 +212,21 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
             if not receipt.ready:
                 continue
             obligation = ledger.get_obligation(receipt.obligation_id)
-            reasons = ledger._independence_grounding_reasons(
-                obligation,
-                receipt.witness_ids,
+            reasons = set(
+                ledger._independence_grounding_reasons(
+                    obligation,
+                    receipt.witness_ids,
+                )
+            )
+            reasons.update(
+                ledger._proof_context_grounding_reasons(
+                    obligation,
+                    receipt.witness_ids,
+                )
             )
             if reasons:
                 raise ValueError(
-                    "ready property closure contains ungrounded independent source families"
+                    "ready property closure contains ungrounded verifier proof context"
                 )
         return ledger
 
