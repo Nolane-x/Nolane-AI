@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 
 PATH = Path("nolane/memory/learning_substrate.py")
 text = PATH.read_text()
@@ -9,12 +10,25 @@ def replace_between(source: str, start: str, end: str, replacement: str, label: 
         raise SystemExit(f"unexpected source markers for {label}")
     begin = source.index(start)
     finish = source.index(end, begin)
-    old = source[begin:finish]
     if replacement.rstrip() in source:
         print(f"already applied: {label}")
         return source
     print(f"applied: {label}")
     return source[:begin] + replacement + source[finish:]
+
+
+def replace_method_block(source: str, start_name: str, end_name: str, replacement: str, label: str) -> str:
+    if replacement.rstrip() in source:
+        print(f"already applied: {label}")
+        return source
+    pattern = re.compile(
+        rf"(?ms)^    def {re.escape(start_name)}\(.*?(?=^    def {re.escape(end_name)}\()"
+    )
+    updated, count = pattern.subn(lambda _match: replacement, source, count=1)
+    if count != 1:
+        raise SystemExit(f"unexpected source method boundaries for {label}: {count}")
+    print(f"applied: {label}")
+    return updated
 
 
 TOMBSTONE = '''@dataclass(frozen=True, slots=True)
@@ -141,10 +155,10 @@ FORGET = '''    def forget(
         return candidate
 
 '''
-text = replace_between(
+text = replace_method_block(
     text,
-    "    def forget(\n",
-    "    def tombstone(\n",
+    "forget",
+    "tombstone",
     FORGET,
     "forget authorization binding",
 )
@@ -170,10 +184,10 @@ VALIDATE = '''    def _validate_tombstone_semantics(self, tombstone: MemoryTombs
             raise ValueError("memory tombstone requires archived lifecycle authority")
 
 '''
-text = replace_between(
+text = replace_method_block(
     text,
-    "    def _validate_tombstone_semantics(self, tombstone: MemoryTombstone) -> None:\n",
-    "    def to_state(self) -> dict[str, Any]:\n",
+    "_validate_tombstone_semantics",
+    "to_state",
     VALIDATE,
     "tombstone restore authorization",
 )
