@@ -33,6 +33,35 @@ class _Workspace:
     digest: str
 
 
+@dataclass
+class _Identity:
+    agent_id: str = "agent-1"
+
+
+@dataclass
+class _Task:
+    leased_to: str = "agent-1"
+    aborted_by: str | None = None
+
+
+@dataclass
+class _Backend:
+    backend_id: str = "backend-v1"
+    checkpoint_digest: str = "checkpoint-v1"
+
+
+class _Registry:
+    def get(self, agent_id: str) -> _Identity:
+        assert agent_id == "agent-1"
+        return _Identity()
+
+
+class _Tasks:
+    def get(self, task_id: str) -> _Task:
+        assert task_id == "task-1"
+        return _Task()
+
+
 def _decision(*, step_index: int) -> AgentDecisionReceipt:
     action_schema = ("filesystem.write_text",)
     request = InferenceRequest(
@@ -65,6 +94,15 @@ def _decision(*, step_index: int) -> AgentDecisionReceipt:
     )
 
 
+def _budget() -> ExecutionBudget:
+    return ExecutionBudget(
+        max_steps=8,
+        max_tool_calls=8,
+        max_external_core_calls=4,
+        max_compute_units=16,
+    )
+
+
 def _session(
     *,
     decisions: tuple[AgentDecisionReceipt, ...] = (),
@@ -75,12 +113,7 @@ def _session(
         agent_id="agent-1",
         task_id="task-1",
         action_schema=("filesystem.write_text",),
-        budget=ExecutionBudget(
-            max_steps=8,
-            max_tool_calls=8,
-            max_external_core_calls=4,
-            max_compute_units=16,
-        ),
+        budget=_budget(),
         counters=ExecutionCounters(
             steps=len(decisions),
             tool_calls=len(steps),
@@ -212,3 +245,56 @@ def test_modern_workspace_digest_fence_survives_state_roundtrip_and_controls_rea
     assert roundtrip["workspace_provenance_version"] == 2
     assert roundtrip["initial_workspace_digest"] == "workspace-initial"
     assert roundtrip["current_workspace_digest"] == "workspace-current"
+
+
+def test_new_execution_session_mints_modern_workspace_digest_fence_at_start() -> None:
+    plane = OrganizationExecutionControlPlane(
+        registry=_Registry(),
+        tasks=_Tasks(),
+        context=_Unused(),
+        artifacts=_Unused(),
+        external_cores=_Unused(),
+        coding=_Unused(),
+        encoder=CognitiveStateEncoder(version="organization-context-digest-v1"),
+        executor=object(),
+        acting_executor=object(),
+    )
+    plane._backends["agent-1"] = _Backend()
+
+    session = plane.start(
+        agent_id="agent-1",
+        task_id="task-1",
+        workspace=_Workspace(base_revision="base-v1", digest="workspace-initial"),
+        action_schema=("filesystem.write_text",),
+        budget=_budget(),
+    )
+
+    state = session.to_state()
+    assert state["workspace_provenance_version"] == 2
+    assert state["initial_workspace_digest"] == "workspace-initial"
+    assert state["current_workspace_digest"] == "workspace-initial"
+
+
+def test_legacy_session_cannot_resume_forward_execution_by_downgrading_provenance() -> None:
+    session = _session()
+    plane = OrganizationExecutionControlPlane(
+        registry=_Registry(),
+        tasks=_Tasks(),
+        context=_Unused(),
+        artifacts=_Unused(),
+        external_cores=_Unused(),
+        coding=_Unused(),
+        encoder=CognitiveStateEncoder(version="organization-context-digest-v1"),
+        executor=object(),
+        acting_executor=object(),
+        sessions=(session,),
+        session_counter=1,
+    )
+    plane._backends["agent-1"] = _Backend()
+    plane.attach_workspace(
+        session.session_id,
+        _Workspace(base_revision="base-v1", digest="workspace-substituted"),
+    )
+
+    with pytest.raises(RuntimeError, match="legacy execution session lacks workspace provenance"):
+        plane.step(session.session_id)
