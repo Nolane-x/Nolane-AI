@@ -64,6 +64,7 @@ class SourceProvenanceRevision:
         if source_id in parents:
             raise ValueError("source provenance cannot directly parent itself")
         payload = {
+            "protocol": TRUTH_PROTOCOL,
             "source_id": source_id,
             "revision": revision,
             "predecessor_digest": predecessor_digest,
@@ -81,6 +82,7 @@ class SourceProvenanceRevision:
 
     def to_state(self) -> dict[str, Any]:
         return {
+            "protocol": TRUTH_PROTOCOL,
             "source_id": self.source_id,
             "revision": self.revision,
             "predecessor_digest": self.predecessor_digest,
@@ -94,6 +96,7 @@ class SourceProvenanceRevision:
         _unexpected(
             state,
             {
+                "protocol",
                 "source_id",
                 "revision",
                 "predecessor_digest",
@@ -103,6 +106,8 @@ class SourceProvenanceRevision:
             },
             "source provenance revision",
         )
+        if str(state.get("protocol", "")) != TRUTH_PROTOCOL:
+            raise ValueError("unsupported source provenance revision protocol")
         row = cls.create(
             source_id=str(state["source_id"]),
             revision=int(state["revision"]),
