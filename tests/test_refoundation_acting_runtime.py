@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
     ActionPhase,
     ActingProtocolLedger,
@@ -46,8 +47,16 @@ def _workspace(tmp_path: Path) -> RepositoryWorkspace:
 @dataclass(frozen=True)
 class _Receipt:
     receipt_id: str
+    agent_id: str
+    task_id: str
+    tool_id: str
+    operation: str
+    input_digest: str
+    authorized: bool
     success: bool
     failure_kind: str | None
+    before_workspace_digest: str
+    after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
 
@@ -58,13 +67,22 @@ class _MutatingExecutor:
         self.calls = 0
         self._receipts: dict[str, _Receipt] = {}
 
-    def invoke(self, *, workspace: RepositoryWorkspace, action: ToolAction, **_: object) -> _Receipt:
+    def invoke(self, *, workspace: RepositoryWorkspace, action: ToolAction, **kwargs: object) -> _Receipt:
         self.calls += 1
+        before = workspace.digest
         workspace.write_text(str(action.arguments["path"]), str(action.arguments["content"]))
         receipt = _Receipt(
             receipt_id=f"core-receipt-{self.calls}",
+            agent_id=str(kwargs["agent_id"]),
+            task_id=str(kwargs["task_id"]),
+            tool_id=action.tool_id,
+            operation=action.operation,
+            input_digest=canonical_digest(action.to_state()),
+            authorized=True,
             success=self.success,
             failure_kind=None if self.success else "simulated_failure",
+            before_workspace_digest=before,
+            after_workspace_digest=workspace.digest,
             output_artifact_ids=(f"artifact-{self.calls}",),
             evidence_artifact_id=f"evidence-{self.calls}",
         )
@@ -81,13 +99,30 @@ class _SleepingReadExecutor:
         self.calls = 0
         self._receipts: dict[str, _Receipt] = {}
 
-    def invoke(self, **_: object) -> _Receipt:
+    def invoke(
+        self,
+        *,
+        agent_id: str,
+        task_id: str,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        **_: object,
+    ) -> _Receipt:
         self.calls += 1
+        before = workspace.digest
         time.sleep(self.sleep_seconds)
         receipt = _Receipt(
             receipt_id=f"read-receipt-{self.calls}",
+            agent_id=str(agent_id),
+            task_id=str(task_id),
+            tool_id=action.tool_id,
+            operation=action.operation,
+            input_digest=canonical_digest(action.to_state()),
+            authorized=True,
             success=True,
             failure_kind=None,
+            before_workspace_digest=before,
+            after_workspace_digest=workspace.digest,
             output_artifact_ids=(),
             evidence_artifact_id=f"read-evidence-{self.calls}",
         )
