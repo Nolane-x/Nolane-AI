@@ -147,9 +147,13 @@ def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assuranc
     )
     baseline = library.digest
     receipt = _receipt(candidate.candidate_id, evidence_ids, baseline)
-    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
+    assurance = _assurance_plane(receipt)
+    governor.promote(candidate.candidate_id, assurance=assurance, receipt=receipt)
     state = governor.to_state()
-    restored_library = CognitiveLibrary.from_state(library.to_state())
+    restored_library = CognitiveLibrary.from_state(
+        library.to_state(),
+        assurance=assurance,
+    )
 
     with pytest.raises(ValueError, match="persisted assurance"):
         native.CapabilityAcquisitionGovernor.from_state(
@@ -169,7 +173,7 @@ def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assuranc
     restored = native.CapabilityAcquisitionGovernor.from_state(
         state,
         library=restored_library,
-        assurance=_assurance_plane(receipt),
+        assurance=assurance,
     )
     assert restored.retrievable_ids() == (candidate.candidate_id,)
     assert restored.retrieve(candidate.candidate_id) == _family()
