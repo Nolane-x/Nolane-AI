@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - codex/memory-learning-substrate-v0.0.5
+      - codex/memory-learning-reauthorization-v0.0.6
     paths:
       - 'nolane/memory/**'
       - 'nolane/external_core/self_model.py'
@@ -79,11 +80,14 @@ jobs:
             tests/test_memory_learning_adaptive_policy_v005.py
             tests/test_memory_learning_restore_authority_v005.py
             tests/test_memory_learning_runtime_wiring_v005.py
+            tests/test_memory_learning_reauthorization_v006.py
             tests/test_refoundation_component_versions.py
             tests/test_refoundation_runtime_state_map.py
             tests/test_refoundation_wave2_zero_loss_runtime_digest.py
             tests/test_refoundation_memory_public_layout.py
             tests/test_refoundation_wave5c_native_memory_fabric.py
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py
+            tests/test_refoundation_wave5e_native_memory_retrieval.py
             tests/test_refoundation_wave5h_native_experience.py
             tests/test_refoundation_wave5j_native_skills.py
             tests/test_refoundation_wave5ao_native_individual_evolution.py

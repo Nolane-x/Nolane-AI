@@ -42,8 +42,8 @@ def test_wave5e_memory_retrieval_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.retrieval"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.memory.retrieval")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.memory.retrieval")) == "0.0.2"
 
 
 def test_wave5e_memory_retrieval_leaves_active_facades() -> None:
