@@ -43,6 +43,13 @@ E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST = (
     "530054ed6d094c5ea000e38002346746ca63ddfb4d1c58b1d9f772263218415d"
 )
 
+# Memory/Learning v0.0.7 adds content-addressed historical retrieval replay
+# snapshots to the canonical Memory Retrieval owner section.  The empty
+# snapshot registry is intentionally part of the deterministic runtime schema.
+MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST = (
+    "e94dad6dcfc2c4c6d4f51b85c95a344e5fb95174cc47d575735e1974d31ba0b0"
+)
+
 
 def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> None:
     first = CanonicalOrganization.first_generation()
@@ -50,11 +57,12 @@ def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> Non
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
-    assert first.state_digest == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
-    assert second.state_digest == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
+    assert first.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
+    assert second.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST != E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_RUNTIME_STATE_DIGEST
