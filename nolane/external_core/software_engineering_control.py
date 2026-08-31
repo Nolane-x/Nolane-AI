@@ -271,8 +271,12 @@ class SoftwareEngineeringControlPlane:
             if previous is not None and previous != row.work_id:
                 raise ValueError("engineering operation ref cannot bind multiple work records")
             tx = self.transactions.transaction_for_operation(row.operation_ref)
-            if tx is None or tx.transaction_id != row.transaction_id:
-                raise ValueError("engineering work operation/transaction lineage mismatch")
+            if (
+                tx is None
+                or tx.transaction_id != row.transaction_id
+                or tx.initiation_digest != row.initiation_digest
+            ):
+                raise ValueError("engineering work operation/initiation/transaction lineage mismatch")
             self._works_by_operation[row.operation_ref] = row.work_id
 
     @property
@@ -353,8 +357,12 @@ class SoftwareEngineeringControlPlane:
             if existing.initiation_digest != initiation_digest:
                 raise ValueError("engineering operation ref cannot be rebound to different initiation inputs")
             tx = self.transactions.transaction_for_operation(operation)
-            if tx is None or tx.transaction_id != existing.transaction_id:
-                raise ValueError("engineering operation retry lineage mismatch")
+            if (
+                tx is None
+                or tx.transaction_id != existing.transaction_id
+                or tx.initiation_digest != initiation_digest
+            ):
+                raise ValueError("engineering operation retry initiation lineage mismatch")
             return existing
 
         if not refs:
@@ -379,6 +387,7 @@ class SoftwareEngineeringControlPlane:
             patch_digest=patch_digest,
             source_revision=source,
             rollback_artifact_ref=rollback,
+            initiation_digest=initiation_digest,
             operation_ref=operation,
         )
         tx = self.transactions.bind_claims(tx.transaction_id, claim_refs=refs)
@@ -748,9 +757,10 @@ class SoftwareEngineeringControlPlane:
             if (
                 not isinstance(tx, AttemptBoundEngineeringPatchTransaction)
                 or tx.operation_ref != row.operation_ref
+                or tx.initiation_digest != row.initiation_digest
                 or transactions.transaction_for_operation(row.operation_ref) != tx
             ):
-                raise ValueError("engineering work operation/transaction lineage mismatch")
+                raise ValueError("engineering work operation/initiation/transaction lineage mismatch")
             binding = claim_bindings.get(row.claim_binding_id)
             if binding.digest != row.claim_binding_digest or binding.transaction_id != row.transaction_id:
                 raise ValueError("engineering work claim binding lineage mismatch")
