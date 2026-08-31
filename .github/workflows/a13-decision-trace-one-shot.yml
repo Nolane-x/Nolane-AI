@@ -1,0 +1,46 @@
+name: A13 Decision Trace One Shot
+
+on:
+  push:
+    branches:
+      - refoundation/truth-knowledge-a13-defeasible-truth-gpt56sol
+    paths:
+      - .github/workflows/a13-decision-trace-one-shot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refoundation/truth-knowledge-a13-defeasible-truth-gpt56sol
+          fetch-depth: 0
+      - name: Apply exact decision-origin fix
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('nolane/external_core/epistemic_defeasible_truth.py')
+          text = path.read_text(encoding='utf-8')
+          old = '''        def add_attack_evidence(undercutter_id: str) -> None:\n            status = attack_map.get(undercutter_id)\n            if status is None:\n                return\n            for evidence_id in status.evidence_ids:\n                try:\n                    item = evidence.get(evidence_id)\n                except KeyError:\n                    continue\n                if item.polarity in {EvidencePolarity.SUPPORT, EvidencePolarity.REFUTE}:\n                    ids.add(evidence_id)\n'''
+          new = '''        def add_attack_evidence(\n            undercutter_id: str,\n            *,\n            include_supported_parents: bool = False,\n        ) -> None:\n            status = attack_map.get(undercutter_id)\n            if status is None:\n                return\n            for evidence_id in status.evidence_ids:\n                try:\n                    item = evidence.get(evidence_id)\n                except KeyError:\n                    continue\n                if item.polarity in {EvidencePolarity.SUPPORT, EvidencePolarity.REFUTE}:\n                    ids.add(evidence_id)\n            if include_supported_parents:\n                attack = undercutters.current(undercutter_id)\n                if attack is not None:\n                    for parent_id in attack.parent_claim_ids:\n                        visit(parent_id)\n'''
+          if old not in text:
+              raise SystemExit('exact add_attack_evidence block not found')
+          text = text.replace(old, new, 1)
+          old_call = '''                    for undercutter_id in (\n                        status.supported_undercutter_ids + status.contested_undercutter_ids\n                    ):\n                        add_attack_evidence(undercutter_id)\n'''
+          new_call = '''                    for undercutter_id in (\n                        status.supported_undercutter_ids + status.contested_undercutter_ids\n                    ):\n                        add_attack_evidence(\n                            undercutter_id,\n                            include_supported_parents=True,\n                        )\n'''
+          if old_call not in text:
+              raise SystemExit('exact decisive undercutter call block not found')
+          path.write_text(text.replace(old_call, new_call, 1), encoding='utf-8')
+          PY
+      - name: Commit semantic fix and remove one-shot workflow
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm .github/workflows/a13-decision-trace-one-shot.yml
+          git add nolane/external_core/epistemic_defeasible_truth.py
+          git commit -m "fix: trace decisive undercutter parent decision origins"
+          git push origin HEAD:refoundation/truth-knowledge-a13-defeasible-truth-gpt56sol
