@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A8 and A10 Relation Semantics are accepted canonical baseline. A9 Temporal Validity is implemented as relation-aware temporal v4 and is a final candidate pending integration with current `main`, full Refoundation acceptance, expected-head merge and post-merge proof.**
+Status: **A1–A10 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A9 Temporal Validity is accepted as relation-aware temporal v4 on top of A10 relation-aware scope v3.**
 
 ## Canonical authority model
 
@@ -86,7 +86,7 @@ A v3 scope binds target/lineage/fixed-point claims, relevant Evidence, relevant 
 
 Verification and Assurance v3 are exact-mode; v1/v2 cannot masquerade as v3 and v3 cannot silently downgrade.
 
-## A9 canonical design: relation-aware temporal v4
+## Accepted A9 relation-aware temporal v4
 
 A9 was numbered before A10 was accepted. Because A10 now canonically owns v3, A9 does **not** introduce the historical draft name `dependency-scope-temporal-v3`.
 
@@ -285,11 +285,11 @@ The A6 five-parent subprotocol registry remains authority metadata for the canon
 - **A7** — canonical set ordering.
 - **A8** — dependency-scope v2 and unrelated-state stability.
 - **A10** — accepted canonical relation semantics and relation-aware v3.
-- **A9 candidate** — explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
+- **A9** — accepted explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
 
-## A9 acceptance gates
+## A9 acceptance proof
 
-A9 remains candidate until an exact final candidate integrated with then-current `main` passes all of:
+A9 is accepted because the exact final candidate integrated with then-current `main` passed all canonical gates:
 
 1. Python 3.11/3.13 compile for canonical A authorities, A1–A10 helpers and all six temporal sidecars;
 2. every `tests/test_truth_knowledge_*.py`, including temporal boundary, serialization, relation inheritance and revision-lineage tests;
@@ -299,6 +299,6 @@ A9 remains candidate until an exact final candidate integrated with then-current
 6. expected-head merge;
 7. post-merge proof that canonical `main` contains the exact tested A9 tree semantics.
 
-Only after gate 7 may canonical status become **A1–A10 accepted**.
+Canonical family-A status is therefore **A1–A10 accepted**.
 
 Historical R-series workflows do not define current family-A architecture authority.
