@@ -1,10 +1,15 @@
 """Assumption truth-maintenance authority for D. Goal / Design.
 
 This module treats assumptions as first-class, evidence-backed authority inputs
-without making them mutable truth flags. Claims, evidence and retractions are
-content-addressed facts; effective assumption status is derived from those facts
-and from the dependency graph. Decision code can therefore bind an exact truth
-snapshot and later invalidate authority when the supporting world-model changes.
+without making them mutable truth flags. Claims, evidence, retractions and
+independent justification routes are content-addressed facts. Effective truth is
+derived from those facts and the justification graph.
+
+Legacy ``depends_on`` remains one conjunctive support route. Explicit
+``AssumptionJustification`` objects add independent OR routes: every premise
+inside one route is conjunctive, while any surviving route can keep a claim from
+being retracted solely because another route failed. This preserves historical
+v1 snapshot identity when no explicit justifications exist.
 """
 from __future__ import annotations
 
@@ -15,7 +20,7 @@ from typing import Any, Iterable, Mapping
 
 from .goal_design import DecisionClass, stable_digest
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 class AssumptionStatus(str, Enum):
@@ -83,6 +88,44 @@ class AssumptionClaim:
 
 
 @dataclass(frozen=True)
+class AssumptionJustification:
+    """One immutable independent support route for an assumption.
+
+    ``premise_refs`` is an AND set. Multiple justification objects targeting the
+    same assumption are OR alternatives. ``provenance_ref`` anchors the route to
+    the argument/evidence provenance that introduced it.
+    """
+
+    justification_id: str
+    assumption_id: str
+    premise_refs: tuple[str, ...]
+    provenance_ref: str
+
+    def __post_init__(self) -> None:
+        if not str(self.justification_id).strip() or not str(self.assumption_id).strip():
+            raise ValueError("justification_id and assumption_id are required")
+        if not str(self.provenance_ref).strip():
+            raise ValueError("assumption justification requires provenance_ref")
+        premise_refs = _normalized_refs(self.premise_refs)
+        if not premise_refs:
+            raise ValueError("assumption justification requires at least one premise")
+        if self.assumption_id in premise_refs:
+            raise ValueError("assumption justification cannot directly depend on itself")
+        object.__setattr__(self, "premise_refs", premise_refs)
+
+    @property
+    def digest(self) -> str:
+        return stable_digest({
+            "assumption_justification": {
+                "justification_id": self.justification_id,
+                "assumption_id": self.assumption_id,
+                "premise_refs": self.premise_refs,
+                "provenance_ref": self.provenance_ref,
+            }
+        })
+
+
+@dataclass(frozen=True)
 class AssumptionEvidence:
     evidence_id: str
     assumption_id: str
@@ -137,6 +180,9 @@ class AssumptionAssessment:
     support_score: float
     refute_score: float
     dependency_blockers: tuple[str, ...]
+    surviving_justification_ids: tuple[str, ...]
+    failed_justification_ids: tuple[str, ...]
+    unsettled_justification_ids: tuple[str, ...]
     evidence_state_digest: str
     digest: str
 
@@ -162,7 +208,8 @@ class AssumptionImpactReport:
 class AssumptionTruthMaintenance:
     """Content-addressed truth-maintenance system for Goal/Design assumptions."""
 
-    SCHEMA_VERSION = 1
+    SCHEMA_VERSION = 2
+    LEGACY_SCHEMA_VERSION = 1
 
     def __init__(
         self,
@@ -175,6 +222,7 @@ class AssumptionTruthMaintenance:
             "costly_criticality_threshold", costly_criticality_threshold
         )
         self._claims: dict[str, AssumptionClaim] = {}
+        self._justifications: dict[str, AssumptionJustification] = {}
         self._evidence: dict[str, AssumptionEvidence] = {}
         self._retractions: dict[str, EvidenceRetraction] = {}
 
@@ -190,6 +238,41 @@ class AssumptionTruthMaintenance:
             )
         self._claims[claim.assumption_id] = claim
         return claim
+
+    def add_justification(
+        self,
+        justification: AssumptionJustification,
+    ) -> AssumptionJustification:
+        if justification.assumption_id not in self._claims:
+            raise ValueError(
+                "assumption justification references unknown target assumption "
+                f"{justification.assumption_id}"
+            )
+        legacy_id = self._legacy_route_id(justification.assumption_id)
+        if justification.justification_id == legacy_id:
+            raise ValueError(
+                f"justification identity {legacy_id} is reserved for legacy depends_on"
+            )
+        existing = self._justifications.get(justification.justification_id)
+        if existing is not None and existing != justification:
+            raise ValueError(
+                f"justification identity {justification.justification_id} cannot be rebound to different content"
+            )
+        self._justifications[justification.justification_id] = justification
+        return justification
+
+    def justifications_for(self, assumption_id: str) -> tuple[AssumptionJustification, ...]:
+        self.get(assumption_id)
+        return tuple(
+            sorted(
+                (
+                    item
+                    for item in self._justifications.values()
+                    if item.assumption_id == assumption_id
+                ),
+                key=lambda item: item.justification_id,
+            )
+        )
 
     def add_evidence(self, evidence: AssumptionEvidence) -> AssumptionEvidence:
         if evidence.assumption_id not in self._claims:
@@ -222,6 +305,10 @@ class AssumptionTruthMaintenance:
             return self._claims[str(assumption_id)]
         except KeyError as exc:
             raise ValueError(f"unknown assumption {assumption_id}") from exc
+
+    @staticmethod
+    def _legacy_route_id(assumption_id: str) -> str:
+        return f"legacy-depends-on:{assumption_id}"
 
     @staticmethod
     def _aggregate(confidences: Iterable[float]) -> float:
@@ -270,6 +357,52 @@ class AssumptionTruthMaintenance:
         )
         return status, support, refute, evidence_state_digest
 
+    def _explicit_justifications(
+        self,
+        assumption_id: str,
+    ) -> tuple[AssumptionJustification, ...]:
+        return tuple(
+            sorted(
+                (
+                    item
+                    for item in self._justifications.values()
+                    if item.assumption_id == assumption_id
+                ),
+                key=lambda item: item.justification_id,
+            )
+        )
+
+    def _premise_refs(self, claim: AssumptionClaim) -> tuple[str, ...]:
+        return _normalized_refs(
+            tuple(claim.depends_on)
+            + tuple(
+                premise
+                for justification in self._explicit_justifications(claim.assumption_id)
+                for premise in justification.premise_refs
+            )
+        )
+
+    @staticmethod
+    def _route_status(
+        premise_assessments: tuple[AssumptionAssessment, ...],
+    ) -> AssumptionStatus:
+        if any(
+            assessment.status is AssumptionStatus.REFUTED
+            for assessment in premise_assessments
+        ):
+            return AssumptionStatus.REFUTED
+        if any(
+            assessment.status is AssumptionStatus.CONTESTED
+            for assessment in premise_assessments
+        ):
+            return AssumptionStatus.CONTESTED
+        if all(
+            assessment.status is AssumptionStatus.SUPPORTED
+            for assessment in premise_assessments
+        ):
+            return AssumptionStatus.SUPPORTED
+        return AssumptionStatus.UNKNOWN
+
     def _assessment(
         self,
         assumption_id: str,
@@ -286,32 +419,215 @@ class AssumptionTruthMaintenance:
         direct_status, support, refute, evidence_state_digest = self._direct_assessment(
             assumption_id
         )
-        dependency_assessments = tuple(
-            self._assessment(dep, stack=stack + (assumption_id,), cache=cache)
-            for dep in claim.depends_on
+        explicit = self._explicit_justifications(assumption_id)
+
+        # Compatibility path: preserve the exact historical assessment digest
+        # and legacy conjunctive semantics when no explicit independent routes
+        # have been introduced for this claim.
+        if not explicit:
+            dependency_assessments = tuple(
+                self._assessment(dep, stack=stack + (assumption_id,), cache=cache)
+                for dep in claim.depends_on
+            )
+            dependency_blockers = tuple(
+                sorted(
+                    dep.assumption_id
+                    for dep in dependency_assessments
+                    if dep.status is not AssumptionStatus.SUPPORTED
+                )
+            )
+
+            if direct_status is AssumptionStatus.REFUTED or any(
+                dep.status is AssumptionStatus.REFUTED for dep in dependency_assessments
+            ):
+                effective = AssumptionStatus.REFUTED
+            elif direct_status is AssumptionStatus.CONTESTED or any(
+                dep.status is AssumptionStatus.CONTESTED for dep in dependency_assessments
+            ):
+                effective = AssumptionStatus.CONTESTED
+            elif direct_status is AssumptionStatus.SUPPORTED and not dependency_blockers:
+                effective = AssumptionStatus.SUPPORTED
+            else:
+                effective = AssumptionStatus.UNKNOWN
+
+            legacy_id = self._legacy_route_id(assumption_id)
+            surviving = (
+                (legacy_id,)
+                if claim.depends_on
+                and dependency_assessments
+                and all(
+                    dep.status is AssumptionStatus.SUPPORTED
+                    for dep in dependency_assessments
+                )
+                else ()
+            )
+            failed = (
+                (legacy_id,)
+                if claim.depends_on
+                and any(
+                    dep.status is AssumptionStatus.REFUTED
+                    for dep in dependency_assessments
+                )
+                else ()
+            )
+            unsettled = (
+                (legacy_id,)
+                if claim.depends_on and not surviving and not failed
+                else ()
+            )
+            payload = {
+                "assumption_id": assumption_id,
+                "claim_digest": claim.digest,
+                "direct_status": direct_status.value,
+                "status": effective.value,
+                "support_score": support,
+                "refute_score": refute,
+                "dependency_blockers": dependency_blockers,
+                "dependency_assessment_digests": tuple(
+                    dep.digest for dep in dependency_assessments
+                ),
+                "evidence_state_digest": evidence_state_digest,
+            }
+            result = AssumptionAssessment(
+                assumption_id=assumption_id,
+                direct_status=direct_status,
+                status=effective,
+                support_score=support,
+                refute_score=refute,
+                dependency_blockers=dependency_blockers,
+                surviving_justification_ids=surviving,
+                failed_justification_ids=failed,
+                unsettled_justification_ids=unsettled,
+                evidence_state_digest=evidence_state_digest,
+                digest=stable_digest({"assumption_assessment": payload}),
+            )
+            cache[assumption_id] = result
+            return result
+
+        route_specs: list[tuple[str, tuple[str, ...], str]] = []
+        if claim.depends_on:
+            legacy_id = self._legacy_route_id(assumption_id)
+            route_specs.append(
+                (
+                    legacy_id,
+                    claim.depends_on,
+                    stable_digest(
+                        {
+                            "legacy_assumption_justification": {
+                                "justification_id": legacy_id,
+                                "assumption_id": assumption_id,
+                                "premise_refs": claim.depends_on,
+                                "claim_digest": claim.digest,
+                            }
+                        }
+                    ),
+                )
+            )
+        route_specs.extend(
+            (
+                justification.justification_id,
+                justification.premise_refs,
+                justification.digest,
+            )
+            for justification in explicit
         )
-        dependency_blockers = tuple(
+        route_specs.sort(key=lambda row: row[0])
+
+        route_rows: list[dict[str, Any]] = []
+        premise_by_id: dict[str, AssumptionAssessment] = {}
+        route_status_by_id: dict[str, AssumptionStatus] = {}
+        for route_id, premise_refs, route_digest in route_specs:
+            premise_assessments = tuple(
+                self._assessment(
+                    premise,
+                    stack=stack + (assumption_id,),
+                    cache=cache,
+                )
+                for premise in premise_refs
+            )
+            for assessment in premise_assessments:
+                premise_by_id[assessment.assumption_id] = assessment
+            route_status = self._route_status(premise_assessments)
+            route_status_by_id[route_id] = route_status
+            route_rows.append(
+                {
+                    "justification_id": route_id,
+                    "justification_digest": route_digest,
+                    "premise_refs": premise_refs,
+                    "premise_assessment_digests": tuple(
+                        assessment.digest for assessment in premise_assessments
+                    ),
+                    "status": route_status.value,
+                }
+            )
+
+        surviving = tuple(
             sorted(
-                dep.assumption_id
-                for dep in dependency_assessments
-                if dep.status is not AssumptionStatus.SUPPORTED
+                route_id
+                for route_id, status in route_status_by_id.items()
+                if status is AssumptionStatus.SUPPORTED
+            )
+        )
+        failed = tuple(
+            sorted(
+                route_id
+                for route_id, status in route_status_by_id.items()
+                if status is AssumptionStatus.REFUTED
+            )
+        )
+        unsettled = tuple(
+            sorted(
+                route_id
+                for route_id, status in route_status_by_id.items()
+                if status in (AssumptionStatus.UNKNOWN, AssumptionStatus.CONTESTED)
             )
         )
 
-        if direct_status is AssumptionStatus.REFUTED or any(
-            dep.status is AssumptionStatus.REFUTED for dep in dependency_assessments
-        ):
+        if surviving:
+            dependency_blockers: tuple[str, ...] = ()
+        else:
+            dependency_blockers = tuple(
+                sorted(
+                    {
+                        premise.assumption_id
+                        for route_id, premise_refs, _ in route_specs
+                        for premise in (
+                            self._assessment(
+                                premise_ref,
+                                stack=stack + (assumption_id,),
+                                cache=cache,
+                            )
+                            for premise_ref in premise_refs
+                        )
+                        if premise.status is not AssumptionStatus.SUPPORTED
+                    }
+                )
+            )
+
+        route_statuses = tuple(route_status_by_id.values())
+        all_routes_refuted = bool(route_statuses) and all(
+            status is AssumptionStatus.REFUTED for status in route_statuses
+        )
+        any_route_contested = any(
+            status is AssumptionStatus.CONTESTED for status in route_statuses
+        )
+
+        if direct_status is AssumptionStatus.REFUTED or all_routes_refuted:
             effective = AssumptionStatus.REFUTED
-        elif direct_status is AssumptionStatus.CONTESTED or any(
-            dep.status is AssumptionStatus.CONTESTED for dep in dependency_assessments
-        ):
+        elif direct_status is AssumptionStatus.CONTESTED:
             effective = AssumptionStatus.CONTESTED
-        elif direct_status is AssumptionStatus.SUPPORTED and not dependency_blockers:
+        elif not surviving and any_route_contested:
+            effective = AssumptionStatus.CONTESTED
+        elif direct_status is AssumptionStatus.SUPPORTED and surviving:
             effective = AssumptionStatus.SUPPORTED
         else:
             effective = AssumptionStatus.UNKNOWN
 
+        dependency_assessments = tuple(
+            premise_by_id[key] for key in sorted(premise_by_id)
+        )
         payload = {
+            "schema_version": 2,
             "assumption_id": assumption_id,
             "claim_digest": claim.digest,
             "direct_status": direct_status.value,
@@ -319,6 +635,10 @@ class AssumptionTruthMaintenance:
             "support_score": support,
             "refute_score": refute,
             "dependency_blockers": dependency_blockers,
+            "surviving_justification_ids": surviving,
+            "failed_justification_ids": failed,
+            "unsettled_justification_ids": unsettled,
+            "justification_routes": tuple(route_rows),
             "dependency_assessment_digests": tuple(
                 dep.digest for dep in dependency_assessments
             ),
@@ -331,6 +651,9 @@ class AssumptionTruthMaintenance:
             support_score=support,
             refute_score=refute,
             dependency_blockers=dependency_blockers,
+            surviving_justification_ids=surviving,
+            failed_justification_ids=failed,
+            unsettled_justification_ids=unsettled,
             evidence_state_digest=evidence_state_digest,
             digest=stable_digest({"assumption_assessment": payload}),
         )
@@ -355,7 +678,7 @@ class AssumptionTruthMaintenance:
                 return
             claim = self.get(assumption_id)
             visiting.add(assumption_id)
-            for dependency in claim.depends_on:
+            for dependency in self._premise_refs(claim):
                 if dependency not in self._claims:
                     raise ValueError(
                         f"assumption {assumption_id} depends on unknown assumption {dependency}"
@@ -398,7 +721,7 @@ class AssumptionTruthMaintenance:
         while progressed:
             before = len(affected)
             for claim in self._claims.values():
-                if affected.intersection(claim.depends_on):
+                if affected.intersection(self._premise_refs(claim)):
                     affected.add(claim.assumption_id)
             progressed = len(affected) != before
 
@@ -480,6 +803,18 @@ class AssumptionTruthMaintenance:
             }
             for claim in (self._claims[key] for key in sorted(self._claims))
         ]
+        justifications = [
+            {
+                "justification_id": item.justification_id,
+                "assumption_id": item.assumption_id,
+                "premise_refs": list(item.premise_refs),
+                "provenance_ref": item.provenance_ref,
+                "digest": item.digest,
+            }
+            for item in (
+                self._justifications[key] for key in sorted(self._justifications)
+            )
+        ]
         evidence = [
             {
                 "evidence_id": item.evidence_id,
@@ -504,13 +839,15 @@ class AssumptionTruthMaintenance:
             "support_threshold": self.support_threshold,
             "costly_criticality_threshold": self.costly_criticality_threshold,
             "claims": claims,
+            "justifications": justifications,
             "evidence": evidence,
             "retractions": retractions,
         }
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "AssumptionTruthMaintenance":
-        if int(state.get("schema_version", cls.SCHEMA_VERSION)) != cls.SCHEMA_VERSION:
+        schema_version = int(state.get("schema_version", cls.LEGACY_SCHEMA_VERSION))
+        if schema_version not in (cls.LEGACY_SCHEMA_VERSION, cls.SCHEMA_VERSION):
             raise ValueError("unsupported assumption truth-maintenance schema version")
         truth = cls(
             support_threshold=float(state.get("support_threshold", 0.67)),
@@ -536,6 +873,20 @@ class AssumptionTruthMaintenance:
                     f"assumption claim digest mismatch for {claim.assumption_id}"
                 )
             truth.register(claim)
+
+        for row in state.get("justifications", ()):
+            justification = AssumptionJustification(
+                justification_id=str(row["justification_id"]),
+                assumption_id=str(row["assumption_id"]),
+                premise_refs=tuple(str(x) for x in row.get("premise_refs", ())),
+                provenance_ref=str(row["provenance_ref"]),
+            )
+            if str(row.get("digest", "")) != justification.digest:
+                raise ValueError(
+                    "assumption justification digest mismatch for "
+                    f"{justification.justification_id}"
+                )
+            truth.add_justification(justification)
 
         for row in state.get("evidence", ()):
             item = AssumptionEvidence(
@@ -572,6 +923,7 @@ __all__ = [
     "AssumptionClaim",
     "AssumptionEvidence",
     "AssumptionImpactReport",
+    "AssumptionJustification",
     "AssumptionPolarity",
     "AssumptionSnapshot",
     "AssumptionStatus",
