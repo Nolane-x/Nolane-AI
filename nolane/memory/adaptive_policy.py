@@ -10,7 +10,8 @@ from nolane.core.canonical_digest import canonical_digest
 _POLICY_SCHEMA = "nolane-memory-retrieval-policy-v1"
 _RETRIEVAL_RECEIPT_SCHEMA_V1 = "nolane-memory-retrieval-receipt-v1"
 _RETRIEVAL_RECEIPT_SCHEMA_V2 = "nolane-memory-retrieval-receipt-v2"
-_COMPACTION_RECEIPT_SCHEMA = "nolane-memory-compaction-receipt-v1"
+_COMPACTION_RECEIPT_SCHEMA_V1 = "nolane-memory-compaction-receipt-v1"
+_COMPACTION_RECEIPT_SCHEMA_V2 = "nolane-memory-compaction-receipt-v2"
 _ANCHOR_HEALTH_RECEIPT_SCHEMA = "nolane-memory-anchor-health-receipt-v1"
 
 
@@ -274,6 +275,7 @@ class MemoryCompactionReceipt:
     epistemic_type: str
     actor_agent_id: str
     evidence_refs: tuple[str, ...]
+    compacted_digest: str | None = None
 
     def __post_init__(self) -> None:
         if len(self.source_memory_ids) < 2:
@@ -289,14 +291,20 @@ class MemoryCompactionReceipt:
             _require_nonempty(value, label=label)
         if not self.evidence_refs:
             raise ValueError("memory compaction receipt requires evidence")
+        if self.compacted_digest is not None:
+            _require_nonempty(self.compacted_digest, label="compacted_digest")
+
+    @property
+    def schema(self) -> str:
+        return _COMPACTION_RECEIPT_SCHEMA_V2 if self.compacted_digest is not None else _COMPACTION_RECEIPT_SCHEMA_V1
 
     @property
     def compaction_id(self) -> str:
         return "mcr-" + canonical_digest(self._identity_state())[:24]
 
     def _identity_state(self) -> dict[str, Any]:
-        return {
-            "schema": _COMPACTION_RECEIPT_SCHEMA,
+        state = {
+            "schema": self.schema,
             "source_memory_ids": list(self.source_memory_ids),
             "compacted_memory_id": self.compacted_memory_id,
             "source_digest": self.source_digest,
@@ -304,14 +312,21 @@ class MemoryCompactionReceipt:
             "actor_agent_id": self.actor_agent_id,
             "evidence_refs": list(self.evidence_refs),
         }
+        if self.compacted_digest is not None:
+            state["compacted_digest"] = self.compacted_digest
+        return state
 
     def to_state(self) -> dict[str, Any]:
         return {"compaction_id": self.compaction_id, **self._identity_state()}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "MemoryCompactionReceipt":
-        if str(state.get("schema", _COMPACTION_RECEIPT_SCHEMA)) != _COMPACTION_RECEIPT_SCHEMA:
+        schema = str(state.get("schema", _COMPACTION_RECEIPT_SCHEMA_V1))
+        if schema not in {_COMPACTION_RECEIPT_SCHEMA_V1, _COMPACTION_RECEIPT_SCHEMA_V2}:
             raise ValueError("unsupported memory compaction receipt schema")
+        compacted_digest = None if state.get("compacted_digest") is None else str(state["compacted_digest"])
+        if schema == _COMPACTION_RECEIPT_SCHEMA_V2 and not str(compacted_digest or "").strip():
+            raise ValueError("memory compaction receipt v2 requires compacted_digest")
         result = cls(
             source_memory_ids=tuple(str(value) for value in state.get("source_memory_ids", ())),
             compacted_memory_id=str(state["compacted_memory_id"]),
@@ -319,7 +334,10 @@ class MemoryCompactionReceipt:
             epistemic_type=str(state["epistemic_type"]),
             actor_agent_id=str(state["actor_agent_id"]),
             evidence_refs=tuple(str(value) for value in state.get("evidence_refs", ())),
+            compacted_digest=compacted_digest,
         )
+        if result.schema != schema:
+            raise ValueError("memory compaction receipt schema/target digest mismatch")
         _require_content_address(
             state,
             key="compaction_id",
