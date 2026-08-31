@@ -8,6 +8,7 @@ on:
       - codex/memory-learning-reauthorization-v0.0.6
       - codex/memory-learning-retrieval-receipt-replay-v0.0.7
       - codex/memory-learning-compaction-target-v0.0.8
+      - codex/memory-learning-retrieval-snapshot-authority-v0.0.9
     paths:
       - 'nolane/memory/**'
       - 'nolane/external_core/self_model.py'
@@ -86,6 +87,7 @@ jobs:
             tests/test_memory_learning_reauthorization_v006.py
             tests/test_memory_learning_retrieval_receipt_replay_v007.py
             tests/test_memory_learning_compaction_target_v008.py
+            tests/test_memory_learning_retrieval_snapshot_authority_v009.py
             tests/test_refoundation_component_versions.py
             tests/test_refoundation_runtime_state_map.py
             tests/test_refoundation_wave2_zero_loss_runtime_digest.py
