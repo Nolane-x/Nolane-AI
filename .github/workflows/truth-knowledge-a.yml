@@ -90,7 +90,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Compile canonical A authorities and v1-v7 truth sidecars
+      - name: Compile canonical A authorities and A1-A13 v1-v7 truth sidecars
         run: |
           python -m py_compile \
             nolane/core/canonical_digest.py \
