@@ -1,0 +1,104 @@
+name: Memory Learning Substrate
+
+on:
+  push:
+    branches:
+      - codex/memory-learning-substrate-v0.0.5
+      - codex/memory-learning-reauthorization-v0.0.6
+      - codex/memory-learning-retrieval-receipt-replay-v0.0.7
+    paths:
+      - 'nolane/memory/**'
+      - 'nolane/external_core/self_model.py'
+      - 'nolane/external_core/individual_evolution.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'nolane/metadata/runtime_state_map.py'
+      - 'cogcoder/organization/runtime.py'
+      - 'cogcoder/organization/runtime_core.py'
+      - 'tests/test_memory_learning_*.py'
+      - 'tests/test_refoundation_runtime_state_map.py'
+      - 'tests/test_refoundation_wave2_zero_loss_runtime_digest.py'
+      - 'tests/test_refoundation_memory_public_layout.py'
+      - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
+      - 'tests/test_coding_agi_memory_*.py'
+      - 'tests/test_coding_agi_self_*.py'
+      - '.github/workflows/memory-learning-substrate.yml'
+  pull_request:
+    paths:
+      - 'nolane/memory/**'
+      - 'nolane/external_core/self_model.py'
+      - 'nolane/external_core/individual_evolution.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'nolane/metadata/runtime_state_map.py'
+      - 'cogcoder/organization/runtime.py'
+      - 'cogcoder/organization/runtime_core.py'
+      - 'tests/test_memory_learning_*.py'
+      - 'tests/test_refoundation_runtime_state_map.py'
+      - 'tests/test_refoundation_wave2_zero_loss_runtime_digest.py'
+      - 'tests/test_refoundation_memory_public_layout.py'
+      - 'tests/test_refoundation_wave5ao_native_individual_evolution.py'
+      - 'tests/test_coding_agi_memory_*.py'
+      - 'tests/test_coding_agi_self_*.py'
+      - '.github/workflows/memory-learning-substrate.yml'
+
+concurrency:
+  group: memory-learning-substrate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  memory-learning-substrate:
+    if: ${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile Memory Learning authority surface
+        run: |
+          python -m py_compile nolane/memory/*.py
+          python -m py_compile nolane/external_core/self_model.py
+          python -m py_compile nolane/external_core/individual_evolution.py
+          python -m py_compile nolane/metadata/component_versions.py
+          python -m py_compile nolane/metadata/runtime_state_map.py
+          python -m py_compile cogcoder/organization/runtime.py
+          python -m py_compile cogcoder/organization/runtime_core.py
+      - name: Run Memory Learning substrate contracts
+        shell: bash
+        run: |
+          shopt -s nullglob
+          tests=(
+            tests/test_memory_learning_substrate_v005.py
+            tests/test_memory_learning_substrate_v005_integration.py
+            tests/test_memory_learning_closure_v005.py
+            tests/test_memory_learning_adaptive_policy_v005.py
+            tests/test_memory_learning_restore_authority_v005.py
+            tests/test_memory_learning_runtime_wiring_v005.py
+            tests/test_memory_learning_reauthorization_v006.py
+            tests/test_memory_learning_retrieval_receipt_replay_v007.py
+            tests/test_refoundation_component_versions.py
+            tests/test_refoundation_runtime_state_map.py
+            tests/test_refoundation_wave2_zero_loss_runtime_digest.py
+            tests/test_refoundation_memory_public_layout.py
+            tests/test_refoundation_wave5c_native_memory_fabric.py
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py
+            tests/test_refoundation_wave5e_native_memory_retrieval.py
+            tests/test_refoundation_wave5h_native_experience.py
+            tests/test_refoundation_wave5j_native_skills.py
+            tests/test_refoundation_wave5ao_native_individual_evolution.py
+            tests/test_coding_agi_memory_*.py
+            tests/test_coding_agi_self_*.py
+          )
+          if (( ${#tests[@]} < 9 )); then
+            echo "Memory/Learning contract discovery failed" >&2
+            exit 2
+          fi
+          printf 'Running %s\n' "${tests[@]}"
+          python -m pytest -q "${tests[@]}"
