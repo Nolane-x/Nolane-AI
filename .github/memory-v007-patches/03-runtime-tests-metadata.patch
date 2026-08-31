@@ -1,0 +1,203 @@
+--- a/nolane/memory/runtime_binding.py
++++ b/nolane/memory/runtime_binding.py
+@@ -1,5 +1,6 @@
+ from __future__ import annotations
+ 
++from copy import deepcopy
+ from typing import Any, Mapping
+ 
+ from nolane.memory.learning_substrate import LearningSubstrate
+@@ -7,7 +8,7 @@
+ 
+ _SKILL_KEYS = ("skill_validations",)
+ _LIFECYCLE_KEYS = ("metadata", "tombstones", "compactions", "anchor_health")
+-_RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts")
++_RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts", "retrieval_snapshots")
+ _OVERLAY_KEYS = _SKILL_KEYS + _LIFECYCLE_KEYS + _RETRIEVAL_KEYS
+ 
+ 
+@@ -63,6 +64,10 @@
+     target._skill_validations = dict(validated._skill_validations)
+     target._retrieval_policies = dict(validated._retrieval_policies)
+     target._retrieval_receipts = dict(validated._retrieval_receipts)
++    target._retrieval_snapshots = {
++        digest: deepcopy(snapshot)
++        for digest, snapshot in validated._retrieval_snapshots.items()
++    }
+     target._compactions = dict(validated._compactions)
+     target._anchor_health = {
+         memory_id: list(receipts)
+--- a/nolane/memory/retrieval.py
++++ b/nolane/memory/retrieval.py
+@@ -10,7 +10,7 @@
+ 
+ 
+ COMPONENT_ID = "external.memory.retrieval"
+-COMPONENT_VERSION = "0.0.2"
++COMPONENT_VERSION = "0.0.3"
+ MIGRATED_FROM = "cogcoder.organization.memory_retrieval"
+ 
+ 
+--- a/nolane/metadata/component_versions.py
++++ b/nolane/metadata/component_versions.py
+@@ -40,7 +40,7 @@
+         "external.skills": 3,
+         "external.memory.fabric": 2,
+         "external.memory.lifecycle": 4,
+-        "external.memory.retrieval": 2,
++        "external.memory.retrieval": 3,
+         "external.knowledge": 2,
+         "external.epistemic": 1,
+         "external.requirements": 1,
+--- a/tests/test_memory_learning_runtime_wiring_v005.py
++++ b/tests/test_memory_learning_runtime_wiring_v005.py
+@@ -138,6 +138,7 @@
+     assert lifecycle_state["anchor_health"]
+     assert retrieval_state["retrieval_policies"]
+     assert retrieval_state["retrieval_receipts"]
++    assert retrieval_state["retrieval_snapshots"]
+ 
+     restored = OrganizationRuntime.from_state(state)
+     restored_substrate = restored.learning_substrate
+--- a/tests/test_refoundation_component_versions.py
++++ b/tests/test_refoundation_component_versions.py
+@@ -42,7 +42,7 @@
+     "external.skills": 3,
+     "external.memory.fabric": 2,
+     "external.memory.lifecycle": 4,
+-    "external.memory.retrieval": 2,
++    "external.memory.retrieval": 3,
+     "external.knowledge": 2,
+     "external.epistemic": 1,
+     "external.requirements": 1,
+--- a/tests/test_refoundation_memory_public_layout.py
++++ b/tests/test_refoundation_memory_public_layout.py
+@@ -59,7 +59,7 @@
+     expected = {
+         fabric: ("external.memory.fabric", "0.0.2"),
+         lifecycle: ("external.memory.lifecycle", "0.0.4"),
+-        retrieval: ("external.memory.retrieval", "0.0.2"),
++        retrieval: ("external.memory.retrieval", "0.0.3"),
+         context: ("external.context", "0.0.1"),
+         experience: ("external.experience", "0.0.2"),
+         skills: ("external.skills", "0.0.3"),
+--- a/tests/test_refoundation_wave5e_native_memory_retrieval.py
++++ b/tests/test_refoundation_wave5e_native_memory_retrieval.py
+@@ -42,8 +42,8 @@
+     assert row.status is ImplementationStatus.CANONICAL_NATIVE
+     assert row.canonical_module == "nolane.memory.retrieval"
+     assert row.canonical_write_authority is True
+-    assert row.component_version == "0.0.2"
+-    assert str(component_version("external.memory.retrieval")) == "0.0.2"
++    assert row.component_version == "0.0.3"
++    assert str(component_version("external.memory.retrieval")) == "0.0.3"
+ 
+ 
+ def test_wave5e_memory_retrieval_leaves_active_facades() -> None:
+--- a/tests/test_refoundation_wave2_zero_loss_runtime_digest.py
++++ b/tests/test_refoundation_wave2_zero_loss_runtime_digest.py
+@@ -43,6 +43,13 @@
+     "530054ed6d094c5ea000e38002346746ca63ddfb4d1c58b1d9f772263218415d"
+ )
+ 
++# Memory/Learning v0.0.7 adds content-addressed historical retrieval replay
++# snapshots to the canonical Memory Retrieval owner section.  The empty
++# snapshot registry is intentionally part of the deterministic runtime schema.
++MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST = (
++    "e94dad6dcfc2c4c6d4f51b85c95a344e5fb95174cc47d575735e1974d31ba0b0"
++)
++
+ 
+ def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> None:
+     first = CanonicalOrganization.first_generation()
+@@ -50,11 +57,12 @@
+     first_state = first.to_state()
+     second_state = second.to_state()
+ 
+-    assert canonical_digest(first_state) == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
+-    assert first.state_digest == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
+-    assert canonical_digest(second_state) == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
+-    assert second.state_digest == E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
++    assert canonical_digest(first_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
++    assert first.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
++    assert canonical_digest(second_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
++    assert second.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
+     assert first_state == second_state
++    assert MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST != E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
+     assert E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
+     assert MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
+     assert MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_RUNTIME_STATE_DIGEST
+--- a/tests/test_memory_learning_retrieval_receipt_replay_v007.py
++++ b/tests/test_memory_learning_retrieval_receipt_replay_v007.py
+@@ -75,3 +75,71 @@
+         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+ 
+ 
++def test_historical_retrieval_receipt_replays_after_live_memory_advances() -> None:
++    substrate = _substrate()
++    first = _remember_verified(substrate, "historical verified anchor", "evidence-historical")
++    bundle = substrate.retrieve(
++        agent_id="memory.chief",
++        region="memory-context-knowledge",
++        as_of="2026-08-31T00:00:00+00:00",
++        limit=1,
++    )
++    _remember_verified(substrate, "later verified anchor", "evidence-later")
++
++    restored = LearningSubstrate.from_state(
++        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
++    )
++
++    assert restored.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
++    assert restored.memory.get(first.memory_id) == first
++
++
++def test_restore_rejects_tampered_retrieval_snapshot() -> None:
++    substrate = _substrate()
++    _remember_verified(substrate, "snapshot verified anchor", "evidence-snapshot")
++    substrate.retrieve(
++        agent_id="memory.chief",
++        region="memory-context-knowledge",
++        as_of="2026-08-31T00:00:00+00:00",
++    )
++    state = substrate.to_state()
++    state["retrieval_snapshots"][0]["state"]["memory"]["entries"][0]["text"] = "tampered snapshot"
++
++    with pytest.raises(ValueError, match="retrieval replay snapshot digest mismatch"):
++        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
++
++
++def test_restore_rejects_replayable_receipt_without_historical_snapshot() -> None:
++    substrate = _substrate()
++    _remember_verified(substrate, "missing snapshot anchor", "evidence-missing")
++    substrate.retrieve(
++        agent_id="memory.chief",
++        region="memory-context-knowledge",
++        as_of="2026-08-31T00:00:00+00:00",
++    )
++    state = substrate.to_state()
++    state["retrieval_snapshots"] = []
++
++    with pytest.raises(ValueError, match="retrieval receipt replay snapshot is missing"):
++        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
++
++
++def test_restore_does_not_elevate_legacy_v1_receipt_to_replay_authority() -> None:
++    substrate = _substrate()
++    row = _remember_verified(substrate, "legacy receipt anchor", "evidence-legacy")
++    policy = substrate.register_retrieval_policy(__import__(
++        "nolane.memory.adaptive_policy", fromlist=["MemoryRetrievalPolicy"]
++    ).MemoryRetrievalPolicy())
++    legacy = MemoryRetrievalReceipt(
++        policy_id=policy.policy_id,
++        query_digest="legacy-one-way-query-digest",
++        memory_state_digest="legacy-unreplayable-state-digest",
++        selected_memory_ids=(row.memory_id,),
++        rejected=(),
++        estimated_units=policy.estimate_units(row.text),
++    )
++    state = substrate.to_state()
++    state["retrieval_receipts"] = [legacy.to_state()]
++
++    with pytest.raises(ValueError, match="v2 query envelope"):
++        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
