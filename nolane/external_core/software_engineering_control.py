@@ -3,31 +3,36 @@ from __future__ import annotations
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core._software_engineering_control_v06 import (
+from nolane.external_core._software_engineering_control_v07 import (
     CANONICAL_WRITE_AUTHORITY,
     COMPONENT_ID as BASE_COMPONENT_ID,
     COMPONENT_VERSION as BASE_COMPONENT_VERSION,
     EngineeringWorkRecord,
-    SoftwareEngineeringControlPlane as _SoftwareEngineeringControlPlaneV06,
+    SoftwareEngineeringControlPlane as _SoftwareEngineeringControlPlaneV07,
 )
 from nolane.external_core.coding_claims import CodeClaimLedger
-from nolane.external_core.software_engineering import EngineeringPatchTransaction
-from nolane.external_core.software_engineering_effect_fencing import FencedEngineeringEffectLedger
+from nolane.external_core.software_engineering import EngineeringPhase
+from nolane.external_core.software_engineering_effect_dispatch import (
+    EngineeringDispatchOrigin,
+    EngineeringEffectDispatchLedger,
+    EngineeringEffectDispatchRecord,
+)
 from nolane.external_core.software_engineering_effect_journal import (
     EngineeringApplicationAcknowledgement,
-    EngineeringEffectJournal,
     EngineeringRollbackAcknowledgement,
 )
-from nolane.external_core.software_engineering_effect_recovery import EngineeringEffectFinalizer
 from nolane.external_core.software_engineering_effects import (
     EngineeringApplicationCommit,
     EngineeringRollbackCompletion,
-    EngineeringRollbackDecision,
+)
+from nolane.external_core.software_engineering_recovery_frontier import (
+    EngineeringEffectRecoveryFrontier,
+    EngineeringRecoveryFrontierReceipt,
 )
 
 
 COMPONENT_ID = BASE_COMPONENT_ID
-COMPONENT_VERSION = "0.7.0"
+COMPONENT_VERSION = "0.8.0"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -37,58 +42,123 @@ def _text(value: Any, *, field: str) -> str:
     return result
 
 
-class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
-    """F control plane with durable external-effect acknowledgement lineage.
+class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV07):
+    """F control plane with durable pre-dispatch uncertainty fencing.
 
-    v0.7 of the control compatibility schema composes the established v0.6
-    governed engineering lifecycle with transaction-scoped effect-intent fencing,
-    an observation-only effect journal and a local-only recovery finalizer. The
-    public canonical owner remains this module; the frozen v0.6 class is an
-    internal compatibility implementation, not a second write authority.
+    A v0.9 engineering wave adds a coordination-only dispatch marker before an
+    integration crosses the external executor boundary. If a restart observes a
+    dispatch marker without a durable acknowledgement, F refuses automatic
+    redispatch and exposes EXTERNAL_STATUS_REQUIRED through a read-only recovery
+    frontier. This does not claim distributed exactly-once execution.
     """
 
     def __init__(
         self,
         *,
         claims: CodeClaimLedger,
-        effect_journal: EngineeringEffectJournal | None = None,
+        effect_dispatch: EngineeringEffectDispatchLedger | None = None,
         **kwargs: Any,
     ) -> None:
         super().__init__(claims=claims, **kwargs)
-
-        if not isinstance(self.effects, FencedEngineeringEffectLedger):
-            self.effects = FencedEngineeringEffectLedger.from_state(
-                transactions=self.transactions,
-                mutation_authority=self.mutation_authority,
-                state=self.effects.to_state(),
-            )
-
-        if effect_journal is None:
-            self.effect_journal = EngineeringEffectJournal(
+        if effect_dispatch is None:
+            self.effect_dispatch = EngineeringEffectDispatchLedger(
                 transactions=self.transactions,
                 effects=self.effects,
             )
         elif (
-            effect_journal.transactions is self.transactions
-            and effect_journal.effects is self.effects
+            effect_dispatch.transactions is self.transactions
+            and effect_dispatch.effects is self.effects
         ):
-            self.effect_journal = effect_journal
+            self.effect_dispatch = effect_dispatch
         else:
-            self.effect_journal = EngineeringEffectJournal.from_state(
+            self.effect_dispatch = EngineeringEffectDispatchLedger.from_state(
                 transactions=self.transactions,
                 effects=self.effects,
-                state=effect_journal.to_state(),
+                state=effect_dispatch.to_state(),
             )
-
         if (
-            self.effect_journal.transactions is not self.transactions
-            or self.effect_journal.effects is not self.effects
+            self.effect_dispatch.transactions is not self.transactions
+            or self.effect_dispatch.effects is not self.effects
         ):
-            raise ValueError("effect journal must share canonical transaction/effect ledgers")
-        self.effect_finalizer = EngineeringEffectFinalizer(
+            raise ValueError("effect dispatch ledger must share canonical transaction/effect ledgers")
+        self.recovery_frontier = EngineeringEffectRecoveryFrontier(
             transactions=self.transactions,
             effects=self.effects,
             journal=self.effect_journal,
+            dispatch=self.effect_dispatch,
+        )
+        self._validate_dispatch_acknowledgement_lineage()
+
+    def _application_dispatch_for_intent(self, intent_id: str) -> EngineeringEffectDispatchRecord | None:
+        return self.effect_dispatch.application_dispatch_for_intent(intent_id)
+
+    def _rollback_dispatch_for_intent(self, intent_id: str) -> EngineeringEffectDispatchRecord | None:
+        return self.effect_dispatch.rollback_dispatch_for_intent(intent_id)
+
+    def begin_application_dispatch(
+        self,
+        intent_id: str,
+        *,
+        executor_namespace: str,
+    ) -> EngineeringEffectDispatchRecord:
+        intent = self.effects.application_intent(intent_id)
+        tx = self.transactions.get(intent.transaction_id)
+        existing = self._application_dispatch_for_intent(intent.intent_id)
+        if existing is not None:
+            raise PermissionError(
+                "application dispatch already started; external status reconciliation required before any redispatch"
+            )
+        if self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id) is not None:
+            raise PermissionError("application already acknowledged; local finalization is required instead of dispatch")
+        if self.effects.application_commit_for_transaction(tx.transaction_id) is not None:
+            raise PermissionError("application already finalized; dispatch cannot be reactivated")
+        if tx.phase is not EngineeringPhase.PRECONDITIONS_VERIFIED:
+            raise ValueError("application dispatch requires precondition-verified transaction phase")
+
+        try:
+            mutation = self.mutation_authority.get(intent.mutation_authority_receipt_id)
+        except KeyError as exc:
+            raise PermissionError("application dispatch requires known mutation authority receipt") from exc
+        if (
+            mutation.digest != intent.mutation_authority_receipt_digest
+            or not mutation.authorized
+            or mutation.transaction_id != tx.transaction_id
+            or mutation.patch_ref != tx.patch_ref
+            or mutation.patch_digest != tx.patch_digest
+        ):
+            raise PermissionError("application dispatch lost immutable mutation authority lineage")
+        reasons = tuple(self.mutation_authority.preapply_reasons(tx.transaction_id))
+        if reasons:
+            raise PermissionError("application dispatch denied by live mutation authority: " + ", ".join(reasons))
+
+        return self.effect_dispatch.record_application(
+            intent.intent_id,
+            executor_namespace=_text(executor_namespace, field="executor namespace"),
+            origin=EngineeringDispatchOrigin.PRE_DISPATCH,
+        )
+
+    def begin_rollback_dispatch(
+        self,
+        intent_id: str,
+        *,
+        executor_namespace: str,
+    ) -> EngineeringEffectDispatchRecord:
+        intent = self.effects.rollback_intent(intent_id)
+        tx = self.transactions.get(intent.transaction_id)
+        existing = self._rollback_dispatch_for_intent(intent.intent_id)
+        if existing is not None:
+            raise PermissionError(
+                "rollback dispatch already started; external status reconciliation required before any redispatch"
+            )
+        if self.effect_journal.rollback_acknowledgement_for_transaction(tx.transaction_id) is not None:
+            raise PermissionError("rollback already acknowledged; verification/finalization is required instead of dispatch")
+        completion_id = getattr(self.effects, "_rollback_completion_by_transaction", {}).get(tx.transaction_id)
+        if completion_id is not None:
+            raise PermissionError("rollback already finalized; dispatch cannot be reactivated")
+        return self.effect_dispatch.record_rollback(
+            intent.intent_id,
+            executor_namespace=_text(executor_namespace, field="executor namespace"),
+            origin=EngineeringDispatchOrigin.PRE_DISPATCH,
         )
 
     def acknowledge_application(
@@ -99,82 +169,25 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         executor_receipt_ref: str,
         observed_state_digest: str,
     ) -> EngineeringApplicationAcknowledgement:
-        """Record an executor acknowledgement as an observation-only fact.
+        namespace = _text(executor_namespace, field="executor namespace")
+        dispatch = self._application_dispatch_for_intent(intent_id)
+        if dispatch is not None and dispatch.executor_namespace != namespace:
+            raise ValueError("application acknowledgement executor namespace does not match dispatch lineage")
 
-        The caller is reporting an external effect that it observed. This method
-        therefore records history and does not pretend F can undo the fact if
-        live claim state changes between executor execution and acknowledgement.
-        New dispatch integrations must use the prepared, mutation-authorized
-        application intent as the executor boundary.
-        """
-        return self.effect_journal.acknowledge_application(
+        acknowledgement = super().acknowledge_application(
             intent_id,
-            executor_namespace=executor_namespace,
+            executor_namespace=namespace,
             executor_receipt_ref=executor_receipt_ref,
             observed_state_digest=observed_state_digest,
         )
-
-    def finalize_application(self, acknowledgement_id: str) -> EngineeringApplicationCommit:
-        return self.effect_finalizer.finalize_application(acknowledgement_id)
-
-    def commit_application(
-        self,
-        intent_id: str,
-        *,
-        executor_receipt_ref: str,
-    ) -> EngineeringApplicationCommit:
-        """Compatibility one-call path backed by the v0.8 durable journal."""
-        intent = self.effects.application_intent(intent_id)
-        tx = self.transactions.get(intent.transaction_id)
-        receipt_ref = _text(executor_receipt_ref, field="executor receipt ref")
-
-        existing_commit = self.effects.application_commit_for_transaction(tx.transaction_id)
-        if existing_commit is not None:
-            if existing_commit.intent_id != intent.intent_id:
-                raise ValueError("application intent conflicts with existing transaction commit")
-            if existing_commit.executor_receipt_ref != receipt_ref:
-                raise ValueError("application intent executor receipt cannot be rebound")
-            return existing_commit
-
-        existing_ack = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
-        if existing_ack is not None and existing_ack.executor_receipt_ref != receipt_ref:
-            raise ValueError("application intent executor receipt cannot be rebound")
-        if existing_ack is None:
-            # In this compatibility path the call is still the mutation action
-            # boundary, so preserve the v0.6 live revalidation before recording
-            # a new executor acknowledgement. Explicit acknowledge_application()
-            # instead records an already-observed external fact.
-            reasons = tuple(self.mutation_authority.preapply_reasons(tx.transaction_id))
-            if reasons and tx.application_ref is None:
-                raise PermissionError("application denied by live mutation authority: " + ", ".join(reasons))
-
-        acknowledgement = self.effect_journal.acknowledge_application(
-            intent.intent_id,
-            executor_namespace="compatibility.effects.v0.1",
-            executor_receipt_ref=receipt_ref,
-            observed_state_digest=canonical_digest(
-                {"compatibility_application_executor_receipt_ref": receipt_ref}
-            ),
-        )
-        return self.effect_finalizer.finalize_application(acknowledgement.acknowledgement_id)
-
-    def mark_applied(
-        self,
-        transaction_id: str,
-        *,
-        application_ref: str,
-        mutation_authority_receipt_id: str | None = None,
-    ) -> EngineeringPatchTransaction:
-        """Legacy adapter that now routes through acknowledgement-backed commit."""
-        if mutation_authority_receipt_id is None:
-            raise PermissionError("patch application requires mutation authority receipt")
-        intent = self.effects.prepare_application(
-            transaction_id=transaction_id,
-            mutation_authority_receipt_id=mutation_authority_receipt_id,
-            application_ref=application_ref,
-        )
-        self.commit_application(intent.intent_id, executor_receipt_ref=application_ref)
-        return self.transactions.get(transaction_id)
+        if dispatch is None:
+            self.effect_dispatch.record_application(
+                intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
+        self._validate_dispatch_acknowledgement_lineage()
+        return acknowledgement
 
     def acknowledge_rollback(
         self,
@@ -184,23 +197,53 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         executor_receipt_ref: str,
         observed_state_digest: str,
     ) -> EngineeringRollbackAcknowledgement:
-        return self.effect_journal.acknowledge_rollback(
+        namespace = _text(executor_namespace, field="executor namespace")
+        dispatch = self._rollback_dispatch_for_intent(intent_id)
+        if dispatch is not None and dispatch.executor_namespace != namespace:
+            raise ValueError("rollback acknowledgement executor namespace does not match dispatch lineage")
+
+        acknowledgement = super().acknowledge_rollback(
             intent_id,
-            executor_namespace=executor_namespace,
+            executor_namespace=namespace,
             executor_receipt_ref=executor_receipt_ref,
             observed_state_digest=observed_state_digest,
         )
+        if dispatch is None:
+            self.effect_dispatch.record_rollback(
+                intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
+        self._validate_dispatch_acknowledgement_lineage()
+        return acknowledgement
 
-    def finalize_rollback(
+    def commit_application(
         self,
-        acknowledgement_id: str,
+        intent_id: str,
         *,
-        verification_receipt_id: str,
-    ) -> EngineeringRollbackCompletion:
-        return self.effect_finalizer.finalize_rollback(
-            acknowledgement_id,
-            verification_receipt_id=verification_receipt_id,
-        )
+        executor_receipt_ref: str,
+    ) -> EngineeringApplicationCommit:
+        intent = self.effects.application_intent(intent_id)
+        tx = self.transactions.get(intent.transaction_id)
+        dispatch = self._application_dispatch_for_intent(intent.intent_id)
+        acknowledgement = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
+        if dispatch is not None and dispatch.origin is EngineeringDispatchOrigin.PRE_DISPATCH and acknowledgement is None:
+            raise PermissionError(
+                "pre-dispatch application is externally uncertain; record/query acknowledgement before local finalization"
+            )
+
+        commit = super().commit_application(intent.intent_id, executor_receipt_ref=executor_receipt_ref)
+        if dispatch is None:
+            acknowledgement = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
+            if acknowledgement is None:
+                raise ValueError("compatibility application commit missing durable acknowledgement")
+            self.effect_dispatch.record_application(
+                intent.intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
+        self._validate_dispatch_acknowledgement_lineage()
+        return commit
 
     def complete_rollback(
         self,
@@ -208,37 +251,83 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         *,
         verification_receipt_id: str,
     ) -> EngineeringRollbackCompletion:
-        """Compatibility completion path backed by a durable rollback observation."""
         intent = self.effects.rollback_intent(intent_id)
-        try:
-            verification = self.effects.rollback_verification(verification_receipt_id)
-        except KeyError as exc:
-            raise PermissionError("rollback completion requires known verification receipt") from exc
-        if (
-            not verification.passed
-            or verification.decision is not EngineeringRollbackDecision.VERIFIED
-            or verification.rollback_intent_id != intent.intent_id
-            or verification.rollback_intent_digest != intent.digest
-            or verification.transaction_id != intent.transaction_id
-            or verification.restored_state_digest != intent.target_state_digest
-        ):
-            raise PermissionError("rollback verification is not verified for this rollback intent")
+        tx = self.transactions.get(intent.transaction_id)
+        dispatch = self._rollback_dispatch_for_intent(intent.intent_id)
+        acknowledgement = self.effect_journal.rollback_acknowledgement_for_transaction(tx.transaction_id)
+        if dispatch is not None and dispatch.origin is EngineeringDispatchOrigin.PRE_DISPATCH and acknowledgement is None:
+            raise PermissionError(
+                "pre-dispatch rollback is externally uncertain; record/query acknowledgement before local finalization"
+            )
 
-        acknowledgement = self.effect_journal.acknowledge_rollback(
+        completion = super().complete_rollback(
             intent.intent_id,
-            executor_namespace="compatibility.effects.v0.1",
-            executor_receipt_ref=intent.rollback_operation_ref,
-            observed_state_digest=intent.target_state_digest,
+            verification_receipt_id=verification_receipt_id,
         )
-        return self.effect_finalizer.finalize_rollback(
-            acknowledgement.acknowledgement_id,
-            verification_receipt_id=verification.receipt_id,
-        )
+        if dispatch is None:
+            acknowledgement = self.effect_journal.rollback_acknowledgement_for_transaction(tx.transaction_id)
+            if acknowledgement is None:
+                raise ValueError("compatibility rollback completion missing durable acknowledgement")
+            self.effect_dispatch.record_rollback(
+                intent.intent_id,
+                executor_namespace=acknowledgement.executor_namespace,
+                origin=EngineeringDispatchOrigin.OBSERVED_WITH_ACK,
+            )
+        self._validate_dispatch_acknowledgement_lineage()
+        return completion
+
+    def application_recovery_frontier(self, intent_id: str) -> EngineeringRecoveryFrontierReceipt:
+        return self.recovery_frontier.application(intent_id)
+
+    def rollback_recovery_frontier(self, intent_id: str) -> EngineeringRecoveryFrontierReceipt:
+        return self.recovery_frontier.rollback(intent_id)
+
+    def _validate_dispatch_acknowledgement_lineage(self) -> None:
+        self.effect_dispatch.validate_lineage()
+        for acknowledgement in self.effect_journal.application_acknowledgements():
+            dispatch = self.effect_dispatch.application_dispatch_for_intent(acknowledgement.intent_id)
+            if dispatch is None:
+                raise ValueError("application acknowledgement missing durable dispatch lineage")
+            if (
+                dispatch.transaction_id != acknowledgement.transaction_id
+                or dispatch.intent_digest != acknowledgement.intent_digest
+                or dispatch.patch_ref != acknowledgement.patch_ref
+                or dispatch.patch_digest != acknowledgement.patch_digest
+                or dispatch.operation_ref != acknowledgement.application_ref
+                or dispatch.executor_namespace != acknowledgement.executor_namespace
+            ):
+                raise ValueError("application acknowledgement/dispatch lineage mismatch")
+
+        for acknowledgement in self.effect_journal.rollback_acknowledgements():
+            dispatch = self.effect_dispatch.rollback_dispatch_for_intent(acknowledgement.rollback_intent_id)
+            if dispatch is None:
+                raise ValueError("rollback acknowledgement missing durable dispatch lineage")
+            if (
+                dispatch.transaction_id != acknowledgement.transaction_id
+                or dispatch.intent_digest != acknowledgement.rollback_intent_digest
+                or dispatch.patch_ref != acknowledgement.patch_ref
+                or dispatch.patch_digest != acknowledgement.patch_digest
+                or dispatch.operation_ref != acknowledgement.rollback_operation_ref
+                or dispatch.target_state_digest != acknowledgement.target_state_digest
+                or dispatch.executor_namespace != acknowledgement.executor_namespace
+            ):
+                raise ValueError("rollback acknowledgement/dispatch lineage mismatch")
+
+        for dispatch in self.effect_dispatch.records():
+            if dispatch.origin is not EngineeringDispatchOrigin.OBSERVED_WITH_ACK:
+                continue
+            if dispatch.kind.value == "application":
+                acknowledgement = self.effect_journal.application_acknowledgement_for_transaction(dispatch.transaction_id)
+            else:
+                acknowledgement = self.effect_journal.rollback_acknowledgement_for_transaction(dispatch.transaction_id)
+            if acknowledgement is None:
+                raise ValueError("acknowledgement-backfilled dispatch requires durable acknowledgement")
 
     def _state_payload(self) -> dict[str, Any]:
+        self._validate_dispatch_acknowledgement_lineage()
         payload = super()._state_payload()
         payload["component_version"] = COMPONENT_VERSION
-        payload["effect_journal"] = self.effect_journal.to_state()
+        payload["effect_dispatch"] = self.effect_dispatch.to_state()
         return payload
 
     @classmethod
@@ -256,32 +345,24 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         payload = {key: value for key, value in state.items() if key != "digest"}
         if canonical_digest(payload) != supplied_digest:
             raise ValueError("software engineering control snapshot digest mismatch")
-        if "effect_journal" not in state:
-            raise ValueError("software engineering v0.7 snapshot requires durable effect journal")
+        if "effect_dispatch" not in state:
+            raise ValueError("software engineering v0.8 snapshot requires durable effect dispatch lineage")
 
-        # Explicit schema translation into the frozen v0.6 implementation.
-        # Missing acknowledgement history is never guessed or synthesized.
         base_payload = {
             key: value
             for key, value in state.items()
-            if key not in {"digest", "effect_journal"}
+            if key not in {"digest", "effect_dispatch"}
         }
         base_payload["component_version"] = BASE_COMPONENT_VERSION
         base_state = {**base_payload, "digest": canonical_digest(base_payload)}
-        base = _SoftwareEngineeringControlPlaneV06.from_state(
+        base = _SoftwareEngineeringControlPlaneV07.from_state(
             claims=claims,
             state=base_state,
         )
-
-        fenced_effects = FencedEngineeringEffectLedger.from_state(
+        dispatch = EngineeringEffectDispatchLedger.from_state(
             transactions=base.transactions,
-            mutation_authority=base.mutation_authority,
-            state=base.effects.to_state(),
-        )
-        journal = EngineeringEffectJournal.from_state(
-            transactions=base.transactions,
-            effects=fenced_effects,
-            state=state["effect_journal"],
+            effects=base.effects,
+            state=state["effect_dispatch"],
         )
         plane = cls(
             claims=claims,
@@ -293,18 +374,23 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
             policy=base.policy,
             gate=base.gate,
             mutation_authority=base.mutation_authority,
-            effects=fenced_effects,
+            effects=base.effects,
             validity=base.validity,
             works={row.work_id: row for row in base.works()},
-            effect_journal=journal,
+            effect_journal=base.effect_journal,
+            effect_dispatch=dispatch,
         )
         plane.effect_journal.validate_effect_coverage()
+        plane._validate_dispatch_acknowledgement_lineage()
         if plane.digest != supplied_digest:
             raise ValueError("software engineering control restore is not state-identical")
         return plane
 
 
 __all__ = (
+    "CANONICAL_WRITE_AUTHORITY",
+    "COMPONENT_ID",
+    "COMPONENT_VERSION",
     "EngineeringWorkRecord",
     "SoftwareEngineeringControlPlane",
 )
