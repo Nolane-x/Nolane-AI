@@ -284,27 +284,16 @@ def test_organization_control_plane_persists_transactional_ledger_state() -> Non
     assert "TransactionalExternalCoreExecutor.from_state" in restore_source
 
 
-def test_canonical_adapter_uses_risk_appropriate_verifier_levels() -> None:
+def test_canonical_adapter_delegates_effect_risk_and_verifier_authority_to_transactional_runtime() -> None:
     source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    assert "verifier_level = VerifierLevel.V2" in source
-    assert "verifier_level = VerifierLevel.V3" in source
-    assert "verifier_level = VerifierLevel.V1" in source
+    assert "effect_class = self.acting_executor.minimum_effect_class(action.tool_action)" in source
+    assert "risk_class = minimum_risk_for_effect(effect_class)" in source
+    assert "verifier_level = self.acting_executor.protocol.minimum_verifier_level(risk_class)" in source
     assert "verifier_level=verifier_level" in source
 
 
-def test_external_effect_classification_precedes_local_mutation_rollback_hints() -> None:
+def test_canonical_adapter_does_not_reintroduce_parallel_effect_classifier() -> None:
     source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    external_branch = (
-        "\n            if is_external or action.tool_action.tool_id in unconfined_process_tools:"
-        "\n                effect_class = EffectClass.EXTERNAL_MUTATION"
-    )
-    local_branch = "\n            elif action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION"
-    assert external_branch in source
-    assert local_branch in source
-    assert source.index(external_branch) < source.index(local_branch)
-
-
-def test_unconfined_process_tools_use_external_like_risk_floor() -> None:
-    source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    assert "unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})" in source
-    assert "if is_external or action.tool_action.tool_id in unconfined_process_tools:" in source
+    assert "unconfined_process_tools" not in source
+    assert "elif action.tool_action.mutation_paths" not in source
+    assert "self.acting_executor.minimum_effect_class(action.tool_action)" in source

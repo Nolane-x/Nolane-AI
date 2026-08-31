@@ -24,9 +24,9 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 |---|---|---:|---|
 | Invokable Cores | `nolane/external_core/invokable.py` | `0.0.2` | versioned core execution profile: schemas, capabilities, effects, permissions, failure/verification hooks, idempotency, retry, compensation |
 | Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.3` | isolated Git worktree + reversible local checkpoints + full-payload digest-proven restore, including ignored files and empty directories |
-| Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.3` | lifecycle, lifecycle-bound modern leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts, legacy schema-1 restore enrichment, fail-closed interrupted-action reconciliation |
-| Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.3` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor, monotonic elapsed-time lease enforcement, executor-free restart reconciliation, and fail-closed concrete receipt provenance validation |
-| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.5` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger, validates receipt provenance, and conservatively classifies unconfined process tools |
+| Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.4` | lifecycle, lifecycle-bound modern leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts, legacy schema-1 restore enrichment, fail-closed interrupted-action reconciliation |
+| Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.4` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor, monotonic elapsed-time lease enforcement, executor-free restart reconciliation, and fail-closed concrete receipt provenance validation |
+| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.6` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger, validates receipt provenance, and conservatively classifies unconfined process tools |
 
 ## Canonical flow
 
@@ -72,6 +72,8 @@ A concrete tool returning success is not enough to commit. `OrganizationExecutio
 20. Recovery binds the acting contract back to the exact selected tool action by `core_id`, `operation`, and canonical input digest before any acting mutation or terminal evidence write. A valid-looking `session:decision` idempotency key cannot authorize a semantically different effect.
 21. Forward execution validates the concrete core receipt before outcome projection or commit. Agent, task, tool, operation, canonical input digest, authorization, and before/after workspace digests must all match the dispatched effect; substituted receipts fail closed through the existing rollback/degraded recovery path.
 22. Persisted non-terminal actions are never blindly resumed after process/runtime interruption. Pre-dispatch actions are cancelled; interrupted reads may be closed as explicit no-side-effect rollback; any mutating action at or beyond `EXECUTING` is degraded because completion and rollback evidence are not provable after restart. Reconciliation itself must not invoke the concrete executor.
+23. Risk authority is monotone with effect authority: READ requires at least R1, local mutation R2, external mutation R3, and irreversible effect R4. An execution contract cannot encode a weaker risk class than its effect class.
+24. Physical effect classification is enforced again at the transactional runtime before any ledger or core mutation. Only bounded built-in reads are admitted as READ; filesystem writes are local mutations; process, external, custom, and unknown handlers are external-like by default. Caller-supplied effect/risk labels cannot downgrade this floor.
 
 ## Crash-safe restart reconciliation
 

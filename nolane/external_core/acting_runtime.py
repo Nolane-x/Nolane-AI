@@ -15,13 +15,15 @@ from nolane.external_core.acting_protocol import (
     ExecutionRisk,
     ProtocolViolation,
     VerifierLevel,
+    execution_risk_rank,
+    minimum_risk_for_effect,
 )
 from nolane.external_core.execution_types import ToolAction
 from nolane.external_core.execution_workspace import RepositoryWorkspace, WorkspaceCheckpoint
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.3"
+COMPONENT_VERSION = "0.1.4"
 
 
 class CoreReceipt(Protocol):
@@ -82,6 +84,44 @@ class TransactionalExternalCoreExecutor:
             max_local_mutations=1 if effect is EffectClass.LOCAL_MUTATION else 0,
             max_external_effects=1 if effect in {EffectClass.EXTERNAL_MUTATION, EffectClass.IRREVERSIBLE} else 0,
         )
+
+    @staticmethod
+    def minimum_effect_class(action: ToolAction) -> EffectClass:
+        """Return the fail-closed physical effect floor for a concrete tool action.
+
+        Only built-in operations whose implementations are bounded reads are
+        admitted as READ. Repository-local filesystem writes are reversible local
+        mutations. Process tools, registered/custom handlers, and unknown future
+        operations are external-like because the repository workspace is not an OS
+        sandbox and E cannot prove their side effects stay local.
+        """
+
+        tool_id = str(action.tool_id)
+        operation = str(action.operation)
+        if tool_id == "filesystem":
+            if operation == "read_text" and not action.mutation_paths:
+                return EffectClass.READ
+            if action.mutation_paths:
+                return EffectClass.LOCAL_MUTATION
+            return EffectClass.EXTERNAL_MUTATION
+        if tool_id == "git":
+            if operation in {"status", "diff", "rev-parse-head"} and not action.mutation_paths:
+                return EffectClass.READ
+            return EffectClass.EXTERNAL_MUTATION
+        if tool_id == "code-search":
+            if not action.mutation_paths:
+                return EffectClass.READ
+            return EffectClass.EXTERNAL_MUTATION
+        return EffectClass.EXTERNAL_MUTATION
+
+    @staticmethod
+    def _effect_rank(effect_class: EffectClass | str) -> int:
+        return {
+            EffectClass.READ: 0,
+            EffectClass.LOCAL_MUTATION: 1,
+            EffectClass.EXTERNAL_MUTATION: 2,
+            EffectClass.IRREVERSIBLE: 3,
+        }[EffectClass(effect_class)]
 
     @staticmethod
     def _action_id(*, agent_id: str, task_id: str, idempotency_key: str) -> str:
@@ -231,6 +271,19 @@ class TransactionalExternalCoreExecutor:
     ) -> ActingInvocationResult:
         effect = EffectClass(effect_class)
         risk = ExecutionRisk(risk_class)
+        physical_effect_floor = self.minimum_effect_class(action)
+        if self._effect_rank(effect) < self._effect_rank(physical_effect_floor):
+            raise PermissionError(
+                "effect classification downgrade: "
+                f"{action.tool_id}.{action.operation} requires at least "
+                f"{physical_effect_floor.value}, got {effect.value}"
+            )
+        minimum_risk = minimum_risk_for_effect(effect)
+        if execution_risk_rank(risk) < execution_risk_rank(minimum_risk):
+            raise PermissionError(
+                "risk classification downgrade: "
+                f"{effect.value} requires at least {minimum_risk.value}, got {risk.value}"
+            )
         resolved_verifier_level = VerifierLevel.coerce(verifier_level)
         minimum_verifier_level = self.protocol.minimum_verifier_level(risk)
         if resolved_verifier_level < minimum_verifier_level:

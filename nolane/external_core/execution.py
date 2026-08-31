@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
-from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel
+from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel, minimum_risk_for_effect
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.external_core.artifacts import ArtifactStore
 from nolane.external_core.execution_executor import ExternalCoreExecutor
@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.5"
+COMPONENT_VERSION = "0.0.6"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -624,7 +624,10 @@ class OrganizationExecutionControlPlane:
                 self._sessions[session.session_id] = session
                 return self._terminal(session, ExecutionState.FAILED, f'action outside declared schema: {schema_key}')
             is_external = action.tool_action.tool_id in self.executor.external_core_ids
-            unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})
+            effect_class = self.acting_executor.minimum_effect_class(action.tool_action)
+            risk_class = minimum_risk_for_effect(effect_class)
+            verifier_level = self.acting_executor.protocol.minimum_verifier_level(risk_class)
+            is_external_effect = effect_class in {EffectClass.EXTERNAL_MUTATION, EffectClass.IRREVERSIBLE}
             if session.counters.tool_calls >= session.budget.max_tool_calls:
                 return self._budget_terminal(session, 'tool-call budget exhausted')
             if is_external and session.counters.external_core_calls >= session.budget.max_external_core_calls:
@@ -637,20 +640,11 @@ class OrganizationExecutionControlPlane:
             if identity.status is AgentStatus.PAUSED:
                 return self._terminal(session, ExecutionState.PAUSED, 'agent paused by authority')
 
-            if is_external or action.tool_action.tool_id in unconfined_process_tools:
-                effect_class = EffectClass.EXTERNAL_MUTATION
-                risk_class = ExecutionRisk.R3
-                verifier_level = VerifierLevel.V3
+            if is_external_effect:
                 recovery_plan = 'reconcile externally observed effect from core receipt evidence'
-            elif action.tool_action.mutation_paths:
-                effect_class = EffectClass.LOCAL_MUTATION
-                risk_class = ExecutionRisk.R2
-                verifier_level = VerifierLevel.V2
+            elif effect_class is EffectClass.LOCAL_MUTATION:
                 recovery_plan = 'restore isolated workspace checkpoint'
             else:
-                effect_class = EffectClass.READ
-                risk_class = ExecutionRisk.R1
-                verifier_level = VerifierLevel.V1
                 recovery_plan = ''
 
             acting = self.acting_executor.invoke(
