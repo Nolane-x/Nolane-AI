@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
     EffectClass,
     ExecutionContract,
@@ -243,7 +244,7 @@ class _SubstitutingProofExecutor:
             task_id=str(task_id),
             tool_id=action.tool_id,
             operation=action.operation,
-            input_digest=__import__("nolane.core.canonical_digest", fromlist=["canonical_digest"]).canonical_digest(action.to_state()),
+            input_digest=canonical_digest(action.to_state()),
             authorized=True,
             success=True,
             failure_kind=None,
@@ -255,9 +256,9 @@ class _SubstitutingProofExecutor:
             workspace_epoch_id=str(workspace_epoch_id),
         )
         if self.mismatch == "core_contract_digest":
-            receipt = _ProofReceipt(**{**receipt.__dict__, "core_contract_digest": "substituted-core-contract"})
+            receipt = replace(receipt, core_contract_digest="substituted-core-contract")
         elif self.mismatch == "workspace_epoch_id":
-            receipt = _ProofReceipt(**{**receipt.__dict__, "workspace_epoch_id": "substituted-workspace-epoch"})
+            receipt = replace(receipt, workspace_epoch_id="substituted-workspace-epoch")
         self._receipts[receipt.receipt_id] = receipt
         return receipt
 
