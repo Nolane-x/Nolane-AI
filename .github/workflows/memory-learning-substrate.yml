@@ -70,21 +70,67 @@ jobs:
             echo "v0.0.8 semantic production patch is not committed" >&2
             exit 1
           fi
-      - name: Apply lifecycle revision 5 patch when needed
+      - name: Apply lifecycle revision 5 authority transformation
         id: version_patch
         shell: bash
         run: |
-          patch=.github/memory-v008-patches/lifecycle-revision-5.patch
-          if git apply --check "$patch"; then
-            git apply "$patch"
-            echo "applied=true" >> "$GITHUB_OUTPUT"
-          elif git apply --reverse --check "$patch"; then
-            echo "applied=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "lifecycle revision 5 patch is neither applicable nor already applied" >&2
-            git apply --check "$patch"
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              Path("nolane/memory/lifecycle.py"): [
+                  ('COMPONENT_VERSION = "0.0.4"', 'COMPONENT_VERSION = "0.0.5"'),
+              ],
+              Path("nolane/metadata/component_versions.py"): [
+                  ('        "external.memory.lifecycle": 4,', '        "external.memory.lifecycle": 5,'),
+              ],
+              Path("tests/test_refoundation_component_versions.py"): [
+                  ('    "external.memory.lifecycle": 4,', '    "external.memory.lifecycle": 5,'),
+              ],
+              Path("tests/test_refoundation_memory_public_layout.py"): [
+                  ('        lifecycle: ("external.memory.lifecycle", "0.0.4"),', '        lifecycle: ("external.memory.lifecycle", "0.0.5"),'),
+              ],
+              Path("tests/test_refoundation_wave5d_native_memory_lifecycle.py"): [
+                  ('    assert row.component_version == "0.0.4"', '    assert row.component_version == "0.0.5"'),
+                  ('    assert str(component_version("external.memory.lifecycle")) == "0.0.4"', '    assert str(component_version("external.memory.lifecycle")) == "0.0.5"'),
+              ],
+          }
+
+          states = []
+          for path, pairs in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              path_state = []
+              for old, new in pairs:
+                  old_count, new_count = text.count(old), text.count(new)
+                  if (old_count, new_count) == (1, 0):
+                      path_state.append("old")
+                  elif (old_count, new_count) == (0, 1):
+                      path_state.append("new")
+                  else:
+                      raise SystemExit(
+                          f"unexpected lifecycle revision literal state in {path}: "
+                          f"old={old_count} new={new_count} for {old!r}"
+                      )
+              if len(set(path_state)) != 1:
+                  raise SystemExit(f"mixed lifecycle revision state in {path}: {path_state}")
+              states.extend(path_state)
+
+          if set(states) == {"old"}:
+              for path, pairs in replacements.items():
+                  text = path.read_text(encoding="utf-8")
+                  for old, new in pairs:
+                      text = text.replace(old, new, 1)
+                  path.write_text(text, encoding="utf-8")
+              applied = "true"
+          elif set(states) == {"new"}:
+              applied = "false"
+          else:
+              raise SystemExit(f"mixed lifecycle revision repository state: {states}")
+
+          with open(Path(__import__('os').environ['GITHUB_OUTPUT']), 'a', encoding='utf-8') as handle:
+              handle.write(f"applied={applied}\n")
+          print(f"lifecycle revision transformation applied={applied}")
+          PY
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -144,25 +190,62 @@ jobs:
       - name: Commit verified lifecycle revision 5 authority files
         shell: bash
         run: |
-          patch=.github/memory-v008-patches/lifecycle-revision-5.patch
-          if git apply --check "$patch"; then
-            git apply "$patch"
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add \
-              nolane/memory/lifecycle.py \
-              nolane/metadata/component_versions.py \
-              tests/test_refoundation_component_versions.py \
-              tests/test_refoundation_memory_public_layout.py \
-              tests/test_refoundation_wave5d_native_memory_lifecycle.py
-            git commit -m "chore(memory): advance lifecycle authority for compaction integrity"
-            git push origin HEAD:codex/memory-learning-compaction-target-v0.0.8
-          elif git apply --reverse --check "$patch"; then
-            echo "Verified lifecycle revision 5 patch is already committed."
-          else
-            echo "lifecycle revision 5 patch is neither applicable nor already applied" >&2
-            git apply --check "$patch"
-            exit 1
-          fi
+          python - <<'PY'
+          from pathlib import Path
 
-# staging trigger: lifecycle revision 5 patch hunk-count repair
+          replacements = {
+              Path("nolane/memory/lifecycle.py"): [
+                  ('COMPONENT_VERSION = "0.0.4"', 'COMPONENT_VERSION = "0.0.5"'),
+              ],
+              Path("nolane/metadata/component_versions.py"): [
+                  ('        "external.memory.lifecycle": 4,', '        "external.memory.lifecycle": 5,'),
+              ],
+              Path("tests/test_refoundation_component_versions.py"): [
+                  ('    "external.memory.lifecycle": 4,', '    "external.memory.lifecycle": 5,'),
+              ],
+              Path("tests/test_refoundation_memory_public_layout.py"): [
+                  ('        lifecycle: ("external.memory.lifecycle", "0.0.4"),', '        lifecycle: ("external.memory.lifecycle", "0.0.5"),'),
+              ],
+              Path("tests/test_refoundation_wave5d_native_memory_lifecycle.py"): [
+                  ('    assert row.component_version == "0.0.4"', '    assert row.component_version == "0.0.5"'),
+                  ('    assert str(component_version("external.memory.lifecycle")) == "0.0.4"', '    assert str(component_version("external.memory.lifecycle")) == "0.0.5"'),
+              ],
+          }
+
+          changed = False
+          for path, pairs in replacements.items():
+              text = path.read_text(encoding="utf-8")
+              for old, new in pairs:
+                  old_count, new_count = text.count(old), text.count(new)
+                  if (old_count, new_count) == (1, 0):
+                      text = text.replace(old, new, 1)
+                      changed = True
+                  elif (old_count, new_count) != (0, 1):
+                      raise SystemExit(
+                          f"unexpected lifecycle revision literal state in {path}: "
+                          f"old={old_count} new={new_count} for {old!r}"
+                      )
+              path.write_text(text, encoding="utf-8")
+          print(f"lifecycle revision production transformation changed={changed}")
+          PY
+          if git diff --quiet -- \
+            nolane/memory/lifecycle.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_memory_public_layout.py \
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py; then
+            echo "Verified lifecycle revision 5 authority files are already committed."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            nolane/memory/lifecycle.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_memory_public_layout.py \
+            tests/test_refoundation_wave5d_native_memory_lifecycle.py
+          git commit -m "chore(memory): advance lifecycle authority for compaction integrity"
+          git push origin HEAD:codex/memory-learning-compaction-target-v0.0.8
+
+# staging executor only; excluded from the clean integration tree
