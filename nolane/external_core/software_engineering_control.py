@@ -18,6 +18,10 @@ from nolane.external_core.software_engineering import (
     PatchTransactionLedger,
     SoftwareEngineeringClosureEngine,
 )
+from nolane.external_core.software_engineering_attempts import (
+    AttemptBoundEngineeringPatchTransaction,
+    IdempotentPatchTransactionLedger,
+)
 from nolane.external_core.software_engineering_claims import AnchoredEngineeringClaimBindingLedger
 from nolane.external_core.software_engineering_effects import (
     EngineeringApplicationCommit,
@@ -46,7 +50,7 @@ from nolane.external_core.software_engineering_validity import (
 
 
 COMPONENT_ID = "external.software_engineering.control"
-COMPONENT_VERSION = "0.5.0"
+COMPONENT_VERSION = "0.6.0"
 CANONICAL_WRITE_AUTHORITY = False
 
 
@@ -99,6 +103,8 @@ def _claims_cover_patch(claims: tuple[CodeClaim, ...], patch: Any) -> bool:
 @dataclass(frozen=True, slots=True)
 class EngineeringWorkRecord:
     work_id: str
+    operation_ref: str
+    initiation_digest: str
     patch_ref: str
     patch_digest: str
     source_revision: str
@@ -113,6 +119,8 @@ class EngineeringWorkRecord:
     def __post_init__(self) -> None:
         for value, field in (
             (self.work_id, "engineering work id"),
+            (self.operation_ref, "engineering operation ref"),
+            (self.initiation_digest, "engineering initiation digest"),
             (self.patch_ref, "patch ref"),
             (self.patch_digest, "patch digest"),
             (self.source_revision, "source revision"),
@@ -129,6 +137,8 @@ class EngineeringWorkRecord:
 
     def payload(self) -> dict[str, Any]:
         return {
+            "operation_ref": self.operation_ref,
+            "initiation_digest": self.initiation_digest,
             "patch_ref": self.patch_ref,
             "patch_digest": self.patch_digest,
             "source_revision": self.source_revision,
@@ -147,6 +157,8 @@ class EngineeringWorkRecord:
     def from_state(cls, state: Mapping[str, Any]) -> "EngineeringWorkRecord":
         row = cls(
             work_id=_text(state["work_id"], field="engineering work id"),
+            operation_ref=_text(state["operation_ref"], field="engineering operation ref"),
+            initiation_digest=_text(state["initiation_digest"], field="engineering initiation digest"),
             patch_ref=_text(state["patch_ref"], field="patch ref"),
             patch_digest=_text(state["patch_digest"], field="patch digest"),
             source_revision=_text(state["source_revision"], field="source revision"),
@@ -169,10 +181,11 @@ class SoftwareEngineeringControlPlane:
 
     The control plane composes canonical F authorities with content-addressed
     evidence, reversible patch transactions, policy-derived verification,
-    explicit pre-apply mutation authority, idempotent external-effect intents,
-    independently verified rollback, canonical upstream receipt integrity,
-    cross-surface closure and post-closure live validity. It never promotes
-    beyond the candidate boundary and is not a canonical component write owner.
+    explicit pre-apply mutation authority, idempotent engineering-attempt
+    initiation, idempotent external-effect intents, independently verified
+    rollback, canonical upstream receipt integrity, cross-surface closure and
+    post-closure live validity. It never promotes beyond the candidate boundary
+    and is not a canonical component write owner.
     """
 
     def __init__(
@@ -193,7 +206,12 @@ class SoftwareEngineeringControlPlane:
     ) -> None:
         self.claims = claims
         self.evidence = evidence if evidence is not None else EngineeringEvidenceLedger()
-        self.transactions = transactions if transactions is not None else PatchTransactionLedger(self.evidence)
+        if transactions is None:
+            self.transactions = IdempotentPatchTransactionLedger(self.evidence)
+        elif isinstance(transactions, IdempotentPatchTransactionLedger):
+            self.transactions = transactions
+        else:
+            raise TypeError("software engineering v0.6 requires idempotent attempt-bound transactions")
         self.claim_bindings = (
             claim_bindings
             if claim_bindings is not None
@@ -247,6 +265,19 @@ class SoftwareEngineeringControlPlane:
             )
         )
         self._works = dict(works or {})
+        self._works_by_operation: dict[str, str] = {}
+        for row in self._works.values():
+            previous = self._works_by_operation.get(row.operation_ref)
+            if previous is not None and previous != row.work_id:
+                raise ValueError("engineering operation ref cannot bind multiple work records")
+            tx = self.transactions.transaction_for_operation(row.operation_ref)
+            if (
+                tx is None
+                or tx.transaction_id != row.transaction_id
+                or tx.initiation_digest != row.initiation_digest
+            ):
+                raise ValueError("engineering work operation/initiation/transaction lineage mismatch")
+            self._works_by_operation[row.operation_ref] = row.work_id
 
     @property
     def digest(self) -> str:
@@ -287,6 +318,7 @@ class SoftwareEngineeringControlPlane:
         security_sensitive: bool = False,
         performance_sensitive: bool = False,
         debug_origin: bool = False,
+        operation_ref: str | None = None,
     ) -> EngineeringWorkRecord:
         if not hasattr(patch, "to_state"):
             raise TypeError("governed engineering work requires canonical patch state")
@@ -295,6 +327,44 @@ class SoftwareEngineeringControlPlane:
         source = _text(source_revision, field="source revision")
         rollback = _text(rollback_artifact_ref, field="rollback artifact")
         refs = _refs(claim_refs)
+        dependencies = _refs(dependency_refs)
+        impacted = _refs(impacted_component_refs)
+        risk = EngineeringRiskClass(declared_risk)
+        operation = (
+            self.transactions.next_automatic_operation_ref()
+            if operation_ref is None
+            else _text(operation_ref, field="engineering operation ref")
+        )
+        initiation_payload = {
+            "patch_ref": patch_ref,
+            "patch_digest": patch_digest,
+            "source_revision": source,
+            "rollback_artifact_ref": rollback,
+            "claim_refs": list(refs),
+            "dependency_refs": list(dependencies),
+            "impacted_component_refs": list(impacted),
+            "declared_risk": risk.value,
+            "ui_sensitive": bool(ui_sensitive),
+            "security_sensitive": bool(security_sensitive),
+            "performance_sensitive": bool(performance_sensitive),
+            "debug_origin": bool(debug_origin),
+        }
+        initiation_digest = canonical_digest(initiation_payload)
+
+        existing_work_id = self._works_by_operation.get(operation)
+        if existing_work_id is not None:
+            existing = self.work(existing_work_id)
+            if existing.initiation_digest != initiation_digest:
+                raise ValueError("engineering operation ref cannot be rebound to different initiation inputs")
+            tx = self.transactions.transaction_for_operation(operation)
+            if (
+                tx is None
+                or tx.transaction_id != existing.transaction_id
+                or tx.initiation_digest != initiation_digest
+            ):
+                raise ValueError("engineering operation retry initiation lineage mismatch")
+            return existing
+
         if not refs:
             raise ValueError("governed patch work requires bound claims")
         bound_claims = tuple(self.claims.get(claim_id) for claim_id in refs)
@@ -304,9 +374,9 @@ class SoftwareEngineeringControlPlane:
         manifest = self.manifests.register(
             patch=patch,
             source_revision=source,
-            dependency_refs=dependency_refs,
-            impacted_component_refs=impacted_component_refs,
-            declared_risk=declared_risk,
+            dependency_refs=dependencies,
+            impacted_component_refs=impacted,
+            declared_risk=risk,
             ui_sensitive=ui_sensitive,
             security_sensitive=security_sensitive,
             performance_sensitive=performance_sensitive,
@@ -317,6 +387,8 @@ class SoftwareEngineeringControlPlane:
             patch_digest=patch_digest,
             source_revision=source,
             rollback_artifact_ref=rollback,
+            initiation_digest=initiation_digest,
+            operation_ref=operation,
         )
         tx = self.transactions.bind_claims(tx.transaction_id, claim_refs=refs)
         binding = self.claim_bindings.bind(tx.transaction_id)
@@ -324,6 +396,8 @@ class SoftwareEngineeringControlPlane:
             raise PermissionError("snapshotted transaction claims do not authorize patch")
 
         payload = {
+            "operation_ref": operation,
+            "initiation_digest": initiation_digest,
             "patch_ref": patch_ref,
             "patch_digest": patch_digest,
             "source_revision": source,
@@ -337,6 +411,8 @@ class SoftwareEngineeringControlPlane:
         digest = canonical_digest(payload)
         row = EngineeringWorkRecord(
             work_id=f"eng-work-{digest[:20]}",
+            operation_ref=operation,
+            initiation_digest=initiation_digest,
             patch_ref=patch_ref,
             patch_digest=patch_digest,
             source_revision=source,
@@ -351,7 +427,11 @@ class SoftwareEngineeringControlPlane:
         existing = self._works.get(row.work_id)
         if existing is not None and existing != row:
             raise ValueError("engineering work id cannot be rebound")
+        previous_work_id = self._works_by_operation.get(operation)
+        if previous_work_id is not None and previous_work_id != row.work_id:
+            raise ValueError("engineering operation ref cannot bind multiple work records")
         self._works[row.work_id] = row
+        self._works_by_operation[operation] = row.work_id
         return existing or row
 
     def record_evidence(
@@ -609,7 +689,7 @@ class SoftwareEngineeringControlPlane:
             raise ValueError("software engineering control snapshot digest mismatch")
 
         evidence = EngineeringEvidenceLedger.from_state(state["evidence"])
-        transactions = PatchTransactionLedger.from_state(
+        transactions = IdempotentPatchTransactionLedger.from_state(
             evidence=evidence,
             state=state["transactions"],
         )
@@ -656,6 +736,7 @@ class SoftwareEngineeringControlPlane:
         )
 
         works: dict[str, EngineeringWorkRecord] = {}
+        operations: dict[str, str] = {}
         for value in state.get("works", ()):
             row = EngineeringWorkRecord.from_state(value)
             manifest = manifests.get(row.manifest_id)
@@ -673,13 +754,27 @@ class SoftwareEngineeringControlPlane:
                 or tx.source_revision != row.source_revision
             ):
                 raise ValueError("engineering work transaction lineage mismatch")
+            if (
+                not isinstance(tx, AttemptBoundEngineeringPatchTransaction)
+                or tx.operation_ref != row.operation_ref
+                or tx.initiation_digest != row.initiation_digest
+                or transactions.transaction_for_operation(row.operation_ref) != tx
+            ):
+                raise ValueError("engineering work operation/initiation/transaction lineage mismatch")
             binding = claim_bindings.get(row.claim_binding_id)
             if binding.digest != row.claim_binding_digest or binding.transaction_id != row.transaction_id:
                 raise ValueError("engineering work claim binding lineage mismatch")
             existing = works.get(row.work_id)
             if existing is not None and existing != row:
                 raise ValueError("duplicate/rebound engineering work")
+            previous = operations.get(row.operation_ref)
+            if previous is not None and previous != row.work_id:
+                raise ValueError("engineering operation ref cannot bind multiple work records")
             works[row.work_id] = row
+            operations[row.operation_ref] = row.work_id
+
+        if len(works) != len(transactions.transactions()):
+            raise ValueError("engineering operation lineage requires one work record per transaction")
 
         plane = cls(
             claims=claims,
