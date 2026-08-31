@@ -60,18 +60,28 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Apply v0.0.8 semantic patch when needed
-        id: semantic_patch
+      - name: Confirm v0.0.8 semantic production patch
         shell: bash
         run: |
           patch=.github/memory-v008-patches/compaction-target-integrity.patch
+          if git apply --reverse --check "$patch"; then
+            echo "v0.0.8 semantic production patch is committed."
+          else
+            echo "v0.0.8 semantic production patch is not committed" >&2
+            exit 1
+          fi
+      - name: Apply lifecycle revision 5 patch when needed
+        id: version_patch
+        shell: bash
+        run: |
+          patch=.github/memory-v008-patches/lifecycle-revision-5.patch
           if git apply --check "$patch"; then
             git apply "$patch"
             echo "applied=true" >> "$GITHUB_OUTPUT"
           elif git apply --reverse --check "$patch"; then
             echo "applied=false" >> "$GITHUB_OUTPUT"
           else
-            echo "v0.0.8 semantic patch is neither applicable nor already applied" >&2
+            echo "lifecycle revision 5 patch is neither applicable nor already applied" >&2
             git apply --check "$patch"
             exit 1
           fi
@@ -131,21 +141,26 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Commit verified v0.0.8 semantic production files
+      - name: Commit verified lifecycle revision 5 authority files
         shell: bash
         run: |
-          patch=.github/memory-v008-patches/compaction-target-integrity.patch
+          patch=.github/memory-v008-patches/lifecycle-revision-5.patch
           if git apply --check "$patch"; then
             git apply "$patch"
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add nolane/memory/adaptive_policy.py nolane/memory/learning_substrate.py
-            git commit -m "fix(memory): bind compaction receipts to target content"
+            git add \
+              nolane/memory/lifecycle.py \
+              nolane/metadata/component_versions.py \
+              tests/test_refoundation_component_versions.py \
+              tests/test_refoundation_memory_public_layout.py \
+              tests/test_refoundation_wave5d_native_memory_lifecycle.py
+            git commit -m "chore(memory): advance lifecycle authority for compaction integrity"
             git push origin HEAD:codex/memory-learning-compaction-target-v0.0.8
           elif git apply --reverse --check "$patch"; then
-            echo "Verified v0.0.8 semantic production patch is already committed."
+            echo "Verified lifecycle revision 5 patch is already committed."
           else
-            echo "v0.0.8 semantic patch is neither applicable nor already applied" >&2
+            echo "lifecycle revision 5 patch is neither applicable nor already applied" >&2
             git apply --check "$patch"
             exit 1
           fi
