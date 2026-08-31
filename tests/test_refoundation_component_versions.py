@@ -32,7 +32,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.cognitive_library": 2,
     "external.capability_acquisition": 2,
     "external.candidate_synthesis": 4,
-    "external.transfer_meta": 1,
+    "external.transfer_meta": 2,
     "external.causal": 2,
     "external.experimentation": 2,
     "external.reasoning_invention": 1,
