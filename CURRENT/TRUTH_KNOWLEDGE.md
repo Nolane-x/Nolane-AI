@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A10 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A9 Temporal Validity is accepted as relation-aware temporal v4 on top of A10 relation-aware scope v3.**
+Status: **A1–A10 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A11 Provenance-Bound Source Independence v5 is the current candidate and is not accepted until its exact PR merge-state passes full Refoundation Epoch 0.**
 
 ## Canonical authority model
 
@@ -12,7 +12,7 @@ External Core family A remains exactly five canonical component authorities:
 4. `external.verification` → `nolane.external_core.verification`
 5. `external.assurance` → `nolane.external_core.assurance`
 
-Truth Closure is additive protocol semantics beneath those authorities. No Truth or Temporal helper may declare `COMPONENT_ID`.
+Truth Closure is additive protocol semantics beneath those authorities. No Truth, Temporal, or Provenance helper may declare `COMPONENT_ID`.
 
 All canonical Truth identity uses `nolane.core.canonical_digest.canonical_digest`.
 
@@ -90,7 +90,7 @@ Verification and Assurance v3 are exact-mode; v1/v2 cannot masquerade as v3 and 
 
 A9 was numbered before A10 was accepted. Because A10 now canonically owns v3, A9 does **not** introduce the historical draft name `dependency-scope-temporal-v3`.
 
-The canonical protocol progression is:
+The canonical protocol progression before A11 is:
 
 ```text
 global v1
@@ -259,20 +259,120 @@ Closure blocks unsupported target, target/ancestor conflict, target/ancestor rel
 
 Unrelated temporal revisions outside the v4 fixed point do not stale the certificate.
 
+## A11 candidate — provenance-bound source independence v5
+
+A11 closes a remaining authority hole in v1–v4 independence counting. Historical verification can bind a `source_family`, and `EvidenceLedger` prevents one `source_id` from rebinding that family, but multiple source identities controlled by the same real origin can still present distinct family labels. That can falsely look like independent corroboration.
+
+A11 therefore makes source independence a canonical provenance-lineage property rather than a receipt label.
+
+The candidate protocol progression is:
+
+```text
+global v1
+    ↓
+dependency-scope v2
+    ↓
+relation-aware-scope v3
+    ↓
+relation-aware-temporal v4
+    ↓
+provenance-lineage-temporal v5
+```
+
+V5 binding mode is exactly:
+
+```text
+provenance-lineage-temporal-v5
+```
+
+### Evidence source-provenance lineage
+
+`evidence_provenance_truth.py` is a sidecar under `external.evidence` and owns no sixth authority.
+
+`SourceProvenanceRevision` binds:
+
+- `source_id`;
+- strictly monotonic revision;
+- exact predecessor digest;
+- explicit `controller_id`;
+- canonical parent-source IDs;
+- canonical digest.
+
+`SourceProvenanceRegistry` enforces:
+
+- first revision exactly `1` with no predecessor;
+- later revision exactly `+1`;
+- exact predecessor binding;
+- existing parents only;
+- no direct or transitive source cycle;
+- no revision rebinding;
+- duplicate/gap/rollback/predecessor/cycle restore attacks fail closed.
+
+For source `S`, the current controller-root set is the union of its own controller and every transitive provenance ancestor controller.
+
+A source contributes an independent verification identity only when that set contains exactly one controller. Therefore:
+
+- aliases under one controller collapse;
+- same-controller mirrors/transforms collapse;
+- multi-controller aggregates remain auditable but mint no new independent-source credit;
+- missing canonical provenance contributes no independence.
+
+The relevant projection contains requested sources plus all transitive provenance ancestors. Unrelated source revisions outside that ancestry cannot stale the projection; relevant source or ancestor revision must stale it.
+
+### Epistemic v5 scope
+
+`epistemic_provenance_truth.py` does not duplicate A9 fixed-point logic. `ProvenanceEpistemicJudge` first re-derives the exact accepted `TemporalEpistemicJudge.relation_aware_dependency_scope()` result, derives source IDs from its exact Evidence fixed point, and then binds the relevant source-provenance projection.
+
+`ProvenanceTruthScope` therefore exact-binds:
+
+- target claim;
+- exact v4 temporal scope digest;
+- TemporalContext digest and `as_of`;
+- scoped source IDs;
+- relevant source-provenance projection digest;
+- final v5 digest.
+
+Validation re-derives all live state. Serialized v5 scope is never self-authenticating.
+
+### Verification v5
+
+`ProvenanceTruthVerificationReceipt` is a dedicated v5 receipt and deliberately contains **no `source_family` field**.
+
+It binds verifier/source identity, channel, pass/fail result, exact v5 scope/context, verification Evidence IDs and the verifier's relevant provenance projection digest.
+
+Coverage validates live temporal Evidence and exact subject/source/channel provenance, validates the live source-provenance projection, retains negative receipts, and groups passing independence only by `SourceProvenanceRegistry.independence_key(verifier_id)`.
+
+A multi-controller source can remain a valid audit receipt while contributing zero independence credit.
+
+### Assurance v5
+
+`ProvenanceTruthAssuranceGate` preserves the accepted A9 relation/temporal/Epistemic/debt/negative-verification vetoes and the existing risk thresholds:
+
+- LOW/STANDARD → 1 independent controller + 1 channel;
+- HIGH → 2 + 2;
+- CRITICAL → 3 + 3.
+
+The semantic change is that source diversity now comes from canonical provenance-derived controller independence, not caller-declared family labels.
+
+A v5 certificate exact-binds v5 scope, v5 verification projection, context/as-of, accepted receipt IDs, Epistemic debt IDs, decision and reasons. `validate_certificate()` recomputes complete live closure.
+
+Relevant verifier provenance revision invalidates stale authority. Unrelated provenance mutation does not.
+
 ## Compatibility law
 
-A9 is structurally additive:
+A11 is structurally additive:
 
 - A1–A10 `TruthEvidence` shape unchanged;
 - A1–A10 `KnowledgeClaim` shape unchanged;
-- v1/v2/v3 `TruthVerificationReceipt` shapes unchanged;
-- v1/v2/v3 `TruthClosureCertificate` shapes unchanged;
-- A8 v2 and A10 v3 behavior remain available unchanged;
-- A9 sidecars declare no `COMPONENT_ID`;
-- no canonical parent component version is bumped by A9;
-- mixed legacy/v4 serialization fields fail closed.
+- v1/v2/v3 receipts and certificates unchanged;
+- v4 temporal receipts and certificates unchanged;
+- historical `source_family` behavior remains v1–v4 compatibility only;
+- v5 receipt rejects unexpected legacy `source_family` state;
+- A11 sidecars declare only `PARENT_COMPONENT_ID`, never `COMPONENT_ID`;
+- no canonical parent component version is bumped solely by A11;
+- family A remains exactly five canonical authorities.
 
-The A6 five-parent subprotocol registry remains authority metadata for the canonical Truth parents; A9 sidecars do not become extra registry parents.
+The A6 five-parent subprotocol registry remains authority metadata for canonical Truth parents; temporal/provenance sidecars do not become registry parents.
 
 ## Hardening lineage
 
@@ -286,6 +386,7 @@ The A6 five-parent subprotocol registry remains authority metadata for the canon
 - **A8** — dependency-scope v2 and unrelated-state stability.
 - **A10** — accepted canonical relation semantics and relation-aware v3.
 - **A9** — accepted explicit temporal context, append-only temporal applicability lineage and relation-aware temporal v4.
+- **A11 candidate** — append-only source-provenance lineage and controller-derived verification independence v5.
 
 ## A9 acceptance proof
 
@@ -299,6 +400,28 @@ A9 is accepted because the exact final candidate integrated with then-current `m
 6. expected-head merge;
 7. post-merge proof that canonical `main` contains the exact tested A9 tree semantics.
 
-Canonical family-A status is therefore **A1–A10 accepted**.
+## A11 candidate proof
+
+A11 has completed its focused RED → GREEN proof but is **not yet accepted** at this document revision.
+
+RED:
+
+- exact test-only head `3b94b249e09c64313838b08179daa7b499b52ccf`;
+- Truth Knowledge run `33351007591`;
+- existing A compile GREEN;
+- collection failed exactly because the new A11 production module did not yet exist.
+
+Focused GREEN:
+
+- exact pre-documentation head `7f120882a7c22dcfa0f5c8d5a4467487c8a38396`;
+- Truth Knowledge run `33351430149`;
+- Python 3.11: 120/120 Truth/Knowledge contracts GREEN and repository audit GREEN;
+- Python 3.13: 120/120 Truth/Knowledge contracts GREEN and repository audit GREEN;
+- repository audit: 173 historical artifacts, 173 moved, 0 quarantined, 0 reference debt, 1 non-native component record;
+- explicit authority-boundary contracts prove all four v5 modules remain sidecars.
+
+Final A11 acceptance still requires the exact PR merge-state to pass full Refoundation Epoch 0 on Python 3.11/3.13, clean intended-only diff/review surface, expected-head merge, and post-merge verification on canonical `main`.
+
+Canonical family-A status at this revision is therefore **A1–A10 accepted; A11 candidate**.
 
 Historical R-series workflows do not define current family-A architecture authority.
