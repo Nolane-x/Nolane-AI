@@ -12,6 +12,7 @@ from nolane.external_core._software_engineering_control_v06 import (
 )
 from nolane.external_core.coding_claims import CodeClaimLedger
 from nolane.external_core.software_engineering import EngineeringPatchTransaction
+from nolane.external_core.software_engineering_effect_fencing import FencedEngineeringEffectLedger
 from nolane.external_core.software_engineering_effect_journal import (
     EngineeringApplicationAcknowledgement,
     EngineeringEffectJournal,
@@ -40,10 +41,10 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
     """F control plane with durable external-effect acknowledgement lineage.
 
     v0.7 of the control compatibility schema composes the established v0.6
-    governed engineering lifecycle with an observation-only effect journal and
-    a local-only recovery finalizer. The public canonical owner remains this
-    module; the frozen v0.6 class is an internal compatibility implementation,
-    not a second write authority.
+    governed engineering lifecycle with transaction-scoped effect-intent fencing,
+    an observation-only effect journal and a local-only recovery finalizer. The
+    public canonical owner remains this module; the frozen v0.6 class is an
+    internal compatibility implementation, not a second write authority.
     """
 
     def __init__(
@@ -54,14 +55,31 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         **kwargs: Any,
     ) -> None:
         super().__init__(claims=claims, **kwargs)
-        self.effect_journal = (
-            effect_journal
-            if effect_journal is not None
-            else EngineeringEffectJournal(
+
+        if not isinstance(self.effects, FencedEngineeringEffectLedger):
+            self.effects = FencedEngineeringEffectLedger.from_state(
+                transactions=self.transactions,
+                mutation_authority=self.mutation_authority,
+                state=self.effects.to_state(),
+            )
+
+        if effect_journal is None:
+            self.effect_journal = EngineeringEffectJournal(
                 transactions=self.transactions,
                 effects=self.effects,
             )
-        )
+        elif (
+            effect_journal.transactions is self.transactions
+            and effect_journal.effects is self.effects
+        ):
+            self.effect_journal = effect_journal
+        else:
+            self.effect_journal = EngineeringEffectJournal.from_state(
+                transactions=self.transactions,
+                effects=self.effects,
+                state=effect_journal.to_state(),
+            )
+
         if (
             self.effect_journal.transactions is not self.transactions
             or self.effect_journal.effects is not self.effects
@@ -255,9 +273,14 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
             state=base_state,
         )
 
+        fenced_effects = FencedEngineeringEffectLedger.from_state(
+            transactions=base.transactions,
+            mutation_authority=base.mutation_authority,
+            state=base.effects.to_state(),
+        )
         journal = EngineeringEffectJournal.from_state(
             transactions=base.transactions,
-            effects=base.effects,
+            effects=fenced_effects,
             state=state["effect_journal"],
         )
         plane = cls(
@@ -270,7 +293,7 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
             policy=base.policy,
             gate=base.gate,
             mutation_authority=base.mutation_authority,
-            effects=base.effects,
+            effects=fenced_effects,
             validity=base.validity,
             works={row.work_id: row for row in base.works()},
             effect_journal=journal,
