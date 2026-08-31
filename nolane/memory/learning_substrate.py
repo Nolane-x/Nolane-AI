@@ -916,6 +916,19 @@ class LearningSubstrate:
                 reason=reason,
                 evidence_refs=evidence,
             )
+        else:
+            archive_authority = tuple(
+                receipt
+                for receipt in self.lifecycle.receipts_for(row.memory_id)
+                if receipt.new_status is MemoryStatus.ARCHIVED
+                and receipt.actor_agent_id == str(actor_agent_id).strip()
+                and receipt.reason == reason
+                and receipt.evidence_refs == evidence
+            )
+            if not archive_authority:
+                raise ValueError(
+                    "forgetting already archived memory requires matching archive lifecycle authority"
+                )
         self._tombstones[row.memory_id] = candidate
         return candidate
 
