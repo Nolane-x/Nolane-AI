@@ -1,7 +1,7 @@
 # E. Acting — Canonical Refoundation Boundary
 
 **Component family:** E  
-**Revision:** transactional baseline with canonical execution integration, fail-closed hardening, and crash-safe in-flight reconciliation  
+**Revision:** transactional baseline with canonical execution integration, fail-closed hardening, and crash-safe in-flight reconciliation
 **Authority:** this document describes the implemented E ownership boundary on the canonical refoundation surface.
 
 ## Scope
