@@ -50,9 +50,26 @@ class CoreInvocationReceipt:
     evidence_artifact_id: str
     mirrored_tool_receipt_id: str | None
     digest: str
+    core_contract_digest: str = ""
+    workspace_epoch_id: str = ""
+    proof_version: int = 1
+
+    def __post_init__(self) -> None:
+        if self.proof_version not in {1, 2}:
+            raise ValueError('unsupported core invocation proof version')
+        if self.proof_version == 1:
+            if self.core_contract_digest or self.workspace_epoch_id:
+                raise ValueError('legacy core invocation receipt cannot carry modern proof fields')
+            return
+        if not self.workspace_epoch_id:
+            raise ValueError('modern core invocation receipt requires workspace execution epoch')
+        if self.external_core and not self.core_contract_digest:
+            raise ValueError('modern external core receipt requires core contract digest')
+        if not self.external_core and self.core_contract_digest:
+            raise ValueError('built-in core receipt cannot claim external core contract digest')
 
     def payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             'agent_id': self.agent_id,
             'task_id': self.task_id,
             'tool_id': self.tool_id,
@@ -68,12 +85,21 @@ class CoreInvocationReceipt:
             'evidence_artifact_id': self.evidence_artifact_id,
             'mirrored_tool_receipt_id': self.mirrored_tool_receipt_id,
         }
+        if self.proof_version >= 2:
+            payload['core_contract_digest'] = self.core_contract_digest
+            payload['workspace_epoch_id'] = self.workspace_epoch_id
+        return payload
 
     def to_state(self) -> dict[str, Any]:
         return {'receipt_id': self.receipt_id, **self.payload(), 'digest': self.digest}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'CoreInvocationReceipt':
+        has_core_proof = 'core_contract_digest' in state
+        has_epoch_proof = 'workspace_epoch_id' in state
+        if has_core_proof != has_epoch_proof:
+            raise ValueError('core invocation receipt has incomplete execution proof')
+        proof_version = 2 if has_core_proof else 1
         row = cls(
             receipt_id=str(state['receipt_id']),
             agent_id=str(state['agent_id']),
@@ -91,6 +117,9 @@ class CoreInvocationReceipt:
             evidence_artifact_id=str(state['evidence_artifact_id']),
             mirrored_tool_receipt_id=None if state.get('mirrored_tool_receipt_id') is None else str(state['mirrored_tool_receipt_id']),
             digest=str(state['digest']),
+            core_contract_digest=str(state.get('core_contract_digest', '')),
+            workspace_epoch_id=str(state.get('workspace_epoch_id', '')),
+            proof_version=proof_version,
         )
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != 'core-' + expected[:24]:
@@ -126,6 +155,12 @@ class ExternalCoreExecutor:
     def external_core_ids(self) -> frozenset[str]:
         return frozenset(row.core_id for row in self.external_cores.specs())
 
+    def core_contract_digest(self, tool_id: str) -> str:
+        key = str(tool_id).strip()
+        if key not in self.external_core_ids:
+            return ''
+        return self.external_cores.get(key).contract_digest
+
     def register_handler(self, tool_id: str, handler: CoreHandler) -> None:
         key = str(tool_id).strip()
         if not key:
@@ -147,6 +182,27 @@ class ExternalCoreExecutor:
         identity = self.registry.get(agent_id)
         return tool_id in identity.tool_permissions or tool_id in identity.external_core_bindings
 
+    def _validate_execution_proof(
+        self,
+        *,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        core_contract_digest: str,
+        workspace_epoch_id: str,
+    ) -> None:
+        expected_epoch = str(workspace_epoch_id).strip()
+        if not expected_epoch:
+            raise ValueError('modern core invocation requires workspace execution epoch')
+        if workspace.active_execution_epoch_id != expected_epoch:
+            raise PermissionError('workspace execution epoch does not authorize core invocation')
+        supplied_core = str(core_contract_digest).strip()
+        actual_core = self.core_contract_digest(action.tool_id)
+        if action.tool_id in self.external_core_ids:
+            if not supplied_core or supplied_core != actual_core:
+                raise ValueError('external core contract digest mismatch')
+        elif supplied_core:
+            raise ValueError('built-in core invocation cannot claim external core contract digest')
+
     def _persist(
         self,
         *,
@@ -162,19 +218,26 @@ class ExternalCoreExecutor:
         output_artifact_ids: tuple[str, ...],
         evidence_kind: str,
         evidence_content: Mapping[str, Any],
+        core_contract_digest: str = '',
+        workspace_epoch_id: str = '',
+        proof_version: int = 1,
     ) -> CoreInvocationReceipt:
+        metadata: dict[str, Any] = {
+            'task_id': task_id,
+            'tool_id': action.tool_id,
+            'operation': action.operation,
+            'authorized': authorized,
+            'success': success,
+        }
+        if proof_version >= 2:
+            metadata['core_contract_digest'] = str(core_contract_digest)
+            metadata['workspace_epoch_id'] = str(workspace_epoch_id)
         evidence = self.artifacts.put(
             kind=evidence_kind,
             producer_agent_id=agent_id,
             content=canonical_json(dict(evidence_content)),
             evidence_refs=output_artifact_ids,
-            metadata={
-                'task_id': task_id,
-                'tool_id': action.tool_id,
-                'operation': action.operation,
-                'authorized': authorized,
-                'success': success,
-            },
+            metadata=metadata,
         )
         mirrored: str | None = None
         if self.coding_patches is not None:
@@ -188,7 +251,7 @@ class ExternalCoreExecutor:
                 evidence_refs=(evidence.artifact_id,),
             )
             mirrored = tool_receipt.receipt_id
-        payload = {
+        payload: dict[str, Any] = {
             'agent_id': str(agent_id),
             'task_id': str(task_id),
             'tool_id': action.tool_id,
@@ -204,6 +267,9 @@ class ExternalCoreExecutor:
             'evidence_artifact_id': evidence.artifact_id,
             'mirrored_tool_receipt_id': mirrored,
         }
+        if proof_version >= 2:
+            payload['core_contract_digest'] = str(core_contract_digest)
+            payload['workspace_epoch_id'] = str(workspace_epoch_id)
         digest = canonical_digest(payload)
         row = CoreInvocationReceipt(
             receipt_id='core-' + digest[:24],
@@ -222,6 +288,9 @@ class ExternalCoreExecutor:
             evidence_artifact_id=evidence.artifact_id,
             mirrored_tool_receipt_id=mirrored,
             digest=digest,
+            core_contract_digest=str(core_contract_digest) if proof_version >= 2 else '',
+            workspace_epoch_id=str(workspace_epoch_id) if proof_version >= 2 else '',
+            proof_version=proof_version,
         )
         existing = self._receipts.get(row.receipt_id)
         if existing is not None and existing != row:
@@ -241,6 +310,9 @@ class ExternalCoreExecutor:
         message: str,
         before: str | None = None,
         output_artifact_ids: tuple[str, ...] = (),
+        core_contract_digest: str = '',
+        workspace_epoch_id: str = '',
+        proof_version: int = 1,
     ) -> CoreInvocationReceipt:
         initial = workspace.digest if before is None else before
         return self._persist(
@@ -256,6 +328,9 @@ class ExternalCoreExecutor:
             output_artifact_ids=output_artifact_ids,
             evidence_kind='execution-core-failure',
             evidence_content={'failure_kind': failure_kind, 'message': message, 'output_artifact_ids': list(output_artifact_ids)},
+            core_contract_digest=core_contract_digest,
+            workspace_epoch_id=workspace_epoch_id,
+            proof_version=proof_version,
         )
 
     def invoke(
@@ -265,9 +340,21 @@ class ExternalCoreExecutor:
         task_id: str,
         workspace: RepositoryWorkspace,
         action: ToolAction,
+        core_contract_digest: str = '',
+        workspace_epoch_id: str = '',
         timeout_seconds: float = 30.0,
         max_output_chars: int = 200_000,
     ) -> CoreInvocationReceipt:
+        proof_requested = bool(str(core_contract_digest).strip() or str(workspace_epoch_id).strip())
+        proof_version = 2 if proof_requested else 1
+        if proof_requested:
+            self._validate_execution_proof(
+                workspace=workspace,
+                action=action,
+                core_contract_digest=core_contract_digest,
+                workspace_epoch_id=workspace_epoch_id,
+            )
+
         identity = self.registry.get(agent_id)
         before = workspace.digest
         tool_authorized = self._is_authorized(agent_id, action.tool_id)
@@ -276,12 +363,16 @@ class ExternalCoreExecutor:
                 agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                 authorized=False, failure_kind='permission_denied',
                 message=f'{agent_id} is not authorized for {action.tool_id}', before=before,
+                core_contract_digest=core_contract_digest, workspace_epoch_id=workspace_epoch_id,
+                proof_version=proof_version,
             )
         if identity.current_task != str(task_id):
             return self._failure(
                 agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                 authorized=True, failure_kind='task_lease_required',
                 message='tool execution requires the agent current task lease', before=before,
+                core_contract_digest=core_contract_digest, workspace_epoch_id=workspace_epoch_id,
+                proof_version=proof_version,
             )
 
         if action.mutation_paths and self.code_claims is not None:
@@ -295,6 +386,8 @@ class ExternalCoreExecutor:
                     agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                     authorized=True, failure_kind='code_claim_required',
                     message='source mutation requires active code-claim coverage', before=before,
+                    core_contract_digest=core_contract_digest, workspace_epoch_id=workspace_epoch_id,
+                    proof_version=proof_version,
                 )
 
         try:
@@ -311,11 +404,15 @@ class ExternalCoreExecutor:
                 agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                 authorized=True, failure_kind=exc.kind, message=str(exc), before=before,
                 output_artifact_ids=exc.output_artifact_ids,
+                core_contract_digest=core_contract_digest, workspace_epoch_id=workspace_epoch_id,
+                proof_version=proof_version,
             )
         except Exception as exc:
             return self._failure(
                 agent_id=agent_id, task_id=task_id, workspace=workspace, action=action,
                 authorized=True, failure_kind='execution_failure', message=f'{type(exc).__name__}: {exc}', before=before,
+                core_contract_digest=core_contract_digest, workspace_epoch_id=workspace_epoch_id,
+                proof_version=proof_version,
             )
 
         return self._persist(
@@ -331,6 +428,9 @@ class ExternalCoreExecutor:
             output_artifact_ids=outputs,
             evidence_kind='execution-core-success',
             evidence_content=evidence,
+            core_contract_digest=core_contract_digest,
+            workspace_epoch_id=workspace_epoch_id,
+            proof_version=proof_version,
         )
 
     def _dispatch(
