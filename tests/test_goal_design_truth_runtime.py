@@ -143,6 +143,10 @@ def test_runtime_fails_closed_when_truth_bound_goal_has_no_truth_authority():
 
 def test_runtime_applies_truth_policy_before_admitting_even_reversible_refuted_decision():
     truth = _truth()
+    truth.retract_evidence(
+        "ev:core:support",
+        reason_ref="correction:core-support",
+    )
     truth.add_evidence(
         AssumptionEvidence(
             "ev:core:refute",
