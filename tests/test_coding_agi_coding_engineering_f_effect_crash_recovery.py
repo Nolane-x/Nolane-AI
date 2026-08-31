@@ -133,6 +133,35 @@ def test_application_retry_fails_closed_when_applied_transaction_ref_does_not_ma
         )
 
 
+def test_application_reconciliation_preserves_history_after_claim_release():
+    patch, claims, plane, work, mutation = _precondition_plane()
+    intent = plane.prepare_application(
+        work_id=work.work_id,
+        patch=patch,
+        mutation_authority_receipt_id=mutation.receipt_id,
+        application_ref='executor:idempotency:apply-crash-recovery',
+    )
+    plane.transactions.mark_applied(
+        work.transaction_id,
+        application_ref=intent.application_ref,
+    )
+
+    # The effect is already historical fact. A later claim release must stop
+    # future mutation authority, not make receipt reconciliation impossible.
+    binding = plane.claim_bindings.get(work.claim_binding_id)
+    claim_id = binding.claim_snapshots[0].claim_id
+    claims.release(claim_id, actor_agent_id=patch.producer_agent_id)
+    assert plane.mutation_authority.preapply_reasons(work.transaction_id)
+
+    recovered = plane.commit_application(
+        intent.intent_id,
+        executor_receipt_ref='executor:receipt:apply-crash-recovery',
+    )
+
+    assert recovered.application_ref == intent.application_ref
+    assert plane.transactions.get(work.transaction_id).phase is EngineeringPhase.APPLIED
+
+
 def test_rollback_retry_reconstructs_completion_after_crash_between_tx_and_receipt():
     _, claims, plane, work, _, _, _ = _committed_application()
     rollback = plane.prepare_rollback(
