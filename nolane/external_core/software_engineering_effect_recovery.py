@@ -8,6 +8,7 @@ from nolane.external_core.software_engineering_effects import (
     EngineeringRollbackCompletion,
     EngineeringRollbackDecision,
 )
+from nolane.external_core.software_engineering_validity import EngineeringMutationAuthorityReceipt
 
 
 PARENT_COMPONENT_ID = "external.software_engineering.control"
@@ -44,7 +45,12 @@ class EngineeringEffectFinalizer:
         ):
             raise ValueError("application acknowledgement finalization lineage mismatch")
 
-        mutation_receipt = self.effects._mutation_receipt(intent.mutation_authority_receipt_id)
+        try:
+            mutation_receipt = self.effects.mutation_authority.get(intent.mutation_authority_receipt_id)
+        except KeyError as exc:
+            raise PermissionError("application acknowledgement requires known mutation authority receipt") from exc
+        if not isinstance(mutation_receipt, EngineeringMutationAuthorityReceipt):
+            raise TypeError("mutation authority ledger returned non-canonical receipt")
         if (
             mutation_receipt.digest != intent.mutation_authority_receipt_digest
             or not mutation_receipt.authorized
@@ -69,20 +75,23 @@ class EngineeringEffectFinalizer:
             if tx.application_ref != acknowledgement.application_ref:
                 raise ValueError("applied transaction application ref does not match application acknowledgement")
         elif tx.phase is EngineeringPhase.PRECONDITIONS_VERIFIED:
+            # This is strictly a local state transition after F already durably
+            # observed the external acknowledgement. It does not invoke an
+            # executor and intentionally does not rerun live claim authority.
             self.transactions.mark_applied(
                 tx.transaction_id,
                 application_ref=acknowledgement.application_ref,
             )
-            tx = self.transactions.get(tx.transaction_id)
         else:
             raise ValueError("application acknowledgement cannot finalize from current transaction phase")
 
-        row = self.effects._build_application_commit(
-            intent=intent,
-            transaction_id=tx.transaction_id,
+        # The canonical effects owner performs its APPLIED reconciliation path,
+        # which revalidates the immutable mutation receipt and constructs the
+        # canonical commit without invoking live preapply authorization.
+        return self.effects.commit_application(
+            intent.intent_id,
             executor_receipt_ref=acknowledgement.executor_receipt_ref,
         )
-        return self.effects._store_application_commit(row)
 
     def finalize_rollback(
         self,
