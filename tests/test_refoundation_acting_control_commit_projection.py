@@ -111,6 +111,9 @@ def _session() -> ExecutionSession:
         backend_id="backend-v1",
         checkpoint_digest="checkpoint-v1",
         workspace_base_revision="base-v1",
+        workspace_provenance_version=2,
+        initial_workspace_digest="workspace-before",
+        current_workspace_digest="workspace-before",
         decision_receipt_ids=("decision-1",),
     )
 
@@ -187,6 +190,7 @@ def test_control_plane_projects_known_committed_acting_result_without_reinvocati
     assert session.core_receipt_ids == ("core-1",)
     assert session.output_artifact_ids == ("artifact-1",)
     assert session.step_receipt_ids == (projected[0].receipt_id,)
+    assert session.current_workspace_digest == "workspace-after"
     assert projected[0].decision_receipt_id == "decision-1"
     assert projected[0].core_receipt_id == "core-1"
     assert projected[0].before_workspace_digest == "workspace-before"
