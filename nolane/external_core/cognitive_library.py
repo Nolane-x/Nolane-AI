@@ -7,7 +7,11 @@ from typing import Any, Iterable
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt
 
-from .cognitive_catalog import OperatorFamilyDescriptor, SubOperatorDescriptor, build_default_externalization_catalog
+from .cognitive_catalog import (
+    OperatorFamilyDescriptor,
+    SubOperatorDescriptor,
+    build_default_externalization_catalog,
+)
 from .cognitive_operators import Binary, Const, Expr, Field, IfElse, Unary
 from .cognitive_vocabulary import (
     AbstractionCall,
@@ -31,7 +35,12 @@ def _clean_id(value: object, *, field: str) -> str:
     return clean
 
 
-def _ordered_ids(values: Iterable[object], *, field: str, allow_empty: bool = True) -> tuple[str, ...]:
+def _ordered_ids(
+    values: Iterable[object],
+    *,
+    field: str,
+    allow_empty: bool = True,
+) -> tuple[str, ...]:
     rows = tuple(_clean_id(value, field=field) for value in values)
     if not allow_empty and not rows:
         raise ValueError(f"{field} must be non-empty")
@@ -40,7 +49,12 @@ def _ordered_ids(values: Iterable[object], *, field: str, allow_empty: bool = Tr
     return rows
 
 
-def _set_ids(values: Iterable[object], *, field: str, allow_empty: bool = True) -> tuple[str, ...]:
+def _set_ids(
+    values: Iterable[object],
+    *,
+    field: str,
+    allow_empty: bool = True,
+) -> tuple[str, ...]:
     return tuple(sorted(_ordered_ids(values, field=field, allow_empty=allow_empty)))
 
 
@@ -156,9 +170,20 @@ class CognitiveCapabilityDescriptor:
         payload_digest = _clean_id(self.payload_digest, field="payload_digest")
         predecessor_digest = _clean_id(self.predecessor_digest, field="predecessor_digest")
         receipt_id = _clean_id(self.assurance_receipt_id, field="assurance_receipt_id")
-        evidence_ids = _ordered_ids(self.evidence_ids, field="descriptor evidence ids", allow_empty=False)
-        verifier_ids = _ordered_ids(self.verifier_ids, field="descriptor verifier ids", allow_empty=False)
-        support_task_ids = _set_ids(self.support_task_ids, field="descriptor support task ids")
+        evidence_ids = _ordered_ids(
+            self.evidence_ids,
+            field="descriptor evidence ids",
+            allow_empty=False,
+        )
+        verifier_ids = _ordered_ids(
+            self.verifier_ids,
+            field="descriptor verifier ids",
+            allow_empty=False,
+        )
+        support_task_ids = _set_ids(
+            self.support_task_ids,
+            field="descriptor support task ids",
+        )
         object.__setattr__(self, "kind", kind)
         object.__setattr__(self, "capability_id", capability_id)
         object.__setattr__(self, "candidate_id", candidate_id)
@@ -208,11 +233,31 @@ class CognitiveCapabilityDescriptor:
             "kind": _clean_id(kind, field="descriptor kind"),
             "candidate_id": _clean_id(candidate_id, field="candidate_id"),
             "payload_digest": _clean_id(payload_digest, field="payload_digest"),
-            "predecessor_digest": _clean_id(predecessor_digest, field="predecessor_digest"),
-            "assurance_receipt_id": _clean_id(assurance_receipt_id, field="assurance_receipt_id"),
-            "evidence_ids": list(_ordered_ids(evidence_ids, field="descriptor evidence ids", allow_empty=False)),
-            "verifier_ids": list(_ordered_ids(verifier_ids, field="descriptor verifier ids", allow_empty=False)),
-            "support_task_ids": list(_set_ids(support_task_ids, field="descriptor support task ids")),
+            "predecessor_digest": _clean_id(
+                predecessor_digest,
+                field="predecessor_digest",
+            ),
+            "assurance_receipt_id": _clean_id(
+                assurance_receipt_id,
+                field="assurance_receipt_id",
+            ),
+            "evidence_ids": list(
+                _ordered_ids(
+                    evidence_ids,
+                    field="descriptor evidence ids",
+                    allow_empty=False,
+                )
+            ),
+            "verifier_ids": list(
+                _ordered_ids(
+                    verifier_ids,
+                    field="descriptor verifier ids",
+                    allow_empty=False,
+                )
+            ),
+            "support_task_ids": list(
+                _set_ids(support_task_ids, field="descriptor support task ids")
+            ),
         }
         return cls(
             descriptor_id=f"cognitive-capability:{canonical_digest(semantic)}",
@@ -239,7 +284,9 @@ class CognitiveCapabilityDescriptor:
             assurance_receipt_id=str(state["assurance_receipt_id"]),
             evidence_ids=tuple(str(value) for value in state.get("evidence_ids", ())),
             verifier_ids=tuple(str(value) for value in state.get("verifier_ids", ())),
-            support_task_ids=tuple(str(value) for value in state.get("support_task_ids", ())),
+            support_task_ids=tuple(
+                str(value) for value in state.get("support_task_ids", ())
+            ),
         )
         if row.to_state() != dict(state):
             raise ValueError("non-canonical cognitive capability descriptor state")
@@ -259,14 +306,32 @@ class LibraryFitReport:
 
     def __post_init__(self) -> None:
         library_digest = _clean_id(self.library_digest, field="library_digest")
-        required_operators = _set_ids(self.required_operator_ids, field="required operator ids")
-        required_abstractions = _set_ids(self.required_abstraction_ids, field="required abstraction ids")
+        required_operators = _set_ids(
+            self.required_operator_ids,
+            field="required operator ids",
+        )
+        required_abstractions = _set_ids(
+            self.required_abstraction_ids,
+            field="required abstraction ids",
+        )
         if not required_operators and not required_abstractions:
             raise ValueError("fit diagnostics require at least one capability id")
-        matched_operators = _set_ids(self.matched_operator_ids, field="matched operator ids")
-        missing_operators = _set_ids(self.missing_operator_ids, field="missing operator ids")
-        matched_abstractions = _set_ids(self.matched_abstraction_ids, field="matched abstraction ids")
-        missing_abstractions = _set_ids(self.missing_abstraction_ids, field="missing abstraction ids")
+        matched_operators = _set_ids(
+            self.matched_operator_ids,
+            field="matched operator ids",
+        )
+        missing_operators = _set_ids(
+            self.missing_operator_ids,
+            field="missing operator ids",
+        )
+        matched_abstractions = _set_ids(
+            self.matched_abstraction_ids,
+            field="matched abstraction ids",
+        )
+        missing_abstractions = _set_ids(
+            self.missing_abstraction_ids,
+            field="missing abstraction ids",
+        )
         descriptor_ids = _set_ids(self.descriptor_ids, field="descriptor ids")
         if set(matched_operators).intersection(missing_operators):
             raise ValueError("operator fit partitions overlap")
@@ -274,7 +339,9 @@ class LibraryFitReport:
             raise ValueError("abstraction fit partitions overlap")
         if set(matched_operators).union(missing_operators) != set(required_operators):
             raise ValueError("operator fit partition mismatch")
-        if set(matched_abstractions).union(missing_abstractions) != set(required_abstractions):
+        if set(matched_abstractions).union(missing_abstractions) != set(
+            required_abstractions
+        ):
             raise ValueError("abstraction fit partition mismatch")
         object.__setattr__(self, "library_digest", library_digest)
         object.__setattr__(self, "required_operator_ids", required_operators)
@@ -317,13 +384,27 @@ class LibraryFitReport:
     def from_state(cls, state: Mapping[str, Any]) -> "LibraryFitReport":
         row = cls(
             library_digest=str(state["library_digest"]),
-            required_operator_ids=tuple(str(value) for value in state.get("required_operator_ids", ())),
-            required_abstraction_ids=tuple(str(value) for value in state.get("required_abstraction_ids", ())),
-            matched_operator_ids=tuple(str(value) for value in state.get("matched_operator_ids", ())),
-            missing_operator_ids=tuple(str(value) for value in state.get("missing_operator_ids", ())),
-            matched_abstraction_ids=tuple(str(value) for value in state.get("matched_abstraction_ids", ())),
-            missing_abstraction_ids=tuple(str(value) for value in state.get("missing_abstraction_ids", ())),
-            descriptor_ids=tuple(str(value) for value in state.get("descriptor_ids", ())),
+            required_operator_ids=tuple(
+                str(value) for value in state.get("required_operator_ids", ())
+            ),
+            required_abstraction_ids=tuple(
+                str(value) for value in state.get("required_abstraction_ids", ())
+            ),
+            matched_operator_ids=tuple(
+                str(value) for value in state.get("matched_operator_ids", ())
+            ),
+            missing_operator_ids=tuple(
+                str(value) for value in state.get("missing_operator_ids", ())
+            ),
+            matched_abstraction_ids=tuple(
+                str(value) for value in state.get("matched_abstraction_ids", ())
+            ),
+            missing_abstraction_ids=tuple(
+                str(value) for value in state.get("missing_abstraction_ids", ())
+            ),
+            descriptor_ids=tuple(
+                str(value) for value in state.get("descriptor_ids", ())
+            ),
         )
         if row.to_state() != dict(state):
             raise ValueError("non-canonical cognitive library fit state")
@@ -331,27 +412,39 @@ class LibraryFitReport:
 
 
 class CognitiveVocabularyView:
-    """Read-only projection of the learned-abstraction vocabulary."""
+    """Read-only snapshot projection of learned abstractions.
 
-    __slots__ = ("__vocabulary",)
+    The view contains immutable abstraction records only; it never retains the
+    mutable CognitiveVocabulary registry that owns installation authority.
+    """
 
-    def __init__(self, vocabulary: CognitiveVocabulary) -> None:
-        self.__vocabulary = vocabulary
+    __slots__ = ("__items",)
+
+    def __init__(self, abstractions: Iterable[LearnedAbstraction]) -> None:
+        items = tuple(abstractions)
+        if not all(isinstance(row, LearnedAbstraction) for row in items):
+            raise TypeError("vocabulary view requires LearnedAbstraction values")
+        self.__items = tuple(sorted(items, key=lambda row: row.abstraction_id))
 
     def get(self, abstraction_id: str) -> LearnedAbstraction:
-        return self.__vocabulary.get(abstraction_id)
+        key = str(abstraction_id)
+        for row in self.__items:
+            if row.abstraction_id == key:
+                return row
+        raise KeyError(key)
 
     def abstractions(self) -> tuple[LearnedAbstraction, ...]:
-        return self.__vocabulary.abstractions()
+        return self.__items
 
 
 class CognitiveLibrary:
     """Canonical registry for reusable cognition with fail-closed live writes.
 
-    Constructor/from-state inputs are bootstrap or restore material. Runtime growth
-    must carry an exact persisted Assurance promotion receipt bound to the candidate
-    payload and the current library digest. Retrieval and fit diagnostics are
-    read-only and never grant promotion authority.
+    Constructor inputs are trusted bootstrap material. Runtime growth must carry
+    an exact persisted Assurance promotion receipt bound to the candidate payload
+    and the current library digest. Authority-bearing persisted snapshots are
+    re-authorized against persisted Assurance receipts during restoration.
+    Retrieval and fit diagnostics are read-only and never grant promotion authority.
     """
 
     def __init__(
@@ -382,7 +475,7 @@ class CognitiveLibrary:
 
     @property
     def vocabulary(self) -> CognitiveVocabularyView:
-        return CognitiveVocabularyView(self._vocabulary)
+        return CognitiveVocabularyView(self._vocabulary.abstractions())
 
     def _register_family_unchecked(self, family: OperatorFamilyDescriptor) -> None:
         if not isinstance(family, OperatorFamilyDescriptor):
@@ -390,20 +483,50 @@ class CognitiveLibrary:
         existing = self._families.get(family.family_id)
         if existing is not None:
             if existing != family:
-                raise ValueError(f"conflicting cognitive operator family: {family.family_id}")
+                raise ValueError(
+                    f"conflicting cognitive operator family: {family.family_id}"
+                )
             return
         occupied = {
             sub.operator_id
             for registered in self._families.values()
             for sub in registered.suboperators
         }
-        duplicate_ids = sorted(occupied.intersection(sub.operator_id for sub in family.suboperators))
+        duplicate_ids = sorted(
+            occupied.intersection(sub.operator_id for sub in family.suboperators)
+        )
         if duplicate_ids:
             raise ValueError(f"conflicting cognitive operator ids: {duplicate_ids}")
         self._families[family.family_id] = family
 
     def _register_abstraction_unchecked(self, abstraction: LearnedAbstraction) -> None:
         self._vocabulary.register(abstraction)
+
+    @staticmethod
+    def _persisted_receipt(
+        assurance: AssuranceControlPlane,
+        receipt: PromotionAssuranceReceipt,
+    ) -> PromotionAssuranceReceipt:
+        if not isinstance(assurance, AssuranceControlPlane):
+            raise TypeError("assurance must be native AssuranceControlPlane")
+        if not isinstance(receipt, PromotionAssuranceReceipt):
+            raise TypeError("receipt must be PromotionAssuranceReceipt")
+        PromotionAssuranceReceipt.from_state(receipt.to_state())
+        try:
+            persisted = AssuranceControlPlane.promotion_receipt(
+                assurance,
+                receipt.receipt_id,
+            )
+        except (KeyError, LookupError) as exc:
+            raise ValueError("persisted assurance receipt is required") from exc
+        if not isinstance(persisted, PromotionAssuranceReceipt):
+            raise ValueError("persisted assurance receipt has invalid type")
+        PromotionAssuranceReceipt.from_state(persisted.to_state())
+        if persisted != receipt:
+            raise ValueError(
+                "persisted assurance receipt does not match supplied receipt"
+            )
+        return persisted
 
     def _validate_promotion_authority(
         self,
@@ -414,24 +537,11 @@ class CognitiveLibrary:
         assurance: AssuranceControlPlane,
         receipt: PromotionAssuranceReceipt,
     ) -> PromotionAssuranceReceipt:
-        if not isinstance(assurance, AssuranceControlPlane):
-            raise TypeError("assurance must be native AssuranceControlPlane")
-        if not isinstance(receipt, PromotionAssuranceReceipt):
-            raise TypeError("receipt must be PromotionAssuranceReceipt")
         clean_candidate = _clean_id(candidate_id, field="candidate_id")
         expected_candidate = _capability_candidate_id(kind, payload)
         if clean_candidate != expected_candidate:
             raise ValueError("cognitive capability candidate identity mismatch")
-        PromotionAssuranceReceipt.from_state(receipt.to_state())
-        try:
-            persisted = AssuranceControlPlane.promotion_receipt(assurance, receipt.receipt_id)
-        except (KeyError, LookupError) as exc:
-            raise ValueError("persisted assurance receipt is required") from exc
-        if not isinstance(persisted, PromotionAssuranceReceipt):
-            raise ValueError("persisted assurance receipt has invalid type")
-        PromotionAssuranceReceipt.from_state(persisted.to_state())
-        if persisted != receipt:
-            raise ValueError("persisted assurance receipt does not match supplied receipt")
+        persisted = self._persisted_receipt(assurance, receipt)
         if not persisted.authorized:
             raise ValueError("promotion assurance receipt is not authorized")
         if persisted.subject_id != clean_candidate:
@@ -439,6 +549,38 @@ class CognitiveLibrary:
         if persisted.predecessor_version != self.digest:
             raise ValueError("promotion assurance receipt predecessor baseline mismatch")
         return persisted
+
+    @staticmethod
+    def _validate_restored_descriptor_authority(
+        assurance: AssuranceControlPlane,
+        descriptor: CognitiveCapabilityDescriptor,
+    ) -> None:
+        if not isinstance(assurance, AssuranceControlPlane):
+            raise ValueError(
+                "persisted assurance authority is required to restore cognitive capability"
+            )
+        try:
+            receipt = AssuranceControlPlane.promotion_receipt(
+                assurance,
+                descriptor.assurance_receipt_id,
+            )
+        except (KeyError, LookupError) as exc:
+            raise ValueError(
+                "persisted assurance receipt is required to restore cognitive capability"
+            ) from exc
+        if not isinstance(receipt, PromotionAssuranceReceipt):
+            raise ValueError("persisted assurance receipt has invalid type")
+        PromotionAssuranceReceipt.from_state(receipt.to_state())
+        if not receipt.authorized:
+            raise ValueError("restored promotion assurance receipt is not authorized")
+        if receipt.subject_id != descriptor.candidate_id:
+            raise ValueError("restored promotion assurance receipt subject mismatch")
+        if tuple(receipt.evidence_ids) != descriptor.evidence_ids:
+            raise ValueError("restored promotion assurance receipt evidence mismatch")
+        if tuple(receipt.verifier_ids) != descriptor.verifier_ids:
+            raise ValueError("restored promotion assurance receipt verifier mismatch")
+        if receipt.predecessor_version != descriptor.predecessor_digest:
+            raise ValueError("restored promotion assurance receipt predecessor mismatch")
 
     @staticmethod
     def _descriptor_for_promotion(
@@ -462,11 +604,16 @@ class CognitiveLibrary:
             support_task_ids=support_task_ids,
         )
 
-    def _validate_descriptor_binding(self, descriptor: CognitiveCapabilityDescriptor) -> None:
+    def _validate_descriptor_binding(
+        self,
+        descriptor: CognitiveCapabilityDescriptor,
+    ) -> None:
         if descriptor.kind == "operator_family":
             payload = _family_state(self.family(descriptor.capability_id))
         else:
-            payload = _abstraction_state(self._vocabulary.get(descriptor.capability_id))
+            payload = _abstraction_state(
+                self._vocabulary.get(descriptor.capability_id)
+            )
         if canonical_digest(payload) != descriptor.payload_digest:
             raise ValueError("cognitive capability descriptor payload mismatch")
         if _capability_candidate_id(descriptor.kind, payload) != descriptor.candidate_id:
@@ -474,7 +621,9 @@ class CognitiveLibrary:
 
     def _restore_descriptor(self, descriptor: CognitiveCapabilityDescriptor) -> None:
         if not isinstance(descriptor, CognitiveCapabilityDescriptor):
-            raise TypeError("descriptors must contain CognitiveCapabilityDescriptor values")
+            raise TypeError(
+                "descriptors must contain CognitiveCapabilityDescriptor values"
+            )
         self._validate_descriptor_binding(descriptor)
         existing = self._descriptors.get(descriptor.descriptor_id)
         if existing is not None:
@@ -483,7 +632,9 @@ class CognitiveLibrary:
             return
         prior = self._descriptor_by_candidate.get(descriptor.candidate_id)
         if prior is not None and prior != descriptor.descriptor_id:
-            raise ValueError("candidate already has a cognitive capability descriptor")
+            raise ValueError(
+                "candidate already has a cognitive capability descriptor"
+            )
         self._descriptors[descriptor.descriptor_id] = descriptor
         self._descriptor_by_candidate[descriptor.candidate_id] = descriptor.descriptor_id
 
@@ -500,7 +651,9 @@ class CognitiveLibrary:
         if family.family_id in self._families:
             existing = self._families[family.family_id]
             if existing != family:
-                raise ValueError(f"conflicting cognitive operator family: {family.family_id}")
+                raise ValueError(
+                    f"conflicting cognitive operator family: {family.family_id}"
+                )
             raise ValueError("cognitive capability is already installed")
         payload = _family_state(family)
         persisted = self._validate_promotion_authority(
@@ -518,7 +671,9 @@ class CognitiveLibrary:
             receipt=persisted,
         )
         if descriptor.candidate_id in self._descriptor_by_candidate:
-            raise ValueError("candidate already has a cognitive capability descriptor")
+            raise ValueError(
+                "candidate already has a cognitive capability descriptor"
+            )
         self._register_family_unchecked(family)
         self._restore_descriptor(descriptor)
         return descriptor
@@ -558,7 +713,9 @@ class CognitiveLibrary:
             support_task_ids=abstraction.support_task_ids,
         )
         if descriptor.candidate_id in self._descriptor_by_candidate:
-            raise ValueError("candidate already has a cognitive capability descriptor")
+            raise ValueError(
+                "candidate already has a cognitive capability descriptor"
+            )
         self._register_abstraction_unchecked(abstraction)
         self._restore_descriptor(descriptor)
         return descriptor
@@ -591,7 +748,10 @@ class CognitiveLibrary:
         except KeyError:
             raise KeyError(key) from None
 
-    def descriptor_for_candidate(self, candidate_id: str) -> CognitiveCapabilityDescriptor:
+    def descriptor_for_candidate(
+        self,
+        candidate_id: str,
+    ) -> CognitiveCapabilityDescriptor:
         key = str(candidate_id)
         try:
             descriptor_id = self._descriptor_by_candidate[key]
@@ -612,8 +772,14 @@ class CognitiveLibrary:
         operator_ids: Iterable[str] = (),
         abstraction_ids: Iterable[str] = (),
     ) -> LibraryFitReport:
-        required_operators = _set_ids(operator_ids, field="required operator ids")
-        required_abstractions = _set_ids(abstraction_ids, field="required abstraction ids")
+        required_operators = _set_ids(
+            operator_ids,
+            field="required operator ids",
+        )
+        required_abstractions = _set_ids(
+            abstraction_ids,
+            field="required abstraction ids",
+        )
         if not required_operators and not required_abstractions:
             raise ValueError("fit diagnostics require at least one capability id")
         baseline = self.digest
@@ -630,7 +796,10 @@ class CognitiveLibrary:
                 continue
             matched_operators.append(operator_id)
             for descriptor in self._descriptors.values():
-                if descriptor.kind == "operator_family" and descriptor.capability_id == family_id:
+                if (
+                    descriptor.kind == "operator_family"
+                    and descriptor.capability_id == family_id
+                ):
                     descriptor_ids.add(descriptor.descriptor_id)
 
         for abstraction_id in required_abstractions:
@@ -641,7 +810,10 @@ class CognitiveLibrary:
                 continue
             matched_abstractions.append(abstraction_id)
             for descriptor in self._descriptors.values():
-                if descriptor.kind == "learned_abstraction" and descriptor.capability_id == abstraction_id:
+                if (
+                    descriptor.kind == "learned_abstraction"
+                    and descriptor.capability_id == abstraction_id
+                ):
                     descriptor_ids.add(descriptor.descriptor_id)
 
         return LibraryFitReport(
@@ -661,12 +833,21 @@ class CognitiveLibrary:
             "component_id": COMPONENT_ID,
             "component_version": COMPONENT_VERSION,
             "families": [_family_state(row) for row in self.families()],
-            "abstractions": [_abstraction_state(row) for row in self._vocabulary.abstractions()],
-            "descriptors": [row.to_state() for row in self.capability_descriptors()],
+            "abstractions": [
+                _abstraction_state(row) for row in self._vocabulary.abstractions()
+            ],
+            "descriptors": [
+                row.to_state() for row in self.capability_descriptors()
+            ],
         }
 
     @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> "CognitiveLibrary":
+    def from_state(
+        cls,
+        state: Mapping[str, Any],
+        *,
+        assurance: AssuranceControlPlane | None = None,
+    ) -> "CognitiveLibrary":
         schema_version = str(state.get("schema_version"))
         if schema_version not in {_SCHEMA_VERSION, _LEGACY_SCHEMA_VERSION}:
             raise ValueError("unsupported cognitive library schema")
@@ -679,14 +860,33 @@ class CognitiveLibrary:
         elif component_version not in {"0.0.1", COMPONENT_VERSION}:
             raise ValueError("cognitive library component version mismatch")
 
-        families = tuple(_family_from_state(row) for row in state.get("families", ()))
-        abstractions = tuple(_abstraction_from_state(row) for row in state.get("abstractions", ()))
+        families = tuple(
+            _family_from_state(row) for row in state.get("families", ())
+        )
+        abstractions = tuple(
+            _abstraction_from_state(row) for row in state.get("abstractions", ())
+        )
         descriptors = (
-            tuple(CognitiveCapabilityDescriptor.from_state(row) for row in state.get("descriptors", ()))
+            tuple(
+                CognitiveCapabilityDescriptor.from_state(row)
+                for row in state.get("descriptors", ())
+            )
             if schema_version == _SCHEMA_VERSION
             else ()
         )
-        result = cls(families=families, abstractions=abstractions, descriptors=descriptors)
+        if descriptors:
+            if not isinstance(assurance, AssuranceControlPlane):
+                raise ValueError(
+                    "persisted assurance authority is required to restore cognitive library descriptors"
+                )
+            for descriptor in descriptors:
+                cls._validate_restored_descriptor_authority(assurance, descriptor)
+
+        result = cls(
+            families=families,
+            abstractions=abstractions,
+            descriptors=descriptors,
+        )
         if schema_version == _SCHEMA_VERSION and result.to_state() != dict(state):
             raise ValueError("non-canonical cognitive library state")
         return result
