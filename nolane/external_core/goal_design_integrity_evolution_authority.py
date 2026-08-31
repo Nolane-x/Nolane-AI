@@ -16,7 +16,7 @@ from .goal_design import stable_digest
 from ._goal_design_integrity_evolution_v01 import assess_goal_integrity_evolution
 from .goal_design_integrity import GoalIntegrityContract
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 AUTHORITY_STATE_SCHEMA_VERSION = 1
 GOAL_INTEGRITY_EVOLUTION_ACTION = "goal_integrity_contract_evolution"
@@ -398,6 +398,29 @@ class GoalIntegrityEvolutionAuthorityVerifier:
             )
         return grant
 
+    def _assert_live_chain_not_revoked(
+        self,
+        grant_id: str,
+        *,
+        trail: frozenset[str] = frozenset(),
+    ) -> None:
+        """Treat any recorded revocation as permanent for new live mutations."""
+
+        identity = _ref("grant_id", grant_id)
+        if identity in trail:
+            raise ValueError("Goal/Design evolution delegation cycle detected")
+        try:
+            grant = self._grants[identity]
+        except KeyError as exc:
+            raise ValueError("unknown Goal/Design evolution grant") from exc
+        if identity in self._revoked_at:
+            raise ValueError("Goal/Design evolution grant is revoked for live use")
+        if grant.parent_grant_id is not None:
+            self._assert_live_chain_not_revoked(
+                grant.parent_grant_id,
+                trail=trail | {identity},
+            )
+
     def _sign_proof(
         self,
         provisional: GoalIntegrityEvolutionAuthorizationProof,
@@ -482,6 +505,8 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         delta_digest: str,
         action: str = GOAL_INTEGRITY_EVOLUTION_ACTION,
     ) -> GoalIntegrityEvolutionAuthorizationProof:
+        """Verify historical authenticity at the proof's verifier-issued time."""
+
         identity = _ref("proof_id", proof_id)
         try:
             proof = self._proofs[identity]
@@ -503,6 +528,33 @@ class GoalIntegrityEvolutionAuthorityVerifier:
             raise ValueError("Goal/Design evolution authorization proof subject mismatch")
         if proof.goal_id not in grant.goal_ids or proof.action not in grant.actions:
             raise ValueError("Goal/Design evolution authorization proof exceeds grant scope")
+        return proof
+
+    def verify_live_authorization_proof(
+        self,
+        proof_id: str,
+        *,
+        goal_id: str,
+        predecessor_digest: str,
+        successor_digest: str,
+        delta_digest: str,
+        action: str = GOAL_INTEGRITY_EVOLUTION_ACTION,
+    ) -> GoalIntegrityEvolutionAuthorizationProof:
+        """Verify a proof for a new mutation under current, non-revived authority."""
+
+        proof = self.verify_authorization_proof(
+            proof_id,
+            goal_id=goal_id,
+            predecessor_digest=predecessor_digest,
+            successor_digest=successor_digest,
+            delta_digest=delta_digest,
+            action=action,
+        )
+        now = self._now()
+        if now < proof.issued_at_epoch_s:
+            raise ValueError("Goal/Design evolution authority clock precedes proof issuance")
+        self._assert_live_chain_not_revoked(proof.grant_id)
+        self._validate_chain_at(proof.grant_id, now)
         return proof
 
     def verify_contract_transition(
