@@ -72,17 +72,25 @@ def verify_decision_receipt(receipt: DecisionReceipt) -> str:
 
 
 def decision_event_payload(receipt: DecisionReceipt) -> dict[str, Any]:
-    """Canonical ledger payload for an authoritative decision event."""
+    """Return the canonical DECISION-event payload for the receipt generation.
 
-    verify_decision_receipt(receipt)
-    return {
+    Historical v1 receipts predate manifest-aware ledger events, so their exact
+    authority event omitted ``input_manifest_digest``. v2 receipts require the
+    manifest-aware event payload. The receipt verifier determines the generation
+    first, preventing callers from choosing a weaker event schema for v2 data.
+    """
+
+    receipt_version = verify_decision_receipt(receipt)
+    payload: dict[str, Any] = {
         "receipt_id": receipt.receipt_id,
         "goal_id": receipt.goal_id,
         "selected_option_id": receipt.selected_option_id,
         "snapshot_digest": receipt.snapshot_digest,
         "evaluation_digest": receipt.evaluation_digest,
-        "input_manifest_digest": receipt.input_manifest_digest,
     }
+    if receipt_version == "v2":
+        payload["input_manifest_digest"] = receipt.input_manifest_digest
+    return payload
 
 
 def decision_event_subject_refs(receipt: DecisionReceipt) -> tuple[str, ...]:
