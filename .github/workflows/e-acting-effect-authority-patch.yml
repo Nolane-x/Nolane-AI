@@ -53,8 +53,6 @@ jobs:
             tests/test_refoundation_acting_runtime.py \
             tests/test_refoundation_component_versions.py \
             tests/test_refoundation_wave5aa_native_execution_control.py \
-            .github/workflows/refoundation-e-acting.yml \
-            .github/workflows/e-acting-final-verification.yml \
             CURRENT/E_ACTING.md
           git diff --cached --check
           git commit -m 'feat(e-acting): enforce monotone effect authority'
