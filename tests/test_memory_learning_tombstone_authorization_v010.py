@@ -14,6 +14,7 @@ class _RegistryStub:
         self._actors = {
             "memory.chief": SimpleNamespace(agent_id="memory.chief", region="memory-context-knowledge"),
             "memory.worker": SimpleNamespace(agent_id="memory.worker", region="memory-context-knowledge"),
+            "coding.worker": SimpleNamespace(agent_id="coding.worker", region="core-coding"),
         }
 
     def get(self, agent_id: str):
@@ -65,6 +66,85 @@ def test_restore_rejects_forged_tombstone_borrowing_unrelated_archive_authority(
     ]
 
     with pytest.raises(ValueError, match="tombstone.*authorization|authorization.*tombstone|forget.*authority"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_forget_persists_actor_and_exact_archive_receipt_authority() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    tombstone = substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="explicit governed forgetting",
+        evidence_refs=("forget-proof",),
+    )
+    archive = substrate.lifecycle.receipts_for(row.memory_id)[-1]
+
+    assert tombstone.actor_agent_id == "memory.worker"
+    assert tombstone.archive_receipt_id == archive.receipt_id
+    assert archive.new_status is MemoryStatus.ARCHIVED
+
+    restored = LearningSubstrate.from_state(
+        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
+    )
+    assert restored.tombstone(row.memory_id) == tombstone
+
+
+def test_forget_of_prearchived_memory_binds_existing_terminal_archive_receipt() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    archive = substrate.lifecycle.transition(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        new_status=MemoryStatus.ARCHIVED,
+        reason="retention_window_closed",
+        evidence_refs=("archive-proof",),
+    )
+    tombstone = substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.chief",
+        reason="later governed forgetting",
+        evidence_refs=("forget-proof",),
+    )
+
+    assert tombstone.actor_agent_id == "memory.chief"
+    assert tombstone.archive_receipt_id == archive.receipt_id
+    assert substrate.lifecycle.receipts_for(row.memory_id) == (archive,)
+    restored = LearningSubstrate.from_state(
+        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
+    )
+    assert restored.tombstone(row.memory_id) == tombstone
+
+
+def test_restore_rejects_tombstone_actor_rebinding_outside_memory_authority() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="explicit governed forgetting",
+        evidence_refs=("forget-proof",),
+    )
+    state = substrate.to_state()
+    state["tombstones"][0]["actor_agent_id"] = "coding.worker"
+
+    with pytest.raises(PermissionError, match="Memory/Context|tombstone.*actor|forget"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
+def test_restore_rejects_tombstone_archive_receipt_rebinding() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        reason="explicit governed forgetting",
+        evidence_refs=("forget-proof",),
+    )
+    state = substrate.to_state()
+    state["tombstones"][0]["archive_receipt_id"] = "memory-lifecycle-99999999"
+
+    with pytest.raises(ValueError, match="archived lifecycle authority|archive.*receipt"):
         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
 
 
