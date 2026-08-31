@@ -1,0 +1,123 @@
+name: C9 Atomic Revision Cutover
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+
+permissions:
+  contents: write
+
+concurrency:
+  group: c9-atomic-revision-cutover
+  cancel-in-progress: false
+
+jobs:
+  cutover:
+    if: github.event.head_commit.message == 'chore: stage C9 atomic revision cutover'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Guard exact source and main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "41218c085651d5c72147dc1e21db60de8d4c6182"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "0cd7e955c53762ba593b4a0e56d90f7a29a2d807"
+      - name: Merge latest accepted main
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "Nolane C9 Cutover"
+          git config user.email "c9-cutover@users.noreply.github.com"
+          git merge --no-edit origin/main
+      - name: Apply exact C9 revision cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              "nolane/external_core/reasoning_invention.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/external_core/reasoning_evaluation.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/external_core/reasoning_frontier.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/external_core/reasoning_metacontrol.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/external_core/reasoning_review.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/external_core/reasoning_meta_learning.py": [
+                  ('COMPONENT_VERSION = "0.0.2"', 'COMPONENT_VERSION = "0.0.3"'),
+              ],
+              "nolane/metadata/component_versions.py": [
+                  ('"external.reasoning_invention": 2,', '"external.reasoning_invention": 3,'),
+              ],
+              "tests/test_refoundation_component_versions.py": [
+                  ('"external.reasoning_invention": 2,', '"external.reasoning_invention": 3,'),
+              ],
+              "tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py": [
+                  ('test_reasoning_invention_is_declared_as_canonical_native_v002_component', 'test_reasoning_invention_is_declared_as_canonical_native_v003_component'),
+                  ('assert str(manifest.version) == "0.0.2"', 'assert str(manifest.version) == "0.0.3"'),
+                  ('assert record.component_version == "0.0.2"', 'assert record.component_version == "0.0.3"'),
+              ],
+              "tests/test_refoundation_post_epoch0_reasoning_invention.py": [
+                  ('assert module.COMPONENT_VERSION == "0.0.2"', 'assert module.COMPONENT_VERSION == "0.0.3"'),
+              ],
+              "tests/test_refoundation_post_epoch0_reasoning_metacontrol.py": [
+                  ('assert core.COMPONENT_VERSION == "0.0.2"', 'assert core.COMPONENT_VERSION == "0.0.3"'),
+                  ('assert evaluation.COMPONENT_VERSION == "0.0.2"', 'assert evaluation.COMPONENT_VERSION == "0.0.3"'),
+                  ('assert str(component_version("external.reasoning_invention")) == "0.0.2"', 'assert str(component_version("external.reasoning_invention")) == "0.0.3"'),
+              ],
+              "tests/test_refoundation_post_epoch0_reasoning_invention_evaluation.py": [
+                  ('assert native.COMPONENT_VERSION == "0.0.2"', 'assert native.COMPONENT_VERSION == "0.0.3"'),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding="utf-8")
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f"{filename}: expected exactly one {old!r}, found {count}")
+                  text = text.replace(old, new, 1)
+              path.write_text(text, encoding="utf-8")
+          PY
+      - name: Verify focused C9 cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q nolane/external_core nolane/metadata
+          python -m pip install -q pytest
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_reasoning_episode.py \
+            tests/test_refoundation_post_epoch0_reasoning_episode_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_metacontrol.py \
+            tests/test_refoundation_post_epoch0_reasoning_metacontrol_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention_evaluation.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py \
+            tests/test_refoundation_component_versions.py
+          git diff --check
+      - name: Commit cutover and self-clean staging workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/c9-atomic-revision-cutover.yml
+          git add -A
+          git commit -m "feat: cut over Reasoning/Invention family to v0.0.3"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
