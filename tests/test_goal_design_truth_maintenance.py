@@ -131,6 +131,7 @@ def test_decision_policy_is_reversibility_sensitive_and_fail_closed_on_refutatio
     truth.add_evidence(_evidence("critical:support", "asm:critical", AssumptionPolarity.SUPPORTS, 0.9))
     assert truth.decision_blockers(("asm:critical",), DecisionClass.IRREVERSIBLE) == ()
 
+    truth.retract_evidence("critical:support", reason_ref="correction:critical-support")
     truth.add_evidence(_evidence("critical:refute", "asm:critical", AssumptionPolarity.REFUTES, 0.99))
     blockers = truth.decision_blockers(("asm:critical",), DecisionClass.REVERSIBLE)
     assert blockers and "refuted" in blockers[0].lower()
