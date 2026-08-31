@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.3"
+COMPONENT_VERSION = "0.1.4"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -70,6 +70,29 @@ class VerifierLevel(IntEnum):
         return cls(int(value))
 
 
+_EXECUTION_RISK_RANK = {
+    ExecutionRisk.R0: 0,
+    ExecutionRisk.R1: 1,
+    ExecutionRisk.R2: 2,
+    ExecutionRisk.R3: 3,
+    ExecutionRisk.R4: 4,
+}
+_EFFECT_MINIMUM_RISK = {
+    EffectClass.READ: ExecutionRisk.R1,
+    EffectClass.LOCAL_MUTATION: ExecutionRisk.R2,
+    EffectClass.EXTERNAL_MUTATION: ExecutionRisk.R3,
+    EffectClass.IRREVERSIBLE: ExecutionRisk.R4,
+}
+
+
+def execution_risk_rank(risk_class: ExecutionRisk | str) -> int:
+    return _EXECUTION_RISK_RANK[ExecutionRisk(risk_class)]
+
+
+def minimum_risk_for_effect(effect_class: EffectClass | str) -> ExecutionRisk:
+    return _EFFECT_MINIMUM_RISK[EffectClass(effect_class)]
+
+
 @dataclass(frozen=True, slots=True)
 class ActionBudget:
     """Per-action side-effect budget. Zero is meaningful for effect counters."""
@@ -124,6 +147,12 @@ class ExecutionContract:
     def __post_init__(self) -> None:
         object.__setattr__(self, "risk_class", ExecutionRisk(self.risk_class))
         object.__setattr__(self, "effect_class", EffectClass(self.effect_class))
+        minimum_risk = minimum_risk_for_effect(self.effect_class)
+        if execution_risk_rank(self.risk_class) < execution_risk_rank(minimum_risk):
+            raise ValueError(
+                "risk class understates effect class: "
+                f"{self.risk_class.value} < {minimum_risk.value} for {self.effect_class.value}"
+            )
         if isinstance(self.budget, Mapping):
             object.__setattr__(self, "budget", ActionBudget.from_state(self.budget))
         object.__setattr__(self, "required_capabilities", tuple(str(x) for x in self.required_capabilities))
@@ -1148,6 +1177,8 @@ __all__ = (
     "LeaseExpired",
     "ProtocolViolation",
     "VerifierLevel",
+    "execution_risk_rank",
+    "minimum_risk_for_effect",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
 )
