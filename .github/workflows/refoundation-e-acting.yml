@@ -62,6 +62,7 @@ jobs:
             tests/test_refoundation_acting_workspace.py \
             tests/test_refoundation_acting_workspace_epochs.py \
             tests/test_refoundation_acting_core_proof_continuity.py \
+            tests/test_refoundation_acting_session_proof_continuity.py \
             tests/test_refoundation_acting_runtime.py \
             tests/test_refoundation_acting_effect_authority.py \
             tests/test_refoundation_acting_receipt_provenance.py \
