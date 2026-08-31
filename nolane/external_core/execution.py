@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.6"
+COMPONENT_VERSION = "0.0.7"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -52,6 +52,9 @@ class ExecutionSession:
     backend_id: str
     checkpoint_digest: str
     workspace_base_revision: str
+    workspace_provenance_version: int = 1
+    initial_workspace_digest: str | None = None
+    current_workspace_digest: str | None = None
     decision_receipt_ids: tuple[str, ...] = ()
     step_receipt_ids: tuple[str, ...] = ()
     core_receipt_ids: tuple[str, ...] = ()
@@ -59,8 +62,26 @@ class ExecutionSession:
     terminal_receipt_id: str | None = None
     wall_clock_ms: int = 0
 
+    def __post_init__(self) -> None:
+        version = int(self.workspace_provenance_version)
+        if version not in {1, 2}:
+            raise ValueError('unsupported workspace provenance version')
+        object.__setattr__(self, 'workspace_provenance_version', version)
+        initial = None if self.initial_workspace_digest is None else str(self.initial_workspace_digest).strip()
+        current = None if self.current_workspace_digest is None else str(self.current_workspace_digest).strip()
+        if version == 1:
+            if initial or current:
+                raise ValueError('legacy execution session cannot carry modern workspace digest')
+            object.__setattr__(self, 'initial_workspace_digest', None)
+            object.__setattr__(self, 'current_workspace_digest', None)
+            return
+        if not initial or not current:
+            raise ValueError('modern execution session requires workspace digest')
+        object.__setattr__(self, 'initial_workspace_digest', initial)
+        object.__setattr__(self, 'current_workspace_digest', current)
+
     def to_state(self) -> dict[str, Any]:
-        return {
+        state = {
             'session_id': self.session_id,
             'agent_id': self.agent_id,
             'task_id': self.task_id,
@@ -79,6 +100,11 @@ class ExecutionSession:
             'terminal_receipt_id': self.terminal_receipt_id,
             'wall_clock_ms': self.wall_clock_ms,
         }
+        if self.workspace_provenance_version >= 2:
+            state['workspace_provenance_version'] = self.workspace_provenance_version
+            state['initial_workspace_digest'] = self.initial_workspace_digest
+            state['current_workspace_digest'] = self.current_workspace_digest
+        return state
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionSession':
@@ -94,6 +120,15 @@ class ExecutionSession:
             backend_id=str(state['backend_id']),
             checkpoint_digest=str(state['checkpoint_digest']),
             workspace_base_revision=str(state['workspace_base_revision']),
+            workspace_provenance_version=int(state.get('workspace_provenance_version', 1)),
+            initial_workspace_digest=(
+                None if state.get('initial_workspace_digest') is None
+                else str(state['initial_workspace_digest'])
+            ),
+            current_workspace_digest=(
+                None if state.get('current_workspace_digest') is None
+                else str(state['current_workspace_digest'])
+            ),
             decision_receipt_ids=tuple(str(x) for x in state.get('decision_receipt_ids', ())),
             step_receipt_ids=tuple(str(x) for x in state.get('step_receipt_ids', ())),
             core_receipt_ids=tuple(str(x) for x in state.get('core_receipt_ids', ())),
@@ -339,6 +374,8 @@ class OrganizationExecutionControlPlane:
                 if decision.step_index != position:
                     raise ValueError('execution decision step ordering mismatch')
 
+            first_workspace_digest: str | None = None
+            previous_workspace_digest: str | None = None
             for receipt_id in session.step_receipt_ids:
                 step = self._steps.get(receipt_id)
                 if step is None:
@@ -355,6 +392,23 @@ class OrganizationExecutionControlPlane:
                     raise ValueError('execution step receipt index binding mismatch')
                 if step.core_receipt_id is not None and step.core_receipt_id not in session.core_receipt_ids:
                     raise ValueError('execution step receipt core binding mismatch')
+                if first_workspace_digest is None:
+                    first_workspace_digest = step.before_workspace_digest
+                if (
+                    previous_workspace_digest is not None
+                    and step.before_workspace_digest != previous_workspace_digest
+                ):
+                    raise ValueError('workspace digest continuity mismatch')
+                previous_workspace_digest = step.after_workspace_digest
+
+            if session.workspace_provenance_version >= 2:
+                if session.step_receipt_ids:
+                    if first_workspace_digest != session.initial_workspace_digest:
+                        raise ValueError('workspace digest continuity mismatch at session origin')
+                    if previous_workspace_digest != session.current_workspace_digest:
+                        raise ValueError('workspace digest continuity mismatch at session frontier')
+                elif session.current_workspace_digest != session.initial_workspace_digest:
+                    raise ValueError('workspace digest continuity mismatch for empty session')
 
             if session.terminal_receipt_id is not None:
                 terminal = self._terminals.get(session.terminal_receipt_id)
@@ -402,6 +456,13 @@ class OrganizationExecutionControlPlane:
     def digest(self) -> str:
         return canonical_digest(self.to_state())
 
+    def _persisted_workspace_fence(self, session: ExecutionSession) -> str | None:
+        if session.workspace_provenance_version >= 2:
+            return session.current_workspace_digest
+        if session.step_receipt_ids:
+            return self._steps[session.step_receipt_ids[-1]].after_workspace_digest
+        return None
+
     def bind_backend(self, agent_id: str, backend: AgentInferenceBackend) -> None:
         identity = self.registry.get(agent_id)
         if not str(backend.backend_id).strip() or not str(backend.checkpoint_digest).strip():
@@ -416,6 +477,9 @@ class OrganizationExecutionControlPlane:
         session = self.get_session(session_id)
         if workspace.base_revision != session.workspace_base_revision:
             raise ValueError('reattached workspace revision does not match persisted session')
+        expected_digest = self._persisted_workspace_fence(session)
+        if expected_digest is not None and workspace.digest != expected_digest:
+            raise ValueError('reattached workspace digest does not match persisted session frontier')
         self._workspaces[session.session_id] = workspace
 
     def sessions(self) -> tuple[ExecutionSession, ...]:
@@ -460,6 +524,9 @@ class OrganizationExecutionControlPlane:
         schema = tuple(str(x) for x in action_schema if str(x).strip())
         if not schema:
             raise ValueError('execution action schema must be non-empty')
+        workspace_digest = str(workspace.digest).strip()
+        if not workspace_digest:
+            raise ValueError('execution start requires workspace digest')
         self._session_counter += 1
         row = ExecutionSession(
             session_id=f'execution-{self._session_counter:08d}',
@@ -473,6 +540,9 @@ class OrganizationExecutionControlPlane:
             backend_id=str(backend.backend_id),
             checkpoint_digest=str(backend.checkpoint_digest),
             workspace_base_revision=workspace.base_revision,
+            workspace_provenance_version=2,
+            initial_workspace_digest=workspace_digest,
+            current_workspace_digest=workspace_digest,
         )
         self._sessions[row.session_id] = row
         self._workspaces[row.session_id] = workspace
@@ -562,6 +632,13 @@ class OrganizationExecutionControlPlane:
         workspace = self._workspaces.get(session.session_id)
         if workspace is None:
             raise RuntimeError('execution workspace must be attached before stepping')
+        if session.workspace_provenance_version < 2:
+            raise RuntimeError(
+                'legacy execution session lacks workspace provenance; '
+                'forward execution requires a modern workspace fence'
+            )
+        if workspace.digest != session.current_workspace_digest:
+            raise RuntimeError('attached workspace digest differs from persisted execution session')
         task = self.tasks.get(session.task_id)
         if task.aborted_by is not None:
             return self._terminal(session, ExecutionState.ABORTED, task.abort_reason or 'task aborted')
@@ -647,6 +724,8 @@ class OrganizationExecutionControlPlane:
             else:
                 recovery_plan = ''
 
+            if workspace.digest != session.current_workspace_digest:
+                raise RuntimeError('workspace digest changed before transactional dispatch')
             acting = self.acting_executor.invoke(
                 agent_id=session.agent_id,
                 task_id=session.task_id,
@@ -671,6 +750,8 @@ class OrganizationExecutionControlPlane:
                 lease_ttl_ms=60_000,
             )
             core = self.executor.get_receipt(acting.core_receipt_id)
+            if core.before_workspace_digest != session.current_workspace_digest:
+                raise ValueError('core receipt workspace fence mismatch')
             counters = ExecutionCounters(
                 steps=session.counters.steps,
                 tool_calls=session.counters.tool_calls + 1,
@@ -697,6 +778,7 @@ class OrganizationExecutionControlPlane:
                 output_artifact_ids=outputs,
                 core_receipt_ids=session.core_receipt_ids + (core.receipt_id,),
                 step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),
+                current_workspace_digest=str(core.after_workspace_digest),
                 wall_clock_ms=session.wall_clock_ms + elapsed,
                 state=state_after,
             )
@@ -816,6 +898,12 @@ class OrganizationExecutionControlPlane:
                     raise ValueError('committed acting action references unavailable core receipt') from exc
                 if not bool(core.success):
                     raise ValueError('committed acting action references unsuccessful core receipt')
+                expected_workspace_digest = self._persisted_workspace_fence(session)
+                if (
+                    expected_workspace_digest is not None
+                    and str(core.before_workspace_digest) != expected_workspace_digest
+                ):
+                    raise ValueError('committed acting action workspace fence mismatch')
                 committed_receipts[row.action_id] = core
             candidates.append((row, session, decision_id))
 
@@ -867,6 +955,11 @@ class OrganizationExecutionControlPlane:
                     output_artifact_ids=outputs,
                     core_receipt_ids=session.core_receipt_ids + (str(core.receipt_id),),
                     step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),
+                    current_workspace_digest=(
+                        str(core.after_workspace_digest)
+                        if session.workspace_provenance_version >= 2
+                        else session.current_workspace_digest
+                    ),
                 )
                 self._sessions[session.session_id] = updated
                 results.append(step_receipt)

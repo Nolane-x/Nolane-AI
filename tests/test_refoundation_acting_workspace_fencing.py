@@ -284,7 +284,7 @@ def test_modern_workspace_digest_fence_survives_state_roundtrip_and_controls_rea
     state.update(
         {
             "workspace_provenance_version": 2,
-            "initial_workspace_digest": "workspace-initial",
+            "initial_workspace_digest": "workspace-current",
             "current_workspace_digest": "workspace-current",
         }
     )
@@ -303,7 +303,7 @@ def test_modern_workspace_digest_fence_survives_state_roundtrip_and_controls_rea
     )
     roundtrip = session.to_state()
     assert roundtrip["workspace_provenance_version"] == 2
-    assert roundtrip["initial_workspace_digest"] == "workspace-initial"
+    assert roundtrip["initial_workspace_digest"] == "workspace-current"
     assert roundtrip["current_workspace_digest"] == "workspace-current"
 
 

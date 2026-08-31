@@ -26,7 +26,7 @@ E does not own goals, candidate synthesis, planning, architecture selection, cau
 | Execution Workspace | `nolane/external_core/execution_workspace.py` | `0.0.3` | isolated Git worktree + reversible local checkpoints + full-payload digest-proven restore, including ignored files and empty directories |
 | Transaction Protocol | `nolane/external_core/acting_protocol.py` | `0.1.4` | lifecycle, lifecycle-bound modern leases, capability gates, effect budgets, idempotency, postcondition gates, rollback/degraded state, hash-chained receipts, legacy schema-1 restore enrichment, fail-closed interrupted-action reconciliation |
 | Transactional Executor | `nolane/external_core/acting_runtime.py` | `0.1.4` | checkpoint/invoke/verify/commit or restore/recover around the concrete core executor, monotonic elapsed-time lease enforcement, executor-free restart reconciliation, and fail-closed concrete receipt provenance validation |
-| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.6` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger, validates receipt provenance, and conservatively classifies unconfined process tools |
+| Canonical Execution Control | `nolane/external_core/execution.py` | `0.0.7` | compatibility-facing organization controller whose effectful tool path is forced through `TransactionalExternalCoreExecutor`; persists/restores the transactional ledger, validates receipt provenance, and conservatively classifies unconfined process tools |
 
 ## Canonical flow
 
@@ -74,6 +74,9 @@ A concrete tool returning success is not enough to commit. `OrganizationExecutio
 22. Persisted non-terminal actions are never blindly resumed after process/runtime interruption. Pre-dispatch actions are cancelled; interrupted reads may be closed as explicit no-side-effect rollback; any mutating action at or beyond `EXECUTING` is degraded because completion and rollback evidence are not provable after restart. Reconciliation itself must not invoke the concrete executor.
 23. Risk authority is monotone with effect authority: READ requires at least R1, local mutation R2, external mutation R3, and irreversible effect R4. An execution contract cannot encode a weaker risk class than its effect class.
 24. Physical effect classification is enforced again at the transactional runtime before any ledger or core mutation. Only bounded built-in reads are admitted as READ; filesystem writes are local mutations; process, external, custom, and unknown handlers are external-like by default. Caller-supplied effect/risk labels cannot downgrade this floor.
+25. Modern execution sessions bind both the initial and current full workspace payload digest in provenance-v2 state. Reattachment requires the same base revision and the exact current payload digest; a same-revision substituted worktree is not execution authority.
+26. Persisted step receipts form one workspace chain: every step's `before_workspace_digest` must equal the previous step's `after_workspace_digest`; modern session origin/frontier digests must agree with the first/last receipt.
+27. Legacy execution sessions remain loadable for historical inspection and crash reconciliation but cannot resume forward execution. Stripping modern workspace-provenance fields therefore cannot downgrade a v2 session into effect authority. Normal commits and committed crash projections both advance the v2 current workspace fence.
 
 ## Crash-safe restart reconciliation
 
@@ -105,7 +108,7 @@ The E integration extends canonical runtime state with the transactional executo
 - The original pre-B E Acting cutover fingerprint `eda96a54b833dee2a3eb2a3e697fb658f4ff73729fff76fa6746ba554a6d602e` remains historical evidence for the earlier E-only state.
 - Integrating E Acting on top of the accepted unified-B/Memory runtime creates the current first-generation fingerprint `530054ed6d094c5ea000e38002346746ca63ddfb4d1c58b1d9f772263218415d`.
 - That integrated fingerprint was observed identically on CPython 3.11.16 and 3.13.15 in an intentional RED run whose only Refoundation failure was the still-old unified-B fingerprint assertion; all other 645 Refoundation tests passed on each leg.
-- Protocol `0.1.3` keeps acting schema version 1 for backward compatibility. It changes restart behavior rather than persisted shape: legacy digest-less records are still accepted only through full lifecycle projection validation and are emitted with a content digest on the next `to_state()`; modern lease transitions retain their stronger lifecycle evidence; interrupted rows are resolved by appending existing canonical terminal event types.
+- Protocol `0.1.4` keeps acting schema version 1 for backward compatibility. It changes restart behavior rather than persisted shape: legacy digest-less records are still accepted only through full lifecycle projection validation and are emitted with a content digest on the next `to_state()`; modern lease transitions retain their stronger lifecycle evidence; interrupted rows are resolved by appending existing canonical terminal event types.
 
 This preserves deterministic first-generation state while keeping every accepted persistence cutover independently auditable.
 
@@ -126,7 +129,8 @@ The canonical-integration regression contracts additionally require that:
 - unconfined process tools use the external-like R3/V3 verifier floor;
 - schema-1 records without a local record digest restore only if the lifecycle projection remains valid and are enriched on reserialization;
 - modern persisted lease identity remains bound to its acquisition/renewal/revocation lifecycle evidence even if an attacker recomputes local lease and record digests; and
-- persisted in-flight actions reconcile without effect re-invocation: pre-effect rows cancel, read-only rows close with explicit no-side-effect rollback, and uncertain mutating rows degrade.
+- persisted in-flight actions reconcile without effect re-invocation: pre-effect rows cancel, read-only rows close with explicit no-side-effect rollback, and uncertain mutating rows degrade; and
+- workspace provenance-v2 rejects same-revision payload substitution, enforces receipt-to-receipt digest continuity, advances the frontier on normal/recovered commits, and prevents legacy-state forward-execution downgrade.
 
 Full original design rationale: `docs/superpowers/specs/2026-08-30-refoundation-e-acting-transactional-runtime-design.md`.
 Crash-reconciliation design rationale: `docs/superpowers/specs/2026-08-31-e-acting-crash-reconciliation-design.md`.
