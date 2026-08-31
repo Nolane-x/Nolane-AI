@@ -1,46 +1,56 @@
-"""Goal/Design integrity runtime with explicit contract-evolution authority.
+"""Goal/Design integrity runtime with authenticated evolution authority.
 
-The v0.1 runtime is frozen in ``_goal_design_integrity_runtime_v01``. This
-module preserves that authority surface while adding restart-verifiable,
-content-addressed permission for every non-root contract revision.
+The accepted v0.2 runtime is frozen in ``_goal_design_integrity_runtime_v02``.
+This v0.3 layer preserves structural lineage/receipt verification while making
+permission independently verifiable through an injected capability authority.
 """
 from __future__ import annotations
 
 from typing import Any, Mapping
 
-from . import _goal_design_integrity_runtime_v01 as _base
-from ._goal_design_integrity_runtime_v01 import *  # noqa: F401,F403
+from . import _goal_design_integrity_runtime_v02 as _v02
+from ._goal_design_integrity_runtime_v02 import *  # noqa: F401,F403
 from .goal_design import CoherenceError, stable_digest
 from .goal_design_integrity import GoalIntegrityContract
 from .goal_design_integrity_evolution import (
-    EXPLICIT_EVOLUTION_TRUST,
     LEGACY_UNATTESTED_TRUST,
     GoalIntegrityEvolutionReceipt,
-    goal_integrity_evolution_receipt_from_state,
-    goal_integrity_evolution_receipt_to_state,
     verify_goal_integrity_evolution_receipt,
 )
+from .goal_design_integrity_evolution_authority import (
+    GoalIntegrityEvolutionAuthorityVerifier,
+)
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
+
+VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
+LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
 
 
-class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
-    """v0.2 terminal-integrity runtime with explicit revision authority."""
+class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
+    """v0.3 terminal-integrity runtime with verifier-backed revision authority."""
 
-    EVOLUTION_STATE_SCHEMA_VERSION = 2
+    AUTHENTICITY_STATE_SCHEMA_VERSION = 3
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *args: Any,
+        evolution_authority_verifier: GoalIntegrityEvolutionAuthorityVerifier | None = None,
+        **kwargs: Any,
+    ) -> None:
         super().__init__(*args, **kwargs)
-        self._evolution_receipts: dict[str, GoalIntegrityEvolutionReceipt] = {}
-        self._legacy_unattested_evolution_digests: set[str] = set()
+        self.evolution_authority_verifier = evolution_authority_verifier
+        self._legacy_unverified_authority_digests: set[str] = set()
+        self._verified_capability_evolution_digests: set[str] = set()
 
-    def _ensure_evolution_state(self) -> None:
-        # Some authority tests intentionally construct the bounded integrity
-        # layer with __new__ and no five-plane runtime. Keep that seam valid.
-        if not hasattr(self, "_evolution_receipts"):
-            self._evolution_receipts = {}
-        if not hasattr(self, "_legacy_unattested_evolution_digests"):
-            self._legacy_unattested_evolution_digests = set()
+    def _ensure_authority_authenticity_state(self) -> None:
+        self._ensure_evolution_state()
+        if not hasattr(self, "evolution_authority_verifier"):
+            self.evolution_authority_verifier = None
+        if not hasattr(self, "_legacy_unverified_authority_digests"):
+            self._legacy_unverified_authority_digests = set()
+        if not hasattr(self, "_verified_capability_evolution_digests"):
+            self._verified_capability_evolution_digests = set()
 
     def install_integrity_contract(
         self,
@@ -49,39 +59,36 @@ class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
         supersedes_digest: str | None = None,
         evolution_receipt: GoalIntegrityEvolutionReceipt | None = None,
     ) -> str:
-        """Install root authority or supersede only with exact evolution proof."""
+        """Install a revision only after structural and authentic authority proof."""
 
-        self._ensure_evolution_state()
+        self._ensure_authority_authenticity_state()
         current_digest = self._current_contracts.get(contract.goal_id)
 
         if current_digest is None or current_digest == contract.digest:
-            if evolution_receipt is not None:
-                raise CoherenceError(
-                    "Goal/Design evolution authority is only valid for a changed non-root contract"
-                )
             return super().install_integrity_contract(
                 contract,
                 supersedes_digest=supersedes_digest,
+                evolution_receipt=evolution_receipt,
             )
 
-        # Preserve the v0.1 ordering for lineage errors and historical replay:
-        # a caller cannot hide a wrong predecessor behind a missing receipt.
         supplied = "" if supersedes_digest is None else str(supersedes_digest).strip()
         if supplied != current_digest or contract.digest in self._integrity_contracts:
             return super().install_integrity_contract(
                 contract,
                 supersedes_digest=supersedes_digest,
+                evolution_receipt=evolution_receipt,
             )
 
         if evolution_receipt is None:
-            raise CoherenceError(
-                "Goal/Design integrity contract evolution requires explicit evolution authority; "
-                "an exact predecessor digest proves lineage but cannot authorize semantic revision"
+            return super().install_integrity_contract(
+                contract,
+                supersedes_digest=supersedes_digest,
+                evolution_receipt=None,
             )
 
         predecessor = self._integrity_contracts[current_digest]
         try:
-            verify_goal_integrity_evolution_receipt(
+            delta = verify_goal_integrity_evolution_receipt(
                 evolution_receipt,
                 predecessor=predecessor,
                 successor=contract,
@@ -91,72 +98,92 @@ class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
                 f"Goal/Design integrity evolution authority is invalid: {exc}"
             ) from exc
 
+        verifier = self.evolution_authority_verifier
+        if verifier is None:
+            raise CoherenceError(
+                "Goal/Design integrity evolution requires an authenticity verifier; "
+                "a self-asserted authority reference is not a capability proof"
+            )
+        try:
+            verifier.verify_authorization_proof(
+                evolution_receipt.authority_ref,
+                goal_id=contract.goal_id,
+                predecessor_digest=predecessor.digest,
+                successor_digest=contract.digest,
+                delta_digest=delta.digest,
+            )
+        except ValueError as exc:
+            raise CoherenceError(
+                f"Goal/Design integrity evolution authority proof is not authentic: {exc}"
+            ) from exc
+
         result = super().install_integrity_contract(
             contract,
             supersedes_digest=supersedes_digest,
+            evolution_receipt=evolution_receipt,
         )
-        self._evolution_receipts[contract.digest] = evolution_receipt
+        self._verified_capability_evolution_digests.add(contract.digest)
+        self._legacy_unverified_authority_digests.discard(contract.digest)
         self._legacy_unattested_evolution_digests.discard(contract.digest)
         return result
 
-    def evolution_receipt_for(self, contract_digest: str) -> GoalIntegrityEvolutionReceipt:
-        self._ensure_evolution_state()
-        digest = str(contract_digest).strip()
-        try:
-            return self._evolution_receipts[digest]
-        except KeyError as exc:
-            raise KeyError(f"no explicit Goal/Design evolution receipt for {digest}") from exc
-
     def evolution_trust_label(self, contract_digest: str) -> str:
-        self._ensure_evolution_state()
+        self._ensure_authority_authenticity_state()
         digest = str(contract_digest).strip()
-        if digest in self._evolution_receipts:
-            return EXPLICIT_EVOLUTION_TRUST
+        if digest in self._verified_capability_evolution_digests:
+            return VERIFIED_CAPABILITY_AUTHORITY_TRUST
+        if digest in self._legacy_unverified_authority_digests:
+            return LEGACY_UNVERIFIED_AUTHORITY_TRUST
         if digest in self._legacy_unattested_evolution_digests:
             return LEGACY_UNATTESTED_TRUST
         raise KeyError(f"contract {digest} is not a Goal/Design integrity revision")
 
     @staticmethod
-    def _state_digest(payload: Mapping[str, Any]) -> str:
-        return stable_digest({"goal_integrity_runtime_state_v2": dict(payload)})
+    def _state_digest_v3(payload: Mapping[str, Any]) -> str:
+        return stable_digest({"goal_integrity_runtime_state_v3": dict(payload)})
 
     def integrity_state(self) -> dict[str, Any]:
-        self._ensure_evolution_state()
+        self._ensure_authority_authenticity_state()
         base_state = super().integrity_state()
         payload: dict[str, Any] = {
-            "schema_version": self.EVOLUTION_STATE_SCHEMA_VERSION,
+            "schema_version": self.AUTHENTICITY_STATE_SCHEMA_VERSION,
             "contracts": base_state["contracts"],
             "current_contracts": base_state["current_contracts"],
             "authority": base_state["authority"],
-            "evolution_receipts": [
-                {
-                    "successor_digest": digest,
-                    "receipt": goal_integrity_evolution_receipt_to_state(
-                        self._evolution_receipts[digest]
-                    ),
-                }
-                for digest in sorted(self._evolution_receipts)
-            ],
+            "evolution_receipts": base_state["evolution_receipts"],
             "legacy_unattested_evolution_digests": tuple(
                 sorted(self._legacy_unattested_evolution_digests)
             ),
+            "legacy_unverified_authority_digests": tuple(
+                sorted(self._legacy_unverified_authority_digests)
+            ),
+            "verified_capability_evolution_digests": tuple(
+                sorted(self._verified_capability_evolution_digests)
+            ),
         }
-        return {**payload, "state_digest": self._state_digest(payload)}
+        return {**payload, "state_digest": self._state_digest_v3(payload)}
 
     @staticmethod
-    def _validated_base_runtime(state: Mapping[str, Any]) -> _base.GoalIntegrityRuntime:
-        temporary = _base.GoalIntegrityRuntime.__new__(_base.GoalIntegrityRuntime)
-        temporary.integrity_authority = _base.GoalIntegrityAuthorityIndex()
+    def _blank_v02_runtime() -> _v02.GoalIntegrityRuntime:
+        temporary = _v02.GoalIntegrityRuntime.__new__(_v02.GoalIntegrityRuntime)
+        temporary.integrity_authority = _v02.GoalIntegrityAuthorityIndex()
         temporary._integrity_contracts = {}
         temporary._current_contracts = {}
         temporary._contract_predecessors = {}
+        temporary._evolution_receipts = {}
+        temporary._legacy_unattested_evolution_digests = set()
+        return temporary
+
+    @classmethod
+    def _restore_v02_temporary(cls, state: Mapping[str, Any]) -> _v02.GoalIntegrityRuntime:
+        temporary = cls._blank_v02_runtime()
         temporary.restore_integrity_state(state)
         return temporary
 
     def restore_integrity_state(self, state: Mapping[str, Any]) -> None:
-        """Atomically restore v2 authority, or explicitly migrate historical v1."""
+        """Atomically restore v3, or truthfully migrate historical v1/v2 state."""
 
-        self._ensure_evolution_state()
+        self._ensure_authority_authenticity_state()
         if (
             self._integrity_contracts
             or self._current_contracts
@@ -164,23 +191,28 @@ class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
             or self.integrity_authority.records()
             or self._evolution_receipts
             or self._legacy_unattested_evolution_digests
+            or self._legacy_unverified_authority_digests
+            or self._verified_capability_evolution_digests
         ):
             raise ValueError("Goal/Design integrity runtime state is already populated")
 
-        schema = int(state.get("schema_version", _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION))
-        if schema == _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION:
-            # Historical state predates evolution receipts. Preserve it without
-            # fabricating evidence, and make that trust boundary explicit on the
-            # first v2 reserialization.
-            temporary = self._validated_base_runtime(state)
-            receipts: dict[str, GoalIntegrityEvolutionReceipt] = {}
-            legacy = {
-                digest
-                for digest, predecessor in temporary._contract_predecessors.items()
-                if predecessor is not None
-            }
-        elif schema == self.EVOLUTION_STATE_SCHEMA_VERSION:
-            payload = {
+        schema = int(
+            state.get(
+                "schema_version",
+                _v02._base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION,
+            )
+        )
+
+        if schema in (
+            _v02._base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION,
+            _v02.GoalIntegrityRuntime.EVOLUTION_STATE_SCHEMA_VERSION,
+        ):
+            temporary = self._restore_v02_temporary(state)
+            legacy_unattested = set(temporary._legacy_unattested_evolution_digests)
+            legacy_unverified = set(temporary._evolution_receipts)
+            verified: set[str] = set()
+        elif schema == self.AUTHENTICITY_STATE_SCHEMA_VERSION:
+            payload: dict[str, Any] = {
                 "schema_version": schema,
                 "contracts": state.get("contracts", ()),
                 "current_contracts": state.get("current_contracts", {}),
@@ -189,69 +221,99 @@ class GoalIntegrityRuntime(_base.GoalIntegrityRuntime):
                 "legacy_unattested_evolution_digests": tuple(
                     state.get("legacy_unattested_evolution_digests", ())
                 ),
+                "legacy_unverified_authority_digests": tuple(
+                    state.get("legacy_unverified_authority_digests", ())
+                ),
+                "verified_capability_evolution_digests": tuple(
+                    state.get("verified_capability_evolution_digests", ())
+                ),
             }
-            if str(state.get("state_digest", "")) != self._state_digest(payload):
-                raise ValueError("Goal/Design integrity runtime v2 state digest mismatch")
+            if str(state.get("state_digest", "")) != self._state_digest_v3(payload):
+                raise ValueError("Goal/Design integrity runtime v3 state digest mismatch")
 
-            base_state = {
-                "schema_version": _base.GoalIntegrityRuntime.INTEGRITY_STATE_SCHEMA_VERSION,
+            v02_payload = {
+                "schema_version": _v02.GoalIntegrityRuntime.EVOLUTION_STATE_SCHEMA_VERSION,
                 "contracts": payload["contracts"],
                 "current_contracts": payload["current_contracts"],
                 "authority": payload["authority"],
+                "evolution_receipts": payload["evolution_receipts"],
+                "legacy_unattested_evolution_digests": tuple(
+                    payload["legacy_unattested_evolution_digests"]
+                ),
             }
-            temporary = self._validated_base_runtime(base_state)
+            v02_state = {
+                **v02_payload,
+                "state_digest": _v02.GoalIntegrityRuntime._state_digest(v02_payload),
+            }
+            temporary = self._restore_v02_temporary(v02_state)
 
-            receipts = {}
-            for row in payload["evolution_receipts"]:
-                successor_digest = str(row["successor_digest"])
-                if successor_digest in receipts:
-                    raise ValueError("duplicate Goal/Design integrity evolution receipt")
-                receipt = goal_integrity_evolution_receipt_from_state(row["receipt"])
-                successor = temporary._integrity_contracts.get(successor_digest)
-                predecessor_digest = temporary._contract_predecessors.get(successor_digest)
-                predecessor = temporary._integrity_contracts.get(predecessor_digest)
-                if successor is None or predecessor is None:
-                    raise ValueError(
-                        "Goal/Design evolution receipt references a non-revision contract"
-                    )
-                verify_goal_integrity_evolution_receipt(
-                    receipt,
-                    predecessor=predecessor,
-                    successor=successor,
+            legacy_unattested = {
+                str(value) for value in payload["legacy_unattested_evolution_digests"]
+            }
+            legacy_unverified = {
+                str(value) for value in payload["legacy_unverified_authority_digests"]
+            }
+            verified = {
+                str(value) for value in payload["verified_capability_evolution_digests"]
+            }
+            if legacy_unattested != set(temporary._legacy_unattested_evolution_digests):
+                raise ValueError("Goal/Design v3 legacy-unattested provenance does not match topology")
+            if legacy_unverified & verified:
+                raise ValueError("Goal/Design revision cannot be both legacy-unverified and verified")
+            if (legacy_unverified | verified) != set(temporary._evolution_receipts):
+                raise ValueError(
+                    "every receipted Goal/Design revision requires verified or legacy-unverified provenance"
                 )
-                receipts[successor_digest] = receipt
-
-            legacy = {
-                str(value)
-                for value in payload["legacy_unattested_evolution_digests"]
-            }
             revision_digests = {
                 digest
                 for digest, predecessor in temporary._contract_predecessors.items()
                 if predecessor is not None
             }
-            if set(receipts) & legacy:
+            if legacy_unattested & (legacy_unverified | verified):
+                raise ValueError("Goal/Design revision trust provenance classes must be disjoint")
+            if legacy_unattested | legacy_unverified | verified != revision_digests:
+                raise ValueError("every Goal/Design revision requires exactly one trust provenance class")
+
+            if verified and self.evolution_authority_verifier is None:
                 raise ValueError(
-                    "Goal/Design integrity revision cannot be both explicit and legacy-unattested"
+                    "Goal/Design v3 verified revisions require an injected authority authenticity verifier"
                 )
-            if set(receipts) | legacy != revision_digests:
-                raise ValueError(
-                    "every Goal/Design integrity revision requires explicit or legacy trust provenance"
-                )
+            verifier = self.evolution_authority_verifier
+            if verifier is not None:
+                for digest in sorted(verified):
+                    receipt = temporary._evolution_receipts[digest]
+                    predecessor_digest = temporary._contract_predecessors[digest]
+                    predecessor = temporary._integrity_contracts[predecessor_digest]
+                    successor = temporary._integrity_contracts[digest]
+                    delta = verify_goal_integrity_evolution_receipt(
+                        receipt,
+                        predecessor=predecessor,
+                        successor=successor,
+                    )
+                    verifier.verify_authorization_proof(
+                        receipt.authority_ref,
+                        goal_id=successor.goal_id,
+                        predecessor_digest=predecessor.digest,
+                        successor_digest=successor.digest,
+                        delta_digest=delta.digest,
+                    )
         else:
             raise ValueError("unsupported Goal/Design integrity runtime schema")
 
-        # Publish only after base topology, authority, receipt identity and every
-        # evolution edge have all been proven on the temporary runtime.
         self._integrity_contracts = dict(temporary._integrity_contracts)
         self._current_contracts = dict(temporary._current_contracts)
         self._contract_predecessors = dict(temporary._contract_predecessors)
         self.integrity_authority = temporary.integrity_authority
-        self._evolution_receipts = dict(receipts)
-        self._legacy_unattested_evolution_digests = set(legacy)
+        self._evolution_receipts = dict(temporary._evolution_receipts)
+        self._legacy_unattested_evolution_digests = set(legacy_unattested)
+        self._legacy_unverified_authority_digests = set(legacy_unverified)
+        self._verified_capability_evolution_digests = set(verified)
 
 
-__all__ = tuple(_base.__all__) + (
+__all__ = tuple(_v02.__all__) + (
+    "LEGACY_UNVERIFIED_AUTHORITY_TRUST",
+    "VERIFIED_CAPABILITY_AUTHORITY_TRUST",
+    "GoalIntegrityEvolutionAuthorityVerifier",
     "GoalIntegrityEvolutionReceipt",
     "GoalIntegrityRuntime",
 )
