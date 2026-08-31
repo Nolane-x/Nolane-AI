@@ -119,3 +119,12 @@ def test_compaction_target_digest_ignores_later_lifecycle_status_changes() -> No
 
     assert restored.memory.get(compacted.memory_id).status is MemoryStatus.STALE
     assert tuple(row.memory_id for row in restored.reconstruct_compaction(receipt.compaction_id)) == receipt.source_memory_ids
+
+
+def test_compaction_target_integrity_advances_lifecycle_authority_revision() -> None:
+    from cogcoder.refoundation.component_versions import component_version
+    from nolane.memory import lifecycle
+
+    assert lifecycle.COMPONENT_ID == "external.memory.lifecycle"
+    assert lifecycle.COMPONENT_VERSION == "0.0.5"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
