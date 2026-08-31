@@ -1,6 +1,6 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A12 remain accepted as the canonical External Core family-A Truth / Knowledge baseline. A13 Defeasible Truth Maintenance / Justification Undercutters v7 is the active production candidate and is not accepted until exact-head focused CI, synthetic merge-state Refoundation proof, expected-head production merge, and a separate acceptance seal all succeed.**
+Status: **A1–A13 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A13 Defeasible Truth Maintenance / Justification Undercutters v7 was accepted from integrated candidate `c3fca1d5fe3fd0c892797f29cbf427146bd256f6` and merged to `main` as `23d6e48b7d620d9fec9a80f93cd8f1d2a84dae52`.**
 
 ## Canonical authority model
 
@@ -600,13 +600,13 @@ Canonical family-A status at this revision is therefore **A1–A12 accepted**.
 
 Historical R-series workflows do not define current family-A architecture authority.
 
-## A13 candidate — defeasible truth maintenance / justification undercutters v7
+## Accepted A13 — defeasible truth maintenance / justification undercutters v7
 
 A13 closes the inference-validity gap left intentionally open by A12. A12 can maintain several independent OR-of-AND justifications, but a justification whose Evidence and parents remain live has no canonical way to express that the **inference from those premises to the claim has itself been invalidated**. Revoking the original Evidence would destroy historical truth, while adding a refuting claim would attack the proposition rather than the derivation.
 
 A13 therefore adds exact-basis **justification undercutters** as additive sidecars beneath the existing five authorities. It does not create a sixth authority and does not mutate A1–A12 serialized identities.
 
-The candidate progression is:
+The accepted progression through A13 is:
 
 ```text
 global v1
@@ -662,11 +662,11 @@ Controller-root independence inherits A11 but is evaluated against v7 `decision_
 
 `assurance_defeasible_truth.py` preserves accepted risk thresholds: LOW/STANDARD 1 controller + 1 channel, HIGH 2 + 2, CRITICAL 3 + 3. Closure recomputes the complete live v7 scope and follows only final `supported` justification paths for contributing-lineage vetoes. Defeated/dead alternative parents remain audit-visible but cannot veto a separate clean branch. Relevant undercutter revisions stale certificates; unrelated revisions do not.
 
-### Compatibility and candidate evidence
+### Compatibility and acceptance evidence
 
 With an empty undercutter registry, dedicated regression contracts compare v7 directly against accepted v6 for target/parent dispositions, final justification statuses, lineage and decision/source-origin behavior. A1–A12 protocol constants and serialized contracts remain untouched. All four A13 modules declare only their accepted `PARENT_COMPONENT_ID` and expose no `COMPONENT_ID`.
 
-The candidate evidence chain includes:
+The A13 evidence chain includes:
 
 1. initial missing-surface RED `cd515205c6b4ec02376b3ae6b2a10910fbebdce8`, Truth run `33359057965`;
 2. exact-basis/defeater hardening through focused GREEN `0530480a2d93d84b929e777ab4cb48e0e2fa7359`, run `33359548496`;
@@ -678,4 +678,14 @@ The candidate evidence chain includes:
 8. decision-origin fix `37bf60576fe206203aa23137cb19f82f450301d5`, followed by relevance hardening and empty-registry v6→v7 compatibility;
 9. pre-documentation candidate evidence head `7ecbf2687095915c0f1d69bd160a1a397ce55f3b`, focused Truth run `33361121764`: Python 3.11 and 3.13 each pass **175 tests**, compile all v1–v7 sidecars, and report repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`.
 
-This section records **candidate** semantics only. A13 becomes accepted only after the frozen post-documentation head passes fresh focused CI and exact synthetic merge-state Refoundation integration against then-current `main`, is merged with expected-head protection, and is sealed in a separate documentation-only acceptance PR.
+A13 acceptance is bound to the verified production chain below:
+
+- original byte-identical semantic candidate: `9dbef0c689ad399cf8bd6d321591d1349f82d256`;
+- latest-main integrated production candidate: `c3fca1d5fe3fd0c892797f29cbf427146bd256f6`;
+- exact-head Truth A run `33366624851`: Python 3.11 and 3.13 each compile A1–A13 v1–v7, pass **175 tests**, and report repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`;
+- current-main synthetic merge SHA `f96d89ae7bc0f8d8cdd9d76848ee4fb249cae50b`, exactly merging candidate `c3fca1d5...` into pre-merge `main` `7b80d826929c5aae44d31b1f3fb019452af5c0f6`;
+- synthetic Refoundation run `33366628871`: Python 3.11 and 3.13 each pass **653 Refoundation tests**, **175 Truth A tests**, **423 downstream organization/campaign/execution tests**, keep 67/67 AI dossiers fresh, preserve a clean repository audit, generate/upload the zero-loss evidence bundle, and pass Neural R2.3 contracts;
+- PR #281 was mergeable with exactly 16 intended Family-A/CI/docs/test files and 0 reviews / 0 review threads, then merged using expected-head protection against `c3fca1d5fe3fd0c892797f29cbf427146bd256f6`;
+- production merge `23d6e48b7d620d9fec9a80f93cd8f1d2a84dae52` is verified and has exact parents `7b80d826929c5aae44d31b1f3fb019452af5c0f6` and `c3fca1d5fe3fd0c892797f29cbf427146bd256f6`.
+
+This acceptance record does not make serialized runtime state self-authenticating; all v7 live scopes, verification receipts and assurance certificates continue to require canonical recomputation. Canonical family-A status at this revision is therefore **A1–A13 accepted**.
