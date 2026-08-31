@@ -1,27 +1,16 @@
 """Authenticity proofs for Goal/Design decision receipts and authority events.
 
-Decision receipts are content-addressed authority artifacts.  This module keeps
+Decision receipts are content-addressed authority artifacts. This module keeps
 identity verification separate from lifecycle/index persistence so every
 consumer can prove the artifact it is about to trust is the exact artifact
 that was originally admitted.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
 
 from .goal_design import DecisionReceipt, stable_digest
 
-
-_BASE_RECEIPT_FIELDS = (
-    "goal_id",
-    "selected_option_id",
-    "snapshot_digest",
-    "version_vector",
-    "evaluation_digest",
-    "proof_obligation_ids",
-    "uncertainty_ids",
-    "evidence_refs",
-)
 
 _EXTENDED_RECEIPT_FIELDS = (
     "goal_digest",
@@ -41,8 +30,8 @@ def _sequence(value: Any) -> list[Any]:
 def decision_receipt_payload(receipt: DecisionReceipt) -> dict[str, Any]:
     """Return the canonical identity payload for a v1 or v2 receipt.
 
-    v1 is the original eight-field identity.  v2 extends that identity with
-    seven manifests/state digests.  A partially populated extension is not a
+    v1 is the original eight-field identity. v2 extends that identity with
+    seven manifests/state digests. A partially populated extension is not a
     third implicit schema: it is ambiguous authority and therefore rejected.
     """
 
