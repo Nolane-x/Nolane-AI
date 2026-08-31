@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Any, Sequence
 
 import pytest
 
@@ -20,6 +21,7 @@ from nolane.external_core.execution_types import (
     ToolAction,
 )
 from nolane.neural.inference_bridge import CognitiveStateEncoder
+from nolane.schemas.identity import AgentStatus
 
 
 class _Unused:
@@ -36,18 +38,20 @@ class _Workspace:
 @dataclass
 class _Identity:
     agent_id: str = "agent-1"
+    status: AgentStatus = AgentStatus.ACTIVE
+    neural_version: str = "fixture-neural-v1"
 
 
 @dataclass
 class _Task:
     leased_to: str = "agent-1"
     aborted_by: str | None = None
+    abort_reason: str | None = None
 
 
 @dataclass
-class _Backend:
-    backend_id: str = "backend-v1"
-    checkpoint_digest: str = "checkpoint-v1"
+class _Evidence:
+    artifact_id: str = "artifact-terminal-evidence"
 
 
 class _Registry:
@@ -60,6 +64,62 @@ class _Tasks:
     def get(self, task_id: str) -> _Task:
         assert task_id == "task-1"
         return _Task()
+
+
+class _Context:
+    def compile(self, agent_id: str, *, task_id: str) -> object:
+        assert agent_id == "agent-1"
+        assert task_id == "task-1"
+        return object()
+
+
+class _Artifacts:
+    def put(self, **_: Any) -> _Evidence:
+        return _Evidence()
+
+
+class _Encoder:
+    version = "workspace-fencing-test-v1"
+
+    def build_request(
+        self,
+        *,
+        identity: _Identity,
+        capsule: object,
+        task_id: str,
+        action_schema: Sequence[str],
+        counters: ExecutionCounters,
+        step_index: int,
+        checkpoint_digest: str,
+    ) -> InferenceRequest:
+        del capsule
+        schema = tuple(str(x) for x in action_schema)
+        return InferenceRequest(
+            agent_id=identity.agent_id,
+            neural_version=identity.neural_version,
+            task_id=task_id,
+            context_digest="context-v1",
+            encoder_version=self.version,
+            checkpoint_digest=checkpoint_digest,
+            action_schema=schema,
+            action_schema_digest=canonical_digest(list(schema)),
+            counters=counters,
+            step_index=step_index,
+        )
+
+
+@dataclass
+class _Backend:
+    backend_id: str = "backend-v1"
+    checkpoint_digest: str = "checkpoint-v1"
+
+    def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+        return AgentDecisionReceipt.create(
+            backend_id=self.backend_id,
+            request=request,
+            action=ExecutionAction.wait(reason="fixture wait"),
+            compute_units=1,
+        )
 
 
 def _decision(*, step_index: int) -> AgentDecisionReceipt:
@@ -280,11 +340,11 @@ def test_legacy_session_cannot_resume_forward_execution_by_downgrading_provenanc
     plane = OrganizationExecutionControlPlane(
         registry=_Registry(),
         tasks=_Tasks(),
-        context=_Unused(),
-        artifacts=_Unused(),
+        context=_Context(),
+        artifacts=_Artifacts(),
         external_cores=_Unused(),
         coding=_Unused(),
-        encoder=CognitiveStateEncoder(version="organization-context-digest-v1"),
+        encoder=_Encoder(),
         executor=object(),
         acting_executor=object(),
         sessions=(session,),
