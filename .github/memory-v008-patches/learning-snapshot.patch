@@ -1,0 +1,104 @@
+--- a/nolane/memory/learning_substrate.py
++++ b/nolane/memory/learning_substrate.py
+@@ -474,6 +550,93 @@
+         if canonical_digest(snapshot) != str(memory_state_digest):
+             raise ValueError("retrieval replay snapshot digest mismatch")
+ 
++    @staticmethod
++    def _immutable_memory_projection(row: MemoryEntry) -> dict[str, Any]:
++        state = row.to_state()
++        state.pop("status", None)
++        state.pop("status_reason", None)
++        return state
++
++    @staticmethod
++    def _immutable_metadata_projection(metadata: LearningMemoryMetadata) -> dict[str, Any]:
++        state = metadata.to_state()
++        state.pop("epistemic_type", None)
++        state.pop("source_refs", None)
++        state.pop("last_verified_ref", None)
++        return state
++
++    def _validate_retrieval_snapshot_authority(self, snapshot: Mapping[str, Any]) -> None:
++        replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
++        replay_entries = tuple(
++            replay_memory.get(f"mem-{sequence:08d}")
++            for sequence in range(1, len(replay_memory.to_state().get("entries", ())) + 1)
++        )
++        current_entries = tuple(
++            self.memory.get(f"mem-{sequence:08d}")
++            for sequence in range(1, len(self.memory.to_state().get("entries", ())) + 1)
++        )
++        if len(replay_entries) > len(current_entries):
++            raise ValueError("retrieval replay snapshot exceeds current memory authority")
++        for historical, current in zip(replay_entries, current_entries):
++            if self._immutable_memory_projection(historical) != self._immutable_memory_projection(current):
++                raise ValueError("retrieval replay snapshot violates immutable memory authority")
++
++        replay_metadata_rows = tuple(
++            LearningMemoryMetadata.from_state(raw) for raw in snapshot.get("metadata", ())
++        )
++        replay_metadata = self._index_unique(
++            replay_metadata_rows, key=lambda row: row.memory_id, label="retrieval replay authority metadata row"
++        )
++        replay_memory_ids = {row.memory_id for row in replay_entries}
++        expected_metadata = {
++            memory_id: metadata
++            for memory_id, metadata in self._metadata.items()
++            if memory_id in replay_memory_ids
++        }
++        if set(replay_metadata) != set(expected_metadata):
++            raise ValueError("retrieval replay snapshot metadata authority coverage mismatch")
++        for memory_id, historical in replay_metadata.items():
++            current = expected_metadata[memory_id]
++            if self._immutable_metadata_projection(historical) != self._immutable_metadata_projection(current):
++                raise ValueError("retrieval replay snapshot violates immutable metadata authority")
++            if not set(historical.source_refs).issubset(current.source_refs):
++                raise ValueError("retrieval replay snapshot metadata source authority mismatch")
++            if historical.epistemic_type is not current.epistemic_type:
++                if current.epistemic_type is not EpistemicType.VERIFIED or historical.epistemic_type is EpistemicType.VERIFIED:
++                    raise ValueError("retrieval replay snapshot epistemic authority mismatch")
++            if historical.last_verified_ref != current.last_verified_ref:
++                if current.epistemic_type is not EpistemicType.VERIFIED:
++                    raise ValueError("retrieval replay snapshot verification authority mismatch")
++
++        replay_tombstones = tuple(
++            MemoryTombstone.from_state(raw) for raw in snapshot.get("tombstones", ())
++        )
++        replay_tombstone_index = self._index_unique(
++            replay_tombstones, key=lambda row: row.memory_id, label="retrieval replay authority tombstone row"
++        )
++        for memory_id, historical in replay_tombstone_index.items():
++            current = self._tombstones.get(memory_id)
++            if current is None or current != historical:
++                raise ValueError("retrieval replay snapshot tombstone authority mismatch")
++
++        replay_relations_state = snapshot.get("relations", {})
++        replay_relation_rows = tuple(replay_relations_state.get("relations", ()))
++        replay_relation_counter = int(replay_relations_state.get("counter", len(replay_relation_rows)))
++        if replay_relation_counter != len(replay_relation_rows):
++            raise ValueError("retrieval replay snapshot relation counter mismatch")
++        current_relation_rows = tuple(self.relations.to_state().get("relations", ()))
++        if len(replay_relation_rows) > len(current_relation_rows):
++            raise ValueError("retrieval replay snapshot exceeds current relation authority")
++        if replay_relation_rows != current_relation_rows[: len(replay_relation_rows)]:
++            raise ValueError("retrieval replay snapshot relation authority is not an append-only prefix")
++
++        replay_health_rows = tuple(snapshot.get("anchor_health", ()))
++        current_health_rows = tuple(row.to_state() for row in self._ordered_anchor_health())
++        if len(replay_health_rows) > len(current_health_rows):
++            raise ValueError("retrieval replay snapshot exceeds current anchor-health authority")
++        if replay_health_rows != current_health_rows[: len(replay_health_rows)]:
++            raise ValueError("retrieval replay snapshot anchor-health authority is not an append-only prefix")
++
+     def _replay_retrieval_receipt(self, receipt: MemoryRetrievalReceipt) -> None:
+         if not receipt.replayable or receipt.query is None:
+             raise ValueError("retrieval receipt replay requires a v2 query envelope")
+@@ -482,6 +645,7 @@
+         except KeyError as exc:
+             raise ValueError("retrieval receipt replay snapshot is missing") from exc
+         self._validate_retrieval_snapshot_digest(receipt.memory_state_digest, snapshot)
++        self._validate_retrieval_snapshot_authority(snapshot)
+ 
+         replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
+         replay_relations = MemoryRelationGraph.from_state(
