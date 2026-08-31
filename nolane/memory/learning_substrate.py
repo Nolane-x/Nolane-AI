@@ -460,6 +460,7 @@ class LearningSubstrate:
     def _retrieval_state_snapshot(self) -> dict[str, Any]:
         return {
             "memory": self.memory.to_state(),
+            "lifecycle": self.lifecycle.to_state(),
             "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
             "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
             "relations": self.relations.to_state(),
@@ -482,8 +483,17 @@ class LearningSubstrate:
         except KeyError as exc:
             raise ValueError("retrieval receipt replay snapshot is missing") from exc
         self._validate_retrieval_snapshot_digest(receipt.memory_state_digest, snapshot)
+        raw_lifecycle = snapshot.get("lifecycle")
+        if not isinstance(raw_lifecycle, Mapping):
+            raise ValueError("retrieval replay snapshot requires lifecycle authority")
 
         replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
+        replay_lifecycle = MemoryLifecycleLedger.from_state(
+            registry=self.registry,
+            memory=replay_memory,
+            events=self.events,
+            state=raw_lifecycle,
+        )
         replay_relations = MemoryRelationGraph.from_state(
             registry=self.registry,
             memory=replay_memory,
@@ -494,6 +504,7 @@ class LearningSubstrate:
             registry=self.registry,
             events=self.events,
             memory=replay_memory,
+            lifecycle=replay_lifecycle,
             relations=replay_relations,
         )
         replay_metadata = tuple(
@@ -518,14 +529,13 @@ class LearningSubstrate:
         if [row.sequence for row in replay_health] != expected_health_sequence:
             raise ValueError("retrieval replay anchor health sequence invariant violated")
         for metadata in replay._metadata.values():
-            replay_memory.get(metadata.memory_id)
-            if metadata.source_refs != _clean_refs(metadata.source_refs):
-                raise ValueError("retrieval replay metadata source refs are not canonical")
+            replay._validate_learning_metadata_semantics(metadata)
         for memory_id, tombstone in replay._tombstones.items():
             row = replay_memory.get(memory_id)
             expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
             if tombstone.content_digest != expected_digest:
                 raise ValueError("retrieval replay tombstone content digest mismatch")
+            replay._validate_tombstone_semantics(tombstone)
         for row in replay_health:
             replay._anchor_health.setdefault(row.memory_id, []).append(row)
             replay._validate_anchor_health_receipt_semantics(row)
