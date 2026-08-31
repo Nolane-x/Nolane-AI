@@ -34,6 +34,7 @@ on:
       - 'nolane/external_core/epistemic_defeasible_truth.py'
       - 'nolane/external_core/verification_defeasible_truth.py'
       - 'nolane/external_core/assurance_defeasible_truth.py'
+      - 'nolane/external_core/evidence_provenance_epoch_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
@@ -69,6 +70,7 @@ on:
       - 'nolane/external_core/epistemic_defeasible_truth.py'
       - 'nolane/external_core/verification_defeasible_truth.py'
       - 'nolane/external_core/assurance_defeasible_truth.py'
+      - 'nolane/external_core/evidence_provenance_epoch_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
@@ -90,7 +92,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Compile canonical A authorities and A1-A13 v1-v7 truth sidecars
+      - name: Compile canonical A authorities and A1-A14 v1-v8 truth sidecars
         run: |
           python -m py_compile \
             nolane/core/canonical_digest.py \
@@ -122,6 +124,7 @@ jobs:
             nolane/external_core/epistemic_defeasible_truth.py \
             nolane/external_core/verification_defeasible_truth.py \
             nolane/external_core/assurance_defeasible_truth.py \
+            nolane/external_core/evidence_provenance_epoch_truth.py \
             nolane/metadata/subprotocols.py
       - name: Run Truth Knowledge contracts
         run: python -m pytest -q tests/test_truth_knowledge_*.py
