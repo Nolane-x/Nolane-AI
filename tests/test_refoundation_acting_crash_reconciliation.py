@@ -9,6 +9,7 @@ from nolane.external_core.acting_protocol import (
     EffectClass,
     ExecutionContract,
     ExecutionRisk,
+    VerifierLevel,
 )
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 
@@ -120,6 +121,34 @@ def test_interrupted_read_execution_is_discarded_as_no_side_effect_rollback() ->
     assert protocol.validate_chain(row.action_id)
 
 
+def test_verified_read_is_not_auto_committed_after_restart() -> None:
+    protocol = ActingProtocolLedger()
+    _prepare(protocol, "action-verified-read", EffectClass.READ, begin_execution=True)
+    protocol.observe_outcome(
+        "action-verified-read",
+        outcome_ref="receipt:read",
+        success=True,
+        now_ms=103,
+    )
+    protocol.verify_postconditions(
+        "action-verified-read",
+        evidence_refs=("evidence:read-result",),
+        verifier_level=VerifierLevel.V1,
+        now_ms=104,
+    )
+
+    row = protocol.reconcile_interrupted(
+        "action-verified-read",
+        evidence_ref="recovery:runtime-restart",
+        reason="restart after verification before durable commit",
+    )
+
+    assert row.phase is ActionPhase.ROLLED_BACK
+    assert row.commit_ref == ""
+    assert row.outcome_ref == "receipt:read"
+    assert protocol.validate_chain(row.action_id)
+
+
 def test_interrupted_mutating_execution_degrades_instead_of_false_rollback_or_retry() -> None:
     protocol = ActingProtocolLedger()
     _prepare(protocol, "action-local", EffectClass.LOCAL_MUTATION, begin_execution=True)
@@ -135,6 +164,48 @@ def test_interrupted_mutating_execution_degrades_instead_of_false_rollback_or_re
     assert row.commit_ref == ""
     assert "mutation dispatch" in row.failure_reason
     assert protocol.validate_chain(row.action_id)
+
+
+def test_recovery_remains_possible_after_effect_lease_is_revoked() -> None:
+    protocol = ActingProtocolLedger()
+    _prepare(protocol, "action-external", EffectClass.EXTERNAL_MUTATION, begin_execution=True)
+    protocol.revoke_lease(
+        "action-external",
+        reason="runtime authority withdrawn during interruption",
+        evidence_ref="lease-control:revoked",
+    )
+
+    row = protocol.reconcile_interrupted(
+        "action-external",
+        evidence_ref="recovery:operator-inspection",
+        reason="external effect outcome unknown after restart",
+    )
+
+    assert row.phase is ActionPhase.DEGRADED
+    assert row.lease is not None and row.lease.revoked
+    assert row.rollback_ref == "recovery:operator-inspection"
+    assert protocol.validate_chain(row.action_id)
+
+
+def test_terminal_reconciliation_is_idempotent_without_new_lifecycle_event() -> None:
+    protocol = ActingProtocolLedger()
+    _prepare(protocol, "action-terminal", EffectClass.LOCAL_MUTATION, begin_execution=False)
+    first = protocol.reconcile_interrupted(
+        "action-terminal",
+        evidence_ref="recovery:first",
+        reason="first restart reconciliation",
+    )
+    event_ids = first.event_receipt_ids
+
+    second = protocol.reconcile_interrupted(
+        "action-terminal",
+        evidence_ref="recovery:second",
+        reason="second restart reconciliation",
+    )
+
+    assert second == first
+    assert second.event_receipt_ids == event_ids
+    assert protocol.validate_chain(second.action_id)
 
 
 def test_restored_runtime_reconciles_all_inflight_actions_without_invoking_executor() -> None:
@@ -164,3 +235,9 @@ def test_restored_runtime_reconciles_all_inflight_actions_without_invoking_execu
         reason="second reconciliation is a no-op",
     ) == ()
     assert raw.calls == 0
+
+    round_tripped = ActingProtocolLedger.from_state(restored.to_state())
+    assert round_tripped.get("action-safe-cancel").phase is ActionPhase.CANCELLED
+    assert round_tripped.get("action-unknown-effect").phase is ActionPhase.DEGRADED
+    assert round_tripped.validate_chain("action-safe-cancel")
+    assert round_tripped.validate_chain("action-unknown-effect")
