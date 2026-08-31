@@ -13,7 +13,7 @@ from typing import Iterable, Sequence
 from . import _goal_design_base as _base
 from ._goal_design_base import *  # noqa: F401,F403
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -59,6 +59,38 @@ class DecisionReceipt(_base.DecisionReceipt):
         object.__setattr__(self, "assumption_state_digest", str(self.assumption_state_digest).strip())
 
 
+def _base_goal(goal: GoalSpec) -> _base.GoalSpec:
+    """Project a truth-capable goal onto the exact historical v2 schema."""
+
+    return _base.GoalSpec(
+        goal_id=goal.goal_id,
+        statement=goal.statement,
+        objectives=tuple(goal.objectives),
+        non_goals=tuple(goal.non_goals),
+        constraints=tuple(goal.constraints),
+        success_metrics=tuple(goal.success_metrics),
+        assumptions=tuple(goal.assumptions),
+        evidence_refs=tuple(goal.evidence_refs),
+    )
+
+
+def _base_option(option: DesignOption) -> _base.DesignOption:
+    """Project a truth-capable option onto the exact historical v2 schema."""
+
+    return _base.DesignOption(
+        option_id=option.option_id,
+        label=option.label,
+        utilities=option.utilities,
+        objective_values=option.objective_values,
+        decision_class=option.decision_class,
+        rollback_ref=option.rollback_ref,
+        evidence_refs=tuple(option.evidence_refs),
+        requirement_refs=tuple(option.requirement_refs),
+        component_refs=tuple(option.component_refs),
+        assumptions=tuple(option.assumptions),
+    )
+
+
 class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
     """Cross-plane coherence authority with optional assumption-truth binding."""
 
@@ -86,7 +118,11 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
 
         declared_assumptions = _refs(
             tuple(getattr(goal, "assumption_refs", ()))
-            + tuple(getattr(selected, "assumption_refs", ()))
+            + tuple(
+                ref
+                for option in options
+                for ref in getattr(option, "assumption_refs", ())
+            )
             + tuple(assumption_refs)
         )
         assumption_state_digest = str(assumption_state_digest).strip()
@@ -99,10 +135,20 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
                 "Goal/Design admission blocked: assumption truth snapshot digest requires assumption dependencies"
             )
 
+        # No truth binding means exact historical v2 semantics. Project the new
+        # dataclass surface back to the pre-truth schema so empty v3 fields do
+        # not perturb v2 goal/option/evaluation/input-manifest digests.
+        if declared_assumptions:
+            admission_goal = goal
+            admission_options = options
+        else:
+            admission_goal = _base_goal(goal)
+            admission_options = tuple(_base_option(option) for option in options)
+
         base_receipt = super().admit_decision(
-            goal=goal,
+            goal=admission_goal,
             scenarios=scenarios,
-            options=options,
+            options=admission_options,
             selected_option_id=selected_option_id,
             snapshot=snapshot,
             current_vector=current_vector,
