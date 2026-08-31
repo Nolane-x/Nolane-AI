@@ -71,26 +71,41 @@ def verify_decision_receipt(receipt: DecisionReceipt) -> str:
     return "v2" if all(extended) else "v1"
 
 
-def decision_event_payload(receipt: DecisionReceipt) -> dict[str, Any]:
-    """Return the canonical DECISION-event payload for the receipt generation.
-
-    Historical v1 receipts predate manifest-aware ledger events, so their exact
-    authority event omitted ``input_manifest_digest``. v2 receipts require the
-    manifest-aware event payload. The receipt verifier determines the generation
-    first, preventing callers from choosing a weaker event schema for v2 data.
-    """
-
-    receipt_version = verify_decision_receipt(receipt)
-    payload: dict[str, Any] = {
+def _decision_event_base_payload(receipt: DecisionReceipt) -> dict[str, Any]:
+    return {
         "receipt_id": receipt.receipt_id,
         "goal_id": receipt.goal_id,
         "selected_option_id": receipt.selected_option_id,
         "snapshot_digest": receipt.snapshot_digest,
         "evaluation_digest": receipt.evaluation_digest,
     }
+
+
+def decision_event_payload(receipt: DecisionReceipt) -> dict[str, Any]:
+    """Return the canonical DECISION-event payload minted for this receipt.
+
+    v1 receipts canonically mint the original pre-manifest payload. v2 receipts
+    require the manifest-aware payload. Verification additionally recognizes
+    the exact transitional v1 payload that a manifest-aware runtime could have
+    emitted for a restored v1 receipt with an empty manifest field.
+    """
+
+    receipt_version = verify_decision_receipt(receipt)
+    payload = _decision_event_base_payload(receipt)
     if receipt_version == "v2":
         payload["input_manifest_digest"] = receipt.input_manifest_digest
     return payload
+
+
+def _accepted_decision_event_payload_digests(receipt: DecisionReceipt) -> frozenset[str]:
+    receipt_version = verify_decision_receipt(receipt)
+    canonical = decision_event_payload(receipt)
+    digests = {stable_digest(canonical)}
+    if receipt_version == "v1":
+        transitional = _decision_event_base_payload(receipt)
+        transitional["input_manifest_digest"] = ""
+        digests.add(stable_digest(transitional))
+    return frozenset(digests)
 
 
 def decision_event_subject_refs(receipt: DecisionReceipt) -> tuple[str, ...]:
@@ -99,7 +114,7 @@ def decision_event_subject_refs(receipt: DecisionReceipt) -> tuple[str, ...]:
 
 
 def verify_decision_authority_event(receipt: DecisionReceipt, event: Any) -> None:
-    """Prove an event is the exact authoritative ledger event for ``receipt``."""
+    """Prove an event is an exact recognized authority event for ``receipt``."""
 
     verify_decision_receipt(receipt)
     kind = str(getattr(getattr(event, "kind", None), "value", getattr(event, "kind", "")))
@@ -113,8 +128,8 @@ def verify_decision_authority_event(receipt: DecisionReceipt, event: Any) -> Non
     if kind != "decision" or authority != "authority":
         raise ValueError("authority event is not a decision authority event")
 
-    expected_payload_digest = stable_digest(decision_event_payload(receipt))
-    if str(getattr(event, "payload_digest", "")) != expected_payload_digest:
+    observed_payload_digest = str(getattr(event, "payload_digest", ""))
+    if observed_payload_digest not in _accepted_decision_event_payload_digests(receipt):
         raise ValueError("decision authority event payload does not bind the receipt")
 
     expected_subjects = decision_event_subject_refs(receipt)
