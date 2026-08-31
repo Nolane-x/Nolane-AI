@@ -4,18 +4,24 @@ on:
   push:
     paths:
       - "nolane/external_core/goal_design*.py"
+      - "nolane/external_core/_goal_design_base.py"
+      - "nolane/external_core/_goal_design_runtime_base.py"
       - "cogcoder/organization/goal_design.py"
       - "tests/test_goal_design*.py"
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
       - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
+      - "docs/GOAL_DESIGN_TRUTH_MAINTENANCE.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
   pull_request:
     paths:
       - "nolane/external_core/goal_design*.py"
+      - "nolane/external_core/_goal_design_base.py"
+      - "nolane/external_core/_goal_design_runtime_base.py"
       - "cogcoder/organization/goal_design.py"
       - "tests/test_goal_design*.py"
       - "docs/GOAL_DESIGN_COHERENCE_PLANE.md"
       - "docs/GOAL_DESIGN_DECISION_AUTHENTICITY.md"
+      - "docs/GOAL_DESIGN_TRUTH_MAINTENANCE.md"
       - ".github/workflows/goal-design-coherence-plane.yml"
 
 concurrency:
