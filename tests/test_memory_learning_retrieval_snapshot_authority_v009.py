@@ -175,3 +175,4 @@ def test_historical_snapshot_replay_survives_later_live_lifecycle_advance() -> N
 def test_retrieval_snapshot_authority_advances_retrieval_component_revision() -> None:
     assert RETRIEVAL_COMPONENT_VERSION == "0.0.4"
     assert str(component_version("external.memory.retrieval")) == "0.0.4"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
