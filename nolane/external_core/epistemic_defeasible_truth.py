@@ -1051,7 +1051,11 @@ class DefeasibleEpistemicJudge:
         ids: set[str] = set()
         visited: set[str] = set()
 
-        def add_attack_evidence(undercutter_id: str) -> None:
+        def add_attack_evidence(
+            undercutter_id: str,
+            *,
+            include_supported_parents: bool = False,
+        ) -> None:
             status = attack_map.get(undercutter_id)
             if status is None:
                 return
@@ -1062,6 +1066,11 @@ class DefeasibleEpistemicJudge:
                     continue
                 if item.polarity in {EvidencePolarity.SUPPORT, EvidencePolarity.REFUTE}:
                     ids.add(evidence_id)
+            if include_supported_parents:
+                attack = undercutters.current(undercutter_id)
+                if attack is not None:
+                    for parent_id in attack.parent_claim_ids:
+                        visit(parent_id)
 
         def visit(claim_id: str) -> None:
             if claim_id in visited:
@@ -1093,7 +1102,10 @@ class DefeasibleEpistemicJudge:
                     for undercutter_id in (
                         status.supported_undercutter_ids + status.contested_undercutter_ids
                     ):
-                        add_attack_evidence(undercutter_id)
+                        add_attack_evidence(
+                            undercutter_id,
+                            include_supported_parents=True,
+                        )
 
         visit(str(target_claim_id))
         return tuple(sorted(ids))
