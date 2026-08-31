@@ -12,7 +12,7 @@ from nolane.external_core.software_engineering import (
 )
 
 
-PROPERTY_EVIDENCE_VERSION = "0.1.0"
+PROPERTY_EVIDENCE_VERSION = "0.2.0"
 
 
 def _text(value: Any, *, field: str) -> str:
@@ -34,11 +34,7 @@ def _refs(values: Sequence[Any]) -> tuple[str, ...]:
 
 
 class EngineeringClaimClass(str, Enum):
-    """The property family that an engineering claim is actually about.
-
-    A claim class is deliberately not inferred from a green command.  It says
-    what must be true in the world/repository for the claim to close.
-    """
+    """Semantic property family an engineering claim is actually about."""
 
     BUILD_INTEGRITY = "build_integrity"
     FUNCTIONAL_BEHAVIOR = "functional_behavior"
@@ -208,10 +204,6 @@ class EngineeringPropertyObligation:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EngineeringPropertyObligation":
-        groups = tuple(
-            tuple(EngineeringProofMethod(str(method)) for method in group)
-            for group in state.get("required_method_groups", ())
-        )
         row = cls(
             obligation_id=_text(state["obligation_id"], field="property obligation id"),
             claim_id=_text(state["claim_id"], field="engineering claim id"),
@@ -220,7 +212,10 @@ class EngineeringPropertyObligation:
             subject_ref=_text(state["subject_ref"], field="subject ref"),
             subject_digest=_text(state["subject_digest"], field="subject digest"),
             source_revision=_text(state["source_revision"], field="source revision"),
-            required_method_groups=groups,
+            required_method_groups=tuple(
+                tuple(EngineeringProofMethod(str(method)) for method in group)
+                for group in state.get("required_method_groups", ())
+            ),
             min_independent_sources=int(state["min_independent_sources"]),
             require_version_bound_baseline=bool(state["require_version_bound_baseline"]),
             require_falsifier=bool(state["require_falsifier"]),
@@ -355,8 +350,8 @@ class EngineeringPropertyClosureReceipt:
             obligation_digest=_text(state["obligation_digest"], field="property obligation digest"),
             witness_ids=_refs(tuple(state.get("witness_ids", ()))),
             witness_digests=tuple(
-                (_text(value[0], field="witness id"), _text(value[1], field="witness digest"))
-                for value in state.get("witness_digests", ())
+                (_text(item[0], field="witness id"), _text(item[1], field="witness digest"))
+                for item in state.get("witness_digests", ())
             ),
             ready=bool(state["ready"]),
             reasons=tuple(str(value) for value in state.get("reasons", ())),
@@ -370,15 +365,17 @@ class EngineeringPropertyClosureReceipt:
 
 
 class EngineeringPropertyEvidenceLedger:
-    """Claim-specific proof obligations over canonical engineering attestations.
+    """Claim-specific, oracle-bound proof closure over canonical F evidence.
 
-    The base EngineeringEvidenceLedger answers whether an attestation is fresh,
-    independent-authority evidence for a particular patch revision.  This layer
-    answers the different question: does that evidence actually measure the
-    property being claimed with an adequate proof method?
+    `EngineeringEvidenceLedger` proves that an attestation is fresh, bound to the
+    exact patch revision and emitted by verification-testing authority. This
+    ledger answers the separate semantic question: does that attestation prove
+    the property being claimed? A witness cannot invent that relationship. Its
+    `oracle_ref` must be present in the verifier's immutable evidence refs.
 
-    The layer is intentionally non-mutating.  Obligations and witnesses hold
-    verification/evidence scope only; closure receipts are candidate-only.
+    This subsystem is deliberately non-mutating: obligations are
+    `verification_scope_only`, witnesses `evidence_scope_only`, and closure
+    receipts `candidate_only`.
     """
 
     def __init__(self, *, evidence: EngineeringEvidenceLedger) -> None:
@@ -475,6 +472,13 @@ class EngineeringPropertyEvidenceLedger:
         attestation: EngineeringEvidenceAttestation,
     ) -> bool:
         return _METHOD_KIND[EngineeringProofMethod(method)] is attestation.kind
+
+    @staticmethod
+    def _oracle_is_attested(
+        oracle_ref: str,
+        attestation: EngineeringEvidenceAttestation,
+    ) -> bool:
+        return str(oracle_ref) in set(attestation.evidence_refs)
 
     def record_witness(
         self,
@@ -582,6 +586,9 @@ class EngineeringPropertyEvidenceLedger:
             if witness.measured_property_ref != obligation.property_ref:
                 reasons.append(f"proxy_measurement:{witness.witness_id}")
                 continue
+            if not self._oracle_is_attested(witness.oracle_ref, attestation):
+                reasons.append(f"oracle_not_attested:{witness.witness_id}")
+                continue
             valid.append(witness)
 
         methods = {witness.method for witness in valid}
@@ -590,10 +597,7 @@ class EngineeringPropertyEvidenceLedger:
                 reasons.append(
                     "missing_required_method_group:" + "|".join(method.value for method in group)
                 )
-
-        if obligation.require_version_bound_baseline and not any(
-            witness.baseline_revision for witness in valid
-        ):
+        if obligation.require_version_bound_baseline and not any(witness.baseline_revision for witness in valid):
             reasons.append("missing_version_bound_baseline")
         if obligation.require_falsifier and not any(
             witness.role is EngineeringWitnessRole.FALSIFIER and witness.falsifier_ref
@@ -615,9 +619,7 @@ class EngineeringPropertyEvidenceLedger:
 
         normalized = tuple(sorted(set(reasons)))
         ready = not normalized
-        witness_digests = tuple(
-            (identity, self.get_witness(identity).digest) for identity in identities
-        )
+        witness_digests = tuple((identity, self.get_witness(identity).digest) for identity in identities)
         payload = {
             "obligation_id": obligation.obligation_id,
             "obligation_digest": obligation.digest,
@@ -680,6 +682,8 @@ class EngineeringPropertyEvidenceLedger:
                 raise ValueError("property witness attestation digest mismatch")
             if not ledger._method_matches_attestation(row.method, attestation):
                 raise ValueError("property witness method/attestation kind mismatch")
+            if not ledger._oracle_is_attested(row.oracle_ref, attestation):
+                raise ValueError("property witness oracle is not bound by verifier attestation")
             existing = ledger._witnesses.get(row.witness_id)
             if existing is not None and existing != row:
                 raise ValueError("duplicate/rebound property witness")
