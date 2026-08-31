@@ -32,7 +32,7 @@ _COMPONENT_REVISIONS.update(
         "external.capability_acquisition": 2,
         "external.candidate_synthesis": 4,
         "external.reasoning_invention": 1,
-        "external.transfer_meta": 1,
+        "external.transfer_meta": 2,
         "external.experimentation": 2,
         "external.verification": 1,
         "external.evidence": 1,
