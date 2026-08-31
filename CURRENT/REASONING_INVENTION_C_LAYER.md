@@ -2,290 +2,386 @@
 
 ## Status
 
-This document defines the post-Epoch-0 architecture for the `C. Reasoning / Invention` capability family. It is intentionally additive: existing canonical authorities remain owners of their domain state, and this layer does not collapse them into a monolith.
+`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.2**.
 
-The C-layer contains six independently governed authorities:
+The v0.0.2 cutover is additive. The original `reasoning-invention-v1` wire/state schema is intentionally unchanged, so C1 protocol identities and serialized artifacts remain backward compatible. v0.0.2 adds separate immutable schemas around that spine rather than widening the original objects until they become a monolith.
 
-1. `external.cognitive_library` — reusable cognitive primitives and learned abstractions.
-2. `external.candidate_synthesis` — stateless generation of capability proposals.
+Nolane World 0.12.0 is design provenance only. Nolane AI owns the runtime contracts, identities, authority boundaries and verification rules.
+
+## C-layer authority map
+
+The C family remains split across independently governed authorities:
+
+1. `external.cognitive_library` — reusable cognitive primitives, abstractions and read-only fit/coverage diagnostics.
+2. `external.candidate_synthesis` — stateless proposal generation.
 3. `external.capability_acquisition` — candidate/probation/promotion/quarantine lifecycle.
-4. `external.causal` — bounded intervention and causal-program evidence.
-5. `external.experimentation` — active probes, finite hypothesis spaces and verified shadow experiments.
-6. `external.transfer_meta` — verified portable experience and governed cross-domain reuse.
+4. `external.causal` — bounded causal challenge/program evidence.
+5. `external.experimentation` — explicit experiment design, active probes and independently verified experiment receipts.
+6. `external.transfer_meta` — verified portable experience and governed destination reuse.
+7. `external.reasoning_invention` — immutable invention, frontier, metareasoning, fresh-review and closed-loop evaluation protocols.
 
-The missing architectural element is not another owner of those states. It is a typed protocol spine that makes their outputs composable without transferring authority.
+Reasoning/Invention is deliberately **not** a seventh mutable governor. It composes the other C authorities through immutable, content-addressed evidence and intent envelopes.
 
-## Design objective
+## Architecture: Reasoning Ecology
 
-Turn the six C authorities into a closed, evidence-driven invention cycle:
+v0.0.2 turns C1–C7 into a bounded closed reasoning ecology:
 
 ```text
-Cognitive Library / Epistemic observations
-                |
-                v
-      Capability-gap / problem framing
-                |
-                v
-        Candidate Synthesis
-             proposals
-                |
-                v
-        Invention Hypotheses
-  anchors + assumptions + invariants
-                |
-        +-------+-------+
-        |               |
-        v               v
-      Causal       Experiment Design
-     challenge     controls / ablations
-        |               |
-        +-------+-------+
-                v
-       Independent challenge
-       VERIFIED / FALSIFIED /
-       INCONCLUSIVE / ABSTAIN
-                |
-          +-----+-----+
-          |           |
-          v           v
-   Capability Gap   Transfer Intent
-          |           |
-          v           v
-   explicit caller   explicit caller
-   Acquisition       Transfer/Meta
-          |           |
-          +-----+-----+
-                v
-             Assurance
-                |
-                v
-  promoted/reusable authority only here
+Cognitive Library / evidence / observations
+                    |
+                    v
+          Reasoning/Invention receipt
+                    |
+                    v
+        +-------------------------+
+        |    Epistemic Frontier   |
+        | unknowns + assumptions  |
+        | structurally distinct   |
+        | rival hypotheses        |
+        +------------+------------+
+                     |
+       +-------------+-------------+
+       |             |             |
+       v             v             v
+  Target unknown  Assumption   Representation
+                  inversion       shift
+       |             |             |
+       +-------------+-------------+
+                     |
+                     v
+          Metareasoning proposals
+      decision value / info gain /
+      uncertainty / cost / risk
+                     |
+                     v
+              Pareto frontier
+                     |
+        +------------+------------+
+        |                         |
+        v                         v
+  causal / experiment       fresh-context
+      challenge             adversarial review
+        |                         |
+        +------------+------------+
+                     |
+                     v
+           C7 closed-loop evaluation
+                     |
+                     v
+       Metareasoning learning evidence
+                     |
+                     v
+       explicit downstream caller only
 ```
 
-No arrow in this diagram implies automatic mutation. Every transition across an authority boundary is represented by immutable, content-addressed evidence or intent.
+No arrow grants write authority. The graph is a protocol graph, not a permission graph.
 
-## Nolane World synthesis
+## C1 — Evidence-bound invention protocol
 
-The design adapts the strongest mechanisms from Nolane World 0.12.0 into Nolane AI runtime contracts rather than copying World modules directly:
+Schema: `reasoning-invention-v1`.
 
-- **Evidence-bounded invention.** Every hypothesis carries explicit anchor evidence. Unproven premises are assumptions, not silently promoted facts.
-- **Falsifiability before promotion.** A hypothesis must carry an executable verification plan before it can be treated as a challenge-ready object.
-- **Generalized variables and invariants.** Transfer claims name the invariant structure expected to survive a domain shift rather than copying surface details.
-- **Negative controls and ablations.** Verification design makes counterfactual failure conditions explicit.
-- **Information efficiency.** Experiment designs expose expected information gain and cost separately; they do not hide them inside an unverifiable optimizer claim.
-- **Pareto reasoning.** Invention candidates are compared across benefit, evidence quality, robustness, transferability, uncertainty, complexity and verification cost. The core protocol keeps the non-dominated frontier rather than pretending one universal scalar objective exists.
-- **Deterministic convergence.** Set-like evidence/provenance is canonicalized, semantic ordering remains explicit, IDs are content-addressed and restore must reject tampering.
-- **Separation of hypothesis from generalized knowledge.** A generated or challenged hypothesis never becomes Cognitive Library authority merely because it scored well.
-- **Rollback-friendly self-improvement.** Capability Acquisition and Transfer/Meta remain the only C-layer lifecycle governors able to cross their existing retrieval/reuse firewalls, with Assurance still external and exact.
+`nolane.external_core.reasoning_invention` owns immutable protocol objects:
 
-## Authority invariants
+- `ReasoningEvidenceRef`
+- `VerificationPlan`
+- `PredictedDelta`
+- `InventionHypothesis`
+- `InventionAssessment`
+- `InventionCandidate`
+- `HypothesisChallenge`
+- `CapabilityGap`
+- `TransferIntent`
+- `ReasoningInventionReceipt`
+
+Discovery, independent challenge and final Assurance are distinct evidence phases. Hypotheses carry explicit assumptions, generalized variables, invariants, predicted deltas and a falsification plan before challenge. Candidate comparison is multi-objective Pareto dominance over evidence alignment, anomaly coverage, gain, robustness, transferability, uncertainty, complexity and verification cost.
+
+A `CapabilityGap` can nominate a candidate for downstream acquisition; it cannot admit or promote it. A `TransferIntent` can describe a destination-bound reuse trial; it cannot accept reuse or issue Assurance.
+
+## C2 — Explicit Experiment Design
+
+Experimentation v0.0.2 separates experiment design from execution receipts. Designs bind exact metrics, baselines, perturbations, negative controls, ablations, stop policies, information metadata and hard budgets. Shadow execution and independent verification remain evidence producers rather than promotion authorities.
+
+## C3 — Causal Challenge
+
+Causal v0.0.2 exposes bounded, proof-carrying challenge envelopes and proper-subset/ablation evidence. Causal support is scoped to the exact accepted program/evidence row; a causal-program ID is never interpreted as a universal causal law.
+
+## C4 — Typed Capability Probation
+
+Capability Acquisition v0.0.2 uses typed probation evidence rather than loose summary claims. Probation remains downstream of candidate synthesis and reasoning. Promotion stays behind the existing exact Assurance/evidence/baseline firewall.
+
+## C5 — Governed Cognitive Library
+
+Cognitive Library v0.0.2 exposes provenance-backed capability descriptors and deterministic fit/coverage diagnostics against an exact library digest. Reasoning can therefore demonstrate a capability gap without gaining a registration API.
+
+## C6 — Destination Transfer Trials
+
+Transfer/Meta v0.0.2 binds generalized variables and invariants to a destination-specific trial matrix, records negative transfer by target regime, and retains explicit Assurance authorization and revocation semantics.
+
+## C7 — Closed-loop Reasoning Evaluation
+
+`nolane.external_core.reasoning_evaluation` is part of the Reasoning/Invention v0.0.2 component family. It evaluates fixed-budget invention cycles and emits immutable evidence over false acceptance, abstention quality, information efficiency, generalization, robustness and regressions. It does not create one scalar global score and cannot promote a capability or accept transfer.
+
+## C8 — Bounded Epistemic Frontier
+
+Schema: `reasoning-frontier-v1`.
+
+`nolane.external_core.reasoning_frontier` makes the unresolved reasoning state explicit.
+
+### `DecisionUnknown`
+
+Each unknown records:
+
+- description and `UnknownKind`;
+- impact;
+- uncertainty;
+- decision relevance;
+- one or more discovery paths;
+- whether resolving the unknown could overturn the current decision.
+
+Unknown hunting is therefore directed at decision-relevant missing information rather than trivia accumulation.
+
+### `RivalHypothesisRef`
+
+Every live rival binds:
+
+- exact hypothesis ID;
+- hypothesis category;
+- structural-family ID;
+- predictions;
+- falsifiers;
+- supporting and opposing evidence IDs.
+
+A frontier has an explicit branch budget in **`[1, 7]`** and cannot contain more live rivals than that budget. This imports Nolane World's bounded structural-diversity discipline without turning a heuristic portfolio into truth authority.
+
+### `ReasoningFrontier`
+
+A frontier binds:
+
+- exact `ReasoningInventionReceipt` identity;
+- objective identity;
+- exact Cognitive Library digest;
+- canonical unknown set;
+- canonical rival set;
+- assumptions;
+- hard constraints;
+- branch budget.
+
+It is a snapshot, not Epistemic or Cognitive Library authority.
+
+### Assumption inversion
+
+`AssumptionInversion` can only be bound to an assumption already present in the frontier. It records the inverted premise, consequences, surviving invariants and challenger hypothesis IDs. Inversion creates a falsifiable challenger; it does not declare the original assumption false.
+
+### Representation shift
+
+`RepresentationShift` records source and target representations, explicit mappings, new affordances, lost information and resulting challengers. Source and target must differ. Information loss is explicit so claims cannot silently survive a lossy re-encoding.
+
+## C8 — Value-of-Thought Metacontrol
+
+Schema: `reasoning-metacontrol-v1`.
+
+`nolane.external_core.reasoning_metacontrol` asks a narrower question than a planner: **which reasoning actions are still worth considering under the declared reasoning budget?**
+
+### Reasoning action kinds
+
+- target a decision-relevant unknown;
+- generate a structurally distinct challenger;
+- invert an assumption;
+- shift representation;
+- design a discriminating experiment;
+- request a causal challenge;
+- request a fresh-context review.
+
+### Explicit action vector
+
+Each `ReasoningActionProposal` keeps the following dimensions separate:
+
+- expected decision value — maximize;
+- expected information gain — maximize;
+- expected uncertainty reduction — maximize;
+- estimated cost — minimize;
+- residual risk — minimize.
+
+There is no canonical weighted sum. `pareto_action_frontier` returns every non-dominated viable action in deterministic identity order.
+
+### Explicit budget
+
+`MetareasoningBudget` binds an exact frontier plus remaining action count, remaining cost and minimum actionable gain. A proposal bound to another frontier is rejected.
+
+### Stop semantics
+
+`ReasoningControlDecision` has only three dispositions:
+
+- `CONTINUE` — one or more budget-feasible non-dominated reasoning actions remain;
+- `HALT_NO_FURTHER_VALUE` — no action clears the declared marginal-value floor and no known decision-overturning unknown remains;
+- `ABSTAIN_UNRESOLVED` — reasoning cannot continue within budget while a decision-overturning unknown remains.
+
+`HALT_NO_FURTHER_VALUE` is **not** acceptance. `ABSTAIN_UNRESOLVED` prevents exhausted compute from being misrepresented as confidence.
+
+## C8 — Fresh-context adversarial review
+
+Schema: `reasoning-review-v1`.
+
+`nolane.external_core.reasoning_review` makes reviewer information boundaries explicit and tamper-evident.
+
+### `FreshContextReviewRequest`
+
+A request binds:
+
+- goal and candidate IDs;
+- distinct producer/reviewer agent IDs;
+- distinct producer/reviewer session IDs;
+- evidence packet available to the reviewer;
+- full review context;
+- explicitly withheld producer-rationale IDs;
+- required review checks.
+
+The evidence packet must be contained in the review context, while review context and withheld rationale must be disjoint. This contract cannot prove that an external model has literally forgotten earlier context; it makes the intended partition auditable and rejects obvious same-agent/session reuse.
+
+### Specification-gaming evidence
+
+`SpecificationGamingFinding` records the exact requirement, loophole, gaming behavior, intent violation and whether the finding is blocking.
+
+A `SUPPORTED_FOR_SCOPE` review cannot carry objections, counterexamples or a blocking gaming finding. The binder also requires every requested check and at least one reproduced evidence identity from the exact evidence packet.
+
+The verdict is scope-bounded review evidence. It is not Assurance, promotion or transfer acceptance.
+
+## C8 — Descriptive metareasoning learning
+
+Schema: `reasoning-meta-learning-v1`.
+
+`nolane.external_core.reasoning_meta_learning` closes the observation loop without creating self-edit authority.
+
+`MetareasoningActionOutcome` binds an executed reasoning action to:
+
+- frontier and control-decision identities;
+- action kind and action identity;
+- C7 evaluation receipt;
+- outcome evidence;
+- decision correctness;
+- observed information gain;
+- actual cost;
+- regression count;
+- generalization and robustness observations.
+
+`compile_metareasoning_learning_evidence` requires at least two distinct outcomes and compiles descriptive metrics including action-kind counts, correct decisions, information efficiency, regressions, generalized outcomes and robust outcomes.
+
+The resulting evidence has **no policy-update method, model-write method, promotion method or transfer-acceptance method**. A downstream authority may consume it explicitly when future meta-policy work is designed.
+
+## Global authority invariants
 
 ### I1 — Proposal is not authority
 
-Candidate Synthesis may create a `CapabilityCandidate`; it cannot admit, probation, promote, quarantine, persist or install that candidate.
+Candidate Synthesis can emit proposals; it cannot admit, probation, promote, quarantine, persist or install them.
 
-### I2 — Hypothesis is not knowledge
+### I2 — Hypothesis/frontier is not knowledge
 
-The Reasoning/Invention protocol may describe, rank and challenge hypotheses. It cannot register an abstraction/family in Cognitive Library.
+Reasoning can describe hypotheses, unknowns, rivals, assumptions and representation shifts. It cannot register Cognitive Library state.
 
-### I3 — Experiment is not Assurance
+### I3 — Experiment/review is not Assurance
 
-An Experimentation receipt is evidence about a finite behavioral hypothesis. It cannot self-promote a capability and cannot mint a final Assurance receipt.
+Experiment and fresh-review receipts are evidence. Neither can mint final Assurance or promotion authority.
 
-### I4 — Causal support is bounded support
+### I4 — Causal evidence is bounded
 
-A Causal program ID may strengthen provenance or transfer support, but it does not by itself prove a general causal law outside the exact accepted causal ledger row.
+A Causal program strengthens an exact evidence claim only within its accepted scope.
 
 ### I5 — Acquisition is explicit
 
-A capability gap or invention receipt can nominate a candidate for downstream acquisition. Only an explicit caller action against `CapabilityAcquisitionGovernor` creates lifecycle state.
+Only an explicit caller acting through Capability Acquisition can create acquisition lifecycle state.
 
 ### I6 — Transfer is explicit and destination-bound
 
-A transfer intent must name source and target domains, generalized variables, invariants, assumptions and transfer trials. Existing `external.transfer_meta` remains the reuse authority and existing Assurance remains the acceptance authority.
+Only Transfer/Meta owns reuse lifecycle state; Assurance remains the acceptance authority required by that governor.
 
-### I7 — No self-verification loops
+### I7 — No self-verification loop
 
-Discovery evidence may frame and synthesize. Independent-challenge evidence may falsify or support. Final-Assurance evidence is owned downstream. The same phase cannot mint its own stronger authority.
+Discovery, challenge, fresh review and final Assurance remain distinct evidence roles. Stronger authority cannot be minted by relabeling weaker evidence.
 
-## Native protocol objects
+### I8 — Metacontrol is not execution authority
 
-The first implementation slice introduces `nolane.external_core.reasoning_invention` as a stateless protocol module.
+A metacontrol decision names worthwhile reasoning actions; it does not execute tools, mutate ledgers or choose a hidden global optimum.
 
-### `ReasoningEvidenceRef`
+### I9 — Stop is not success
 
-A normalized reference to evidence already owned elsewhere:
+No-further-value means no declared reasoning action is worth its cost under the current budget. It does not mean the underlying engineering claim is true.
 
-- `evidence_id`
-- `phase`: discovery, independent challenge, final assurance
-- `source_component`
-- `witness_id`
+### I10 — Meta-learning is descriptive
 
-Human labels are excluded from semantic identity.
+Outcome aggregation cannot modify its own policy, neural state, Cognitive Library, Transfer/Meta or Capability Acquisition.
 
-### `VerificationPlan`
+## Canonical schemas
 
-An immutable falsification contract:
+The component version is `0.0.2` while schemas remain independently versioned:
 
-- metric and baseline IDs
-- success threshold
-- one-variable perturbation/probe IDs
-- negative-control IDs
-- ablation IDs
-- stop-condition IDs
-- hard maximum verification cost
-- expected information gain
+| Module | Schema |
+| --- | --- |
+| `reasoning_invention.py` | `reasoning-invention-v1` |
+| `reasoning_frontier.py` | `reasoning-frontier-v1` |
+| `reasoning_metacontrol.py` | `reasoning-metacontrol-v1` |
+| `reasoning_review.py` | `reasoning-review-v1` |
+| `reasoning_meta_learning.py` | `reasoning-meta-learning-v1` |
+| `reasoning_evaluation.py` | existing C7 evaluation schema |
 
-`information_efficiency` is a transparent derived value (`expected_information_gain / max_cost`) used only descriptively. It never grants promotion authority.
-
-### `InventionHypothesis`
-
-A content-addressed hypothesis with:
-
-- falsifiable statement
-- discovery evidence anchors
-- explicit assumptions
-- generalized variables
-- invariants
-- predicted metric deltas
-- exact `VerificationPlan`
-- optional Candidate Synthesis proposal ID
-
-Only discovery-phase evidence may anchor generation. Challenge/final evidence enters through a separate verdict object.
-
-### `InventionAssessment`
-
-A bounded multi-objective assessment vector:
-
-- evidence alignment
-- anomaly/counterexample coverage
-- expected gain
-- robustness
-- transferability
-- uncertainty
-- complexity
-- verification cost
-
-All dimensions are explicit. Core comparison exposes Pareto dominance. No hidden scalar weighting is canonical.
-
-### `InventionCandidate`
-
-Binds one hypothesis and assessment with optional causal-program and experiment-receipt provenance. Causal/experiment IDs remain references, not lifecycle authority.
-
-### `HypothesisChallenge`
-
-An immutable independent-challenge result. It binds:
-
-- target hypothesis ID
-- challenge evidence IDs
-- causal program IDs
-- experiment receipt IDs
-- verdict: verified, falsified, inconclusive, or abstain
-- reason
-
-Only independent-challenge evidence is legal here. A VERIFIED challenge requires at least one causal or experiment receipt reference; an evidence-only label cannot silently create verification authority.
-
-### `CapabilityGap`
-
-A proof-shaped request for downstream acquisition:
-
-- objective
-- capability kind
-- exact Cognitive Library baseline digest
-- evidence showing insufficiency
-- acceptance-test IDs
-- nominated Candidate Synthesis candidate ID
-- optional verified challenge ID
-
-This object cannot call the acquisition governor. It is an intent and provenance envelope only.
-
-### `TransferIntent`
-
-A destination-bound proposal for transfer/meta reuse:
-
-- source and target domains
-- verified challenge/source receipt IDs
-- generalized variables
-- invariants
-- target assumptions
-- transfer-trial IDs
-
-Source and destination must differ. The intent cannot accept reuse or mint Assurance.
-
-### `ReasoningInventionReceipt`
-
-A canonical aggregation receipt over one reasoning pass. It can bind hypotheses, Pareto-frontier candidate IDs, challenge IDs, capability-gap IDs and transfer-intent IDs. It stores no mutable authority and has no promoted/installed/reused flag.
-
-## Multi-objective frontier
-
-For two assessment vectors `A` and `B`, `A` dominates `B` only when:
-
-- A is no worse on every maximize dimension: evidence alignment, anomaly coverage, expected gain, robustness, transferability;
-- A is no worse on every minimize dimension: uncertainty, complexity, verification cost;
-- and A is strictly better on at least one dimension.
-
-The protocol returns all non-dominated candidates sorted by canonical candidate identity. This preserves legitimate trade-offs instead of encoding an arbitrary global utility function into architecture.
+The v1 core schema is intentionally retained during the component revision cutover so old C1 serialized states and content identities do not change merely because C8 exists.
 
 ## Fail-closed behavior
 
-The protocol rejects:
+C1–C8 reject, as applicable:
 
-- empty semantic IDs;
-- duplicate set-like evidence/provenance references;
-- non-finite numeric fields;
-- scores outside `[0, 1]` where bounded scores are required;
-- verification plans without a negative control, ablation or stop condition;
-- zero/non-positive verification cost;
-- challenge/final evidence used as discovery anchors;
-- discovery/final evidence used as independent challenge authority;
-- VERIFIED verdicts with no causal/experiment support;
-- capability gaps without insufficiency evidence or acceptance tests;
-- transfer intents where source equals target;
-- transfer intents without an invariant or transfer trial;
-- non-canonical serialized state or tampered content-derived IDs.
+- empty semantic identities;
+- duplicate set-like identities;
+- forged derived identities;
+- caller-order drift in canonical sets;
+- bool-as-number smuggling;
+- NaN and infinity;
+- bounded scores outside `[0, 1]`;
+- branch budgets outside `[1, 7]`;
+- live-rival counts above branch budget;
+- duplicate live hypothesis IDs;
+- representation shifts with identical source and target;
+- assumption inversions against assumptions absent from the frontier;
+- action proposals or budgets bound to the wrong frontier;
+- terminal `HALT_NO_FURTHER_VALUE` states that hide a known overturning unknown;
+- same producer/reviewer identity or session in fresh-context review;
+- review-context leakage of explicitly withheld rationale;
+- incomplete required review checks;
+- reproduced review evidence not present in the request packet;
+- `SUPPORTED_FOR_SCOPE` with objections, counterexamples or blocking specification gaming;
+- duplicate metareasoning outcomes;
+- meta-learning bundles too small to compare behavior;
+- non-canonical restored state.
 
 ## Cross-component integration contract
 
-The protocol consumes stable IDs and immutable snapshots, not mutable authority objects. This deliberately minimizes coupling while A/B and other Nolane AI regions evolve in parallel.
+Reasoning/Invention consumes stable IDs and immutable snapshots rather than mutable governor instances:
 
-- Cognitive Library is read through its exact `digest` and reusable item IDs.
-- Candidate Synthesis is referenced through proposal/candidate IDs.
-- Causal is referenced through accepted causal-program IDs.
-- Experimentation is referenced through shadow/ledger receipt IDs.
-- Capability Acquisition receives a caller-selected `CapabilityGap`/candidate later; there is no write-through API here.
-- Transfer/Meta receives a caller-selected `TransferIntent` later; there is no reuse acceptance API here.
-- Assurance remains downstream and unchanged.
+- Cognitive Library through exact digest and item IDs;
+- Candidate Synthesis through proposal/candidate IDs;
+- Causal through accepted program IDs;
+- Experimentation through design/shadow/verification receipt IDs;
+- Capability Acquisition through caller-mediated `CapabilityGap` handoff only;
+- Transfer/Meta through caller-mediated destination intent/trial evidence only;
+- Assurance remains downstream and unchanged;
+- C7 evaluation supplies outcome evidence to descriptive meta-learning.
 
-## Evolution roadmap
+This boundary is intentionally narrow so A, B, D, E, F, Memory and Truth can evolve independently without C silently absorbing their authority.
 
-### C1 — Protocol spine (this slice)
+## Verification contract
 
-Implement the immutable reasoning/invention protocol, Pareto frontier, challenge separation, capability-gap and transfer-intent envelopes with canonical round-trip/tamper rejection.
+C8 was developed RED -> GREEN. The closure gate requires:
 
-### C2 — Experimentation v0.0.2
-
-Add explicit experiment design artifacts over the existing finite version-space engine: cost/information metadata, negative controls, ablations, stop policies and plan-to-shadow-receipt binding. Existing R2.60 selection remains backward compatible.
-
-### C3 — Causal v0.0.2
-
-Add explicit causal-hypothesis challenge envelopes and proper-subset/ablation evidence bindings without claiming general causal discovery. Keep current bounded intervention program semantics intact.
-
-### C4 — Capability Acquisition v0.0.2
-
-Upgrade probation from four loose summary fields to typed probation trials: environment/holdout identity, independent verifier evidence, causal/experimental challenge receipts, reliability calibration and exact gap/candidate binding. Preserve the current Assurance-gated promotion firewall.
-
-### C5 — Cognitive Library v0.0.2
-
-Add read-only fit/coverage diagnostics and provenance-backed capability descriptors so a capability gap can be demonstrated against an exact library baseline without turning retrieval heuristics into write authority.
-
-### C6 — Transfer/Meta v0.0.2
-
-Bind transfer reuse to generalized-variable/invariant envelopes and destination trial matrices; record negative transfer by target regime; retain exact Assurance authorization and revocation semantics.
-
-### C7 — Closed-loop evaluation
-
-Evaluate end-to-end invention cycles under fixed budgets: discovery evidence -> synthesis -> challenge -> experiment -> acquisition/transfer intent. Measure false acceptance, abstention quality, information efficiency, generalization, robustness and regression count. Claims remain bounded to reproduced evidence.
+1. coherent `external.reasoning_invention == 0.0.2` across runtime core, evaluation and canonical revision map;
+2. canonical round-trip and forged-ID rejection for new artifacts;
+3. branch-budget and structural-rival constraints;
+4. Pareto/order-invariant metacontrol;
+5. continue/halt/abstain fail-closed semantics;
+6. fresh-context partition and anti-spec-gaming gates;
+7. descriptive-only meta-learning;
+8. source scans preventing mutable C/Assurance/model authority backdoors;
+9. exact-head repository Refoundation gates on Python 3.11 and 3.13;
+10. resynchronization with latest `main` before certification if the base advances.
 
 ## Non-goals
 
-This architecture does not claim AGI, unrestricted autonomous science, arbitrary code invention, unlimited causal discovery, unrestricted self-modification or automatic capability promotion. It establishes a stronger engineering substrate in which such future capabilities, if implemented, must remain falsifiable, attributable, bounded and reversible.
+This architecture does not claim AGI, unrestricted autonomous science, global truth, arbitrary self-modification, hidden scalar utility, automatic capability promotion, automatic transfer acceptance, automatic Assurance or proof that an external model truly erased withheld context. It establishes a stronger, falsifiable and bounded reasoning substrate whose outputs remain attributable and reversible.
