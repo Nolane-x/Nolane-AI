@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.7"
+COMPONENT_VERSION = "0.0.8"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
