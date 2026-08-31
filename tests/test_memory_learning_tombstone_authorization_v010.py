@@ -69,6 +69,33 @@ def test_restore_rejects_forged_tombstone_borrowing_unrelated_archive_authority(
         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
 
 
+def test_restore_rejects_forged_tombstone_even_with_valid_actor_and_archive_receipt() -> None:
+    substrate = _substrate()
+    row = _verified_memory(substrate)
+    archive = substrate.lifecycle.transition(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+        new_status=MemoryStatus.ARCHIVED,
+        reason="retention_window_closed",
+        evidence_refs=("archive-proof",),
+    )
+
+    state = substrate.to_state()
+    state["tombstones"] = [
+        {
+            "memory_id": row.memory_id,
+            "content_digest": canonical_digest({"memory_id": row.memory_id, "text": row.text}),
+            "reason": "forged permanent forgetting",
+            "evidence_refs": ["forged-forget-proof"],
+            "actor_agent_id": "memory.worker",
+            "archive_receipt_id": archive.receipt_id,
+        }
+    ]
+
+    with pytest.raises(ValueError, match="forget.*authorization|authorization.*forget|forget.*receipt"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+
+
 def test_forget_persists_actor_and_exact_archive_receipt_authority() -> None:
     substrate = _substrate()
     row = _verified_memory(substrate)
