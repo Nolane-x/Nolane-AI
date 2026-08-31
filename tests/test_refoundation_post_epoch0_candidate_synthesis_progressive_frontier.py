@@ -274,11 +274,11 @@ def test_progressive_fails_closed_on_generated_identity_collision() -> None:
         raw_occurrence_cost=generated.raw_occurrence_cost + 1,
         rewritten_cost=generated.rewritten_cost,
     )
-    library.vocabulary._items[generated.abstraction_id] = forged
+    collision_library = CognitiveLibrary(abstractions=(*sources, forged))
 
     ids = tuple(row.abstraction_id for row in sources)
     with pytest.raises(ValueError, match="collides with different library payload"):
-        CandidateSynthesisEngine(library).synthesize(_progressive_request(ids, budget=6))
+        CandidateSynthesisEngine(collision_library).synthesize(_progressive_request(ids, budget=6))
 
 
 def test_zero_budget_progressive_search_performs_no_generation() -> None:
