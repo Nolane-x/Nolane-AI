@@ -1,4 +1,5 @@
 diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
+index 039fbc4..5b8c804 100644
 --- a/nolane/memory/adaptive_policy.py
 +++ b/nolane/memory/adaptive_policy.py
 @@ -10,7 +10,8 @@ from nolane.core.canonical_digest import canonical_digest
@@ -9,7 +10,9 @@ diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
 +_COMPACTION_RECEIPT_SCHEMA_V1 = "nolane-memory-compaction-receipt-v1"
 +_COMPACTION_RECEIPT_SCHEMA_V2 = "nolane-memory-compaction-receipt-v2"
  _ANCHOR_HEALTH_RECEIPT_SCHEMA = "nolane-memory-anchor-health-receipt-v1"
-@@ -276,6 +277,7 @@ class MemoryCompactionReceipt:
+ 
+ 
+@@ -274,6 +275,7 @@ class MemoryCompactionReceipt:
      epistemic_type: str
      actor_agent_id: str
      evidence_refs: tuple[str, ...]
@@ -17,7 +20,7 @@ diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
  
      def __post_init__(self) -> None:
          if len(self.source_memory_ids) < 2:
-@@ -294,16 +296,25 @@ class MemoryCompactionReceipt:
+@@ -289,14 +291,20 @@ class MemoryCompactionReceipt:
              _require_nonempty(value, label=label)
          if not self.evidence_refs:
              raise ValueError("memory compaction receipt requires evidence")
@@ -40,14 +43,16 @@ diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
              "source_memory_ids": list(self.source_memory_ids),
              "compacted_memory_id": self.compacted_memory_id,
              "source_digest": self.source_digest,
-             "epistemic_type": self.epistemic_type,
+@@ -304,14 +312,21 @@ class MemoryCompactionReceipt:
              "actor_agent_id": self.actor_agent_id,
              "evidence_refs": list(self.evidence_refs),
          }
 +        if self.compacted_digest is not None:
 +            state["compacted_digest"] = self.compacted_digest
 +        return state
-@@ -315,8 +326,15 @@ class MemoryCompactionReceipt:
+ 
+     def to_state(self) -> dict[str, Any]:
+         return {"compaction_id": self.compaction_id, **self._identity_state()}
  
      @classmethod
      def from_state(cls, state: Mapping[str, Any]) -> "MemoryCompactionReceipt":
@@ -61,7 +66,7 @@ diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
          result = cls(
              source_memory_ids=tuple(str(value) for value in state.get("source_memory_ids", ())),
              compacted_memory_id=str(state["compacted_memory_id"]),
-@@ -325,7 +343,10 @@ class MemoryCompactionReceipt:
+@@ -319,7 +334,10 @@ class MemoryCompactionReceipt:
              epistemic_type=str(state["epistemic_type"]),
              actor_agent_id=str(state["actor_agent_id"]),
              evidence_refs=tuple(str(value) for value in state.get("evidence_refs", ())),
@@ -73,9 +78,10 @@ diff --git a/nolane/memory/adaptive_policy.py b/nolane/memory/adaptive_policy.py
              state,
              key="compaction_id",
 diff --git a/nolane/memory/learning_substrate.py b/nolane/memory/learning_substrate.py
+index 8b9f7bc..d73a9a4 100644
 --- a/nolane/memory/learning_substrate.py
 +++ b/nolane/memory/learning_substrate.py
-@@ -711,6 +711,10 @@ class LearningSubstrate:
+@@ -717,6 +717,10 @@ class LearningSubstrate:
              ]
          )
  
@@ -86,7 +92,7 @@ diff --git a/nolane/memory/learning_substrate.py b/nolane/memory/learning_substr
      @staticmethod
      def _intersection_bound(
          metadata_rows: tuple[LearningMemoryMetadata, ...],
-@@ -807,6 +811,7 @@ class LearningSubstrate:
+@@ -820,6 +824,7 @@ class LearningSubstrate:
              epistemic_type=epistemic_type.value,
              actor_agent_id=actor,
              evidence_refs=evidence,
@@ -94,7 +100,7 @@ diff --git a/nolane/memory/learning_substrate.py b/nolane/memory/learning_substr
          )
          self._compactions[receipt.compaction_id] = receipt
          return compacted, receipt
-@@ -820,6 +825,11 @@ class LearningSubstrate:
+@@ -833,6 +838,11 @@ class LearningSubstrate:
      def reconstruct_compaction(self, compaction_id: str) -> tuple[MemoryEntry, ...]:
          receipt = self.compaction_receipt(compaction_id)
          rows = tuple(self.memory.get(memory_id) for memory_id in receipt.source_memory_ids)
@@ -106,7 +112,7 @@ diff --git a/nolane/memory/learning_substrate.py b/nolane/memory/learning_substr
          actual = self._compaction_source_digest(receipt.source_memory_ids)
          if actual != receipt.source_digest:
              raise ValueError("memory compaction source digest mismatch")
-@@ -1055,6 +1065,8 @@ class LearningSubstrate:
+@@ -1062,6 +1072,8 @@ class LearningSubstrate:
          owner = next(iter(owners))
          if receipt.actor_agent_id == owner:
              raise PermissionError("memory compaction restore requires external review; owner cannot self-certify")
