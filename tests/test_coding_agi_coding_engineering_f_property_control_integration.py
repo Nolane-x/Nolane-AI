@@ -13,12 +13,16 @@ def test_public_control_owns_first_class_property_protocol_on_same_evidence_ledg
 
     assert plane.property_evidence.evidence is plane.evidence
     assert plane.property_gate.property_evidence is plane.property_evidence
+    assert plane.current_property_validity.validity is plane.validity
+    assert plane.current_property_validity.property_gate is plane.property_gate
     assert plane.property_candidate_authority == "candidate_only"
+    assert plane.current_property_candidate_authority == "candidate_only"
 
     state = plane.to_state()
-    assert state["component_version"] == "0.9.0"
+    assert state["component_version"] == "1.1.0"
     assert state["property_evidence"] == plane.property_evidence.to_state()
     assert state["property_gate"] == plane.property_gate.to_state()
+    assert state["current_property_validity"] == plane.current_property_validity.to_state()
 
     restored = SoftwareEngineeringControlPlane.from_state(
         claims=CodeClaimLedger(),
@@ -27,6 +31,8 @@ def test_public_control_owns_first_class_property_protocol_on_same_evidence_ledg
     assert restored.digest == plane.digest
     assert restored.property_evidence.evidence is restored.evidence
     assert restored.property_gate.property_evidence is restored.property_evidence
+    assert restored.current_property_validity.validity is restored.validity
+    assert restored.current_property_validity.property_gate is restored.property_gate
 
 
 def test_public_control_can_lift_exact_v08_snapshot_without_rewriting_legacy_state() -> None:
@@ -50,10 +56,11 @@ def test_public_control_can_lift_exact_v08_snapshot_without_rewriting_legacy_sta
         state=legacy_state,
     )
     lifted_state = lifted.to_state()
-    assert lifted_state["component_version"] == "0.9.0"
+    assert lifted_state["component_version"] == "1.1.0"
     assert lifted_state["property_evidence"]["obligations"] == []
     assert lifted_state["property_evidence"]["witnesses"] == []
     assert lifted_state["property_gate"]["manifests"] == []
+    assert lifted_state["current_property_validity"]["receipts"] == []
     assert legacy_state["digest"] != lifted_state["digest"]
 
 
