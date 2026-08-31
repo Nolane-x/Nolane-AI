@@ -299,7 +299,7 @@ def test_assessment_is_bounded_and_pareto_dominance_has_no_hidden_scalar() -> No
         values = _assessment().to_state()
         values.pop("schema_version", None)
         values[field] = 1.01
-        with pytest.raises(ValueError, match="\[0, 1\]"):
+        with pytest.raises(ValueError, match=r"\[0, 1\]"):
             Assessment(**values)
 
 
