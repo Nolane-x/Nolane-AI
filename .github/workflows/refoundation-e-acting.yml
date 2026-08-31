@@ -59,6 +59,8 @@ jobs:
             tests/test_refoundation_acting_workspace.py \
             tests/test_refoundation_acting_runtime.py \
             tests/test_refoundation_acting_crash_reconciliation.py \
+            tests/test_refoundation_acting_control_reconciliation.py \
+            tests/test_refoundation_acting_control_commit_projection.py \
             --junitxml=e-acting-contracts-${{ matrix.python-version }}.xml
       - name: Run Refoundation regression suite
         run: |
