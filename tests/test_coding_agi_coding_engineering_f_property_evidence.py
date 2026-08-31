@@ -63,11 +63,15 @@ def _obligation(
     )
 
 
-def _oracle_bound_attestation(ledger, obligation, attestation):
-    oracle_ref = f"oracle:{obligation.property_ref}"
-    if oracle_ref in attestation.evidence_refs:
-        return attestation, oracle_ref
-    rebound = ledger.evidence.record(
+def _rebind_attestation(ledger, attestation, refs):
+    missing = tuple(
+        ref
+        for ref in refs
+        if ref and ref not in set(attestation.evidence_refs).union(attestation.dependencies)
+    )
+    if not missing:
+        return attestation
+    return ledger.evidence.record(
         subject_ref=attestation.subject_ref,
         subject_digest=attestation.subject_digest,
         producer_agent_id=attestation.producer_agent_id,
@@ -75,12 +79,16 @@ def _oracle_bound_attestation(ledger, obligation, attestation):
         verifier_region=attestation.verifier_region,
         kind=attestation.kind,
         passed=attestation.passed,
-        evidence_refs=attestation.evidence_refs + (oracle_ref,),
+        evidence_refs=attestation.evidence_refs + missing,
         source_revision=attestation.source_revision,
         environment_digest=attestation.environment_digest,
         dependencies=attestation.dependencies,
     )
-    return rebound, oracle_ref
+
+
+def _oracle_bound_attestation(ledger, obligation, attestation):
+    oracle_ref = f"oracle:{obligation.property_ref}"
+    return _rebind_attestation(ledger, attestation, (oracle_ref,)), oracle_ref
 
 
 def _witness(
@@ -97,6 +105,11 @@ def _witness(
     adversarial: bool = False,
 ):
     bound_attestation, oracle_ref = _oracle_bound_attestation(ledger, obligation, attestation)
+    bound_attestation = _rebind_attestation(
+        ledger,
+        bound_attestation,
+        (baseline_revision, falsifier_ref),
+    )
     return ledger.record_witness(
         obligation_id=obligation.obligation_id,
         attestation_id=bound_attestation.attestation_id,
