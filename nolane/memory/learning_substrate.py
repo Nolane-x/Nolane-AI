@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import Enum
@@ -10,6 +11,7 @@ from nolane.memory.adaptive_policy import (
     MemoryAnchorHealthReceipt,
     MemoryCompactionReceipt,
     MemoryRetrievalPolicy,
+    MemoryRetrievalQuery,
     MemoryRetrievalReceipt,
 )
 from nolane.memory.experience import ExperienceLedger, ExperienceOutcome, LearningLayer
@@ -253,6 +255,7 @@ class LearningSubstrate:
         self._skill_validations: dict[str, SkillValidation] = {}
         self._retrieval_policies: dict[str, MemoryRetrievalPolicy] = {}
         self._retrieval_receipts: dict[str, MemoryRetrievalReceipt] = {}
+        self._retrieval_snapshots: dict[str, dict[str, Any]] = {}
         self._compactions: dict[str, MemoryCompactionReceipt] = {}
         self._anchor_health: dict[str, list[MemoryAnchorHealthReceipt]] = {}
 
@@ -454,16 +457,93 @@ class LearningSubstrate:
             )
         )
 
+    def _retrieval_state_snapshot(self) -> dict[str, Any]:
+        return {
+            "memory": self.memory.to_state(),
+            "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
+            "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
+            "relations": self.relations.to_state(),
+            "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
+        }
+
     def _retrieval_state_digest(self) -> str:
-        return canonical_digest(
-            {
-                "memory": self.memory.to_state(),
-                "metadata": [self._metadata[key].to_state() for key in sorted(self._metadata)],
-                "tombstones": [self._tombstones[key].to_state() for key in sorted(self._tombstones)],
-                "relations": self.relations.to_state(),
-                "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
-            }
+        return canonical_digest(self._retrieval_state_snapshot())
+
+    @staticmethod
+    def _validate_retrieval_snapshot_digest(memory_state_digest: str, snapshot: Mapping[str, Any]) -> None:
+        if canonical_digest(snapshot) != str(memory_state_digest):
+            raise ValueError("retrieval replay snapshot digest mismatch")
+
+    def _replay_retrieval_receipt(self, receipt: MemoryRetrievalReceipt) -> None:
+        if not receipt.replayable or receipt.query is None:
+            raise ValueError("retrieval receipt replay requires a v2 query envelope")
+        try:
+            snapshot = self._retrieval_snapshots[receipt.memory_state_digest]
+        except KeyError as exc:
+            raise ValueError("retrieval receipt replay snapshot is missing") from exc
+        self._validate_retrieval_snapshot_digest(receipt.memory_state_digest, snapshot)
+
+        replay_memory = MemoryFabric.from_state(snapshot.get("memory", {}))
+        replay_relations = MemoryRelationGraph.from_state(
+            registry=self.registry,
+            memory=replay_memory,
+            events=self.events,
+            state=snapshot.get("relations", {}),
         )
+        replay = LearningSubstrate(
+            registry=self.registry,
+            events=self.events,
+            memory=replay_memory,
+            relations=replay_relations,
+        )
+        replay_metadata = tuple(
+            LearningMemoryMetadata.from_state(raw) for raw in snapshot.get("metadata", ())
+        )
+        replay._metadata = self._index_unique(
+            replay_metadata, key=lambda row: row.memory_id, label="retrieval replay metadata row"
+        )
+        replay_tombstones = tuple(
+            MemoryTombstone.from_state(raw) for raw in snapshot.get("tombstones", ())
+        )
+        replay._tombstones = self._index_unique(
+            replay_tombstones, key=lambda row: row.memory_id, label="retrieval replay tombstone row"
+        )
+        replay_health = tuple(
+            MemoryAnchorHealthReceipt.from_state(raw) for raw in snapshot.get("anchor_health", ())
+        )
+        self._index_unique(
+            replay_health, key=lambda row: row.receipt_id, label="retrieval replay anchor health row"
+        )
+        expected_health_sequence = list(range(1, len(replay_health) + 1))
+        if [row.sequence for row in replay_health] != expected_health_sequence:
+            raise ValueError("retrieval replay anchor health sequence invariant violated")
+        for metadata in replay._metadata.values():
+            replay_memory.get(metadata.memory_id)
+            if metadata.source_refs != _clean_refs(metadata.source_refs):
+                raise ValueError("retrieval replay metadata source refs are not canonical")
+        for memory_id, tombstone in replay._tombstones.items():
+            row = replay_memory.get(memory_id)
+            expected_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
+            if tombstone.content_digest != expected_digest:
+                raise ValueError("retrieval replay tombstone content digest mismatch")
+        for row in replay_health:
+            replay._anchor_health.setdefault(row.memory_id, []).append(row)
+            replay._validate_anchor_health_receipt_semantics(row)
+
+        replay._retrieval_policies = dict(self._retrieval_policies)
+        policy = replay.retrieval_policy(receipt.policy_id)
+        query = receipt.query
+        replayed = replay.retrieve(
+            agent_id=query.agent_id,
+            region=query.region,
+            as_of=query.as_of,
+            task_id=query.task_id,
+            tags=query.tags,
+            limit=query.limit,
+            policy=policy,
+        ).receipt
+        if replayed != receipt:
+            raise ValueError("retrieval receipt replay mismatch")
 
     def retrieve(
         self,
@@ -561,25 +641,26 @@ class LearningSubstrate:
             selected_units += units
 
         rejected_rows = tuple(sorted(rejected.items()))
-        query_digest = canonical_digest(
-            {
-                "agent_id": str(agent_id),
-                "region": str(region),
-                "as_of": str(as_of),
-                "task_id": None if task_id is None else str(task_id),
-                "tags": sorted(wanted),
-                "limit": int(limit),
-                "policy_id": retrieval_policy.policy_id,
-            }
+        query = MemoryRetrievalQuery(
+            agent_id=str(agent_id),
+            region=str(region),
+            as_of=str(as_of),
+            task_id=None if task_id is None else str(task_id),
+            tags=tuple(sorted(wanted)),
+            limit=int(limit),
         )
+        snapshot = self._retrieval_state_snapshot()
+        memory_state_digest = canonical_digest(snapshot)
         receipt = MemoryRetrievalReceipt(
             policy_id=retrieval_policy.policy_id,
-            query_digest=query_digest,
-            memory_state_digest=self._retrieval_state_digest(),
+            query_digest=query.query_digest,
+            memory_state_digest=memory_state_digest,
             selected_memory_ids=tuple(item.memory.memory_id for item in selected),
             rejected=rejected_rows,
             estimated_units=selected_units,
+            query=query,
         )
+        self._retrieval_snapshots.setdefault(memory_state_digest, deepcopy(snapshot))
         self._retrieval_receipts.setdefault(receipt.receipt_id, receipt)
         return LearningRetrievalBundle(tuple(selected), rejected_rows, receipt)
 
@@ -1066,6 +1147,13 @@ class LearningSubstrate:
             "retrieval_receipts": [
                 self._retrieval_receipts[key].to_state() for key in sorted(self._retrieval_receipts)
             ],
+            "retrieval_snapshots": [
+                {
+                    "memory_state_digest": key,
+                    "state": deepcopy(self._retrieval_snapshots[key]),
+                }
+                for key in sorted(self._retrieval_snapshots)
+            ],
             "compactions": [self._compactions[key].to_state() for key in sorted(self._compactions)],
             "anchor_health": [receipt.to_state() for receipt in self._ordered_anchor_health()],
         }
@@ -1123,6 +1211,17 @@ class LearningSubstrate:
         result._retrieval_receipts = cls._index_unique(
             retrieval_receipts, key=lambda row: row.receipt_id, label="retrieval receipt row"
         )
+        retrieval_snapshots: dict[str, dict[str, Any]] = {}
+        for raw in state.get("retrieval_snapshots", ()):
+            memory_state_digest = str(raw["memory_state_digest"])
+            snapshot = raw.get("state")
+            if not isinstance(snapshot, Mapping):
+                raise ValueError("retrieval replay snapshot state must be a mapping")
+            cls._validate_retrieval_snapshot_digest(memory_state_digest, snapshot)
+            if memory_state_digest in retrieval_snapshots:
+                raise ValueError("duplicate retrieval replay snapshot digest")
+            retrieval_snapshots[memory_state_digest] = deepcopy(dict(snapshot))
+        result._retrieval_snapshots = retrieval_snapshots
         compactions = tuple(MemoryCompactionReceipt.from_state(raw) for raw in state.get("compactions", ()))
         result._compactions = cls._index_unique(
             compactions, key=lambda row: row.compaction_id, label="compaction receipt row"
@@ -1163,6 +1262,7 @@ class LearningSubstrate:
                 memory.get(memory_id)
             for memory_id, _ in receipt.rejected:
                 memory.get(memory_id)
+            result._replay_retrieval_receipt(receipt)
         for receipt in compactions:
             result._validate_compaction_receipt_semantics(receipt)
         for receipt in anchor_health:

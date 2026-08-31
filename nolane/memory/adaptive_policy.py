@@ -8,7 +8,8 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 _POLICY_SCHEMA = "nolane-memory-retrieval-policy-v1"
-_RETRIEVAL_RECEIPT_SCHEMA = "nolane-memory-retrieval-receipt-v1"
+_RETRIEVAL_RECEIPT_SCHEMA_V1 = "nolane-memory-retrieval-receipt-v1"
+_RETRIEVAL_RECEIPT_SCHEMA_V2 = "nolane-memory-retrieval-receipt-v2"
 _COMPACTION_RECEIPT_SCHEMA = "nolane-memory-compaction-receipt-v1"
 _ANCHOR_HEALTH_RECEIPT_SCHEMA = "nolane-memory-anchor-health-receipt-v1"
 
@@ -121,6 +122,54 @@ class MemoryRetrievalPolicy:
 
 
 @dataclass(frozen=True, slots=True)
+class MemoryRetrievalQuery:
+    agent_id: str
+    region: str
+    as_of: str
+    task_id: str | None = None
+    tags: tuple[str, ...] = ()
+    limit: int = 8
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "agent_id", _require_nonempty(self.agent_id, label="retrieval query agent_id"))
+        object.__setattr__(self, "region", _require_nonempty(self.region, label="retrieval query region"))
+        object.__setattr__(self, "as_of", _require_nonempty(self.as_of, label="retrieval query as_of"))
+        if self.task_id is not None:
+            object.__setattr__(self, "task_id", _require_nonempty(self.task_id, label="retrieval query task_id"))
+        normalized_tags = tuple(sorted({str(value) for value in self.tags}))
+        object.__setattr__(self, "tags", normalized_tags)
+        normalized_limit = int(self.limit)
+        if normalized_limit < 0:
+            raise ValueError("retrieval query limit must be non-negative")
+        object.__setattr__(self, "limit", normalized_limit)
+
+    @property
+    def query_digest(self) -> str:
+        return canonical_digest(self.to_state())
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "agent_id": self.agent_id,
+            "region": self.region,
+            "as_of": self.as_of,
+            "task_id": self.task_id,
+            "tags": list(self.tags),
+            "limit": int(self.limit),
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "MemoryRetrievalQuery":
+        return cls(
+            agent_id=str(state["agent_id"]),
+            region=str(state["region"]),
+            as_of=str(state["as_of"]),
+            task_id=None if state.get("task_id") is None else str(state["task_id"]),
+            tags=tuple(str(value) for value in state.get("tags", ())),
+            limit=int(state.get("limit", 8)),
+        )
+
+
+@dataclass(frozen=True, slots=True)
 class MemoryRetrievalReceipt:
     policy_id: str
     query_digest: str
@@ -128,6 +177,7 @@ class MemoryRetrievalReceipt:
     selected_memory_ids: tuple[str, ...]
     rejected: tuple[tuple[str, str], ...]
     estimated_units: int
+    query: MemoryRetrievalQuery | None = None
 
     def __post_init__(self) -> None:
         for label, value in (
@@ -138,14 +188,27 @@ class MemoryRetrievalReceipt:
             _require_nonempty(value, label=label)
         if int(self.estimated_units) < 0:
             raise ValueError("estimated_units must be non-negative")
+        if self.query is not None:
+            if not isinstance(self.query, MemoryRetrievalQuery):
+                raise TypeError("memory retrieval receipt query must be MemoryRetrievalQuery")
+            if self.query_digest != self.query.query_digest:
+                raise ValueError("memory retrieval receipt query digest mismatch")
+
+    @property
+    def schema(self) -> str:
+        return _RETRIEVAL_RECEIPT_SCHEMA_V2 if self.query is not None else _RETRIEVAL_RECEIPT_SCHEMA_V1
+
+    @property
+    def replayable(self) -> bool:
+        return self.query is not None
 
     @property
     def receipt_id(self) -> str:
         return "mrr-" + canonical_digest(self._identity_state())[:24]
 
     def _identity_state(self) -> dict[str, Any]:
-        return {
-            "schema": _RETRIEVAL_RECEIPT_SCHEMA,
+        state = {
+            "schema": self.schema,
             "policy_id": self.policy_id,
             "query_digest": self.query_digest,
             "memory_state_digest": self.memory_state_digest,
@@ -153,14 +216,24 @@ class MemoryRetrievalReceipt:
             "rejected": [list(pair) for pair in self.rejected],
             "estimated_units": int(self.estimated_units),
         }
+        if self.query is not None:
+            state["query"] = self.query.to_state()
+        return state
 
     def to_state(self) -> dict[str, Any]:
         return {"receipt_id": self.receipt_id, **self._identity_state()}
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "MemoryRetrievalReceipt":
-        if str(state.get("schema", _RETRIEVAL_RECEIPT_SCHEMA)) != _RETRIEVAL_RECEIPT_SCHEMA:
+        schema = str(state.get("schema", _RETRIEVAL_RECEIPT_SCHEMA_V1))
+        if schema not in {_RETRIEVAL_RECEIPT_SCHEMA_V1, _RETRIEVAL_RECEIPT_SCHEMA_V2}:
             raise ValueError("unsupported memory retrieval receipt schema")
+        query = None
+        if schema == _RETRIEVAL_RECEIPT_SCHEMA_V2:
+            raw_query = state.get("query")
+            if not isinstance(raw_query, Mapping):
+                raise ValueError("memory retrieval receipt v2 requires replay query envelope")
+            query = MemoryRetrievalQuery.from_state(raw_query)
         result = cls(
             policy_id=str(state["policy_id"]),
             query_digest=str(state["query_digest"]),
@@ -168,7 +241,10 @@ class MemoryRetrievalReceipt:
             selected_memory_ids=tuple(str(value) for value in state.get("selected_memory_ids", ())),
             rejected=tuple((str(pair[0]), str(pair[1])) for pair in state.get("rejected", ())),
             estimated_units=int(state.get("estimated_units", 0)),
+            query=query,
         )
+        if result.schema != schema:
+            raise ValueError("memory retrieval receipt schema/query envelope mismatch")
         selected = result.selected_memory_ids
         if any(not str(memory_id).strip() for memory_id in selected):
             raise ValueError("memory retrieval receipt selected ids must be non-empty")
@@ -319,6 +395,7 @@ class MemoryAnchorHealthReceipt:
 
 __all__ = (
     "MemoryRetrievalPolicy",
+    "MemoryRetrievalQuery",
     "MemoryRetrievalReceipt",
     "MemoryCompactionReceipt",
     "MemoryAnchorHealthReceipt",
