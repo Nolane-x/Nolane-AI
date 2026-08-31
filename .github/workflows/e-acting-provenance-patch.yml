@@ -47,6 +47,8 @@ jobs:
           git add \
             nolane/external_core/execution.py \
             nolane/metadata/component_versions.py \
+            tests/test_refoundation_acting_control_reconciliation.py \
+            tests/test_refoundation_acting_control_commit_projection.py \
             tests/test_refoundation_component_versions.py \
             tests/test_refoundation_wave5aa_native_execution_control.py \
             CURRENT/E_ACTING.md
