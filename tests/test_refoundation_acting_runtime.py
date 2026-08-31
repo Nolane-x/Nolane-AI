@@ -59,6 +59,8 @@ class _Receipt:
     after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
+    core_contract_digest: str
+    workspace_epoch_id: str
 
 
 class _MutatingExecutor:
@@ -85,6 +87,8 @@ class _MutatingExecutor:
             after_workspace_digest=workspace.digest,
             output_artifact_ids=(f"artifact-{self.calls}",),
             evidence_artifact_id=f"evidence-{self.calls}",
+            core_contract_digest=str(kwargs["core_contract_digest"]),
+            workspace_epoch_id=str(kwargs["workspace_epoch_id"]),
         )
         self._receipts[receipt.receipt_id] = receipt
         return receipt
@@ -106,6 +110,8 @@ class _SleepingReadExecutor:
         task_id: str,
         workspace: RepositoryWorkspace,
         action: ToolAction,
+        core_contract_digest: str,
+        workspace_epoch_id: str,
         **_: object,
     ) -> _Receipt:
         self.calls += 1
@@ -125,12 +131,18 @@ class _SleepingReadExecutor:
             after_workspace_digest=workspace.digest,
             output_artifact_ids=(),
             evidence_artifact_id=f"read-evidence-{self.calls}",
+            core_contract_digest=str(core_contract_digest),
+            workspace_epoch_id=str(workspace_epoch_id),
         )
         self._receipts[receipt.receipt_id] = receipt
         return receipt
 
     def get_receipt(self, receipt_id: str) -> _Receipt:
         return self._receipts[receipt_id]
+
+
+def _epoch(workspace: RepositoryWorkspace) -> str:
+    return workspace.active_execution_epoch_id or workspace.claim_execution_epoch("test-acting-runtime")
 
 
 def _invoke(
@@ -158,6 +170,8 @@ def _invoke(
         verifier_level=verifier_level,
         idempotency_key="task-1:write-readme:v1",
         recovery_plan="restore isolated workspace checkpoint",
+        core_contract_digest="",
+        workspace_epoch_id=_epoch(workspace),
         now_ms=now_ms,
         lease_ttl_ms=10_000,
     )
@@ -244,6 +258,7 @@ def test_elapsed_core_time_can_expire_lease_before_commit(tmp_path: Path) -> Non
     protocol = ActingProtocolLedger()
     raw = _SleepingReadExecutor(sleep_seconds=0.12)
     kernel = TransactionalExternalCoreExecutor(executor=raw, protocol=protocol)
+    epoch_id = _epoch(workspace)
     try:
         with pytest.raises(LeaseExpired):
             kernel.invoke(
@@ -262,6 +277,8 @@ def test_elapsed_core_time_can_expire_lease_before_commit(tmp_path: Path) -> Non
                 postcondition_evidence_refs=(),
                 verifier_level=VerifierLevel.V1,
                 idempotency_key="task-lease-expiry:read:v1",
+                core_contract_digest="",
+                workspace_epoch_id=epoch_id,
                 now_ms=1_000,
                 lease_ttl_ms=50,
             )
