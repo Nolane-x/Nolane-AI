@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
-from nolane.external_core.acting_protocol import EffectClass, ExecutionRisk, VerifierLevel
+from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.external_core.artifacts import ArtifactStore
 from nolane.external_core.execution_executor import ExternalCoreExecutor
@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -648,6 +648,153 @@ class OrganizationExecutionControlPlane:
         if action.kind is ExecutionActionKind.WAIT:
             return self._terminal(session, ExecutionState.WAITING, action.reason or 'waiting')
         return self._terminal(session, ExecutionState.FAILED, action.reason or 'inference backend reported failure')
+
+    @staticmethod
+    def _acting_execution_binding(idempotency_key: str) -> tuple[str, str] | None:
+        key = str(idempotency_key).strip()
+        session_id, sep, decision_id = key.rpartition(':')
+        if not sep or not session_id.startswith('execution-') or not decision_id:
+            return None
+        return session_id, decision_id
+
+    def _acting_row_is_projected(self, row: Any, session: ExecutionSession, decision_id: str) -> bool:
+        if row.outcome_ref:
+            for receipt_id in session.step_receipt_ids:
+                step = self._steps[receipt_id]
+                if step.decision_receipt_id == decision_id and step.core_receipt_id == row.outcome_ref:
+                    return True
+        if row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK, ActionPhase.DEGRADED}:
+            if session.terminal_receipt_id is None:
+                return False
+            terminal = self._terminals[session.terminal_receipt_id]
+            return f'acting-action={row.action_id}' in terminal.termination_reason
+        return False
+
+    def reconcile_interrupted_sessions(
+        self,
+        *,
+        evidence_ref: str,
+        reason: str,
+    ) -> tuple[ExecutionStepReceipt | ExecutionTerminalReceipt, ...]:
+        """Project persisted acting outcomes into their owning execution sessions.
+
+        Recovery is explicit. It never asks an inference backend for a new action and
+        never invokes a concrete side effect. All ownership is preflighted before any
+        acting lifecycle mutation so an orphan cannot partially reconcile valid rows.
+        """
+
+        ref = str(evidence_ref).strip()
+        why = str(reason).strip()
+        if not ref or not why:
+            raise ValueError('control-plane reconciliation requires evidence and a reason')
+
+        terminal_phases = {
+            ActionPhase.COMMITTED,
+            ActionPhase.ROLLED_BACK,
+            ActionPhase.DEGRADED,
+            ActionPhase.CANCELLED,
+        }
+        candidates: list[tuple[Any, ExecutionSession, str]] = []
+        per_session: dict[str, str] = {}
+        committed_receipts: dict[str, Any] = {}
+
+        # Preflight the complete ownership set before mutating the acting ledger.
+        for row in self.acting_executor.protocol.records():
+            binding = self._acting_execution_binding(row.contract.idempotency_key)
+            if binding is None:
+                continue
+            session_id, decision_id = binding
+            session = self._sessions.get(session_id)
+            if session is None:
+                raise ValueError('interrupted action has no owning execution session')
+            if decision_id not in session.decision_receipt_ids:
+                raise ValueError('interrupted action decision is not owned by execution session')
+            if self._acting_row_is_projected(row, session, decision_id):
+                continue
+            if session.state is not ExecutionState.RUNNING or session.terminal_receipt_id is not None:
+                raise ValueError('interrupted action belongs to non-running execution session')
+            previous = per_session.get(session_id)
+            if previous is not None and previous != row.action_id:
+                raise ValueError('execution session has multiple unprojected acting actions')
+            per_session[session_id] = row.action_id
+            if row.phase is ActionPhase.COMMITTED:
+                if not row.outcome_ref:
+                    raise ValueError('committed acting action is missing its core receipt')
+                try:
+                    core = self.executor.get_receipt(row.outcome_ref)
+                except Exception as exc:
+                    raise ValueError('committed acting action references unavailable core receipt') from exc
+                if not bool(core.success):
+                    raise ValueError('committed acting action references unsuccessful core receipt')
+                committed_receipts[row.action_id] = core
+            candidates.append((row, session, decision_id))
+
+        results: list[ExecutionStepReceipt | ExecutionTerminalReceipt] = []
+        for original, session, decision_id in candidates:
+            row = original
+            if row.phase not in terminal_phases:
+                row = self.acting_executor.protocol.reconcile_interrupted(
+                    row.action_id,
+                    evidence_ref=ref,
+                    reason=why,
+                )
+
+            if row.phase is ActionPhase.COMMITTED:
+                core = committed_receipts[row.action_id]
+                decision = self._decisions[decision_id]
+                step_receipt = ExecutionStepReceipt.create(
+                    session_id=session.session_id,
+                    step_index=int(decision.step_index),
+                    decision_receipt_id=decision_id,
+                    core_receipt_id=str(core.receipt_id),
+                    before_workspace_digest=str(core.before_workspace_digest),
+                    after_workspace_digest=str(core.after_workspace_digest),
+                    state_after=ExecutionState.RUNNING,
+                    output_artifact_ids=tuple(str(x) for x in core.output_artifact_ids),
+                )
+                existing = self._steps.get(step_receipt.receipt_id)
+                if existing is not None and existing != step_receipt:
+                    raise ValueError('execution step receipt id collision during recovery')
+                self._steps[step_receipt.receipt_id] = step_receipt
+                external_ids = frozenset(getattr(self.executor, 'external_core_ids', ()))
+                counters = ExecutionCounters(
+                    steps=session.counters.steps,
+                    tool_calls=session.counters.tool_calls + 1,
+                    external_core_calls=session.counters.external_core_calls
+                    + (1 if row.contract.core_id in external_ids else 0),
+                    compute_units=session.counters.compute_units,
+                )
+                outputs = tuple(
+                    dict.fromkeys(
+                        session.output_artifact_ids
+                        + tuple(str(x) for x in core.output_artifact_ids)
+                    )
+                )
+                updated = replace(
+                    session,
+                    counters=counters,
+                    state=ExecutionState.RUNNING,
+                    output_artifact_ids=outputs,
+                    core_receipt_ids=session.core_receipt_ids + (str(core.receipt_id),),
+                    step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),
+                )
+                self._sessions[session.session_id] = updated
+                results.append(step_receipt)
+                continue
+
+            if row.phase is ActionPhase.DEGRADED:
+                state = ExecutionState.FAILED
+            elif row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK}:
+                state = ExecutionState.ABORTED
+            else:
+                raise ValueError(f'acting reconciliation produced unsupported phase: {row.phase.value}')
+            termination = (
+                f'{why}; acting-action={row.action_id}; phase={row.phase.value}; '
+                f'decision={decision_id}; recovery-evidence={ref}'
+            )
+            results.append(self._terminal(session, state, termination))
+
+        return tuple(results)
 
     def run(self, session_id: str) -> ExecutionTerminalReceipt:
         while True:
