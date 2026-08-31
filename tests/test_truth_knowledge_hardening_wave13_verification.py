@@ -14,10 +14,16 @@ from nolane.external_core.evidence_truth import (
     EvidencePolarity,
     TruthEvidence,
 )
-from nolane.external_core.knowledge_justification_truth import KnowledgeJustificationRegistry
+from nolane.external_core.knowledge_justification_truth import (
+    KnowledgeJustificationRegistry,
+    KnowledgeJustificationRevision,
+)
 from nolane.external_core.knowledge_temporal_truth import TemporalKnowledgeView
 from nolane.external_core.knowledge_truth import KnowledgeClaim, KnowledgeLedger
-from nolane.external_core.knowledge_undercutter_truth import JustificationUndercutterRegistry
+from nolane.external_core.knowledge_undercutter_truth import (
+    JustificationUndercutterRegistry,
+    JustificationUndercutterRevision,
+)
 from nolane.external_core.temporal_truth import TemporalContext
 from nolane.external_core.verification_defeasible_truth import (
     DefeasibleTruthVerificationLedger,
@@ -49,6 +55,7 @@ def _record(
     subject_id: str,
     source_id: str,
     channel: EvidenceChannel,
+    polarity: EvidencePolarity = EvidencePolarity.SUPPORT,
 ) -> None:
     evidence.record(
         TruthEvidence.create(
@@ -57,7 +64,7 @@ def _record(
             source_id=source_id,
             source_family=f"family:{source_id}",
             channel=channel,
-            polarity=EvidencePolarity.SUPPORT,
+            polarity=polarity,
             payload_digest=f"payload:{evidence_id}",
         )
     )
@@ -132,6 +139,22 @@ def _state():
     }
 
 
+def _recompute_scope(state):
+    state["scope"] = DefeasibleEpistemicJudge().relation_aware_temporal_scope(
+        state["claim"].claim_id,
+        temporal_context=state["context"],
+        knowledge=state["knowledge"],
+        evidence=state["evidence"],
+        relation_semantics=state["semantics"],
+        knowledge_temporal=state["knowledge_temporal"],
+        evidence_temporal=state["evidence_temporal"],
+        source_provenance=state["provenance"],
+        justifications=state["justifications"],
+        undercutters=state["undercutters"],
+    )
+    return state["scope"]
+
+
 def _receipt(state, *, receipt_id: str, verifier_id: str, channel: EvidenceChannel, passed: bool = True):
     return DefeasibleTruthVerificationReceipt.create(
         receipt_id=receipt_id,
@@ -180,6 +203,79 @@ def test_a13_decision_origin_controller_cannot_self_verify_as_independent():
     assert coverage.independent_source_count == 1
     assert coverage.passing_independence_keys == ("independent-controller",)
     assert "r-same" in coverage.non_independent_receipt_ids
+
+
+def test_a13_decisive_undercutter_controller_cannot_reappear_as_independent_verifier():
+    state = _state()
+    _record(
+        state["evidence"],
+        evidence_id="claim-refute-alt",
+        subject_id=state["claim"].claim_id,
+        source_id="refute-source",
+        channel=EvidenceChannel.OBSERVATION,
+        polarity=EvidencePolarity.REFUTE,
+    )
+    state["provenance"].register(_prov("refute-source", "refute-controller"))
+    refuting = state["justifications"].register(
+        KnowledgeJustificationRevision.create(
+            justification_id="j-refuting",
+            claim=state["claim"],
+            evidence_ids=("claim-refute-alt",),
+        ),
+        knowledge=state["knowledge"],
+    )
+
+    _record(
+        state["evidence"],
+        evidence_id="attack-support",
+        subject_id="u-refute-invalid",
+        source_id="attack-source",
+        channel=EvidenceChannel.OBSERVATION,
+    )
+    state["provenance"].register(_prov("attack-source", "attack-controller"))
+    state["undercutters"].register(
+        JustificationUndercutterRevision.create(
+            undercutter_id="u-refute-invalid",
+            claim=state["claim"],
+            target_basis=refuting.basis(),
+            evidence_ids=("attack-support",),
+        ),
+        knowledge=state["knowledge"],
+        justifications=state["justifications"],
+    )
+
+    state["provenance"].register(_prov("verifier-attack", "attack-controller"))
+    _record(
+        state["evidence"],
+        evidence_id="evidence:verifier-attack",
+        subject_id=state["claim"].claim_id,
+        source_id="verifier-attack",
+        channel=EvidenceChannel.ADVERSARIAL,
+    )
+    scope = _recompute_scope(state)
+    assert scope.justification_status("j-refuting").status == "defeated"
+    assert scope.assessment(state["claim"].claim_id).disposition.value == "supported"
+    assert "attack-source" in scope.decision_source_ids
+
+    ledger = DefeasibleTruthVerificationLedger()
+    ledger.record(
+        _receipt(
+            state,
+            receipt_id="r-attack-controller",
+            verifier_id="verifier-attack",
+            channel=EvidenceChannel.ADVERSARIAL,
+        )
+    )
+    coverage = ledger.coverage(
+        state["claim"].claim_id,
+        scope=scope,
+        temporal_context=state["context"],
+        evidence=state["evidence"],
+        evidence_temporal=state["evidence_temporal"],
+        source_provenance=state["provenance"],
+    )
+    assert coverage.independent_source_count == 0
+    assert coverage.non_independent_receipt_ids == ("r-attack-controller",)
 
 
 def test_a13_negative_verification_is_retained_not_laundered_away():
@@ -246,20 +342,9 @@ def test_a13_receipt_is_exact_scope_bound_and_stales_after_relevant_change():
     ) == (receipt,)
 
     state["evidence"].revoke("claim-support", reason="truth state changed")
-    changed_scope = DefeasibleEpistemicJudge().relation_aware_temporal_scope(
-        state["claim"].claim_id,
-        temporal_context=state["context"],
-        knowledge=state["knowledge"],
-        evidence=state["evidence"],
-        relation_semantics=state["semantics"],
-        knowledge_temporal=state["knowledge_temporal"],
-        evidence_temporal=state["evidence_temporal"],
-        source_provenance=state["provenance"],
-        justifications=state["justifications"],
-        undercutters=state["undercutters"],
-    )
+    changed_scope = _recompute_scope(state)
 
-    assert changed_scope.digest != state["scope"].digest
+    assert changed_scope.digest != receipt.scope_digest
     assert ledger.current_receipts(
         state["claim"].claim_id,
         scope=changed_scope,
