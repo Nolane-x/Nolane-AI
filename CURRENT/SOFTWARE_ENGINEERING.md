@@ -4,10 +4,11 @@ Date: 2026-08-31
 Engineering wave: v0.8.0
 Control-plane compatibility API: `external.software_engineering.control` v0.7.0
 Effects state protocol: `external.software_engineering.effects` v0.1.0
+Effect-fencing protocol: `external.software_engineering.effect_fencing` v0.1.0
 Effect-journal protocol: `external.software_engineering.effect_journal` v0.1.0
 Effect-recovery protocol: `external.software_engineering.effect_recovery` v0.1.0
 
-The v0.8 wave changes the unified control-plane snapshot schema by adding durable external-effect acknowledgement history, so the control compatibility API advances from v0.6.0 to v0.7.0. The underlying effects ledger shape remains v0.1.0. The frozen `_software_engineering_control_v06` module is an internal compatibility implementation only; the public `software_engineering_control` module remains the single canonical cross-surface control entry point.
+The v0.8 wave changes the unified control-plane snapshot schema by adding durable external-effect acknowledgement history, so the control compatibility API advances from v0.6.0 to v0.7.0. The underlying effects ledger shape remains v0.1.0. Transaction-scoped intent-fencing indices are derived from canonical intent rows and therefore do not add serialized schema. The frozen `_software_engineering_control_v06` module is an internal compatibility implementation only; the public `software_engineering_control` module remains the single canonical cross-surface control entry point.
 
 ## Canonical authority
 
@@ -30,7 +31,8 @@ patch + source claims + engineering operation_ref
   -> immutable claim-state binding
   -> precondition evidence
   -> current mutation-authority receipt
-  -> prepared application intent
+  -> prepare exactly one application intent for the transaction
+  -> transaction-scoped pre-dispatch intent fence
   -> external executor boundary under that immutable authorized intent
   -> durable observation-only executor acknowledgement
   -> local acknowledgement-backed finalization
@@ -55,7 +57,8 @@ crash after APPLIED transition but before application-commit persistence
   -> never invoke external application again
 
 failure/recovery after mutation
-  -> rollback intent
+  -> prepare exactly one rollback intent for the transaction
+  -> transaction-scoped pre-dispatch rollback-intent fence
   -> external rollback executor boundary
   -> durable observation-only rollback acknowledgement
   -> independent restored-state verification
@@ -87,6 +90,9 @@ crash after ROLLED_BACK transition but before completion-receipt persistence
 - Revoking evidence or an upstream dependency invalidates dependent attestations without deleting history.
 - Mutation requires active exclusive bound claims and live precondition evidence at the mutation action boundary.
 - Apply consumes an explicit content-addressed mutation-authority receipt; the unified control plane has no receipt-less apply path.
+- Each transaction may prepare at most one immutable application intent. Exact retries return that intent; changing its application/idempotency ref or mutation-receipt lineage fails closed before executor dispatch.
+- Each transaction may prepare at most one immutable rollback intent. Exact retries return that intent; changing its rollback operation, reason or target state fails closed before executor dispatch.
+- Transaction-intent fence indices are reconstructed from canonical intent rows at restore and are not independently trusted or serialized.
 - External mutation is represented by a prepared application intent, an observation-only durable executor acknowledgement, and a canonical application commit; application references cannot be rebound across transactions.
 - A durable application acknowledgement binds exact intent digest, transaction, patch, `application_ref`, executor namespace, executor receipt reference and observed-state digest.
 - Successful acknowledgement retry is semantic-idempotent. Rebinding its intent, transaction, operation/idempotency reference, executor namespace, executor receipt or observed state fails closed.
@@ -127,7 +133,7 @@ Additional policy requirements:
 
 The unified `SoftwareEngineeringControlPlane` snapshot is content-addressed and includes work, immutable operation lineage, manifests, evidence, transactions, claim bindings, policy, mutation-authority history, effect intents/commits/completions, durable effect-journal acknowledgements, closure/gate history and current-validity history.
 
-Restore is fail-closed on cross-layer lineage mismatch even when an attacker recomputes local and outer digests after tampering. Journal uniqueness indices are rebuilt from canonical acknowledgement rows rather than trusted as cache state. A canonical application commit requires its matching durable application acknowledgement; a canonical rollback completion requires its matching durable rollback acknowledgement. Removing either acknowledgement and recomputing the journal and outer digests still fails cross-ledger coverage validation.
+Restore is fail-closed on cross-layer lineage mismatch even when an attacker recomputes local and outer digests after tampering. Journal uniqueness indices and transaction-intent fencing indices are rebuilt from canonical rows rather than trusted as cache state. A canonical application commit requires its matching durable application acknowledgement; a canonical rollback completion requires its matching durable rollback acknowledgement. Removing either acknowledgement and recomputing the journal and outer digests still fails cross-ledger coverage validation.
 
 A v0.6 unified control snapshot is not silently accepted as v0.7 because the missing acknowledgement history cannot be reconstructed truthfully. Schema migration, if introduced later, must be explicit and evidence-backed rather than inventing external observations.
 
