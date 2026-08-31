@@ -41,7 +41,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.self_model": 2,
     "external.skills": 3,
     "external.memory.fabric": 2,
-    "external.memory.lifecycle": 4,
+    "external.memory.lifecycle": 5,
     "external.memory.retrieval": 3,
     "external.knowledge": 2,
     "external.epistemic": 1,
