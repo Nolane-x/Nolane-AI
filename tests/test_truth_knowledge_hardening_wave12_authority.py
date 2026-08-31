@@ -10,6 +10,7 @@ import nolane.external_core.knowledge_justification_truth as knowledge_v6
 import nolane.external_core.verification_justification_truth as verification_v6
 from nolane.external_core.epistemic_justification_truth import JustificationEpistemicJudge
 from nolane.external_core.epistemic_provenance_truth import ProvenanceEpistemicJudge
+from nolane.external_core.epistemic_temporal_truth import TemporalEpistemicJudge
 from nolane.external_core.evidence_provenance_truth import (
     SourceProvenanceRegistry,
     SourceProvenanceRevision,
@@ -103,7 +104,16 @@ def test_a12_sidecars_preserve_exact_family_a_authority_ownership():
 
 def test_a12_without_explicit_justifications_preserves_a11_epistemic_semantics():
     state = _state()
-    legacy = ProvenanceEpistemicJudge().relation_aware_temporal_scope(
+    temporal = TemporalEpistemicJudge().relation_aware_dependency_scope(
+        state["claim"].claim_id,
+        temporal_context=state["context"],
+        knowledge=state["knowledge"],
+        evidence=state["evidence"],
+        relation_semantics=state["relation_semantics"],
+        knowledge_temporal=state["knowledge_temporal"],
+        evidence_temporal=state["evidence_temporal"],
+    )
+    provenance_scope = ProvenanceEpistemicJudge().relation_aware_temporal_scope(
         state["claim"].claim_id,
         temporal_context=state["context"],
         knowledge=state["knowledge"],
@@ -125,11 +135,11 @@ def test_a12_without_explicit_justifications_preserves_a11_epistemic_semantics()
         justifications=state["justifications"],
     )
 
-    assert v6.lineage_claim_ids == legacy.temporal_scope.lineage_claim_ids
-    assert v6.scope_claim_ids == legacy.temporal_scope.scope_claim_ids
-    assert v6.evidence_ids == legacy.temporal_scope.evidence_ids
-    assert v6.source_ids == legacy.source_ids
-    assert v6.assessment("claim-root") == legacy.temporal_scope.assessment("claim-root")
+    assert v6.lineage_claim_ids == temporal.lineage_claim_ids
+    assert v6.scope_claim_ids == temporal.scope_claim_ids
+    assert v6.evidence_ids == temporal.evidence_ids
+    assert v6.source_ids == provenance_scope.source_ids
+    assert v6.assessment("claim-root") == temporal.assessment("claim-root")
 
 
 def test_a12_scope_and_revision_are_protocol_domain_separated():
