@@ -331,11 +331,18 @@ class ProvenanceTruthVerificationLedger:
 
         passing = tuple(row for row in valid if row.passed)
         negative = tuple(sorted(row.receipt_id for row in valid if not row.passed))
+        origin_controller_ids: set[str] = set()
+        for source_id in scope.source_ids:
+            try:
+                origin_controller_ids.update(source_provenance.root_controllers(source_id))
+            except KeyError:
+                continue
+
         independence_keys: set[str] = set()
         non_independent: list[str] = []
         for row in passing:
             key = source_provenance.independence_key(row.verifier_id)
-            if key is None:
+            if key is None or key in origin_controller_ids:
                 non_independent.append(row.receipt_id)
             else:
                 independence_keys.add(key)
