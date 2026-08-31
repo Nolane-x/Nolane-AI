@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any, Mapping
 
 from nolane.memory.learning_substrate import LearningSubstrate
@@ -7,7 +8,7 @@ from nolane.memory.learning_substrate import LearningSubstrate
 
 _SKILL_KEYS = ("skill_validations",)
 _LIFECYCLE_KEYS = ("metadata", "tombstones", "compactions", "anchor_health")
-_RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts")
+_RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts", "retrieval_snapshots")
 _OVERLAY_KEYS = _SKILL_KEYS + _LIFECYCLE_KEYS + _RETRIEVAL_KEYS
 
 
@@ -63,6 +64,10 @@ def _copy_validated_overlay(target: LearningSubstrate, validated: LearningSubstr
     target._skill_validations = dict(validated._skill_validations)
     target._retrieval_policies = dict(validated._retrieval_policies)
     target._retrieval_receipts = dict(validated._retrieval_receipts)
+    target._retrieval_snapshots = {
+        digest: deepcopy(snapshot)
+        for digest, snapshot in validated._retrieval_snapshots.items()
+    }
     target._compactions = dict(validated._compactions)
     target._anchor_health = {
         memory_id: list(receipts)

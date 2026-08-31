@@ -138,6 +138,7 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay_by_canonica
     assert lifecycle_state["anchor_health"]
     assert retrieval_state["retrieval_policies"]
     assert retrieval_state["retrieval_receipts"]
+    assert retrieval_state["retrieval_snapshots"]
 
     restored = OrganizationRuntime.from_state(state)
     restored_substrate = restored.learning_substrate
