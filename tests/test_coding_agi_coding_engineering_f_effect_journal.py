@@ -294,3 +294,43 @@ def test_restore_rejects_rollback_completion_with_missing_durable_acknowledgemen
 
     with pytest.raises(ValueError, match="acknowledgement|durable"):
         SoftwareEngineeringControlPlane.from_state(claims=claims, state=state)
+
+
+def test_one_transaction_cannot_prepare_multiple_application_intents():
+    patch, _, plane, work, mutation = _precondition_plane()
+    first = plane.prepare_application(
+        work_id=work.work_id,
+        patch=patch,
+        mutation_authority_receipt_id=mutation.receipt_id,
+        application_ref="executor:idempotency:effect-journal-apply-a",
+    )
+
+    with pytest.raises(ValueError, match="transaction|multiple|intent|fenc"):
+        plane.prepare_application(
+            work_id=work.work_id,
+            patch=patch,
+            mutation_authority_receipt_id=mutation.receipt_id,
+            application_ref="executor:idempotency:effect-journal-apply-b",
+        )
+
+    assert plane.effects.application_intents() == (first,)
+
+
+def test_one_transaction_cannot_prepare_multiple_rollback_intents():
+    _, _, plane, work, _, _, _ = _committed_application()
+    first = plane.prepare_rollback(
+        transaction_id=work.transaction_id,
+        rollback_operation_ref="executor:idempotency:effect-journal-rollback-a",
+        reason="post-apply regression",
+        target_state_digest="state:before-effect-journal-patch",
+    )
+
+    with pytest.raises(ValueError, match="transaction|multiple|intent|fenc"):
+        plane.prepare_rollback(
+            transaction_id=work.transaction_id,
+            rollback_operation_ref="executor:idempotency:effect-journal-rollback-b",
+            reason="post-apply regression",
+            target_state_digest="state:before-effect-journal-patch",
+        )
+
+    assert plane.effects.rollback_intents() == (first,)
