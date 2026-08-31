@@ -21,7 +21,7 @@ from .goal_design_integrity_evolution_authority import (
     GoalIntegrityEvolutionAuthorityVerifier,
 )
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
 LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
@@ -59,7 +59,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         supersedes_digest: str | None = None,
         evolution_receipt: GoalIntegrityEvolutionReceipt | None = None,
     ) -> str:
-        """Install a revision only after structural and authentic authority proof."""
+        """Install a revision only after structural and live-valid authority proof."""
 
         self._ensure_authority_authenticity_state()
         current_digest = self._current_contracts.get(contract.goal_id)
@@ -105,7 +105,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
                 "a self-asserted authority reference is not a capability proof"
             )
         try:
-            verifier.verify_authorization_proof(
+            verifier.verify_live_authorization_proof(
                 evolution_receipt.authority_ref,
                 goal_id=contract.goal_id,
                 predecessor_digest=predecessor.digest,
@@ -114,7 +114,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
             )
         except ValueError as exc:
             raise CoherenceError(
-                f"Goal/Design integrity evolution authority proof is not authentic: {exc}"
+                f"Goal/Design integrity evolution authority proof is not authentic or live-valid: {exc}"
             ) from exc
 
         result = super().install_integrity_contract(
@@ -290,6 +290,8 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
                         predecessor=predecessor,
                         successor=successor,
                     )
+                    # Restore validates historical authenticity at proof issuance;
+                    # later revocation must not corrupt already committed history.
                     verifier.verify_authorization_proof(
                         receipt.authority_ref,
                         goal_id=successor.goal_id,
