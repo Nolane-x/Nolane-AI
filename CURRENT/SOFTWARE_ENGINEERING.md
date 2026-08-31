@@ -1,10 +1,11 @@
 # CURRENT — F. Software Engineering
 
 Date: 2026-08-31
-Engineering wave: v1.0.0
-Unified control API: `external.software_engineering.control` v0.9.0
+Engineering wave: v1.1.0
+Unified control API: `external.software_engineering.control` v1.1.0
 Property-evidence protocol: `external.software_engineering.property_evidence` v0.1.0
 Property-gate protocol: `external.software_engineering.property_gate` v0.1.0
+Current-property-validity protocol: `external.software_engineering.current_property_validity` v0.1.0
 Effects state protocol: `external.software_engineering.effects` v0.1.0
 Effect-fencing protocol: `external.software_engineering.effect_fencing` v0.1.0
 Effect-journal protocol: `external.software_engineering.effect_journal` v0.1.0
@@ -12,9 +13,9 @@ Effect-recovery protocol: `external.software_engineering.effect_recovery` v0.1.0
 Effect-dispatch protocol: `external.software_engineering.effect_dispatch` v0.1.0
 Recovery-frontier protocol: `external.software_engineering.recovery_frontier` v0.1.0
 
-F v1.0 extends the crash-consistent v0.9 control plane with property-scoped engineering evidence. A green command, test suite, screenshot, benchmark, reproduction or review is no longer treated as sufficient merely because its evidence kind matches a policy bucket. The verifier must attest an oracle that actually measures the declared engineering property, the witness must bind the exact patch digest and source revision, and the complete required property set must remain live-valid before a terminal candidate receipt can close.
+F v1.1 turns F v1.0 property evidence into a live truth-maintained engineering candidate protocol. A historical green engineering closure and a historical green property gate are immutable audit facts, not perpetual authorization. Current candidate eligibility is a separate content-addressed view that rechecks the legacy engineering truth line and the semantic-property truth line against canonical live evidence, source revision and patch state.
 
-The public control plane advances from v0.8.0 to v0.9.0. The exact v0.8 implementation is frozen in `_software_engineering_control_v08.py`; public v0.9 composes property evidence/gating on the same canonical `EngineeringEvidenceLedger` and includes property state in its content-addressed snapshot. Historical v0.8 state has an explicit migration path through the frozen implementation rather than being interpreted under a rewritten schema.
+The public control plane advances to v1.1.0. The F v1.0 public boundary is frozen in `_software_engineering_control_v10.py`, while `_software_engineering_control_v09.py` and `_software_engineering_control_v08.py` continue to preserve their historical state semantics. Old v0.8/v0.9 snapshots are lifted explicitly; their historical receipts are not reinterpreted under v1.1.
 
 ## Canonical authority
 
@@ -26,7 +27,7 @@ F still has exactly five canonical component authorities:
 4. `external.debugging`
 5. `external.ui_ux`
 
-`software_engineering*` modules remain composition/control protocols. Property obligations have `verification_scope_only`; property witnesses have `evidence_scope_only`; property closures, property gates and property-bound terminal receipts are `candidate_only`. None grants mutation, release, deployment, Assurance acceptance, repository write authority or capability promotion.
+`software_engineering*` modules remain composition/control protocols. Property obligations are `verification_scope_only`; property witnesses are `evidence_scope_only`; property closures, property gates, property-bound terminal receipts and current-property validity receipts are `candidate_only`. None grants mutation, release, deployment, Assurance acceptance, repository write authority or capability promotion.
 
 ## Governed lifecycle
 
@@ -47,25 +48,29 @@ patch + source claims + engineering operation_ref
   -> postcondition evidence
   -> legacy risk/surface verification gate
   -> canonical Coding/Debug/UI receipt integrity
-  -> legacy engineering closure / candidate_only
+  -> legacy engineering closure / historical candidate_only fact
   -> externally supplied required-property manifest
   -> claim-class-specific property obligations
   -> verifier-attested property oracles
   -> exact property witnesses
-  -> per-property live closure
-  -> complete-set property gate
+  -> per-property closure
+  -> complete-set property gate / historical candidate_only fact
   -> legacy-closure + property-gate terminal binding
-  -> PROPERTY-BOUND CANDIDATE / candidate_only
-  -> live evidence re-evaluation can reopen closure
+  -> PROPERTY-BOUND CANDIDATE / historical candidate_only fact
+  -> live legacy validity replay
+  -> live property-gate reassessment
+  -> exact source/patch drift check
+  -> CURRENT PROPERTY-BOUND CANDIDATE / candidate_only
+  -> premise revocation or drift reopens current eligibility
 ```
 
-The property layer is monotonic: it strengthens terminal eligibility without rewriting the payload/digest semantics of historical Coding, Debug, UI/UX or engineering closure receipts.
+The architecture is monotonic: historical Coding, Debug, UI/UX, engineering closure and property-gate receipts remain immutable. v1.1 adds a new current-truth projection instead of mutating old payloads or retroactively changing their digests.
 
 ## Property evidence model
 
 ### Claim classes
 
-The v1.0 property ledger distinguishes the semantic claim being made:
+The property ledger distinguishes the semantic claim being made:
 
 - build integrity;
 - functional behavior;
@@ -79,126 +84,136 @@ The v1.0 property ledger distinguishes the semantic claim being made:
 
 Claim classes are not inferred from a generic green command. They identify what must actually be true of the repository/runtime state.
 
-### Proof methods
+### Proof methods and oracle binding
 
 Supported proof methods include compile/static analysis, unit/integration/property/metamorphic/regression tests, deterministic reproduction, causal probe/bisect, visual diff, responsive/accessibility checks, interaction E2E, security tests and performance benchmarks.
 
-A proof method must be compatible with the underlying canonical `EngineeringEvidenceKind`. Relabeling a TEST attestation as a visual/security/root-cause witness is rejected.
-
-### Oracle binding
-
-A witness declares both `measured_property_ref` and `oracle_ref`.
-
-For a witness to be valid:
-
-- `measured_property_ref` must equal the exact property obligation; proxy labels such as `tests-pass` cannot close a behavioral property;
-- `oracle_ref` must be present in the verifier's immutable attestation evidence/dependency lineage;
-- the attestation must match the exact patch ref, patch digest and source revision;
-- the attestation must remain live-valid and unrevoked;
-- proof method and attestation kind must agree.
-
-This blocks property-label laundering: a caller cannot take an unrelated green test and self-declare that it proves a desired semantic property.
+A witness must bind the exact property and a verifier-attested `oracle_ref`. The oracle must occur in immutable verifier evidence/dependency lineage, the attestation must match the exact patch digest and source revision, the attestation must remain live-valid, and proof method must agree with the canonical evidence kind. This blocks relabeling an unrelated green test as proof of a desired semantic property.
 
 ### Claim-specific proof floors
 
 - build integrity requires compile evidence;
-- functional behavior requires an actual behavioral test family such as integration/property/metamorphic/unit proof bound to the property oracle;
+- functional behavior requires a behavioral test family bound to the exact property oracle;
 - regression preservation requires regression evidence plus a version-bound baseline;
-- debugging root cause requires deterministic reproduction, a causal probe or bisect, and a falsifier witness;
+- debugging root cause requires deterministic reproduction, causal probe/bisect and a falsifier;
 - UI visual fidelity requires visual-diff evidence;
-- UI interaction requires interaction E2E evidence; a screenshot/visual diff cannot substitute;
+- UI interaction requires interaction E2E evidence; screenshots cannot substitute;
 - UI accessibility requires accessibility evidence;
-- security requires security evidence and adversarial witness semantics;
+- security requires security evidence plus adversarial witness semantics;
 - performance requires a benchmark plus a version-bound baseline.
 
-Where an obligation requests multiple independent sources, independence is counted by source family rather than raw witness count so duplicated observations do not manufacture independence.
+Where multiple independent sources are required, independence is counted by verifier-attested source family rather than raw witness count.
 
 ## Complete-set property gate
 
-A ready individual property closure is not enough to close a patch. The property gate consumes an immutable required-property manifest supplied by the requirements/goal authority and checks the complete set for the exact patch and source revision.
+A ready individual property closure is insufficient. The property gate consumes the immutable required-property manifest supplied by the requirement/goal authority and checks the complete exact set for one patch digest and source revision.
 
-The gate fails closed on:
+It fails closed on missing or unexpected properties, duplicates, obligation/closure digest mismatch, patch/source mismatch, revoked attestations, stale witnesses, insufficient source-family independence, and lineage tampering. Each assessment re-runs the historical witness set against the live evidence ledger.
 
-- missing required obligations;
-- unexpected or duplicate closure scope;
-- closure/obligation digest mismatch;
-- patch or source-revision mismatch;
-- stale/revoked underlying attestations;
-- a historical closure whose witnesses no longer re-assess ready;
-- property-gate or snapshot lineage tampering.
+The terminal property-bound receipt remains a historical `candidate_only` result. It is intentionally not interpreted as proof that its premises are still true later.
 
-A historical `ready=True` property receipt is therefore not eternal. The gate re-runs the property assessment against the live evidence ledger before minting a current candidate receipt.
+## v1.1 current-validity truth maintenance
 
-The terminal property-bound receipt binds the legacy engineering candidate and the current property gate. It remains `candidate_only`; F still cannot release or deploy.
+`SoftwareEngineeringCurrentPropertyValidity` sits above the immutable legacy closure and historical property gate. It emits `EngineeringCurrentPropertyBoundReceipt`, binding:
+
+- canonical base engineering closure id/digest;
+- canonical historical property gate id/digest;
+- canonical property manifest id/digest;
+- the newly evaluated legacy `EngineeringCurrentValidityReceipt` id/digest;
+- the newly re-assessed live property gate id/digest;
+- exact patch ref/digest;
+- the source revision being evaluated;
+- deterministic current/blocking reasons;
+- authority fixed to `candidate_only`.
+
+A current result requires all of the following simultaneously:
+
+1. the legacy engineering closure still has a current-valid legacy truth view;
+2. the complete semantic-property gate re-closes against live evidence;
+3. historical legacy/property lineages still identify the same patch digest and source revision;
+4. the supplied current patch object still has the same identity and state digest;
+5. no live blocker remains.
+
+Revocation does not delete or mutate prior green receipts. It causes a newly assessed current receipt to become blocked. This preserves auditability while preventing historical success from masquerading as present truth.
+
+### Cross-layer anti-laundering restore
+
+Content digests alone are not considered sufficient restore proof. An attacker able to edit serialized state could otherwise modify both a nested legacy-validity receipt and its enclosing current-property receipt, recompute both digests, and make the two forged objects appear mutually consistent.
+
+v1.1 therefore performs semantic replay during restore. It independently reconstructs all legacy blockers available from canonical state, including:
+
+- base-closure readiness;
+- transaction patch/source lineage;
+- candidate-ready transaction phase and closure binding;
+- source-revision freshness;
+- current validity of every canonical legacy attestation;
+- canonical claim-binding presence and identity.
+
+The property side is independently recomputed through a fresh complete-set property-gate assessment. If a nested validity receipt omits a blocker that canonical live evidence reproduces, restore rejects the snapshot even when every attacker-controlled digest was recomputed correctly.
+
+Patch-object drift that depends on an external current patch object is checked on every live `assess(...)` call. Persisted receipts remain historical observations; downstream code must request a fresh assessment for present eligibility rather than treating a restored `current=True` row as eternal authority.
 
 ## Coding / Debugging / UI implications
 
 ### Coding claims and patches
 
-The v1.0 property layer does not redefine ownership of Coding Claims or Coding Patches. Patch identity, scope, operation lineage and mutation authority continue to be governed by existing canonical Coding/F mechanisms. Property state is verification-only and cannot authorize mutation.
+v1.1 does not redefine Coding Claims or Coding Patches ownership. Mutation remains governed by canonical Coding/F mechanisms. Current-property state is verification/control state only and cannot authorize a write.
 
 ### Debugging
 
-A root-cause statement cannot close from a reproduction alone. Root-cause property closure requires a discriminating causal probe/bisect and a falsifier witness, so the system distinguishes "I reproduced the failure" from "I established this cause".
+A root-cause statement cannot close from reproduction alone. It requires a discriminating causal probe/bisect and a falsifier. If the supporting evidence is later revoked, current eligibility reopens without erasing the historical debugging result.
 
 ### UI/UX
 
-Visual fidelity, accessibility and interaction are separate properties. A visually matching screenshot does not prove keyboard submission, focus behavior, routing, state transition or other interaction semantics. Interaction-sensitive claims require actual interaction E2E evidence.
+UI/UX here means engineering verification/control for UI code, not a separate product frontend. Visual fidelity, accessibility and interaction remain separate properties. A screenshot does not prove click, keyboard, focus, routing or state-transition behavior; interaction-sensitive claims require actual interaction E2E evidence.
 
-## Durable dispatch frontier retained from v0.9
+## Durable dispatch frontier retained
 
-All v0.9 crash-consistency invariants remain in force:
+All crash-consistency invariants remain in force:
 
 - `PRE_DISPATCH` is durable and `coordination_only`;
 - dispatch without acknowledgement yields `EXTERNAL_STATUS_REQUIRED` and forbids automatic redispatch;
 - F never invents an acknowledgement to escape uncertainty;
 - application/rollback acknowledgements are `observation_only`;
 - acknowledged application can recover by local finalization without re-invoking the executor;
-- rollback still requires independent restored-state verification;
+- rollback requires independently verified restored state;
 - compatibility backfill is failure-atomic;
-- exactly-once claims are limited to local finalization per immutable acknowledged lineage, not distributed exactly-once execution.
-
-## Evidence truth-maintenance
-
-Engineering evidence is content-addressed and revision-bound. Revocation or invalidation never deletes history, but it removes the evidence from current validity. Property closure therefore supports reopening: if an attestation used by a previously green property becomes revoked, stale or lineage-invalid, a fresh assessment becomes blocked and the complete-set property gate refuses current terminal closure.
-
-This follows the same epistemic rule used elsewhere in Nolane: a recorded claim/receipt is historical evidence of what was accepted at that time, not perpetual proof that its premises remain true.
+- exactly-once claims remain limited to local finalization per immutable acknowledged lineage, not distributed exactly-once execution.
 
 ## State and compatibility integrity
 
-The unified v0.9 control snapshot contains the full v0.8 state plus property-evidence and property-gate state, all under one outer content digest.
+The unified v1.1 control snapshot contains the frozen v1.0/v0.9 property state plus the new current-property-validity substate under one outer content digest.
 
-Restore verifies:
+Restore verifies outer digest, frozen historical state identity, shared canonical evidence, property evidence/gate lineage, current-property nested component identity/version, live property re-evaluation, canonical legacy truth replay, and the inherited dispatch/effect lineage. Recomputing an outer digest cannot bypass nested semantic validation.
 
-- outer control digest;
-- frozen v0.8 base-state identity;
-- canonical evidence sharing between base control and property subsystem;
-- obligation, witness and attestation lineage;
-- oracle provenance;
-- property closure witness digests;
-- property manifest/gate/terminal receipt lineage;
-- dispatch/acknowledgement/effect lineage inherited from v0.8.
+Compatibility is explicit:
 
-The frozen `_software_engineering_control_v08` implementation preserves the historical v0.8 schema. Upgrading old v0.8 state is explicit: restore it with the frozen implementation, then construct v0.9 property state rather than silently inventing property observations that never existed.
+- v0.8 snapshot -> frozen v0.8 restore -> v0.9 property lift -> v1.1 current-validity lift;
+- v0.9 snapshot -> frozen v1.0 public boundary -> v1.1 current-validity lift;
+- v1.1 snapshot -> exact frozen-base reconstruction + current-validity semantic replay.
+
+No migration invents property witnesses or current-validity observations that did not exist historically.
 
 ## Non-claims
 
-F v1.0 does not claim that:
+F v1.1 does not claim that:
 
 - passing tests prove unspecified behavior;
 - screenshots prove interaction;
 - reproduced failures prove root cause;
 - benchmark numbers prove improvement without a baseline;
-- multiple copied witnesses are independent evidence;
-- historical green receipts remain valid after premise revocation;
+- copied witnesses are independent evidence;
+- historical green receipts remain current after premise revocation;
+- a restored `current=True` receipt is perpetual proof without a fresh current assessment;
+- content-digest consistency alone proves semantic truth;
 - property verification grants mutation/release/deployment authority;
 - external executors provide distributed exactly-once semantics.
 
 ## Validation gates
 
-F v1.0 acceptance requires the current PR synthetic merge-ref to pass, after the latest independent subsystem merges:
+F v1.1 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
 
 - `Coding AGI Coding Organization Part V` on Python 3.11 and 3.13;
 - `Nolane-AI Refoundation Epoch 0` on Python 3.11 and 3.13.
 
-Part V must include the property-evidence, oracle-binding, complete-set property-gate and unified-control migration/state tests. Immediately before merge, re-check exact `main`, PR head, synthetic merge-ref, changed-file scope and mergeability; if `main` advances, acceptance must be repeated on the recomposed merge-ref.
+Part V must include property evidence/oracle binding, complete-set property gating, live legacy/property reopening, public-control migration/state tests, and the cross-layer recomputed-truth laundering adversarial regression. Immediately before merge, re-check exact `main`, PR head, synthetic merge-ref, changed-file scope and mergeability. If `main` advances, acceptance is stale and must be repeated on the recomposed edge.
