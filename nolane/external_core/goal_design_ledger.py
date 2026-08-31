@@ -11,6 +11,7 @@ from enum import Enum
 from typing import Any, Mapping
 
 from .goal_design import DecisionReceipt, GoalDesignSnapshot, stable_digest
+from .goal_design_authenticity import decision_event_payload, decision_event_subject_refs, verify_decision_receipt
 
 
 class EventKind(str, Enum):
@@ -108,19 +109,13 @@ class GoalDesignLedger:
         )
 
     def record_decision(self, receipt: DecisionReceipt, *, parent_ids: tuple[str, ...] = ()) -> GoalDesignEvent:
+        verify_decision_receipt(receipt)
         return self._append(
             EventKind.DECISION,
-            {
-                "receipt_id": receipt.receipt_id,
-                "goal_id": receipt.goal_id,
-                "selected_option_id": receipt.selected_option_id,
-                "snapshot_digest": receipt.snapshot_digest,
-                "evaluation_digest": receipt.evaluation_digest,
-                "input_manifest_digest": receipt.input_manifest_digest,
-            },
+            decision_event_payload(receipt),
             AuthorityLevel.AUTHORITY,
             parent_ids,
-            (receipt.goal_id, receipt.selected_option_id, receipt.snapshot_digest),
+            decision_event_subject_refs(receipt),
         )
 
     def record_invalidation(
