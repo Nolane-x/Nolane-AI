@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.software_engineering import EngineeringPhase
 from nolane.external_core.software_engineering_property_gate import (
     EngineeringPropertyGateReceipt,
     SoftwareEngineeringPropertyGate,
@@ -33,10 +34,10 @@ def _refs(values: Sequence[Any]) -> tuple[str, ...]:
 class EngineeringCurrentPropertyBoundReceipt:
     """Current truth view over one historical legacy + semantic-property candidate.
 
-    This receipt never rewrites either historical closure.  It binds their
+    This receipt never rewrites either historical closure. It binds their
     immutable identities to live revalidation receipts so a previously green
     candidate can become non-current when evidence, source revision, or patch
-    state drifts.  Positive authority remains candidate-only.
+    state drifts. Positive authority remains candidate-only.
     """
 
     receipt_id: str
@@ -63,10 +64,7 @@ class EngineeringCurrentPropertyBoundReceipt:
             (self.receipt_id, "current property-bound receipt id"),
             (self.base_closure_id, "base engineering closure id"),
             (self.base_closure_digest, "base engineering closure digest"),
-            (
-                self.historical_property_gate_receipt_id,
-                "historical property gate receipt id",
-            ),
+            (self.historical_property_gate_receipt_id, "historical property gate receipt id"),
             (self.historical_property_gate_digest, "historical property gate digest"),
             (self.property_manifest_id, "property manifest id"),
             (self.property_manifest_digest, "property manifest digest"),
@@ -113,9 +111,7 @@ class EngineeringCurrentPropertyBoundReceipt:
         row = cls(
             receipt_id=_text(state["receipt_id"], field="current property-bound receipt id"),
             base_closure_id=_text(state["base_closure_id"], field="base engineering closure id"),
-            base_closure_digest=_text(
-                state["base_closure_digest"], field="base engineering closure digest"
-            ),
+            base_closure_digest=_text(state["base_closure_digest"], field="base engineering closure digest"),
             historical_property_gate_receipt_id=_text(
                 state["historical_property_gate_receipt_id"],
                 field="historical property gate receipt id",
@@ -159,10 +155,11 @@ class EngineeringCurrentPropertyBoundReceipt:
 class SoftwareEngineeringCurrentPropertyValidity:
     """Live truth-maintenance above immutable F engineering/property receipts.
 
-    The legacy `EngineeringClosureReceipt` and historical property gate are
-    audit facts.  They are not mutated when their evidence later becomes stale.
-    This layer instead revalidates both truth lines and emits a new current view.
-    It owns no mutation, release, deployment, or promotion authority.
+    Historical receipts remain audit facts. Current eligibility is separately
+    recomputed from canonical evidence, transaction lineage, source revision and
+    semantic-property witnesses. Restore also independently replays every
+    reconstructible legacy invariant so nested receipts cannot mutually
+    self-attest a forged truth upgrade.
     """
 
     def __init__(
@@ -224,12 +221,10 @@ class SoftwareEngineeringCurrentPropertyValidity:
         reasons: list[str] = [
             f"legacy_current_validity:{reason}" for reason in current_validity.reasons
         ]
-
         if not historical_gate.ready:
             reasons.append("historical_property_gate_not_ready")
         if not live_gate.ready:
             reasons.append("property_gate_not_current")
-
         if (
             historical_gate.manifest_digest != manifest.digest
             or historical_gate.patch_ref != manifest.patch_ref
@@ -237,17 +232,14 @@ class SoftwareEngineeringCurrentPropertyValidity:
             or historical_gate.source_revision != manifest.source_revision
         ):
             reasons.append("historical_property_manifest_lineage_mismatch")
-
         if (
             historical_gate.patch_ref != base.patch_ref
             or historical_gate.patch_digest != base.patch_digest
             or historical_gate.source_revision != base.source_revision
         ):
             reasons.append("legacy_property_candidate_lineage_mismatch")
-
         if current_source_revision != historical_gate.source_revision:
             reasons.append("current_property_source_revision_mismatch")
-
         if (
             live_gate.patch_ref != historical_gate.patch_ref
             or live_gate.patch_digest != historical_gate.patch_digest
@@ -256,7 +248,51 @@ class SoftwareEngineeringCurrentPropertyValidity:
             or live_gate.manifest_digest != historical_gate.manifest_digest
         ):
             reasons.append("live_property_gate_lineage_mismatch")
+        return tuple(sorted(set(reasons)))
 
+    def _replayed_legacy_reasons(
+        self,
+        *,
+        base: Any,
+        current_validity: EngineeringCurrentValidityReceipt,
+    ) -> tuple[str, ...]:
+        """Replay legacy truth that is reconstructible without an external patch object."""
+        tx = self.validity.transactions.get(base.transaction_id)
+        reasons: list[str] = []
+        if not base.ready:
+            reasons.append("historical_closure_not_ready")
+        if (
+            tx.patch_ref != base.patch_ref
+            or tx.patch_digest != base.patch_digest
+            or tx.source_revision != base.source_revision
+        ):
+            reasons.append("transaction_lineage_changed")
+        if base.ready and (
+            tx.phase is not EngineeringPhase.CANDIDATE_READY
+            or tx.closure_receipt_id != base.receipt_id
+        ):
+            reasons.append("candidate_transaction_state_changed")
+        if (
+            current_validity.current_source_revision != base.source_revision
+            or current_validity.current_source_revision != tx.source_revision
+        ):
+            reasons.append("stale_source_revision")
+        if any(
+            not self.validity.evidence.is_valid(
+                attestation_id,
+                subject_ref=base.patch_ref,
+                subject_digest=base.patch_digest,
+                source_revision=base.source_revision,
+            )
+            for attestation_id in base.attestation_ids
+        ):
+            reasons.append("revoked_or_invalid_evidence")
+
+        binding = self.validity.claim_bindings.for_transaction(tx.transaction_id)
+        if binding is None:
+            reasons.append("missing_claim_state_binding")
+        elif current_validity.claim_binding_id != binding.binding_id:
+            reasons.append("claim_binding_lineage_mismatch")
         return tuple(sorted(set(reasons)))
 
     def assess(
@@ -271,14 +307,12 @@ class SoftwareEngineeringCurrentPropertyValidity:
         historical_gate = self.property_gate.get_gate_receipt(property_gate_receipt_id)
         manifest = self.property_gate.get_manifest(historical_gate.manifest_id)
         source_revision = _text(current_source_revision, field="current source revision")
-
         current_validity = self.validity.revalidate(
             base.receipt_id,
             patch=patch,
             current_source_revision=source_revision,
         )
         live_gate = self._live_property_gate(historical_gate)
-
         reasons = list(
             self._base_reasons(
                 base=base,
@@ -289,7 +323,6 @@ class SoftwareEngineeringCurrentPropertyValidity:
                 current_source_revision=source_revision,
             )
         )
-
         if not hasattr(patch, "to_state"):
             reasons.append("missing_current_property_patch_state")
         else:
@@ -301,12 +334,7 @@ class SoftwareEngineeringCurrentPropertyValidity:
                 reasons.append("current_property_patch_state_mismatch")
 
         normalized = tuple(sorted(set(reasons)))
-        current = (
-            current_validity.current
-            and historical_gate.ready
-            and live_gate.ready
-            and not normalized
-        )
+        current = current_validity.current and historical_gate.ready and live_gate.ready and not normalized
         payload = {
             "base_closure_id": base.receipt_id,
             "base_closure_digest": base.digest,
@@ -357,9 +385,7 @@ class SoftwareEngineeringCurrentPropertyValidity:
         row: EngineeringCurrentPropertyBoundReceipt,
     ) -> None:
         base = self.validity.closure.get(row.base_closure_id)
-        historical_gate = self.property_gate.get_gate_receipt(
-            row.historical_property_gate_receipt_id
-        )
+        historical_gate = self.property_gate.get_gate_receipt(row.historical_property_gate_receipt_id)
         manifest = self.property_gate.get_manifest(row.property_manifest_id)
         current_validity = self.validity.get(row.current_validity_receipt_id)
         live_gate = self._live_property_gate(historical_gate)
@@ -390,6 +416,21 @@ class SoftwareEngineeringCurrentPropertyValidity:
         if row.patch_ref != base.patch_ref or row.patch_digest != base.patch_digest:
             raise ValueError("current property validity patch lineage mismatch")
 
+        replayed_legacy = self._replayed_legacy_reasons(
+            base=base,
+            current_validity=current_validity,
+        )
+        missing_live_blockers = tuple(
+            sorted(set(replayed_legacy) - set(current_validity.reasons))
+        )
+        if missing_live_blockers:
+            raise ValueError(
+                "current property validity legacy truth contradicts live evidence: "
+                + ",".join(missing_live_blockers)
+            )
+        if current_validity.current and replayed_legacy:
+            raise ValueError("current property validity cannot upgrade blocked live legacy truth")
+
         expected_reasons = self._base_reasons(
             base=base,
             historical_gate=historical_gate,
@@ -398,10 +439,6 @@ class SoftwareEngineeringCurrentPropertyValidity:
             live_gate=live_gate,
             current_source_revision=row.current_source_revision,
         )
-        # Patch drift is represented canonically by the legacy current-validity
-        # receipt.  Mirror the property-specific diagnostic if it was emitted
-        # during live assessment so restore can reproduce the same truth value
-        # without pretending to own or reconstruct the external patch object.
         mirrored = list(expected_reasons)
         if "patch_identity_changed" in current_validity.reasons:
             mirrored.append("current_property_patch_identity_mismatch")
@@ -410,12 +447,7 @@ class SoftwareEngineeringCurrentPropertyValidity:
         if "missing_current_patch_state" in current_validity.reasons:
             mirrored.append("missing_current_property_patch_state")
         expected_reasons = tuple(sorted(set(mirrored)))
-        expected_current = (
-            current_validity.current
-            and historical_gate.ready
-            and live_gate.ready
-            and not expected_reasons
-        )
+        expected_current = current_validity.current and historical_gate.ready and live_gate.ready and not expected_reasons
         if row.reasons != expected_reasons or row.current != expected_current:
             raise ValueError("current property validity semantic truth mismatch")
 
@@ -436,9 +468,7 @@ class SoftwareEngineeringCurrentPropertyValidity:
     ) -> "SoftwareEngineeringCurrentPropertyValidity":
         if _text(state["component_id"], field="current property validity component id") != COMPONENT_ID:
             raise ValueError("current property validity component id mismatch")
-        if _text(
-            state["component_version"], field="current property validity component version"
-        ) != COMPONENT_VERSION:
+        if _text(state["component_version"], field="current property validity component version") != COMPONENT_VERSION:
             raise ValueError("current property validity component version mismatch")
 
         engine = cls(validity=validity, property_gate=property_gate)
