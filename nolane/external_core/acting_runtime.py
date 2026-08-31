@@ -15,19 +15,29 @@ from nolane.external_core.acting_protocol import (
     ExecutionRisk,
     ProtocolViolation,
     VerifierLevel,
+    execution_risk_rank,
+    minimum_risk_for_effect,
 )
 from nolane.external_core.execution_types import ToolAction
 from nolane.external_core.execution_workspace import RepositoryWorkspace, WorkspaceCheckpoint
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.2"
+COMPONENT_VERSION = "0.1.4"
 
 
 class CoreReceipt(Protocol):
     receipt_id: str
+    agent_id: str
+    task_id: str
+    tool_id: str
+    operation: str
+    input_digest: str
+    authorized: bool
     success: bool
     failure_kind: str | None
+    before_workspace_digest: str
+    after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
 
@@ -76,6 +86,44 @@ class TransactionalExternalCoreExecutor:
         )
 
     @staticmethod
+    def minimum_effect_class(action: ToolAction) -> EffectClass:
+        """Return the fail-closed physical effect floor for a concrete tool action.
+
+        Only built-in operations whose implementations are bounded reads are
+        admitted as READ. Repository-local filesystem writes are reversible local
+        mutations. Process tools, registered/custom handlers, and unknown future
+        operations are external-like because the repository workspace is not an OS
+        sandbox and E cannot prove their side effects stay local.
+        """
+
+        tool_id = str(action.tool_id)
+        operation = str(action.operation)
+        if tool_id == "filesystem":
+            if operation == "read_text" and not action.mutation_paths:
+                return EffectClass.READ
+            if action.mutation_paths:
+                return EffectClass.LOCAL_MUTATION
+            return EffectClass.EXTERNAL_MUTATION
+        if tool_id == "git":
+            if operation in {"status", "diff", "rev-parse-head"} and not action.mutation_paths:
+                return EffectClass.READ
+            return EffectClass.EXTERNAL_MUTATION
+        if tool_id == "code-search":
+            if not action.mutation_paths:
+                return EffectClass.READ
+            return EffectClass.EXTERNAL_MUTATION
+        return EffectClass.EXTERNAL_MUTATION
+
+    @staticmethod
+    def _effect_rank(effect_class: EffectClass | str) -> int:
+        return {
+            EffectClass.READ: 0,
+            EffectClass.LOCAL_MUTATION: 1,
+            EffectClass.EXTERNAL_MUTATION: 2,
+            EffectClass.IRREVERSIBLE: 3,
+        }[EffectClass(effect_class)]
+
+    @staticmethod
     def _action_id(*, agent_id: str, task_id: str, idempotency_key: str) -> str:
         digest = canonical_digest(
             {
@@ -85,6 +133,40 @@ class TransactionalExternalCoreExecutor:
             }
         )
         return "acting-action-" + digest[:24]
+
+    @staticmethod
+    def _validate_core_receipt(
+        receipt: CoreReceipt,
+        *,
+        agent_id: str,
+        task_id: str,
+        action: ToolAction,
+        input_digest: str,
+        before_workspace_digest: str,
+        after_workspace_digest: str,
+    ) -> None:
+        expected = {
+            "agent_id": str(agent_id),
+            "task_id": str(task_id),
+            "tool_id": action.tool_id,
+            "operation": action.operation,
+            "input_digest": str(input_digest),
+            "before_workspace_digest": str(before_workspace_digest),
+            "after_workspace_digest": str(after_workspace_digest),
+        }
+        mismatches = [
+            field
+            for field, expected_value in expected.items()
+            if getattr(receipt, field, None) != expected_value
+        ]
+        if getattr(receipt, "authorized", None) is not True:
+            mismatches.append("authorized")
+        if not str(getattr(receipt, "receipt_id", "")).strip():
+            mismatches.append("receipt_id")
+        if mismatches:
+            raise ValueError(
+                "core receipt provenance mismatch: " + ", ".join(dict.fromkeys(mismatches))
+            )
 
     def _replay(self, row: ActionRecord) -> ActingInvocationResult:
         if row.phase not in {
@@ -189,6 +271,19 @@ class TransactionalExternalCoreExecutor:
     ) -> ActingInvocationResult:
         effect = EffectClass(effect_class)
         risk = ExecutionRisk(risk_class)
+        physical_effect_floor = self.minimum_effect_class(action)
+        if self._effect_rank(effect) < self._effect_rank(physical_effect_floor):
+            raise PermissionError(
+                "effect classification downgrade: "
+                f"{action.tool_id}.{action.operation} requires at least "
+                f"{physical_effect_floor.value}, got {effect.value}"
+            )
+        minimum_risk = minimum_risk_for_effect(effect)
+        if execution_risk_rank(risk) < execution_risk_rank(minimum_risk):
+            raise PermissionError(
+                "risk classification downgrade: "
+                f"{effect.value} requires at least {minimum_risk.value}, got {risk.value}"
+            )
         resolved_verifier_level = VerifierLevel.coerce(verifier_level)
         minimum_verifier_level = self.protocol.minimum_verifier_level(risk)
         if resolved_verifier_level < minimum_verifier_level:
@@ -245,6 +340,7 @@ class TransactionalExternalCoreExecutor:
         receipt: CoreReceipt | None = None
         try:
             self.protocol.begin_execution(action_id, now_ms=current_now_ms())
+            dispatch_workspace_digest = workspace.digest
             receipt = self.executor.invoke(
                 agent_id=str(agent_id),
                 task_id=str(task_id),
@@ -252,6 +348,15 @@ class TransactionalExternalCoreExecutor:
                 action=action,
                 timeout_seconds=float(timeout_seconds),
                 max_output_chars=int(max_output_chars),
+            )
+            self._validate_core_receipt(
+                receipt,
+                agent_id=str(agent_id),
+                task_id=str(task_id),
+                action=action,
+                input_digest=contract.input_digest,
+                before_workspace_digest=dispatch_workspace_digest,
+                after_workspace_digest=workspace.digest,
             )
             self.protocol.observe_outcome(
                 action_id,
