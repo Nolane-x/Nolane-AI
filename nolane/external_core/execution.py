@@ -6,7 +6,7 @@ from enum import Enum
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
-from nolane.external_core.acting_protocol import EffectClass, ExecutionRisk, VerifierLevel
+from nolane.external_core.acting_protocol import ActionPhase, EffectClass, ExecutionRisk, VerifierLevel, minimum_risk_for_effect
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.external_core.artifacts import ArtifactStore
 from nolane.external_core.execution_executor import ExternalCoreExecutor
@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.7"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -52,6 +52,9 @@ class ExecutionSession:
     backend_id: str
     checkpoint_digest: str
     workspace_base_revision: str
+    workspace_provenance_version: int = 1
+    initial_workspace_digest: str | None = None
+    current_workspace_digest: str | None = None
     decision_receipt_ids: tuple[str, ...] = ()
     step_receipt_ids: tuple[str, ...] = ()
     core_receipt_ids: tuple[str, ...] = ()
@@ -59,8 +62,26 @@ class ExecutionSession:
     terminal_receipt_id: str | None = None
     wall_clock_ms: int = 0
 
+    def __post_init__(self) -> None:
+        version = int(self.workspace_provenance_version)
+        if version not in {1, 2}:
+            raise ValueError('unsupported workspace provenance version')
+        object.__setattr__(self, 'workspace_provenance_version', version)
+        initial = None if self.initial_workspace_digest is None else str(self.initial_workspace_digest).strip()
+        current = None if self.current_workspace_digest is None else str(self.current_workspace_digest).strip()
+        if version == 1:
+            if initial or current:
+                raise ValueError('legacy execution session cannot carry modern workspace digest')
+            object.__setattr__(self, 'initial_workspace_digest', None)
+            object.__setattr__(self, 'current_workspace_digest', None)
+            return
+        if not initial or not current:
+            raise ValueError('modern execution session requires workspace digest')
+        object.__setattr__(self, 'initial_workspace_digest', initial)
+        object.__setattr__(self, 'current_workspace_digest', current)
+
     def to_state(self) -> dict[str, Any]:
-        return {
+        state = {
             'session_id': self.session_id,
             'agent_id': self.agent_id,
             'task_id': self.task_id,
@@ -79,6 +100,11 @@ class ExecutionSession:
             'terminal_receipt_id': self.terminal_receipt_id,
             'wall_clock_ms': self.wall_clock_ms,
         }
+        if self.workspace_provenance_version >= 2:
+            state['workspace_provenance_version'] = self.workspace_provenance_version
+            state['initial_workspace_digest'] = self.initial_workspace_digest
+            state['current_workspace_digest'] = self.current_workspace_digest
+        return state
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionSession':
@@ -94,6 +120,15 @@ class ExecutionSession:
             backend_id=str(state['backend_id']),
             checkpoint_digest=str(state['checkpoint_digest']),
             workspace_base_revision=str(state['workspace_base_revision']),
+            workspace_provenance_version=int(state.get('workspace_provenance_version', 1)),
+            initial_workspace_digest=(
+                None if state.get('initial_workspace_digest') is None
+                else str(state['initial_workspace_digest'])
+            ),
+            current_workspace_digest=(
+                None if state.get('current_workspace_digest') is None
+                else str(state['current_workspace_digest'])
+            ),
             decision_receipt_ids=tuple(str(x) for x in state.get('decision_receipt_ids', ())),
             step_receipt_ids=tuple(str(x) for x in state.get('step_receipt_ids', ())),
             core_receipt_ids=tuple(str(x) for x in state.get('core_receipt_ids', ())),
@@ -299,6 +334,9 @@ class OrganizationExecutionControlPlane:
 
     def _validate_state(self) -> None:
         max_counter = 0
+        decision_owners: dict[str, str] = {}
+        step_owners: dict[str, str] = {}
+        terminal_owners: dict[str, str] = {}
         for session_id, session in self._sessions.items():
             if session_id != session.session_id:
                 raise ValueError('execution session key mismatch')
@@ -306,20 +344,124 @@ class OrganizationExecutionControlPlane:
                 max_counter = max(max_counter, int(session_id.rsplit('-', 1)[1]))
             except Exception as exc:
                 raise ValueError('non-canonical execution session id') from exc
-            for receipt_id in session.decision_receipt_ids:
-                if receipt_id not in self._decisions:
+            if session.step_index != len(session.decision_receipt_ids):
+                raise ValueError('execution session step index does not match decision history')
+            if session.counters.steps != len(session.decision_receipt_ids):
+                raise ValueError('execution session step counter does not match decision history')
+            if len(set(session.decision_receipt_ids)) != len(session.decision_receipt_ids):
+                raise ValueError('execution session contains duplicate decision receipt')
+            if len(set(session.step_receipt_ids)) != len(session.step_receipt_ids):
+                raise ValueError('execution session contains duplicate step receipt')
+            if len(set(session.core_receipt_ids)) != len(session.core_receipt_ids):
+                raise ValueError('execution session contains duplicate core receipt')
+
+            expected_schema_digest = canonical_digest(list(session.action_schema))
+            for position, receipt_id in enumerate(session.decision_receipt_ids):
+                decision = self._decisions.get(receipt_id)
+                if decision is None:
                     raise ValueError('execution session references unknown decision receipt')
+                previous_owner = decision_owners.setdefault(receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution decision receipt is shared across sessions')
+                if decision.agent_id != session.agent_id:
+                    raise ValueError('execution decision agent binding mismatch')
+                if decision.backend_id != session.backend_id:
+                    raise ValueError('execution decision backend binding mismatch')
+                if decision.checkpoint_digest != session.checkpoint_digest:
+                    raise ValueError('execution decision checkpoint binding mismatch')
+                if decision.action_schema_digest != expected_schema_digest:
+                    raise ValueError('execution decision action-schema binding mismatch')
+                if decision.step_index != position:
+                    raise ValueError('execution decision step ordering mismatch')
+
+            first_workspace_digest: str | None = None
+            previous_workspace_digest: str | None = None
             for receipt_id in session.step_receipt_ids:
-                if receipt_id not in self._steps:
+                step = self._steps.get(receipt_id)
+                if step is None:
                     raise ValueError('execution session references unknown step receipt')
-            if session.terminal_receipt_id is not None and session.terminal_receipt_id not in self._terminals:
-                raise ValueError('execution session references unknown terminal receipt')
+                previous_owner = step_owners.setdefault(receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution step receipt is shared across sessions')
+                if step.session_id != session_id:
+                    raise ValueError('execution step receipt session binding mismatch')
+                if step.decision_receipt_id not in session.decision_receipt_ids:
+                    raise ValueError('execution step receipt decision binding mismatch')
+                decision = self._decisions[step.decision_receipt_id]
+                if step.step_index != decision.step_index:
+                    raise ValueError('execution step receipt index binding mismatch')
+                if step.core_receipt_id is not None and step.core_receipt_id not in session.core_receipt_ids:
+                    raise ValueError('execution step receipt core binding mismatch')
+                if first_workspace_digest is None:
+                    first_workspace_digest = step.before_workspace_digest
+                if (
+                    previous_workspace_digest is not None
+                    and step.before_workspace_digest != previous_workspace_digest
+                ):
+                    raise ValueError('workspace digest continuity mismatch')
+                previous_workspace_digest = step.after_workspace_digest
+
+            if session.workspace_provenance_version >= 2:
+                if session.step_receipt_ids:
+                    if first_workspace_digest != session.initial_workspace_digest:
+                        raise ValueError('workspace digest continuity mismatch at session origin')
+                    if previous_workspace_digest != session.current_workspace_digest:
+                        raise ValueError('workspace digest continuity mismatch at session frontier')
+                elif session.current_workspace_digest != session.initial_workspace_digest:
+                    raise ValueError('workspace digest continuity mismatch for empty session')
+
+            if session.terminal_receipt_id is not None:
+                terminal = self._terminals.get(session.terminal_receipt_id)
+                if terminal is None:
+                    raise ValueError('execution session references unknown terminal receipt')
+                previous_owner = terminal_owners.setdefault(terminal.receipt_id, session_id)
+                if previous_owner != session_id:
+                    raise ValueError('execution terminal receipt is shared across sessions')
+                if terminal.session_id != session_id:
+                    raise ValueError('execution terminal receipt session binding mismatch')
+                if terminal.agent_id != session.agent_id:
+                    raise ValueError('execution terminal receipt agent binding mismatch')
+                if terminal.task_id != session.task_id:
+                    raise ValueError('execution terminal receipt task binding mismatch')
+                if terminal.state is not session.state:
+                    raise ValueError('execution terminal receipt state binding mismatch')
+                terminal_counters = (
+                    terminal.steps,
+                    terminal.tool_calls,
+                    terminal.external_core_calls,
+                    terminal.compute_units,
+                )
+                session_counters = (
+                    session.counters.steps,
+                    session.counters.tool_calls,
+                    session.counters.external_core_calls,
+                    session.counters.compute_units,
+                )
+                if terminal_counters != session_counters:
+                    raise ValueError('execution terminal receipt counter binding mismatch')
+                if terminal.wall_clock_ms != session.wall_clock_ms:
+                    raise ValueError('execution terminal receipt wall-clock binding mismatch')
+                if terminal.decision_receipt_ids != session.decision_receipt_ids:
+                    raise ValueError('execution terminal receipt decision-history mismatch')
+                if terminal.step_receipt_ids != session.step_receipt_ids:
+                    raise ValueError('execution terminal receipt step-history mismatch')
+                if terminal.core_receipt_ids != session.core_receipt_ids:
+                    raise ValueError('execution terminal receipt core-history mismatch')
+                if terminal.output_artifact_ids != session.output_artifact_ids:
+                    raise ValueError('execution terminal receipt output-history mismatch')
         if self._session_counter < max_counter:
             raise ValueError('execution session counter is behind history')
 
     @property
     def digest(self) -> str:
         return canonical_digest(self.to_state())
+
+    def _persisted_workspace_fence(self, session: ExecutionSession) -> str | None:
+        if session.workspace_provenance_version >= 2:
+            return session.current_workspace_digest
+        if session.step_receipt_ids:
+            return self._steps[session.step_receipt_ids[-1]].after_workspace_digest
+        return None
 
     def bind_backend(self, agent_id: str, backend: AgentInferenceBackend) -> None:
         identity = self.registry.get(agent_id)
@@ -335,6 +477,9 @@ class OrganizationExecutionControlPlane:
         session = self.get_session(session_id)
         if workspace.base_revision != session.workspace_base_revision:
             raise ValueError('reattached workspace revision does not match persisted session')
+        expected_digest = self._persisted_workspace_fence(session)
+        if expected_digest is not None and workspace.digest != expected_digest:
+            raise ValueError('reattached workspace digest does not match persisted session frontier')
         self._workspaces[session.session_id] = workspace
 
     def sessions(self) -> tuple[ExecutionSession, ...]:
@@ -379,6 +524,9 @@ class OrganizationExecutionControlPlane:
         schema = tuple(str(x) for x in action_schema if str(x).strip())
         if not schema:
             raise ValueError('execution action schema must be non-empty')
+        workspace_digest = str(workspace.digest).strip()
+        if not workspace_digest:
+            raise ValueError('execution start requires workspace digest')
         self._session_counter += 1
         row = ExecutionSession(
             session_id=f'execution-{self._session_counter:08d}',
@@ -392,6 +540,9 @@ class OrganizationExecutionControlPlane:
             backend_id=str(backend.backend_id),
             checkpoint_digest=str(backend.checkpoint_digest),
             workspace_base_revision=workspace.base_revision,
+            workspace_provenance_version=2,
+            initial_workspace_digest=workspace_digest,
+            current_workspace_digest=workspace_digest,
         )
         self._sessions[row.session_id] = row
         self._workspaces[row.session_id] = workspace
@@ -481,6 +632,13 @@ class OrganizationExecutionControlPlane:
         workspace = self._workspaces.get(session.session_id)
         if workspace is None:
             raise RuntimeError('execution workspace must be attached before stepping')
+        if session.workspace_provenance_version < 2:
+            raise RuntimeError(
+                'legacy execution session lacks workspace provenance; '
+                'forward execution requires a modern workspace fence'
+            )
+        if workspace.digest != session.current_workspace_digest:
+            raise RuntimeError('attached workspace digest differs from persisted execution session')
         task = self.tasks.get(session.task_id)
         if task.aborted_by is not None:
             return self._terminal(session, ExecutionState.ABORTED, task.abort_reason or 'task aborted')
@@ -543,7 +701,10 @@ class OrganizationExecutionControlPlane:
                 self._sessions[session.session_id] = session
                 return self._terminal(session, ExecutionState.FAILED, f'action outside declared schema: {schema_key}')
             is_external = action.tool_action.tool_id in self.executor.external_core_ids
-            unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})
+            effect_class = self.acting_executor.minimum_effect_class(action.tool_action)
+            risk_class = minimum_risk_for_effect(effect_class)
+            verifier_level = self.acting_executor.protocol.minimum_verifier_level(risk_class)
+            is_external_effect = effect_class in {EffectClass.EXTERNAL_MUTATION, EffectClass.IRREVERSIBLE}
             if session.counters.tool_calls >= session.budget.max_tool_calls:
                 return self._budget_terminal(session, 'tool-call budget exhausted')
             if is_external and session.counters.external_core_calls >= session.budget.max_external_core_calls:
@@ -556,22 +717,15 @@ class OrganizationExecutionControlPlane:
             if identity.status is AgentStatus.PAUSED:
                 return self._terminal(session, ExecutionState.PAUSED, 'agent paused by authority')
 
-            if is_external or action.tool_action.tool_id in unconfined_process_tools:
-                effect_class = EffectClass.EXTERNAL_MUTATION
-                risk_class = ExecutionRisk.R3
-                verifier_level = VerifierLevel.V3
+            if is_external_effect:
                 recovery_plan = 'reconcile externally observed effect from core receipt evidence'
-            elif action.tool_action.mutation_paths:
-                effect_class = EffectClass.LOCAL_MUTATION
-                risk_class = ExecutionRisk.R2
-                verifier_level = VerifierLevel.V2
+            elif effect_class is EffectClass.LOCAL_MUTATION:
                 recovery_plan = 'restore isolated workspace checkpoint'
             else:
-                effect_class = EffectClass.READ
-                risk_class = ExecutionRisk.R1
-                verifier_level = VerifierLevel.V1
                 recovery_plan = ''
 
+            if workspace.digest != session.current_workspace_digest:
+                raise RuntimeError('workspace digest changed before transactional dispatch')
             acting = self.acting_executor.invoke(
                 agent_id=session.agent_id,
                 task_id=session.task_id,
@@ -596,6 +750,8 @@ class OrganizationExecutionControlPlane:
                 lease_ttl_ms=60_000,
             )
             core = self.executor.get_receipt(acting.core_receipt_id)
+            if core.before_workspace_digest != session.current_workspace_digest:
+                raise ValueError('core receipt workspace fence mismatch')
             counters = ExecutionCounters(
                 steps=session.counters.steps,
                 tool_calls=session.counters.tool_calls + 1,
@@ -622,6 +778,7 @@ class OrganizationExecutionControlPlane:
                 output_artifact_ids=outputs,
                 core_receipt_ids=session.core_receipt_ids + (core.receipt_id,),
                 step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),
+                current_workspace_digest=str(core.after_workspace_digest),
                 wall_clock_ms=session.wall_clock_ms + elapsed,
                 state=state_after,
             )
@@ -648,6 +805,179 @@ class OrganizationExecutionControlPlane:
         if action.kind is ExecutionActionKind.WAIT:
             return self._terminal(session, ExecutionState.WAITING, action.reason or 'waiting')
         return self._terminal(session, ExecutionState.FAILED, action.reason or 'inference backend reported failure')
+
+    @staticmethod
+    def _acting_execution_binding(idempotency_key: str) -> tuple[str, str] | None:
+        key = str(idempotency_key).strip()
+        session_id, sep, decision_id = key.rpartition(':')
+        if not sep or not session_id.startswith('execution-') or not decision_id:
+            return None
+        return session_id, decision_id
+
+    @staticmethod
+    def _acting_row_matches_decision(row: Any, decision: AgentDecisionReceipt) -> bool:
+        action = decision.action
+        if action.kind is not ExecutionActionKind.TOOL or action.tool_action is None:
+            return False
+        tool_action = action.tool_action
+        return (
+            row.contract.core_id == tool_action.tool_id
+            and row.contract.operation == tool_action.operation
+            and row.contract.input_digest == canonical_digest(tool_action.to_state())
+        )
+
+    def _acting_row_is_projected(self, row: Any, session: ExecutionSession, decision_id: str) -> bool:
+        if row.outcome_ref:
+            for receipt_id in session.step_receipt_ids:
+                step = self._steps[receipt_id]
+                if step.decision_receipt_id == decision_id and step.core_receipt_id == row.outcome_ref:
+                    return True
+        if row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK, ActionPhase.DEGRADED}:
+            if session.terminal_receipt_id is None:
+                return False
+            terminal = self._terminals[session.terminal_receipt_id]
+            return f'acting-action={row.action_id}' in terminal.termination_reason
+        return False
+
+    def reconcile_interrupted_sessions(
+        self,
+        *,
+        evidence_ref: str,
+        reason: str,
+    ) -> tuple[ExecutionStepReceipt | ExecutionTerminalReceipt, ...]:
+        """Project persisted acting outcomes into their owning execution sessions.
+
+        Recovery is explicit. It never asks an inference backend for a new action and
+        never invokes a concrete side effect. All ownership is preflighted before any
+        acting lifecycle mutation so an orphan cannot partially reconcile valid rows.
+        """
+
+        ref = str(evidence_ref).strip()
+        why = str(reason).strip()
+        if not ref or not why:
+            raise ValueError('control-plane reconciliation requires evidence and a reason')
+
+        terminal_phases = {
+            ActionPhase.COMMITTED,
+            ActionPhase.ROLLED_BACK,
+            ActionPhase.DEGRADED,
+            ActionPhase.CANCELLED,
+        }
+        candidates: list[tuple[Any, ExecutionSession, str]] = []
+        per_session: dict[str, str] = {}
+        committed_receipts: dict[str, Any] = {}
+
+        # Preflight the complete ownership set before mutating the acting ledger.
+        for row in self.acting_executor.protocol.records():
+            binding = self._acting_execution_binding(row.contract.idempotency_key)
+            if binding is None:
+                continue
+            session_id, decision_id = binding
+            session = self._sessions.get(session_id)
+            if session is None:
+                raise ValueError('interrupted action has no owning execution session')
+            if decision_id not in session.decision_receipt_ids:
+                raise ValueError('interrupted action decision is not owned by execution session')
+            decision = self._decisions[decision_id]
+            if not self._acting_row_matches_decision(row, decision):
+                raise ValueError('acting action contract does not match bound decision')
+            if self._acting_row_is_projected(row, session, decision_id):
+                continue
+            if session.state is not ExecutionState.RUNNING or session.terminal_receipt_id is not None:
+                raise ValueError('interrupted action belongs to non-running execution session')
+            previous = per_session.get(session_id)
+            if previous is not None and previous != row.action_id:
+                raise ValueError('execution session has multiple unprojected acting actions')
+            per_session[session_id] = row.action_id
+            if row.phase is ActionPhase.COMMITTED:
+                if not row.outcome_ref:
+                    raise ValueError('committed acting action is missing its core receipt')
+                try:
+                    core = self.executor.get_receipt(row.outcome_ref)
+                except Exception as exc:
+                    raise ValueError('committed acting action references unavailable core receipt') from exc
+                if not bool(core.success):
+                    raise ValueError('committed acting action references unsuccessful core receipt')
+                expected_workspace_digest = self._persisted_workspace_fence(session)
+                if (
+                    expected_workspace_digest is not None
+                    and str(core.before_workspace_digest) != expected_workspace_digest
+                ):
+                    raise ValueError('committed acting action workspace fence mismatch')
+                committed_receipts[row.action_id] = core
+            candidates.append((row, session, decision_id))
+
+        results: list[ExecutionStepReceipt | ExecutionTerminalReceipt] = []
+        for original, session, decision_id in candidates:
+            row = original
+            if row.phase not in terminal_phases:
+                row = self.acting_executor.protocol.reconcile_interrupted(
+                    row.action_id,
+                    evidence_ref=ref,
+                    reason=why,
+                )
+
+            if row.phase is ActionPhase.COMMITTED:
+                core = committed_receipts[row.action_id]
+                decision = self._decisions[decision_id]
+                step_receipt = ExecutionStepReceipt.create(
+                    session_id=session.session_id,
+                    step_index=int(decision.step_index),
+                    decision_receipt_id=decision_id,
+                    core_receipt_id=str(core.receipt_id),
+                    before_workspace_digest=str(core.before_workspace_digest),
+                    after_workspace_digest=str(core.after_workspace_digest),
+                    state_after=ExecutionState.RUNNING,
+                    output_artifact_ids=tuple(str(x) for x in core.output_artifact_ids),
+                )
+                existing = self._steps.get(step_receipt.receipt_id)
+                if existing is not None and existing != step_receipt:
+                    raise ValueError('execution step receipt id collision during recovery')
+                self._steps[step_receipt.receipt_id] = step_receipt
+                external_ids = frozenset(getattr(self.executor, 'external_core_ids', ()))
+                counters = ExecutionCounters(
+                    steps=session.counters.steps,
+                    tool_calls=session.counters.tool_calls + 1,
+                    external_core_calls=session.counters.external_core_calls
+                    + (1 if row.contract.core_id in external_ids else 0),
+                    compute_units=session.counters.compute_units,
+                )
+                outputs = tuple(
+                    dict.fromkeys(
+                        session.output_artifact_ids
+                        + tuple(str(x) for x in core.output_artifact_ids)
+                    )
+                )
+                updated = replace(
+                    session,
+                    counters=counters,
+                    state=ExecutionState.RUNNING,
+                    output_artifact_ids=outputs,
+                    core_receipt_ids=session.core_receipt_ids + (str(core.receipt_id),),
+                    step_receipt_ids=session.step_receipt_ids + (step_receipt.receipt_id,),
+                    current_workspace_digest=(
+                        str(core.after_workspace_digest)
+                        if session.workspace_provenance_version >= 2
+                        else session.current_workspace_digest
+                    ),
+                )
+                self._sessions[session.session_id] = updated
+                results.append(step_receipt)
+                continue
+
+            if row.phase is ActionPhase.DEGRADED:
+                state = ExecutionState.FAILED
+            elif row.phase in {ActionPhase.CANCELLED, ActionPhase.ROLLED_BACK}:
+                state = ExecutionState.ABORTED
+            else:
+                raise ValueError(f'acting reconciliation produced unsupported phase: {row.phase.value}')
+            termination = (
+                f'{why}; acting-action={row.action_id}; phase={row.phase.value}; '
+                f'decision={decision_id}; recovery-evidence={ref}'
+            )
+            results.append(self._terminal(session, state, termination))
+
+        return tuple(results)
 
     def run(self, session_id: str) -> ExecutionTerminalReceipt:
         while True:

@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
     ActionPhase,
     ActingProtocolLedger,
@@ -46,8 +47,16 @@ def _workspace(tmp_path: Path) -> RepositoryWorkspace:
 @dataclass(frozen=True)
 class _Receipt:
     receipt_id: str
+    agent_id: str
+    task_id: str
+    tool_id: str
+    operation: str
+    input_digest: str
+    authorized: bool
     success: bool
     failure_kind: str | None
+    before_workspace_digest: str
+    after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
 
@@ -58,13 +67,22 @@ class _MutatingExecutor:
         self.calls = 0
         self._receipts: dict[str, _Receipt] = {}
 
-    def invoke(self, *, workspace: RepositoryWorkspace, action: ToolAction, **_: object) -> _Receipt:
+    def invoke(self, *, workspace: RepositoryWorkspace, action: ToolAction, **kwargs: object) -> _Receipt:
         self.calls += 1
+        before = workspace.digest
         workspace.write_text(str(action.arguments["path"]), str(action.arguments["content"]))
         receipt = _Receipt(
             receipt_id=f"core-receipt-{self.calls}",
+            agent_id=str(kwargs["agent_id"]),
+            task_id=str(kwargs["task_id"]),
+            tool_id=action.tool_id,
+            operation=action.operation,
+            input_digest=canonical_digest(action.to_state()),
+            authorized=True,
             success=self.success,
             failure_kind=None if self.success else "simulated_failure",
+            before_workspace_digest=before,
+            after_workspace_digest=workspace.digest,
             output_artifact_ids=(f"artifact-{self.calls}",),
             evidence_artifact_id=f"evidence-{self.calls}",
         )
@@ -81,13 +99,30 @@ class _SleepingReadExecutor:
         self.calls = 0
         self._receipts: dict[str, _Receipt] = {}
 
-    def invoke(self, **_: object) -> _Receipt:
+    def invoke(
+        self,
+        *,
+        agent_id: str,
+        task_id: str,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        **_: object,
+    ) -> _Receipt:
         self.calls += 1
+        before = workspace.digest
         time.sleep(self.sleep_seconds)
         receipt = _Receipt(
             receipt_id=f"read-receipt-{self.calls}",
+            agent_id=str(agent_id),
+            task_id=str(task_id),
+            tool_id=action.tool_id,
+            operation=action.operation,
+            input_digest=canonical_digest(action.to_state()),
+            authorized=True,
             success=True,
             failure_kind=None,
+            before_workspace_digest=before,
+            after_workspace_digest=workspace.digest,
             output_artifact_ids=(),
             evidence_artifact_id=f"read-evidence-{self.calls}",
         )
@@ -249,27 +284,16 @@ def test_organization_control_plane_persists_transactional_ledger_state() -> Non
     assert "TransactionalExternalCoreExecutor.from_state" in restore_source
 
 
-def test_canonical_adapter_uses_risk_appropriate_verifier_levels() -> None:
+def test_canonical_adapter_delegates_effect_risk_and_verifier_authority_to_transactional_runtime() -> None:
     source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    assert "verifier_level = VerifierLevel.V2" in source
-    assert "verifier_level = VerifierLevel.V3" in source
-    assert "verifier_level = VerifierLevel.V1" in source
+    assert "effect_class = self.acting_executor.minimum_effect_class(action.tool_action)" in source
+    assert "risk_class = minimum_risk_for_effect(effect_class)" in source
+    assert "verifier_level = self.acting_executor.protocol.minimum_verifier_level(risk_class)" in source
     assert "verifier_level=verifier_level" in source
 
 
-def test_external_effect_classification_precedes_local_mutation_rollback_hints() -> None:
+def test_canonical_adapter_does_not_reintroduce_parallel_effect_classifier() -> None:
     source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    external_branch = (
-        "\n            if is_external or action.tool_action.tool_id in unconfined_process_tools:"
-        "\n                effect_class = EffectClass.EXTERNAL_MUTATION"
-    )
-    local_branch = "\n            elif action.tool_action.mutation_paths:\n                effect_class = EffectClass.LOCAL_MUTATION"
-    assert external_branch in source
-    assert local_branch in source
-    assert source.index(external_branch) < source.index(local_branch)
-
-
-def test_unconfined_process_tools_use_external_like_risk_floor() -> None:
-    source = inspect.getsource(OrganizationExecutionControlPlane.step)
-    assert "unconfined_process_tools = frozenset({'terminal', 'compiler', 'test-runner'})" in source
-    assert "if is_external or action.tool_action.tool_id in unconfined_process_tools:" in source
+    assert "unconfined_process_tools" not in source
+    assert "elif action.tool_action.mutation_paths" not in source
+    assert "self.acting_executor.minimum_effect_class(action.tool_action)" in source
