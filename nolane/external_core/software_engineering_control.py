@@ -21,6 +21,7 @@ from nolane.external_core.software_engineering_effect_recovery import Engineerin
 from nolane.external_core.software_engineering_effects import (
     EngineeringApplicationCommit,
     EngineeringRollbackCompletion,
+    EngineeringRollbackDecision,
 )
 
 
@@ -107,7 +108,19 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         """Compatibility one-call path backed by the v0.8 durable journal."""
         intent = self.effects.application_intent(intent_id)
         tx = self.transactions.get(intent.transaction_id)
+        receipt_ref = _text(executor_receipt_ref, field="executor receipt ref")
+
+        existing_commit = self.effects.application_commit_for_transaction(tx.transaction_id)
+        if existing_commit is not None:
+            if existing_commit.intent_id != intent.intent_id:
+                raise ValueError("application intent conflicts with existing transaction commit")
+            if existing_commit.executor_receipt_ref != receipt_ref:
+                raise ValueError("application intent executor receipt cannot be rebound")
+            return existing_commit
+
         existing_ack = self.effect_journal.application_acknowledgement_for_transaction(tx.transaction_id)
+        if existing_ack is not None and existing_ack.executor_receipt_ref != receipt_ref:
+            raise ValueError("application intent executor receipt cannot be rebound")
         if existing_ack is None:
             # In this compatibility path the call is still the mutation action
             # boundary, so preserve the v0.6 live revalidation before recording
@@ -116,7 +129,7 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
             reasons = tuple(self.mutation_authority.preapply_reasons(tx.transaction_id))
             if reasons and tx.application_ref is None:
                 raise PermissionError("application denied by live mutation authority: " + ", ".join(reasons))
-        receipt_ref = _text(executor_receipt_ref, field="executor receipt ref")
+
         acknowledgement = self.effect_journal.acknowledge_application(
             intent.intent_id,
             executor_namespace="compatibility.effects.v0.1",
@@ -179,6 +192,20 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
     ) -> EngineeringRollbackCompletion:
         """Compatibility completion path backed by a durable rollback observation."""
         intent = self.effects.rollback_intent(intent_id)
+        try:
+            verification = self.effects.rollback_verification(verification_receipt_id)
+        except KeyError as exc:
+            raise PermissionError("rollback completion requires known verification receipt") from exc
+        if (
+            not verification.passed
+            or verification.decision is not EngineeringRollbackDecision.VERIFIED
+            or verification.rollback_intent_id != intent.intent_id
+            or verification.rollback_intent_digest != intent.digest
+            or verification.transaction_id != intent.transaction_id
+            or verification.restored_state_digest != intent.target_state_digest
+        ):
+            raise PermissionError("rollback verification is not verified for this rollback intent")
+
         acknowledgement = self.effect_journal.acknowledge_rollback(
             intent.intent_id,
             executor_namespace="compatibility.effects.v0.1",
@@ -187,7 +214,7 @@ class SoftwareEngineeringControlPlane(_SoftwareEngineeringControlPlaneV06):
         )
         return self.effect_finalizer.finalize_rollback(
             acknowledgement.acknowledgement_id,
-            verification_receipt_id=verification_receipt_id,
+            verification_receipt_id=verification.receipt_id,
         )
 
     def _state_payload(self) -> dict[str, Any]:
