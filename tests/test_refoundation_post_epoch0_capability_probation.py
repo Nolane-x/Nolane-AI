@@ -7,6 +7,8 @@ from pathlib import Path
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.assurance import AssuranceControlPlane, PromotionAssuranceReceipt
 from nolane.external_core.capability_acquisition import (
     CapabilityAcquisitionGovernor,
     CapabilityCandidate,
@@ -100,6 +102,38 @@ def _bind(native, governor, candidate, gap, **overrides):
     }
     kwargs.update(overrides)
     return native.bind_capability_probation_receipt(governor, **kwargs)
+
+
+def _promotion_receipt(
+    candidate_id: str,
+    evidence_ids: tuple[str, ...],
+    baseline: str,
+) -> PromotionAssuranceReceipt:
+    payload = {
+        "receipt_id": "assurance-promotion-c4-drift",
+        "subject_id": candidate_id,
+        "evidence_ids": list(evidence_ids),
+        "predecessor_version": baseline,
+        "verifier_ids": ["verification.c4.drift"],
+        "authorized": True,
+        "reasons": [],
+    }
+    return PromotionAssuranceReceipt(
+        receipt_id=str(payload["receipt_id"]),
+        subject_id=candidate_id,
+        evidence_ids=evidence_ids,
+        predecessor_version=baseline,
+        verifier_ids=("verification.c4.drift",),
+        authorized=True,
+        reasons=(),
+        digest=canonical_digest(payload),
+    )
+
+
+def _assurance_plane(*receipts: PromotionAssuranceReceipt) -> AssuranceControlPlane:
+    plane = object.__new__(AssuranceControlPlane)
+    plane._promotion_receipts = {row.receipt_id: row for row in receipts}
+    return plane
 
 
 def test_c4_declares_capability_acquisition_v002_companion_boundary() -> None:
@@ -285,12 +319,29 @@ def test_c4_apply_rejects_stale_or_wrong_governor_state() -> None:
             SubOperatorDescriptor(
                 "unrelated_drift.probe",
                 "experimental",
-                "Mutates the baseline to prove stale receipt rejection.",
+                "Changes the governed baseline to prove stale receipt rejection.",
                 frozenset({"drift"}),
             ),
         ),
     )
-    library.register_family(drift)
+    drift_governor = CapabilityAcquisitionGovernor(library)
+    drift_candidate = CapabilityCandidate.for_operator_family(drift)
+    drift_governor.admit(drift_candidate)
+    drift_governor.begin_probation(drift_candidate.candidate_id)
+    drift_evidence = ("independent:c4-drift", "challenge:c4-drift")
+    drift_governor.record_probation(
+        drift_candidate.candidate_id,
+        evidence_ids=drift_evidence,
+        independent_passed=True,
+        challenge_passed=True,
+        reliability=0.99,
+    )
+    drift_receipt = _promotion_receipt(drift_candidate.candidate_id, drift_evidence, library.digest)
+    drift_governor.promote(
+        drift_candidate.candidate_id,
+        assurance=_assurance_plane(drift_receipt),
+        receipt=drift_receipt,
+    )
     with pytest.raises(ValueError, match="baseline"):
         native.apply_capability_probation_receipt(governor, receipt)
 
