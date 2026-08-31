@@ -81,7 +81,7 @@ def _legacy_v1_receipt() -> DecisionReceipt:
     return DecisionReceipt(receipt_id=stable_digest({"goal_design_decision": payload}), **fields)
 
 
-def _historical_v1_decision_ledger(receipt: DecisionReceipt) -> tuple[GoalDesignLedger, str]:
+def _decision_ledger(receipt: DecisionReceipt, *, include_empty_manifest: bool = False) -> tuple[GoalDesignLedger, str]:
     payload = {
         "receipt_id": receipt.receipt_id,
         "goal_id": receipt.goal_id,
@@ -89,6 +89,8 @@ def _historical_v1_decision_ledger(receipt: DecisionReceipt) -> tuple[GoalDesign
         "snapshot_digest": receipt.snapshot_digest,
         "evaluation_digest": receipt.evaluation_digest,
     }
+    if include_empty_manifest:
+        payload["input_manifest_digest"] = ""
     payload_digest = stable_digest(payload)
     identity = {
         "kind": EventKind.DECISION.value,
@@ -123,6 +125,23 @@ def test_authority_index_accepts_content_authentic_receipt():
     assert record.receipt == receipt
 
 
+def test_authority_index_defensively_isolates_mutable_receipt_version_vectors():
+    receipt = _receipt()
+    index = DecisionAuthorityIndex()
+    registered = index.register(receipt)
+
+    receipt.version_vector["requirements"] = "requirements:forged"
+    registered.receipt.version_vector["planning"] = "planning:forged"
+    fetched = index.get(receipt.receipt_id)
+    fetched.receipt.version_vector["architecture"] = "architecture:forged"
+
+    authoritative = index.get(receipt.receipt_id).receipt
+    assert authoritative.version_vector["requirements"] == "r1"
+    assert authoritative.version_vector["planning"] == "p1"
+    assert authoritative.version_vector["architecture"] == "a1"
+    assert verify_decision_receipt(authoritative) == "v2"
+
+
 def test_legacy_v1_receipt_remains_authentic_and_ledger_admissible():
     receipt = _legacy_v1_receipt()
     assert verify_decision_receipt(receipt) == "v1"
@@ -136,7 +155,16 @@ def test_legacy_v1_receipt_remains_authentic_and_ledger_admissible():
 
 def test_historical_v1_receipt_and_pre_manifest_event_remain_jointly_verifiable():
     receipt = _legacy_v1_receipt()
-    ledger, event_id = _historical_v1_decision_ledger(receipt)
+    ledger, event_id = _decision_ledger(receipt)
+    index = DecisionAuthorityIndex()
+    index.register(receipt, authority_event_id=event_id)
+
+    index.validate_ledger_binding(ledger)
+
+
+def test_transitional_v1_receipt_with_empty_manifest_event_remains_verifiable():
+    receipt = _legacy_v1_receipt()
+    ledger, event_id = _decision_ledger(receipt, include_empty_manifest=True)
     index = DecisionAuthorityIndex()
     index.register(receipt, authority_event_id=event_id)
 
