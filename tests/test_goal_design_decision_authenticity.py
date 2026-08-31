@@ -3,6 +3,7 @@ from dataclasses import replace
 import pytest
 
 from nolane.external_core.goal_design import DecisionReceipt, stable_digest
+from nolane.external_core.goal_design_authenticity import verify_decision_receipt
 from nolane.external_core.goal_design_ledger import AuthorityLevel, EventKind, GoalDesignLedger
 from nolane.external_core.goal_design_runtime import DecisionAuthorityIndex
 
@@ -54,10 +55,54 @@ def _receipt(*, token: str = "authentic") -> DecisionReceipt:
     )
 
 
+def _legacy_v1_receipt() -> DecisionReceipt:
+    fields = {
+        "goal_id": "goal:legacy",
+        "selected_option_id": "option:legacy",
+        "snapshot_digest": "snapshot:legacy",
+        "version_vector": {
+            "requirements": "r1",
+            "planning": "p1",
+            "architecture": "a1",
+            "integration": "i1",
+            "context": "c1",
+        },
+        "evaluation_digest": "evaluation:legacy",
+        "proof_obligation_ids": ("proof:legacy",),
+        "uncertainty_ids": ("uncertainty:legacy",),
+        "evidence_refs": ("evidence:legacy",),
+    }
+    payload = {
+        **fields,
+        "proof_obligation_ids": list(fields["proof_obligation_ids"]),
+        "uncertainty_ids": list(fields["uncertainty_ids"]),
+        "evidence_refs": list(fields["evidence_refs"]),
+    }
+    return DecisionReceipt(receipt_id=stable_digest({"goal_design_decision": payload}), **fields)
+
+
 def test_authority_index_accepts_content_authentic_receipt():
     receipt = _receipt()
     record = DecisionAuthorityIndex().register(receipt)
     assert record.receipt == receipt
+
+
+def test_legacy_v1_receipt_remains_authentic_and_ledger_admissible():
+    receipt = _legacy_v1_receipt()
+    assert verify_decision_receipt(receipt) == "v1"
+
+    ledger = GoalDesignLedger()
+    event = ledger.record_decision(receipt)
+    index = DecisionAuthorityIndex()
+    index.register(receipt, authority_event_id=event.event_id)
+    index.validate_ledger_binding(ledger)
+
+
+def test_partial_v2_manifest_is_rejected_as_ambiguous_authority():
+    receipt = replace(_legacy_v1_receipt(), goal_digest="goal-digest:partial")
+
+    with pytest.raises(ValueError, match="partially populated v2 manifest"):
+        verify_decision_receipt(receipt)
 
 
 def test_authority_index_rejects_receipt_body_rebound_under_old_identity():
@@ -99,14 +144,14 @@ def test_authority_index_ledger_binding_rejects_missing_authority_event():
         index.validate_ledger_binding(GoalDesignLedger())
 
 
-def test_authority_index_ledger_binding_proves_exact_decision_event():
+def test_authority_index_ledger_binding_proves_exact_decision_event_semantics():
     receipt = _receipt()
     ledger = GoalDesignLedger()
     event = ledger.record_decision(receipt)
     index = DecisionAuthorityIndex()
     index.register(receipt, authority_event_id=event.event_id)
-
     index.validate_ledger_binding(ledger)
+
     rebound = ledger.to_state()
     rebound["events"][0]["kind"] = EventKind.PROPOSAL.value
     rebound["events"][0]["authority_level"] = AuthorityLevel.THOUGHT.value
@@ -117,8 +162,13 @@ def test_authority_index_ledger_binding_proves_exact_decision_event():
         "parents": rebound["events"][0]["parent_ids"],
         "subjects": rebound["events"][0]["subject_refs"],
     }
-    rebound["events"][0]["event_id"] = stable_digest({"goal_design_event": identity})
+    forged_event_id = stable_digest({"goal_design_event": identity})
+    rebound["events"][0]["event_id"] = forged_event_id
     forged_ledger = GoalDesignLedger.from_state(rebound)
 
-    with pytest.raises(ValueError, match="decision authority event|authority event"):
-        DecisionAuthorityIndex.from_state(index.to_state()).validate_ledger_binding(forged_ledger)
+    rebound_index_state = index.to_state()
+    rebound_index_state["records"][0]["authority_event_id"] = forged_event_id
+    rebound_index = DecisionAuthorityIndex.from_state(rebound_index_state)
+
+    with pytest.raises(ValueError, match="not a decision authority event|does not prove"):
+        rebound_index.validate_ledger_binding(forged_ledger)
