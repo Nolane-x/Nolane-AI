@@ -5,7 +5,7 @@ text = PATH.read_text()
 
 
 def replace_between(source: str, start: str, end: str, replacement: str, label: str) -> str:
-    if source.count(start) != 1 or source.count(end) < 1:
+    if source.count(start) < 1 or source.count(end) < 1:
         raise SystemExit(f"unexpected source markers for {label}")
     begin = source.index(start)
     finish = source.index(end, begin)
