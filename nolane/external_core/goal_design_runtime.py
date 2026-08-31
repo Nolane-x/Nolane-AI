@@ -27,7 +27,7 @@ from .goal_design import (
 from .goal_design_ledger import GoalDesignLedger
 from .goal_design_truth import AssumptionImpactReport, AssumptionTruthMaintenance
 
-__version__ = "0.4.1"
+__version__ = "0.4.2"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -133,23 +133,6 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             )
         )
 
-    @staticmethod
-    def _policy_assumption_refs(
-        goal: GoalSpec,
-        selected: DesignOption,
-    ) -> tuple[str, ...]:
-        """Assumptions that can block execution of the selected decision.
-
-        Alternative options are identity-bound because they influenced the
-        evaluation, but their assumptions do not become prerequisites of the
-        selected action merely by being considered.
-        """
-
-        return _refs(
-            tuple(getattr(goal, "assumption_refs", ()))
-            + tuple(getattr(selected, "assumption_refs", ()))
-        )
-
     def admit(
         self,
         *,
@@ -169,7 +152,6 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             raise CoherenceError(f"selected option {selected_option_id!r} does not exist")
 
         binding_assumptions = self._binding_assumption_refs(goal, options)
-        policy_assumptions = self._policy_assumption_refs(goal, selected)
         bound_assumptions: tuple[str, ...] = ()
         assumption_state_digest = ""
         if binding_assumptions:
@@ -179,13 +161,13 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
                 )
             try:
                 truth_snapshot = self.truth.snapshot(binding_assumptions)
-                truth_blockers = (
-                    self.truth.decision_blockers(
-                        policy_assumptions,
-                        selected.decision_class,
-                    )
-                    if policy_assumptions
-                    else ()
+                # Every evaluated option participates in robust/Pareto scoring.
+                # Its assumption state therefore cannot be known-refuted while
+                # remaining an admissible semantic input. The existing policy
+                # remains reversibility-sensitive for UNKNOWN/CONTESTED state.
+                truth_blockers = self.truth.decision_blockers(
+                    binding_assumptions,
+                    selected.decision_class,
                 )
             except ValueError as exc:
                 raise CoherenceError(
