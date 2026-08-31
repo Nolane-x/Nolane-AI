@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   cutover:
-    if: github.event.head_commit.message == 'chore: stage C9 atomic revision cutover'
+    if: "github.event.head_commit.message == 'chore: fix C9 atomic revision cutover staging'"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -27,7 +27,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "41218c085651d5c72147dc1e21db60de8d4c6182"
+          test "$(git rev-parse HEAD~2)" = "41218c085651d5c72147dc1e21db60de8d4c6182"
           git fetch origin main
           test "$(git rev-parse origin/main)" = "0cd7e955c53762ba593b4a0e56d90f7a29a2d807"
       - name: Merge latest accepted main
