@@ -33,6 +33,43 @@ class _Unused:
 class _Workspace:
     base_revision: str
     digest: str
+    active_execution_epoch_id: str | None = None
+    active_execution_epoch_owner: str | None = None
+
+    def claim_execution_epoch(
+        self,
+        owner_id: str,
+        *,
+        expected_epoch_id: str | None = None,
+    ) -> str:
+        owner = str(owner_id)
+        if self.active_execution_epoch_id is not None:
+            if self.active_execution_epoch_owner != owner:
+                raise PermissionError("workspace execution epoch is owned by another execution session")
+            if expected_epoch_id is not None and self.active_execution_epoch_id != str(expected_epoch_id):
+                raise PermissionError("workspace execution epoch does not match persisted authority")
+            return self.active_execution_epoch_id
+        epoch_id = (
+            str(expected_epoch_id)
+            if expected_epoch_id is not None
+            else "workspace-epoch-" + owner
+        )
+        self.active_execution_epoch_id = epoch_id
+        self.active_execution_epoch_owner = owner
+        return epoch_id
+
+    def release_execution_epoch(self, owner_id: str, workspace_epoch_id: str) -> None:
+        if (
+            self.active_execution_epoch_owner != str(owner_id)
+            or self.active_execution_epoch_id != str(workspace_epoch_id)
+        ):
+            raise PermissionError("workspace execution epoch release authority mismatch")
+        self.active_execution_epoch_id = None
+        self.active_execution_epoch_owner = None
+
+
+class _ExternalCores:
+    contract_digest = "external-core-registry-workspace-fencing-v1"
 
 
 @dataclass
@@ -313,18 +350,19 @@ def test_new_execution_session_mints_modern_workspace_digest_fence_at_start() ->
         tasks=_Tasks(),
         context=_Unused(),
         artifacts=_Unused(),
-        external_cores=_Unused(),
+        external_cores=_ExternalCores(),
         coding=_Unused(),
         encoder=CognitiveStateEncoder(version="organization-context-digest-v1"),
         executor=object(),
         acting_executor=object(),
     )
     plane._backends["agent-1"] = _Backend()
+    workspace = _Workspace(base_revision="base-v1", digest="workspace-initial")
 
     session = plane.start(
         agent_id="agent-1",
         task_id="task-1",
-        workspace=_Workspace(base_revision="base-v1", digest="workspace-initial"),
+        workspace=workspace,
         action_schema=("filesystem.write_text",),
         budget=_budget(),
     )
@@ -333,6 +371,8 @@ def test_new_execution_session_mints_modern_workspace_digest_fence_at_start() ->
     assert state["workspace_provenance_version"] == 2
     assert state["initial_workspace_digest"] == "workspace-initial"
     assert state["current_workspace_digest"] == "workspace-initial"
+    assert state["execution_proof_version"] == 2
+    assert state["workspace_epoch_id"] == workspace.active_execution_epoch_id
 
 
 def test_legacy_session_cannot_resume_forward_execution_by_downgrading_provenance() -> None:
