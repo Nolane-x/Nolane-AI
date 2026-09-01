@@ -5,11 +5,27 @@ from cogcoder.organization.types import EvidenceRecord
 
 
 def _obs(runtime, *, observation_id, score, regime='repo-v1', regressions=0, verifier='verification.integration-e2e.01'):
-    return runtime.individual_evolution.record_benchmark_observation(
-        observation_id=observation_id, agent_id='coding.backend.01',
+    evidence = EvidenceRecord('EV-' + observation_id, verifier, True)
+    individual = runtime.individual_evolution
+    authority = runtime.learning_substrate.learning_authority
+    digest = individual.benchmark_subject_digest(
+        agent_id='coding.backend.01', observation_id=observation_id,
         benchmark_id='backend-repair-heldout', regime_digest=regime,
         score=score, regressions=regressions,
-        evidence=EvidenceRecord('EV-' + observation_id, verifier, True),
+    )
+    lease = authority.issue(
+        subject_kind='individual_evolution',
+        subject_id='coding.backend.01',
+        operation_class='individual_evolution.record_benchmark_observation',
+        producer_agent_id='coding.backend.01',
+        evidence=evidence,
+        subject_digest=digest,
+    )
+    return individual.record_benchmark_observation(
+        observation_id=observation_id, agent_id='coding.backend.01',
+        benchmark_id='backend-repair-heldout', regime_digest=regime,
+        score=score, regressions=regressions, evidence=evidence,
+        authority_lease_id=lease.lease_id,
     )
 
 

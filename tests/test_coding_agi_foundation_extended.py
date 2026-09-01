@@ -71,7 +71,21 @@ def test_self_model_can_only_improve_from_valid_external_evidence():
         runtime.self_models.update_competence(agent_id, domain='runtime-debugging', score=0.8, evidence=bad)
 
     good = EvidenceRecord('EV-GOOD', 'verification.integration-e2e.01', passed=True, notes='fresh heldout verification')
-    after = runtime.self_models.update_competence(agent_id, domain='runtime-debugging', score=0.8, evidence=good)
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='self_model',
+        subject_id=agent_id,
+        operation_class='self_model.update_competence',
+        producer_agent_id=agent_id,
+        evidence=good,
+        subject_digest=runtime.self_models.competence_subject_digest(
+            agent_id, domain='runtime-debugging', score=0.8,
+        ),
+    )
+    after = runtime.self_models.update_competence(
+        agent_id, domain='runtime-debugging', score=0.8, evidence=good,
+        authority_lease_id=lease.lease_id,
+    )
     assert after.version != before.version
     assert dict(after.domain_competence)['runtime-debugging'] == 0.8
     assert 'EV-GOOD' in after.evidence_ids

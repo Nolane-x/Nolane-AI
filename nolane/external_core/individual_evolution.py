@@ -10,12 +10,13 @@ from nolane.external_core.evolution_profiles import EvolutionProfileRegistry
 from nolane.external_core.self_model import SelfModel, SelfModelRegistry
 from nolane.external_core.verification import CandidateEvaluation, PromotionReceipt, RollbackReceipt, VerificationAuthority
 from nolane.memory.experience import ExperienceLedger
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.memory.skills import SkillEvolutionEngine, SkillRecord, SkillScope
 from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.individual_evolution"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.individual_evolution"
 
 
@@ -122,6 +123,7 @@ class IndividualEvolutionControlPlane:
         profiles: EvolutionProfileRegistry | None = None,
         experiences: ExperienceLedger | None = None,
         governed_skill_promoter: GovernedSkillPromoter | None = None,
+        learning_authority: LearningEvidenceAuthority | None = None,
         lineage: tuple[EvolutionLineageEntry, ...] = (),
         observations: tuple[BenchmarkObservation, ...] = (),
         initialize_lineage: bool = True,
@@ -137,6 +139,18 @@ class IndividualEvolutionControlPlane:
         self.assurance = assurance
         self.profiles = profiles or EvolutionProfileRegistry(registry=registry, self_models=self_models)
         self.experiences = experiences or ExperienceLedger(registry=registry, events=events)
+        self.learning_authority = learning_authority
+        if learning_authority is not None:
+            for label, component in (
+                ('skill', self.evolution),
+                ('experience', self.experiences),
+                ('self-model', self.self_models),
+            ):
+                bound = getattr(component, 'learning_authority', None)
+                if bound is not None and bound is not learning_authority:
+                    raise ValueError(f'individual evolution {label} authority diverges from learning authority')
+                component.learning_authority = learning_authority
+
         self._lineage: dict[str, list[EvolutionLineageEntry]] = {row.agent_id: [] for row in self.profiles.profiles()}
         self._lineage_counter = 0
         lineage_ids: set[str] = set()
@@ -216,12 +230,22 @@ class IndividualEvolutionControlPlane:
             raise PermissionError('negative or unverified attribution cannot become a skill candidate')
         return self.evolution.propose(owner_agent_id=identity.agent_id, region=identity.region, name=name, body=body)
 
-    def verify_skill(self, skill_id: str, evidence: EvidenceRecord) -> SkillRecord:
+    def verify_skill(
+        self,
+        skill_id: str,
+        evidence: EvidenceRecord,
+        *,
+        authority_lease_id: str | None = None,
+    ) -> SkillRecord:
         skill = self.evolution.get(skill_id)
         self.registry.get(evidence.verifier_agent_id)
         if self._clean(evidence) and evidence.verifier_agent_id == skill.owner_agent_id:
             raise PermissionError('skill producer cannot self-verify positive learning evidence')
-        verified = self.evolution.verify(skill_id, evidence)
+        verified = self.evolution.verify(
+            skill_id,
+            evidence,
+            authority_lease_id=authority_lease_id,
+        )
         if not self._clean(evidence):
             return self.evolution.quarantine(skill_id, reason='dirty_learning_evidence')
         return verified
@@ -257,8 +281,22 @@ class IndividualEvolutionControlPlane:
             )
         return promoted
 
-    def update_self_model(self, *, agent_id: str, domain: str, score: float, evidence: EvidenceRecord) -> SelfModel:
-        updated = self.self_models.update_competence(agent_id, domain=domain, score=score, evidence=evidence)
+    def update_self_model(
+        self,
+        *,
+        agent_id: str,
+        domain: str,
+        score: float,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
+        updated = self.self_models.update_competence(
+            agent_id,
+            domain=domain,
+            score=score,
+            evidence=evidence,
+            authority_lease_id=authority_lease_id,
+        )
         self._append_lineage(agent_id, 'self_model_updated', evidence_ids=(evidence.evidence_id,))
         return updated
 
@@ -295,9 +333,50 @@ class IndividualEvolutionControlPlane:
         self._append_lineage(agent_id, 'neural_rolled_back', predecessor_version=rollback.from_version)
         return rollback
 
+    def benchmark_subject_digest(
+        self,
+        *,
+        agent_id: str,
+        observation_id: str,
+        benchmark_id: str,
+        regime_digest: str,
+        score: float,
+        regressions: int,
+    ) -> str:
+        identity = self.registry.get(agent_id)
+        observation_id = str(observation_id).strip()
+        benchmark_id = str(benchmark_id).strip()
+        regime_digest = str(regime_digest).strip()
+        value = float(score)
+        regression_count = int(regressions)
+        if not observation_id or not benchmark_id or not regime_digest:
+            raise ValueError('benchmark observation identity and regime must be explicit')
+        if not 0.0 <= value <= 1.0:
+            raise ValueError('benchmark score must lie in [0, 1]')
+        if regression_count < 0:
+            raise ValueError('benchmark regressions must be non-negative')
+        profile = self.profiles.get(identity.agent_id)
+        return canonical_digest(
+            {
+                'operation_class': 'individual_evolution.record_benchmark_observation',
+                'agent_id': identity.agent_id,
+                'current_evolution': {
+                    'neural_version': profile.neural_version,
+                    'self_model_version': profile.self_model_version,
+                    'specialization_signature': profile.specialization_signature,
+                },
+                'observation_id': observation_id,
+                'benchmark_id': benchmark_id,
+                'regime_digest': regime_digest,
+                'score': value,
+                'regressions': regression_count,
+            }
+        )
+
     def record_benchmark_observation(
         self, *, observation_id: str, agent_id: str, benchmark_id: str,
         regime_digest: str, score: float, regressions: int, evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
     ) -> BenchmarkObservation:
         self.registry.get(agent_id)
         self.registry.get(evidence.verifier_agent_id)
@@ -314,8 +393,32 @@ class IndividualEvolutionControlPlane:
             regime_digest=str(regime_digest), score=float(score), regressions=int(regressions), evidence=evidence,
         )
         existing = self._observations.get(row.observation_id)
-        if existing is not None and existing != row:
-            raise ValueError('benchmark observation id cannot be rebound')
+        if existing is not None:
+            if existing != row:
+                raise ValueError('benchmark observation id cannot be rebound')
+            return existing
+
+        authority = self.learning_authority
+        if authority is not None:
+            if authority_lease_id is None or not str(authority_lease_id).strip():
+                raise PermissionError('longitudinal benchmark observation requires a preissued learning evidence lease')
+            authority.consume(
+                str(authority_lease_id),
+                subject_kind='individual_evolution',
+                subject_id=str(agent_id),
+                operation_class='individual_evolution.record_benchmark_observation',
+                producer_agent_id=str(agent_id),
+                evidence=evidence,
+                subject_digest=self.benchmark_subject_digest(
+                    agent_id=agent_id,
+                    observation_id=observation_id,
+                    benchmark_id=benchmark_id,
+                    regime_digest=regime_digest,
+                    score=score,
+                    regressions=regressions,
+                ),
+                use_ref=f'benchmark-observation:{agent_id}:{observation_id}',
+            )
         self._observations[row.observation_id] = row
         return row
 
@@ -351,6 +454,7 @@ class IndividualEvolutionControlPlane:
         self_models: SelfModelRegistry, verification: VerificationAuthority,
         assurance: AssuranceControlPlane, state: Mapping[str, Any],
         governed_skill_promoter: GovernedSkillPromoter | None = None,
+        learning_authority: LearningEvidenceAuthority | None = None,
     ) -> 'IndividualEvolutionControlPlane':
         profiles = EvolutionProfileRegistry.from_state(registry=registry, self_models=self_models, state=state.get('profiles', {}))
         experiences = ExperienceLedger.from_state(registry=registry, events=events, state=state.get('experiences', {}))
@@ -367,6 +471,7 @@ class IndividualEvolutionControlPlane:
             registry=registry, events=events, evolution=evolution, self_models=self_models,
             verification=verification, assurance=assurance, profiles=profiles, experiences=experiences,
             governed_skill_promoter=governed_skill_promoter,
+            learning_authority=learning_authority,
             lineage=lineage, observations=observations, initialize_lineage=not bool(lineage),
         )
         declared_counter = int(state.get('lineage_counter', result._lineage_counter))

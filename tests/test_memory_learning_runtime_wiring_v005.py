@@ -17,15 +17,26 @@ def _verified_personal_skill(runtime: OrganizationRuntime):
         name="runtime-governed-learning",
         body="persistent learning must cross the canonical B governance boundary",
     )
+    evidence = EvidenceRecord(
+        "runtime-external-verifier",
+        "memory.worker",
+        True,
+        false_accepts=0,
+        regressions=0,
+    )
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind="skill",
+        subject_id=skill.skill_id,
+        operation_class="skill.verify",
+        producer_agent_id=skill.owner_agent_id,
+        evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
     runtime.evolution.verify(
         skill.skill_id,
-        EvidenceRecord(
-            "runtime-external-verifier",
-            "memory.worker",
-            True,
-            false_accepts=0,
-            regressions=0,
-        ),
+        evidence,
+        authority_lease_id=lease.lease_id,
     )
     return skill
 
@@ -151,3 +162,38 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay_by_canonica
     assert restored_substrate.relations is restored.memory_context.relations
     assert restored_substrate.experiences is restored.individual_evolution.experiences
     assert restored.to_state() == state
+
+
+def test_runtime_snapshot_preserves_forget_authorization_ledger_and_tombstone() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    substrate = runtime.learning_substrate
+    row = substrate.remember(
+        text="runtime memory that must remain provably forgotten after restore",
+        owner_agent_id="memory.chief",
+        scope=MemoryScope.PERSONAL,
+        kind=MemoryKind.SEMANTIC,
+        epistemic_type=EpistemicType.VERIFIED,
+        evidence_ids=("runtime-forget-source-evidence",),
+        source_refs=("runtime-forget-source",),
+    )
+    tombstone = substrate.forget(
+        row.memory_id,
+        actor_agent_id="memory.chief",
+        reason="runtime governed forgetting",
+        evidence_refs=("runtime-forget-proof",),
+    )
+
+    state = runtime.to_state()
+    lifecycle_state = state["memory_learning_lifecycle"]
+    assert lifecycle_state["forget_counter"] == 1
+    assert len(lifecycle_state["forget_receipts"]) == 1
+    assert lifecycle_state["forget_receipts"][0]["receipt_id"] == tombstone.forget_receipt_id
+    assert lifecycle_state["tombstones"][0]["forget_receipt_id"] == tombstone.forget_receipt_id
+
+    restored = OrganizationRuntime.from_state(state)
+    restored_substrate = restored.learning_substrate
+    assert restored_substrate.tombstone(row.memory_id) == tombstone
+    restored_state = restored.to_state()
+    assert restored_state["memory_learning_lifecycle"]["forget_counter"] == 1
+    assert restored_state["memory_learning_lifecycle"]["forget_receipts"] == lifecycle_state["forget_receipts"]
+    assert restored_state == state
