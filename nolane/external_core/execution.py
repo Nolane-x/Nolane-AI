@@ -26,7 +26,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.9"
+COMPONENT_VERSION = "0.0.10"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -577,6 +577,73 @@ class OrganizationExecutionControlPlane:
             return ''
         return self.external_cores.get(str(tool_id)).contract_digest
 
+    def _attest_committed_core_receipt(
+        self,
+        *,
+        row: Any,
+        session: ExecutionSession,
+    ) -> Any:
+        receipt_id = str(row.outcome_ref).strip()
+        if not receipt_id or str(row.commit_ref).strip() != receipt_id:
+            raise ValueError(
+                'committed acting core receipt authority mismatch: commit_ref'
+            )
+        try:
+            core = self.executor.get_receipt(receipt_id)
+        except Exception as exc:
+            raise ValueError('committed acting action references unavailable core receipt') from exc
+
+        to_state = getattr(core, 'to_state', None)
+        from_state = getattr(type(core), 'from_state', None)
+        if callable(to_state) and callable(from_state):
+            try:
+                canonical = from_state(to_state())
+            except Exception as exc:
+                raise ValueError(
+                    'committed acting core receipt integrity validation failed'
+                ) from exc
+            if canonical != core:
+                raise ValueError('committed acting core receipt integrity validation failed')
+
+        expected_workspace_digest = self._persisted_workspace_fence(session)
+        expected = {
+            'receipt_id': receipt_id,
+            'agent_id': session.agent_id,
+            'task_id': session.task_id,
+            'tool_id': row.contract.core_id,
+            'operation': row.contract.operation,
+            'input_digest': row.contract.input_digest,
+        }
+        if expected_workspace_digest is not None:
+            expected['before_workspace_digest'] = expected_workspace_digest
+        mismatches = [
+            field
+            for field, expected_value in expected.items()
+            if str(getattr(core, field, '')) != str(expected_value)
+        ]
+        if getattr(core, 'authorized', None) is not True:
+            mismatches.append('authorized')
+        if getattr(core, 'success', None) is not True:
+            mismatches.append('success')
+
+        if session.execution_proof_version >= 2:
+            expected_core_digest = self._expected_core_contract_digest(row.contract.core_id)
+            if str(getattr(core, 'workspace_epoch_id', '')) != str(session.workspace_epoch_id):
+                mismatches.append('workspace_epoch_id')
+            if str(getattr(core, 'core_contract_digest', '')) != expected_core_digest:
+                mismatches.append('core_contract_digest')
+            if row.contract.workspace_epoch_id != session.workspace_epoch_id:
+                mismatches.append('contract_workspace_epoch_id')
+            if row.contract.core_contract_digest != expected_core_digest:
+                mismatches.append('contract_core_contract_digest')
+
+        if mismatches:
+            raise ValueError(
+                'committed acting core receipt authority mismatch: '
+                + ', '.join(dict.fromkeys(mismatches))
+            )
+        return core
+
     @staticmethod
     def _attest_decision_receipt(
         receipt: AgentDecisionReceipt,
@@ -1115,30 +1182,7 @@ class OrganizationExecutionControlPlane:
                 raise ValueError('execution session has multiple unprojected acting actions')
             per_session[session_id] = row.action_id
             if row.phase is ActionPhase.COMMITTED:
-                if not row.outcome_ref:
-                    raise ValueError('committed acting action is missing its core receipt')
-                try:
-                    core = self.executor.get_receipt(row.outcome_ref)
-                except Exception as exc:
-                    raise ValueError('committed acting action references unavailable core receipt') from exc
-                if not bool(core.success):
-                    raise ValueError('committed acting action references unsuccessful core receipt')
-                expected_workspace_digest = self._persisted_workspace_fence(session)
-                if (
-                    expected_workspace_digest is not None
-                    and str(core.before_workspace_digest) != expected_workspace_digest
-                ):
-                    raise ValueError('committed acting action workspace fence mismatch')
-                if session.execution_proof_version >= 2:
-                    expected_core_digest = self._expected_core_contract_digest(row.contract.core_id)
-                    if str(getattr(core, 'workspace_epoch_id', '')) != str(session.workspace_epoch_id):
-                        raise ValueError('committed acting action workspace epoch mismatch')
-                    if str(getattr(core, 'core_contract_digest', '')) != expected_core_digest:
-                        raise ValueError('committed acting action core contract mismatch')
-                    if row.contract.workspace_epoch_id != session.workspace_epoch_id:
-                        raise ValueError('committed acting contract workspace epoch mismatch')
-                    if row.contract.core_contract_digest != expected_core_digest:
-                        raise ValueError('committed acting contract core contract mismatch')
+                core = self._attest_committed_core_receipt(row=row, session=session)
                 committed_receipts[row.action_id] = core
             candidates.append((row, session, decision_id))
 
