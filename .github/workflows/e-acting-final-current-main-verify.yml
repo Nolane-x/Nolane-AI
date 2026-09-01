@@ -21,11 +21,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install pytest
         run: python -m pip install -q pytest
-      - name: Assert exact integration parent
+      - name: Assert exact integration ancestry
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "b38291098ca51131016d490bbc24cfee28cd6b7f"
+          test "$(git rev-parse HEAD^)" = "773ef6a27d6629f9f571fbefef72f4eb744cbc8d"
+          test "$(git rev-parse HEAD^^)" = "b38291098ca51131016d490bbc24cfee28cd6b7f"
       - name: Compile E authority modules
         run: |
           python -m py_compile \
