@@ -12,6 +12,7 @@ from nolane.external_core.goal_design import (
     ProofStatus,
     UncertaintyItem,
 )
+from nolane.external_core.goal_design_context import DecisionContextPolicy
 from nolane.external_core.goal_design_integrity import (
     GOAL_DESIGN_PLANES,
     GoalIntegrityAttestation,
@@ -25,7 +26,7 @@ from nolane.external_core.planning import MasterPlanGraph, PlanNode
 from nolane.external_core.requirements import RequirementGraph, RequirementKind, RequirementNode
 
 
-def _runtime():
+def _runtime(*, decision_context_policy=None):
     requirements_graph = RequirementGraph()
     requirements_graph.apply(
         actor_agent_id="requirements.chief",
@@ -95,12 +96,16 @@ def _runtime():
         max_events=256,
         context_policy_version="policy:decision-context-v1",
     )
+    kwargs = {}
+    if decision_context_policy is not None:
+        kwargs["decision_context_policy"] = decision_context_policy
     return GoalIntegrityRuntime(
         requirements=requirements,
         planning=planning,
         architecture=architecture,
         integration=integration,
         context=context,
+        **kwargs,
     )
 
 
@@ -221,8 +226,8 @@ def _uncertainties():
     )
 
 
-def _admitted_runtime():
-    runtime = _runtime()
+def _admitted_runtime(*, decision_context_policy=None):
+    runtime = _runtime(decision_context_policy=decision_context_policy)
     contract = _contract()
     runtime.install_integrity_contract(contract)
     goal = _goal()
@@ -243,10 +248,8 @@ def _admitted_runtime():
     return runtime, admission, goal, scenarios, options, proofs, uncertainties
 
 
-def test_integrity_runtime_compiles_exact_semantic_decision_context():
-    runtime, admission, goal, scenarios, options, proofs, uncertainties = _admitted_runtime()
-
-    context = runtime.compile_decision_context(
+def _compile(runtime, admission, goal, scenarios, options, proofs, uncertainties):
+    return runtime.compile_decision_context(
         receipt_id=admission.decision_receipt.receipt_id,
         goal=goal,
         scenarios=scenarios,
@@ -254,6 +257,11 @@ def test_integrity_runtime_compiles_exact_semantic_decision_context():
         proof_obligations=proofs,
         uncertainties=uncertainties,
     )
+
+
+def test_integrity_runtime_compiles_exact_semantic_decision_context():
+    runtime, admission, goal, scenarios, options, proofs, uncertainties = _admitted_runtime()
+    context = _compile(runtime, admission, goal, scenarios, options, proofs, uncertainties)
 
     kinds = {pin.kind.value for pin in context.pins}
     assert {
@@ -270,3 +278,15 @@ def test_integrity_runtime_compiles_exact_semantic_decision_context():
     assert context.integrity_receipt_id == admission.integrity_receipt.receipt_id
     assert context.integrity_contract_digest == _contract().digest
     assert context.context_id
+
+
+def test_runtime_owned_context_policy_controls_critical_unknown_selection():
+    strict_policy = DecisionContextPolicy(critical_uncertainty_threshold=0.99)
+    runtime, admission, goal, scenarios, options, proofs, uncertainties = _admitted_runtime(
+        decision_context_policy=strict_policy
+    )
+
+    context = _compile(runtime, admission, goal, scenarios, options, proofs, uncertainties)
+
+    assert context.policy_digest == strict_policy.digest
+    assert "critical_unknown" not in {pin.kind.value for pin in context.pins}
