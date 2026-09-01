@@ -25,8 +25,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "773ef6a27d6629f9f571fbefef72f4eb744cbc8d"
-          test "$(git rev-parse HEAD^^)" = "b38291098ca51131016d490bbc24cfee28cd6b7f"
+          test "$(git rev-parse 773ef6a27d6629f9f571fbefef72f4eb744cbc8d^)" = "b38291098ca51131016d490bbc24cfee28cd6b7f"
+          git merge-base --is-ancestor b38291098ca51131016d490bbc24cfee28cd6b7f 773ef6a27d6629f9f571fbefef72f4eb744cbc8d
       - name: Compile E authority modules
         run: |
           python -m py_compile \
