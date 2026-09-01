@@ -1,8 +1,8 @@
 # Truth / Knowledge — External Core A
 
-Status: **A1–A15 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A15 Context-Qualified Truth v9 was merged to `main` as `461c68e4166e149cd605c4cd9b050da0cf2308ed`.**
+Status: **A1–A16 are accepted as the canonical External Core family-A Truth / Knowledge baseline. A16 Observation Completeness / Missingness Truth v10 was merged to `main` as `578d372e13c4f1925088c7f8b5a747db688008c0`.**
 
-This document is the compact current architecture authority. The byte-identical A1–A14 historical acceptance record that previously occupied this file is preserved at `docs/superpowers/acceptance/TRUTH_KNOWLEDGE_A1_A14_HISTORY.md`. A15's detailed production evidence is preserved at `docs/superpowers/acceptance/TRUTH_KNOWLEDGE_A15_ACCEPTANCE.md`.
+This document is the compact current architecture authority. The byte-identical A1–A15 current authority that preceded A16 is preserved at `docs/superpowers/acceptance/TRUTH_KNOWLEDGE_A1_A15_HISTORY.md`. A16's detailed production evidence is preserved at `docs/superpowers/acceptance/TRUTH_KNOWLEDGE_A16_ACCEPTANCE.md`.
 
 ## Canonical authority model
 
@@ -14,7 +14,7 @@ External Core family A remains exactly five canonical component authorities:
 4. `external.verification` → `nolane.external_core.verification`
 5. `external.assurance` → `nolane.external_core.assurance`
 
-Truth protocol modules are additive semantics beneath those authorities. Temporal, provenance, justification, undercutter, dependence, and context helpers must expose only their accepted `PARENT_COMPONENT_ID`; none may mint a sixth `COMPONENT_ID`.
+Truth protocol modules are additive semantics beneath those authorities. Temporal, provenance, justification, undercutter, dependence, context, and observation-completeness helpers expose only their accepted `PARENT_COMPONENT_ID`; none may mint a sixth `COMPONENT_ID`.
 
 All canonical Truth identity uses `nolane.core.canonical_digest.canonical_digest`.
 
@@ -38,170 +38,101 @@ defeasible-justification-provenance-lineage-temporal v7
 dependence-defeasible-justification-provenance-lineage-temporal v8
     ↓
 context-dependence-defeasible-justification-provenance-lineage-temporal v9
+    ↓
+observation-context-dependence-defeasible-justification-provenance-lineage-temporal v10
 ```
 
-Every version is an exact protocol domain. Historical receipts, scopes, registries, and certificates remain historical exact modes; a v1–v8 object cannot silently masquerade as v9 and v9 cannot silently downgrade.
+Every version is an exact protocol domain. Historical scopes, receipts, registries, and certificates remain exact historical modes; an older object cannot silently masquerade as v10 or silently downgrade a v10 object.
 
-## A1–A14 accepted substrate
+## Accepted A1–A15 substrate
 
-A15 inherits rather than replaces the accepted substrate:
+A16 inherits rather than replaces all accepted A1–A15 semantics: immutable Evidence, content-addressed Knowledge, explicit epistemic UNKNOWN/SUPPORTED/REFUTED/CONTRADICTED state, dependency-local fixed points, relation cardinality, temporal applicability, provenance lineage, OR-of-AND justification, defeasible undercutters, source-dependence/common-basis collapse, context-qualified applicability, risk-sensitive live Verification/Assurance, and canonical live recomputation.
 
-- immutable, provenance-aware Evidence with anti-rebinding, revocation, polarity, channels, and tamper-evident restore;
-- content-addressed Knowledge propositions with derivation DAGs and canonical set ordering;
-- first-class `UNKNOWN`, `SUPPORTED`, `REFUTED`, and `CONTRADICTED` epistemic state plus explicit debt;
-- dependency-local fixed points so unrelated state cannot stale a claim;
-- canonical relation cardinality for exclusive, multi-valued, and unspecified relations;
-- explicit deterministic temporal applicability with no implicit wall clock;
-- append-only source-provenance lineage and controller-derived independence;
-- OR-of-AND truth maintenance with explicit alternative justification lineages;
-- exact-basis justification undercutters and defeasible inference status;
-- append-only source-dependence metadata and conservative common-basis collapse;
-- risk-sensitive live Assurance that never treats serialized certificate integrity as self-authenticating truth.
+The complete A1–A15 current authority is preserved byte-for-byte in the historical document referenced above.
 
-The complete A1–A14 acceptance history and exact historical run/merge identities remain preserved byte-for-byte in the acceptance-history document referenced above.
+## Accepted A16 — Observation Completeness / Missingness Truth v10
 
-## Accepted A15 — Context-Qualified Truth v9
+A16 closes the observation-selection gap intentionally left open by v9. Before v10, a set of observed Evidence items could be individually authentic, temporally valid, context-correct, provenance-bound, defeasible, and independent while the system still lacked a canonical representation of required observations that never produced Evidence.
 
-A15 closes the applicability gap left intentionally open by A14. Before v9, accepted truth could be temporal, provenance-bound, defeasible, and dependence-aware while still lacking a canonical way to say that a proposition or Evidence item is valid only under an explicit jurisdiction, environment, regime, policy mode, deployment class, or another caller-supplied context qualifier.
+The central A16 laws are:
 
-The central A15 law is:
+> **Absence of observed evidence is not evidence of absence.**
 
-> **Context determines applicability. Context never creates epistemic independence.**
+> **Missing, censored, unavailable, timed-out, or interfered required observations produce explicit incompleteness/UNKNOWN debt; they never silently become REFUTED Evidence.**
 
-A new context label cannot turn one controller into two controllers, one common basis into two independent bases, or one observation into independent corroboration.
+> **Observation identity, outcome, or context never creates epistemic independence.**
 
-### TruthContext
+### Knowledge observation requirements
 
-`TruthContext` is an immutable content-addressed value made from canonical unique qualifier key/value pairs. Qualifiers are deterministically ordered. Matching is requirement-based: every qualifier required by a binding must occur in the requested context with the exact value; additional caller context is allowed.
+`knowledge_observation_truth.py` belongs to `external.knowledge` and defines immutable `ObservationRequirement`, append-only `ObservationRequirementSetRevision`, and `ObservationRequirementRegistry` state.
 
-The empty `TruthContext` is the compatibility context.
+Requirements bind exact claim identity/content and channel expectations. Legacy claims with no A16 requirement set remain explicitly unconstrained for compatibility.
 
-### Evidence context binding
+### Evidence observation results
 
-`evidence_context_truth.py` belongs to `external.evidence` and introduces append-only `EvidenceContextBindingRevision` history through `EvidenceContextBindingRegistry`.
+`evidence_observation_truth.py` belongs to `external.evidence` and records append-only observation outcomes through `ObservationResultRevision` / `ObservationResultLedger`.
 
-Each revision exact-binds:
+Canonical outcomes are `OBSERVED`, `MISSING`, `CENSORED`, `UNAVAILABLE`, `TIMEOUT`, and `INTERFERED`.
 
-- Evidence ID;
-- immutable `TruthEvidence.content_digest`;
-- revision number;
-- exact predecessor digest;
-- canonical required qualifier set;
-- canonical revision digest.
+Only `OBSERVED` may bind an exact existing `TruthEvidence`. A result record never mints Evidence. Non-observed outcomes remain incomplete observation state and cannot become support or refutation by serialization convention.
 
-The registry enforces revision 1 with no predecessor, exact `+1` evolution, exact predecessor binding, no cross-ledger same-ID content rebinding, duplicate/gap/rollback rejection, and tamper-evident restore.
+### Observation-complete Epistemic v10
 
-Unbound Evidence remains globally applicable for compatibility.
+`epistemic_observation_truth.py` belongs to `external.epistemic`.
 
-### Knowledge context binding
+`ObservationEpistemicJudge` wraps the exact accepted v9 `ContextTruthScope` and evaluates observation completeness only across the target's exact supporting lineage. Relation competitors that exist only in the broader audit scope do not create artificial observation obligations for the target.
 
-`knowledge_context_truth.py` belongs to `external.knowledge` and provides `ClaimContextBindingRevision` / `ClaimContextBindingRegistry` under the same append-only law.
+If v9 would support a target but a required observation is incomplete, v10 evaluates the target as `UNKNOWN`, emits explicit observation debt, and preserves the underlying v9 audit assessment rather than laundering incompleteness into refutation.
 
-A context revision binds the exact immutable `KnowledgeClaim.content_digest`; changing contextual applicability does not rewrite proposition identity or historical claim content.
+Unrelated observation revisions outside the target projection do not stale the target.
 
-Unbound Knowledge remains globally applicable for compatibility.
+### Verification v10
 
-### Context-qualified Epistemic v9
+`verification_observation_truth.py` belongs to `external.verification` and defines dedicated v10 receipts and coverage.
 
-`epistemic_context_truth.py` belongs to `external.epistemic`.
+A v10 receipt exact-binds the v10 scope, TruthContext, TemporalContext, observation-requirement projection, observation-result projection, verification Evidence, Evidence context, verifier provenance, and verifier dependence state.
 
-`ContextEpistemicJudge` preserves the exact accepted A14 dependence/provenance/defeasible/temporal audit scope, then re-evaluates claim and Evidence applicability under explicit `TruthContext`.
+Controller-root/common-basis independence remains inherited from A14/A15. Observation IDs, result IDs, contexts, or channels cannot split one dependent source into independent corroboration.
 
-Important laws:
+Relevant requirement/result changes stale verification. Unrelated changes do not. Negative receipts remain retained. v9 receipts cannot masquerade as v10.
 
-- a context-mismatched target remains in the audit scope and evaluates fail-closed rather than disappearing;
-- a context-mismatched required parent or Evidence item invalidates only the derivation path that requires it;
-- a dead context-invalid alternative cannot veto a separate live supported OR branch;
-- contextual competitors that are not simultaneously applicable do not become artificial live contradictions;
-- relation, temporal, provenance, justification, undercutter, and dependence semantics remain inherited from v3–v8 rather than reimplemented with weaker rules.
+### Assurance v10
 
-`ContextTruthScope` binds:
+`assurance_observation_truth.py` belongs to `external.assurance` and defines `ObservationTruthClosureCertificate` plus `ObservationTruthAssuranceGate`.
 
-- exact accepted A14 audit dependence scope;
-- exact `TruthContext`;
-- target, lineage, fixed-point claims, Evidence, relations, audit sources, and decision sources;
-- relevant source-provenance and source-dependence projections;
-- relevant claim-context and Evidence-context projections;
-- assessments, justification statuses, undercutter statuses, contradictions, debt, and mismatch IDs;
-- canonical v9 digest.
-
-Serialized v9 scope is not self-authenticating. Live validation must re-derive canonical state.
-
-### Verification v9
-
-`verification_context_truth.py` belongs to `external.verification` and defines a dedicated `ContextTruthVerificationReceipt` / `ContextTruthVerificationLedger` domain.
-
-A receipt exact-binds:
-
-- claim and verifier identity;
-- channel and pass/fail result;
-- exact v9 scope digest;
-- exact `TruthContext.digest`;
-- exact `TemporalContext.digest` and `as_of`;
-- verification Evidence IDs;
-- verifier source-provenance projection;
-- verifier source-dependence projection;
-- verification-Evidence context projection;
-- canonical receipt digest.
-
-Coverage validates live Evidence applicability in the exact requested context and rejects stale relevant context projections. Negative receipts remain retained.
-
-Independence remains A14 independence: controller-root rules plus source-dependence/common-basis collapse. Context is deliberately absent from independence keys and dependence components. Two context labels applied to the same underlying controller or basis therefore still produce one epistemic independence component.
-
-Relevant verification-Evidence context revision stales a receipt. An unrelated context revision outside the receipt/scope projection does not.
-
-### Assurance v9
-
-`assurance_context_truth.py` belongs to `external.assurance` and defines `ContextTruthClosureCertificate` plus `ContextTruthAssuranceGate`.
-
-The gate recomputes live v9 state and preserves accepted risk thresholds:
+The gate recomputes live v10 state and preserves accepted thresholds:
 
 - LOW/STANDARD → 1 independent verifier component + 1 channel;
 - HIGH → 2 independent verifier components + 2 channels;
 - CRITICAL → 3 independent verifier components + 3 channels.
 
-Closure fails on, where applicable:
-
-- target context mismatch;
-- unsupported or conflicted live target;
-- contributing-lineage conflict or unsupported state;
-- critical epistemic debt or unresolved relation ambiguity;
-- incomplete relevant source provenance/dependence;
-- context-invalid, provenance-invalid, dependence-invalid, or negative verification;
-- insufficient independent verification or channel diversity.
-
-The certificate exact-binds v9 scope, v9 verification projection, TruthContext, TemporalContext, accepted receipt IDs, debt IDs, decision/reasons, and canonical digest. `validate_certificate()` recomputes canonical closure from live state.
+Required observation incompleteness blocks closure with explicit observation-completeness reasons. Relevant observation revisions stale certificates; unrelated revisions do not. Serialized certificates are never self-authenticating.
 
 ## Compatibility and anti-laundering law
 
-A15 is structurally additive:
+A16 is structurally additive:
 
 - accepted `TruthEvidence` and `KnowledgeClaim` shapes are unchanged;
-- v1–v8 protocol objects remain unchanged historical modes;
-- empty `TruthContext` plus empty claim/Evidence context registries reproduces accepted A14/v8 epistemic semantics;
-- all five A15 sidecars bind the existing five parents and expose no `COMPONENT_ID`;
-- no canonical parent version is bumped solely because v9 sidecars exist;
-- context cannot mint source/controller/channel/basis diversity;
-- foreign-protocol, unexpected-field, digest-tampered, duplicate, revision-gap, predecessor, and same-ID content-rebinding restore attacks fail closed.
+- v1–v9 protocol objects remain unchanged historical modes;
+- empty observation requirement/result registries reproduce accepted v9 epistemic, verification, and assurance behavior;
+- all five A16 sidecars bind the existing five parents and expose no `COMPONENT_ID`;
+- an `ObservationResult` cannot mint Evidence;
+- non-observed outcomes cannot silently become negative Evidence;
+- observation metadata cannot mint controller/source/common-basis independence;
+- foreign-protocol, unexpected-field, projection-tampered, duplicate, revision-gap, predecessor, and cross-version restore attacks fail closed.
 
-## A15 production acceptance proof
+## A16 production acceptance proof
 
-A15 is accepted from exact integrated candidate `08c461ae5b673a56d95f08936e6a958f7cc7660a`, built directly on then-current `main` `0cd7e955c53762ba593b4a0e56d90f7a29a2d807`.
+A16's final semantic candidate `ce12f346d33d6dd655a0c1de51e0ed60976df8ca` passed Truth Knowledge A run `33474245556` on Python 3.11 and 3.13, including direct A1–A16/v1–v10 compile, all Truth contracts, and repository authority audit.
 
-The production chain is:
+Concurrent work advanced `main`, so the exact 18 intended A16 blobs were overlaid directly onto then-current `main` `45b90000da324924b9a3f3ca646eeeee66ecadac`. This produced one-parent integrated candidate `bb70bb41c89c4dea8df667daa9e2dd8532c50acd`, tree `a2b82557158cbeb588e0f6704fa53d1ace8b8f92`, ahead 1 / behind 0 with exactly 18 intended files.
 
-1. Verification RED head `8d17f9ae920a7bd0e0b4611a0553c7d0bdee15ed`, run `33397195863`, failed exactly because `verification_context_truth` did not exist while the prior A1–A14 compile remained green.
-2. Verification v9, Assurance v9, authority hardening, empty-context A14 equivalence, context restore/tamper hardening, and CI v9 coverage were implemented additively. The pre-integration semantic candidate `8918f9df3136b9898ac49866145d3e547a743443` passed focused Truth Knowledge A run `33398916208` on Python 3.11 and 3.13.
-3. To avoid concurrent non-A branch drift, the exact 18 intended A15 blobs were overlaid directly onto `main` `0cd7e955...`. This produced one-parent integrated candidate `08c461ae5b673a56d95f08936e6a958f7cc7660a` with tree `344c688476f7e97cb3a75b84c0f0c726f3dae769`; compare against that base was exactly one commit ahead, zero behind, and 18 intended files.
-4. Fresh exact-head Truth Knowledge A run `33408419401` passed on Python 3.11 and 3.13, including A1–A15 v1–v9 compile, all **242 Truth/Knowledge tests**, and repository authority audit.
-5. PR #303 synthetic merge `2703bbf55939c005ca1d3cd820d0364d91ba8e4a` exactly merged candidate `08c461ae...` into base `0cd7e955...`.
-6. Full Refoundation Epoch 0 run `33408475216` passed on that exact synthetic merge on Python 3.11 and 3.13. Each matrix leg preserved 67/67 AI dossiers, repository audit `173 historical artifacts; 173 moved / 0 quarantined; 0 with reference debt; 1 non-native component records`, **685 Refoundation tests**, **242 Truth A tests**, zero-loss evidence generation/upload, **468 downstream organization/campaign/execution tests**, and Neural R2.3 PASS.
-7. PR #303 was `mergeable=true`, contained exactly 18 intended A15 Family-A/CI/docs/test files, and had **0 reviews, 0 review threads, and 0 comments** blocking acceptance.
-8. Final race guard confirmed `main` remained exact base `0cd7e955...`; PR #303 was merged with expected-head protection against exact candidate `08c461ae5b673a56d95f08936e6a958f7cc7660a`.
-9. Production `main` advanced to verified merge commit `461c68e4166e149cd605c4cd9b050da0cf2308ed`, tree `344c688476f7e97cb3a75b84c0f0c726f3dae769`, whose exact parents are `0cd7e955c53762ba593b4a0e56d90f7a29a2d807` and `08c461ae5b673a56d95f08936e6a958f7cc7660a`.
+PR #312 synthetic merge `dbc42862366d3ad69c75cf836384197df5ce0cb8` had the exact same tree `a2b82557158cbeb588e0f6704fa53d1ace8b8f92`. Full Refoundation Epoch 0 run `33481146330` passed on Python 3.11 and 3.13. The Python 3.11 leg proved 67/67 dossiers fresh, repository audit 173 historical artifacts / 173 moved / 0 quarantined / 0 reference debt / 1 non-native component record, 705 Refoundation tests, 291 Truth A tests, zero-loss evidence, 478 downstream tests, and Neural R2.3 PASS. Python 3.13 completed the same workflow successfully.
 
-A15 used Nolane World 0.12.0 as an external adversarial reasoning harness for context-reset, proxy/spec-gaming, source-independence, and exact verifier-evidence/context invariants. Nolane World is not imported as a canonical Nolane AI Truth authority; the transferred invariants are encoded in repository contracts.
+PR #312 had 0 reviews, 0 review threads, and 0 comments. The final race guard confirmed `main` remained exact base `45b90000da324924b9a3f3ca646eeeee66ecadac`; production merge used expected-head protection against exact candidate `bb70bb41c89c4dea8df667daa9e2dd8532c50acd`.
 
-This acceptance does not make v9 serialized runtime state self-authenticating. Every live scope, receipt, and closure certificate remains subject to canonical recomputation.
+GitHub produced verified production merge `578d372e13c4f1925088c7f8b5a747db688008c0`, tree `a2b82557158cbeb588e0f6704fa53d1ace8b8f92`, with parents `45b90000da324924b9a3f3ca646eeeee66ecadac` and `bb70bb41c89c4dea8df667daa9e2dd8532c50acd`.
 
-Canonical family-A status at this revision is therefore **A1–A15 accepted**.
+Nolane World 0.12.0 was used only as an external adversarial reasoning harness for missing-observation, partial-observation, observer-effect, independence, and fail-closed closure invariants. Nolane World is not a canonical Nolane AI Truth authority; transferred invariants are encoded in repository contracts.
+
+Canonical Family-A status at this revision is therefore **A1–A16 accepted**.
