@@ -73,9 +73,12 @@ def forget_memory(
     actor_agent_id: str,
     reason: str,
     evidence_id: str,
-    verifier_agent_id: str = "memory.worker",
+    verifier_agent_id: str | None = None,
 ):
     memory_id = str(getattr(memory_or_id, "memory_id", memory_or_id))
+    actor_agent_id = str(actor_agent_id)
+    if verifier_agent_id is None:
+        verifier_agent_id = "memory.chief" if actor_agent_id == "memory.worker" else "memory.worker"
     evidence = clean_evidence(evidence_id, verifier_agent_id=verifier_agent_id)
     digest = substrate.forget_subject_digest(
         memory_id,
