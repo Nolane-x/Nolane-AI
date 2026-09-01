@@ -1,0 +1,25 @@
+name: E Acting Outcome Authority RED
+
+on:
+  push:
+    branches:
+      - e-acting-outcome-authority-red-gpt56sol
+
+jobs:
+  outcome-authority-red:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: true
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run outcome authority RED
+        run: python -m pytest -q tests/test_refoundation_acting_recovery_projection_authority.py
