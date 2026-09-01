@@ -1,0 +1,23 @@
+name: E Acting Decision Authority RED macOS
+
+on:
+  push:
+    branches:
+      - e-acting-authority-red-macos-gpt56sol
+
+concurrency:
+  group: e-acting-decision-authority-red-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  decision-request-authority-red:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run decision request authority RED regression
+        run: python -m pytest -q tests/test_refoundation_acting_decision_request_authority.py
