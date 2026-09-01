@@ -2,14 +2,14 @@
 
 Truth maintenance answers what is currently supported. This module answers a
 different authority question: whether a truth change is material enough to
-reopen an already-admitted design decision. The separation is intentional:
-reopening never becomes a second truth authority and never mutates historical
-receipt identity.
+reopen an already-admitted design decision. Reopening never becomes a second
+truth authority and never mutates historical receipt identity.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
 from enum import Enum
+import math
 from typing import Any, Iterable, Mapping, Sequence
 
 from .goal_design import DecisionClass, UncertaintyItem, stable_digest
@@ -19,7 +19,7 @@ from .goal_design_truth import (
     AssumptionTruthMaintenance,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -31,6 +31,14 @@ def _evidence_refs(values: Iterable[str]) -> tuple[str, ...]:
     if not refs:
         raise ValueError("reopening obligation satisfaction requires evidence")
     return refs
+
+
+def _finite_score(name: str, value: float, *, upper: float | None = None) -> float:
+    value = float(value)
+    if not math.isfinite(value) or value < 0.0 or (upper is not None and value > upper):
+        suffix = f" in [0, {upper}]" if upper is not None else " and non-negative"
+        raise ValueError(f"{name} must be finite{suffix}")
+    return value
 
 
 class ReopeningDisposition(str, Enum):
@@ -64,6 +72,7 @@ class AssumptionReopeningBaseline:
         truth: AssumptionTruthMaintenance,
         assumption_id: str,
     ) -> "AssumptionReopeningBaseline":
+        assumption_id = str(assumption_id).strip()
         claim = truth.get(assumption_id)
         assessment = truth.assessment(assumption_id)
         payload = {
@@ -154,6 +163,10 @@ class DecisionReopeningAuthority:
         self._cases: dict[str, ReopeningCase] = {}
         self._obligations: dict[str, ReopeningObligation] = {}
 
+    @property
+    def digest(self) -> str:
+        return str(self.to_state()["state_digest"])
+
     @staticmethod
     def _uncertainty_pressure(items: Sequence[UncertaintyItem]) -> float:
         unresolved = [float(item.risk_score) for item in items if not item.resolved]
@@ -176,8 +189,8 @@ class DecisionReopeningAuthority:
             return 1.0
         if current is AssumptionStatus.UNKNOWN:
             return 0.60
-        # Moving toward SUPPORTED does not itself create negative decision risk.
-        return 0.10
+        # A move toward SUPPORTED is favorable and must not manufacture risk.
+        return 0.0
 
     @classmethod
     def _assumption_sensitivity(
@@ -187,12 +200,20 @@ class DecisionReopeningAuthority:
         *,
         uncertainty_pressure: float,
     ) -> float:
-        score_delta = max(
-            abs(float(current.support_score) - float(baseline.support_score)),
-            abs(float(current.refute_score) - float(baseline.refute_score)),
+        # Sensitivity is directional. More support / less refutation is favorable
+        # evidence, not a reason to reopen a decision. Only adverse movement
+        # contributes to the score.
+        support_loss = max(
+            0.0,
+            float(baseline.support_score) - float(current.support_score),
         )
+        refute_gain = max(
+            0.0,
+            float(current.refute_score) - float(baseline.refute_score),
+        )
+        adverse_delta = max(support_loss, refute_gain)
         transition = cls._status_transition_weight(baseline.status, current.status)
-        raw = max(score_delta, transition)
+        raw = max(adverse_delta, transition)
         amplified = float(baseline.criticality) * raw * (1.0 + 0.5 * uncertainty_pressure)
         return min(1.0, amplified)
 
@@ -215,6 +236,38 @@ class DecisionReopeningAuthority:
             "assumption_baseline_digests": [item.digest for item in assumption_baselines],
             "uncertainty_pressure": float(uncertainty_pressure),
             "uncertainty_ids": list(uncertainty_ids),
+        }
+
+    @staticmethod
+    def _obligation_identity(
+        *,
+        receipt_id: str,
+        assumption_id: str,
+        baseline_assessment_digest: str,
+        current_assessment_digest: str,
+    ) -> dict[str, Any]:
+        return {
+            "receipt_id": receipt_id,
+            "assumption_id": assumption_id,
+            "baseline_assessment_digest": baseline_assessment_digest,
+            "current_assessment_digest": current_assessment_digest,
+        }
+
+    @staticmethod
+    def _case_identity(
+        *,
+        receipt_id: str,
+        baseline_digest: str,
+        current_truth_digest: str,
+        material_assumption_ids: tuple[str, ...],
+        obligation_ids: tuple[str, ...],
+    ) -> dict[str, Any]:
+        return {
+            "receipt_id": receipt_id,
+            "baseline_digest": baseline_digest,
+            "current_truth_digest": current_truth_digest,
+            "material_assumption_ids": list(material_assumption_ids),
+            "obligation_ids": list(obligation_ids),
         }
 
     def register_decision(
@@ -315,12 +368,12 @@ class DecisionReopeningAuthority:
         baseline: AssumptionReopeningBaseline,
         current: AssumptionAssessment,
     ) -> ReopeningObligation:
-        identity = {
-            "receipt_id": receipt_id,
-            "assumption_id": baseline.assumption_id,
-            "baseline_assessment_digest": baseline.assessment_digest,
-            "current_assessment_digest": current.digest,
-        }
+        identity = cls._obligation_identity(
+            receipt_id=receipt_id,
+            assumption_id=baseline.assumption_id,
+            baseline_assessment_digest=baseline.assessment_digest,
+            current_assessment_digest=current.digest,
+        )
         obligation_id = stable_digest({"goal_design_reopening_obligation_identity": identity})
         claim = (
             "Re-establish decision robustness for assumption "
@@ -457,13 +510,13 @@ class DecisionReopeningAuthority:
                 obligation_rows.append(existing)
             obligations = tuple(sorted(obligation_rows, key=lambda item: item.obligation_id))
             obligation_ids = tuple(item.obligation_id for item in obligations)
-            identity = {
-                "receipt_id": baseline.receipt_id,
-                "baseline_digest": baseline.digest,
-                "current_truth_digest": current_truth_digest,
-                "material_assumption_ids": list(material),
-                "obligation_ids": list(obligation_ids),
-            }
+            identity = self._case_identity(
+                receipt_id=baseline.receipt_id,
+                baseline_digest=baseline.digest,
+                current_truth_digest=current_truth_digest,
+                material_assumption_ids=material,
+                obligation_ids=obligation_ids,
+            )
             case_id = stable_digest({"goal_design_reopening_case_identity": identity})
             requires_new_receipt = current_truth_digest != baseline.assumption_state_digest
             existing_case = self._cases.get(baseline.receipt_id)
@@ -664,15 +717,21 @@ class DecisionReopeningAuthority:
 
         authority = cls()
         for row in body["baselines"]:
+            receipt_id = str(row["receipt_id"]).strip()
+            if not receipt_id or receipt_id in authority._baselines:
+                raise ValueError("duplicate or empty Goal/Design reopening baseline identity")
+            assumption_ids = _refs(row.get("assumption_ids", ()))
+            if not assumption_ids:
+                raise ValueError("Goal/Design reopening baseline requires assumptions")
             assumption_baselines: list[AssumptionReopeningBaseline] = []
             for item in row.get("assumption_baselines", ()):
                 payload = {
-                    "assumption_id": str(item["assumption_id"]),
+                    "assumption_id": str(item["assumption_id"]).strip(),
                     "status": str(item["status"]),
-                    "support_score": float(item["support_score"]),
-                    "refute_score": float(item["refute_score"]),
-                    "criticality": float(item["criticality"]),
-                    "assessment_digest": str(item["assessment_digest"]),
+                    "support_score": _finite_score("support_score", item["support_score"], upper=1.0),
+                    "refute_score": _finite_score("refute_score", item["refute_score"], upper=1.0),
+                    "criticality": _finite_score("criticality", item["criticality"], upper=1.0),
+                    "assessment_digest": str(item["assessment_digest"]).strip(),
                 }
                 expected = stable_digest({"goal_design_assumption_reopening_baseline": payload})
                 if str(item.get("digest", "")) != expected:
@@ -688,106 +747,224 @@ class DecisionReopeningAuthority:
                         digest=expected,
                     )
                 )
+            baseline_ids = tuple(item.assumption_id for item in assumption_baselines)
+            if baseline_ids != assumption_ids:
+                raise ValueError(
+                    "Goal/Design reopening baseline coherence error: assumption baseline identities "
+                    "must exactly match canonical assumption_ids"
+                )
             decision_class = DecisionClass(str(row["decision_class"]))
-            assumption_ids = _refs(row.get("assumption_ids", ()))
             uncertainty_ids = _refs(row.get("uncertainty_ids", ()))
+            uncertainty_pressure = _finite_score(
+                "uncertainty_pressure",
+                row.get("uncertainty_pressure", 0.0),
+            )
+            assumption_state_digest = str(row["assumption_state_digest"]).strip()
+            if not assumption_state_digest:
+                raise ValueError("Goal/Design reopening baseline requires truth digest")
             baseline_payload = cls._baseline_payload(
-                receipt_id=str(row["receipt_id"]),
+                receipt_id=receipt_id,
                 decision_class=decision_class,
                 assumption_ids=assumption_ids,
-                assumption_state_digest=str(row["assumption_state_digest"]),
+                assumption_state_digest=assumption_state_digest,
                 assumption_baselines=tuple(assumption_baselines),
-                uncertainty_pressure=float(row.get("uncertainty_pressure", 0.0)),
+                uncertainty_pressure=uncertainty_pressure,
                 uncertainty_ids=uncertainty_ids,
             )
             expected = stable_digest({"goal_design_decision_reopening_baseline": baseline_payload})
             if str(row.get("digest", "")) != expected:
                 raise ValueError("Goal/Design reopening baseline digest mismatch")
-            receipt_id = baseline_payload["receipt_id"]
-            if receipt_id in authority._baselines:
-                raise ValueError("duplicate Goal/Design reopening baseline identity")
             authority._baselines[receipt_id] = DecisionReopeningBaseline(
                 receipt_id=receipt_id,
                 decision_class=decision_class,
                 assumption_ids=assumption_ids,
-                assumption_state_digest=baseline_payload["assumption_state_digest"],
+                assumption_state_digest=assumption_state_digest,
                 assumption_baselines=tuple(assumption_baselines),
-                uncertainty_pressure=baseline_payload["uncertainty_pressure"],
+                uncertainty_pressure=uncertainty_pressure,
                 uncertainty_ids=uncertainty_ids,
                 digest=expected,
             )
 
         for row in body["obligations"]:
-            obligation_id = str(row["obligation_id"])
+            obligation_id = str(row["obligation_id"]).strip()
+            if not obligation_id or obligation_id in authority._obligations:
+                raise ValueError("duplicate or empty Goal/Design reopening obligation identity")
+            receipt_id = str(row["receipt_id"]).strip()
+            assumption_id = str(row["assumption_id"]).strip()
+            baseline_assessment_digest = str(row["baseline_assessment_digest"]).strip()
+            current_assessment_digest = str(row["current_assessment_digest"]).strip()
+            identity = cls._obligation_identity(
+                receipt_id=receipt_id,
+                assumption_id=assumption_id,
+                baseline_assessment_digest=baseline_assessment_digest,
+                current_assessment_digest=current_assessment_digest,
+            )
+            expected_identity = stable_digest(
+                {"goal_design_reopening_obligation_identity": identity}
+            )
+            if obligation_id != expected_identity:
+                raise ValueError("Goal/Design reopening obligation identity mismatch")
+            status = ReopeningObligationStatus(str(row["status"]))
+            evidence_refs = _refs(row.get("evidence_refs", ()))
+            if status is ReopeningObligationStatus.OPEN and evidence_refs:
+                raise ValueError("Goal/Design reopening obligation coherence error: open obligation carries evidence")
+            if status is ReopeningObligationStatus.SATISFIED and not evidence_refs:
+                raise ValueError("Goal/Design reopening obligation coherence error: satisfied obligation lacks evidence")
             payload = cls._obligation_payload(
                 obligation_id=obligation_id,
-                receipt_id=str(row["receipt_id"]),
-                assumption_id=str(row["assumption_id"]),
+                receipt_id=receipt_id,
+                assumption_id=assumption_id,
                 claim=str(row["claim"]),
                 blocking=bool(row["blocking"]),
-                status=ReopeningObligationStatus(str(row["status"])),
-                evidence_refs=_refs(row.get("evidence_refs", ())),
-                baseline_assessment_digest=str(row["baseline_assessment_digest"]),
-                current_assessment_digest=str(row["current_assessment_digest"]),
+                status=status,
+                evidence_refs=evidence_refs,
+                baseline_assessment_digest=baseline_assessment_digest,
+                current_assessment_digest=current_assessment_digest,
             )
             expected = stable_digest({"goal_design_reopening_obligation": payload})
             if str(row.get("digest", "")) != expected:
                 raise ValueError("Goal/Design reopening obligation digest mismatch")
-            if obligation_id in authority._obligations:
-                raise ValueError("duplicate Goal/Design reopening obligation identity")
             authority._obligations[obligation_id] = ReopeningObligation(
                 obligation_id=obligation_id,
-                receipt_id=payload["receipt_id"],
-                assumption_id=payload["assumption_id"],
+                receipt_id=receipt_id,
+                assumption_id=assumption_id,
                 claim=payload["claim"],
                 blocking=payload["blocking"],
-                status=ReopeningObligationStatus(payload["status"]),
-                evidence_refs=tuple(payload["evidence_refs"]),
-                baseline_assessment_digest=payload["baseline_assessment_digest"],
-                current_assessment_digest=payload["current_assessment_digest"],
+                status=status,
+                evidence_refs=evidence_refs,
+                baseline_assessment_digest=baseline_assessment_digest,
+                current_assessment_digest=current_assessment_digest,
                 digest=expected,
             )
 
         for row in body["cases"]:
-            case_id = str(row["case_id"])
-            receipt_id = str(row["receipt_id"])
+            case_id = str(row["case_id"]).strip()
+            receipt_id = str(row["receipt_id"]).strip()
+            if not case_id or receipt_id in authority._cases:
+                raise ValueError("duplicate or empty Goal/Design reopening case identity")
             status = ReopeningCaseStatus(str(row["status"]))
             material = _refs(row.get("material_assumption_ids", ()))
             obligation_ids = _refs(row.get("obligation_ids", ()))
+            if not material or not obligation_ids:
+                raise ValueError("Goal/Design reopening case coherence error: material assumptions and obligations required")
             missing = [item for item in obligation_ids if item not in authority._obligations]
             if missing:
                 raise ValueError("Goal/Design reopening case references unknown obligation identity")
+            sensitivity_score = _finite_score("sensitivity_score", row["sensitivity_score"], upper=1.0)
+            reopening_threshold = _finite_score("reopening_threshold", row["reopening_threshold"], upper=1.0)
+            baseline_truth_digest = str(row["baseline_truth_digest"]).strip()
+            current_truth_digest = str(row["current_truth_digest"]).strip()
+            requires_new_receipt = bool(row["requires_new_receipt"])
             payload = cls._case_payload(
                 case_id=case_id,
                 receipt_id=receipt_id,
                 status=status,
                 material_assumption_ids=material,
-                sensitivity_score=float(row["sensitivity_score"]),
-                reopening_threshold=float(row["reopening_threshold"]),
+                sensitivity_score=sensitivity_score,
+                reopening_threshold=reopening_threshold,
                 obligation_ids=obligation_ids,
-                baseline_truth_digest=str(row["baseline_truth_digest"]),
-                current_truth_digest=str(row["current_truth_digest"]),
-                requires_new_receipt=bool(row["requires_new_receipt"]),
+                baseline_truth_digest=baseline_truth_digest,
+                current_truth_digest=current_truth_digest,
+                requires_new_receipt=requires_new_receipt,
             )
             expected = stable_digest({"goal_design_reopening_case": payload})
             if str(row.get("digest", "")) != expected:
                 raise ValueError("Goal/Design reopening case digest mismatch")
-            if receipt_id in authority._cases:
-                raise ValueError("duplicate Goal/Design reopening case identity")
             authority._cases[receipt_id] = ReopeningCase(
                 case_id=case_id,
                 receipt_id=receipt_id,
                 status=status,
                 material_assumption_ids=material,
-                sensitivity_score=payload["sensitivity_score"],
-                reopening_threshold=payload["reopening_threshold"],
+                sensitivity_score=sensitivity_score,
+                reopening_threshold=reopening_threshold,
                 obligation_ids=obligation_ids,
-                baseline_truth_digest=payload["baseline_truth_digest"],
-                current_truth_digest=payload["current_truth_digest"],
-                requires_new_receipt=payload["requires_new_receipt"],
+                baseline_truth_digest=baseline_truth_digest,
+                current_truth_digest=current_truth_digest,
+                requires_new_receipt=requires_new_receipt,
                 digest=expected,
             )
+
+        authority._validate_restored_coherence()
         return authority
+
+    def _validate_restored_coherence(self) -> None:
+        for obligation in self._obligations.values():
+            baseline = self._baselines.get(obligation.receipt_id)
+            if baseline is None:
+                raise ValueError(
+                    "Goal/Design reopening obligation coherence error: receipt has no reopening baseline"
+                )
+            baseline_by_id = {
+                item.assumption_id: item for item in baseline.assumption_baselines
+            }
+            assumption_baseline = baseline_by_id.get(obligation.assumption_id)
+            if assumption_baseline is None:
+                raise ValueError(
+                    "Goal/Design reopening obligation coherence error: assumption not bound to receipt"
+                )
+            if obligation.baseline_assessment_digest != assumption_baseline.assessment_digest:
+                raise ValueError(
+                    "Goal/Design reopening obligation coherence error: baseline assessment digest mismatch"
+                )
+
+        for receipt_id, case in self._cases.items():
+            baseline = self._baselines.get(receipt_id)
+            if baseline is None:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: receipt has no reopening baseline"
+                )
+            if case.baseline_truth_digest != baseline.assumption_state_digest:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: baseline truth digest mismatch"
+                )
+            if not set(case.material_assumption_ids).issubset(baseline.assumption_ids):
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: material assumption is not bound to receipt"
+                )
+            if case.reopening_threshold != self._threshold(baseline.decision_class):
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: reopening threshold disagrees with decision class"
+                )
+            obligations = tuple(self._obligations[item_id] for item_id in case.obligation_ids)
+            if any(item.receipt_id != receipt_id for item in obligations):
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: obligation belongs to a different receipt"
+                )
+            if any(not item.blocking for item in obligations):
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: case contains non-blocking obligation"
+                )
+            obligation_assumptions = tuple(sorted(item.assumption_id for item in obligations))
+            if obligation_assumptions != case.material_assumption_ids:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: obligations must exactly cover material assumptions"
+                )
+            expected_requires_new = case.current_truth_digest != case.baseline_truth_digest
+            if case.requires_new_receipt != expected_requires_new:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: new receipt flag disagrees with truth digest change"
+                )
+            all_satisfied = all(
+                item.status is ReopeningObligationStatus.SATISFIED for item in obligations
+            )
+            if case.status is ReopeningCaseStatus.READY_FOR_READMISSION and not all_satisfied:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: ready case has open blocking obligation"
+                )
+            if case.status is ReopeningCaseStatus.OPEN and all_satisfied:
+                raise ValueError(
+                    "Goal/Design reopening case coherence error: open case has no open blocking obligation"
+                )
+            identity = self._case_identity(
+                receipt_id=receipt_id,
+                baseline_digest=baseline.digest,
+                current_truth_digest=case.current_truth_digest,
+                material_assumption_ids=case.material_assumption_ids,
+                obligation_ids=case.obligation_ids,
+            )
+            expected_case_id = stable_digest({"goal_design_reopening_case_identity": identity})
+            if case.case_id != expected_case_id:
+                raise ValueError("Goal/Design reopening case identity mismatch")
 
 
 __all__ = [
