@@ -1,0 +1,68 @@
+name: E Acting Recovery Projection GREEN
+
+on:
+  push:
+    branches:
+      - e-acting-recovery-projection-green-staging-gpt56sol
+
+permissions:
+  contents: write
+
+concurrency:
+  group: e-acting-recovery-projection-green-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  patch-and-verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: e-acting-recovery-projection-green-staging-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Apply guarded recovery projection patch
+        run: python .github/e_acting_recovery_projection_green.py
+      - name: Compile E control plane
+        run: |
+          python -m py_compile \
+            nolane/external_core/execution.py \
+            nolane/external_core/acting_runtime.py \
+            nolane/external_core/execution_executor.py \
+            nolane/metadata/component_versions.py
+      - name: Run recovery and authority contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_recovery_projection_authority.py \
+            tests/test_refoundation_acting_control_commit_projection.py \
+            tests/test_refoundation_acting_control_reconciliation.py \
+            tests/test_refoundation_acting_crash_reconciliation.py \
+            tests/test_refoundation_acting_decision_request_authority.py \
+            tests/test_refoundation_acting_replay_authority.py \
+            tests/test_refoundation_acting_runtime.py \
+            tests/test_refoundation_acting_core_proof_continuity.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py
+      - name: Check patch hygiene
+        run: git diff --check
+      - name: Commit production closure
+        run: |
+          if git diff --quiet -- \
+            nolane/external_core/execution.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py; then
+            echo "Recovery projection patch already present"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            nolane/external_core/execution.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py
+          git diff --cached --check
+          git commit -m "fix(e-acting): attest committed recovery authority"
+          git push origin HEAD:e-acting-recovery-projection-green-staging-gpt56sol
