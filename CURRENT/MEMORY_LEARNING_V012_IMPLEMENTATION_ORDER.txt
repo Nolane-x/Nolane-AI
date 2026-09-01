@@ -1,0 +1,4 @@
+1 verified memory admission
+2 preauthorized irreversible forgetting
+3 restore/runtime wiring
+4 full verification
