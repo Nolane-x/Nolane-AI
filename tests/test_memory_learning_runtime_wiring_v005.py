@@ -17,15 +17,26 @@ def _verified_personal_skill(runtime: OrganizationRuntime):
         name="runtime-governed-learning",
         body="persistent learning must cross the canonical B governance boundary",
     )
+    evidence = EvidenceRecord(
+        "runtime-external-verifier",
+        "memory.worker",
+        True,
+        false_accepts=0,
+        regressions=0,
+    )
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind="skill",
+        subject_id=skill.skill_id,
+        operation_class="skill.verify",
+        producer_agent_id=skill.owner_agent_id,
+        evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
     runtime.evolution.verify(
         skill.skill_id,
-        EvidenceRecord(
-            "runtime-external-verifier",
-            "memory.worker",
-            True,
-            false_accepts=0,
-            regressions=0,
-        ),
+        evidence,
+        authority_lease_id=lease.lease_id,
     )
     return skill
 
