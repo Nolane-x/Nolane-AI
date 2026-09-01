@@ -1,8 +1,9 @@
 # CURRENT — F. Software Engineering
 
-Date: 2026-08-31
-Engineering wave: v1.1.0
+Date: 2026-09-01
+Engineering wave: v1.2.0
 Unified control API: `external.software_engineering.control` v1.1.0
+Canonical Coding Claims: `external.coding.claims` v0.0.2
 Property-evidence protocol: `external.software_engineering.property_evidence` v0.1.0
 Property-gate protocol: `external.software_engineering.property_gate` v0.1.0
 Current-property-validity protocol: `external.software_engineering.current_property_validity` v0.1.0
@@ -13,13 +14,13 @@ Effect-recovery protocol: `external.software_engineering.effect_recovery` v0.1.0
 Effect-dispatch protocol: `external.software_engineering.effect_dispatch` v0.1.0
 Recovery-frontier protocol: `external.software_engineering.recovery_frontier` v0.1.0
 
-F v1.1 turns F v1.0 property evidence into a live truth-maintained engineering candidate protocol. A historical green engineering closure and a historical green property gate are immutable audit facts, not perpetual authorization. Current candidate eligibility is a separate content-addressed view that rechecks the legacy engineering truth line and the semantic-property truth line against canonical live evidence, source revision and patch state.
+F v1.2 keeps the v1.1 truth-maintained engineering candidate plane intact and hardens the canonical Coding Claims authority beneath it. The new claim protocol makes mutable ownership currentness explicit: exclusive scope, immutable operation identity, source revision, monotonic claim epoch and atomic handoff are now distinct pieces of coordination state. Historical claim objects are not allowed to masquerade as current mutation coverage after revision or epoch drift.
 
-The public control plane advances to v1.1.0. The F v1.0 public boundary is frozen in `_software_engineering_control_v10.py`, while `_software_engineering_control_v09.py` and `_software_engineering_control_v08.py` continue to preserve their historical state semantics. Old v0.8/v0.9 snapshots are lifted explicitly; their historical receipts are not reinterpreted under v1.1.
+The public Software Engineering control plane remains v1.1.0 because v1.2 does not reinterpret its frozen state schema or widen its authority. The canonical `external.coding.claims` component advances from v0.0.1 to v0.0.2. The historical `cogcoder.organization.code_claims` surface remains an exact public-object bridge to the canonical implementation.
 
 ## Canonical authority
 
-F still has exactly five canonical component authorities:
+F has exactly five canonical component authorities:
 
 1. `external.coding.claims`
 2. `external.coding.patches`
@@ -27,12 +28,26 @@ F still has exactly five canonical component authorities:
 4. `external.debugging`
 5. `external.ui_ux`
 
-`software_engineering*` modules remain composition/control protocols. Property obligations are `verification_scope_only`; property witnesses are `evidence_scope_only`; property closures, property gates, property-bound terminal receipts and current-property validity receipts are `candidate_only`. None grants mutation, release, deployment, Assurance acceptance, repository write authority or capability promotion.
+`software_engineering*` modules remain composition/control protocols. Property obligations are `verification_scope_only`; property witnesses are `evidence_scope_only`; property closures, property gates, property-bound terminal receipts and current-property validity receipts are `candidate_only`.
+
+Claim leases and claim-handoff receipts are `coordination_only`. They coordinate who may be treated as holding current source scope; they do not themselves mutate files, release code, deploy artifacts, accept Assurance claims, or promote capabilities.
 
 ## Governed lifecycle
 
 ```text
-patch + source claims + engineering operation_ref
+work / source scope
+  -> acquire canonical code claim
+     -> optional immutable source_revision + operation_ref binding
+     -> content-addressed coordination-only lease
+     -> monotonic claim epoch
+  -> current scope coverage requires matching agent + task + source revision + minimum epoch
+  -> optional atomic ownership handoff
+     -> verify active old claim + authorized actor + exact old epoch
+     -> preserve exact source scope and claim mode
+     -> supersede old claim
+     -> mint new claim + newer lease
+     -> content-addressed coordination-only handoff receipt
+  -> patch + engineering operation_ref
   -> idempotent attempt initiation / immutable operation lineage
   -> change manifest
   -> immutable claim-state binding
@@ -61,14 +76,111 @@ patch + source claims + engineering operation_ref
   -> live property-gate reassessment
   -> exact source/patch drift check
   -> CURRENT PROPERTY-BOUND CANDIDATE / candidate_only
-  -> premise revocation or drift reopens current eligibility
+  -> premise revocation, source drift or ownership drift reopens eligibility
 ```
 
-The architecture is monotonic: historical Coding, Debug, UI/UX, engineering closure and property-gate receipts remain immutable. v1.1 adds a new current-truth projection instead of mutating old payloads or retroactively changing their digests.
+The architecture remains monotonic: historical Coding, Debug, UI/UX, engineering closure and property-gate receipts remain immutable. v1.2 does not mutate old claims into new claims during ownership transfer; it supersedes the old claim and emits a new claim/lease lineage.
 
-## Property evidence model
+## v1.2 Coding Claims — epoch-fenced ownership
 
-### Claim classes
+### Exclusive collision semantics
+
+An `EXCLUSIVE_WRITE` claim conflicts with any overlapping active exclusive claim outside the exact same `(agent_id, task_id)` owner context. Reusing the same agent identity for a different task no longer bypasses exclusivity. File, symbol and directory-prefix overlap are all covered by the canonical conflict check.
+
+This prevents a single coding agent from silently owning overlapping exclusive scope for two independent tasks and then presenting either task as the legitimate owner of the same source region.
+
+### Bound claim leases
+
+A currentness-aware claim may be acquired with both:
+
+- `source_revision` — the exact source revision to which ownership applies;
+- `operation_ref` — an immutable idempotency key for that acquisition operation.
+
+The two fields are all-or-nothing. Supplying only one is rejected.
+
+A bound acquisition produces a `CodeClaimLease` containing:
+
+- `claim_id`;
+- immutable `operation_ref`;
+- exact `source_revision`;
+- positive monotonic `epoch`;
+- canonical claim-intent digest;
+- authority fixed to `coordination_only`;
+- content digest and content-addressed lease id.
+
+Retrying the same `operation_ref` with the same exact intent returns the existing claim without changing state. Reusing that `operation_ref` for a different claim intent fails closed.
+
+### Current coverage
+
+Legacy `covers(...)` remains available for compatibility with unbound historical claim state. Current mutation-sensitive callers must use the epoch/revision-aware coverage path.
+
+`covers_current(...)` only counts active claims whose lease simultaneously matches:
+
+1. the requested agent;
+2. the requested task;
+3. the exact current source revision;
+4. a lease epoch at least as new as the required minimum epoch;
+5. the requested file/symbol scope.
+
+An old active-looking claim therefore cannot prove current ownership after source revision drift or after downstream logic requires a newer ownership epoch.
+
+## Atomic claim handoff
+
+Ownership transfer is represented as a first-class atomic supersession operation, not as an informal release followed by an unrelated new claim.
+
+A valid handoff requires:
+
+- an active old claim;
+- an existing bound old lease;
+- actor authorization by the old owner, `coding.chief`, or `nolane.central`;
+- exact `expected_epoch == old_lease.epoch`;
+- a fresh target source revision;
+- an immutable handoff `operation_ref`.
+
+The new claim preserves the old claim's exact files, symbols, directory prefixes and claim mode while allowing a new agent/task owner and source revision. The new lease receives an epoch strictly greater than the old lease epoch. Only after all validation and content-addressed objects are prepared does the ledger supersede the old claim and install the new claim, lease, receipt and operation bindings.
+
+The `CodeClaimHandoffReceipt` binds both sides of the transition:
+
+- old claim id, lease id/digest, source revision and epoch;
+- new claim id, lease id/digest, source revision and epoch;
+- actor identity;
+- immutable operation ref and request-intent digest;
+- authority fixed to `coordination_only`;
+- content digest and content-addressed receipt id.
+
+A retry with the same handoff operation ref and exact intent is idempotent. Rebinding that operation ref to another intent is rejected.
+
+A stale epoch cannot authorize a handoff. Failure occurs before ledger mutation, preserving failure atomicity.
+
+## Restore and anti-laundering invariants
+
+v1.2 restore does not trust serialized coordination metadata merely because its fields are syntactically valid.
+
+It verifies:
+
+- canonical claim ids and claim counter history;
+- no conflicting active exclusive ownership;
+- unique claim lease per claim;
+- unique lease epochs;
+- lease -> claim intent lineage, including exact source revision;
+- immutable operation-ref uniqueness;
+- handoff receipt digest/id integrity;
+- old/new lease ids, digests, revisions and epochs;
+- old claim remains `SUPERSEDED`;
+- exact source-scope/mode transfer across handoff;
+- authorized handoff actor lineage;
+- handoff request-intent recomputation;
+- unique incoming handoff origin for each new claim.
+
+### Epoch-counter anti-inflation rule
+
+The ledger epoch counter is derived from recorded lease history, not an independently trusted number. For bound state, serialized `epoch_counter` must equal the maximum recorded lease epoch exactly.
+
+A snapshot that raises `epoch_counter` above the recorded lease frontier is rejected, just as a counter behind the recorded frontier is rejected. This closes a restore laundering path where an attacker could previously inflate the counter, make future leases jump to an invented epoch and weaken the meaning of monotonic fencing.
+
+Legacy snapshots containing no bound leases/handoffs remain restorable with their historical unbound semantics. Compatibility does not invent leases, source revisions, operation refs or epochs that did not exist historically.
+
+## Property evidence model retained from v1.0/v1.1
 
 The property ledger distinguishes the semantic claim being made:
 
@@ -82,15 +194,11 @@ The property ledger distinguishes the semantic claim being made:
 - security property;
 - performance property.
 
-Claim classes are not inferred from a generic green command. They identify what must actually be true of the repository/runtime state.
-
-### Proof methods and oracle binding
-
 Supported proof methods include compile/static analysis, unit/integration/property/metamorphic/regression tests, deterministic reproduction, causal probe/bisect, visual diff, responsive/accessibility checks, interaction E2E, security tests and performance benchmarks.
 
-A witness must bind the exact property and a verifier-attested `oracle_ref`. The oracle must occur in immutable verifier evidence/dependency lineage, the attestation must match the exact patch digest and source revision, the attestation must remain live-valid, and proof method must agree with the canonical evidence kind. This blocks relabeling an unrelated green test as proof of a desired semantic property.
+A witness must bind the exact property and a verifier-attested oracle. Passing a generic command is not sufficient evidence for an arbitrary semantic claim.
 
-### Claim-specific proof floors
+Claim-specific proof floors remain:
 
 - build integrity requires compile evidence;
 - functional behavior requires a behavioral test family bound to the exact property oracle;
@@ -102,66 +210,29 @@ A witness must bind the exact property and a verifier-attested `oracle_ref`. The
 - security requires security evidence plus adversarial witness semantics;
 - performance requires a benchmark plus a version-bound baseline.
 
-Where multiple independent sources are required, independence is counted by verifier-attested source family rather than raw witness count.
-
-## Complete-set property gate
+## Complete-set property gate and live validity retained
 
 A ready individual property closure is insufficient. The property gate consumes the immutable required-property manifest supplied by the requirement/goal authority and checks the complete exact set for one patch digest and source revision.
 
-It fails closed on missing or unexpected properties, duplicates, obligation/closure digest mismatch, patch/source mismatch, revoked attestations, stale witnesses, insufficient source-family independence, and lineage tampering. Each assessment re-runs the historical witness set against the live evidence ledger.
+It fails closed on missing or unexpected properties, duplicates, obligation/closure digest mismatch, patch/source mismatch, revoked attestations, stale witnesses, insufficient source-family independence and lineage tampering. Each assessment re-runs the historical witness set against the live evidence ledger.
 
-The terminal property-bound receipt remains a historical `candidate_only` result. It is intentionally not interpreted as proof that its premises are still true later.
+`SoftwareEngineeringCurrentPropertyValidity` remains above the immutable legacy closure and historical property gate. Current eligibility requires simultaneous live validity of the legacy engineering truth line, complete semantic-property gate, exact historical lineage, current patch identity/state digest and absence of live blockers.
 
-## v1.1 current-validity truth maintenance
-
-`SoftwareEngineeringCurrentPropertyValidity` sits above the immutable legacy closure and historical property gate. It emits `EngineeringCurrentPropertyBoundReceipt`, binding:
-
-- canonical base engineering closure id/digest;
-- canonical historical property gate id/digest;
-- canonical property manifest id/digest;
-- the newly evaluated legacy `EngineeringCurrentValidityReceipt` id/digest;
-- the newly re-assessed live property gate id/digest;
-- exact patch ref/digest;
-- the source revision being evaluated;
-- deterministic current/blocking reasons;
-- authority fixed to `candidate_only`.
-
-A current result requires all of the following simultaneously:
-
-1. the legacy engineering closure still has a current-valid legacy truth view;
-2. the complete semantic-property gate re-closes against live evidence;
-3. historical legacy/property lineages still identify the same patch digest and source revision;
-4. the supplied current patch object still has the same identity and state digest;
-5. no live blocker remains.
-
-Revocation does not delete or mutate prior green receipts. It causes a newly assessed current receipt to become blocked. This preserves auditability while preventing historical success from masquerading as present truth.
-
-### Cross-layer anti-laundering restore
-
-Content digests alone are not considered sufficient restore proof. An attacker able to edit serialized state could otherwise modify both a nested legacy-validity receipt and its enclosing current-property receipt, recompute both digests, and make the two forged objects appear mutually consistent.
-
-v1.1 therefore performs semantic replay during restore. It independently reconstructs all legacy blockers available from canonical state, including:
-
-- base-closure readiness;
-- transaction patch/source lineage;
-- candidate-ready transaction phase and closure binding;
-- source-revision freshness;
-- current validity of every canonical legacy attestation;
-- canonical claim-binding presence and identity.
-
-The property side is independently recomputed through a fresh complete-set property-gate assessment. If a nested validity receipt omits a blocker that canonical live evidence reproduces, restore rejects the snapshot even when every attacker-controlled digest was recomputed correctly.
-
-Patch-object drift that depends on an external current patch object is checked on every live `assess(...)` call. Persisted receipts remain historical observations; downstream code must request a fresh assessment for present eligibility rather than treating a restored `current=True` row as eternal authority.
+Historical green receipts remain audit facts. Premise revocation creates a newly blocked current view rather than deleting or rewriting history.
 
 ## Coding / Debugging / UI implications
 
-### Coding claims and patches
+### Coding claims
 
-v1.1 does not redefine Coding Claims or Coding Patches ownership. Mutation remains governed by canonical Coding/F mechanisms. Current-property state is verification/control state only and cannot authorize a write.
+v1.2 strengthens Coding Claims ownership without granting claims direct repository mutation authority. A lease proves a coordination fact about current scope ownership only when revision and epoch conditions remain satisfied.
+
+### Coding patches
+
+Coding Patches ownership and mutation semantics are not redefined in this wave. Patch application remains governed by canonical Coding/F mutation controls and engineering effect protocols.
 
 ### Debugging
 
-A root-cause statement cannot close from reproduction alone. It requires a discriminating causal probe/bisect and a falsifier. If the supporting evidence is later revoked, current eligibility reopens without erasing the historical debugging result.
+A root-cause statement cannot close from reproduction alone. It requires a discriminating causal probe/bisect and a falsifier. If supporting evidence is later revoked, current eligibility reopens without erasing the historical debugging result.
 
 ### UI/UX
 
@@ -182,22 +253,25 @@ All crash-consistency invariants remain in force:
 
 ## State and compatibility integrity
 
-The unified v1.1 control snapshot contains the frozen v1.0/v0.9 property state plus the new current-property-validity substate under one outer content digest.
+The unified Software Engineering v1.1 snapshot retains its frozen v1.0/v0.9 property state and current-property-validity substate under one outer content digest. F v1.2 changes Coding Claims state semantics independently and does not reinterpret historical Software Engineering control-plane receipts.
 
-Restore verifies outer digest, frozen historical state identity, shared canonical evidence, property evidence/gate lineage, current-property nested component identity/version, live property re-evaluation, canonical legacy truth replay, and the inherited dispatch/effect lineage. Recomputing an outer digest cannot bypass nested semantic validation.
+Compatibility remains explicit:
 
-Compatibility is explicit:
-
-- v0.8 snapshot -> frozen v0.8 restore -> v0.9 property lift -> v1.1 current-validity lift;
-- v0.9 snapshot -> frozen v1.0 public boundary -> v1.1 current-validity lift;
-- v1.1 snapshot -> exact frozen-base reconstruction + current-validity semantic replay.
-
-No migration invents property witnesses or current-validity observations that did not exist historically.
+- Software Engineering v0.8 snapshot -> frozen v0.8 restore -> v0.9 property lift -> v1.1 current-validity lift;
+- Software Engineering v0.9 snapshot -> frozen v1.0 public boundary -> v1.1 current-validity lift;
+- Software Engineering v1.1 snapshot -> exact frozen-base reconstruction + current-validity semantic replay;
+- Coding Claims legacy unbound snapshot -> canonical v0.0.2 restore without invented lease/epoch state;
+- Coding Claims v0.0.2 bound snapshot -> exact lease/handoff lineage replay and exact epoch-frontier validation.
 
 ## Non-claims
 
-F v1.1 does not claim that:
+F v1.2 does not claim that:
 
+- an active historical claim automatically proves current ownership;
+- a claim lease grants repository mutation/release/deployment authority;
+- the same agent may bypass exclusive conflict by using a different task id;
+- caller-supplied epoch numbers can advance ownership history;
+- a release followed by an unrelated acquire is equivalent evidence to an atomic handoff;
 - passing tests prove unspecified behavior;
 - screenshots prove interaction;
 - reproduced failures prove root cause;
@@ -211,9 +285,24 @@ F v1.1 does not claim that:
 
 ## Validation gates
 
-F v1.1 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
+F v1.2 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
 
 - `Coding AGI Coding Organization Part V` on Python 3.11 and 3.13;
 - `Nolane-AI Refoundation Epoch 0` on Python 3.11 and 3.13.
 
-Part V must include property evidence/oracle binding, complete-set property gating, live legacy/property reopening, public-control migration/state tests, and the cross-layer recomputed-truth laundering adversarial regression. Immediately before merge, re-check exact `main`, PR head, synthetic merge-ref, changed-file scope and mergeability. If `main` advances, acceptance is stale and must be repeated on the recomposed edge.
+Part V must cover at minimum:
+
+- same-agent cross-task exclusive collision rejection;
+- bound acquisition operation-ref idempotency and rebinding rejection;
+- complete revision/operation binding;
+- revision/epoch-aware current coverage;
+- atomic supersession/handoff with exact-scope transfer;
+- stale-epoch failure atomicity;
+- bound state round-trip and legacy state restore;
+- restore rejection of operation-ref rebinding and conflicting ownership;
+- restore rejection of epoch-counter inflation;
+- component-version advancement to `external.coding.claims` v0.0.2.
+
+Refoundation must independently verify canonical native ownership, component-version metadata, historical bridge identity, repository audit/materialization freshness, Truth/Knowledge contracts, organization/campaign/execution regressions and frozen Neural R2.3 metadata on both supported Python versions.
+
+Immediately before merge, re-check exact `main`, PR head, synthetic merge-ref, changed-file scope and mergeability. If `main` advances, acceptance is stale and must be repeated on the recomposed edge.

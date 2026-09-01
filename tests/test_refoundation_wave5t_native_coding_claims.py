@@ -29,7 +29,7 @@ def test_wave5t_canonical_coding_claims_owns_complete_public_implementation() ->
         for name in _PUBLIC_SYMBOLS
     )
     assert canonical.COMPONENT_ID == "external.coding.claims"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.code_claims"
 
 
@@ -171,8 +171,8 @@ def test_wave5t_coding_claims_component_version_and_authority_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.coding_claims"
     assert row.legacy_sources == ("cogcoder/organization/code_claims.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.coding.claims")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.coding.claims")) == "0.0.2"
 
 
 def test_wave5t_generated_native_debt_no_longer_contains_coding_claims() -> None:
