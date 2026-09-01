@@ -332,14 +332,6 @@ class CodingControlPlane:
             digest=canonical_digest(payload),
         )
         self._readiness.append(row)
-        self.patches.set_status(
-            patch.patch_id,
-            CodingPatchStatus.VERIFIED if ready else (
-                CodingPatchStatus.REJECTED
-                if any(reason.startswith('verification_') or reason == 'self_verification_forbidden' for reason in reasons)
-                else patch.status
-            ),
-        )
         self.ledger.append(
             EventKind.TEST_PASSED if ready else EventKind.VERIFICATION_REJECTED,
             source_agent_id=verification.verifier_agent_id,

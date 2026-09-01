@@ -1,6 +1,7 @@
 from cogcoder.organization.architecture import ArchitectureComponent, ComponentKind
 from cogcoder.organization.coding import PatchVerificationEvidence
 from cogcoder.organization.coding_profiles import CodingDomain, CodingWorkRequest
+from cogcoder.organization.coding_patches import CodingPatchStatus
 from cogcoder.organization.planning import PlanNode
 from cogcoder.organization.requirements import AcceptanceCriterion, RequirementKind, RequirementNode
 from cogcoder.organization.runtime import OrganizationRuntime
@@ -104,6 +105,7 @@ def test_readiness_requires_independent_clean_verifier_and_all_execution_evidenc
     assert clean.ready is True
     assert clean.reasons == ()
     assert clean.patch_id == patch.patch_id
+    assert runtime.coding.patches.get_patch(patch.patch_id).status is CodingPatchStatus.EVIDENCE_READY
 
 
 def test_missing_compile_or_test_evidence_blocks_readiness():
