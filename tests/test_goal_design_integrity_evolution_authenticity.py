@@ -316,6 +316,7 @@ def test_authority_registry_round_trip_preserves_proofs_without_serializing_key(
         trusted_root_issuers=("authority:root",),
         authority_key=_AUTHORITY_KEY,
         clock=clock,
+        expected_state_digest=state["state_digest"],
     )
     assert restored.proof(proof.proof_id) == proof
     restored.verify_contract_transition(
@@ -351,6 +352,7 @@ def test_authority_state_tamper_fails_even_if_public_digest_is_recomputed():
             trusted_root_issuers=("authority:root",),
             authority_key=_AUTHORITY_KEY,
             clock=clock,
+            expected_state_digest=tampered["state_digest"],
         )
 
 
