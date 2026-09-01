@@ -18,6 +18,11 @@ from nolane.external_core.goal_design_reopening import (
     ReopeningObligationStatus,
 )
 from nolane.external_core.goal_design_runtime import DecisionLifecycle, GoalDesignRuntime
+from nolane.external_core.goal_design_stress import (
+    RecoveryProfile,
+    StressWorldEvidence,
+    StressWorldKind,
+)
 from nolane.external_core.goal_design_truth import (
     AssumptionClaim,
     AssumptionEvidence,
@@ -83,14 +88,24 @@ def _admit(
         DecisionClass.COSTLY_REVERSIBLE,
         DecisionClass.IRREVERSIBLE,
     }
-    scenarios = (
-        DesignScenario("base", tags=(("adversarial",) if nontrivial else ())),
-    )
+    if nontrivial:
+        scenarios = (
+            DesignScenario("base", probability=0.7),
+            DesignScenario("adverse", probability=0.2, tags=("adversarial",)),
+            DesignScenario("tail", probability=0.1, tags=("tail",)),
+        )
+        selected_utilities = {"base": 0.90, "adverse": 0.84, "tail": 0.80}
+        alternative_utilities = {"base": 0.70, "adverse": 0.65, "tail": 0.60}
+    else:
+        scenarios = (DesignScenario("base"),)
+        selected_utilities = {"base": 0.90}
+        alternative_utilities = {"base": 0.70}
+
     options = [
         DesignOption(
             "option:sensitivity-reopening",
             "Sensitivity-aware option",
-            {"base": 0.9},
+            selected_utilities,
             {},
             decision_class,
             rollback_ref=(
@@ -106,12 +121,60 @@ def _admit(
             DesignOption(
                 "option:sensitivity-alternative",
                 "Explicit reversible alternative",
-                {"base": 0.7},
+                alternative_utilities,
                 {},
                 DecisionClass.REVERSIBLE,
+                rollback_ref="rollback:sensitivity-alternative",
                 assumption_refs=("asm:core",),
             )
         )
+
+    stress_worlds = ()
+    recovery_profiles = ()
+    if nontrivial:
+        worlds = [
+            StressWorldEvidence(
+                "world:sensitivity-adverse",
+                "adverse",
+                StressWorldKind.ADVERSARIAL,
+                plausibility=0.6,
+                severity=0.8,
+                evidence_refs=("evidence:sensitivity-adverse",),
+            )
+        ]
+        if decision_class is DecisionClass.IRREVERSIBLE:
+            worlds.append(
+                StressWorldEvidence(
+                    "world:sensitivity-tail",
+                    "tail",
+                    StressWorldKind.TAIL,
+                    plausibility=0.3,
+                    severity=0.9,
+                    evidence_refs=("evidence:sensitivity-tail",),
+                )
+            )
+            profile = RecoveryProfile(
+                option_id="option:sensitivity-reopening",
+                containment_ref="containment:sensitivity-reopening",
+                recovery_probability=0.90,
+                recovery_cost=0.20,
+                recovery_latency=0.10,
+                residual_harm=0.15,
+                evidence_refs=("evidence:sensitivity-containment",),
+            )
+        else:
+            profile = RecoveryProfile(
+                option_id="option:sensitivity-reopening",
+                rollback_ref="rollback:sensitivity-reopening",
+                recovery_probability=0.90,
+                recovery_cost=0.20,
+                recovery_latency=0.10,
+                residual_harm=0.12,
+                evidence_refs=("evidence:sensitivity-rollback",),
+            )
+        stress_worlds = tuple(worlds)
+        recovery_profiles = (profile,)
+
     return runtime.admit(
         goal=GoalSpec(
             "goal:sensitivity-reopening",
@@ -123,6 +186,8 @@ def _admit(
         selected_option_id="option:sensitivity-reopening",
         snapshot=snapshot,
         uncertainties=tuple(uncertainties),
+        stress_worlds=stress_worlds,
+        recovery_profiles=recovery_profiles,
     )
 
 
