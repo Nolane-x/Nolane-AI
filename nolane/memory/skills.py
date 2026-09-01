@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 
 
 COMPONENT_ID = "external.skills"
@@ -70,7 +71,8 @@ class SkillEvolutionEngine:
         SkillScope.GLOBAL: 3,
     }
 
-    def __init__(self) -> None:
+    def __init__(self, *, learning_authority: LearningEvidenceAuthority | None = None) -> None:
+        self.learning_authority = learning_authority
         self._skills: dict[str, SkillRecord] = {}
 
     def propose(self, *, owner_agent_id: str, region: str, name: str, body: str) -> SkillRecord:
@@ -105,12 +107,67 @@ class SkillEvolutionEngine:
         except KeyError as exc:
             raise KeyError(f"unknown skill id: {skill_id}") from exc
 
-    def verify(self, skill_id: str, evidence: EvidenceRecord) -> SkillRecord:
+    @staticmethod
+    def _clean(evidence: EvidenceRecord) -> bool:
+        return bool(evidence.passed) and int(evidence.false_accepts) == 0 and int(evidence.regressions) == 0
+
+    def verification_subject_digest(self, skill_id: str) -> str:
+        return canonical_digest(
+            {
+                "operation_class": "skill.verify",
+                "current_skill": self.get(skill_id).to_state(),
+            }
+        )
+
+    def _verification_use_ref(
+        self,
+        *,
+        skill: SkillRecord,
+        evidence: EvidenceRecord,
+        subject_digest: str,
+    ) -> str:
+        return "skill-verification-" + canonical_digest(
+            {
+                "skill_id": skill.skill_id,
+                "evidence": evidence.to_state(),
+                "subject_digest": subject_digest,
+            }
+        )[:24]
+
+    def verify(
+        self,
+        skill_id: str,
+        evidence: EvidenceRecord,
+        *,
+        authority_lease_id: str | None = None,
+    ) -> SkillRecord:
         old = self.get(skill_id)
         by_id = {row.evidence_id: row for row in old.evidence}
         existing = by_id.get(evidence.evidence_id)
-        if existing is not None and existing != evidence:
-            raise ValueError("evidence id cannot be rebound to different evidence")
+        if existing is not None:
+            if existing != evidence:
+                raise ValueError("evidence id cannot be rebound to different evidence")
+            return old
+
+        if self._clean(evidence) and self.learning_authority is not None:
+            if authority_lease_id is None or not str(authority_lease_id).strip():
+                raise PermissionError("positive skill verification requires a preissued learning evidence lease")
+            subject_digest = self.verification_subject_digest(old.skill_id)
+            self.learning_authority.consume(
+                str(authority_lease_id),
+                subject_kind="skill",
+                subject_id=old.skill_id,
+                operation_class="skill.verify",
+                producer_agent_id=old.owner_agent_id,
+                evidence=evidence,
+                subject_digest=subject_digest,
+                use_ref=self._verification_use_ref(
+                    skill=old,
+                    evidence=evidence,
+                    subject_digest=subject_digest,
+                ),
+            )
+
         by_id[evidence.evidence_id] = evidence
         row = replace(old, evidence=tuple(by_id[key] for key in sorted(by_id)))
         self._skills[row.skill_id] = row
@@ -171,7 +228,14 @@ class SkillEvolutionEngine:
         return {"skills": [self._skills[key].to_state() for key in sorted(self._skills)]}
 
     @classmethod
-    def from_state(cls, state: Mapping[str, Any]) -> "SkillEvolutionEngine":
+    def from_state(
+        cls,
+        state: Mapping[str, Any],
+        *,
+        learning_authority: LearningEvidenceAuthority | None = None,
+    ) -> "SkillEvolutionEngine":
+        # Historical replay is capability-neutral. Evidence rows are reconstructed
+        # first, then the shared runtime authority is rebound after validation.
         engine = cls()
         seen_skill_ids: set[str] = set()
         for value in state.get("skills", ()):
@@ -204,6 +268,7 @@ class SkillEvolutionEngine:
 
             if engine.get(row.skill_id) != row:
                 raise ValueError("skill restore is not canonical")
+        engine.learning_authority = learning_authority
         return engine
 
 
