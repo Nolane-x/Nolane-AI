@@ -21,6 +21,7 @@ from .goal_design import (
 )
 from .goal_design_context import (
     DecisionContextContradiction,
+    DecisionContextPolicy,
     GoalDesignDecisionContext,
     GoalDesignDecisionContextCompiler,
 )
@@ -35,7 +36,7 @@ from .goal_design_integrity_evolution_authority import (
 )
 from .goal_design_runtime import DecisionLifecycle
 
-__version__ = "0.3.2"
+__version__ = "0.3.3"
 
 VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
 LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
@@ -50,12 +51,37 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         self,
         *args: Any,
         evolution_authority_verifier: GoalIntegrityEvolutionAuthorityVerifier | None = None,
+        decision_context_compiler: GoalDesignDecisionContextCompiler | None = None,
+        decision_context_policy: DecisionContextPolicy | None = None,
         **kwargs: Any,
     ) -> None:
+        if decision_context_compiler is not None and not isinstance(
+            decision_context_compiler, GoalDesignDecisionContextCompiler
+        ):
+            raise TypeError(
+                "decision_context_compiler must be GoalDesignDecisionContextCompiler"
+            )
+        if decision_context_policy is not None and not isinstance(
+            decision_context_policy, DecisionContextPolicy
+        ):
+            raise TypeError("decision_context_policy must be DecisionContextPolicy")
+        if (
+            decision_context_compiler is not None
+            and decision_context_policy is not None
+            and decision_context_compiler.policy.digest != decision_context_policy.digest
+        ):
+            raise ValueError(
+                "decision context compiler and policy configuration disagree"
+            )
+
         super().__init__(*args, **kwargs)
         self.evolution_authority_verifier = evolution_authority_verifier
         self._legacy_unverified_authority_digests: set[str] = set()
         self._verified_capability_evolution_digests: set[str] = set()
+        self.decision_context_compiler = (
+            decision_context_compiler
+            or GoalDesignDecisionContextCompiler(policy=decision_context_policy)
+        )
 
     def _ensure_authority_authenticity_state(self) -> None:
         self._ensure_evolution_state()
@@ -65,6 +91,8 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
             self._legacy_unverified_authority_digests = set()
         if not hasattr(self, "_verified_capability_evolution_digests"):
             self._verified_capability_evolution_digests = set()
+        if not hasattr(self, "decision_context_compiler"):
+            self.decision_context_compiler = GoalDesignDecisionContextCompiler()
 
     def install_integrity_contract(
         self,
@@ -165,6 +193,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
     ) -> GoalDesignDecisionContext:
         """Compile semantic context only from live decision + integrity authority."""
 
+        self._ensure_authority_authenticity_state()
         receipt_id = str(receipt_id).strip()
         try:
             decision_record = self.decisions.get(receipt_id)
@@ -204,7 +233,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
             )
 
         try:
-            return GoalDesignDecisionContextCompiler().compile(
+            return self.decision_context_compiler.compile(
                 decision_receipt=decision_record.receipt,
                 integrity_contract=contract,
                 integrity_receipt=integrity_record.integrity_receipt,
@@ -398,6 +427,7 @@ __all__ = tuple(_v02.__all__) + (
     "LEGACY_UNVERIFIED_AUTHORITY_TRUST",
     "VERIFIED_CAPABILITY_AUTHORITY_TRUST",
     "DecisionContextContradiction",
+    "DecisionContextPolicy",
     "GoalDesignDecisionContext",
     "GoalDesignDecisionContextCompiler",
     "GoalIntegrityEvolutionAuthorityVerifier",
