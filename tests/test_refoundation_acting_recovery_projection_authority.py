@@ -54,6 +54,8 @@ class _CoreReceipt:
     evidence_artifact_id: str = "evidence-core-1"
     before_workspace_digest: str = "workspace-before"
     after_workspace_digest: str = "workspace-after"
+    core_contract_digest: str = ""
+    workspace_epoch_id: str = "epoch-v1"
 
 
 class _Executor:
@@ -82,6 +84,13 @@ class _Artifacts:
         raise AssertionError("authority rejection must not issue recovery artifacts")
 
 
+class _ExternalCores:
+    contract_digest = "registry-v1"
+
+    def get(self, _core_id: str):
+        raise AssertionError("built-in recovery test must not resolve external core contracts")
+
+
 class _NeverUse:
     def __getattr__(self, name: str):
         raise AssertionError(f"recovery authority test must not use {name}")
@@ -108,6 +117,9 @@ def _session() -> ExecutionSession:
         workspace_provenance_version=2,
         initial_workspace_digest="workspace-before",
         current_workspace_digest="workspace-before",
+        execution_proof_version=2,
+        external_core_registry_digest="registry-v1",
+        workspace_epoch_id="epoch-v1",
         decision_receipt_ids=("decision-1",),
     )
 
@@ -127,6 +139,8 @@ def _committed_protocol() -> ActingProtocolLedger:
         idempotency_key="execution-00000001:decision-1",
         recovery_plan="",
         budget=ActionBudget(max_attempts=1, max_local_mutations=1, max_external_effects=0),
+        core_contract_digest="",
+        workspace_epoch_id="epoch-v1",
     )
     protocol.propose(contract)
     protocol.acquire_lease(
@@ -139,7 +153,13 @@ def _committed_protocol() -> ActingProtocolLedger:
     )
     protocol.verify_preconditions(contract.action_id, evidence_refs=("evidence:pre",), now_ms=101)
     protocol.begin_execution(contract.action_id, now_ms=102)
-    protocol.observe_outcome(contract.action_id, outcome_ref="core-1", success=True, now_ms=103)
+    protocol.observe_outcome(
+        contract.action_id,
+        outcome_ref="core-1",
+        success=True,
+        outcome_digest=TransactionalExternalCoreExecutor._core_receipt_authority_digest(_CoreReceipt()),
+        now_ms=103,
+    )
     protocol.verify_postconditions(
         contract.action_id,
         evidence_refs=("evidence-core-1",),
@@ -159,7 +179,7 @@ def _plane(receipt: _CoreReceipt):
         tasks=_NeverUse(),
         context=_NeverUse(),
         artifacts=artifacts,
-        external_cores=_NeverUse(),
+        external_cores=_ExternalCores(),
         coding=_NeverUse(),
         encoder=_NeverUse(),
         executor=executor,

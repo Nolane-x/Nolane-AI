@@ -23,7 +23,7 @@ from nolane.external_core.execution_workspace import RepositoryWorkspace, Worksp
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.6"
+COMPONENT_VERSION = "0.1.7"
 
 
 class CoreReceipt(Protocol):
@@ -137,6 +137,30 @@ class TransactionalExternalCoreExecutor:
         return "acting-action-" + digest[:24]
 
     @staticmethod
+    def _core_receipt_authority_digest(receipt: CoreReceipt) -> str:
+        return canonical_digest(
+            {
+                "receipt_id": str(receipt.receipt_id),
+                "agent_id": str(receipt.agent_id),
+                "task_id": str(receipt.task_id),
+                "tool_id": str(receipt.tool_id),
+                "operation": str(receipt.operation),
+                "input_digest": str(receipt.input_digest),
+                "authorized": bool(receipt.authorized),
+                "success": bool(receipt.success),
+                "failure_kind": (
+                    None if receipt.failure_kind is None else str(receipt.failure_kind)
+                ),
+                "before_workspace_digest": str(receipt.before_workspace_digest),
+                "after_workspace_digest": str(receipt.after_workspace_digest),
+                "output_artifact_ids": [str(x) for x in receipt.output_artifact_ids],
+                "evidence_artifact_id": str(receipt.evidence_artifact_id),
+                "core_contract_digest": str(getattr(receipt, "core_contract_digest", "")),
+                "workspace_epoch_id": str(getattr(receipt, "workspace_epoch_id", "")),
+            }
+        )
+
+    @staticmethod
     def _validate_core_receipt(
         receipt: CoreReceipt,
         *,
@@ -186,6 +210,7 @@ class TransactionalExternalCoreExecutor:
         workspace_digest: str,
         core_contract_digest: str,
         workspace_epoch_id: str,
+        outcome_digest: str,
     ) -> None:
         expected = {
             "receipt_id": str(receipt_id),
@@ -207,6 +232,13 @@ class TransactionalExternalCoreExecutor:
             mismatches.append("authorized")
         if getattr(receipt, "success", None) is not True:
             mismatches.append("success")
+        expected_outcome_digest = str(outcome_digest).strip()
+        if (
+            not expected_outcome_digest
+            or TransactionalExternalCoreExecutor._core_receipt_authority_digest(receipt)
+            != expected_outcome_digest
+        ):
+            mismatches.append("outcome_digest")
         if mismatches:
             raise ValueError(
                 "replay core receipt provenance mismatch: "
@@ -257,6 +289,7 @@ class TransactionalExternalCoreExecutor:
             workspace_digest=workspace.digest,
             core_contract_digest=str(core_contract_digest),
             workspace_epoch_id=str(workspace_epoch_id),
+            outcome_digest=str(row.outcome_digest),
         )
         return ActingInvocationResult(
             record=row,
@@ -460,6 +493,7 @@ class TransactionalExternalCoreExecutor:
                 action_id,
                 outcome_ref=str(receipt.receipt_id),
                 success=bool(receipt.success),
+                outcome_digest=self._core_receipt_authority_digest(receipt),
                 now_ms=current_now_ms(),
             )
             if not receipt.success:

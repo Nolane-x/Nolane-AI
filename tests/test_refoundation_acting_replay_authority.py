@@ -190,6 +190,24 @@ def test_committed_replay_revalidates_concrete_receipt_provenance(tmp_path: Path
         workspace.close()
 
 
+def test_committed_replay_rejects_substituted_output_payload(tmp_path: Path) -> None:
+    workspace = _workspace(tmp_path)
+    raw = _Executor()
+    kernel = TransactionalExternalCoreExecutor(executor=raw)
+    try:
+        first = _invoke(kernel, workspace)
+        original = raw.get_receipt(first.core_receipt_id)
+        raw._receipts[first.core_receipt_id] = replace(
+            original, output_artifact_ids=("artifact-poisoned",)
+        )
+
+        with pytest.raises(ValueError, match="replay core receipt provenance mismatch"):
+            _invoke(kernel, workspace)
+        assert raw.calls == 1
+    finally:
+        workspace.close()
+
+
 def test_noncommitted_terminal_replay_never_exports_core_outputs(tmp_path: Path) -> None:
     workspace = _workspace(tmp_path)
     raw = _Executor()

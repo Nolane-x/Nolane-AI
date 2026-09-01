@@ -26,7 +26,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.10"
+COMPONENT_VERSION = "0.0.11"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -625,6 +625,16 @@ class OrganizationExecutionControlPlane:
             mismatches.append('authorized')
         if getattr(core, 'success', None) is not True:
             mismatches.append('success')
+
+        recorded_outcome_digest = str(getattr(row, 'outcome_digest', '')).strip()
+        if session.execution_proof_version >= 2 and not recorded_outcome_digest:
+            mismatches.append('outcome_digest')
+        elif (
+            recorded_outcome_digest
+            and self.acting_executor._core_receipt_authority_digest(core)
+            != recorded_outcome_digest
+        ):
+            mismatches.append('outcome_digest')
 
         if session.execution_proof_version >= 2:
             expected_core_digest = self._expected_core_contract_digest(row.contract.core_id)
