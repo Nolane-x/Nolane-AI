@@ -16,7 +16,7 @@ from .goal_design import stable_digest
 from ._goal_design_integrity_evolution_v01 import assess_goal_integrity_evolution
 from .goal_design_integrity import GoalIntegrityContract
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"
 
 AUTHORITY_STATE_SCHEMA_VERSION = 1
 GOAL_INTEGRITY_EVOLUTION_ACTION = "goal_integrity_contract_evolution"
@@ -337,6 +337,8 @@ class GoalIntegrityEvolutionAuthorityVerifier:
             parent = self._grants[parent_id]
         except KeyError as exc:
             raise ValueError("unknown Goal/Design evolution parent grant") from exc
+        self._assert_live_chain_not_revoked(parent_id)
+        self._validate_chain_at(parent_id, self._now())
         provisional = GoalIntegrityEvolutionGrant(
             grant_id="pending",
             auth_tag="pending",
@@ -363,11 +365,12 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         identity = _ref("grant_id", grant_id)
         if identity not in self._grants:
             raise ValueError("cannot revoke unknown Goal/Design evolution grant")
-        now = self._now()
         existing = self._revoked_at.get(identity)
-        if existing is None or now < existing:
-            self._revoked_at[identity] = now
-        return self._revoked_at[identity]
+        if existing is not None:
+            return existing
+        revoked_at = self._now()
+        self._revoked_at[identity] = revoked_at
+        return revoked_at
 
     def _validate_chain_at(
         self,
@@ -404,7 +407,7 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         *,
         trail: frozenset[str] = frozenset(),
     ) -> None:
-        """Treat any recorded revocation as permanent for new live mutations."""
+        """Treat any recorded revocation as permanent for new live authority use."""
 
         identity = _ref("grant_id", grant_id)
         if identity in trail:
@@ -452,6 +455,7 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         delta_digest: str,
         action: str = GOAL_INTEGRITY_EVOLUTION_ACTION,
     ) -> GoalIntegrityEvolutionAuthorizationProof:
+        self._assert_live_chain_not_revoked(grant_id)
         now = self._now()
         grant = self._validate_chain_at(grant_id, now)
         goal = _ref("goal_id", goal_id)
