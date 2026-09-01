@@ -25,7 +25,10 @@ from nolane.external_core.goal_design_integrity import (
     verify_goal_integrity_receipt,
 )
 from nolane.external_core.goal_design_integrity_evolution import (
-    mint_goal_integrity_evolution_receipt,
+    mint_verified_goal_integrity_evolution_receipt,
+)
+from nolane.external_core.goal_design_integrity_evolution_authority import (
+    GoalIntegrityEvolutionAuthorityVerifier,
 )
 from nolane.external_core.goal_design_integrity_runtime import GoalIntegrityRuntime
 from nolane.external_core.goal_design_runtime import DecisionLifecycle
@@ -36,6 +39,8 @@ from nolane.external_core.requirements import (
     RequirementKind,
     RequirementNode,
 )
+
+_AUTHORITY_KEY = b"runtime-integrity-authority-test-key"
 
 
 def _runtime():
@@ -171,15 +176,33 @@ def _contract(statement="Preserve explicit user intent and control."):
     )
 
 
-def _evolution(predecessor, successor):
-    return mint_goal_integrity_evolution_receipt(
+def _evolution(runtime, predecessor, successor):
+    verifier = GoalIntegrityEvolutionAuthorityVerifier(
+        trusted_root_issuers=("authority:root",),
+        authority_key=_AUTHORITY_KEY,
+        clock=lambda: 100,
+    )
+    grant = verifier.issue_root_grant(
+        issuer_ref="authority:root",
+        subject_ref="authority:goal-owner",
+        goal_ids=(predecessor.goal_id,),
+        valid_from_epoch_s=0,
+        valid_until_epoch_s=1000,
+    )
+    proof = verifier.authorize_contract_transition(
+        grant.grant_id,
         predecessor=predecessor,
         successor=successor,
-        authority_ref="authority:goal-owner",
+    )
+    runtime.evolution_authority_verifier = verifier
+    return mint_verified_goal_integrity_evolution_receipt(
+        predecessor=predecessor,
+        successor=successor,
+        authorization_proof=proof,
         reason="Reviewed Goal/Design integrity contract revision.",
         source_refs=("source:goal-owner",),
         evidence_refs=("evidence:goal-review",),
-        freshness_ref="freshness:test:v2",
+        freshness_ref="freshness:test:v3",
         confidence_milli=1000,
     )
 
@@ -300,7 +323,7 @@ def test_contract_supersession_atomically_stales_old_decision_and_integrity_auth
     runtime.install_integrity_contract(
         revised,
         supersedes_digest=original.digest,
-        evolution_receipt=_evolution(original, revised),
+        evolution_receipt=_evolution(runtime, original, revised),
     )
 
     decision_id = admission.decision_receipt.receipt_id
@@ -321,7 +344,7 @@ def test_old_attestations_cannot_launder_authority_after_contract_supersession()
     runtime.install_integrity_contract(
         revised,
         supersedes_digest=original.digest,
-        evolution_receipt=_evolution(original, revised),
+        evolution_receipt=_evolution(runtime, original, revised),
     )
     snapshot = runtime.freeze()
     ledger_events_before = runtime.ledger.events
@@ -348,7 +371,7 @@ def test_fresh_attestations_under_superseding_contract_authorize_new_decision():
     runtime.install_integrity_contract(
         revised,
         supersedes_digest=original.digest,
-        evolution_receipt=_evolution(original, revised),
+        evolution_receipt=_evolution(runtime, original, revised),
     )
     snapshot = runtime.freeze()
 

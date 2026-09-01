@@ -20,6 +20,7 @@ from nolane.external_core.execution_types import ToolAction
 @dataclass
 class _Workspace:
     digest: str = "workspace-before"
+    active_execution_epoch_id: str = "workspace-epoch-effect-authority"
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,8 @@ class _Receipt:
     after_workspace_digest: str
     output_artifact_ids: tuple[str, ...]
     evidence_artifact_id: str
+    core_contract_digest: str
+    workspace_epoch_id: str
 
 
 class _RecordingExecutor:
@@ -44,7 +47,7 @@ class _RecordingExecutor:
         self.calls = 0
         self._receipts: dict[str, _Receipt] = {}
 
-    def invoke(self, *, agent_id: str, task_id: str, workspace: _Workspace, action: ToolAction, **_: object) -> _Receipt:
+    def invoke(self, *, agent_id: str, task_id: str, workspace: _Workspace, action: ToolAction, **kwargs: object) -> _Receipt:
         self.calls += 1
         before = workspace.digest
         if action.mutation_paths:
@@ -63,6 +66,8 @@ class _RecordingExecutor:
             after_workspace_digest=workspace.digest,
             output_artifact_ids=(),
             evidence_artifact_id=f"evidence-{self.calls}",
+            core_contract_digest=str(kwargs.get("core_contract_digest", "")),
+            workspace_epoch_id=str(kwargs.get("workspace_epoch_id", "")),
         )
         self._receipts[receipt.receipt_id] = receipt
         return receipt
@@ -172,6 +177,8 @@ def test_transactional_runtime_accepts_canonical_bounded_read_floor() -> None:
         postcondition_evidence_refs=(),
         verifier_level=VerifierLevel.V1,
         idempotency_key="task-1:filesystem:read",
+        core_contract_digest="",
+        workspace_epoch_id=workspace.active_execution_epoch_id,
         now_ms=100,
         lease_ttl_ms=10_000,
     )
