@@ -15,7 +15,7 @@ from typing import Iterable, Sequence
 from . import _goal_design_base as _base
 from ._goal_design_base import DecisionClass, DesignOption, DesignScenario, GoalSpec, stable_digest
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -81,6 +81,10 @@ class StressWorldEvidence:
             "digest",
             stable_digest({"goal_design_stress_world_evidence": payload}),
         )
+
+    @property
+    def materiality(self) -> float:
+        return self.plausibility * self.severity
 
 
 @dataclass(frozen=True)
@@ -161,6 +165,7 @@ class StressPolicy:
     irreversible_max_exposure: float = 0.45
     irreversible_min_recovery_score: float = 0.08
     irreversible_max_residual_harm: float = 0.35
+    minimum_world_materiality: float = 0.05
     digest: str = field(init=False)
 
     def __post_init__(self) -> None:
@@ -171,6 +176,7 @@ class StressPolicy:
             "irreversible_max_exposure",
             "irreversible_min_recovery_score",
             "irreversible_max_residual_harm",
+            "minimum_world_materiality",
         ):
             object.__setattr__(self, name, _bounded(name, getattr(self, name)))
         payload = {
@@ -180,6 +186,7 @@ class StressPolicy:
             "irreversible_max_exposure": self.irreversible_max_exposure,
             "irreversible_min_recovery_score": self.irreversible_min_recovery_score,
             "irreversible_max_residual_harm": self.irreversible_max_residual_harm,
+            "minimum_world_materiality": self.minimum_world_materiality,
         }
         object.__setattr__(
             self,
@@ -230,6 +237,24 @@ class GoalDesignStressAuthority:
     def __init__(self, *, default_policy: StressPolicy | None = None) -> None:
         self.default_policy = default_policy or StressPolicy()
         self._decision_receipts: dict[str, DecisionStressReceipt] = {}
+
+    def _effective_policy(self, policy: StressPolicy | None) -> StressPolicy:
+        """Resolve policy without allowing per-decision authority override.
+
+        A custom policy is trusted configuration only when it configured this
+        authority instance. A call-site may repeat the same policy as an exact
+        assertion, but cannot substitute another risk floor for one decision.
+        """
+
+        if policy is None:
+            return self.default_policy
+        if not isinstance(policy, StressPolicy):
+            raise TypeError("stress policy must be StressPolicy")
+        if policy.digest != self.default_policy.digest:
+            raise ValueError(
+                "per-admission stress policy cannot override configured authority policy"
+            )
+        return self.default_policy
 
     @staticmethod
     def _canonical_inputs(
@@ -381,9 +406,7 @@ class GoalDesignStressAuthority:
         recovery_profiles: Sequence[RecoveryProfile] = (),
         policy: StressPolicy | None = None,
     ) -> StressAdmissionToken:
-        policy = policy or self.default_policy
-        if not isinstance(policy, StressPolicy):
-            raise TypeError("stress policy must be StressPolicy")
+        policy = self._effective_policy(policy)
         goal_digest, scenario_digest, option_digest, canonical_scenarios, canonical_options = self._canonical_inputs(
             goal, scenarios, options
         )
@@ -415,7 +438,21 @@ class GoalDesignStressAuthority:
             profiles=canonical_profiles,
         )
 
-        kinds = {world.kind for world in canonical_worlds}
+        material_worlds = tuple(
+            world
+            for world in canonical_worlds
+            if world.materiality + 1e-12 >= policy.minimum_world_materiality
+        )
+        primary_worlds = tuple(
+            world
+            for world in material_worlds
+            if world.kind in {StressWorldKind.ADVERSARIAL, StressWorldKind.COUNTERFACTUAL}
+        )
+        tail_worlds = tuple(
+            world
+            for world in material_worlds
+            if world.kind in {StressWorldKind.TAIL, StressWorldKind.FAILURE}
+        )
         exposures = tuple(
             world.plausibility
             * world.severity
@@ -429,8 +466,10 @@ class GoalDesignStressAuthority:
 
         if selected.decision_class is DecisionClass.COSTLY_REVERSIBLE:
             max_allowed_exposure = policy.costly_max_exposure
-            if not ({StressWorldKind.ADVERSARIAL, StressWorldKind.COUNTERFACTUAL} & kinds):
-                blockers.append("costly reversible decision requires evidence-bearing adversarial or counterfactual stress world")
+            if not primary_worlds:
+                blockers.append(
+                    "costly reversible decision requires materially supported evidence-bearing adversarial or counterfactual stress world"
+                )
             if selected_profile is None:
                 blockers.append("costly reversible decision requires a recovery profile")
             else:
@@ -444,10 +483,24 @@ class GoalDesignStressAuthority:
                 blockers.append("costly reversible stress exposure exceeds policy ceiling")
         elif selected.decision_class is DecisionClass.IRREVERSIBLE:
             max_allowed_exposure = policy.irreversible_max_exposure
-            if not ({StressWorldKind.ADVERSARIAL, StressWorldKind.COUNTERFACTUAL} & kinds):
-                blockers.append("irreversible decision requires evidence-bearing adversarial or counterfactual stress world")
-            if not ({StressWorldKind.TAIL, StressWorldKind.FAILURE} & kinds):
-                blockers.append("irreversible decision requires independent tail or failure stress world")
+            if not primary_worlds:
+                blockers.append(
+                    "irreversible decision requires materially supported evidence-bearing adversarial or counterfactual stress world"
+                )
+            if not tail_worlds:
+                blockers.append(
+                    "irreversible decision requires materially supported independent tail or failure stress world"
+                )
+            elif primary_worlds:
+                independent_provenance = any(
+                    set(primary.evidence_refs).isdisjoint(tail.evidence_refs)
+                    for primary in primary_worlds
+                    for tail in tail_worlds
+                )
+                if not independent_provenance:
+                    blockers.append(
+                        "irreversible tail/failure stress world requires independent evidence provenance from primary stress world"
+                    )
             if selected_profile is None:
                 blockers.append("irreversible decision requires a recovery/containment profile")
             else:
