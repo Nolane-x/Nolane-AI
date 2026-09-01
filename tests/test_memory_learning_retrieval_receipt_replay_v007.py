@@ -7,6 +7,7 @@ import pytest
 from nolane.memory.adaptive_policy import MemoryRetrievalReceipt
 from nolane.memory.fabric import MemoryScope
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -33,16 +34,7 @@ def _substrate() -> LearningSubstrate:
 
 
 def _remember_verified(substrate: LearningSubstrate, text: str, evidence_id: str):
-    return substrate.remember(
-        text=text,
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=(evidence_id,),
-        confidence=0.9,
-        salience=0.8,
-    )
+    return remember_verified(substrate, evidence_id=evidence_id, text=text, owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, confidence=0.9, salience=0.8)
 
 
 def test_restore_rejects_rehashed_receipt_with_impossible_selected_set() -> None:
@@ -75,7 +67,7 @@ def test_restore_rejects_rehashed_receipt_with_impossible_selected_set() -> None
     # references real memories and a real policy, but contradicts the deterministic
     # retrieval result for the recorded query/state. Restore must replay authority.
     with pytest.raises(ValueError, match="retrieval receipt.*replay|replay.*retrieval receipt"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_historical_retrieval_receipt_replays_after_live_memory_advances() -> None:
@@ -89,9 +81,7 @@ def test_historical_retrieval_receipt_replays_after_live_memory_advances() -> No
     )
     _remember_verified(substrate, "later verified anchor", "evidence-later")
 
-    restored = LearningSubstrate.from_state(
-        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
-    )
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state(), learning_authority=authority_copy(substrate))
 
     assert restored.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
     assert restored.memory.get(first.memory_id) == first
@@ -109,7 +99,7 @@ def test_restore_rejects_tampered_retrieval_snapshot() -> None:
     state["retrieval_snapshots"][0]["state"]["memory"]["entries"][0]["text"] = "tampered snapshot"
 
     with pytest.raises(ValueError, match="retrieval replay snapshot digest mismatch"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_replayable_receipt_without_historical_snapshot() -> None:
@@ -124,7 +114,7 @@ def test_restore_rejects_replayable_receipt_without_historical_snapshot() -> Non
     state["retrieval_snapshots"] = []
 
     with pytest.raises(ValueError, match="retrieval receipt replay snapshot is missing"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_does_not_elevate_legacy_v1_receipt_to_replay_authority() -> None:
@@ -145,4 +135,4 @@ def test_restore_does_not_elevate_legacy_v1_receipt_to_replay_authority() -> Non
     state["retrieval_receipts"] = [legacy.to_state()]
 
     with pytest.raises(ValueError, match="v2 query envelope"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))

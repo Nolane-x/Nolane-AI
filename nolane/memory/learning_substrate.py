@@ -7,6 +7,8 @@ from enum import Enum
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.memory.adaptive_policy import (
     MemoryAnchorHealthReceipt,
     MemoryCompactionReceipt,
@@ -163,6 +165,7 @@ class MemoryForgetReceipt:
     evidence_refs: tuple[str, ...]
     archive_receipt_id: str
     content_digest: str
+    authorization_use_receipt_id: str | None
     event_anchor_id: str | None
     digest: str
 
@@ -179,6 +182,8 @@ class MemoryForgetReceipt:
             raise ValueError("memory forget receipt requires evidence")
         if not str(self.archive_receipt_id).strip() or not str(self.content_digest).strip():
             raise ValueError("memory forget receipt requires archive and content authority")
+        if self.authorization_use_receipt_id is not None and not str(self.authorization_use_receipt_id).strip():
+            raise ValueError("memory forget receipt authorization use receipt must be non-empty")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -190,6 +195,7 @@ class MemoryForgetReceipt:
             "evidence_refs": list(self.evidence_refs),
             "archive_receipt_id": self.archive_receipt_id,
             "content_digest": self.content_digest,
+            "authorization_use_receipt_id": self.authorization_use_receipt_id,
             "event_anchor_id": self.event_anchor_id,
         }
 
@@ -207,6 +213,10 @@ class MemoryForgetReceipt:
             evidence_refs=tuple(str(value) for value in state.get("evidence_refs", ())),
             archive_receipt_id=str(state["archive_receipt_id"]),
             content_digest=str(state["content_digest"]),
+            authorization_use_receipt_id=(
+                None if state.get("authorization_use_receipt_id") is None
+                else str(state["authorization_use_receipt_id"])
+            ),
             event_anchor_id=None if state.get("event_anchor_id") is None else str(state["event_anchor_id"]),
             digest=str(state["digest"]),
         )
@@ -224,6 +234,7 @@ class MemoryTombstone:
     actor_agent_id: str | None = None
     archive_receipt_id: str | None = None
     forget_receipt_id: str | None = None
+    authorization_use_receipt_id: str | None = None
 
     def __post_init__(self) -> None:
         if not str(self.memory_id).strip():
@@ -240,6 +251,8 @@ class MemoryTombstone:
             raise ValueError("memory tombstone archive receipt authority must be non-empty")
         if self.forget_receipt_id is not None and not str(self.forget_receipt_id).strip():
             raise ValueError("memory tombstone forget receipt authority must be non-empty")
+        if self.authorization_use_receipt_id is not None and not str(self.authorization_use_receipt_id).strip():
+            raise ValueError("memory tombstone authorization use receipt must be non-empty")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -250,6 +263,7 @@ class MemoryTombstone:
             "actor_agent_id": self.actor_agent_id,
             "archive_receipt_id": self.archive_receipt_id,
             "forget_receipt_id": self.forget_receipt_id,
+            "authorization_use_receipt_id": self.authorization_use_receipt_id,
         }
 
     @classmethod
@@ -265,6 +279,10 @@ class MemoryTombstone:
             ),
             forget_receipt_id=(
                 None if state.get("forget_receipt_id") is None else str(state["forget_receipt_id"])
+            ),
+            authorization_use_receipt_id=(
+                None if state.get("authorization_use_receipt_id") is None
+                else str(state["authorization_use_receipt_id"])
             ),
         )
 
@@ -324,6 +342,7 @@ class LearningSubstrate:
         relations: MemoryRelationGraph | None = None,
         skills: SkillEvolutionEngine | None = None,
         experiences: ExperienceLedger | None = None,
+        learning_authority: LearningEvidenceAuthority | None = None,
     ) -> None:
         self.registry, self.events = registry, events
         self.memory = memory or MemoryFabric()
@@ -331,6 +350,12 @@ class LearningSubstrate:
         self.relations = relations or MemoryRelationGraph(registry=registry, memory=self.memory, events=events)
         self.skills = skills or SkillEvolutionEngine()
         self.experiences = experiences or ExperienceLedger(registry=registry, events=events)
+        self.learning_authority = learning_authority or LearningEvidenceAuthority()
+        for label, component in (("skill", self.skills), ("experience", self.experiences)):
+            bound = getattr(component, "learning_authority", None)
+            if bound is not None and bound is not self.learning_authority:
+                raise ValueError(f"learning substrate {label} authority diverges from shared learning authority")
+            component.learning_authority = self.learning_authority
         self._metadata: dict[str, LearningMemoryMetadata] = {}
         self._tombstones: dict[str, MemoryTombstone] = {}
         self._forget_receipts: dict[str, MemoryForgetReceipt] = {}
@@ -366,8 +391,13 @@ class LearningSubstrate:
         failure_condition: str | None = None,
         retry_if_changed: str | None = None,
     ) -> MemoryEntry:
-        kind, epistemic_type = MemoryKind(kind), EpistemicType(epistemic_type)
-        validated = epistemic_type is EpistemicType.VERIFIED and bool(evidence_ids)
+        kind, requested_epistemic_type = MemoryKind(kind), EpistemicType(epistemic_type)
+        epistemic_type = (
+            EpistemicType.HYPOTHESIS
+            if requested_epistemic_type is EpistemicType.VERIFIED
+            else requested_epistemic_type
+        )
+        validated = False
         row = self.memory.write(
             scope,
             text,
@@ -450,30 +480,88 @@ class LearningSubstrate:
         except KeyError as exc:
             raise KeyError(f"missing learning metadata for {memory_id}") from exc
 
+    def memory_verification_subject_digest(
+        self, memory_id: str, *, actor_agent_id: str | None = None
+    ) -> str:
+        row = self.memory.get(memory_id)
+        metadata = self.metadata(memory_id)
+        actor = None if actor_agent_id is None else str(actor_agent_id).strip()
+        if actor_agent_id is not None and not actor:
+            raise ValueError("memory verification actor must be explicit when supplied")
+        return canonical_digest(
+            {
+                "operation_class": "memory.verify",
+                "current_memory": row.to_state(),
+                "current_metadata": metadata.to_state(),
+                "lifecycle": [receipt.to_state() for receipt in self.lifecycle.receipts_for(row.memory_id)],
+                "actor_agent_id": actor,
+                "proposed_status": MemoryStatus.ACTIVE.value,
+                "proposed_epistemic_type": EpistemicType.VERIFIED.value,
+            }
+        )
+
     def validate_memory(
         self,
         memory_id: str,
         *,
         actor_agent_id: str,
-        evidence_refs: tuple[str, ...],
-        correction_ref: str,
+        evidence: EvidenceRecord | None = None,
+        authority_lease_id: str | None = None,
+        evidence_refs: tuple[str, ...] | None = None,
+        correction_ref: str | None = None,
     ) -> MemoryEntry:
+        row = self.memory.get(memory_id)
+        actor = self.registry.get(actor_agent_id)
+        if actor.region != self.lifecycle.REGION:
+            raise PermissionError("verified memory admission requires a Memory/Context actor")
+        if actor.agent_id != "memory.chief":
+            raise PermissionError("reactivating governed memory requires Memory Chief authority")
+        if evidence is None:
+            raise PermissionError("verified memory admission requires actual evidence and a preissued learning evidence lease")
+        self.registry.get(evidence.verifier_agent_id)
+        if authority_lease_id is None or not str(authority_lease_id).strip():
+            raise PermissionError("verified memory admission requires a preissued learning evidence lease")
+        subject_digest = self.memory_verification_subject_digest(
+            row.memory_id, actor_agent_id=actor.agent_id
+        )
+        use = self.learning_authority.consume(
+            str(authority_lease_id),
+            subject_kind="memory",
+            subject_id=row.memory_id,
+            operation_class="memory.verify",
+            producer_agent_id=row.owner_agent_id,
+            evidence=evidence,
+            subject_digest=subject_digest,
+            use_ref="memory-verify:" + row.memory_id + ":" + subject_digest[:20],
+        )
         receipt = self.lifecycle.transition(
-            memory_id,
-            actor_agent_id=actor_agent_id,
+            row.memory_id,
+            actor_agent_id=actor.agent_id,
             new_status=MemoryStatus.ACTIVE,
             reason="external_validation_completed",
-            evidence_refs=evidence_refs,
-            correction_ref=correction_ref,
+            evidence_refs=(evidence.evidence_id,),
+            correction_ref=use.receipt_id,
         )
-        metadata = self.metadata(memory_id)
-        self._metadata[memory_id] = replace(
+        metadata = self.metadata(row.memory_id)
+        self._metadata[row.memory_id] = replace(
             metadata,
             epistemic_type=EpistemicType.VERIFIED,
-            last_verified_ref=str(correction_ref),
-            source_refs=tuple(sorted(set(metadata.source_refs + receipt.evidence_refs))),
+            last_verified_ref=evidence.evidence_id,
+            source_refs=tuple(sorted(set(metadata.source_refs + (evidence.evidence_id,)))),
         )
-        return self.memory.get(memory_id)
+        admitted = self.memory.get(row.memory_id)
+        if admitted.supersedes is not None:
+            incumbent = self.memory.get(admitted.supersedes)
+            if incumbent.status is MemoryStatus.ACTIVE:
+                self.lifecycle.transition(
+                    incumbent.memory_id,
+                    actor_agent_id=actor.agent_id,
+                    new_status=MemoryStatus.SUPERSEDED,
+                    reason=f"superseded by {admitted.memory_id}",
+                    evidence_refs=(evidence.evidence_id,),
+                    correction_ref=use.receipt_id,
+                )
+        return self.memory.get(row.memory_id)
 
     def decay_memory(
         self,
@@ -923,11 +1011,12 @@ class LearningSubstrate:
             last_verified_ref=evidence[0] if epistemic_type is EpistemicType.VERIFIED else None,
             salience=max(row.salience for row in metadata_rows),
         )
+        compacted_epistemic_type = self.metadata(compacted.memory_id).epistemic_type
         receipt = MemoryCompactionReceipt(
             source_memory_ids=source_ids,
             compacted_memory_id=compacted.memory_id,
             source_digest=self._compaction_source_digest(source_ids),
-            epistemic_type=epistemic_type.value,
+            epistemic_type=compacted_epistemic_type.value,
             actor_agent_id=actor,
             evidence_refs=evidence,
             compacted_digest=self._compaction_target_digest(compacted.memory_id),
@@ -996,37 +1085,80 @@ class LearningSubstrate:
         self.memory.get(memory_id)
         return tuple(self._anchor_health.get(str(memory_id), ()))
 
+    def forget_subject_digest(
+        self, memory_id: str, *, actor_agent_id: str, reason: str
+    ) -> str:
+        row = self.memory.get(memory_id)
+        metadata = self.metadata(memory_id)
+        actor_id = str(actor_agent_id).strip()
+        normalized_reason = str(reason).strip()
+        if not actor_id or not normalized_reason:
+            raise ValueError("forget authority requires actor and reason")
+        return canonical_digest(
+            {
+                "operation_class": "memory.forget",
+                "current_memory": row.to_state(),
+                "current_metadata": metadata.to_state(),
+                "lifecycle": [receipt.to_state() for receipt in self.lifecycle.receipts_for(row.memory_id)],
+                "actor_agent_id": actor_id,
+                "reason": normalized_reason,
+            }
+        )
+
     def forget(
         self,
         memory_id: str,
         *,
         actor_agent_id: str,
         reason: str,
-        evidence_refs: tuple[str, ...],
+        evidence: EvidenceRecord | None = None,
+        authority_lease_id: str | None = None,
+        evidence_refs: tuple[str, ...] | None = None,
     ) -> MemoryTombstone:
         row, reason = self.memory.get(memory_id), str(reason).strip()
         actor_id = str(actor_agent_id).strip()
         actor = self.registry.get(actor_id)
         if actor.region != self.lifecycle.REGION:
             raise PermissionError("forgetting memory requires a Memory/Context identity")
-        evidence = _clean_refs(evidence_refs)
         if not reason:
             raise ValueError("forgetting requires an explicit reason")
-        if not evidence:
-            raise ValueError("forgetting requires evidence")
 
         content_digest = canonical_digest({"memory_id": row.memory_id, "text": row.text})
         existing = self._tombstones.get(row.memory_id)
         if existing is not None:
+            supplied_refs = (
+                (evidence.evidence_id,) if evidence is not None
+                else _clean_refs(tuple(evidence_refs or ()))
+            )
             if (
                 existing.content_digest != content_digest
                 or existing.reason != reason
-                or existing.evidence_refs != evidence
                 or existing.actor_agent_id != actor.agent_id
+                or (supplied_refs and existing.evidence_refs != supplied_refs)
             ):
                 raise ValueError("memory tombstone cannot be rebound")
             self._validate_tombstone_semantics(existing)
             return existing
+
+        if evidence is None:
+            raise PermissionError("first-time forgetting requires actual evidence and a preissued learning evidence lease")
+        self.registry.get(evidence.verifier_agent_id)
+        if authority_lease_id is None or not str(authority_lease_id).strip():
+            raise PermissionError("first-time forgetting requires a preissued learning evidence lease")
+        subject_digest = self.forget_subject_digest(
+            row.memory_id, actor_agent_id=actor.agent_id, reason=reason
+        )
+        authorization = self.learning_authority.consume(
+            str(authority_lease_id),
+            subject_kind="memory",
+            subject_id=row.memory_id,
+            operation_class="memory.forget",
+            producer_agent_id=actor.agent_id,
+            evidence=evidence,
+            subject_digest=subject_digest,
+            use_ref="memory-forget-authority:" + row.memory_id + ":" + subject_digest[:20],
+        )
+        evidence = _clean_refs((evidence.evidence_id,))
 
         if row.status is not MemoryStatus.ARCHIVED:
             archive_receipt = self.lifecycle.transition(
@@ -1061,6 +1193,7 @@ class LearningSubstrate:
             "evidence_refs": list(evidence),
             "archive_receipt_id": archive_receipt.receipt_id,
             "content_digest": content_digest,
+            "authorization_use_receipt_id": authorization.receipt_id,
             "event_anchor_id": event_anchor_id,
         }
         forget_receipt = MemoryForgetReceipt(
@@ -1072,6 +1205,7 @@ class LearningSubstrate:
             evidence_refs=evidence,
             archive_receipt_id=archive_receipt.receipt_id,
             content_digest=content_digest,
+            authorization_use_receipt_id=authorization.receipt_id,
             event_anchor_id=event_anchor_id,
             digest=canonical_digest(payload),
         )
@@ -1086,6 +1220,7 @@ class LearningSubstrate:
             actor_agent_id=actor.agent_id,
             archive_receipt_id=archive_receipt.receipt_id,
             forget_receipt_id=receipt_id,
+            authorization_use_receipt_id=authorization.receipt_id,
         )
         self._tombstones[row.memory_id] = candidate
         self._validate_tombstone_semantics(candidate)
@@ -1246,8 +1381,16 @@ class LearningSubstrate:
         epistemic_types = {row.epistemic_type for row in source_metadata}
         if len(epistemic_types) != 1:
             raise ValueError("memory compaction restore cannot mix epistemic type classes")
-        epistemic_type = next(iter(epistemic_types))
-        if receipt.epistemic_type != epistemic_type.value or compacted_metadata.epistemic_type is not epistemic_type:
+        source_epistemic_type = next(iter(epistemic_types))
+        expected_compacted_epistemic_type = (
+            EpistemicType.HYPOTHESIS
+            if source_epistemic_type is EpistemicType.VERIFIED
+            else source_epistemic_type
+        )
+        if (
+            receipt.epistemic_type != expected_compacted_epistemic_type.value
+            or compacted_metadata.epistemic_type is not expected_compacted_epistemic_type
+        ):
             raise ValueError("memory compaction restore epistemic type mismatch")
         regions = {row.region for row in source_rows}
         tasks = {row.task_id for row in source_rows}
@@ -1292,6 +1435,20 @@ class LearningSubstrate:
             or not str(activation.correction_ref or "").strip()
         ):
             raise ValueError("active learning memory requires verification proof")
+        if str(activation.correction_ref).startswith("learning-evidence-use-"):
+            try:
+                use = self.learning_authority.use_receipt(str(activation.correction_ref))
+            except KeyError as exc:
+                raise ValueError("active learning memory verification authority receipt is missing") from exc
+            if (
+                use.subject_kind != "memory"
+                or use.subject_id != row.memory_id
+                or use.operation_class != "memory.verify"
+                or use.producer_agent_id != row.owner_agent_id
+                or use.evidence_id not in activation.evidence_refs
+                or use.evidence_id != metadata.last_verified_ref
+            ):
+                raise ValueError("active learning memory verification authority does not match exact memory")
 
     def _validate_forget_receipt_semantics(self, receipt: MemoryForgetReceipt) -> None:
         row = self.memory.get(receipt.memory_id)
@@ -1367,8 +1524,22 @@ class LearningSubstrate:
             or forget_receipt.reason != tombstone.reason
             or forget_receipt.evidence_refs != tombstone.evidence_refs
             or forget_receipt.content_digest != tombstone.content_digest
+            or forget_receipt.authorization_use_receipt_id != tombstone.authorization_use_receipt_id
         ):
             raise ValueError("memory tombstone disagrees with forget authorization receipt")
+        if forget_receipt.authorization_use_receipt_id is not None:
+            try:
+                use = self.learning_authority.use_receipt(forget_receipt.authorization_use_receipt_id)
+            except KeyError as exc:
+                raise ValueError("memory forget authorization use receipt is missing") from exc
+            if (
+                use.subject_kind != "memory"
+                or use.subject_id != forget_receipt.memory_id
+                or use.operation_class != "memory.forget"
+                or use.producer_agent_id != forget_receipt.actor_agent_id
+                or use.evidence_id not in forget_receipt.evidence_refs
+            ):
+                raise ValueError("memory forget authorization receipt does not match exact forgetting authority")
         self._validate_forget_receipt_semantics(forget_receipt)
 
     def to_state(self) -> dict[str, Any]:
@@ -1406,7 +1577,10 @@ class LearningSubstrate:
         }
 
     @classmethod
-    def from_state(cls, *, registry, events, state: Mapping[str, Any]) -> "LearningSubstrate":
+    def from_state(
+        cls, *, registry, events, state: Mapping[str, Any],
+        learning_authority: LearningEvidenceAuthority | None = None,
+    ) -> "LearningSubstrate":
         memory = MemoryFabric.from_state(state.get("memory", {}))
         lifecycle = MemoryLifecycleLedger.from_state(
             registry=registry,
@@ -1426,12 +1600,16 @@ class LearningSubstrate:
             memory=memory,
             lifecycle=lifecycle,
             relations=relations,
-            skills=SkillEvolutionEngine.from_state(state.get("skills", {})),
+            skills=SkillEvolutionEngine.from_state(
+                state.get("skills", {}), learning_authority=learning_authority
+            ),
             experiences=ExperienceLedger.from_state(
                 registry=registry,
                 events=events,
                 state=state.get("experiences", {}),
+                learning_authority=learning_authority,
             ),
+            learning_authority=learning_authority,
         )
         metadata_rows = tuple(LearningMemoryMetadata.from_state(raw) for raw in state.get("metadata", ()))
         result._metadata = cls._index_unique(

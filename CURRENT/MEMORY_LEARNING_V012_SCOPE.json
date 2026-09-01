@@ -1,0 +1,14 @@
+{
+  "component": "external.memory.learning",
+  "release": "0.0.12",
+  "scope": [
+    "verified_memory_admission",
+    "preauthorized_irreversible_forgetting"
+  ],
+  "excluded": [
+    "proof_carrying_skill_forge",
+    "dependency_revocation",
+    "cross_family_redesign"
+  ],
+  "authority_plane": "LearningEvidenceAuthority"
+}
