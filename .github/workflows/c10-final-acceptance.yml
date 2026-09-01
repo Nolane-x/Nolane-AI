@@ -1,0 +1,159 @@
+name: C10 Exact v0.0.4 Final Acceptance
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    if: "github.event.head_commit.message == 'chore(C10): run exact v0.0.4 final acceptance'"
+    runs-on: ubuntu-24.04
+    outputs:
+      target_sha: ${{ steps.guard.outputs.target_sha }}
+      target_tree: ${{ steps.guard.outputs.target_tree }}
+      main_sha: ${{ steps.guard.outputs.main_sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Freeze exact acceptance target
+        id: guard
+        run: |
+          set -euo pipefail
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          test "$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)" = "$GITHUB_SHA"
+          TARGET_SHA="$(git rev-parse "$GITHUB_SHA^")"
+          test "$TARGET_SHA" = "accf9c52026837581e7d4a6b81fbaa95533e0a7f"
+          MAIN_SHA="$(git rev-parse origin/main)"
+          git merge-base --is-ancestor "$MAIN_SHA" "$TARGET_SHA"
+          TARGET_TREE="$(git rev-parse "$TARGET_SHA^{tree}")"
+          echo "target_sha=$TARGET_SHA" >> "$GITHUB_OUTPUT"
+          echo "target_tree=$TARGET_TREE" >> "$GITHUB_OUTPUT"
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+          echo "Target: $TARGET_SHA"
+          echo "Tree:   $TARGET_TREE"
+          echo "Main:   $MAIN_SHA"
+
+  verify:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.prepare.outputs.target_sha }}
+      - name: Prove exact target checkout
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ needs.prepare.outputs.target_sha }}"
+          test "$(git rev-parse HEAD^{tree})" = "${{ needs.prepare.outputs.target_tree }}"
+          test ! -e .github/workflows/c10-final-acceptance.yml
+          test ! -e c10-metadata-red.log
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile accepted organization and canonical namespaces
+        run: python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+      - name: Verify 67 AI resolved dossiers are fresh
+        run: python -m nolane.ai.materialize --check
+      - name: Verify repository quarantine audit is fresh
+        run: python -m nolane.repository.audit --check
+      - name: Upload generated audit snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: c10-final-audit-py${{ matrix.python-version }}
+          path: |
+            CURRENT/NATIVE_DEBT.json
+            CURRENT/NATIVE_DEBT.md
+            archive/INDEX.json
+          if-no-files-found: error
+      - name: Run Refoundation contracts
+        run: python -m pytest -q tests/test_refoundation_*.py
+      - name: Run Truth Knowledge A contracts
+        run: python -m pytest -q tests/test_truth_knowledge_*.py
+      - name: Generate zero-loss evidence bundle
+        run: |
+          python -m cogcoder.refoundation.inventory \
+            --snapshot 1a8f333f72dd02abacf1a1bd6e2288c1025521de \
+            --output refoundation-repo-snapshot-${{ matrix.python-version }}.json
+          python -m cogcoder.refoundation.report \
+            --output refoundation-bootstrap-${{ matrix.python-version }}.json
+          python -m cogcoder.refoundation.agent_manifest_export \
+            --output-dir refoundation-agent-manifests-${{ matrix.python-version }}
+      - name: Upload zero-loss evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: c10-final-evidence-py${{ matrix.python-version }}
+          path: |
+            refoundation-repo-snapshot-${{ matrix.python-version }}.json
+            refoundation-bootstrap-${{ matrix.python-version }}.json
+            refoundation-agent-manifests-${{ matrix.python-version }}/
+          if-no-files-found: error
+      - name: Run organization campaign and execution regressions
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_campaign_*.py \
+            tests/test_coding_agi_execution_*.py \
+            tests/test_coding_agi_evaluation_*.py \
+            tests/test_coding_agi_foundry_*.py \
+            tests/test_coding_agi_coordination_*.py \
+            tests/test_coding_agi_evolution_*.py \
+            tests/test_coding_agi_individual_evolution_*.py \
+            tests/test_coding_agi_memory_*.py \
+            tests/test_coding_agi_context_intelligence.py \
+            tests/test_coding_agi_research_*.py \
+            tests/test_coding_agi_ops_*.py \
+            tests/test_coding_agi_assurance_*.py \
+            tests/test_coding_agi_ui_*.py \
+            tests/test_coding_agi_debug_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+      - name: Verify frozen Neural R2.3 metadata contracts
+        run: python model/neural-r2.3/scripts/verify_neural_r23.py
+      - name: Final target-tree guard
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${{ needs.prepare.outputs.target_sha }}"
+          test "$(git rev-parse HEAD^{tree})" = "${{ needs.prepare.outputs.target_tree }}"
+
+  checkpoint:
+    needs: [prepare, verify]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Race guard and emit byte-identical accepted checkpoint
+        run: |
+          set -euo pipefail
+          git config user.name "Nolane-x"
+          git config user.email "casioreview20@gmail.com"
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)" = "$GITHUB_SHA"
+          test "$(git rev-parse origin/main)" = "${{ needs.prepare.outputs.main_sha }}"
+          test "$(git rev-parse "$GITHUB_SHA^")" = "${{ needs.prepare.outputs.target_sha }}"
+          rm .github/workflows/c10-final-acceptance.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "chore(C10): record exact v0.0.4 acceptance checkpoint"
+          test "$(git rev-parse HEAD^{tree})" = "${{ needs.prepare.outputs.target_tree }}"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
