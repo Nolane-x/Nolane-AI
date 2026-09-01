@@ -25,7 +25,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.7"
+COMPONENT_VERSION = "0.0.8"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -55,6 +55,9 @@ class ExecutionSession:
     workspace_provenance_version: int = 1
     initial_workspace_digest: str | None = None
     current_workspace_digest: str | None = None
+    execution_proof_version: int = 1
+    external_core_registry_digest: str | None = None
+    workspace_epoch_id: str | None = None
     decision_receipt_ids: tuple[str, ...] = ()
     step_receipt_ids: tuple[str, ...] = ()
     core_receipt_ids: tuple[str, ...] = ()
@@ -63,22 +66,45 @@ class ExecutionSession:
     wall_clock_ms: int = 0
 
     def __post_init__(self) -> None:
-        version = int(self.workspace_provenance_version)
-        if version not in {1, 2}:
+        workspace_version = int(self.workspace_provenance_version)
+        if workspace_version not in {1, 2}:
             raise ValueError('unsupported workspace provenance version')
-        object.__setattr__(self, 'workspace_provenance_version', version)
+        object.__setattr__(self, 'workspace_provenance_version', workspace_version)
         initial = None if self.initial_workspace_digest is None else str(self.initial_workspace_digest).strip()
         current = None if self.current_workspace_digest is None else str(self.current_workspace_digest).strip()
-        if version == 1:
+        if workspace_version == 1:
             if initial or current:
                 raise ValueError('legacy execution session cannot carry modern workspace digest')
             object.__setattr__(self, 'initial_workspace_digest', None)
             object.__setattr__(self, 'current_workspace_digest', None)
+        else:
+            if not initial or not current:
+                raise ValueError('modern execution session requires workspace digest')
+            object.__setattr__(self, 'initial_workspace_digest', initial)
+            object.__setattr__(self, 'current_workspace_digest', current)
+
+        proof_version = int(self.execution_proof_version)
+        if proof_version not in {1, 2}:
+            raise ValueError('unsupported execution proof version')
+        object.__setattr__(self, 'execution_proof_version', proof_version)
+        registry_digest = (
+            None
+            if self.external_core_registry_digest is None
+            else str(self.external_core_registry_digest).strip()
+        )
+        epoch_id = None if self.workspace_epoch_id is None else str(self.workspace_epoch_id).strip()
+        if proof_version == 1:
+            if registry_digest or epoch_id:
+                raise ValueError('legacy execution session cannot carry modern execution proof')
+            object.__setattr__(self, 'external_core_registry_digest', None)
+            object.__setattr__(self, 'workspace_epoch_id', None)
             return
-        if not initial or not current:
-            raise ValueError('modern execution session requires workspace digest')
-        object.__setattr__(self, 'initial_workspace_digest', initial)
-        object.__setattr__(self, 'current_workspace_digest', current)
+        if workspace_version < 2:
+            raise ValueError('execution proof v2 requires modern workspace provenance')
+        if not registry_digest or not epoch_id:
+            raise ValueError('execution proof v2 requires registry digest and workspace epoch')
+        object.__setattr__(self, 'external_core_registry_digest', registry_digest)
+        object.__setattr__(self, 'workspace_epoch_id', epoch_id)
 
     def to_state(self) -> dict[str, Any]:
         state = {
@@ -104,6 +130,10 @@ class ExecutionSession:
             state['workspace_provenance_version'] = self.workspace_provenance_version
             state['initial_workspace_digest'] = self.initial_workspace_digest
             state['current_workspace_digest'] = self.current_workspace_digest
+        if self.execution_proof_version >= 2:
+            state['execution_proof_version'] = self.execution_proof_version
+            state['external_core_registry_digest'] = self.external_core_registry_digest
+            state['workspace_epoch_id'] = self.workspace_epoch_id
         return state
 
     @classmethod
@@ -129,6 +159,15 @@ class ExecutionSession:
                 None if state.get('current_workspace_digest') is None
                 else str(state['current_workspace_digest'])
             ),
+            execution_proof_version=int(state.get('execution_proof_version', 1)),
+            external_core_registry_digest=(
+                None if state.get('external_core_registry_digest') is None
+                else str(state['external_core_registry_digest'])
+            ),
+            workspace_epoch_id=(
+                None if state.get('workspace_epoch_id') is None
+                else str(state['workspace_epoch_id'])
+            ),
             decision_receipt_ids=tuple(str(x) for x in state.get('decision_receipt_ids', ())),
             step_receipt_ids=tuple(str(x) for x in state.get('step_receipt_ids', ())),
             core_receipt_ids=tuple(str(x) for x in state.get('core_receipt_ids', ())),
@@ -150,9 +189,23 @@ class ExecutionStepReceipt:
     state_after: ExecutionState
     output_artifact_ids: tuple[str, ...]
     digest: str
+    core_contract_digest: str = ''
+    workspace_epoch_id: str = ''
+
+    def __post_init__(self) -> None:
+        core_digest = str(self.core_contract_digest).strip()
+        epoch_id = str(self.workspace_epoch_id).strip()
+        if core_digest and not epoch_id:
+            raise ValueError('execution step receipt core proof requires workspace epoch')
+        object.__setattr__(self, 'core_contract_digest', core_digest)
+        object.__setattr__(self, 'workspace_epoch_id', epoch_id)
+
+    @property
+    def execution_proof_version(self) -> int:
+        return 2 if self.core_contract_digest or self.workspace_epoch_id else 1
 
     def payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             'session_id': self.session_id,
             'step_index': self.step_index,
             'decision_receipt_id': self.decision_receipt_id,
@@ -162,6 +215,10 @@ class ExecutionStepReceipt:
             'state_after': self.state_after.value,
             'output_artifact_ids': list(self.output_artifact_ids),
         }
+        if self.execution_proof_version >= 2:
+            payload['core_contract_digest'] = self.core_contract_digest
+            payload['workspace_epoch_id'] = self.workspace_epoch_id
+        return payload
 
     @classmethod
     def create(
@@ -175,7 +232,13 @@ class ExecutionStepReceipt:
         after_workspace_digest: str,
         state_after: ExecutionState,
         output_artifact_ids: Sequence[str] = (),
+        core_contract_digest: str = '',
+        workspace_epoch_id: str = '',
     ) -> 'ExecutionStepReceipt':
+        core_digest = str(core_contract_digest).strip()
+        epoch_id = str(workspace_epoch_id).strip()
+        if core_digest and not epoch_id:
+            raise ValueError('execution step receipt core proof requires workspace epoch')
         payload = {
             'session_id': str(session_id),
             'step_index': int(step_index),
@@ -186,6 +249,9 @@ class ExecutionStepReceipt:
             'state_after': ExecutionState(state_after).value,
             'output_artifact_ids': [str(x) for x in output_artifact_ids],
         }
+        if core_digest or epoch_id:
+            payload['core_contract_digest'] = core_digest
+            payload['workspace_epoch_id'] = epoch_id
         digest = canonical_digest(payload)
         return cls(
             receipt_id='step-' + digest[:24],
@@ -198,6 +264,8 @@ class ExecutionStepReceipt:
             state_after=ExecutionState(state_after),
             output_artifact_ids=tuple(str(x) for x in output_artifact_ids),
             digest=digest,
+            core_contract_digest=core_digest,
+            workspace_epoch_id=epoch_id,
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -205,6 +273,10 @@ class ExecutionStepReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionStepReceipt':
+        has_core_proof = 'core_contract_digest' in state
+        has_epoch_proof = 'workspace_epoch_id' in state
+        if has_core_proof != has_epoch_proof:
+            raise ValueError('execution step receipt has incomplete execution proof')
         row = cls(
             receipt_id=str(state['receipt_id']),
             session_id=str(state['session_id']),
@@ -216,6 +288,8 @@ class ExecutionStepReceipt:
             state_after=ExecutionState(str(state['state_after'])),
             output_artifact_ids=tuple(str(x) for x in state.get('output_artifact_ids', ())),
             digest=str(state['digest']),
+            core_contract_digest=str(state.get('core_contract_digest', '')),
+            workspace_epoch_id=str(state.get('workspace_epoch_id', '')),
         )
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != 'step-' + expected[:24]:
@@ -392,6 +466,20 @@ class OrganizationExecutionControlPlane:
                     raise ValueError('execution step receipt index binding mismatch')
                 if step.core_receipt_id is not None and step.core_receipt_id not in session.core_receipt_ids:
                     raise ValueError('execution step receipt core binding mismatch')
+                if session.execution_proof_version >= 2:
+                    if step.execution_proof_version < 2:
+                        raise ValueError('modern execution session references legacy step proof')
+                    if step.workspace_epoch_id != session.workspace_epoch_id:
+                        raise ValueError('execution step receipt workspace epoch binding mismatch')
+                    if step.core_receipt_id is not None:
+                        try:
+                            core = self.executor.get_receipt(step.core_receipt_id)
+                        except Exception as exc:
+                            raise ValueError('execution step receipt references unavailable core receipt') from exc
+                        if str(getattr(core, 'workspace_epoch_id', '')) != str(session.workspace_epoch_id):
+                            raise ValueError('execution core receipt workspace epoch binding mismatch')
+                        if str(getattr(core, 'core_contract_digest', '')) != step.core_contract_digest:
+                            raise ValueError('execution core receipt contract binding mismatch')
                 if first_workspace_digest is None:
                     first_workspace_digest = step.before_workspace_digest
                 if (
@@ -463,6 +551,31 @@ class OrganizationExecutionControlPlane:
             return self._steps[session.step_receipt_ids[-1]].after_workspace_digest
         return None
 
+    def _validate_registry_proof(self, session: ExecutionSession) -> None:
+        if session.execution_proof_version < 2:
+            raise RuntimeError(
+                'legacy execution session lacks execution proof; '
+                'forward execution requires proof-v2 authority'
+            )
+        if self.external_cores.contract_digest != session.external_core_registry_digest:
+            raise RuntimeError('external core registry differs from persisted execution session')
+
+    def _validate_session_execution_proof(
+        self,
+        session: ExecutionSession,
+        workspace: RepositoryWorkspace,
+    ) -> None:
+        self._validate_registry_proof(session)
+        if workspace.active_execution_epoch_id != session.workspace_epoch_id:
+            raise RuntimeError('workspace execution epoch differs from persisted execution session')
+        if workspace.active_execution_epoch_owner != session.session_id:
+            raise PermissionError('workspace execution epoch is not owned by persisted execution session')
+
+    def _expected_core_contract_digest(self, tool_id: str) -> str:
+        if str(tool_id) not in frozenset(getattr(self.executor, 'external_core_ids', ())):
+            return ''
+        return self.external_cores.get(str(tool_id)).contract_digest
+
     def bind_backend(self, agent_id: str, backend: AgentInferenceBackend) -> None:
         identity = self.registry.get(agent_id)
         if not str(backend.backend_id).strip() or not str(backend.checkpoint_digest).strip():
@@ -480,6 +593,14 @@ class OrganizationExecutionControlPlane:
         expected_digest = self._persisted_workspace_fence(session)
         if expected_digest is not None and workspace.digest != expected_digest:
             raise ValueError('reattached workspace digest does not match persisted session frontier')
+        if session.execution_proof_version >= 2:
+            self._validate_registry_proof(session)
+            assert session.workspace_epoch_id is not None
+            workspace.claim_execution_epoch(
+                session.session_id,
+                expected_epoch_id=session.workspace_epoch_id,
+            )
+            self._validate_session_execution_proof(session, workspace)
         self._workspaces[session.session_id] = workspace
 
     def sessions(self) -> tuple[ExecutionSession, ...]:
@@ -527,30 +648,59 @@ class OrganizationExecutionControlPlane:
         workspace_digest = str(workspace.digest).strip()
         if not workspace_digest:
             raise ValueError('execution start requires workspace digest')
-        self._session_counter += 1
-        row = ExecutionSession(
-            session_id=f'execution-{self._session_counter:08d}',
-            agent_id=identity.agent_id,
-            task_id=str(task_id),
-            action_schema=schema,
-            budget=budget,
-            counters=ExecutionCounters(),
-            step_index=0,
-            state=ExecutionState.RUNNING,
-            backend_id=str(backend.backend_id),
-            checkpoint_digest=str(backend.checkpoint_digest),
-            workspace_base_revision=workspace.base_revision,
-            workspace_provenance_version=2,
-            initial_workspace_digest=workspace_digest,
-            current_workspace_digest=workspace_digest,
-        )
-        self._sessions[row.session_id] = row
-        self._workspaces[row.session_id] = workspace
-        return row
+        next_counter = self._session_counter + 1
+        session_id = f'execution-{next_counter:08d}'
+        workspace_epoch_id = workspace.claim_execution_epoch(session_id)
+        try:
+            row = ExecutionSession(
+                session_id=session_id,
+                agent_id=identity.agent_id,
+                task_id=str(task_id),
+                action_schema=schema,
+                budget=budget,
+                counters=ExecutionCounters(),
+                step_index=0,
+                state=ExecutionState.RUNNING,
+                backend_id=str(backend.backend_id),
+                checkpoint_digest=str(backend.checkpoint_digest),
+                workspace_base_revision=workspace.base_revision,
+                workspace_provenance_version=2,
+                initial_workspace_digest=workspace_digest,
+                current_workspace_digest=workspace_digest,
+                execution_proof_version=2,
+                external_core_registry_digest=self.external_cores.contract_digest,
+                workspace_epoch_id=workspace_epoch_id,
+            )
+            self._sessions[row.session_id] = row
+            self._workspaces[row.session_id] = workspace
+            self._session_counter = next_counter
+            return row
+        except Exception:
+            if (
+                workspace.active_execution_epoch_id == workspace_epoch_id
+                and workspace.active_execution_epoch_owner == session_id
+            ):
+                workspace.release_execution_epoch(session_id, workspace_epoch_id)
+            raise
+
+    def _terminal_epoch_preflight(self, session: ExecutionSession) -> RepositoryWorkspace | None:
+        if session.execution_proof_version < 2:
+            return None
+        workspace = self._workspaces.get(session.session_id)
+        if workspace is None:
+            return None
+        if workspace.active_execution_epoch_id is None:
+            return workspace
+        if workspace.active_execution_epoch_id != session.workspace_epoch_id:
+            raise RuntimeError('terminal workspace epoch differs from persisted execution session')
+        if workspace.active_execution_epoch_owner != session.session_id:
+            raise PermissionError('terminal workspace epoch is owned by another execution session')
+        return workspace
 
     def _terminal(self, session: ExecutionSession, state: ExecutionState, reason: str, *, complete_task: bool = False) -> ExecutionTerminalReceipt:
         if not str(reason).strip():
             raise ValueError('execution termination reason must be explicit')
+        terminal_workspace = self._terminal_epoch_preflight(session)
         summary = {
             'session_id': session.session_id,
             'agent_id': session.agent_id,
@@ -616,6 +766,15 @@ class OrganizationExecutionControlPlane:
             terminal_receipt_id=receipt.receipt_id,
         )
         self._sessions[session.session_id] = updated
+        if (
+            terminal_workspace is not None
+            and terminal_workspace.active_execution_epoch_id is not None
+            and session.workspace_epoch_id is not None
+        ):
+            terminal_workspace.release_execution_epoch(
+                session.session_id,
+                session.workspace_epoch_id,
+            )
         if complete_task:
             task = self.tasks.get(session.task_id)
             if task.completed_by is None:
@@ -639,6 +798,7 @@ class OrganizationExecutionControlPlane:
             )
         if workspace.digest != session.current_workspace_digest:
             raise RuntimeError('attached workspace digest differs from persisted execution session')
+        self._validate_session_execution_proof(session, workspace)
         task = self.tasks.get(session.task_id)
         if task.aborted_by is not None:
             return self._terminal(session, ExecutionState.ABORTED, task.abort_reason or 'task aborted')
@@ -701,6 +861,7 @@ class OrganizationExecutionControlPlane:
                 self._sessions[session.session_id] = session
                 return self._terminal(session, ExecutionState.FAILED, f'action outside declared schema: {schema_key}')
             is_external = action.tool_action.tool_id in self.executor.external_core_ids
+            core_contract_digest = self._expected_core_contract_digest(action.tool_action.tool_id)
             effect_class = self.acting_executor.minimum_effect_class(action.tool_action)
             risk_class = minimum_risk_for_effect(effect_class)
             verifier_level = self.acting_executor.protocol.minimum_verifier_level(risk_class)
@@ -726,6 +887,7 @@ class OrganizationExecutionControlPlane:
 
             if workspace.digest != session.current_workspace_digest:
                 raise RuntimeError('workspace digest changed before transactional dispatch')
+            assert session.workspace_epoch_id is not None
             acting = self.acting_executor.invoke(
                 agent_id=session.agent_id,
                 task_id=session.task_id,
@@ -746,12 +908,18 @@ class OrganizationExecutionControlPlane:
                 verifier_level=verifier_level,
                 idempotency_key=f'{session.session_id}:{decision.receipt_id}',
                 recovery_plan=recovery_plan,
+                core_contract_digest=core_contract_digest,
+                workspace_epoch_id=session.workspace_epoch_id,
                 now_ms=int(time.time() * 1000),
                 lease_ttl_ms=60_000,
             )
             core = self.executor.get_receipt(acting.core_receipt_id)
             if core.before_workspace_digest != session.current_workspace_digest:
                 raise ValueError('core receipt workspace fence mismatch')
+            if str(getattr(core, 'workspace_epoch_id', '')) != session.workspace_epoch_id:
+                raise ValueError('core receipt workspace epoch mismatch')
+            if str(getattr(core, 'core_contract_digest', '')) != core_contract_digest:
+                raise ValueError('core receipt contract digest mismatch')
             counters = ExecutionCounters(
                 steps=session.counters.steps,
                 tool_calls=session.counters.tool_calls + 1,
@@ -769,6 +937,8 @@ class OrganizationExecutionControlPlane:
                 after_workspace_digest=core.after_workspace_digest,
                 state_after=state_after,
                 output_artifact_ids=core.output_artifact_ids,
+                core_contract_digest=core_contract_digest,
+                workspace_epoch_id=session.workspace_epoch_id,
             )
             self._steps[step_receipt.receipt_id] = step_receipt
             elapsed = max(0, int((time.perf_counter_ns() - started) / 1_000_000))
@@ -814,16 +984,28 @@ class OrganizationExecutionControlPlane:
             return None
         return session_id, decision_id
 
-    @staticmethod
-    def _acting_row_matches_decision(row: Any, decision: AgentDecisionReceipt) -> bool:
+    def _acting_row_matches_decision(
+        self,
+        row: Any,
+        session: ExecutionSession,
+        decision: AgentDecisionReceipt,
+    ) -> bool:
         action = decision.action
         if action.kind is not ExecutionActionKind.TOOL or action.tool_action is None:
             return False
         tool_action = action.tool_action
+        if (
+            row.contract.core_id != tool_action.tool_id
+            or row.contract.operation != tool_action.operation
+            or row.contract.input_digest != canonical_digest(tool_action.to_state())
+        ):
+            return False
+        if session.execution_proof_version < 2:
+            return True
+        expected_core_digest = self._expected_core_contract_digest(tool_action.tool_id)
         return (
-            row.contract.core_id == tool_action.tool_id
-            and row.contract.operation == tool_action.operation
-            and row.contract.input_digest == canonical_digest(tool_action.to_state())
+            row.contract.workspace_epoch_id == session.workspace_epoch_id
+            and row.contract.core_contract_digest == expected_core_digest
         )
 
     def _acting_row_is_projected(self, row: Any, session: ExecutionSession, decision_id: str) -> bool:
@@ -876,10 +1058,12 @@ class OrganizationExecutionControlPlane:
             session = self._sessions.get(session_id)
             if session is None:
                 raise ValueError('interrupted action has no owning execution session')
+            if session.execution_proof_version >= 2:
+                self._validate_registry_proof(session)
             if decision_id not in session.decision_receipt_ids:
                 raise ValueError('interrupted action decision is not owned by execution session')
             decision = self._decisions[decision_id]
-            if not self._acting_row_matches_decision(row, decision):
+            if not self._acting_row_matches_decision(row, session, decision):
                 raise ValueError('acting action contract does not match bound decision')
             if self._acting_row_is_projected(row, session, decision_id):
                 continue
@@ -904,6 +1088,16 @@ class OrganizationExecutionControlPlane:
                     and str(core.before_workspace_digest) != expected_workspace_digest
                 ):
                     raise ValueError('committed acting action workspace fence mismatch')
+                if session.execution_proof_version >= 2:
+                    expected_core_digest = self._expected_core_contract_digest(row.contract.core_id)
+                    if str(getattr(core, 'workspace_epoch_id', '')) != str(session.workspace_epoch_id):
+                        raise ValueError('committed acting action workspace epoch mismatch')
+                    if str(getattr(core, 'core_contract_digest', '')) != expected_core_digest:
+                        raise ValueError('committed acting action core contract mismatch')
+                    if row.contract.workspace_epoch_id != session.workspace_epoch_id:
+                        raise ValueError('committed acting contract workspace epoch mismatch')
+                    if row.contract.core_contract_digest != expected_core_digest:
+                        raise ValueError('committed acting contract core contract mismatch')
                 committed_receipts[row.action_id] = core
             candidates.append((row, session, decision_id))
 
@@ -929,6 +1123,16 @@ class OrganizationExecutionControlPlane:
                     after_workspace_digest=str(core.after_workspace_digest),
                     state_after=ExecutionState.RUNNING,
                     output_artifact_ids=tuple(str(x) for x in core.output_artifact_ids),
+                    core_contract_digest=(
+                        str(getattr(core, 'core_contract_digest', ''))
+                        if session.execution_proof_version >= 2
+                        else ''
+                    ),
+                    workspace_epoch_id=(
+                        str(session.workspace_epoch_id)
+                        if session.execution_proof_version >= 2 and session.workspace_epoch_id is not None
+                        else ''
+                    ),
                 )
                 existing = self._steps.get(step_receipt.receipt_id)
                 if existing is not None and existing != step_receipt:
