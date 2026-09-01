@@ -11,6 +11,7 @@ from enum import Enum
 import math
 from typing import Iterable, Sequence
 
+from . import _goal_design_base as _base
 from .goal_design import (
     DecisionReceipt,
     DesignOption,
@@ -19,6 +20,8 @@ from .goal_design import (
     ProofObligation,
     ProofStatus,
     UncertaintyItem,
+    _base_goal,
+    _base_option,
     stable_digest,
 )
 from .goal_design_authenticity import verify_decision_receipt
@@ -29,7 +32,7 @@ from .goal_design_integrity import (
     verify_goal_integrity_receipt,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 
 def _text(name: str, value: str) -> str:
@@ -397,6 +400,91 @@ class GoalDesignDecisionContextCompiler:
             )
         return tuple(pins)
 
+    @staticmethod
+    def _manifest_projection(
+        version: str,
+        goal: GoalSpec,
+        options: Sequence[DesignOption],
+        receipt: DecisionReceipt,
+    ) -> tuple[object, tuple[object, ...]]:
+        canonical_options = tuple(sorted(options, key=lambda item: item.option_id))
+        if version == "v2":
+            return _base_goal(goal), tuple(_base_option(option) for option in canonical_options)
+
+        derived_assumptions = _refs(
+            tuple(getattr(goal, "assumption_refs", ()))
+            + tuple(
+                ref
+                for option in canonical_options
+                for ref in getattr(option, "assumption_refs", ())
+            )
+        )
+        if derived_assumptions != tuple(receipt.assumption_refs):
+            raise ValueError("decision context v3 assumption closure does not bind the decision receipt")
+        return goal, canonical_options
+
+    @classmethod
+    def _verify_manifest_inputs(
+        cls,
+        *,
+        version: str,
+        receipt: DecisionReceipt,
+        goal: GoalSpec,
+        scenarios: Sequence[DesignScenario],
+        options: Sequence[DesignOption],
+        proofs: Sequence[ProofObligation],
+        uncertainties: Sequence[UncertaintyItem],
+    ) -> None:
+        canonical_scenarios = tuple(sorted(scenarios, key=lambda item: item.scenario_id))
+        canonical_options = tuple(sorted(options, key=lambda item: item.option_id))
+        canonical_proofs = tuple(sorted(proofs, key=lambda item: item.proof_id))
+        canonical_uncertainties = tuple(
+            sorted(uncertainties, key=lambda item: item.uncertainty_id)
+        )
+        manifest_goal, manifest_options = cls._manifest_projection(
+            version,
+            goal,
+            canonical_options,
+            receipt,
+        )
+
+        expected = {
+            "goal": stable_digest({"goal": manifest_goal}),
+            "scenario": stable_digest({"scenarios": canonical_scenarios}),
+            "option": stable_digest({"options": manifest_options}),
+            "proof": stable_digest({"proof_obligations": canonical_proofs}),
+            "uncertainty": stable_digest({"uncertainties": canonical_uncertainties}),
+        }
+        observed = {
+            "goal": receipt.goal_digest,
+            "scenario": receipt.scenario_set_digest,
+            "option": receipt.option_set_digest,
+            "proof": receipt.proof_state_digest,
+            "uncertainty": receipt.uncertainty_state_digest,
+        }
+        for name in ("goal", "scenario", "option", "proof", "uncertainty"):
+            if expected[name] != observed[name]:
+                raise ValueError(
+                    f"decision context {name} manifest digest does not bind the decision receipt"
+                )
+
+        proof_ids = tuple(item.proof_id for item in canonical_proofs)
+        if proof_ids != tuple(receipt.proof_obligation_ids):
+            raise ValueError("decision context proof manifest ids do not bind the decision receipt")
+        uncertainty_ids = tuple(item.uncertainty_id for item in canonical_uncertainties)
+        if uncertainty_ids != tuple(receipt.uncertainty_ids):
+            raise ValueError("decision context uncertainty manifest ids do not bind the decision receipt")
+
+        evaluation = _base.GoalDesignCoherencePlane().evaluate_options(
+            manifest_goal,
+            canonical_scenarios,
+            manifest_options,
+        )
+        if evaluation.digest != receipt.evaluation_digest:
+            raise ValueError(
+                "decision context evaluation digest does not bind the supplied goal/scenario/option manifest"
+            )
+
     def compile(
         self,
         *,
@@ -421,15 +509,35 @@ class GoalDesignDecisionContextCompiler:
         if goal.goal_id != decision_receipt.goal_id:
             raise ValueError("decision context goal does not bind the decision receipt")
 
-        selected = [option for option in options if option.option_id == decision_receipt.selected_option_id]
+        canonical_scenarios = tuple(sorted(scenarios, key=lambda item: item.scenario_id))
+        canonical_options = tuple(sorted(options, key=lambda item: item.option_id))
+        canonical_proofs = tuple(sorted(proof_obligations, key=lambda item: item.proof_id))
+        canonical_uncertainties = tuple(
+            sorted(uncertainties, key=lambda item: item.uncertainty_id)
+        )
+        selected = [
+            option
+            for option in canonical_options
+            if option.option_id == decision_receipt.selected_option_id
+        ]
         if len(selected) != 1:
             raise ValueError("decision context exact option set must contain the selected champion once")
 
+        self._verify_manifest_inputs(
+            version=version,
+            receipt=decision_receipt,
+            goal=goal,
+            scenarios=canonical_scenarios,
+            options=canonical_options,
+            proofs=canonical_proofs,
+            uncertainties=canonical_uncertainties,
+        )
+
         pins = (
             self._integrity_pins(integrity_contract, integrity_receipt)
-            + self._option_pins(decision_receipt, tuple(options))
-            + self._proof_pins(decision_receipt, tuple(proof_obligations))
-            + self._uncertainty_pins(decision_receipt, tuple(uncertainties))
+            + self._option_pins(decision_receipt, canonical_options)
+            + self._proof_pins(decision_receipt, canonical_proofs)
+            + self._uncertainty_pins(decision_receipt, canonical_uncertainties)
             + self._contradiction_pins(decision_receipt, tuple(contradictions))
         )
         evidence_refs = _refs(
