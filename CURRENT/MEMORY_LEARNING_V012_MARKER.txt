@@ -1,0 +1,1 @@
+RED contracts are isolated from production implementation.
