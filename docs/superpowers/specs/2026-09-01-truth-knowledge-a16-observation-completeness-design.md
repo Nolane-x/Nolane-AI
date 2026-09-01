@@ -66,23 +66,11 @@ One slot means one required observation outcome. If a policy needs N observation
 
 ## Requirement-set revision and registry
 
-`ObservationRequirementSetRevision` binds one claim to a canonical sorted tuple of `ObservationRequirement` rows plus:
+`ObservationRequirementSetRevision` binds one claim to a canonical sorted tuple of `ObservationRequirement` rows plus strict revision number, predecessor digest after revision 1, exact claim content digest, and canonical revision digest.
 
-- strict revision number starting at 1;
-- exact predecessor digest after revision 1;
-- exact claim content digest;
-- canonical revision digest.
+`ObservationRequirementRegistry` is append-only and enforces revision 1 then exact +1, predecessor integrity, exact claim/content binding, unique observation IDs per revision, deterministic ordering/restore, and relevant-only projection.
 
-`ObservationRequirementRegistry` is append-only and enforces:
-
-- revision 1 then exact +1;
-- predecessor integrity;
-- exact claim/content binding;
-- unique observation IDs per revision;
-- deterministic ordering and restore;
-- relevant-only projection.
-
-A claim with no requirement-set revision is legacy observation-unconstrained. The projection must encode that explicitly as `unconstrained`. Adding a future requirement revision therefore stales any v10 scope that depended on the earlier unconstrained state.
+A claim with no requirement-set revision is legacy observation-unconstrained. Projection encodes that explicitly as `unconstrained`, so adding a future requirement revision stales a v10 scope that depended on the earlier unconstrained state.
 
 ## Observation result semantics
 
@@ -99,16 +87,7 @@ All outcomes except `OBSERVED` are epistemically incomplete. None may silently b
 
 ## Observation result revision and ledger
 
-`ObservationResultRevision` is append-only per requirement digest and binds:
-
-- exact `ObservationRequirement.digest`;
-- exact requirement claim identity/content/channel;
-- strict result revision number;
-- exact predecessor digest after revision 1;
-- `ObservationOutcome`;
-- optional exact `TruthEvidence.evidence_id` and `content_digest` only for `OBSERVED`;
-- explicit non-empty reason for every non-`OBSERVED` outcome;
-- canonical digest.
+`ObservationResultRevision` is append-only per requirement digest and binds exact `ObservationRequirement.digest`, exact requirement claim identity/content/channel, strict result revision number, predecessor digest after revision 1, outcome, optional exact `TruthEvidence.evidence_id` and `content_digest` only for `OBSERVED`, explicit non-empty reason for every non-`OBSERVED` outcome, and canonical digest.
 
 Rules:
 
@@ -125,35 +104,29 @@ Rules:
 
 `ObservationTruthScope` wraps the exact accepted v9 `ContextTruthScope`; it does not reinterpret v9.
 
-It binds:
+It binds exact v9 audit/context scope, the observation-requirement projection for exact v9 `lineage_claim_ids`, the observation-result projection for those requirements, required observation IDs/digests, incomplete observation IDs partitioned by outcome, observation completeness debts, and canonical v10 digest.
 
-- exact v9 audit/context scope;
-- relevant observation-requirement projection for the target-reachable v9 scope claims;
-- relevant observation-result projection;
-- required observation IDs/digests;
-- incomplete observation IDs partitioned by outcome;
-- observation completeness debts;
-- canonical v10 digest.
-
-`ObservationEpistemicJudge` first recomputes canonical v9 state with `ContextEpistemicJudge`, then computes observation completeness over exactly that scope.
+`ObservationEpistemicJudge` first recomputes canonical v9 state with `ContextEpistemicJudge`, then computes observation completeness only over the target lineage.
 
 ### Reachability law
 
-Requirements are relevant only for claims in the exact v9 scope. Unrelated claim requirement/result revisions do not stale the target.
+Observation requirements relevant to target closure are exactly those attached to `ContextTruthScope.lineage_claim_ids`. Same-key competitors that exist only in `scope_claim_ids` remain visible in the v9 audit state but do not create target observation debt merely by being competitors. This prevents an unrelated or losing competitor from vetoing the target through its own missing observations.
+
+Unrelated claim requirement/result revisions do not stale the target.
 
 ### Disposition law
 
 A16 does not manufacture support/refutation from observation bookkeeping.
 
 - If the v9 target disposition is not `SUPPORTED`, v10 preserves it and records observation state for audit.
-- If v9 says `SUPPORTED` but a target-reachable required observation is not `OBSERVED`, v10 target disposition becomes `UNKNOWN`.
+- If v9 says `SUPPORTED` but a required observation on the exact target lineage is not `OBSERVED`, v10 target disposition becomes `UNKNOWN`.
 - The underlying v9 disposition remains available in `audit_context_scope` for historical/audit inspection.
 
 This prevents a structurally supported claim from being promoted when required coverage is incomplete.
 
 ### Debt law
 
-Each incomplete requirement emits an `EpistemicDebt` bound to the owning claim and exact observation ID. Reasons are canonical and outcome-specific:
+Each incomplete lineage requirement emits an `EpistemicDebt` bound to the owning claim and exact observation ID. Canonical reasons are:
 
 - `required_observation_missing`;
 - `required_observation_censored`;
@@ -162,39 +135,25 @@ Each incomplete requirement emits an `EpistemicDebt` bound to the owning claim a
 - `required_observation_interfered`;
 - `required_observation_unrecorded` when no result revision exists.
 
-These debts are critical for the target claim and for target-reachable claims on a live supported lineage. Dead/unreachable alternatives do not veto closure.
+These debts are critical for target closure. Requirements on claims outside `lineage_claim_ids` are audit-visible only and cannot veto the target.
 
 ## Verification v10
 
 A16 uses dedicated v10 receipt/coverage/ledger. v9 receipts cannot masquerade as v10.
 
-`ObservationTruthVerificationReceipt` binds:
-
-- exact v10 scope digest;
-- exact TruthContext and TemporalContext identity inherited from v10 scope;
-- exact observation-requirement projection digest;
-- exact observation-result projection digest;
-- verifier Evidence/context/provenance/dependence state retained from v9;
-- canonical digest.
+`ObservationTruthVerificationReceipt` binds exact v10 scope digest, exact TruthContext and TemporalContext identity inherited from v10 scope, exact observation-requirement/result projection digests, verifier Evidence/context/provenance/dependence state retained from v9, and canonical digest.
 
 Receipt validity requires the v10 scope to be current. A verifier cannot restore completeness merely by being independent or by using a different channel.
 
-Independence semantics remain exactly A14/A15: context and observation IDs are applicability/coverage state, not independence keys.
-
-Negative receipts remain retained.
+Independence semantics remain exactly A14/A15: context and observation IDs are applicability/coverage state, not independence keys. Negative receipts remain retained.
 
 ## Assurance v10
 
 A16 uses a dedicated v10 closure certificate and gate. v9 certificates cannot masquerade as v10.
 
-The gate recomputes canonical v10 scope live. Closure requires all accepted A15 conditions plus:
+The gate recomputes canonical v10 scope live. Closure requires all accepted A15 conditions plus target v10 disposition supported, no critical observation debt on the exact target lineage, exact current observation-requirement/result projections, and v10 verification coverage bound to the same scope.
 
-- target v10 disposition is supported;
-- no target-reachable critical observation debt;
-- exact current observation-requirement/result projections;
-- v10 verification coverage bound to the same scope.
-
-A certificate becomes stale when a relevant requirement-set revision or observation-result revision changes. Unrelated observation changes do not stale it.
+A certificate becomes stale when a relevant lineage requirement-set revision or observation-result revision changes. Unrelated observation changes do not stale it.
 
 ## Compatibility
 
@@ -215,26 +174,15 @@ A16 is additive and must not rewrite any v1–v9 serialized protocol.
 9. Observed Evidence with wrong claim or channel is rejected.
 10. Requirement revision sequence/predecessor/rebind attacks are rejected.
 11. Observation result sequence/predecessor/requirement/evidence-digest rebind attacks are rejected.
-12. Relevant requirement/result revision stales v10 scope/receipt/certificate.
+12. Relevant lineage requirement/result revision stales v10 scope/receipt/certificate.
 13. Unrelated requirement/result revision does not stale target scope/certificate.
-14. Missing/censored result cannot mint verification independence.
-15. v9 receipt/certificate cannot masquerade as v10.
-16. All five A16 sidecars preserve the five-authority law and define no `COMPONENT_ID`.
-17. Serialization rejects unexpected fields and duplicate revisions.
-18. Empty observation state reproduces v9 compatibility.
+14. A same-key competitor outside `lineage_claim_ids` cannot veto target closure through missing observations.
+15. Missing/censored result cannot mint verification independence.
+16. v9 receipt/certificate cannot masquerade as v10.
+17. All five A16 sidecars preserve the five-authority law and define no `COMPONENT_ID`.
+18. Serialization rejects unexpected fields and duplicate revisions.
+19. Empty observation state reproduces v9 compatibility.
 
 ## Acceptance gate
 
-A16 is accepted only after:
-
-1. focused RED evidence for the missing v10 capability;
-2. GREEN implementation and protocol hardening;
-3. fresh Python 3.11/3.13 Truth A exact-head run;
-4. repository authority audit green;
-5. intended Family-A-only diff and clean review surface;
-6. fresh synthetic full Refoundation merge-state run;
-7. latest-main race guard;
-8. expected-head production merge;
-9. separate docs-only acceptance seal;
-10. fresh seal Truth + Refoundation merge-state proof;
-11. expected-head seal merge and post-merge canonical verification.
+A16 is accepted only after focused RED evidence, GREEN implementation/hardening, fresh Python 3.11/3.13 Truth A exact-head CI plus repository audit, intended Family-A-only diff and clean review surface, fresh synthetic full Refoundation merge-state proof, latest-main race guard, expected-head production merge, separate docs-only acceptance seal, seal Truth + Refoundation proof, expected-head seal merge, and post-merge canonical verification.
