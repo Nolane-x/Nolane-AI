@@ -1,0 +1,121 @@
+name: C10 Canonical Prose Closure
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+    paths:
+      - .github/workflows/c10-canonical-prose-closure.yml
+
+permissions:
+  contents: write
+
+jobs:
+  close-canonical-prose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Guard exact C10 parent and main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "1e615e217f55cd4a3c6e67b8cb123836de0540b7"
+          git fetch origin main
+          test "$(git rev-parse origin/main)" = "20c173b7f7c99deff8001a74e4cb57f99f003198"
+      - name: Close stale C10 canonical prose
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('CURRENT/REASONING_INVENTION_C_LAYER.md')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = {
+              '`nolane.external_core.reasoning_evaluation` is part of the Reasoning/Invention v0.0.2 component family.': '`nolane.external_core.reasoning_evaluation` was introduced with the Reasoning/Invention v0.0.2 family and is retained under the current v0.0.4 family.',
+              'A downstream authority may consume it explicitly when future meta-policy work is designed.': 'C10 consumes this descriptive evidence only through its explicit evidence-split/proposal path; the evidence object itself still has no policy-update authority.',
+              'The component version is `0.0.3` while schemas remain independently versioned:': 'The component version is `0.0.4` while schemas remain independently versioned:',
+              '| `reasoning_episode.py` | `reasoning-episode-v1` |\n| `reasoning_evaluation.py` | existing C7 evaluation schema |': '| `reasoning_episode.py` | `reasoning-episode-v1` |\n| `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |\n| `reasoning_evaluation.py` | existing C7 evaluation schema |',
+              'The v1 core schema and all C8 schemas are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9 exists.': 'The v1 core schema, all C8 schemas and `reasoning-episode-v1` are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9/C10 exists.',
+              'C1–C9 reject, as applicable:': 'C1–C10 reject, as applicable:',
+              '- C9 episodes consume exact C8 frontier/control/action identities and emit replayable transition history without executing the selected action.': '- C9 episodes consume exact C8 frontier/control/action identities and emit replayable transition history without executing the selected action.\n- C10 policy evolution consumes exact episode/evaluation evidence plus external adoption/rollback authorization and emits immutable proposal/review/adoption/rollback receipts without owning a mutable current-policy governor.',
+              'C8 and C9 were developed RED -> GREEN. The closure gate requires:': 'C8–C10 were developed RED -> GREEN. The closure gate requires:',
+              '1. coherent `external.reasoning_invention == 0.0.3` across all Reasoning/Invention modules and the canonical revision map;': '1. coherent `external.reasoning_invention == 0.0.4` across all Reasoning/Invention modules and the canonical revision map;',
+              '2. canonical round-trip and forged-ID rejection for every C8/C9 artifact;': '2. canonical round-trip and forged-ID rejection for every C8/C9/C10 artifact;',
+              '11. source scans preventing mutable C/Assurance/model/execution authority backdoors;\n12. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.': '11. disjoint C10 development/holdout evidence and Pareto-non-regressing shadow evaluation;\n12. monotonic policy constraints that cannot relax parent limits, expand allowed action kinds or escalate caller-owned reasoning budgets;\n13. fresh-context policy review plus external-only adoption/rollback authorization with exact lineage;\n14. source scans preventing mutable C/Assurance/model/execution authority backdoors;\n15. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.'
+          }
+
+          for old, new in replacements.items():
+              count = s.count(old)
+              if count != 1:
+                  raise SystemExit(f'expected exactly one canonical occurrence, got {count}: {old}')
+              s = s.replace(old, new)
+
+          anchor = '- continued reasoning authority after observed budget overrun;\n- non-canonical restored state.'
+          replacement = '- continued reasoning authority after observed budget overrun;\n- overlapping C10 development/holdout episode identities;\n- policy revision skips, parent-lineage mismatch or forged derived policy identities;\n- policy constraints that relax parent bounds or expand allowed reasoning-action kinds;\n- policy review provenance that reuses producer/reviewer agent, session or context authority, or leaks withheld rationale;\n- adoption/rollback authorization issued by Reasoning/Invention itself;\n- adoption or rollback receipts bound to the wrong parent/candidate lineage;\n- non-canonical restored state.'
+          if s.count(anchor) != 1:
+              raise SystemExit('expected one fail-closed insertion anchor')
+          s = s.replace(anchor, replacement)
+
+          forbidden = [
+              'The component version is `0.0.3`',
+              'C1–C9 reject, as applicable:',
+              'C8 and C9 were developed RED -> GREEN.',
+              'external.reasoning_invention == 0.0.3',
+              'future meta-policy work is designed',
+          ]
+          for token in forbidden:
+              if token in s:
+                  raise SystemExit(f'stale canonical token remains: {token}')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Verify canonical C10 surfaces
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from nolane.external_core import reasoning_invention
+          from nolane.external_core import reasoning_policy_evolution
+          from nolane.metadata.component_versions import component_revision_map
+
+          doc = Path('CURRENT/REASONING_INVENTION_C_LAYER.md').read_text(encoding='utf-8')
+          assert reasoning_invention.COMPONENT_VERSION == '0.0.4'
+          assert reasoning_policy_evolution.COMPONENT_VERSION == '0.0.4'
+          assert reasoning_policy_evolution.SCHEMA_VERSION == 'reasoning-policy-evolution-v1'
+          assert component_revision_map()['external.reasoning_invention'] == 4
+          assert 'C1–C10 reject, as applicable:' in doc
+          assert '| `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |' in doc
+          assert 'external.reasoning_invention == 0.0.4' in doc
+          assert 'external-only adoption/rollback authorization' in doc
+          PY
+          python -m compileall -q nolane
+      - name: Run focused C10 contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution_monotonicity.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution_provenance.py \
+            tests/test_refoundation_post_epoch0_reasoning_v004_revision.py \
+            tests/test_refoundation_component_versions.py
+      - name: Self-clean and push docs-only closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git rm .github/workflows/c10-canonical-prose-closure.yml
+          git add CURRENT/REASONING_INVENTION_C_LAYER.md
+          git config user.name "Nolane C10 Closure"
+          git config user.email "actions@users.noreply.github.com"
+          git commit -m "docs(C10): close canonical v0.0.4 prose"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
