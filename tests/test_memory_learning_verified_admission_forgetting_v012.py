@@ -60,7 +60,10 @@ def _candidate(substrate: LearningSubstrate, *, text: str = "verified-looking me
 
 def _admit(substrate: LearningSubstrate, row, *, evidence_id: str = "memory-admission-proof"):
     evidence = _evidence(evidence_id)
-    digest = substrate.memory_verification_subject_digest(row.memory_id)
+    digest = substrate.memory_verification_subject_digest(
+        row.memory_id,
+        actor_agent_id="memory.worker",
+    )
     lease = substrate.learning_authority.issue(
         subject_kind="memory",
         subject_id=row.memory_id,
@@ -156,7 +159,10 @@ def test_memory_admission_rejects_stale_and_cross_memory_leases() -> None:
         operation_class="memory.verify",
         producer_agent_id=first.owner_agent_id,
         evidence=evidence,
-        subject_digest=substrate.memory_verification_subject_digest(first.memory_id),
+        subject_digest=substrate.memory_verification_subject_digest(
+            first.memory_id,
+            actor_agent_id="memory.worker",
+        ),
         single_use=True,
     )
 
