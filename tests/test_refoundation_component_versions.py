@@ -54,7 +54,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.execution.workspace": 4,
     "external.execution.executor": 2,
     "external.execution.control": 8,
-    "external.coding.claims": 1,
+    "external.coding.claims": 2,
     "external.coding.patches": 1,
     "external.coding.control": 1,
     "external.debugging": 1,
@@ -110,8 +110,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.execution.executor")) == "0.0.3"
     assert str(component_version("external.execution.control")) == "0.0.8"
     assert str(next_component_version("external.execution.control")) == "0.0.9"
-    assert str(component_version("external.coding.claims")) == "0.0.1"
-    assert str(next_component_version("external.coding.claims")) == "0.0.2"
+    assert str(component_version("external.coding.claims")) == "0.0.2"
+    assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.1"
     assert str(next_component_version("external.coding.patches")) == "0.0.2"
     assert str(component_version("external.coding.control")) == "0.0.1"
