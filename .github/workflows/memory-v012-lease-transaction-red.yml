@@ -1,0 +1,18 @@
+name: Memory v0.0.12 Lease Transaction RED
+
+on:
+  push:
+    branches:
+      - red/memory-v012-lease-transactionality
+
+jobs:
+  red-proof:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Prove rejected activation currently burns its lease
+        run: python -m pytest -q tests/test_memory_learning_v012_lease_transaction_red.py
