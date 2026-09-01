@@ -78,7 +78,7 @@ class SelfModel:
             version=str(state["version"]),
             domain_competence=tuple((str(k), float(v)) for k, v in state.get("domain_competence", ())),
             tool_competence=tuple((str(k), float(v)) for k, v in state.get("tool_competence", ())),
-            failure_modes=tuple(str(x) for x in state.get("failure_modes", ()),),
+            failure_modes=tuple(str(x) for x in state.get("failure_modes", ())),
             calibration=float(state.get("calibration", 0.5)),
             trusted_skill_ids=tuple(str(x) for x in state.get("trusted_skill_ids", ())),
             blind_spots=tuple(str(x) for x in state.get("blind_spots", ())),
