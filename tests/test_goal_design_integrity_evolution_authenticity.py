@@ -352,3 +352,23 @@ def test_authority_state_tamper_fails_even_if_public_digest_is_recomputed():
             authority_key=_AUTHORITY_KEY,
             clock=clock,
         )
+
+
+def test_signed_pre_revocation_snapshot_cannot_rollback_newer_authority_checkpoint():
+    verifier, clock = _verifier()
+    grant = _grant(verifier)
+    old_state = verifier.state()
+
+    clock.value = 120
+    verifier.revoke_grant(grant.grant_id)
+    current_state = verifier.state()
+    assert current_state["state_digest"] != old_state["state_digest"]
+
+    with pytest.raises(ValueError, match="rollback|checkpoint|expected state"):
+        GoalIntegrityEvolutionAuthorityVerifier.restore_state(
+            old_state,
+            trusted_root_issuers=("authority:root",),
+            authority_key=_AUTHORITY_KEY,
+            clock=clock,
+            expected_state_digest=current_state["state_digest"],
+        )
