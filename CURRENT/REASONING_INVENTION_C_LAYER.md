@@ -119,7 +119,7 @@ Transfer/Meta v0.0.2 binds generalized variables and invariants to a destination
 
 ## C7 — Closed-loop Reasoning Evaluation
 
-`nolane.external_core.reasoning_evaluation` is part of the Reasoning/Invention v0.0.2 component family. It evaluates fixed-budget invention cycles and emits immutable evidence over false acceptance, abstention quality, information efficiency, generalization, robustness and regressions. It does not create one scalar global score and cannot promote a capability or accept transfer.
+`nolane.external_core.reasoning_evaluation` was introduced with the Reasoning/Invention v0.0.2 family and is retained under the current v0.0.4 family. It evaluates fixed-budget invention cycles and emits immutable evidence over false acceptance, abstention quality, information efficiency, generalization, robustness and regressions. It does not create one scalar global score and cannot promote a capability or accept transfer.
 
 ## C8 — Bounded Epistemic Frontier
 
@@ -266,7 +266,7 @@ Schema: `reasoning-meta-learning-v1`.
 
 `compile_metareasoning_learning_evidence` requires at least two distinct outcomes and compiles descriptive metrics including action-kind counts, correct decisions, information efficiency, regressions, generalized outcomes and robust outcomes.
 
-The resulting evidence has **no policy-update method, model-write method, promotion method or transfer-acceptance method**. A downstream authority may consume it explicitly when future meta-policy work is designed.
+The resulting evidence has **no policy-update method, model-write method, promotion method or transfer-acceptance method**. C10 consumes this descriptive evidence only through its explicit evidence-split/proposal path; the evidence object itself still has no policy-update authority.
 
 ## C9 — Replayable Reasoning Episodes
 
@@ -334,7 +334,7 @@ Outcome aggregation cannot modify its own policy, neural state, Cognitive Librar
 
 ## Canonical schemas
 
-The component version is `0.0.3` while schemas remain independently versioned:
+The component version is `0.0.4` while schemas remain independently versioned:
 
 | Module | Schema |
 | --- | --- |
@@ -344,13 +344,14 @@ The component version is `0.0.3` while schemas remain independently versioned:
 | `reasoning_review.py` | `reasoning-review-v1` |
 | `reasoning_meta_learning.py` | `reasoning-meta-learning-v1` |
 | `reasoning_episode.py` | `reasoning-episode-v1` |
+| `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |
 | `reasoning_evaluation.py` | existing C7 evaluation schema |
 
-The v1 core schema and all C8 schemas are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9 exists.
+The v1 core schema, all C8 schemas and `reasoning-episode-v1` are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9/C10 exists.
 
 ## Fail-closed behavior
 
-C1–C9 reject, as applicable:
+C1–C10 reject, as applicable:
 
 - empty semantic identities;
 - duplicate set-like identities;
@@ -378,6 +379,12 @@ C1–C9 reject, as applicable:
 - evidence-free frontier mutation, forged frontier deltas and skipped generations;
 - caller-invented spent-budget counters or replay states inconsistent with the transition journal;
 - continued reasoning authority after observed budget overrun;
+- overlapping C10 development/holdout episode identities;
+- policy revision skips, parent-lineage mismatch or forged derived policy identities;
+- policy constraints that relax parent bounds or expand allowed reasoning-action kinds;
+- policy review provenance that reuses producer/reviewer agent, session or context authority, or leaks withheld rationale;
+- adoption/rollback authorization issued by Reasoning/Invention itself;
+- adoption or rollback receipts bound to the wrong parent/candidate lineage;
 - non-canonical restored state.
 
 ## Cross-component integration contract
@@ -393,15 +400,16 @@ Reasoning/Invention consumes stable IDs and immutable snapshots rather than muta
 - Assurance remains downstream and unchanged;
 - C7 evaluation supplies outcome evidence to descriptive meta-learning;
 - C9 episodes consume exact C8 frontier/control/action identities and emit replayable transition history without executing the selected action.
+- C10 policy evolution consumes exact episode/evaluation evidence plus external adoption/rollback authorization and emits immutable proposal/review/adoption/rollback receipts without owning a mutable current-policy governor.
 
 This boundary is intentionally narrow so A, B, D, E, F, Memory and Truth can evolve independently without C silently absorbing their authority.
 
 ## Verification contract
 
-C8 and C9 were developed RED -> GREEN. The closure gate requires:
+C8–C10 were developed RED -> GREEN. The closure gate requires:
 
-1. coherent `external.reasoning_invention == 0.0.3` across all Reasoning/Invention modules and the canonical revision map;
-2. canonical round-trip and forged-ID rejection for every C8/C9 artifact;
+1. coherent `external.reasoning_invention == 0.0.4` across all Reasoning/Invention modules and the canonical revision map;
+2. canonical round-trip and forged-ID rejection for every C8/C9/C10 artifact;
 3. branch-budget and structural-rival constraints;
 4. Pareto/order-invariant metacontrol;
 5. continue/halt/abstain fail-closed semantics;
@@ -410,8 +418,11 @@ C8 and C9 were developed RED -> GREEN. The closure gate requires:
 8. exact frontier-generation continuity and stale control/action rejection;
 9. transition-derived budget conservation, observed-overrun terminalization and critical-unknown preservation;
 10. root-plus-journal replay that rejects forged current snapshots, status, deltas or counters;
-11. source scans preventing mutable C/Assurance/model/execution authority backdoors;
-12. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.
+11. disjoint C10 development/holdout evidence and Pareto-non-regressing shadow evaluation;
+12. monotonic policy constraints that cannot relax parent limits, expand allowed action kinds or escalate caller-owned reasoning budgets;
+13. fresh-context policy review plus external-only adoption/rollback authorization with exact lineage;
+14. source scans preventing mutable C/Assurance/model/execution authority backdoors;
+15. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.
 
 ## Non-goals
 
