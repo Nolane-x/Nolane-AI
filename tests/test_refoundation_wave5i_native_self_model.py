@@ -65,8 +65,8 @@ def test_wave5i_self_model_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.self_model"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.2"
-    assert str(component_version("external.self_model")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("external.self_model")) == "0.0.3"
 
 
 def test_wave5i_self_model_and_accepted_downstream_cutovers_stay_out_of_facades() -> None:

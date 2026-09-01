@@ -47,6 +47,22 @@ def _spawn_output():
     return runtime, manifest, output, handoff, decision, lease
 
 
+def _verify_skill(runtime: OrganizationRuntime, skill_id: str, evidence: EvidenceRecord):
+    skill = runtime.evolution.get(skill_id)
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='skill',
+        subject_id=skill.skill_id,
+        operation_class='skill.verify',
+        producer_agent_id=skill.owner_agent_id,
+        evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
+    return runtime.individual_evolution.verify_skill(
+        skill.skill_id, evidence, authority_lease_id=lease.lease_id,
+    )
+
+
 def test_stale_parent_lease_blocks_handoff_authorization_after_reassignment():
     runtime, _, _, handoff, decision, lease = _spawn_output()
     runtime.coordination.revoke_lease(
@@ -71,8 +87,8 @@ def test_authorized_handoff_distills_only_candidate_owned_by_permanent_target():
     assert manifest.ephemeral_id not in skill.owner_agent_id
     with pytest.raises(PermissionError):
         runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('F14-SKILL-EXT', 'verification.unit-property.01', True),
+    _verify_skill(
+        runtime, skill.skill_id, EvidenceRecord('F14-SKILL-EXT', 'verification.unit-property.01', True),
     )
     with pytest.raises(PermissionError, match='executed regression evidence'):
         runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)

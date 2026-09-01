@@ -4,6 +4,23 @@ from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import EvidenceRecord
 
 
+def _update_self_model(runtime, *, agent_id, domain, score, evidence):
+    authority = runtime.learning_substrate.learning_authority
+    digest = runtime.self_models.competence_subject_digest(agent_id, domain=domain, score=score)
+    lease = authority.issue(
+        subject_kind='self_model',
+        subject_id=agent_id,
+        operation_class='self_model.update_competence',
+        producer_agent_id=agent_id,
+        evidence=evidence,
+        subject_digest=digest,
+    )
+    return runtime.individual_evolution.update_self_model(
+        agent_id=agent_id, domain=domain, score=score, evidence=evidence,
+        authority_lease_id=lease.lease_id,
+    )
+
+
 def test_self_model_improvement_requires_external_clean_evidence_and_preserves_specialization():
     runtime = OrganizationRuntime.first_generation()
     agent_id = 'coding.backend.01'
@@ -16,8 +33,8 @@ def test_self_model_improvement_requires_external_clean_evidence_and_preserves_s
             evidence=EvidenceRecord('EV-SELF-MODEL-SELF', agent_id, True),
         )
 
-    updated = runtime.individual_evolution.update_self_model(
-        agent_id=agent_id, domain='backend', score=0.82,
+    updated = _update_self_model(
+        runtime, agent_id=agent_id, domain='backend', score=0.82,
         evidence=EvidenceRecord('EV-SELF-MODEL-EXT', 'verification.unit-property.01', True),
     )
     after_profile = runtime.individual_evolution.profiles.get(agent_id)

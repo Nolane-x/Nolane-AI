@@ -58,11 +58,11 @@ def test_memory_public_modules_have_independent_component_ownership() -> None:
 
     expected = {
         fabric: ("external.memory.fabric", "0.0.2"),
-        lifecycle: ("external.memory.lifecycle", "0.0.5"),
+        lifecycle: ("external.memory.lifecycle", "0.0.6"),
         retrieval: ("external.memory.retrieval", "0.0.4"),
         context: ("external.context", "0.0.1"),
-        experience: ("external.experience", "0.0.2"),
-        skills: ("external.skills", "0.0.3"),
+        experience: ("external.experience", "0.0.3"),
+        skills: ("external.skills", "0.0.4"),
     }
     for module, (component_id, component_version) in expected.items():
         assert module.COMPONENT_ID == component_id

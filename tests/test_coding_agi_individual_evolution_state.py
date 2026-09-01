@@ -4,6 +4,54 @@ from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import EvidenceRecord, SkillScope
 
 
+def _positive_attribution(runtime, experience, *, learning_layer, lesson, evidence):
+    ledger = runtime.individual_evolution.experiences
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='experience_attribution',
+        subject_id=experience.experience_id,
+        operation_class='experience.attribute',
+        producer_agent_id=experience.agent_id,
+        evidence=evidence,
+        subject_digest=ledger.attribution_subject_digest(
+            experience.experience_id, learning_layer=learning_layer, lesson=lesson,
+        ),
+    )
+    return ledger.attribute(
+        experience.experience_id, learning_layer=learning_layer, lesson=lesson,
+        evidence=evidence, authority_lease_id=lease.lease_id,
+    )
+
+
+def _verify_skill(runtime, skill_id, evidence):
+    skill = runtime.evolution.get(skill_id)
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='skill', subject_id=skill.skill_id, operation_class='skill.verify',
+        producer_agent_id=skill.owner_agent_id, evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
+    return runtime.individual_evolution.verify_skill(
+        skill.skill_id, evidence, authority_lease_id=lease.lease_id,
+    )
+
+
+def _update_self_model(runtime, *, agent_id, domain, score, evidence):
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='self_model', subject_id=agent_id,
+        operation_class='self_model.update_competence', producer_agent_id=agent_id,
+        evidence=evidence,
+        subject_digest=runtime.self_models.competence_subject_digest(
+            agent_id, domain=domain, score=score,
+        ),
+    )
+    return runtime.individual_evolution.update_self_model(
+        agent_id=agent_id, domain=domain, score=score, evidence=evidence,
+        authority_lease_id=lease.lease_id,
+    )
+
+
 def test_central_chief_and_specialist_each_own_independent_learning_state():
     runtime = OrganizationRuntime.first_generation()
     for index, agent_id in enumerate(('nolane.central', 'coding.chief', 'coding.backend.01'), start=1):
@@ -12,8 +60,8 @@ def test_central_chief_and_specialist_each_own_independent_learning_state():
             outcome='success', summary=f'agent-specific lesson {index}', task_id=f'T-DIST-{index}',
             object_refs=(agent_id,), evidence_refs=(f'EV-DIST-{index}',),
         )
-        attribution = runtime.individual_evolution.experiences.attribute(
-            experience.experience_id, learning_layer='strategy', lesson=f'private strategy {index}',
+        attribution = _positive_attribution(
+            runtime, experience, learning_layer='strategy', lesson=f'private strategy {index}',
             evidence=EvidenceRecord(f'EV-DIST-ATTR-{index}', 'verification.integration-e2e.01', True),
         )
         skill = runtime.individual_evolution.propose_skill_from_attribution(
@@ -35,8 +83,8 @@ def test_positive_attribution_cannot_be_reassigned_to_another_agent_skill_namesp
         outcome='success', summary='backend-owned lesson', task_id='T-OWN',
         object_refs=('backend',), evidence_refs=('EV-OWN',),
     )
-    attribution = runtime.individual_evolution.experiences.attribute(
-        experience.experience_id, learning_layer='procedural', lesson='backend-only procedure',
+    attribution = _positive_attribution(
+        runtime, experience, learning_layer='procedural', lesson='backend-only procedure',
         evidence=EvidenceRecord('EV-OWN-ATTR', 'verification.unit-property.01', True),
     )
     with pytest.raises(PermissionError):
@@ -53,16 +101,17 @@ def test_runtime_snapshot_restore_preserves_exact_distributed_evolution_state_an
         outcome='success', summary='snapshot lesson', task_id='T-SNAPSHOT',
         object_refs=('snapshot',), evidence_refs=('EV-SNAPSHOT',),
     )
-    attribution = runtime.individual_evolution.experiences.attribute(
-        experience.experience_id, learning_layer='semantic', lesson='snapshot semantics remain exact',
+    attribution = _positive_attribution(
+        runtime, experience, learning_layer='semantic', lesson='snapshot semantics remain exact',
         evidence=EvidenceRecord('EV-SNAPSHOT-ATTR', 'verification.integration-e2e.01', True),
     )
     skill = runtime.individual_evolution.propose_skill_from_attribution(
         agent_id='coding.backend.01', attribution_id=attribution.attribution_id,
         name='snapshot-skill', body='restore evolution state exactly',
     )
-    runtime.individual_evolution.verify_skill(
-        skill.skill_id, EvidenceRecord('EV-SNAPSHOT-SKILL', 'verification.unit-property.01', True),
+    _verify_skill(
+        runtime, skill.skill_id,
+        EvidenceRecord('EV-SNAPSHOT-SKILL', 'verification.unit-property.01', True),
     )
     runtime.learning_substrate.record_skill_validation(
         skill.skill_id,
@@ -77,8 +126,8 @@ def test_runtime_snapshot_restore_preserves_exact_distributed_evolution_state_an
         },
     )
     runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
-    runtime.individual_evolution.update_self_model(
-        agent_id='coding.backend.01', domain='snapshot', score=0.77,
+    _update_self_model(
+        runtime, agent_id='coding.backend.01', domain='snapshot', score=0.77,
         evidence=EvidenceRecord('EV-SNAPSHOT-SELF', 'verification.integration-e2e.01', True),
     )
     state = runtime.to_state()
