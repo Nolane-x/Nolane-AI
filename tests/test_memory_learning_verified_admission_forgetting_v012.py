@@ -62,7 +62,7 @@ def _admit(substrate: LearningSubstrate, row, *, evidence_id: str = "memory-admi
     evidence = _evidence(evidence_id)
     digest = substrate.memory_verification_subject_digest(
         row.memory_id,
-        actor_agent_id="memory.worker",
+        actor_agent_id="memory.chief",
     )
     lease = substrate.learning_authority.issue(
         subject_kind="memory",
@@ -75,7 +75,7 @@ def _admit(substrate: LearningSubstrate, row, *, evidence_id: str = "memory-admi
     )
     admitted = substrate.validate_memory(
         row.memory_id,
-        actor_agent_id="memory.worker",
+        actor_agent_id="memory.chief",
         evidence=evidence,
         authority_lease_id=lease.lease_id,
     )
@@ -131,7 +131,7 @@ def test_memory_admission_requires_actual_clean_subject_bound_evidence() -> None
     with pytest.raises(PermissionError, match="preissued|lease|authority"):
         substrate.validate_memory(
             row.memory_id,
-            actor_agent_id="memory.worker",
+            actor_agent_id="memory.chief",
             evidence=evidence,
         )
     assert substrate.memory.get(row.memory_id).status is MemoryStatus.QUARANTINED
@@ -161,7 +161,7 @@ def test_memory_admission_rejects_stale_and_cross_memory_leases() -> None:
         evidence=evidence,
         subject_digest=substrate.memory_verification_subject_digest(
             first.memory_id,
-            actor_agent_id="memory.worker",
+            actor_agent_id="memory.chief",
         ),
         single_use=True,
     )
@@ -169,7 +169,7 @@ def test_memory_admission_rejects_stale_and_cross_memory_leases() -> None:
     with pytest.raises(PermissionError, match="exact learning operation|authorize"):
         substrate.validate_memory(
             second.memory_id,
-            actor_agent_id="memory.worker",
+            actor_agent_id="memory.chief",
             evidence=evidence,
             authority_lease_id=lease.lease_id,
         )
@@ -184,7 +184,7 @@ def test_memory_admission_rejects_stale_and_cross_memory_leases() -> None:
     with pytest.raises(PermissionError, match="exact learning operation|authorize"):
         substrate.validate_memory(
             first.memory_id,
-            actor_agent_id="memory.worker",
+            actor_agent_id="memory.chief",
             evidence=evidence,
             authority_lease_id=lease.lease_id,
         )
