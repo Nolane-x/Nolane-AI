@@ -1,0 +1,34 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+___ test_reasoning_invention_is_declared_as_canonical_native_v004_component ____
+
+    def test_reasoning_invention_is_declared_as_canonical_native_v004_component() -> None:
+        manifests = {row.component_id: row for row in build_component_manifests()}
+        assert COMPONENT_ID in manifests
+        manifest = manifests[COMPONENT_ID]
+        assert str(manifest.version) == "0.0.4"
+        assert manifest.layer == "external_core"
+        assert manifest.state_schema == "reasoning-invention-v1"
+        assert manifest.dependencies == (
+            "external.cognitive_library",
+            "external.candidate_synthesis",
+            "external.causal",
+            "external.experimentation",
+            "external.evidence",
+        )
+        assert "external.capability_acquisition" not in manifest.dependencies
+        assert "external.transfer_meta" not in manifest.dependencies
+        assert "external.assurance" not in manifest.dependencies
+>       assert "policy evolution" in manifest.responsibility.lower()
+E       AssertionError: assert 'policy evolution' in 'evidence-bound invention, bounded epistemic frontier, pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes'
+E        +  where 'evidence-bound invention, bounded epistemic frontier, pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes' = <built-in method lower of str object at 0x7f6b64b7f5a0>()
+E        +    where <built-in method lower of str object at 0x7f6b64b7f5a0> = 'evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes'.lower
+E        +      where 'evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes' = ComponentManifest(component_id='external.reasoning_invention', version=ComponentVersion(major=0, minor=0, revision=4),..._synthesis', 'external.causal', 'external.experimentation', 'external.evidence'), version_identity='component_version').responsibility
+
+tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py:31: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py::test_reasoning_invention_is_declared_as_canonical_native_v004_component - AssertionError: assert 'policy evolution' in 'evidence-bound invention, bounded epistemic frontier, pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes'
+ +  where 'evidence-bound invention, bounded epistemic frontier, pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes' = <built-in method lower of str object at 0x7f6b64b7f5a0>()
+ +    where <built-in method lower of str object at 0x7f6b64b7f5a0> = 'evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes'.lower
+ +      where 'evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes' = ComponentManifest(component_id='external.reasoning_invention', version=ComponentVersion(major=0, minor=0, revision=4),..._synthesis', 'external.causal', 'external.experimentation', 'external.evidence'), version_identity='component_version').responsibility
+1 failed in 0.13s
