@@ -12,7 +12,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.execution.workspace"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.execution_workspace"
 
 __all__ = [
@@ -33,11 +33,13 @@ class WorkspaceCommandResult:
 
 @dataclass(frozen=True, slots=True)
 class WorkspaceCheckpoint:
-    """Ephemeral rollback point bound to one isolated RepositoryWorkspace."""
+    """Ephemeral rollback point bound to one workspace execution epoch."""
 
     checkpoint_id: str
     workspace_root: str
     workspace_digest: str
+    workspace_epoch_id: str
+    checkpoint_generation: int
     label: str
     snapshot_root: Path
 
@@ -48,8 +50,12 @@ class RepositoryWorkspace:
         self.root = root.resolve()
         self.base_revision = str(base_revision)
         self._closed = False
-        self._checkpoint_counter = 0
+        self._execution_epoch_generation = 0
+        self._active_execution_epoch_id: str | None = None
+        self._active_execution_epoch_owner: str | None = None
+        self._checkpoint_generation = 0
         self._checkpoint_roots: set[Path] = set()
+        self._checkpoint_authority: dict[Path, tuple[str, int]] = {}
 
     @staticmethod
     def _git(repo: Path, *args: str, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -95,6 +101,85 @@ class RepositoryWorkspace:
     def _ensure_open(self) -> None:
         if self._closed:
             raise RuntimeError('repository workspace is closed')
+
+    @property
+    def active_execution_epoch_id(self) -> str | None:
+        self._ensure_open()
+        return self._active_execution_epoch_id
+
+    @property
+    def active_execution_epoch_owner(self) -> str | None:
+        self._ensure_open()
+        return self._active_execution_epoch_owner
+
+    def claim_execution_epoch(
+        self,
+        owner_id: str,
+        *,
+        expected_epoch_id: str | None = None,
+    ) -> str:
+        """Claim exclusive execution authority for this workspace.
+
+        A persisted epoch may be rebound exactly on a fresh workspace after the
+        control plane has validated its durable session/workspace provenance.  It
+        is intentionally not regenerated from process-local counters after restart.
+        """
+
+        self._ensure_open()
+        owner = str(owner_id).strip()
+        expected = None if expected_epoch_id is None else str(expected_epoch_id).strip()
+        if not owner:
+            raise ValueError('workspace execution epoch owner must be explicit')
+        if expected_epoch_id is not None and not expected:
+            raise ValueError('expected workspace execution epoch must be explicit')
+
+        if self._active_execution_epoch_id is not None:
+            if self._active_execution_epoch_owner != owner:
+                raise PermissionError('workspace execution epoch is owned by another execution session')
+            if expected is not None and expected != self._active_execution_epoch_id:
+                raise PermissionError('workspace execution epoch does not match persisted authority')
+            return self._active_execution_epoch_id
+
+        self._execution_epoch_generation += 1
+        if expected is None:
+            epoch_digest = canonical_digest(
+                {
+                    'workspace_root': str(self.root),
+                    'base_revision': self.base_revision,
+                    'workspace_digest': self.digest,
+                    'generation': self._execution_epoch_generation,
+                    'owner_id': owner,
+                }
+            )
+            epoch_id = 'workspace-epoch-' + epoch_digest[:24]
+        else:
+            epoch_id = expected
+
+        self._active_execution_epoch_id = epoch_id
+        self._active_execution_epoch_owner = owner
+        self._checkpoint_generation = 0
+        return epoch_id
+
+    def release_execution_epoch(self, owner_id: str, workspace_epoch_id: str) -> None:
+        self._ensure_open()
+        owner = str(owner_id).strip()
+        epoch_id = str(workspace_epoch_id).strip()
+        if not owner or not epoch_id:
+            raise ValueError('workspace execution epoch release requires owner and epoch id')
+        if self._active_execution_epoch_id is None:
+            raise RuntimeError('workspace execution epoch is not active')
+        if self._active_execution_epoch_owner != owner or self._active_execution_epoch_id != epoch_id:
+            raise PermissionError('workspace execution epoch release authority mismatch')
+
+        for snapshot, authority in tuple(self._checkpoint_authority.items()):
+            if authority[0] != epoch_id:
+                continue
+            shutil.rmtree(snapshot, ignore_errors=True)
+            self._checkpoint_roots.discard(snapshot)
+            self._checkpoint_authority.pop(snapshot, None)
+        self._active_execution_epoch_id = None
+        self._active_execution_epoch_owner = None
+        self._checkpoint_generation = 0
 
     def resolve_repo_path(self, relative_path: str | Path) -> Path:
         self._ensure_open()
@@ -162,23 +247,24 @@ class RepositoryWorkspace:
             shutil.copy2(source, target, follow_symlinks=False)
 
     def checkpoint(self, *, label: str = 'before-action') -> WorkspaceCheckpoint:
-        """Capture the full worktree payload (excluding Git administrative data).
-
-        The checkpoint is intentionally ephemeral: it is a local transaction undo
-        boundary, while durable evidence belongs in the acting protocol/artifact store.
-        """
+        """Capture the full worktree payload inside the active execution epoch."""
 
         self._ensure_open()
+        epoch_id = self._active_execution_epoch_id
+        if epoch_id is None or self._active_execution_epoch_owner is None:
+            raise RuntimeError('workspace checkpoint requires an active execution epoch')
         clean_label = str(label).strip()
         if not clean_label:
             raise ValueError('workspace checkpoint label must be explicit')
         before = self.digest
-        self._checkpoint_counter += 1
+        self._checkpoint_generation += 1
+        generation = self._checkpoint_generation
         checkpoint_digest = canonical_digest({
             'workspace_root': str(self.root),
             'workspace_digest': before,
+            'workspace_epoch_id': epoch_id,
+            'checkpoint_generation': generation,
             'label': clean_label,
-            'counter': self._checkpoint_counter,
         })
         snapshot_root = Path(tempfile.mkdtemp(prefix='nolane-workspace-checkpoint-')).resolve()
         try:
@@ -190,10 +276,13 @@ class RepositoryWorkspace:
             shutil.rmtree(snapshot_root, ignore_errors=True)
             raise
         self._checkpoint_roots.add(snapshot_root)
+        self._checkpoint_authority[snapshot_root] = (epoch_id, generation)
         return WorkspaceCheckpoint(
             checkpoint_id='workspace-checkpoint-' + checkpoint_digest[:24],
             workspace_root=str(self.root),
             workspace_digest=before,
+            workspace_epoch_id=epoch_id,
+            checkpoint_generation=generation,
             label=clean_label,
             snapshot_root=snapshot_root,
         )
@@ -202,13 +291,21 @@ class RepositoryWorkspace:
         self._ensure_open()
         if str(self.root) != str(checkpoint.workspace_root):
             raise PermissionError('workspace checkpoint belongs to a different workspace')
+        active_epoch = self._active_execution_epoch_id
+        if active_epoch is None:
+            raise RuntimeError('workspace checkpoint requires an active execution epoch')
+        if checkpoint.workspace_epoch_id != active_epoch:
+            raise PermissionError('workspace checkpoint execution epoch mismatch')
         snapshot = checkpoint.snapshot_root.resolve()
-        if snapshot not in self._checkpoint_roots or not snapshot.is_dir():
+        authority = self._checkpoint_authority.get(snapshot)
+        if snapshot not in self._checkpoint_roots or not snapshot.is_dir() or authority is None:
             raise FileNotFoundError('workspace checkpoint snapshot is unavailable')
+        if authority != (checkpoint.workspace_epoch_id, checkpoint.checkpoint_generation):
+            raise PermissionError('workspace checkpoint generation authority mismatch')
         return snapshot
 
     def restore(self, checkpoint: WorkspaceCheckpoint) -> str:
-        """Restore a checkpoint and prove restoration by recomputing workspace digest."""
+        """Restore an epoch-bound checkpoint and prove the exact payload digest."""
 
         snapshot = self._validate_checkpoint(checkpoint)
         for child in tuple(self.root.iterdir()):
@@ -229,6 +326,7 @@ class RepositoryWorkspace:
         snapshot = self._validate_checkpoint(checkpoint)
         shutil.rmtree(snapshot, ignore_errors=True)
         self._checkpoint_roots.discard(snapshot)
+        self._checkpoint_authority.pop(snapshot, None)
 
     def run_argv(
         self,
@@ -280,6 +378,10 @@ class RepositoryWorkspace:
         for snapshot in tuple(self._checkpoint_roots):
             shutil.rmtree(snapshot, ignore_errors=True)
         self._checkpoint_roots.clear()
+        self._checkpoint_authority.clear()
+        self._active_execution_epoch_id = None
+        self._active_execution_epoch_owner = None
+        self._checkpoint_generation = 0
         if self.root.exists():
             proc = self._git(self.source_repo, 'worktree', 'remove', '--force', str(self.root), check=False)
             if proc.returncode != 0 and self.root.exists():

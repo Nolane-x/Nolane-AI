@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.4"
+COMPONENT_VERSION = "0.1.5"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -143,10 +143,14 @@ class ExecutionContract:
     idempotency_key: str
     recovery_plan: str = ""
     budget: ActionBudget = field(default_factory=ActionBudget)
+    core_contract_digest: str = ""
+    workspace_epoch_id: str = ""
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "risk_class", ExecutionRisk(self.risk_class))
         object.__setattr__(self, "effect_class", EffectClass(self.effect_class))
+        object.__setattr__(self, "core_contract_digest", str(self.core_contract_digest).strip())
+        object.__setattr__(self, "workspace_epoch_id", str(self.workspace_epoch_id).strip())
         minimum_risk = minimum_risk_for_effect(self.effect_class)
         if execution_risk_rank(self.risk_class) < execution_risk_rank(minimum_risk):
             raise ValueError(
@@ -169,6 +173,8 @@ class ExecutionContract:
         for value, label in required:
             if not str(value).strip():
                 raise ValueError(f"{label} must be explicit")
+        if self.core_contract_digest and not self.workspace_epoch_id:
+            raise ValueError("core contract proof requires workspace execution epoch")
         if len(set(self.required_capabilities)) != len(self.required_capabilities):
             raise ValueError("required capabilities must be unique")
         if any(not x.strip() for x in self.required_capabilities + self.preconditions + self.postconditions):
@@ -178,8 +184,12 @@ class ExecutionContract:
         if self.effect_class is EffectClass.IRREVERSIBLE and not self.recovery_plan.strip():
             raise ValueError("irreversible action requires an explicit recovery plan")
 
+    @property
+    def execution_proof_version(self) -> int:
+        return 2 if self.core_contract_digest or self.workspace_epoch_id else 1
+
     def semantic_payload(self) -> dict[str, Any]:
-        return {
+        payload: dict[str, Any] = {
             "core_id": self.core_id,
             "operation": self.operation,
             "input_digest": self.input_digest,
@@ -191,6 +201,10 @@ class ExecutionContract:
             "recovery_plan": self.recovery_plan,
             "budget": self.budget.to_state(),
         }
+        if self.execution_proof_version >= 2:
+            payload["core_contract_digest"] = self.core_contract_digest
+            payload["workspace_epoch_id"] = self.workspace_epoch_id
+        return payload
 
     @property
     def semantic_digest(self) -> str:
@@ -205,6 +219,10 @@ class ExecutionContract:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ExecutionContract":
+        has_core_proof = "core_contract_digest" in state
+        has_epoch_proof = "workspace_epoch_id" in state
+        if has_core_proof != has_epoch_proof:
+            raise ValueError("execution contract has incomplete execution proof")
         return cls(
             action_id=str(state["action_id"]),
             core_id=str(state["core_id"]),
@@ -218,6 +236,8 @@ class ExecutionContract:
             idempotency_key=str(state["idempotency_key"]),
             recovery_plan=str(state.get("recovery_plan", "")),
             budget=ActionBudget.from_state(state.get("budget", {})),
+            core_contract_digest=str(state.get("core_contract_digest", "")),
+            workspace_epoch_id=str(state.get("workspace_epoch_id", "")),
         )
 
 

@@ -56,7 +56,7 @@ def test_wave5w_canonical_execution_executor_owns_public_implementation() -> Non
         for name in _PUBLIC_SYMBOLS
     )
     assert canonical.COMPONENT_ID == "external.execution.executor"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution_tools"
 
 
@@ -150,8 +150,8 @@ def test_wave5w_executor_authority_version_facade_and_debt_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.execution_executor"
     assert row.legacy_sources == ("cogcoder/organization/execution_tools.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.execution.executor")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.execution.executor")) == "0.0.2"
     assert all(
         binding.component_id != "external.execution.executor"
         for binding in build_active_facade_bindings()
