@@ -1,0 +1,87 @@
+name: C10 Canonical Metadata RED-GREEN
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    if: "github.event.head_commit.message == 'chore(C10): verify canonical metadata RED-GREEN'"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Guard exact RED parent and integrate latest main
+        id: guard
+        run: |
+          set -euo pipefail
+          STAGING_HEAD="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "f81e156aea18172f5a4fb78380c24d3f0a63149e"
+          git config user.name "Nolane-x"
+          git config user.email "casioreview20@gmail.com"
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          test "$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)" = "$STAGING_HEAD"
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+          git merge --no-edit origin/main
+      - name: Prove canonical metadata RED
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          set +e
+          python -m pytest -q tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py > c10-metadata-red.log 2>&1
+          rc=$?
+          set -e
+          cat c10-metadata-red.log
+          test "$rc" -ne 0
+          grep -Eq "policy evolution|external authorization|AssertionError" c10-metadata-red.log
+      - name: Close C10 canonical metadata truth
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          specs = Path("nolane/metadata/_component_specs.py")
+          text = specs.read_text(encoding="utf-8")
+          old = '"evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning and replayable budget-conserving reasoning episodes"'
+          new = '"evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning, replayable budget-conserving reasoning episodes, and governed policy evolution with exact external authorization"'
+          if text.count(old) != 1:
+              raise SystemExit("reasoning component responsibility marker mismatch")
+          specs.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          status = Path("nolane/metadata/implementation_status.py")
+          text = status.read_text(encoding="utf-8")
+          old = "descriptive meta-learning and replayable reasoning episodes with monotonic generations, stale-authority fencing and transition-derived budget conservation. It owns reasoning protocol and trajectory identity only:"
+          new = "descriptive meta-learning, replayable reasoning episodes with monotonic generations, stale-authority fencing and transition-derived budget conservation, and governed policy evolution with exact external authorization. It owns reasoning protocol, trajectory and policy-proposal identity only:"
+          if text.count(old) != 1:
+              raise SystemExit("reasoning implementation-status marker mismatch")
+          status.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+      - name: Prove canonical metadata GREEN
+        run: |
+          set -euo pipefail
+          python -m compileall -q nolane/metadata
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py
+          git diff --check
+      - name: Race guard, self-clean, commit, and push
+        run: |
+          set -euo pipefail
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          test "$(git rev-parse origin/main)" = "${{ steps.guard.outputs.main_sha }}"
+          test "$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)" = "${{ github.sha }}"
+          rm .github/workflows/c10-canonical-metadata-closure.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "docs(C10): close canonical policy-evolution metadata"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
