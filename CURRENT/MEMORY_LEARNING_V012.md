@@ -1,23 +1,25 @@
 # Memory / Learning v0.0.12
 
-Status: latest-main integration candidate; final pull-request CI pending.
+Status: CLOSED / GREEN on `main`.
 
-Scope is deliberately limited to two Family-B trust closures:
+Scope was deliberately limited to two Family-B trust closures:
 
-- verified memory admission must consume actual subject-bound learning evidence authority rather than trust caller-supplied evidence reference strings;
-- first-time irreversible forgetting must consume a pre-issued exact-state-bound authority lease before archival/tombstoning begins.
+- verified memory admission consumes actual subject-bound learning evidence authority rather than caller-supplied evidence reference strings;
+- first-time irreversible forgetting consumes a pre-issued exact-state-bound authority lease before archival/tombstoning begins.
 
-Admission interaction closure also preserves these derived invariants:
+Admission interaction closure preserves these derived invariants:
 
 - compaction of VERIFIED sources creates a HYPOTHESIS / QUARANTINED candidate until the compacted memory earns its own independent verified admission;
 - a replacement memory supersedes its incumbent only after the replacement crosses the explicit verified-admission boundary;
-- restore validates the persisted authority, lifecycle, compaction, and forgetting receipts fail-closed.
+- restore validates persisted authority, lifecycle, compaction, and forgetting receipts fail-closed.
 
-Race guard / integration:
+Integration / verification:
 
-- the clean Memory candidate `1285c0444ada59885a268ddfd2c411ff43ef4cad` passed Memory Python 3.11/3.13, Refoundation Epoch 0 Python 3.11/3.13, R1.9, and R2.0i;
+- clean Memory candidate `1285c0444ada59885a268ddfd2c411ff43ef4cad` passed Memory Python 3.11/3.13, Refoundation Epoch 0 Python 3.11/3.13, R1.9, and R2.0i;
 - concurrent Family-D Goal/Design context hardening advanced `main` to `b38291098ca51131016d490bbc24cfee28cd6b7f`;
 - the exact Family-D delta was unioned byte-for-byte into the Memory branch as two-parent integration commit `5a3cac6fb03c14f6476ef6ee2c71e492a84c9b2c`;
-- compare against that latest main is ahead-only (`behind=0`) and the remaining PR diff is limited to Family-B Memory/Learning files.
+- final PR head `7e0290acc63ad9c1f030049d839e6af39191dc05` passed Memory Python 3.11/3.13, Refoundation Epoch 0 Python 3.11/3.13, R1.9, and R2.0i;
+- PR #318 merged with exact-head guard as `5b2aa0add67e057011cce245ca00cd8ce7c35b77`;
+- actual-main verification on that merge commit passed Memory Learning Substrate Python 3.11/3.13, R1.9, and R2.0i.
 
-No Skill Forge expansion or cross-family redesign is part of v0.0.12.
+No Skill Forge expansion or cross-family redesign was part of v0.0.12.
