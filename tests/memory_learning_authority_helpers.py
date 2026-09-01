@@ -7,7 +7,7 @@ from nolane.memory.learning_substrate import EpistemicType
 def clean_evidence(
     evidence_id: str,
     *,
-    verifier_agent_id: str = "verification.chief",
+    verifier_agent_id: str = "memory.worker",
     notes: str = "historical contract migrated to v0.0.12 authority",
 ) -> EvidenceRecord:
     return EvidenceRecord(
@@ -31,7 +31,7 @@ def admit_memory(
     *,
     evidence_id: str,
     actor_agent_id: str = "memory.chief",
-    verifier_agent_id: str = "verification.chief",
+    verifier_agent_id: str = "memory.worker",
 ):
     memory_id = str(getattr(memory_or_id, "memory_id", memory_or_id))
     row = substrate.memory.get(memory_id)
@@ -73,7 +73,7 @@ def forget_memory(
     actor_agent_id: str,
     reason: str,
     evidence_id: str,
-    verifier_agent_id: str = "verification.chief",
+    verifier_agent_id: str = "memory.worker",
 ):
     memory_id = str(getattr(memory_or_id, "memory_id", memory_or_id))
     evidence = clean_evidence(evidence_id, verifier_agent_id=verifier_agent_id)
