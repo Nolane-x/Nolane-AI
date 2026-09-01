@@ -75,3 +75,121 @@ def test_competitor_profile_cannot_lowball_structural_reversibility_to_launder_f
     assert token.authorized is False
     assert "costly" not in token.frontier_option_ids
     assert any("reversibility frontier" in item.lower() for item in token.blockers)
+
+
+def test_zero_materiality_world_cannot_satisfy_required_stress_coverage():
+    authority = GoalDesignStressAuthority()
+    scenarios = (
+        DesignScenario("base", probability=0.8),
+        DesignScenario("adverse", probability=0.2, tags=("adversarial",)),
+    )
+    options = (
+        DesignOption(
+            "costly",
+            "Costly path",
+            {"base": 0.92, "adverse": 0.88},
+            {},
+            decision_class=DecisionClass.COSTLY_REVERSIBLE,
+            rollback_ref="rollback:costly",
+        ),
+        DesignOption(
+            "alternative",
+            "Reversible alternative",
+            {"base": 0.70, "adverse": 0.65},
+            {},
+            decision_class=DecisionClass.REVERSIBLE,
+            rollback_ref="rollback:alternative",
+        ),
+    )
+    decorative_world = StressWorldEvidence(
+        "world:decorative",
+        "adverse",
+        StressWorldKind.ADVERSARIAL,
+        plausibility=0.0,
+        severity=0.0,
+        evidence_refs=("evidence:decorative",),
+    )
+    recovery = RecoveryProfile(
+        option_id="costly",
+        rollback_ref="rollback:costly",
+        recovery_probability=0.90,
+        recovery_cost=0.10,
+        recovery_latency=0.10,
+        residual_harm=0.10,
+        evidence_refs=("evidence:recovery",),
+    )
+
+    token = authority.authorize(
+        goal=GoalSpec("goal:material-stress", "Require materially non-zero stress"),
+        scenarios=scenarios,
+        options=options,
+        selected_option_id="costly",
+        worlds=(decorative_world,),
+        recovery_profiles=(recovery,),
+    )
+
+    assert token.authorized is False
+    assert any("material" in item.lower() for item in token.blockers)
+
+
+def test_irreversible_tail_world_must_have_independent_evidence_provenance():
+    authority = GoalDesignStressAuthority()
+    scenarios = (
+        DesignScenario("base", probability=0.70),
+        DesignScenario("adverse", probability=0.20, tags=("adversarial",)),
+        DesignScenario("tail", probability=0.10, tags=("tail",)),
+    )
+    options = (
+        DesignOption(
+            "irreversible",
+            "High-value irreversible path",
+            {"base": 0.95, "adverse": 0.90, "tail": 0.85},
+            {},
+            decision_class=DecisionClass.IRREVERSIBLE,
+        ),
+        DesignOption(
+            "alternative",
+            "Reversible alternative",
+            {"base": 0.60, "adverse": 0.60, "tail": 0.60},
+            {},
+            decision_class=DecisionClass.REVERSIBLE,
+            rollback_ref="rollback:alternative",
+        ),
+    )
+    primary = StressWorldEvidence(
+        "world:adverse",
+        "adverse",
+        StressWorldKind.ADVERSARIAL,
+        plausibility=0.60,
+        severity=0.70,
+        evidence_refs=("evidence:shared-provenance",),
+    )
+    fake_independent_tail = StressWorldEvidence(
+        "world:tail",
+        "tail",
+        StressWorldKind.TAIL,
+        plausibility=0.30,
+        severity=0.90,
+        evidence_refs=("evidence:shared-provenance",),
+    )
+    recovery = RecoveryProfile(
+        option_id="irreversible",
+        containment_ref="containment:authority",
+        recovery_probability=0.90,
+        recovery_cost=0.10,
+        recovery_latency=0.10,
+        residual_harm=0.10,
+        evidence_refs=("evidence:containment",),
+    )
+
+    token = authority.authorize(
+        goal=GoalSpec("goal:independent-tail", "Require independent tail evidence"),
+        scenarios=scenarios,
+        options=options,
+        selected_option_id="irreversible",
+        worlds=(primary, fake_independent_tail),
+        recovery_profiles=(recovery,),
+    )
+
+    assert token.authorized is False
+    assert any("independent" in item.lower() and "provenance" in item.lower() for item in token.blockers)
