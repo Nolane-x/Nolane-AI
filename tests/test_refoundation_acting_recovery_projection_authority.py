@@ -181,6 +181,8 @@ def _plane(receipt: _CoreReceipt):
         ("operation", "status"),
         ("input_digest", "substituted-input"),
         ("authorized", False),
+        ("after_workspace_digest", "workspace-poisoned"),
+        ("output_artifact_ids", ("artifact-poisoned",)),
     ),
 )
 def test_committed_recovery_rejects_substituted_core_authority_before_projection(
