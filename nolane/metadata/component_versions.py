@@ -52,7 +52,7 @@ _COMPONENT_REVISIONS.update(
         "external.execution.workspace": 4,
         "external.execution.executor": 2,
         "external.execution.control": 8,
-        "external.coding.claims": 1,
+        "external.coding.claims": 2,
         "external.coding.patches": 1,
         "external.coding.control": 1,
         "external.debugging": 1,
