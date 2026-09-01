@@ -28,6 +28,8 @@ def test_reasoning_invention_is_declared_as_canonical_native_v004_component() ->
     assert "external.capability_acquisition" not in manifest.dependencies
     assert "external.transfer_meta" not in manifest.dependencies
     assert "external.assurance" not in manifest.dependencies
+    assert "policy evolution" in manifest.responsibility.lower()
+    assert "external authorization" in manifest.responsibility.lower()
 
     ledger = build_component_implementation_ledger()
     record = ledger[COMPONENT_ID]
@@ -36,3 +38,5 @@ def test_reasoning_invention_is_declared_as_canonical_native_v004_component() ->
     assert record.canonical_module == CANONICAL_MODULE
     assert record.legacy_sources == ()
     assert record.canonical_write_authority
+    assert "policy evolution" in record.notes.lower()
+    assert "external authorization" in record.notes.lower()
