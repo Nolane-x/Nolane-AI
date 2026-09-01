@@ -3,10 +3,11 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Mapping
 
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.memory.learning_substrate import LearningSubstrate
 
 
-_SKILL_KEYS = ("skill_validations",)
+_SKILL_KEYS = ("skill_validations", "learning_authority")
 _LIFECYCLE_KEYS = ("metadata", "tombstones", "compactions", "anchor_health")
 _RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts", "retrieval_snapshots")
 _OVERLAY_KEYS = _SKILL_KEYS + _LIFECYCLE_KEYS + _RETRIEVAL_KEYS
@@ -17,7 +18,10 @@ def _section(state: Mapping[str, Any] | None, *, allowed: tuple[str, ...], label
     unknown = tuple(sorted(set(raw) - set(allowed)))
     if unknown:
         raise ValueError(f"unknown {label} state field(s): {unknown}")
-    return {key: raw.get(key, []) for key in allowed}
+    return {
+        key: raw.get(key, {} if key == "learning_authority" else [])
+        for key in allowed
+    }
 
 
 def split_runtime_learning_state(
@@ -26,7 +30,11 @@ def split_runtime_learning_state(
     """Project the B overlay into sections owned by existing canonical authorities."""
 
     state = substrate.to_state()
-    skills = {key: state[key] for key in _SKILL_KEYS}
+    authority = getattr(substrate, "learning_authority", None)
+    skills = {
+        "skill_validations": state["skill_validations"],
+        "learning_authority": {} if authority is None else authority.to_state(),
+    }
     lifecycle = {key: state[key] for key in _LIFECYCLE_KEYS}
     retrieval = {key: state[key] for key in _RETRIEVAL_KEYS}
     return skills, lifecycle, retrieval
@@ -61,6 +69,8 @@ def _copy_validated_overlay(target: LearningSubstrate, validated: LearningSubstr
     # the objects injected into ``target`` and are never replaced here.
     target._metadata = dict(validated._metadata)
     target._tombstones = dict(validated._tombstones)
+    target._forget_receipts = dict(validated._forget_receipts)
+    target._forget_counter = int(validated._forget_counter)
     target._skill_validations = dict(validated._skill_validations)
     target._retrieval_policies = dict(validated._retrieval_policies)
     target._retrieval_receipts = dict(validated._retrieval_receipts)
@@ -92,8 +102,10 @@ def restore_runtime_learning_state(
 
     Validation is deliberately delegated to ``LearningSubstrate.from_state`` so
     runtime restore cannot become a weaker deserialization path than direct
-    substrate restore.  Only validated overlay rows are copied back; authority
-    objects are the exact instances supplied by the composition root.
+    substrate restore. Only validated overlay rows are copied back; authority
+    objects are the exact instances supplied by the composition root. The
+    v0.0.11 learning-evidence ledger is restored separately, then rebound to
+    every B consumer rather than duplicated inside their serialized state.
     """
 
     overlay = _overlay_state(
@@ -101,6 +113,8 @@ def restore_runtime_learning_state(
         lifecycle_state=lifecycle_state,
         retrieval_state=retrieval_state,
     )
+    authority_state = overlay.pop("learning_authority", {})
+    authority = LearningEvidenceAuthority.from_state(authority_state)
     full_state = {
         "memory": memory.to_state(),
         "lifecycle": lifecycle.to_state(),
@@ -124,6 +138,8 @@ def restore_runtime_learning_state(
         experiences=experiences,
     )
     _copy_validated_overlay(target, validated)
+    target.learning_authority = authority
+    experiences.learning_authority = authority
     return target
 
 
@@ -139,12 +155,21 @@ def _is_empty_experience_state(state: Mapping[str, Any]) -> bool:
     return not state.get("experiences") and not state.get("attributions")
 
 
+def _bind_downstream_authority(runtime, bound: LearningSubstrate) -> None:
+    authority = bound.learning_authority
+    individual = runtime.individual_evolution
+    individual.learning_authority = authority
+    individual.experiences.learning_authority = authority
+    individual.self_models.learning_authority = authority
+    bound.experiences.learning_authority = authority
+
+
 def bind_runtime_learning_authorities(runtime) -> LearningSubstrate:
     """Collapse legacy B duplicates into one runtime authority graph.
 
     Memory Context owns the canonical lifecycle/relation objects because its
-    retrieval/context compiler is already bound to them.  Individual Evolution
-    and LearningSubstrate must share one ExperienceLedger.  Any non-empty
+    retrieval/context compiler is already bound to them. Individual Evolution
+    and LearningSubstrate must share one ExperienceLedger. Any non-empty
     divergent state fails closed rather than being silently discarded.
     """
 
@@ -194,6 +219,7 @@ def bind_runtime_learning_authorities(runtime) -> LearningSubstrate:
     runtime.learning_substrate = bound
     runtime.individual_evolution.experiences = experiences
     runtime.individual_evolution.governed_skill_promoter = bound
+    _bind_downstream_authority(runtime, bound)
     return bound
 
 
@@ -214,6 +240,7 @@ def restore_runtime_learning_overlay(runtime, state: Mapping[str, Any]) -> Learn
     )
     runtime.learning_substrate = bound
     runtime.individual_evolution.governed_skill_promoter = bound
+    _bind_downstream_authority(runtime, bound)
     return bound
 
 
