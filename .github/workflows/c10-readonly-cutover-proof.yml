@@ -1,4 +1,4 @@
-name: C10 Read-only Cutover Proof
+name: C10 Proven v0.0.4 Cutover
 
 on:
   push:
@@ -6,11 +6,11 @@ on:
       - post-epoch0/reasoning-invention-c-v0.0.1
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
-  prove:
-    if: "github.event.head_commit.message == 'chore(C10): stage read-only v0.0.4 cutover proof'"
+  apply:
+    if: "github.event.head_commit.message == 'chore(C10): apply proven v0.0.4 cutover'"
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -19,11 +19,21 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Guard exact integrated RED parent
+      - name: Guard exact proven parent and integrate latest main
+        id: guard
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "48013df73ea1106ac2a0c4cf941f830e89f799d9"
-      - name: Build v0.0.4 cutover in workspace only
+          STAGING_HEAD="$(git rev-parse HEAD)"
+          test "$(git rev-parse HEAD^)" = "d7c558bec828d23fca762328df2a8f7e084afbfc"
+          git config user.name "Nolane-x"
+          git config user.email "casioreview20@gmail.com"
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          REMOTE_HEAD="$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)"
+          test "$REMOTE_HEAD" = "$STAGING_HEAD"
+          MAIN_SHA="$(git rev-parse origin/main)"
+          echo "main_sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+          git merge --no-edit origin/main
+      - name: Apply the exact proven v0.0.4 cutover
         run: |
           set -euo pipefail
           python - <<'PY'
@@ -46,7 +56,8 @@ jobs:
                   raise SystemExit(f"{filename}: expected exactly one v0.0.3 declaration")
               path.write_text(text.replace(old, 'COMPONENT_VERSION = "0.0.4"', 1), encoding="utf-8")
 
-          policy = Path("nolane/external_core/reasoning_policy_evolution.py").read_text(encoding="utf-8")
+          policy_path = Path("nolane/external_core/reasoning_policy_evolution.py")
+          policy = policy_path.read_text(encoding="utf-8")
           if policy.count('COMPONENT_VERSION = "0.0.4"') != 1:
               raise SystemExit("C10 policy module is not exactly v0.0.4")
 
@@ -109,14 +120,16 @@ jobs:
           PY
 
           test -z "$(grep -l 'COMPONENT_VERSION = "0.0.3"' nolane/external_core/reasoning_{invention,evaluation,frontier,metacontrol,review,meta_learning,episode,policy_evolution}.py || true)"
-      - name: Verify focused C8-C10 contracts
+      - name: Verify focused C8-C10 and canonical revision contracts
         run: |
           set -euo pipefail
-          python -m compileall -q nolane/external_core nolane/metadata
           python -m pip install -q pytest
+          python -m compileall -q nolane/external_core nolane/metadata
           python -m pytest -q \
             tests/test_refoundation_post_epoch0_reasoning_policy_evolution.py \
             tests/test_refoundation_post_epoch0_reasoning_policy_evolution_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution_monotonicity.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution_provenance.py \
             tests/test_refoundation_post_epoch0_reasoning_v004_revision.py \
             tests/test_refoundation_post_epoch0_reasoning_episode.py \
             tests/test_refoundation_post_epoch0_reasoning_episode_adversarial.py \
@@ -127,15 +140,14 @@ jobs:
             tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py \
             tests/test_refoundation_component_versions.py
           git diff --check
-      - name: Record exact cutover patch
+      - name: Race guard, self-clean, commit, and push
         run: |
           set -euo pipefail
-          git diff --binary > c10-v004.patch
-          git diff --name-only | sort | tee c10-v004-files.txt
-      - uses: actions/upload-artifact@v4
-        with:
-          name: c10-v004-readonly-proof
-          path: |
-            c10-v004.patch
-            c10-v004-files.txt
-          if-no-files-found: error
+          git fetch origin main post-epoch0/reasoning-invention-c-v0.0.1
+          test "$(git rev-parse origin/main)" = "${{ steps.guard.outputs.main_sha }}"
+          test "$(git rev-parse origin/post-epoch0/reasoning-invention-c-v0.0.1)" = "${{ github.sha }}"
+          rm .github/workflows/c10-readonly-cutover-proof.yml
+          git add -A
+          git diff --cached --check
+          git commit -m "feat(C10): cut over governed policy evolution v0.0.4"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
