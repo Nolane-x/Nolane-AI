@@ -1,0 +1,1 @@
+Next: execute hosted RED contracts, then implement minimum GREEN production changes.
