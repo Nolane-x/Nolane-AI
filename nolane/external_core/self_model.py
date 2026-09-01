@@ -10,7 +10,7 @@ from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.organization.identity import AgentRegistry
 
 COMPONENT_ID = "external.self_model"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.self_model"
 
 _COMMITTED_VERSION = re.compile(r"^self-model-(\d{8})$")
