@@ -6,11 +6,24 @@ permission independently verifiable through an injected capability authority.
 """
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from . import _goal_design_integrity_runtime_v02 as _v02
 from ._goal_design_integrity_runtime_v02 import *  # noqa: F401,F403
-from .goal_design import CoherenceError, stable_digest
+from .goal_design import (
+    CoherenceError,
+    DesignOption,
+    DesignScenario,
+    GoalSpec,
+    ProofObligation,
+    UncertaintyItem,
+    stable_digest,
+)
+from .goal_design_context import (
+    DecisionContextContradiction,
+    GoalDesignDecisionContext,
+    GoalDesignDecisionContextCompiler,
+)
 from .goal_design_integrity import GoalIntegrityContract
 from .goal_design_integrity_evolution import (
     LEGACY_UNATTESTED_TRUST,
@@ -20,8 +33,9 @@ from .goal_design_integrity_evolution import (
 from .goal_design_integrity_evolution_authority import (
     GoalIntegrityEvolutionAuthorityVerifier,
 )
+from .goal_design_runtime import DecisionLifecycle
 
-__version__ = "0.3.1"
+__version__ = "0.3.2"
 
 VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
 LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
@@ -137,6 +151,74 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         if digest in self._legacy_unattested_evolution_digests:
             return LEGACY_UNATTESTED_TRUST
         raise KeyError(f"contract {digest} is not a Goal/Design integrity revision")
+
+    def compile_decision_context(
+        self,
+        *,
+        receipt_id: str,
+        goal: GoalSpec,
+        scenarios: Sequence[DesignScenario],
+        options: Sequence[DesignOption],
+        proof_obligations: Sequence[ProofObligation] = (),
+        uncertainties: Sequence[UncertaintyItem] = (),
+        contradictions: Sequence[DecisionContextContradiction] = (),
+    ) -> GoalDesignDecisionContext:
+        """Compile semantic context only from live decision + integrity authority."""
+
+        receipt_id = str(receipt_id).strip()
+        try:
+            decision_record = self.decisions.get(receipt_id)
+        except KeyError as exc:
+            raise CoherenceError(
+                f"Goal/Design decision context requires known decision authority: {receipt_id}"
+            ) from exc
+        if decision_record.lifecycle is not DecisionLifecycle.ACTIVE:
+            raise CoherenceError(
+                "Goal/Design decision context requires active decision authority"
+            )
+
+        try:
+            integrity_record = self.integrity_authority.get(receipt_id)
+        except KeyError as exc:
+            raise CoherenceError(
+                "Goal/Design decision context requires companion integrity authority"
+            ) from exc
+        if integrity_record.lifecycle is not DecisionLifecycle.ACTIVE:
+            raise CoherenceError(
+                "Goal/Design decision context requires active integrity authority"
+            )
+        if integrity_record.decision_receipt != decision_record.receipt:
+            raise CoherenceError(
+                "Goal/Design decision context authority records disagree on receipt identity"
+            )
+
+        try:
+            contract = self.current_integrity_contract(decision_record.receipt.goal_id)
+        except KeyError as exc:
+            raise CoherenceError(
+                "Goal/Design decision context current integrity contract is unavailable"
+            ) from exc
+        if contract.digest != integrity_record.integrity_receipt.contract_digest:
+            raise CoherenceError(
+                "Goal/Design decision context integrity contract is stale or superseded"
+            )
+
+        try:
+            return GoalDesignDecisionContextCompiler().compile(
+                decision_receipt=decision_record.receipt,
+                integrity_contract=contract,
+                integrity_receipt=integrity_record.integrity_receipt,
+                goal=goal,
+                scenarios=tuple(scenarios),
+                options=tuple(options),
+                proof_obligations=tuple(proof_obligations),
+                uncertainties=tuple(uncertainties),
+                contradictions=tuple(contradictions),
+            )
+        except ValueError as exc:
+            raise CoherenceError(
+                f"Goal/Design decision context compilation rejected: {exc}"
+            ) from exc
 
     @staticmethod
     def _state_digest_v3(payload: Mapping[str, Any]) -> str:
@@ -315,6 +397,9 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
 __all__ = tuple(_v02.__all__) + (
     "LEGACY_UNVERIFIED_AUTHORITY_TRUST",
     "VERIFIED_CAPABILITY_AUTHORITY_TRUST",
+    "DecisionContextContradiction",
+    "GoalDesignDecisionContext",
+    "GoalDesignDecisionContextCompiler",
     "GoalIntegrityEvolutionAuthorityVerifier",
     "GoalIntegrityEvolutionReceipt",
     "GoalIntegrityRuntime",
