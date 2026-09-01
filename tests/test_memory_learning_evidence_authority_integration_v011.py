@@ -183,7 +183,10 @@ def test_bound_self_model_update_requires_exact_current_state_and_proposed_updat
         authority_lease_id=lease.lease_id,
     )
     assert updated.domain_competence == (("reasoning", 0.8),)
-    assert authority.uses_for(lease.lease_id)[0].use_ref == updated.version
+    assert (
+        authority.uses_for(lease.lease_id)[0].use_ref
+        == f"self-model:producer:{updated.version}"
+    )
 
 
 def test_self_model_lease_becomes_stale_after_any_committed_model_revision() -> None:
