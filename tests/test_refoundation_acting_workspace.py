@@ -31,6 +31,10 @@ def _repository(tmp_path: Path) -> Path:
     return repo
 
 
+def _claim(workspace: RepositoryWorkspace, owner: str = "execution-test") -> str:
+    return workspace.claim_execution_epoch(owner)
+
+
 def test_checkpoint_restores_tracked_and_untracked_workspace_state(tmp_path: Path) -> None:
     repo = _repository(tmp_path)
     workspace = RepositoryWorkspace.create(
@@ -39,6 +43,7 @@ def test_checkpoint_restores_tracked_and_untracked_workspace_state(tmp_path: Pat
         workspace_root=tmp_path / "workspace",
     )
     try:
+        _claim(workspace)
         before = workspace.digest
         checkpoint = workspace.checkpoint(label="before-action")
 
@@ -62,6 +67,7 @@ def test_ignored_payload_is_part_of_digest_and_rollback_proof(tmp_path: Path) ->
     repo = _repository(tmp_path)
     workspace = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "workspace")
     try:
+        _claim(workspace)
         workspace.write_text(".gitignore", "ignored/\n")
         before = workspace.digest
         checkpoint = workspace.checkpoint(label="before-ignored-payload")
@@ -93,6 +99,7 @@ def test_checkpoint_is_bound_to_its_origin_workspace(tmp_path: Path) -> None:
     first = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "w1")
     second = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "w2")
     try:
+        _claim(first, "execution-first")
         checkpoint = first.checkpoint(label="origin")
         with pytest.raises(PermissionError, match="different workspace"):
             second.restore(checkpoint)
@@ -104,6 +111,7 @@ def test_checkpoint_is_bound_to_its_origin_workspace(tmp_path: Path) -> None:
 def test_close_cleans_checkpoint_snapshots(tmp_path: Path) -> None:
     repo = _repository(tmp_path)
     workspace = RepositoryWorkspace.create(source_repo=repo, revision="HEAD", workspace_root=tmp_path / "workspace")
+    _claim(workspace)
     checkpoint = workspace.checkpoint(label="cleanup")
     assert isinstance(checkpoint, WorkspaceCheckpoint)
     assert checkpoint.snapshot_root.exists()

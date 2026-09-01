@@ -7,7 +7,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.organization.identity import AgentRegistry
 
 COMPONENT_ID = "external.invokable_cores"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.external_core"
 
 
