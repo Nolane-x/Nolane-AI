@@ -50,6 +50,14 @@ MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST = (
     "e94dad6dcfc2c4c6d4f51b85c95a344e5fb95174cc47d575735e1974d31ba0b0"
 )
 
+# Memory/Learning v0.0.11 adds the shared subject-bound learning-evidence
+# authority and persists the B-owned authority/forget ledgers in runtime state.
+# This exact fingerprint was independently observed on CPython 3.11.16 and
+# 3.13.15 by the intentional RED closure runs for PR #306.
+MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST = (
+    "0147b4d715b879c1f16dce223e3e1a1a9b9e81c8f86f089c9485740c55dac47d"
+)
+
 
 def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> None:
     first = CanonicalOrganization.first_generation()
@@ -57,11 +65,12 @@ def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> Non
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
-    assert first.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
-    assert second.state_digest == MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert first.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert second.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST != E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_GOVERNED_PROMOTION_RUNTIME_STATE_DIGEST
