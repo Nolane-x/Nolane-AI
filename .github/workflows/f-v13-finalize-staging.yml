@@ -1,0 +1,148 @@
+name: F v1.3 Finalize Staging
+
+on:
+  push:
+    branches:
+      - codex/software-engineering-f-v1.3.0-final-staging
+    paths:
+      - '.github/workflows/f-v13-finalize-staging.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: codex/software-engineering-f-v1.3.0-final-staging
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Reconstruct and verify F v1.3 payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .f_transport/payload.part00 .f_transport/payload.part01 .f_transport/payload.part02 .f_transport/payload.part03 > /tmp/f-v13-payload.b64
+          base64 -d /tmp/f-v13-payload.b64 > /tmp/f-v13-payload.tar.gz
+          echo 'f7abccbb426c30a70e9a98b88731839bd6a0b3b5b34b1b9cf3959b6f4b476f7b  /tmp/f-v13-payload.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/f-v13-payload.tar.gz
+          test "$(git hash-object CURRENT/SOFTWARE_ENGINEERING.md)" = '92a63f00992734ebb6872e2e8726883cb5f453a4'
+          test "$(git hash-object cogcoder/organization/coding_patches.py)" = '930d4140de1495eadf03c36a74e261c1ce37e698'
+          test "$(git hash-object nolane/external_core/coding_patches.py)" = 'aad35b8150ee96afdb41eafa42b6566d49aeb127'
+          test "$(git hash-object nolane/external_core/coding.py)" = '9649c21023eff2aaf5b98c94dec9a93ef17c5953'
+          test "$(git hash-object tests/test_coding_agi_coding_patch_provenance_transitions.py)" = '174727fb1befa744bdde8cfbd98925a936d370cc'
+          test "$(git hash-object tests/test_coding_agi_coding_patch_terminal_monotonicity.py)" = '8197e36be78954137eebff0259d4852bdbe67cf4'
+          test "$(git hash-object tests/test_coding_agi_coding_readiness.py)" = '8369d018839a07000c33ad0864cb3f8f66292093'
+          test "$(git hash-object tests/test_refoundation_wave5v_native_coding_patches.py)" = 'be405da7a66f65af6ad8369b46ee174b9edd8473'
+      - name: Advance canonical Coding Patches component version authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path('nolane/metadata/component_versions.py')
+          s = p.read_text(encoding='utf-8')
+          old = '"external.coding.patches": 1,'
+          if s.count(old) != 1:
+              raise SystemExit('component version authority predecessor mismatch')
+          p.write_text(s.replace(old, '"external.coding.patches": 2,'), encoding='utf-8')
+
+          p = Path('tests/test_refoundation_component_versions.py')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              '"external.coding.patches": 1,': '"external.coding.patches": 2,',
+              'assert str(component_version("external.coding.patches")) == "0.0.1"': 'assert str(component_version("external.coding.patches")) == "0.0.2"',
+              'assert str(next_component_version("external.coding.patches")) == "0.0.2"': 'assert str(next_component_version("external.coding.patches")) == "0.0.3"',
+          }
+          for old, new in replacements.items():
+              if s.count(old) != 1:
+                  raise SystemExit(f'component version test predecessor mismatch: {old}')
+              s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          PY
+      - name: Measure and bind exact integrated runtime fingerprint
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from cogcoder.organization.types import canonical_digest
+          from cogcoder.refoundation.canonical_runtime import CanonicalOrganization
+
+          digest = canonical_digest(CanonicalOrganization.first_generation().to_state())
+          print(f'F_V13_RUNTIME_DIGEST={digest}')
+          p = Path('tests/test_refoundation_wave2_zero_loss_runtime_digest.py')
+          s = p.read_text(encoding='utf-8')
+          anchor = '''MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST = (\n    "0147b4d715b879c1f16dce223e3e1a1a9b9e81c8f86f089c9485740c55dac47d"\n)\n'''
+          if anchor not in s:
+              raise SystemExit('zero-loss accepted predecessor digest anchor mismatch')
+          block = anchor + f'''\n# F v1.3 advances canonical Coding Patches persistence/provenance semantics.\n# This fingerprint is measured from the exact integrated runtime state before\n# acceptance and is subsequently verified on both supported Python runtimes.\nF_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST = (\n    "{digest}"\n)\n'''
+          s = s.replace(anchor, block)
+          old = '''    assert canonical_digest(first_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST\n    assert first.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST\n    assert canonical_digest(second_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST\n    assert second.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST\n    assert first_state == second_state\n    assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST\n'''
+          new = '''    assert canonical_digest(first_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST\n    assert first.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST\n    assert canonical_digest(second_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST\n    assert second.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST\n    assert first_state == second_state\n    assert F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST\n    assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST\n'''
+          if old not in s:
+              raise SystemExit('zero-loss runtime assertion predecessor mismatch')
+          p.write_text(s.replace(old, new), encoding='utf-8')
+          PY
+      - name: Verify source and generated repository authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m compileall -q cogcoder/organization cogcoder/refoundation nolane
+          python -m nolane.ai.materialize --check
+          python -m nolane.repository.audit --check
+          git diff --check
+      - name: Run F v1.3 targeted regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_coding_agi_coding_patch_provenance_transitions.py \
+            tests/test_coding_agi_coding_patch_terminal_monotonicity.py \
+            tests/test_coding_agi_coding_readiness.py \
+            tests/test_refoundation_wave5v_native_coding_patches.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave2_zero_loss_runtime_digest.py
+      - name: Run Coding Organization Part V regressions
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q \
+            tests/test_coding_agi_coding_*.py \
+            tests/test_coding_agi_code_claims.py \
+            tests/test_coding_agi_foundation_*.py \
+            tests/test_coding_agi_central_*.py \
+            tests/test_coding_agi_requirements_*.py \
+            tests/test_coding_agi_master_plan.py \
+            tests/test_coding_agi_planning_*.py \
+            tests/test_coding_agi_plan_reconciliation.py \
+            tests/test_coding_agi_architecture_*.py \
+            tests/test_coding_agi_integration_*.py
+      - name: Run Refoundation contracts before commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pytest -q tests/test_refoundation_*.py
+      - name: Commit verified final staging tree and remove transport
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .f_transport
+          rm -f .github/workflows/f-v13-finalize-staging.yml
+          git diff --check
+          git status --short
+          git config user.name 'Nolane F v1.3 Finalizer'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No final staging changes to commit' >&2
+            exit 1
+          fi
+          git commit -m 'F v1.3: finalize patch provenance and transition authority'
+          git push origin HEAD:codex/software-engineering-f-v1.3.0-final-staging
