@@ -8,9 +8,24 @@ from nolane.memory.learning_substrate import LearningSubstrate
 
 
 _SKILL_KEYS = ("skill_validations", "learning_authority")
-_LIFECYCLE_KEYS = ("metadata", "tombstones", "compactions", "anchor_health")
+_LIFECYCLE_KEYS = (
+    "metadata",
+    "tombstones",
+    "forget_receipts",
+    "forget_counter",
+    "compactions",
+    "anchor_health",
+)
 _RETRIEVAL_KEYS = ("retrieval_policies", "retrieval_receipts", "retrieval_snapshots")
 _OVERLAY_KEYS = _SKILL_KEYS + _LIFECYCLE_KEYS + _RETRIEVAL_KEYS
+
+
+def _default_overlay_value(key: str):
+    if key == "learning_authority":
+        return {}
+    if key == "forget_counter":
+        return 0
+    return []
 
 
 def _section(state: Mapping[str, Any] | None, *, allowed: tuple[str, ...], label: str) -> dict[str, Any]:
@@ -18,10 +33,7 @@ def _section(state: Mapping[str, Any] | None, *, allowed: tuple[str, ...], label
     unknown = tuple(sorted(set(raw) - set(allowed)))
     if unknown:
         raise ValueError(f"unknown {label} state field(s): {unknown}")
-    return {
-        key: raw.get(key, {} if key == "learning_authority" else [])
-        for key in allowed
-    }
+    return {key: raw.get(key, _default_overlay_value(key)) for key in allowed}
 
 
 def split_runtime_learning_state(
