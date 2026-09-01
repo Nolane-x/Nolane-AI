@@ -2,9 +2,9 @@
 
 ## Status
 
-`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.3**.
+`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.4**.
 
-The v0.0.3 cutover is additive. The original `reasoning-invention-v1` wire/state schema and every C8 schema remain unchanged, so prior serialized identities remain backward compatible. v0.0.3 adds the separate `reasoning-episode-v1` temporal protocol rather than widening frontier, control or review artifacts into a mutable monolith.
+The v0.0.4 cutover is additive. The original `reasoning-invention-v1` wire/state schema and every C8 schema remain unchanged, so prior serialized identities remain backward compatible. v0.0.4 retains the separate `reasoning-episode-v1` temporal protocol and adds `reasoning-policy-evolution-v1` rather than widening frontier, control or review artifacts into a mutable monolith.
 
 Nolane World 0.12.0 is design provenance only. Nolane AI owns the runtime contracts, identities, authority boundaries and verification rules.
 
@@ -24,7 +24,7 @@ Reasoning/Invention is deliberately **not** a seventh mutable governor. It compo
 
 ## Architecture: Reasoning Ecology
 
-v0.0.3 composes C1–C9 into a bounded, replayable reasoning ecology:
+v0.0.4 composes C1–C10 into a bounded, replayable reasoning ecology:
 
 ```text
 Cognitive Library / evidence / observations
@@ -416,3 +416,15 @@ C8 and C9 were developed RED -> GREEN. The closure gate requires:
 ## Non-goals
 
 This architecture does not claim AGI, unrestricted autonomous science, global truth, arbitrary self-modification, hidden scalar utility, automatic capability promotion, automatic transfer acceptance, automatic Assurance or proof that an external model truly erased withheld context. It establishes a stronger, falsifiable and bounded reasoning substrate whose outputs remain attributable and reversible.
+
+## C10 — Governed Metareasoning Policy Evolution
+
+Schema: `reasoning-policy-evolution-v1`.
+
+C10 turns C8/C9 metareasoning evidence into a governed proposal surface without granting Reasoning/Invention self-edit authority. `MetareasoningPolicy` revisions are immutable and content-addressed; every non-root policy binds an exact parent, and proposals advance exactly one revision. Policy deltas are monotonic constraints only: they may tighten remaining action count or cost, raise the minimum actionable-gain floor, and remove allowed reasoning-action kinds, but cannot expand caller authority or relax safety thresholds.
+
+Policy learning uses an explicit multi-episode `PolicyEvidenceSplit` with disjoint development and holdout episodes. Shadow evaluation keeps decision accuracy, information gain, uncertainty reduction, cost, residual risk and regression count as separate Pareto dimensions, so an improvement on one axis cannot compensate for a regression on another. Fresh-context review binds distinct producer/reviewer agents and sessions, auditable review context, withheld rationale, completed checks, reproduced evidence, and explicit objection/specification-gaming/leakage findings. A supported review cannot hide a blocker.
+
+Adoption and rollback remain externally authorized operations. C cannot mint adoption authority, expose a mutable current-policy governor, or self-promote a learned policy. Adoption requires proposal, Pareto-non-regressing shadow evidence, fresh-context review and exact external authorization to bind the same parent/candidate lineage. Rollback is lineage-exact and restores the immutable parent under separate external rollback authorization.
+
+C10 therefore closes policy evolution as **proposal + evidence + external authorization**, not autonomous self-modification. Existing `reasoning-invention-v1`, C8 schemas and `reasoning-episode-v1` identities remain unchanged.

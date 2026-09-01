@@ -17,7 +17,7 @@ from .reasoning_metacontrol import (
 
 
 COMPONENT_ID = "external.reasoning_invention"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 SCHEMA_VERSION = "reasoning-episode-v1"
 DESIGN_LINEAGE = (
     "post-Epoch-0 replayable reasoning-frontier evolution with exact budget conservation, "

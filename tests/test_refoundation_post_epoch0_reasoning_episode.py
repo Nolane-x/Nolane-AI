@@ -116,7 +116,7 @@ def _resolved_successor(row: frontier.ReasoningFrontier) -> frontier.ReasoningFr
     )
 
 
-def test_reasoning_episode_revision_is_coherent_at_v003() -> None:
+def test_reasoning_episode_revision_is_coherent_at_v004() -> None:
     module_names = (
         "reasoning_invention",
         "reasoning_evaluation",
@@ -128,8 +128,8 @@ def test_reasoning_episode_revision_is_coherent_at_v003() -> None:
     )
     modules = [importlib.import_module(f"nolane.external_core.{name}") for name in module_names]
     assert {module.COMPONENT_ID for module in modules} == {"external.reasoning_invention"}
-    assert {module.COMPONENT_VERSION for module in modules} == {"0.0.3"}
-    assert str(component_version("external.reasoning_invention")) == "0.0.3"
+    assert {module.COMPONENT_VERSION for module in modules} == {"0.0.4"}
+    assert str(component_version("external.reasoning_invention")) == "0.0.4"
 
 
 def test_episode_open_derives_exact_current_budget() -> None:

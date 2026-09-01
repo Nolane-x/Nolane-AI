@@ -72,7 +72,7 @@ def _case(
 def test_c7_declares_stateless_reasoning_evaluation_revision() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.reasoning_invention"
-    assert native.COMPONENT_VERSION == "0.0.3"
+    assert native.COMPONENT_VERSION == "0.0.4"
     assert native.SCHEMA_VERSION == "reasoning-invention-evaluation-v1"
 
 
