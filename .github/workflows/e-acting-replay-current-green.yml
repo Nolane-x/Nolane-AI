@@ -1,0 +1,59 @@
+name: E Acting Replay Authority Current GREEN
+
+on:
+  push:
+    branches:
+      - e-acting-replay-current-green-staging-gpt56sol
+
+permissions:
+  contents: write
+
+concurrency:
+  group: e-acting-replay-current-green-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  patch-and-verify:
+    strategy:
+      matrix:
+        python-version: ['3.11', '3.12']
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: e-acting-replay-current-green-staging-gpt56sol
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Apply guarded replay authority patch
+        run: python .github/e_acting_replay_current_green.py
+      - name: Compile acting runtime
+        run: python -m py_compile nolane/external_core/acting_runtime.py
+      - name: Run replay and acting authority contracts
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_replay_authority.py \
+            tests/test_refoundation_acting_runtime.py \
+            tests/test_refoundation_acting_receipt_provenance.py \
+            tests/test_refoundation_acting_core_proof_continuity.py \
+            tests/test_refoundation_acting_crash_reconciliation.py \
+            tests/test_refoundation_acting_control_reconciliation.py \
+            tests/test_refoundation_acting_control_commit_projection.py
+      - name: Check patch hygiene
+        run: git diff --check
+      - name: Commit production closure on canonical verifier
+        if: matrix.python-version == '3.11'
+        run: |
+          if git diff --quiet -- nolane/external_core/acting_runtime.py; then
+            echo "Replay authority patch already present"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nolane/external_core/acting_runtime.py
+          git diff --cached --check
+          git commit -m "fix(e-acting): re-attest replay authority"
+          git push origin HEAD:e-acting-replay-current-green-staging-gpt56sol
