@@ -126,5 +126,5 @@ def test_compaction_target_integrity_advances_lifecycle_authority_revision() -> 
     from nolane.memory import lifecycle
 
     assert lifecycle.COMPONENT_ID == "external.memory.lifecycle"
-    assert lifecycle.COMPONENT_VERSION == "0.0.5"
-    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
+    assert lifecycle.COMPONENT_VERSION == "0.0.6"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.6"

@@ -64,8 +64,8 @@ def test_wave5d_memory_lifecycle_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.lifecycle"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.5"
-    assert str(component_version("external.memory.lifecycle")) == "0.0.5"
+    assert row.component_version == "0.0.6"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.6"
 
 
 def test_wave5d_memory_lifecycle_leaves_facades_but_retrieval_does_not() -> None:
