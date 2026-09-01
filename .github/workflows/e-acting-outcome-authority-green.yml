@@ -20,7 +20,7 @@ jobs:
           python-version: '3.11'
       - name: Install pytest
         run: python -m pip install -q pytest
-      - name: Apply guarded outcome authority patch
+      - name: Harden and apply guarded outcome authority patch
         shell: bash
         run: |
           set -euo pipefail
@@ -31,11 +31,27 @@ jobs:
           from pathlib import Path
           p = Path('.github/e_acting_outcome_authority_green.py')
           text = p.read_text(encoding='utf-8')
-          bad = "    '        outcome_ref: str,\\n        success: bool,\\n        outcome_digest: str = \"\",\\n        now_ms: int,\\n',"
-          good = "    '        outcome_ref: str,\\n        success: bool,\\n        now_ms: int,\\n        outcome_digest: str = \"\",\\n',"
-          if text.count(bad) != 1:
-              raise SystemExit(f'expected one staging signature fix anchor, found {text.count(bad)}')
-          p.write_text(text.replace(bad, good, 1), encoding='utf-8')
+
+          bad_order = "    '        outcome_ref: str,\\n        success: bool,\\n        outcome_digest: str = \"\",\\n        now_ms: int,\\n',"
+          good_order = "    '        outcome_ref: str,\\n        success: bool,\\n        now_ms: int,\\n        outcome_digest: str = \"\",\\n',"
+          if text.count(bad_order) != 1:
+              raise SystemExit(f'expected one observe_outcome ordering anchor, found {text.count(bad_order)}')
+          text = text.replace(bad_order, good_order, 1)
+
+          ambiguous = '''replace_once(
+              "nolane/external_core/acting_runtime.py",
+              '        workspace_epoch_id: str,\\n    ) -> None:\\n        expected = {\\n',
+              '        workspace_epoch_id: str,\\n        outcome_digest: str,\\n    ) -> None:\\n        expected = {\\n',
+          )'''
+          replay_only = '''replace_once(
+              "nolane/external_core/acting_runtime.py",
+              '        workspace_digest: str,\\n        core_contract_digest: str,\\n        workspace_epoch_id: str,\\n    ) -> None:\\n        expected = {\\n',
+              '        workspace_digest: str,\\n        core_contract_digest: str,\\n        workspace_epoch_id: str,\\n        outcome_digest: str,\\n    ) -> None:\\n        expected = {\\n',
+          )'''
+          if text.count(ambiguous) != 1:
+              raise SystemExit(f'expected one replay signature anchor block, found {text.count(ambiguous)}')
+          text = text.replace(ambiguous, replay_only, 1)
+          p.write_text(text, encoding='utf-8')
           PY
             python .github/e_acting_outcome_authority_green.py
           fi
