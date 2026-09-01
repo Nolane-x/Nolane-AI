@@ -1,0 +1,23 @@
+name: E Acting Replay Authority RED
+
+on:
+  push:
+    branches:
+      - e-acting-replay-authority-gpt56sol
+
+concurrency:
+  group: e-acting-replay-red-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  replay-authority-red:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Run replay authority RED contracts
+        run: python -m pytest -q tests/test_refoundation_acting_replay_authority.py
