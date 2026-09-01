@@ -166,3 +166,53 @@ def test_a17_fitness_requirement_registry_is_append_only_and_relevant_only():
             knowledge=knowledge,
             observation_requirements=observation_registry,
         )
+
+
+def test_a17_fitness_requirement_restore_rejects_protocol_tamper_and_snapshot_drift():
+    knowledge, claim, _ = _knowledge()
+    observation_registry, observation_requirement = _observation_requirement(
+        knowledge=knowledge,
+        claim=claim,
+    )
+    registry = ObservationFitnessRequirementRegistry()
+    row = ObservationFitnessRequirement.create(
+        claim=claim,
+        observation_requirement=observation_requirement,
+    )
+    registry.register(
+        ObservationFitnessRequirementSetRevision.create(
+            claim=claim,
+            requirements=(row,),
+        ),
+        knowledge=knowledge,
+        observation_requirements=observation_registry,
+    )
+
+    state = registry.to_state()
+    assert ObservationFitnessRequirementRegistry.from_state(
+        state,
+        knowledge=knowledge,
+        observation_requirements=observation_registry,
+    ).to_state() == state
+
+    wrong_protocol = dict(state)
+    wrong_protocol["protocol"] = "wrong"
+    with pytest.raises(ValueError, match="protocol"):
+        ObservationFitnessRequirementRegistry.from_state(
+            wrong_protocol,
+            knowledge=knowledge,
+            observation_requirements=observation_registry,
+        )
+
+    tampered = dict(state)
+    revision = dict(state["revisions"][0])
+    requirement = dict(revision["requirements"][0])
+    requirement["observation_requirement_digest"] = "tampered"
+    revision["requirements"] = [requirement]
+    tampered["revisions"] = [revision]
+    with pytest.raises(ValueError, match="snapshot"):
+        ObservationFitnessRequirementRegistry.from_state(
+            tampered,
+            knowledge=knowledge,
+            observation_requirements=observation_registry,
+        )
