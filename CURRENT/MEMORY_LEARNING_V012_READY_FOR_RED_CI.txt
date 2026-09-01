@@ -1,1 +1,0 @@
-Production semantics remain v0.0.11 at this checkpoint; v0.0.12 tests are intentionally expected to fail.

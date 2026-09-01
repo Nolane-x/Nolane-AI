@@ -139,6 +139,7 @@ def restore_runtime_learning_state(
         registry=registry,
         events=events,
         state=full_state,
+        learning_authority=authority,
     )
     target = LearningSubstrate(
         registry=registry,
@@ -148,9 +149,9 @@ def restore_runtime_learning_state(
         relations=relations,
         skills=skills,
         experiences=experiences,
+        learning_authority=authority,
     )
     _copy_validated_overlay(target, validated)
-    target.learning_authority = authority
     experiences.learning_authority = authority
     return target
 

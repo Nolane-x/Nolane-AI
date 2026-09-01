@@ -309,6 +309,12 @@ class LearningEvidenceAuthority:
         self.lease(lease_id)
         return tuple(self._uses_by_lease.get(str(lease_id), ()))
 
+    def use_receipt(self, receipt_id: str) -> LearningEvidenceUseReceipt:
+        try:
+            return self._uses[str(receipt_id)]
+        except KeyError as exc:
+            raise KeyError(f"unknown learning evidence use receipt: {receipt_id}") from exc
+
     @staticmethod
     def _matches(
         lease: LearningEvidenceLease,
