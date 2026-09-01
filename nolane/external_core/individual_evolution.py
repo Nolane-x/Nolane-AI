@@ -16,7 +16,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.individual_evolution"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.individual_evolution"
 
 
