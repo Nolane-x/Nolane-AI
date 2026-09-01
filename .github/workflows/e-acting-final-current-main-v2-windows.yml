@@ -1,0 +1,38 @@
+name: E Acting Final Current Main V2 Windows
+
+on:
+  push:
+    branches:
+      - e-acting-final-current-main-v2-windows-gpt56sol
+
+jobs:
+  final-e-acting:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install -q pytest
+      - name: Assert exact accepted-main ancestry
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse 3b889f95b1808fc38c7d7cf0272d7c1ecdc73e1a^)" = "5b2aa0add67e057011cce245ca00cd8ce7c35b77"
+      - name: Compile E authority modules
+        shell: bash
+        run: python -m py_compile nolane/external_core/acting_protocol.py nolane/external_core/acting_runtime.py nolane/external_core/execution.py nolane/external_core/execution_executor.py nolane/external_core/execution_types.py nolane/external_core/execution_workspace.py nolane/external_core/invokable.py nolane/neural/inference_bridge.py nolane/metadata/component_versions.py
+      - name: Run final E regression suite
+        shell: bash
+        run: python -m pytest -q tests/test_refoundation_acting_*.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5w_native_execution_executor.py tests/test_refoundation_wave5z_native_neural_inference.py tests/test_refoundation_wave5aa_native_execution_control.py
+      - name: Verify exact PR diff hygiene
+        shell: bash
+        run: git diff --check 5b2aa0add67e057011cce245ca00cd8ce7c35b77..3b889f95b1808fc38c7d7cf0272d7c1ecdc73e1a
