@@ -15,7 +15,7 @@ from typing import Iterable, Sequence
 from . import _goal_design_base as _base
 from ._goal_design_base import DecisionClass, DesignOption, DesignScenario, GoalSpec, stable_digest
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -296,11 +296,18 @@ class GoalDesignStressAuthority:
     ) -> tuple[str, ...]:
         robust_by_id = {item.option_id: float(item.robust_score) for item in evaluation.options}
         profile_by_id = {item.option_id: item for item in profiles}
+        # DecisionClass carries a structural lower bound on exit capacity. Evidence
+        # may prove stronger recovery than that baseline, but caller-supplied
+        # profiles must never be able to degrade a rival below its structural
+        # class and thereby launder the selected option onto the frontier.
         reversibility = {
-            option.option_id: (
-                profile_by_id[option.option_id].recovery_score
-                if option.option_id in profile_by_id
-                else cls._OPTIONALITY[option.decision_class]
+            option.option_id: max(
+                cls._OPTIONALITY[option.decision_class],
+                (
+                    profile_by_id[option.option_id].recovery_score
+                    if option.option_id in profile_by_id
+                    else 0.0
+                ),
             )
             for option in options
         }
