@@ -1,0 +1,76 @@
+name: E Acting Outcome Authority GREEN Windows
+
+on:
+  push:
+    branches:
+      - e-acting-outcome-authority-green-windows-gpt56sol
+
+permissions:
+  contents: write
+
+jobs:
+  patch-verify-commit:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install -q pytest
+      - name: Harden and apply guarded outcome authority patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -q 'COMPONENT_VERSION = "0.0.11"' nolane/external_core/execution.py; then
+            echo 'Outcome authority production patch already present.'
+          else
+            python - <<'PY'
+          from pathlib import Path
+          p = Path('.github/e_acting_outcome_authority_green.py')
+          text = p.read_text(encoding='utf-8')
+          bad_order = "    '        outcome_ref: str,\\n        success: bool,\\n        outcome_digest: str = \"\",\\n        now_ms: int,\\n',"
+          good_order = "    '        outcome_ref: str,\\n        success: bool,\\n        now_ms: int,\\n        outcome_digest: str = \"\",\\n',"
+          if text.count(bad_order) != 1:
+              raise SystemExit(f'expected one observe_outcome ordering anchor, found {text.count(bad_order)}')
+          text = text.replace(bad_order, good_order, 1)
+          ambiguous = '''replace_once(
+              "nolane/external_core/acting_runtime.py",
+              '        workspace_epoch_id: str,\\n    ) -> None:\\n        expected = {\\n',
+              '        workspace_epoch_id: str,\\n        outcome_digest: str,\\n    ) -> None:\\n        expected = {\\n',
+          )'''
+          replay_only = '''replace_once(
+              "nolane/external_core/acting_runtime.py",
+              '        workspace_digest: str,\\n        core_contract_digest: str,\\n        workspace_epoch_id: str,\\n    ) -> None:\\n        expected = {\\n',
+              '        workspace_digest: str,\\n        core_contract_digest: str,\\n        workspace_epoch_id: str,\\n        outcome_digest: str,\\n    ) -> None:\\n        expected = {\\n',
+          )'''
+          if text.count(ambiguous) != 1:
+              raise SystemExit(f'expected one replay signature anchor block, found {text.count(ambiguous)}')
+          p.write_text(text.replace(ambiguous, replay_only, 1), encoding='utf-8')
+          PY
+            python .github/e_acting_outcome_authority_green.py
+          fi
+      - name: Compile E authority modules
+        shell: bash
+        run: |
+          python -m py_compile nolane/external_core/acting_protocol.py nolane/external_core/acting_runtime.py nolane/external_core/execution.py nolane/external_core/execution_executor.py nolane/external_core/execution_types.py nolane/metadata/component_versions.py
+      - name: Run broad E Acting regression
+        shell: bash
+        run: |
+          python -m pytest -q tests/test_refoundation_acting_*.py tests/test_refoundation_wave5r_native_invokable_cores.py tests/test_refoundation_wave5s_native_execution_workspace.py tests/test_refoundation_wave5w_native_execution_executor.py tests/test_refoundation_wave5z_native_neural_inference.py tests/test_refoundation_wave5aa_native_execution_control.py
+      - name: Check patch hygiene
+        shell: bash
+        run: git diff --check
+      - name: Commit verified production closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add nolane/external_core/acting_protocol.py nolane/external_core/acting_runtime.py nolane/external_core/execution.py nolane/metadata/component_versions.py tests/test_refoundation_wave5aa_native_execution_control.py tests/test_refoundation_acting_recovery_projection_authority.py tests/test_refoundation_acting_replay_authority.py
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'fix(e-acting): pin outcome authority digest'
+          git push origin HEAD:e-acting-outcome-authority-green-windows-gpt56sol
