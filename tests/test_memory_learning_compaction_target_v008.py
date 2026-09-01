@@ -6,6 +6,7 @@ import pytest
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.memory.fabric import MemoryScope, MemoryStatus
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -31,24 +32,8 @@ def _compacted_substrate():
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    first = substrate.remember(
-        text="verified source alpha",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("source-alpha-proof",),
-        source_refs=("source-alpha",),
-    )
-    second = substrate.remember(
-        text="verified source beta",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("source-beta-proof",),
-        source_refs=("source-beta",),
-    )
+    first = remember_verified(substrate, evidence_id='source-alpha-proof', text="verified source alpha", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, source_refs=("source-alpha",))
+    second = remember_verified(substrate, evidence_id='source-beta-proof', text="verified source beta", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, source_refs=("source-beta",))
     compacted, receipt = substrate.compact(
         source_memory_ids=(first.memory_id, second.memory_id),
         summary_text="alpha and beta are jointly verified",
@@ -59,6 +44,27 @@ def _compacted_substrate():
         evidence_refs=("external-compaction-review",),
     )
     return substrate, compacted, receipt
+
+
+def test_verified_source_compaction_roundtrips_as_unadmitted_candidate() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate
+
+    substrate, compacted, receipt = _compacted_substrate()
+
+    assert substrate.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert receipt.epistemic_type == EpistemicType.HYPOTHESIS.value
+
+    restored = LearningSubstrate.from_state(
+        registry=_RegistryStub(),
+        events=_EventStub(),
+        state=substrate.to_state(),
+        learning_authority=authority_copy(substrate),
+    )
+
+    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert restored.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert restored.compaction_receipt(receipt.compaction_id) == receipt
 
 
 def test_restore_rejects_compacted_target_text_tampering() -> None:
@@ -72,7 +78,7 @@ def test_restore_rejects_compacted_target_text_tampering() -> None:
     target["text"] = "forged summary that was never reviewed"
 
     with pytest.raises(ValueError, match="compacted target digest"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_legacy_compaction_receipt_without_target_digest() -> None:
@@ -96,28 +102,25 @@ def test_restore_rejects_legacy_compaction_receipt_without_target_digest() -> No
     state["compactions"][0] = raw
 
     with pytest.raises(ValueError, match="compaction receipt requires v2 target digest"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_compaction_target_digest_ignores_later_lifecycle_status_changes() -> None:
     from nolane.memory.learning_substrate import LearningSubstrate
 
     substrate, compacted, receipt = _compacted_substrate()
-    substrate.decay_memory(
+    substrate.lifecycle.transition(
         compacted.memory_id,
         actor_agent_id="memory.worker",
-        reason="freshness window elapsed",
-        evidence_refs=("freshness-observation",),
+        new_status=MemoryStatus.CONTRADICTED,
+        reason="later contradictory observation",
+        evidence_refs=("contradiction-observation",),
     )
     state = substrate.to_state()
 
-    restored = LearningSubstrate.from_state(
-        registry=_RegistryStub(),
-        events=_EventStub(),
-        state=state,
-    )
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
-    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.STALE
+    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.CONTRADICTED
     assert tuple(row.memory_id for row in restored.reconstruct_compaction(receipt.compaction_id)) == receipt.source_memory_ids
 
 

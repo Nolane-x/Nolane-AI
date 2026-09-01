@@ -9,6 +9,7 @@ from nolane.external_core.self_model import SelfModelRegistry
 from nolane.memory.experience import ExperienceLedger, ExperienceOutcome, LearningLayer
 from nolane.memory.fabric import MemoryScope, MemoryStatus
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+from tests.memory_learning_authority_helpers import admit_memory
 
 
 class _Registry:
@@ -83,6 +84,7 @@ def test_clean_external_attribution_consolidates_into_verified_active_memory() -
     )
     substrate = LearningSubstrate(registry=registry, events=events, experiences=experiences)
     memory = substrate.consolidate_attribution(attribution.attribution_id)
+    memory = admit_memory(substrate, memory, evidence_id="evidence-external-admission")
     metadata = substrate.metadata(memory.memory_id)
     assert memory.status is MemoryStatus.ACTIVE
     assert metadata.epistemic_type is EpistemicType.VERIFIED
@@ -107,12 +109,7 @@ def test_lifecycle_validation_and_decay_are_evidence_bounded() -> None:
             evidence_refs=("evidence-1",),
             correction_ref="verification://1",
         )
-    active = substrate.validate_memory(
-        memory.memory_id,
-        actor_agent_id="memory.chief",
-        evidence_refs=("evidence-1",),
-        correction_ref="verification://1",
-    )
+    active = admit_memory(substrate, memory, evidence_id="evidence-1")
     assert active.status is MemoryStatus.ACTIVE
     stale = substrate.decay_memory(
         memory.memory_id,

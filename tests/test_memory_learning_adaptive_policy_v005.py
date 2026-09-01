@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from nolane.memory.fabric import MemoryScope, MemoryStatus
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -49,28 +50,8 @@ def test_retrieval_policy_is_cost_sensitive_but_keeps_hard_authority_filters() -
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    short = substrate.remember(
-        text="verified concise anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-short",),
-        confidence=0.9,
-        salience=0.7,
-        tags=("anchor",),
-    )
-    long = substrate.remember(
-        text="verified verbose anchor " + ("detail " * 160),
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-long",),
-        confidence=0.9,
-        salience=0.7,
-        tags=("anchor",),
-    )
+    short = remember_verified(substrate, evidence_id='evidence-short', text="verified concise anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, confidence=0.9, salience=0.7, tags=("anchor",))
+    long = remember_verified(substrate, evidence_id='evidence-long', text="verified verbose anchor " + ("detail " * 160), owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, confidence=0.9, salience=0.7, tags=("anchor",))
     unverified = substrate.remember(
         text="cheap but unverified anchor",
         owner_agent_id="memory.chief",
@@ -103,24 +84,8 @@ def test_compaction_preserves_epistemic_type_and_raw_reconstructability() -> Non
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    first = substrate.remember(
-        text="anchor A verified under source receipt A",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-a",),
-        source_refs=("source-a",),
-    )
-    second = substrate.remember(
-        text="anchor B verified under source receipt B",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-b",),
-        source_refs=("source-b",),
-    )
+    first = remember_verified(substrate, evidence_id='evidence-a', text="anchor A verified under source receipt A", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, source_refs=("source-a",))
+    second = remember_verified(substrate, evidence_id='evidence-b', text="anchor B verified under source receipt B", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, source_refs=("source-b",))
 
     compacted, receipt = substrate.compact(
         source_memory_ids=(first.memory_id, second.memory_id),
@@ -132,7 +97,9 @@ def test_compaction_preserves_epistemic_type_and_raw_reconstructability() -> Non
         evidence_refs=("compaction-review",),
     )
 
-    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.VERIFIED
+    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert substrate.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert receipt.epistemic_type == EpistemicType.HYPOTHESIS.value
     assert substrate.memory.get(first.memory_id).status is MemoryStatus.ACTIVE
     assert substrate.memory.get(second.memory_id).status is MemoryStatus.ACTIVE
     assert receipt.source_memory_ids == tuple(sorted((first.memory_id, second.memory_id)))
@@ -144,14 +111,7 @@ def test_compaction_rejects_mixed_epistemic_types() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    verified = substrate.remember(
-        text="verified state",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-v",),
-    )
+    verified = remember_verified(substrate, evidence_id='evidence-v', text="verified state", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     hypothesis = substrate.remember(
         text="hypothesis state",
         owner_agent_id="memory.chief",
@@ -176,15 +136,7 @@ def test_unhealthy_anchor_is_fail_closed_and_persists_across_restart() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    anchor = substrate.remember(
-        text="API v4 schema anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("schema-v4",),
-        version_scope="v4",
-    )
+    anchor = remember_verified(substrate, evidence_id='schema-v4', text="API v4 schema anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE, version_scope="v4")
     substrate.record_anchor_health(
         anchor.memory_id,
         actor_agent_id="memory.worker",
@@ -202,7 +154,7 @@ def test_unhealthy_anchor_is_fail_closed_and_persists_across_restart() -> None:
     assert dict(bundle.rejected)[anchor.memory_id] == "anchor_unhealthy"
 
     state = substrate.to_state()
-    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
     restored_bundle = restored.retrieve(
         agent_id="memory.chief",
         region="memory-context-knowledge",
@@ -216,14 +168,7 @@ def test_anchor_health_cannot_be_self_certified() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    anchor = substrate.remember(
-        text="self-owned anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("schema-v4",),
-    )
+    anchor = remember_verified(substrate, evidence_id='schema-v4', text="self-owned anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE)
 
     with pytest.raises(PermissionError, match="external"):
         substrate.record_anchor_health(
@@ -241,14 +186,7 @@ def test_retrieval_policy_registry_persists_for_receipt_audit() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    substrate.remember(
-        text="auditable verified anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-audit",),
-    )
+    remember_verified(substrate, evidence_id='evidence-audit', text="auditable verified anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     policy = MemoryRetrievalPolicy(information_weight=1.5, cost_weight=0.4, max_estimated_units=16)
     bundle = substrate.retrieve(
         agent_id="memory.chief",
@@ -258,7 +196,7 @@ def test_retrieval_policy_registry_persists_for_receipt_audit() -> None:
     )
 
     state = substrate.to_state()
-    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
     assert restored.retrieval_policy(bundle.receipt.policy_id) == policy
     assert restored.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
@@ -269,22 +207,8 @@ def test_anchor_health_state_serializes_in_global_sequence_order() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    first = substrate.remember(
-        text="first anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-first",),
-    )
-    second = substrate.remember(
-        text="second anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-second",),
-    )
+    first = remember_verified(substrate, evidence_id='evidence-first', text="first anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE)
+    second = remember_verified(substrate, evidence_id='evidence-second', text="second anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE)
 
     substrate.record_anchor_health(
         second.memory_id,
@@ -305,7 +229,7 @@ def test_anchor_health_state_serializes_in_global_sequence_order() -> None:
 
     state = substrate.to_state()
     assert [row["sequence"] for row in state["anchor_health"]] == [1, 2]
-    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
     assert restored.to_state() == state
 
 
@@ -314,14 +238,7 @@ def test_restore_rejects_semantically_rehashed_self_certified_anchor() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    anchor = substrate.remember(
-        text="externally checked anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("anchor-evidence",),
-    )
+    anchor = remember_verified(substrate, evidence_id='anchor-evidence', text="externally checked anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE)
     substrate.record_anchor_health(
         anchor.memory_id,
         actor_agent_id="memory.worker",
@@ -343,7 +260,7 @@ def test_restore_rejects_semantically_rehashed_self_certified_anchor() -> None:
     ).to_state()
 
     with pytest.raises(PermissionError, match="external"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_semantically_rehashed_self_certified_compaction() -> None:
@@ -351,22 +268,8 @@ def test_restore_rejects_semantically_rehashed_self_certified_compaction() -> No
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    first = substrate.remember(
-        text="compaction source one",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("source-one",),
-    )
-    second = substrate.remember(
-        text="compaction source two",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("source-two",),
-    )
+    first = remember_verified(substrate, evidence_id='source-one', text="compaction source one", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
+    second = remember_verified(substrate, evidence_id='source-two', text="compaction source two", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     _, receipt = substrate.compact(
         source_memory_ids=(first.memory_id, second.memory_id),
         summary_text="compacted result",
@@ -377,17 +280,10 @@ def test_restore_rejects_semantically_rehashed_self_certified_compaction() -> No
         evidence_refs=("external-review",),
     )
     state = substrate.to_state()
-    state["compactions"][0] = MemoryCompactionReceipt(
-        source_memory_ids=receipt.source_memory_ids,
-        compacted_memory_id=receipt.compacted_memory_id,
-        source_digest=receipt.source_digest,
-        epistemic_type=receipt.epistemic_type,
-        actor_agent_id="memory.chief",
-        evidence_refs=receipt.evidence_refs,
-    ).to_state()
+    state["compactions"][0] = MemoryCompactionReceipt(source_memory_ids=receipt.source_memory_ids, compacted_memory_id=receipt.compacted_memory_id, source_digest=receipt.source_digest, epistemic_type=receipt.epistemic_type, actor_agent_id="memory.chief", evidence_refs=receipt.evidence_refs, compacted_digest=receipt.compacted_digest).to_state()
 
     with pytest.raises(PermissionError, match="external"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_retrieval_selected_rejected_overlap() -> None:
@@ -395,14 +291,7 @@ def test_restore_rejects_retrieval_selected_rejected_overlap() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    memory = substrate.remember(
-        text="retrieval receipt integrity anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("retrieval-integrity",),
-    )
+    memory = remember_verified(substrate, evidence_id='retrieval-integrity', text="retrieval receipt integrity anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     bundle = substrate.retrieve(
         agent_id="memory.chief",
         region="memory-context-knowledge",
@@ -410,61 +299,35 @@ def test_restore_rejects_retrieval_selected_rejected_overlap() -> None:
     )
     state = substrate.to_state()
     receipt = bundle.receipt
-    state["retrieval_receipts"][0] = MemoryRetrievalReceipt(
-        policy_id=receipt.policy_id,
-        query_digest=receipt.query_digest,
-        memory_state_digest=receipt.memory_state_digest,
-        selected_memory_ids=receipt.selected_memory_ids,
-        rejected=((memory.memory_id, "budget"),),
-        estimated_units=receipt.estimated_units,
-    ).to_state()
+    state["retrieval_receipts"][0] = MemoryRetrievalReceipt(policy_id=receipt.policy_id, query_digest=receipt.query_digest, memory_state_digest=receipt.memory_state_digest, selected_memory_ids=receipt.selected_memory_ids, rejected=((memory.memory_id, "budget"),), estimated_units=receipt.estimated_units, query=receipt.query).to_state()
 
     with pytest.raises(ValueError, match="selected.*rejected|overlap"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_tombstone_content_rebinding() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    memory = substrate.remember(
-        text="raw content bound to tombstone",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("raw-evidence",),
-    )
-    substrate.forget(
-        memory.memory_id,
-        actor_agent_id="memory.worker",
-        reason="intentional archival",
-        evidence_refs=("forget-review",),
-    )
+    memory = remember_verified(substrate, evidence_id='raw-evidence', text="raw content bound to tombstone", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
+    forget_memory(substrate, memory.memory_id, actor_agent_id="memory.worker", reason="intentional archival", evidence_id='forget-review')
     state = substrate.to_state()
     state["tombstones"][0]["content_digest"] = "0" * 64
 
     with pytest.raises(ValueError, match="tombstone.*digest|content"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_duplicate_learning_metadata_rows() -> None:
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    substrate.remember(
-        text="duplicate metadata sentinel",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("metadata-evidence",),
-    )
+    remember_verified(substrate, evidence_id='metadata-evidence', text="duplicate metadata sentinel", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     state = substrate.to_state()
     state["metadata"].append(dict(state["metadata"][0]))
 
     with pytest.raises(ValueError, match="duplicate.*metadata"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_migrated_retrieval_policy_requires_reconstructible_parent_lineage() -> None:
@@ -472,14 +335,7 @@ def test_migrated_retrieval_policy_requires_reconstructible_parent_lineage() -> 
     from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    substrate.remember(
-        text="policy lineage anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("policy-lineage",),
-    )
+    remember_verified(substrate, evidence_id='policy-lineage', text="policy lineage anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
     parent = MemoryRetrievalPolicy(cost_weight=0.25)
     child = parent.migrate(cost_weight=0.5)
 
@@ -500,5 +356,5 @@ def test_migrated_retrieval_policy_requires_reconstructible_parent_lineage() -> 
     )
     assert substrate.retrieval_policy(child.policy_id) == child
     state = substrate.to_state()
-    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
     assert restored.retrieval_policy(bundle.receipt.policy_id) == child
