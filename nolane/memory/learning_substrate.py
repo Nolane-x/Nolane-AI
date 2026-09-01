@@ -514,6 +514,8 @@ class LearningSubstrate:
         actor = self.registry.get(actor_agent_id)
         if actor.region != self.lifecycle.REGION:
             raise PermissionError("verified memory admission requires a Memory/Context actor")
+        if actor.agent_id != "memory.chief":
+            raise PermissionError("reactivating governed memory requires Memory Chief authority")
         if evidence is None:
             raise PermissionError("verified memory admission requires actual evidence and a preissued learning evidence lease")
         self.registry.get(evidence.verifier_agent_id)
