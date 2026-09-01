@@ -18,6 +18,7 @@ This is a specification-gaming surface. For decisions that are costly to unwind 
 4. Make tail exposure and recovery/containment properties explicit and policy-controlled.
 5. Add a reversibility frontier so a selected option cannot be strictly dominated by an alternative in both robust performance and reversibility without an explicit authority justification.
 6. Keep D as the admission/control-plane authority. It consumes evidence and deterministic evaluations; it does not become Family-A truth authority or Family-G evaluation ownership.
+7. Prevent stress-proof specification gaming: zero-materiality worlds cannot satisfy required coverage, rival recovery profiles cannot reduce structural reversibility, and irreversible tail/failure coverage must carry provenance independent from the primary adversarial/counterfactual world.
 
 ## Non-goals
 
@@ -43,6 +44,8 @@ This is a specification-gaming surface. For decisions that are costly to unwind 
 
 A stress world cannot invent an unscored scenario: `scenario_id` must exist in the exact decision scenario set, and every evaluated option must already carry a utility for it through existing Goal/Design evaluation rules.
 
+A world may legitimately exist with weak materiality, so representation remains permissive. Admission coverage is stricter: a world counts toward a required stress class only when `plausibility * severity` reaches the policy materiality floor. This prevents zero/near-zero quantified metadata from becoming a decorative replacement for a decorative scenario tag.
+
 ### 2. Recovery / containment evidence
 
 `RecoveryProfile` is option-specific and evidence-bearing:
@@ -65,8 +68,10 @@ For `COSTLY_REVERSIBLE`, the profile rollback reference must exactly match `Desi
 
 `StressPolicy` contains deterministic configurable thresholds. Default policy:
 
-- costly reversible requires at least one `ADVERSARIAL` or `COUNTERFACTUAL` world;
-- irreversible requires at least one `ADVERSARIAL`/`COUNTERFACTUAL` world and at least one `TAIL`/`FAILURE` world;
+- `minimum_world_materiality = 0.05` where world materiality is `plausibility * severity`;
+- costly reversible requires at least one materially supported `ADVERSARIAL` or `COUNTERFACTUAL` world;
+- irreversible requires at least one materially supported `ADVERSARIAL`/`COUNTERFACTUAL` world and at least one materially supported `TAIL`/`FAILURE` world;
+- an irreversible tail/failure world must have at least one evidence provenance path disjoint from the primary adversarial/counterfactual world used to satisfy coverage;
 - every required world has evidence;
 - costly selected option: maximum stress exposure <= `0.60`, recovery score >= `0.12`, residual harm <= `0.50`;
 - irreversible selected option: maximum stress exposure <= `0.45`, recovery/containment score >= `0.08`, residual harm <= `0.35`.
@@ -79,10 +84,13 @@ Thresholds are policy, not hidden constants, and their digest participates in au
 
 ### 4. Reversibility frontier
 
-The existing Goal/Design evaluation already computes `robust_score` and coarse `optionality` from decision class. Stress authority computes a two-axis frontier over `(robust_score, reversibility_score)` where:
+The existing Goal/Design evaluation already computes `robust_score` and coarse `optionality` from decision class. Stress authority computes a two-axis frontier over `(robust_score, reversibility_score)`.
 
-- detailed `RecoveryProfile.recovery_score` is used when present;
-- otherwise the existing class optionality is used as the coarse fallback (`1.0`, `0.5`, `0.0`).
+Decision class is a structural lower bound on exit capacity: `REVERSIBLE=1.0`, `COSTLY_REVERSIBLE=0.5`, `IRREVERSIBLE=0.0`. Evidence may demonstrate recovery above that floor, but a caller-provided `RecoveryProfile` can never lower an option below its structural class. Therefore:
+
+`reversibility_score = max(class_optionality_floor, RecoveryProfile.recovery_score if present else 0)`.
+
+This asymmetry is intentional anti-specification-gaming authority: evidence may strengthen a rival's reversibility case but cannot be used to sabotage it. Selected-option policy checks still use the raw evidence-bearing recovery score, so a poor selected recovery profile cannot hide behind the structural floor.
 
 The selected non-trivial option is blocked if another explicit option is weakly better on both axes and strictly better on at least one. This is a fail-closed Pareto check over performance and exit capacity, separate from the goal-objective Pareto check already present.
 
@@ -123,9 +131,12 @@ The companion receipt provides audit linkage without altering the decision recei
 
 - Unknown/duplicate stress world or scenario identities are rejected.
 - Required stress kinds cannot be satisfied by one world pretending to have multiple kinds.
+- Zero/near-zero materiality worlds remain representable but do not satisfy required admission coverage.
 - Required evidence refs cannot be empty.
+- Irreversible primary and tail/failure coverage cannot claim independence by recycling the same evidence provenance.
 - Non-finite/out-of-range metrics are rejected.
 - Recovery profiles cannot be rebound to a different option.
+- Rival recovery profiles cannot lower structural reversibility below `DecisionClass` optionality.
 - Costly rollback evidence must match the option rollback reference exactly.
 - Irreversible containment evidence is mandatory.
 - Token verification re-derives input, policy, evidence, risk and frontier digests.
@@ -139,7 +150,7 @@ Historical receipt verification remains unchanged. Reversible admissions with no
 
 ## Verification
 
-TDD must first prove the current bypass: a decorative adversarial tag alone can admit a non-trivial decision. GREEN acceptance requires:
+TDD must first prove the current bypass: a decorative adversarial tag alone can admit a non-trivial decision. Adversarial hardening additionally proves rival-profile lowball laundering, zero-materiality coverage laundering, and recycled-provenance pseudo-independence all fail before closure. GREEN acceptance requires:
 
 - focused stress authority tests;
 - all `tests/test_goal_design*.py` on Python 3.11 and 3.12;
