@@ -1,9 +1,9 @@
-"""Goal/Design authority surface with truth-bound decision receipts.
+"""Goal/Design authority surface with truth-bound and stress-gated decisions.
 
 The stable v1/v2 implementation is retained in ``_goal_design_base``. This
-module extends that authority surface with first-class assumption references and
-receipt v3 while preserving historical receipt identities and all existing
-Goal/Design behavior.
+module extends that authority surface with first-class assumption references,
+receipt v3, and a quantified stress gate for non-trivial decisions while
+preserving historical receipt identities.
 """
 from __future__ import annotations
 
@@ -12,8 +12,15 @@ from typing import Iterable, Sequence
 
 from . import _goal_design_base as _base
 from ._goal_design_base import *  # noqa: F401,F403
+from .goal_design_stress import (
+    GoalDesignStressAuthority,
+    RecoveryProfile,
+    StressAdmissionToken,
+    StressPolicy,
+    StressWorldEvidence,
+)
 
-__version__ = "0.3.1"
+__version__ = "0.4.1"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -92,7 +99,18 @@ def _base_option(option: DesignOption) -> _base.DesignOption:
 
 
 class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
-    """Cross-plane coherence authority with optional assumption-truth binding."""
+    """Cross-plane coherence authority with truth and stress admission gates."""
+
+    def __init__(
+        self,
+        *,
+        irreversible_uncertainty_threshold: float = 0.55,
+        stress: GoalDesignStressAuthority | None = None,
+    ) -> None:
+        super().__init__(
+            irreversible_uncertainty_threshold=irreversible_uncertainty_threshold
+        )
+        self.stress = stress or GoalDesignStressAuthority()
 
     def admit_decision(
         self,
@@ -108,6 +126,10 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
         traceability: TraceabilityState | None = None,
         assumption_refs: Sequence[str] = (),
         assumption_state_digest: str = "",
+        stress_token: StressAdmissionToken | None = None,
+        stress_worlds: Sequence[StressWorldEvidence] = (),
+        recovery_profiles: Sequence[RecoveryProfile] = (),
+        stress_policy: StressPolicy | None = None,
     ) -> DecisionReceipt:
         selected = next(
             (option for option in options if option.option_id == selected_option_id),
@@ -145,6 +167,11 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
             admission_goal = _base_goal(goal)
             admission_options = tuple(_base_option(option) for option in options)
 
+        # Preserve the historical blocker ordering. The base admission is pure:
+        # it mints an in-memory receipt but does not publish state. Therefore we
+        # can first retain rollback/counterfactual/uncertainty diagnostics and
+        # then reject an otherwise-admissible non-trivial decision at the new
+        # quantified stress boundary before any authority is published.
         base_receipt = super().admit_decision(
             goal=admission_goal,
             scenarios=scenarios,
@@ -156,6 +183,33 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
             uncertainties=uncertainties,
             traceability=traceability,
         )
+
+        if selected.decision_class is not DecisionClass.REVERSIBLE:
+            if stress_token is None:
+                raise CoherenceError(
+                    "Goal/Design admission blocked by stress authority: "
+                    "costly or irreversible decision requires quantified stress token"
+                )
+            try:
+                verified = self.stress.verify_token(
+                    stress_token,
+                    goal=goal,
+                    scenarios=scenarios,
+                    options=options,
+                    selected_option_id=selected_option_id,
+                    worlds=tuple(stress_worlds),
+                    recovery_profiles=tuple(recovery_profiles),
+                    policy=stress_policy,
+                )
+            except (TypeError, ValueError) as exc:
+                raise CoherenceError(
+                    f"Goal/Design admission blocked by stress authority: {exc}"
+                ) from exc
+            if not verified.authorized:
+                raise CoherenceError(
+                    "Goal/Design admission blocked by stress authority: "
+                    + "; ".join(verified.blockers)
+                )
 
         base_kwargs = {
             "goal_id": base_receipt.goal_id,

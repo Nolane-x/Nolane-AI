@@ -1,9 +1,10 @@
-"""Live Goal/Design runtime with truth maintenance and reopening authority.
+"""Live Goal/Design runtime with truth, reopening, and stress authority.
 
 The stable five-plane runtime remains in ``_goal_design_runtime_base``. This
 module extends it with truth-bound admission, persistent assumption dependency
-lookup, sensitivity-driven reopening, causal truth-change invalidation, and
-truth-aware revalidation while preserving v1/v2/v3 decision identity.
+lookup, sensitivity-driven reopening, quantified stress admission, causal truth-
+change invalidation, and truth-aware revalidation while preserving v1/v2/v3
+decision identity.
 """
 from __future__ import annotations
 
@@ -14,6 +15,7 @@ from . import _goal_design_runtime_base as _base
 from ._goal_design_runtime_base import *  # noqa: F401,F403
 from .goal_design import (
     CoherenceError,
+    DecisionClass,
     DecisionReceipt,
     DesignOption,
     DesignScenario,
@@ -29,9 +31,17 @@ from .goal_design_reopening import (
     DecisionReopeningAuthority,
     ReopeningDisposition,
 )
+from .goal_design_stress import (
+    DecisionStressReceipt,
+    GoalDesignStressAuthority,
+    RecoveryProfile,
+    StressAdmissionToken,
+    StressPolicy,
+    StressWorldEvidence,
+)
 from .goal_design_truth import AssumptionImpactReport, AssumptionTruthMaintenance
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -89,7 +99,7 @@ class DecisionAuthorityIndex(_base.DecisionAuthorityIndex):
 
 
 class GoalDesignRuntime(_base.GoalDesignRuntime):
-    """Operational five-plane membrane plus truth/reopening authority seams."""
+    """Operational five-plane membrane plus truth/reopening/stress seams."""
 
     def __init__(
         self,
@@ -101,6 +111,7 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         context: Any,
         truth: AssumptionTruthMaintenance | None = None,
         reopening: DecisionReopeningAuthority | None = None,
+        stress: GoalDesignStressAuthority | None = None,
         authority: GoalDesignCoherencePlane | None = None,
         ledger: GoalDesignLedger | None = None,
         decisions: DecisionAuthorityIndex | None = None,
@@ -119,6 +130,8 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         )
         self.truth = truth
         self.reopening = reopening or DecisionReopeningAuthority()
+        self.stress = stress or GoalDesignStressAuthority()
+        self._stress_tokens: dict[str, StressAdmissionToken] = {}
 
     @staticmethod
     def _binding_assumption_refs(
@@ -151,6 +164,9 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         snapshot: GoalDesignSnapshot,
         proof_obligations: Sequence[ProofObligation] = (),
         uncertainties: Sequence[UncertaintyItem] = (),
+        stress_worlds: Sequence[StressWorldEvidence] = (),
+        recovery_profiles: Sequence[RecoveryProfile] = (),
+        stress_policy: StressPolicy | None = None,
     ) -> DecisionReceipt:
         selected = next(
             (option for option in options if option.option_id == selected_option_id),
@@ -196,6 +212,30 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
                 assumption_refs=bound_assumptions,
                 assumption_state_digest=assumption_state_digest,
             )
+
+        stress_token: StressAdmissionToken | None = None
+        if selected.decision_class is not DecisionClass.REVERSIBLE:
+            try:
+                stress_token = self.stress.authorize(
+                    goal=goal,
+                    scenarios=scenarios,
+                    options=options,
+                    selected_option_id=selected_option_id,
+                    worlds=tuple(stress_worlds),
+                    recovery_profiles=tuple(recovery_profiles),
+                    policy=stress_policy,
+                )
+            except (TypeError, ValueError) as exc:
+                raise CoherenceError(
+                    f"Goal/Design admission blocked by stress authority: {exc}"
+                ) from exc
+            admission_kwargs.update(
+                stress_token=stress_token,
+                stress_worlds=tuple(stress_worlds),
+                recovery_profiles=tuple(recovery_profiles),
+                stress_policy=stress_policy,
+            )
+
         receipt = self.authority.admit_decision(
             goal=goal,
             scenarios=scenarios,
@@ -230,7 +270,25 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
                 assumption_ids=bound_assumptions,
                 uncertainties=tuple(uncertainties),
             )
+        if stress_token is not None:
+            stress_receipt = self.stress.bind_decision(
+                stress_token,
+                decision_receipt_id=receipt.receipt_id,
+            )
+            if stress_receipt.decision_receipt_id != receipt.receipt_id:
+                raise CoherenceError("Goal/Design stress receipt failed decision binding")
+            self._stress_tokens[receipt.receipt_id] = stress_token
         return receipt
+
+    def stress_receipt(self, receipt_id: str) -> DecisionStressReceipt | None:
+        """Return the companion quantified-stress receipt for an admitted decision."""
+
+        return self.stress.decision_receipt(str(receipt_id))
+
+    def stress_token(self, receipt_id: str) -> StressAdmissionToken | None:
+        """Return the exact stress token accepted for a non-trivial decision."""
+
+        return self._stress_tokens.get(str(receipt_id))
 
     def apply_assumption_change(
         self,
@@ -396,4 +454,9 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
 __all__ = tuple(_base.__all__) + (
     "AssumptionRuntimeImpact",
     "DecisionReopeningAuthority",
+    "DecisionStressReceipt",
+    "GoalDesignStressAuthority",
+    "RecoveryProfile",
+    "StressPolicy",
+    "StressWorldEvidence",
 )
