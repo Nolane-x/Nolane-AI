@@ -1,12 +1,18 @@
+import pytest
+
 from nolane.external_core.goal_design import (
+    CoherenceError,
     DecisionClass,
     DesignOption,
     DesignScenario,
+    GoalDesignCoherencePlane,
+    GoalDesignVersionVector,
     GoalSpec,
 )
 from nolane.external_core.goal_design_stress import (
     GoalDesignStressAuthority,
     RecoveryProfile,
+    StressPolicy,
     StressWorldEvidence,
     StressWorldKind,
 )
@@ -193,3 +199,83 @@ def test_irreversible_tail_world_must_have_independent_evidence_provenance():
 
     assert token.authorized is False
     assert any("independent" in item.lower() and "provenance" in item.lower() for item in token.blockers)
+
+
+def test_per_admission_policy_cannot_weaken_default_coherence_authority():
+    permissive = StressPolicy(
+        costly_max_exposure=1.0,
+        costly_min_recovery_score=0.0,
+        costly_max_residual_harm=1.0,
+        irreversible_max_exposure=1.0,
+        irreversible_min_recovery_score=0.0,
+        irreversible_max_residual_harm=1.0,
+    )
+    minting_authority = GoalDesignStressAuthority(default_policy=permissive)
+    goal = GoalSpec("goal:policy-authority", "Do not let decisions choose their own risk floor")
+    scenarios = (
+        DesignScenario("base", probability=0.8),
+        DesignScenario("adverse", probability=0.2, tags=("adversarial",)),
+    )
+    options = (
+        DesignOption(
+            "costly",
+            "High exposure under default policy",
+            {"base": 0.99, "adverse": 0.20},
+            {},
+            decision_class=DecisionClass.COSTLY_REVERSIBLE,
+            rollback_ref="rollback:costly",
+        ),
+        DesignOption(
+            "alternative",
+            "Low-value reversible alternative",
+            {"base": 0.10, "adverse": 0.10},
+            {},
+            decision_class=DecisionClass.REVERSIBLE,
+            rollback_ref="rollback:alternative",
+        ),
+    )
+    world = StressWorldEvidence(
+        "world:adverse",
+        "adverse",
+        StressWorldKind.ADVERSARIAL,
+        plausibility=1.0,
+        severity=1.0,
+        evidence_refs=("evidence:adverse",),
+    )
+    profile = RecoveryProfile(
+        option_id="costly",
+        rollback_ref="rollback:costly",
+        recovery_probability=0.90,
+        recovery_cost=0.10,
+        recovery_latency=0.10,
+        residual_harm=0.10,
+        evidence_refs=("evidence:recovery",),
+    )
+    token = minting_authority.authorize(
+        goal=goal,
+        scenarios=scenarios,
+        options=options,
+        selected_option_id="costly",
+        worlds=(world,),
+        recovery_profiles=(profile,),
+        policy=permissive,
+    )
+    assert token.authorized is True
+    assert token.max_stress_exposure > StressPolicy().costly_max_exposure
+
+    plane = GoalDesignCoherencePlane()
+    vector = GoalDesignVersionVector("r:1", "p:1", "a:1", "i:1", "c:1")
+    snapshot = plane.freeze_snapshot(vector)
+    with pytest.raises(CoherenceError, match="stress|policy"):
+        plane.admit_decision(
+            goal=goal,
+            scenarios=scenarios,
+            options=options,
+            selected_option_id="costly",
+            snapshot=snapshot,
+            current_vector=vector,
+            stress_token=token,
+            stress_worlds=(world,),
+            recovery_profiles=(profile,),
+            stress_policy=permissive,
+        )
