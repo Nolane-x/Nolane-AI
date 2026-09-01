@@ -9,7 +9,7 @@ from nolane.external_core.evidence import EvidenceRecord
 def _memory_evidence(evidence_id: str) -> EvidenceRecord:
     return EvidenceRecord(
         evidence_id,
-        "memory.worker",
+        "verification.unit-property.01",
         True,
         false_accepts=0,
         regressions=0,
