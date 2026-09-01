@@ -58,6 +58,13 @@ MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST = (
     "0147b4d715b879c1f16dce223e3e1a1a9b9e81c8f86f089c9485740c55dac47d"
 )
 
+# F v1.3 advances canonical Coding Patches persistence/provenance semantics.
+# This fingerprint is measured from the exact integrated runtime state before
+# acceptance and is subsequently verified on both supported Python runtimes.
+F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST = (
+    "ba30a8faee0547d83e8d317c0d50c11b953fac241ffcc0d1181531b3659eacc6"
+)
+
 
 def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> None:
     first = CanonicalOrganization.first_generation()
@@ -65,11 +72,12 @@ def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> Non
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert first.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert second.state_digest == MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert first.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert second.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST != E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
     assert E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V005_UNIFIED_B_RUNTIME_STATE_DIGEST

@@ -1,9 +1,10 @@
 # CURRENT — F. Software Engineering
 
 Date: 2026-09-01
-Engineering wave: v1.2.0
+Engineering wave: v1.3.0
 Unified control API: `external.software_engineering.control` v1.1.0
 Canonical Coding Claims: `external.coding.claims` v0.0.2
+Canonical Coding Patches: `external.coding.patches` v0.0.2
 Property-evidence protocol: `external.software_engineering.property_evidence` v0.1.0
 Property-gate protocol: `external.software_engineering.property_gate` v0.1.0
 Current-property-validity protocol: `external.software_engineering.current_property_validity` v0.1.0
@@ -14,9 +15,11 @@ Effect-recovery protocol: `external.software_engineering.effect_recovery` v0.1.0
 Effect-dispatch protocol: `external.software_engineering.effect_dispatch` v0.1.0
 Recovery-frontier protocol: `external.software_engineering.recovery_frontier` v0.1.0
 
-F v1.2 keeps the v1.1 truth-maintained engineering candidate plane intact and hardens the canonical Coding Claims authority beneath it. The new claim protocol makes mutable ownership currentness explicit: exclusive scope, immutable operation identity, source revision, monotonic claim epoch and atomic handoff are now distinct pieces of coordination state. Historical claim objects are not allowed to masquerade as current mutation coverage after revision or epoch drift.
+F v1.3 keeps the v1.2 epoch-fenced Coding Claims authority and the v1.1 truth-maintained engineering candidate plane intact, then hardens canonical Coding Patches. Patch identity is no longer reducible to a mutable status plus an opaque artifact id: a provenance-aware patch can bind the exact artifact digest, base source revision and immutable registration operation, and every provenance-aware status transition is represented by a content-addressed lineage receipt.
 
-The public Software Engineering control plane remains v1.1.0 because v1.2 does not reinterpret its frozen state schema or widen its authority. The canonical `external.coding.claims` component advances from v0.0.1 to v0.0.2. The historical `cogcoder.organization.code_claims` surface remains an exact public-object bridge to the canonical implementation.
+The strongest new patch result is deliberately narrow. `VERIFIED` is an immutable historical engineering fact backed by canonical compile/test attestations for the exact artifact digest and source revision. It is not mutation, merge, release, deployment, Assurance-acceptance or capability-promotion authority. Current verification is recomputed from live evidence and can reopen after evidence revocation or caller-supplied artifact/source drift without rewriting historical receipts.
+
+The public Software Engineering control plane remains v1.1.0 because v1.3 does not reinterpret its frozen state schema or widen its authority. Canonical `external.coding.patches` advances from v0.0.1 to v0.0.2. The historical `cogcoder.organization.coding_patches` module remains a bridge to the canonical public objects and now re-exports provenance and transition receipt types as well.
 
 ## Canonical authority
 
@@ -30,7 +33,7 @@ F has exactly five canonical component authorities:
 
 `software_engineering*` modules remain composition/control protocols. Property obligations are `verification_scope_only`; property witnesses are `evidence_scope_only`; property closures, property gates, property-bound terminal receipts and current-property validity receipts are `candidate_only`.
 
-Claim leases and claim-handoff receipts are `coordination_only`. They coordinate who may be treated as holding current source scope; they do not themselves mutate files, release code, deploy artifacts, accept Assurance claims, or promote capabilities.
+Claim leases and claim-handoff receipts are `coordination_only`. Patch transition receipts are fixed to `patch_transition_only`. Neither category grants repository mutation, merge, release or deployment authority.
 
 ## Governed lifecycle
 
@@ -47,7 +50,19 @@ work / source scope
      -> supersede old claim
      -> mint new claim + newer lease
      -> content-addressed coordination-only handoff receipt
-  -> patch + engineering operation_ref
+  -> register patch
+     -> legacy v0.0.1-compatible unbound patch, or
+     -> exact artifact digest + base source revision + immutable operation_ref
+     -> content-addressed PatchProvenanceEnvelope
+     -> idempotent exact-intent registration / operation-ref rebinding rejection
+     -> content-addressed transition genesis
+  -> canonical compile + test attestations for exact artifact digest/source revision
+  -> verify_patch()
+     -> content-addressed VERIFIED transition receipt
+     -> authority = patch_transition_only
+  -> live evidence revalidation + optional current artifact/source drift check
+     -> CURRENTLY VERIFIED or reopened
+  -> engineering operation_ref
   -> idempotent attempt initiation / immutable operation lineage
   -> change manifest
   -> immutable claim-state binding
@@ -79,124 +94,125 @@ work / source scope
   -> premise revocation, source drift or ownership drift reopens eligibility
 ```
 
-The architecture remains monotonic: historical Coding, Debug, UI/UX, engineering closure and property-gate receipts remain immutable. v1.2 does not mutate old claims into new claims during ownership transfer; it supersedes the old claim and emits a new claim/lease lineage.
+The architecture remains monotonic. Historical claim, patch transition, Coding, Debug, UI/UX, engineering closure and property-gate receipts remain audit facts. Current views are re-evaluated rather than rewriting historical green state.
 
-## v1.2 Coding Claims — epoch-fenced ownership
+## v1.2 Coding Claims — epoch-fenced ownership retained
 
 ### Exclusive collision semantics
 
-An `EXCLUSIVE_WRITE` claim conflicts with any overlapping active exclusive claim outside the exact same `(agent_id, task_id)` owner context. Reusing the same agent identity for a different task no longer bypasses exclusivity. File, symbol and directory-prefix overlap are all covered by the canonical conflict check.
-
-This prevents a single coding agent from silently owning overlapping exclusive scope for two independent tasks and then presenting either task as the legitimate owner of the same source region.
+An `EXCLUSIVE_WRITE` claim conflicts with any overlapping active exclusive claim outside the exact same `(agent_id, task_id)` owner context. Reusing the same agent identity for a different task does not bypass exclusivity. File, symbol and directory-prefix overlap are covered by the canonical conflict check.
 
 ### Bound claim leases
 
-A currentness-aware claim may be acquired with both:
+A currentness-aware claim may be acquired with both `source_revision` and immutable `operation_ref`. The fields are all-or-nothing. A bound acquisition produces a `CodeClaimLease` containing exact claim identity, operation ref, source revision, positive monotonic epoch, canonical claim-intent digest, `coordination_only` authority, content digest and content-addressed lease id.
 
-- `source_revision` — the exact source revision to which ownership applies;
-- `operation_ref` — an immutable idempotency key for that acquisition operation.
-
-The two fields are all-or-nothing. Supplying only one is rejected.
-
-A bound acquisition produces a `CodeClaimLease` containing:
-
-- `claim_id`;
-- immutable `operation_ref`;
-- exact `source_revision`;
-- positive monotonic `epoch`;
-- canonical claim-intent digest;
-- authority fixed to `coordination_only`;
-- content digest and content-addressed lease id.
-
-Retrying the same `operation_ref` with the same exact intent returns the existing claim without changing state. Reusing that `operation_ref` for a different claim intent fails closed.
+Retrying the same operation ref with the same exact intent returns the existing claim. Reusing it for a different claim intent fails closed.
 
 ### Current coverage
 
-Legacy `covers(...)` remains available for compatibility with unbound historical claim state. Current mutation-sensitive callers must use the epoch/revision-aware coverage path.
+Legacy `covers(...)` remains available for historical unbound state. Mutation-sensitive callers use epoch/revision-aware current coverage. `covers_current(...)` requires matching agent, task, source revision, minimum epoch and requested source scope. Historical active-looking ownership therefore cannot prove current ownership after revision or epoch drift.
 
-`covers_current(...)` only counts active claims whose lease simultaneously matches:
+### Atomic claim handoff
 
-1. the requested agent;
-2. the requested task;
-3. the exact current source revision;
-4. a lease epoch at least as new as the required minimum epoch;
-5. the requested file/symbol scope.
+Ownership transfer is a first-class atomic supersession operation. A valid handoff requires an active old claim, bound old lease, authorized actor, exact expected epoch, fresh target source revision and immutable handoff operation ref. The new claim preserves exact files, symbols, directory prefixes and claim mode. The new lease receives a strictly newer epoch. The content-addressed handoff receipt binds both old and new claim/lease lineages and remains `coordination_only`.
 
-An old active-looking claim therefore cannot prove current ownership after source revision drift or after downstream logic requires a newer ownership epoch.
+A retry with the same handoff operation ref and exact intent is idempotent. Rebinding that operation ref to another intent or using a stale epoch fails before mutation.
 
-## Atomic claim handoff
+## v1.3 Coding Patches — provenance and verified-transition authority
 
-Ownership transfer is represented as a first-class atomic supersession operation, not as an informal release followed by an unrelated new claim.
+### Patch provenance envelope
 
-A valid handoff requires:
+A provenance-aware registration supplies all three of:
 
-- an active old claim;
-- an existing bound old lease;
-- actor authorization by the old owner, `coding.chief`, or `nolane.central`;
-- exact `expected_epoch == old_lease.epoch`;
-- a fresh target source revision;
-- an immutable handoff `operation_ref`.
+- `patch_artifact_digest` — immutable digest of the patch artifact;
+- `base_source_revision` — exact source revision against which that artifact was produced;
+- `operation_ref` — immutable idempotency identity for patch registration.
 
-The new claim preserves the old claim's exact files, symbols, directory prefixes and claim mode while allowing a new agent/task owner and source revision. The new lease receives an epoch strictly greater than the old lease epoch. Only after all validation and content-addressed objects are prepared does the ledger supersede the old claim and install the new claim, lease, receipt and operation bindings.
+Supplying only a subset is rejected. The canonical `PatchProvenanceEnvelope` additionally binds producer, task, work id, plan/architecture versions, normalized touched file/symbol scope, artifact id, declared compile/test/static references, known risks and plan/architecture concern references. The content digest therefore represents the exact registration intent, not merely the artifact name.
 
-The `CodeClaimHandoffReceipt` binds both sides of the transition:
+The provenance id is content-addressed. Retrying the same `operation_ref` with the same exact provenance returns the already registered patch. Reusing that operation ref for a changed artifact digest, source revision, scope, evidence declaration or other registration intent fails closed.
 
-- old claim id, lease id/digest, source revision and epoch;
-- new claim id, lease id/digest, source revision and epoch;
-- actor identity;
-- immutable operation ref and request-intent digest;
-- authority fixed to `coordination_only`;
+Legacy v0.0.1 registration remains available when none of the three provenance fields is supplied. Compatibility state is intentionally unbound and cannot later masquerade as provenance-aware current verification.
+
+### Transition receipts
+
+Every provenance-aware patch receives a content-addressed transition genesis. Subsequent provenance-aware status changes append `PatchTransitionReceipt` records containing:
+
+- exact patch id;
+- provenance id and provenance digest;
+- positive contiguous per-patch sequence;
+- exact predecessor receipt id/digest;
+- exact from/to status;
+- canonical evidence attestation ids/digests when required;
+- fixed authority `patch_transition_only`;
 - content digest and content-addressed receipt id.
 
-A retry with the same handoff operation ref and exact intent is idempotent. Rebinding that operation ref to another intent is rejected.
+A transition receipt proves a historical Coding Patches transition only. It cannot authorize mutation, merge, release, deployment, Assurance acceptance or capability promotion.
 
-A stale epoch cannot authorize a handoff. Failure occurs before ledger mutation, preserving failure atomicity.
+### VERIFIED cannot be label-laundered
 
-## Restore and anti-laundering invariants
+Direct `set_status(..., VERIFIED)` is forbidden. `VERIFIED` is reachable only through `verify_patch(...)` with a configured canonical `EngineeringEvidenceLedger`.
 
-v1.2 restore does not trust serialized coordination metadata merely because its fields are syntactically valid.
+`CodingControlPlane.assess_readiness(...)` is an observational/control receipt, not a patch-transition authority. A clean readiness result does not mutate the patch status to `VERIFIED`; a failed readiness result does not terminalize the patch. Readiness and canonical patch verification therefore remain separate evidence/control lines.
+
+`REJECTED` and `SUPERSEDED` are terminal patch states. Once either state is recorded, neither `set_status(...)` nor `verify_patch(...)` may resurrect that patch into another state. A new attempt must mint a new patch/provenance lineage instead of rewriting terminal history.
+
+Verification requires at minimum both canonical `COMPILE` and `TEST` attestations. Every referenced attestation must simultaneously be:
+
+1. passed and live in the canonical evidence ledger;
+2. produced under the engineering verifier constraints already enforced by that ledger;
+3. bound to the exact `patch_artifact_id`;
+4. bound to the exact `patch_artifact_digest`;
+5. bound to the exact `base_source_revision`.
+
+The resulting receipt stores exact attestation ids and digests. Caller-provided strings such as historical `compile_evidence_refs` and `test_evidence_refs` can make a patch `EVIDENCE_READY` for compatibility, but cannot manufacture `VERIFIED` authority.
+
+### Historical verification versus current verification
+
+A successful verification transition is immutable history. It does not remain eternally current.
+
+`is_currently_verified(...)` revalidates the latest VERIFIED receipt against the live canonical evidence ledger. Revoking any required attestation reopens current verification while leaving the historical patch and transition receipt unchanged. The caller may additionally supply the current artifact digest and source revision; either mismatch fails closed.
+
+This distinction is intentional:
+
+- historical `patch.status == VERIFIED` records what was concluded at that transition;
+- current verification answers whether the latest evidence lineage remains live for the exact bound artifact/source state.
+
+## v1.3 restore and anti-laundering invariants
+
+v1.3 restore does not trust serialized provenance or transition metadata merely because an attacker recomputed an outer digest.
 
 It verifies:
 
-- canonical claim ids and claim counter history;
-- no conflicting active exclusive ownership;
-- unique claim lease per claim;
-- unique lease epochs;
-- lease -> claim intent lineage, including exact source revision;
-- immutable operation-ref uniqueness;
-- handoff receipt digest/id integrity;
-- old/new lease ids, digests, revisions and epochs;
-- old claim remains `SUPERSEDED`;
-- exact source-scope/mode transfer across handoff;
-- authorized handoff actor lineage;
-- handoff request-intent recomputation;
-- unique incoming handoff origin for each new claim.
+- supported snapshot version;
+- canonical provenance digest/id reproduction;
+- one immutable operation ref -> one exact provenance binding;
+- one provenance envelope -> one canonical patch owner;
+- exact candidate/provenance field equality;
+- transition digest/id integrity;
+- canonical unique evidence-id ordering;
+- VERIFIED transitions contain evidence references;
+- exact transition provenance id/digest lineage;
+- globally unique transition receipt ids;
+- contiguous per-patch transition sequence;
+- exact predecessor receipt id/digest and from-status lineage;
+- candidate status equals the transition frontier;
+- provenance-aware patches always have transition history;
+- provenance-aware VERIFIED patches terminate in a VERIFIED evidence-bearing transition;
+- when the canonical evidence ledger is available at restore, exact live evidence identity/digest and provenance binding are replayed;
+- v0.0.2 `patch_counter` equals the recorded patch-id frontier exactly.
 
-### Epoch-counter anti-inflation rule
+The exact counter rule prevents both rollback and frontier inflation. A v0.0.2 snapshot cannot raise the serialized patch counter above actual recorded patch history and thereby manufacture future id space.
 
-The ledger epoch counter is derived from recorded lease history, not an independently trusted number. For bound state, serialized `epoch_counter` must equal the maximum recorded lease epoch exactly.
+A recomputed VERIFIED transition without canonical evidence is rejected. Content-addressing protects integrity; it is not treated as semantic truth by itself.
 
-A snapshot that raises `epoch_counter` above the recorded lease frontier is rejected, just as a counter behind the recorded frontier is rejected. This closes a restore laundering path where an attacker could previously inflate the counter, make future leases jump to an invented epoch and weaken the meaning of monotonic fencing.
-
-Legacy snapshots containing no bound leases/handoffs remain restorable with their historical unbound semantics. Compatibility does not invent leases, source revisions, operation refs or epochs that did not exist historically.
+Legacy v0.0.1 snapshots remain restorable without invented provenance envelopes, transition receipts, artifact digests, source revisions, operation refs or current verification authority. A historical legacy `VERIFIED` label remains an audit-compatible legacy fact only; `is_currently_verified(...)` returns false because no v0.0.2 evidence/provenance lineage exists.
 
 ## Property evidence model retained from v1.0/v1.1
 
-The property ledger distinguishes the semantic claim being made:
+The property ledger distinguishes build integrity, functional behavior, regression preservation, debugging root cause, UI visual fidelity, UI interaction, UI accessibility, security property and performance property.
 
-- build integrity;
-- functional behavior;
-- regression preservation;
-- debugging root cause;
-- UI visual fidelity;
-- UI interaction;
-- UI accessibility;
-- security property;
-- performance property.
-
-Supported proof methods include compile/static analysis, unit/integration/property/metamorphic/regression tests, deterministic reproduction, causal probe/bisect, visual diff, responsive/accessibility checks, interaction E2E, security tests and performance benchmarks.
-
-A witness must bind the exact property and a verifier-attested oracle. Passing a generic command is not sufficient evidence for an arbitrary semantic claim.
+Supported proof methods include compile/static analysis, unit/integration/property/metamorphic/regression tests, deterministic reproduction, causal probe/bisect, visual diff, responsive/accessibility checks, interaction E2E, security tests and performance benchmarks. A witness binds the exact property and verifier-attested oracle; passing a generic command is not sufficient evidence for an arbitrary semantic claim.
 
 Claim-specific proof floors remain:
 
@@ -224,11 +240,11 @@ Historical green receipts remain audit facts. Premise revocation creates a newly
 
 ### Coding claims
 
-v1.2 strengthens Coding Claims ownership without granting claims direct repository mutation authority. A lease proves a coordination fact about current scope ownership only when revision and epoch conditions remain satisfied.
+Claim leases prove coordination facts about current source ownership only when exact revision/epoch conditions remain satisfied. They are not repository mutation authority.
 
 ### Coding patches
 
-Coding Patches ownership and mutation semantics are not redefined in this wave. Patch application remains governed by canonical Coding/F mutation controls and engineering effect protocols.
+v1.3 makes patch provenance and verification lineage explicit. An opaque artifact id or mutable `VERIFIED` label no longer suffices for provenance-aware current verification. Patch verification remains separate from claim ownership, patch application, merge, release and deployment decisions.
 
 ### Debugging
 
@@ -253,7 +269,7 @@ All crash-consistency invariants remain in force:
 
 ## State and compatibility integrity
 
-The unified Software Engineering v1.1 snapshot retains its frozen v1.0/v0.9 property state and current-property-validity substate under one outer content digest. F v1.2 changes Coding Claims state semantics independently and does not reinterpret historical Software Engineering control-plane receipts.
+The unified Software Engineering v1.1 snapshot retains its frozen v1.0/v0.9 property state and current-property-validity substate under one outer content digest. F v1.3 changes Coding Patches state semantics independently and does not reinterpret historical Software Engineering control-plane receipts or v1.2 claim leases/handoffs.
 
 Compatibility remains explicit:
 
@@ -261,12 +277,21 @@ Compatibility remains explicit:
 - Software Engineering v0.9 snapshot -> frozen v1.0 public boundary -> v1.1 current-validity lift;
 - Software Engineering v1.1 snapshot -> exact frozen-base reconstruction + current-validity semantic replay;
 - Coding Claims legacy unbound snapshot -> canonical v0.0.2 restore without invented lease/epoch state;
-- Coding Claims v0.0.2 bound snapshot -> exact lease/handoff lineage replay and exact epoch-frontier validation.
+- Coding Claims v0.0.2 bound snapshot -> exact lease/handoff lineage replay and exact epoch-frontier validation;
+- Coding Patches v0.0.1 snapshot -> compatibility restore without invented provenance/transition/current-verification authority;
+- Coding Patches v0.0.2 snapshot -> exact provenance + transition lineage replay and exact patch-counter frontier validation.
+
+The v0.0.1 positional constructor order of `CodingPatchCandidate` is preserved through its historical `status` field. v1.3 provenance fields are appended after that ABI boundary rather than inserted into older positional slots.
 
 ## Non-claims
 
-F v1.2 does not claim that:
+F v1.3 does not claim that:
 
+- a patch `VERIFIED` label grants repository mutation, merge, release or deployment authority;
+- historical legacy VERIFIED state proves current v1.3 verification;
+- content-addressed provenance or transition receipts alone prove semantic truth;
+- caller-supplied compile/test strings can manufacture canonical verification;
+- a historical VERIFIED transition remains current after evidence revocation or artifact/source drift;
 - an active historical claim automatically proves current ownership;
 - a claim lease grants repository mutation/release/deployment authority;
 - the same agent may bypass exclusive conflict by using a different task id;
@@ -279,29 +304,34 @@ F v1.2 does not claim that:
 - copied witnesses are independent evidence;
 - historical green receipts remain current after premise revocation;
 - a restored `current=True` receipt is perpetual proof without a fresh current assessment;
-- content-digest consistency alone proves semantic truth;
 - property verification grants mutation/release/deployment authority;
 - external executors provide distributed exactly-once semantics.
 
 ## Validation gates
 
-F v1.2 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
+F v1.3 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
 
 - `Coding AGI Coding Organization Part V` on Python 3.11 and 3.13;
 - `Nolane-AI Refoundation Epoch 0` on Python 3.11 and 3.13.
 
 Part V must cover at minimum:
 
-- same-agent cross-task exclusive collision rejection;
-- bound acquisition operation-ref idempotency and rebinding rejection;
-- complete revision/operation binding;
-- revision/epoch-aware current coverage;
-- atomic supersession/handoff with exact-scope transfer;
-- stale-epoch failure atomicity;
-- bound state round-trip and legacy state restore;
-- restore rejection of operation-ref rebinding and conflicting ownership;
-- restore rejection of epoch-counter inflation;
-- component-version advancement to `external.coding.claims` v0.0.2.
+- direct VERIFIED status-label laundering rejection;
+- content-bound provenance registration;
+- exact operation-ref idempotency and changed-intent rebinding rejection;
+- canonical compile + test evidence requirement;
+- exact artifact digest/source revision evidence binding;
+- historical VERIFIED transition receipt with `patch_transition_only` authority;
+- current verification reopening after evidence revocation;
+- current verification reopening after artifact/source drift;
+- candidate/provenance restore binding;
+- recomputed VERIFIED receipt without evidence rejection;
+- operation-ref/provenance tamper rejection;
+- transition frontier replay;
+- v0.0.2 patch-counter frontier inflation rejection;
+- v0.0.1 positional constructor compatibility;
+- legacy v0.0.1 snapshot restore without invented current verification authority;
+- all retained v1.2 Coding Claims regressions and earlier organization tests.
 
 Refoundation must independently verify canonical native ownership, component-version metadata, historical bridge identity, repository audit/materialization freshness, Truth/Knowledge contracts, organization/campaign/execution regressions and frozen Neural R2.3 metadata on both supported Python versions.
 
