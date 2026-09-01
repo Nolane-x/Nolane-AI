@@ -10,9 +10,11 @@ The next authority layer must preserve the existing lineage and tamper-evidence 
 
 The runtime must not infer authority from names, provenance strings, predecessor hashes, receipt content, or persisted runtime state. Authority exists only when an injected `GoalIntegrityEvolutionAuthorityVerifier` can resolve the receipt's `authority_ref` to a verifier-issued authorization proof.
 
-The verifier receives two trust inputs out of band: a bounded set of trusted root issuer identities and an authority authentication key. Neither input is learned from serialized authority state. The key authenticates grants, authorization proofs, and the complete authority-registry state; therefore recomputing a public content digest is not sufficient to forge a grant, erase revocation, inject a proof, or create a new trust anchor after restart.
+Normal verifier construction receives two trust inputs out of band: a bounded set of trusted root issuer identities and an authority authentication key. Neither input is learned from serialized authority state. The key authenticates grants, authorization proofs, and the complete authority-registry state; therefore recomputing a public content digest is not sufficient to forge a grant, erase revocation, inject a proof, or create a new trust anchor after restart.
 
-This verifier is a security boundary/service abstraction. Code permitted to invoke root-grant issuance is trusted control-plane code; ordinary integrity-contract callers receive proof references but do not acquire the authority key.
+State restoration has one additional authority input: an out-of-band `expected_state_digest` selected by a rollback-resistant checkpoint store. The serialized state cannot self-assert that it is the latest state. A valid keyed authenticator proves that a snapshot was issued by the authority, not that the snapshot is current. Consequently, freshness authority must remain outside the serialized blob just like the root configuration and authentication key.
+
+This verifier is a security boundary/service abstraction. Code permitted to invoke root-grant issuance or publish the latest rollback checkpoint is trusted control-plane code; ordinary integrity-contract callers receive proof references but do not acquire the authority key or freshness checkpoint authority.
 
 ## Capability model
 
@@ -27,7 +29,7 @@ A `GoalIntegrityEvolutionGrant` is immutable, content-addressed, and authority-a
 - delegation permission and bounded remaining delegation depth;
 - an authentication tag generated from the out-of-band authority key.
 
-A root grant can be issued only for an externally configured trusted-root issuer. A delegated grant is accepted only when its authenticated parent exists, is live-valid and non-revoked at delegation time, and the child is an attenuation of the parent: issuer equals parent subject, goal/action scope is a subset, validity is contained by the parent, and delegation depth cannot expand. Serialized state is replay-validated against structural constraints after its keyed state authenticator is verified.
+A root grant can be issued only for an externally configured trusted-root issuer. A delegated grant is accepted only when its authenticated parent exists, is live-valid and non-revoked at delegation time, and the child is an attenuation of the parent: issuer equals parent subject, goal/action scope is a subset, validity is contained by the parent, and delegation depth cannot expand. Serialized state is replay-validated against structural constraints after its keyed state authenticator and external freshness checkpoint are verified.
 
 ## Authorization proof
 
@@ -56,9 +58,19 @@ For **live authority use**, any recorded revocation anywhere in the grant's ance
 
 Expired or not-yet-valid grants cannot mint proofs or perform live delegation. Caller-supplied timestamps are not accepted for proof issuance, preventing backdating around revocation/expiry.
 
-## Persistence and migration
+## Persistence, freshness, and migration
 
-Authority registry state contains grants, immutable first-revocation timestamps, authorization proofs, a public deterministic state digest, and a keyed state authenticator. The authority key and trusted-root configuration are never serialized. Restore first verifies the public digest and keyed state authenticator, then revalidates grant authentication, delegation attenuation, revocations, proof authentication, and exact grant-chain validity at each proof's issue time.
+Authority registry state contains grants, immutable first-revocation timestamps, authorization proofs, a public deterministic state digest, and a keyed state authenticator. The authority key, trusted-root configuration, and latest-state checkpoint are never serialized.
+
+Restore is deliberately three-layered before semantic replay:
+
+1. recompute and verify the deterministic structural state digest;
+2. verify the keyed state authenticator, proving the snapshot was issued by the authority;
+3. compare that digest with the required out-of-band `expected_state_digest`, proving this is the externally selected current snapshot rather than an older authentic snapshot.
+
+Only after those checks does restore revalidate grant authentication, delegation attenuation, revocations, proof authentication, and exact grant-chain validity at each proof's issue time.
+
+This separation is required because HMAC authenticity does not imply freshness. Without the external checkpoint, an attacker able to replay storage could present an older, correctly signed pre-revocation snapshot and thereby erase a later revocation from the reconstructed authority state. `restore_state` therefore requires `expected_state_digest`; there is no implicit unsafe fallback that trusts serialized state to name itself as latest. A signed snapshot whose digest differs from the external checkpoint fails closed even when every byte and HMAC is otherwise valid.
 
 The accepted v0.2 integrity runtime and v0.1 evolution protocol are frozen into private compatibility modules before public v0.3/v0.2 layers are introduced. Public runtime state advances to schema v3.
 
@@ -66,7 +78,7 @@ The accepted v0.2 integrity runtime and v0.1 evolution protocol are frozen into 
 - v2 revisions whose receipts predate verifier-issued proofs migrate as `legacy_unverified_authority` rather than being falsely upgraded;
 - new v3 revisions are `verified_capability_authority` and require verifier proof at install and restore.
 
-Persisting a verifier proof ID never persists or fabricates verifier trust, root configuration, or the authority authentication key itself.
+Persisting a verifier proof ID never persists or fabricates verifier trust, root configuration, authority authentication key, or latest-state checkpoint.
 
 ## Runtime flow
 
@@ -81,9 +93,9 @@ For a changed non-root integrity contract:
 7. For a new mutation, additionally require current validity, no recorded revocation in the complete ancestor chain, and no verifier-clock rollback before proof issuance.
 8. Only after all checks succeed, mutate contract state and record the verified receipt.
 
-Runtime restore intentionally performs steps 1–6 rather than step 7: later revocation must close future authority without corrupting an already committed, historically authentic transition.
+Runtime restore intentionally uses historical proof validity rather than requiring currently live authority: later revocation must close future authority without corrupting an already committed, historically authentic transition. Authority-registry restore is separately protected against storage rollback by its required external digest checkpoint.
 
-Any verifier absence, unknown proof, invalid authenticator, grant-chain failure, scope mismatch, temporal failure, revocation, clock rollback, or proof/transition mismatch fails before live state mutation.
+Any verifier absence, unknown proof, invalid authenticator, state-checkpoint mismatch, grant-chain failure, scope mismatch, temporal failure, revocation, clock rollback, or proof/transition mismatch fails before live state mutation or restored authority publication.
 
 ## Acceptance criteria
 
@@ -101,7 +113,9 @@ The wave is accepted only with RED -> GREEN evidence for all of the following:
 - revoked parents cannot continue live delegation;
 - delegated grants cannot broaden parent scope, validity, or delegation depth;
 - tampered grant/proof/registry state fails restore even if its public digest is recomputed;
-- authority key material is absent from serialized state;
+- a previously valid signed snapshot cannot roll authority state back behind a newer external checkpoint;
+- restore requires an external expected state digest and does not let serialized state self-declare freshness;
+- authority key material and rollback checkpoint authority are absent from serialized state;
 - v2 persisted revisions migrate without fabricated verifier trust;
 - v3 runtime restore re-verifies historical authorization proofs without requiring currently live authority;
 - existing Goal/Design and Refoundation gates remain green.
