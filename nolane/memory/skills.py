@@ -10,7 +10,7 @@ from nolane.memory.learning_authority import LearningEvidenceAuthority
 
 
 COMPONENT_ID = "external.skills"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.evolution"
 
 
