@@ -6,6 +6,7 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.organization.events import EventLedger
 from nolane.organization.identity import AgentRegistry
 
@@ -107,9 +108,16 @@ class AttributionRecord:
 
 
 class ExperienceLedger:
-    def __init__(self, *, registry: AgentRegistry, events: EventLedger) -> None:
+    def __init__(
+        self,
+        *,
+        registry: AgentRegistry,
+        events: EventLedger,
+        learning_authority: LearningEvidenceAuthority | None = None,
+    ) -> None:
         self.registry = registry
         self.events = events
+        self.learning_authority = learning_authority
         self._experiences: dict[str, ExperienceRecord] = {}
         self._attributions: dict[str, AttributionRecord] = {}
 
@@ -181,6 +189,26 @@ class ExperienceLedger:
             )
         )
 
+    def attribution_subject_digest(
+        self,
+        experience_id: str,
+        *,
+        learning_layer: LearningLayer | str,
+        lesson: str,
+    ) -> str:
+        experience = self.get(experience_id)
+        layer = LearningLayer(learning_layer)
+        normalized_lesson = str(lesson).strip()
+        if not normalized_lesson:
+            raise ValueError("attribution lesson must be explicit")
+        return canonical_digest(
+            {
+                "experience": experience.to_state(),
+                "learning_layer": layer.value,
+                "lesson": normalized_lesson,
+            }
+        )
+
     def attribute(
         self,
         experience_id: str,
@@ -188,6 +216,7 @@ class ExperienceLedger:
         learning_layer: LearningLayer | str,
         lesson: str,
         evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
     ) -> AttributionRecord:
         experience = self.get(experience_id)
         lesson = str(lesson).strip()
@@ -219,6 +248,23 @@ class ExperienceLedger:
             verifier_agent_id=evidence.verifier_agent_id,
             evidence=evidence,
         )
+        if positive and self.learning_authority is not None:
+            if authority_lease_id is None or not str(authority_lease_id).strip():
+                raise PermissionError("positive learning attribution requires a preissued learning evidence lease")
+            self.learning_authority.consume(
+                str(authority_lease_id),
+                subject_kind="experience_attribution",
+                subject_id=experience.experience_id,
+                operation_class="experience.attribute",
+                producer_agent_id=experience.agent_id,
+                evidence=evidence,
+                subject_digest=self.attribution_subject_digest(
+                    experience.experience_id,
+                    learning_layer=layer,
+                    lesson=lesson,
+                ),
+                use_ref=attribution_id,
+            )
         existing = self._attributions.get(attribution_id)
         if existing is not None:
             if existing != row:
@@ -255,7 +301,10 @@ class ExperienceLedger:
         registry: AgentRegistry,
         events: EventLedger,
         state: Mapping[str, Any],
+        learning_authority: LearningEvidenceAuthority | None = None,
     ) -> "ExperienceLedger":
+        # Canonical replay reconstructs historical rows without minting or re-consuming
+        # capabilities; the shared authority is rebound only after replay succeeds.
         ledger = cls(registry=registry, events=events)
         seen_experience_ids: set[str] = set()
         for raw in state.get("experiences", ()):
@@ -297,6 +346,7 @@ class ExperienceLedger:
             )
             if canonical != row:
                 raise ValueError("attribution restore is not canonical")
+        ledger.learning_authority = learning_authority
         return ledger
 
 
