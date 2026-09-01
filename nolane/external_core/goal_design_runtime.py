@@ -1,9 +1,9 @@
-"""Live Goal/Design runtime with first-class assumption truth maintenance.
+"""Live Goal/Design runtime with truth maintenance and reopening authority.
 
 The stable five-plane runtime remains in ``_goal_design_runtime_base``. This
 module extends it with truth-bound admission, persistent assumption dependency
-lookup, causal truth-change invalidation, and truth-aware revalidation while
-preserving v1/v2 decision behavior.
+lookup, sensitivity-driven reopening, causal truth-change invalidation, and
+truth-aware revalidation while preserving v1/v2/v3 decision identity.
 """
 from __future__ import annotations
 
@@ -25,9 +25,13 @@ from .goal_design import (
     stable_digest,
 )
 from .goal_design_ledger import GoalDesignLedger
+from .goal_design_reopening import (
+    DecisionReopeningAuthority,
+    ReopeningDisposition,
+)
 from .goal_design_truth import AssumptionImpactReport, AssumptionTruthMaintenance
 
-__version__ = "0.4.2"
+__version__ = "0.5.0"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -44,6 +48,8 @@ class AssumptionRuntimeImpact:
     plan_refs: tuple[str, ...]
     component_refs: tuple[str, ...]
     integration_candidate_refs: tuple[str, ...]
+    reviewed_decision_ids: tuple[str, ...]
+    reopening_case_ids: tuple[str, ...]
     invalidated_decision_ids: tuple[str, ...]
     authority_event_id: str
     digest: str
@@ -83,7 +89,7 @@ class DecisionAuthorityIndex(_base.DecisionAuthorityIndex):
 
 
 class GoalDesignRuntime(_base.GoalDesignRuntime):
-    """Operational five-plane membrane plus assumption truth-maintenance seam."""
+    """Operational five-plane membrane plus truth/reopening authority seams."""
 
     def __init__(
         self,
@@ -94,6 +100,7 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         integration: Any,
         context: Any,
         truth: AssumptionTruthMaintenance | None = None,
+        reopening: DecisionReopeningAuthority | None = None,
         authority: GoalDesignCoherencePlane | None = None,
         ledger: GoalDesignLedger | None = None,
         decisions: DecisionAuthorityIndex | None = None,
@@ -111,6 +118,7 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             decisions=decisions,
         )
         self.truth = truth
+        self.reopening = reopening or DecisionReopeningAuthority()
 
     @staticmethod
     def _binding_assumption_refs(
@@ -213,13 +221,22 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             dependency_refs=dependencies,
             authority_event_id=decision_event.event_id,
         )
+        if bound_assumptions:
+            assert self.truth is not None
+            self.reopening.register_decision(
+                receipt_id=receipt.receipt_id,
+                decision_class=selected.decision_class,
+                truth=self.truth,
+                assumption_ids=bound_assumptions,
+                uncertainties=tuple(uncertainties),
+            )
         return receipt
 
     def apply_assumption_change(
         self,
         changed_assumption_ids: Iterable[str],
     ) -> AssumptionRuntimeImpact:
-        """Propagate an explicit truth change into decision lifecycle authority."""
+        """Review truth impact and invalidate only materially reopened decisions."""
 
         if self.truth is None:
             raise CoherenceError(
@@ -242,28 +259,58 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         )
 
         impacted_assumptions = set(report.affected_assumption_ids)
+        reviewed: list[str] = []
+        reopening_cases: list[str] = []
         invalidated: list[str] = []
         for record in self.decisions.active():
             receipt_refs = set(getattr(record.receipt, "assumption_refs", ()))
             overlap = tuple(sorted(impacted_assumptions.intersection(receipt_refs)))
             if not overlap:
                 continue
+            receipt_id = record.receipt.receipt_id
+            reviewed.append(receipt_id)
+
+            material_ids = overlap
+            sensitivity_reason = "historical decision lacks reopening baseline"
+            reopen_required = True
+            if self.reopening.has_baseline(receipt_id):
+                assessment = self.reopening.assess_change(
+                    receipt_id=receipt_id,
+                    truth=self.truth,
+                    affected_assumption_ids=report.affected_assumption_ids,
+                )
+                material_ids = assessment.material_assumption_ids
+                reopen_required = assessment.disposition is ReopeningDisposition.REOPEN_REQUIRED
+                sensitivity_reason = (
+                    "sensitivity-driven reopening: "
+                    f"score={assessment.sensitivity_score:.6f}, "
+                    f"threshold={assessment.reopening_threshold:.6f}, "
+                    "material=" + ", ".join(material_ids)
+                )
+                case = self.reopening.open_case(receipt_id)
+                if case is not None and reopen_required:
+                    reopening_cases.append(case.case_id)
+
+            if not reopen_required:
+                continue
+
             reasons = (
                 "assumption truth impact: " + ", ".join(overlap),
+                sensitivity_reason,
             )
-            self.decisions.mark_stale(record.receipt.receipt_id, reasons)
+            self.decisions.mark_stale(receipt_id, reasons)
             parents = tuple(
                 parent
                 for parent in (record.authority_event_id, truth_event.event_id)
                 if parent
             )
             self.ledger.record_invalidation(
-                receipt_id=record.receipt.receipt_id,
+                receipt_id=receipt_id,
                 snapshot_digest=record.snapshot_digest,
                 reasons=reasons,
                 parent_ids=parents,
             )
-            invalidated.append(record.receipt.receipt_id)
+            invalidated.append(receipt_id)
 
         payload = {
             "changed_assumption_ids": list(report.changed_assumption_ids),
@@ -272,6 +319,8 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             "plan_refs": list(report.plan_refs),
             "component_refs": list(report.component_refs),
             "integration_candidate_refs": list(report.integration_candidate_refs),
+            "reviewed_decision_ids": sorted(reviewed),
+            "reopening_case_ids": sorted(set(reopening_cases)),
             "invalidated_decision_ids": sorted(invalidated),
             "authority_event_id": truth_event.event_id,
             "truth_state_digest": self.truth.digest,
@@ -284,13 +333,15 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
             plan_refs=report.plan_refs,
             component_refs=report.component_refs,
             integration_candidate_refs=report.integration_candidate_refs,
+            reviewed_decision_ids=tuple(payload["reviewed_decision_ids"]),
+            reopening_case_ids=tuple(payload["reopening_case_ids"]),
             invalidated_decision_ids=tuple(payload["invalidated_decision_ids"]),
             authority_event_id=truth_event.event_id,
             digest=stable_digest({"goal_design_assumption_runtime_impact": payload}),
         )
 
     def revalidate_decisions(self) -> tuple[str, ...]:
-        """Revalidate both the five-plane vector and any v3 truth snapshots."""
+        """Revalidate five-plane state and sensitivity-aware v3 truth bindings."""
 
         stale = set(super().revalidate_decisions())
         for record in self.decisions.active():
@@ -313,10 +364,27 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
                     reasons = (f"assumption truth revalidation failed: {exc}",)
                 else:
                     if current_digest != bound_digest:
-                        reasons = (
-                            "assumption truth snapshot changed after decision admission: "
-                            f"{bound_digest} -> {current_digest}",
-                        )
+                        receipt_id = record.receipt.receipt_id
+                        if self.reopening.has_baseline(receipt_id):
+                            assessment = self.reopening.assess_change(
+                                receipt_id=receipt_id,
+                                truth=self.truth,
+                                affected_assumption_ids=receipt_refs,
+                            )
+                            if assessment.disposition is ReopeningDisposition.REOPEN_REQUIRED:
+                                reasons = (
+                                    "assumption truth snapshot changed materially after decision admission: "
+                                    f"{bound_digest} -> {current_digest}; "
+                                    f"sensitivity={assessment.sensitivity_score:.6f} "
+                                    f"threshold={assessment.reopening_threshold:.6f}",
+                                )
+                        else:
+                            # Historical/restored v3 decisions that predate the
+                            # reopening index remain conservative and fail closed.
+                            reasons = (
+                                "assumption truth snapshot changed after decision admission: "
+                                f"{bound_digest} -> {current_digest}",
+                            )
             if not reasons:
                 continue
             self.decisions.mark_stale(record.receipt.receipt_id, reasons)
@@ -325,4 +393,7 @@ class GoalDesignRuntime(_base.GoalDesignRuntime):
         return tuple(sorted(stale))
 
 
-__all__ = tuple(_base.__all__) + ("AssumptionRuntimeImpact",)
+__all__ = tuple(_base.__all__) + (
+    "AssumptionRuntimeImpact",
+    "DecisionReopeningAuthority",
+)
