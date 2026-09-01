@@ -8,6 +8,7 @@ from nolane.memory.adaptive_policy import MemoryRetrievalPolicy
 from nolane.memory.fabric import MemoryScope
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 from nolane.memory.skills import SkillScope
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 def _verified_personal_skill(runtime: OrganizationRuntime):
@@ -110,17 +111,7 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay_by_canonica
     runtime = OrganizationRuntime.first_generation()
     substrate = runtime.learning_substrate
 
-    anchor = substrate.remember(
-        text="runtime verified version anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.PROJECT_STATE,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("runtime-anchor-evidence",),
-        source_refs=("runtime-anchor-source",),
-        version_scope="runtime-v1",
-        salience=0.9,
-    )
+    anchor = remember_verified(substrate, evidence_id='runtime-anchor-evidence', text="runtime verified version anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.PROJECT_STATE, source_refs=("runtime-anchor-source",), version_scope="runtime-v1", salience=0.9)
     health = substrate.record_anchor_health(
         anchor.memory_id,
         actor_agent_id="verification.unit-property.01",
@@ -167,21 +158,8 @@ def test_runtime_snapshot_preserves_adaptive_memory_learning_overlay_by_canonica
 def test_runtime_snapshot_preserves_forget_authorization_ledger_and_tombstone() -> None:
     runtime = OrganizationRuntime.first_generation()
     substrate = runtime.learning_substrate
-    row = substrate.remember(
-        text="runtime memory that must remain provably forgotten after restore",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("runtime-forget-source-evidence",),
-        source_refs=("runtime-forget-source",),
-    )
-    tombstone = substrate.forget(
-        row.memory_id,
-        actor_agent_id="memory.chief",
-        reason="runtime governed forgetting",
-        evidence_refs=("runtime-forget-proof",),
-    )
+    row = remember_verified(substrate, evidence_id='runtime-forget-source-evidence', text="runtime memory that must remain provably forgotten after restore", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, source_refs=("runtime-forget-source",))
+    tombstone = forget_memory(substrate, row.memory_id, actor_agent_id="memory.chief", reason="runtime governed forgetting", evidence_id='runtime-forget-proof')
 
     state = runtime.to_state()
     lifecycle_state = state["memory_learning_lifecycle"]
