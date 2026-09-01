@@ -14,9 +14,9 @@ COMPONENT_ID = "external.reasoning_invention"
 COMPONENT_VERSION = "0.0.4"
 SCHEMA_VERSION = "reasoning-policy-evolution-v1"
 DESIGN_LINEAGE = (
-    "C10 governed metareasoning-policy evolution: constraint-only policy deltas, "
-    "disjoint development/holdout evidence, Pareto shadow evaluation, self-contained "
-    "fresh-context review provenance, and external-only adoption/rollback authority"
+    "C10 governed metareasoning-policy evolution: monotonic constraint-only policy "
+    "deltas, disjoint development/holdout evidence, Pareto shadow evaluation, "
+    "self-contained fresh-context review provenance, and external-only adoption/rollback authority"
 )
 
 
@@ -37,8 +37,10 @@ class PolicyReviewVerdict(str, Enum):
     ABSTAIN = "abstain"
 
 
-def _nonempty(value: object, name: str) -> str:
-    text = str(value).strip()
+def _text(value: object, name: str) -> str:
+    if not isinstance(value, str):
+        raise TypeError(f"{name} must be a string")
+    text = value.strip()
     if not text:
         raise ValueError(f"{name} must be non-empty")
     return text
@@ -51,7 +53,7 @@ def _sequence(value: object, name: str) -> Sequence[object]:
 
 
 def _ids(value: object, name: str, *, minimum: int = 0) -> tuple[str, ...]:
-    rows = tuple(_nonempty(row, name) for row in _sequence(value, name))
+    rows = tuple(_text(row, name) for row in _sequence(value, name))
     if len(rows) < minimum:
         raise ValueError(f"{name} must contain at least {minimum} values")
     if len(rows) != len(set(rows)):
@@ -105,7 +107,7 @@ def _identity(prefix: str, state: Mapping[str, object]) -> str:
     return f"{prefix}:{canonical_digest(dict(state))}"
 
 
-def _assert_canonical_state(state: Mapping[str, object], actual: Mapping[str, object], name: str) -> None:
+def _canonical(state: Mapping[str, object], actual: Mapping[str, object], name: str) -> None:
     if dict(state) != dict(actual):
         raise ValueError(f"non-canonical {name} state")
 
@@ -122,7 +124,7 @@ class MetareasoningPolicy:
 
     def __post_init__(self) -> None:
         revision = _positive_int(self.revision, "policy revision")
-        parent = None if self.parent_policy_id is None else _nonempty(self.parent_policy_id, "parent policy id")
+        parent = None if self.parent_policy_id is None else _text(self.parent_policy_id, "parent policy id")
         if revision == 1 and parent is not None:
             raise ValueError("root policy revision cannot have a parent")
         if revision > 1 and parent is None:
@@ -137,11 +139,7 @@ class MetareasoningPolicy:
         object.__setattr__(self, "parent_policy_id", parent)
         object.__setattr__(self, "max_remaining_actions", _nonnegative_int(self.max_remaining_actions, "max remaining actions"))
         object.__setattr__(self, "max_remaining_cost", _nonnegative_finite(self.max_remaining_cost, "max remaining cost"))
-        object.__setattr__(
-            self,
-            "minimum_actionable_gain_floor",
-            _score(self.minimum_actionable_gain_floor, "minimum actionable gain floor"),
-        )
+        object.__setattr__(self, "minimum_actionable_gain_floor", _score(self.minimum_actionable_gain_floor, "minimum actionable gain floor"))
         object.__setattr__(self, "allowed_action_kinds", kinds)
         object.__setattr__(self, "policy_id", _identity("reasoning-policy", self._semantic_state()))
 
@@ -160,7 +158,7 @@ class MetareasoningPolicy:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "MetareasoningPolicy":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported reasoning policy schema")
         row = cls(
             revision=state["revision"],
@@ -170,9 +168,9 @@ class MetareasoningPolicy:
             minimum_actionable_gain_floor=state["minimum_actionable_gain_floor"],
             allowed_action_kinds=tuple(_sequence(state.get("allowed_action_kinds", ()), "allowed action kind state")),
         )
-        if str(state.get("policy_id")) != row.policy_id:
+        if state.get("policy_id") != row.policy_id:
             raise ValueError("reasoning policy identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "reasoning policy")
+        _canonical(state, row.to_state(), "reasoning policy")
         return row
 
 
@@ -202,15 +200,15 @@ class PolicyEvidenceSplit:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyEvidenceSplit":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy evidence split schema")
         row = cls(
             development_episode_ids=tuple(_sequence(state.get("development_episode_ids", ()), "development episode state")),
             holdout_episode_ids=tuple(_sequence(state.get("holdout_episode_ids", ()), "holdout episode state")),
         )
-        if str(state.get("split_id")) != row.split_id:
+        if state.get("split_id") != row.split_id:
             raise ValueError("policy evidence split identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy evidence split")
+        _canonical(state, row.to_state(), "policy evidence split")
         return row
 
 
@@ -251,7 +249,7 @@ class PolicyMetricVector:
             residual_risk=state["residual_risk"],
             regression_count=state["regression_count"],
         )
-        _assert_canonical_state(state, row.to_state(), "policy metric vector")
+        _canonical(state, row.to_state(), "policy metric vector")
         return row
 
 
@@ -268,14 +266,14 @@ class PolicyRevisionProposal:
     proposal_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "parent_policy_id", _nonempty(self.parent_policy_id, "parent policy id"))
-        object.__setattr__(self, "candidate_policy_id", _nonempty(self.candidate_policy_id, "candidate policy id"))
+        object.__setattr__(self, "parent_policy_id", _text(self.parent_policy_id, "parent policy id"))
+        object.__setattr__(self, "candidate_policy_id", _text(self.candidate_policy_id, "candidate policy id"))
         object.__setattr__(self, "revision", _positive_int(self.revision, "proposal revision"))
         if not isinstance(self.evidence_split, PolicyEvidenceSplit):
             raise TypeError("evidence split must be PolicyEvidenceSplit")
         object.__setattr__(self, "learning_evidence_ids", _ids(self.learning_evidence_ids, "learning evidence ids", minimum=1))
-        object.__setattr__(self, "producer_agent_id", _nonempty(self.producer_agent_id, "producer agent id"))
-        object.__setattr__(self, "producer_session_id", _nonempty(self.producer_session_id, "producer session id"))
+        object.__setattr__(self, "producer_agent_id", _text(self.producer_agent_id, "producer agent id"))
+        object.__setattr__(self, "producer_session_id", _text(self.producer_session_id, "producer session id"))
         object.__setattr__(self, "rationale_ids", _ids(self.rationale_ids, "rationale ids", minimum=1))
         if self.parent_policy_id == self.candidate_policy_id:
             raise ValueError("policy proposal candidate must differ from parent")
@@ -298,7 +296,7 @@ class PolicyRevisionProposal:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyRevisionProposal":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy proposal schema")
         split_state = state.get("evidence_split")
         if not isinstance(split_state, Mapping):
@@ -313,9 +311,9 @@ class PolicyRevisionProposal:
             producer_session_id=state["producer_session_id"],
             rationale_ids=tuple(_sequence(state.get("rationale_ids", ()), "rationale state")),
         )
-        if str(state.get("proposal_id")) != row.proposal_id:
+        if state.get("proposal_id") != row.proposal_id:
             raise ValueError("policy proposal identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy proposal")
+        _canonical(state, row.to_state(), "policy proposal")
         return row
 
 
@@ -335,6 +333,14 @@ def propose_policy_revision(
         raise ValueError("candidate policy parent lineage does not match parent policy")
     if candidate.revision != parent.revision + 1:
         raise ValueError("candidate policy must advance exactly one revision")
+    if candidate.max_remaining_actions > parent.max_remaining_actions:
+        raise ValueError("candidate policy constraint cannot expand remaining actions")
+    if candidate.max_remaining_cost > parent.max_remaining_cost:
+        raise ValueError("candidate policy constraint cannot expand remaining cost")
+    if candidate.minimum_actionable_gain_floor < parent.minimum_actionable_gain_floor:
+        raise ValueError("candidate policy constraint cannot lower actionable-gain floor")
+    if not set(candidate.allowed_action_kinds).issubset(parent.allowed_action_kinds):
+        raise ValueError("candidate policy constraint cannot add action kinds")
     return PolicyRevisionProposal(
         parent_policy_id=parent.policy_id,
         candidate_policy_id=candidate.policy_id,
@@ -347,10 +353,7 @@ def propose_policy_revision(
     )
 
 
-def constrain_metareasoning_budget(
-    policy: MetareasoningPolicy,
-    caller_budget: MetareasoningBudget,
-) -> MetareasoningBudget:
+def constrain_metareasoning_budget(policy: MetareasoningPolicy, caller_budget: MetareasoningBudget) -> MetareasoningBudget:
     if not isinstance(policy, MetareasoningPolicy):
         raise TypeError("policy must be MetareasoningPolicy")
     if not isinstance(caller_budget, MetareasoningBudget):
@@ -359,10 +362,7 @@ def constrain_metareasoning_budget(
         frontier_id=caller_budget.frontier_id,
         remaining_actions=min(caller_budget.remaining_actions, policy.max_remaining_actions),
         remaining_cost=min(caller_budget.remaining_cost, policy.max_remaining_cost),
-        minimum_actionable_gain=max(
-            caller_budget.minimum_actionable_gain,
-            policy.minimum_actionable_gain_floor,
-        ),
+        minimum_actionable_gain=max(caller_budget.minimum_actionable_gain, policy.minimum_actionable_gain_floor),
     )
 
 
@@ -379,8 +379,8 @@ class PolicyShadowEvaluation:
     evaluation_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "proposal_id", _nonempty(self.proposal_id, "proposal id"))
-        object.__setattr__(self, "evidence_split_id", _nonempty(self.evidence_split_id, "evidence split id"))
+        object.__setattr__(self, "proposal_id", _text(self.proposal_id, "proposal id"))
+        object.__setattr__(self, "evidence_split_id", _text(self.evidence_split_id, "evidence split id"))
         object.__setattr__(self, "holdout_episode_ids", _ids(self.holdout_episode_ids, "holdout episode ids", minimum=2))
         if not isinstance(self.parent_metrics, PolicyMetricVector) or not isinstance(self.candidate_metrics, PolicyMetricVector):
             raise TypeError("shadow metrics must be PolicyMetricVector values")
@@ -392,8 +392,6 @@ class PolicyShadowEvaluation:
         if self.verdict is PolicyShadowVerdict.PARETO_NON_REGRESSING:
             if self.regressed_metric_ids or not self.improved_metric_ids:
                 raise ValueError("Pareto non-regressing shadow requires no regressions and at least one improvement")
-        elif not self.regressed_metric_ids and self.improved_metric_ids:
-            raise ValueError("rejected shadow with strict improvements must identify a regression")
         object.__setattr__(self, "evaluation_id", _identity("reasoning-policy-shadow", self._semantic_state()))
 
     def _semantic_state(self) -> dict[str, object]:
@@ -413,25 +411,25 @@ class PolicyShadowEvaluation:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyShadowEvaluation":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy shadow schema")
-        parent_metrics = state.get("parent_metrics")
-        candidate_metrics = state.get("candidate_metrics")
-        if not isinstance(parent_metrics, Mapping) or not isinstance(candidate_metrics, Mapping):
+        parent_state = state.get("parent_metrics")
+        candidate_state = state.get("candidate_metrics")
+        if not isinstance(parent_state, Mapping) or not isinstance(candidate_state, Mapping):
             raise TypeError("policy shadow metric states must be mappings")
         row = cls(
             proposal_id=state["proposal_id"],
             evidence_split_id=state["evidence_split_id"],
             holdout_episode_ids=tuple(_sequence(state.get("holdout_episode_ids", ()), "holdout episode state")),
-            parent_metrics=PolicyMetricVector.from_state(parent_metrics),
-            candidate_metrics=PolicyMetricVector.from_state(candidate_metrics),
-            verdict=PolicyShadowVerdict(str(state["verdict"])),
+            parent_metrics=PolicyMetricVector.from_state(parent_state),
+            candidate_metrics=PolicyMetricVector.from_state(candidate_state),
+            verdict=PolicyShadowVerdict(state["verdict"]),
             regressed_metric_ids=tuple(_sequence(state.get("regressed_metric_ids", ()), "regressed metric state")),
             improved_metric_ids=tuple(_sequence(state.get("improved_metric_ids", ()), "improved metric state")),
         )
-        if str(state.get("evaluation_id")) != row.evaluation_id:
+        if state.get("evaluation_id") != row.evaluation_id:
             raise ValueError("policy shadow identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy shadow")
+        _canonical(state, row.to_state(), "policy shadow")
         return row
 
 
@@ -451,7 +449,6 @@ def evaluate_policy_shadow(
         raise ValueError("shadow evaluation must use the exact declared holdout episode ids")
     if set(holdout) & set(proposal.evidence_split.development_episode_ids):
         raise ValueError("shadow holdout evidence must remain disjoint from development evidence")
-
     maximize = (
         ("decision_accuracy", parent_metrics.decision_accuracy, candidate_metrics.decision_accuracy),
         ("information_gain", parent_metrics.information_gain, candidate_metrics.information_gain),
@@ -462,15 +459,11 @@ def evaluate_policy_shadow(
         ("residual_risk", parent_metrics.residual_risk, candidate_metrics.residual_risk),
         ("regression_count", float(parent_metrics.regression_count), float(candidate_metrics.regression_count)),
     )
-    regressed = [name for name, parent_value, candidate_value in maximize if candidate_value < parent_value]
-    regressed.extend(name for name, parent_value, candidate_value in minimize if candidate_value > parent_value)
-    improved = [name for name, parent_value, candidate_value in maximize if candidate_value > parent_value]
-    improved.extend(name for name, parent_value, candidate_value in minimize if candidate_value < parent_value)
-    verdict = (
-        PolicyShadowVerdict.PARETO_NON_REGRESSING
-        if not regressed and improved
-        else PolicyShadowVerdict.REJECTED
-    )
+    regressed = [name for name, before, after in maximize if after < before]
+    regressed.extend(name for name, before, after in minimize if after > before)
+    improved = [name for name, before, after in maximize if after > before]
+    improved.extend(name for name, before, after in minimize if after < before)
+    verdict = PolicyShadowVerdict.PARETO_NON_REGRESSING if not regressed and improved else PolicyShadowVerdict.REJECTED
     return PolicyShadowEvaluation(
         proposal_id=proposal.proposal_id,
         evidence_split_id=proposal.evidence_split.split_id,
@@ -498,12 +491,12 @@ class PolicyReviewRequest:
     request_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "proposal_id", _nonempty(self.proposal_id, "proposal id"))
-        object.__setattr__(self, "shadow_evaluation_id", _nonempty(self.shadow_evaluation_id, "shadow evaluation id"))
-        object.__setattr__(self, "producer_agent_id", _nonempty(self.producer_agent_id, "producer agent id"))
-        object.__setattr__(self, "reviewer_agent_id", _nonempty(self.reviewer_agent_id, "reviewer agent id"))
-        object.__setattr__(self, "producer_session_id", _nonempty(self.producer_session_id, "producer session id"))
-        object.__setattr__(self, "reviewer_session_id", _nonempty(self.reviewer_session_id, "reviewer session id"))
+        object.__setattr__(self, "proposal_id", _text(self.proposal_id, "proposal id"))
+        object.__setattr__(self, "shadow_evaluation_id", _text(self.shadow_evaluation_id, "shadow evaluation id"))
+        object.__setattr__(self, "producer_agent_id", _text(self.producer_agent_id, "producer agent id"))
+        object.__setattr__(self, "reviewer_agent_id", _text(self.reviewer_agent_id, "reviewer agent id"))
+        object.__setattr__(self, "producer_session_id", _text(self.producer_session_id, "producer session id"))
+        object.__setattr__(self, "reviewer_session_id", _text(self.reviewer_session_id, "reviewer session id"))
         packet = _ids(self.evidence_packet_ids, "evidence packet ids", minimum=2)
         context = _ids(self.review_context_ids, "review context ids", minimum=2)
         withheld = _ids(self.withheld_rationale_ids, "withheld rationale ids", minimum=1)
@@ -543,7 +536,7 @@ class PolicyReviewRequest:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyReviewRequest":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy review request schema")
         row = cls(
             proposal_id=state["proposal_id"],
@@ -557,9 +550,9 @@ class PolicyReviewRequest:
             withheld_rationale_ids=tuple(_sequence(state.get("withheld_rationale_ids", ()), "withheld rationale state")),
             required_check_ids=tuple(_sequence(state.get("required_check_ids", ()), "required check state")),
         )
-        if str(state.get("request_id")) != row.request_id:
+        if state.get("request_id") != row.request_id:
             raise ValueError("policy review request identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy review request")
+        _canonical(state, row.to_state(), "policy review request")
         return row
 
 
@@ -587,10 +580,10 @@ class PolicyReviewReceipt:
     receipt_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "proposal_id", _nonempty(self.proposal_id, "proposal id"))
-        object.__setattr__(self, "shadow_evaluation_id", _nonempty(self.shadow_evaluation_id, "shadow evaluation id"))
-        object.__setattr__(self, "reviewer_agent_id", _nonempty(self.reviewer_agent_id, "reviewer agent id"))
-        object.__setattr__(self, "reviewer_session_id", _nonempty(self.reviewer_session_id, "reviewer session id"))
+        object.__setattr__(self, "proposal_id", _text(self.proposal_id, "proposal id"))
+        object.__setattr__(self, "shadow_evaluation_id", _text(self.shadow_evaluation_id, "shadow evaluation id"))
+        object.__setattr__(self, "reviewer_agent_id", _text(self.reviewer_agent_id, "reviewer agent id"))
+        object.__setattr__(self, "reviewer_session_id", _text(self.reviewer_session_id, "reviewer session id"))
         object.__setattr__(self, "verdict", PolicyReviewVerdict(self.verdict))
         checks = _ids(self.completed_check_ids, "completed check ids", minimum=1)
         reproduced = _ids(self.reproduced_evidence_ids, "reproduced evidence ids", minimum=1)
@@ -602,16 +595,12 @@ class PolicyReviewReceipt:
         object.__setattr__(self, "objection_ids", objections)
         object.__setattr__(self, "gaming_finding_ids", gaming)
         object.__setattr__(self, "leakage_finding_ids", leakage)
-        object.__setattr__(self, "reason", _nonempty(self.reason, "review reason"))
-
-        # Contradiction checks precede provenance checks so a forged green verdict
-        # cannot hide blockers behind a second validation failure.
+        object.__setattr__(self, "reason", _text(self.reason, "review reason"))
         if self.verdict is PolicyReviewVerdict.SUPPORTED_FOR_ADOPTION and (objections or gaming or leakage):
             raise ValueError("supported review cannot contain objections, gaming findings, or leakage findings")
-
-        request_id = _nonempty(self.request_id, "fresh-context request id")
-        producer_agent = _nonempty(self.producer_agent_id, "fresh-context producer agent id")
-        producer_session = _nonempty(self.producer_session_id, "fresh-context producer session id")
+        request_id = _text(self.request_id, "fresh-context request id")
+        producer_agent = _text(self.producer_agent_id, "fresh-context producer agent id")
+        producer_session = _text(self.producer_session_id, "fresh-context producer session id")
         packet = _ids(self.evidence_packet_ids, "receipt evidence packet ids", minimum=2)
         context = _ids(self.review_context_ids, "receipt review context ids", minimum=2)
         withheld = _ids(self.withheld_rationale_ids, "receipt withheld rationale ids", minimum=1)
@@ -667,14 +656,14 @@ class PolicyReviewReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyReviewReceipt":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy review receipt schema")
         row = cls(
             proposal_id=state["proposal_id"],
             shadow_evaluation_id=state["shadow_evaluation_id"],
             reviewer_agent_id=state["reviewer_agent_id"],
             reviewer_session_id=state["reviewer_session_id"],
-            verdict=PolicyReviewVerdict(str(state["verdict"])),
+            verdict=PolicyReviewVerdict(state["verdict"]),
             completed_check_ids=tuple(_sequence(state.get("completed_check_ids", ()), "completed check state")),
             reproduced_evidence_ids=tuple(_sequence(state.get("reproduced_evidence_ids", ()), "reproduced evidence state")),
             objection_ids=tuple(_sequence(state.get("objection_ids", ()), "objection state")),
@@ -689,11 +678,11 @@ class PolicyReviewReceipt:
             withheld_rationale_ids=tuple(_sequence(state.get("withheld_rationale_ids", ()), "receipt withheld rationale state")),
             required_check_ids=tuple(_sequence(state.get("required_check_ids", ()), "receipt required check state")),
         )
-        if str(state.get("authority")) != row.authority:
+        if state.get("authority") != row.authority:
             raise ValueError("policy review authority does not match advisory-only contract")
-        if str(state.get("receipt_id")) != row.receipt_id:
+        if state.get("receipt_id") != row.receipt_id:
             raise ValueError("policy review receipt identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy review receipt")
+        _canonical(state, row.to_state(), "policy review receipt")
         return row
 
 
@@ -745,19 +734,15 @@ class ExternalPolicyAuthorization:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "operation", PolicyOperation(self.operation))
-        object.__setattr__(self, "source_policy_id", _nonempty(self.source_policy_id, "source policy id"))
-        object.__setattr__(self, "target_policy_id", _nonempty(self.target_policy_id, "target policy id"))
-        object.__setattr__(self, "decision_artifact_id", _nonempty(self.decision_artifact_id, "decision artifact id"))
-        issuer_component = _nonempty(self.issuer_component_id, "issuer component id")
+        object.__setattr__(self, "source_policy_id", _text(self.source_policy_id, "source policy id"))
+        object.__setattr__(self, "target_policy_id", _text(self.target_policy_id, "target policy id"))
+        object.__setattr__(self, "decision_artifact_id", _text(self.decision_artifact_id, "decision artifact id"))
+        issuer_component = _text(self.issuer_component_id, "issuer component id")
         if issuer_component == COMPONENT_ID:
             raise ValueError("reasoning policy change requires external authorization authority")
         object.__setattr__(self, "issuer_component_id", issuer_component)
-        object.__setattr__(self, "issuer_authority_id", _nonempty(self.issuer_authority_id, "issuer authority id"))
-        object.__setattr__(
-            self,
-            "authorization_evidence_ids",
-            _ids(self.authorization_evidence_ids, "authorization evidence ids", minimum=1),
-        )
+        object.__setattr__(self, "issuer_authority_id", _text(self.issuer_authority_id, "issuer authority id"))
+        object.__setattr__(self, "authorization_evidence_ids", _ids(self.authorization_evidence_ids, "authorization evidence ids", minimum=1))
         if self.source_policy_id == self.target_policy_id:
             raise ValueError("authorization source and target policies must differ")
         object.__setattr__(self, "authorization_id", _identity("reasoning-policy-authorization", self._semantic_state()))
@@ -778,10 +763,10 @@ class ExternalPolicyAuthorization:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "ExternalPolicyAuthorization":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy authorization schema")
         row = cls(
-            operation=PolicyOperation(str(state["operation"])),
+            operation=PolicyOperation(state["operation"]),
             source_policy_id=state["source_policy_id"],
             target_policy_id=state["target_policy_id"],
             decision_artifact_id=state["decision_artifact_id"],
@@ -789,9 +774,9 @@ class ExternalPolicyAuthorization:
             issuer_authority_id=state["issuer_authority_id"],
             authorization_evidence_ids=tuple(_sequence(state.get("authorization_evidence_ids", ()), "authorization evidence state")),
         )
-        if str(state.get("authorization_id")) != row.authorization_id:
+        if state.get("authorization_id") != row.authorization_id:
             raise ValueError("policy authorization identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy authorization")
+        _canonical(state, row.to_state(), "policy authorization")
         return row
 
 
@@ -807,12 +792,12 @@ class PolicyAdoptionReceipt:
     receipt_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "source_policy_id", _nonempty(self.source_policy_id, "source policy id"))
-        object.__setattr__(self, "adopted_policy_id", _nonempty(self.adopted_policy_id, "adopted policy id"))
-        object.__setattr__(self, "proposal_id", _nonempty(self.proposal_id, "proposal id"))
-        object.__setattr__(self, "shadow_evaluation_id", _nonempty(self.shadow_evaluation_id, "shadow evaluation id"))
-        object.__setattr__(self, "review_receipt_id", _nonempty(self.review_receipt_id, "review receipt id"))
-        object.__setattr__(self, "authorization_id", _nonempty(self.authorization_id, "authorization id"))
+        object.__setattr__(self, "source_policy_id", _text(self.source_policy_id, "source policy id"))
+        object.__setattr__(self, "adopted_policy_id", _text(self.adopted_policy_id, "adopted policy id"))
+        object.__setattr__(self, "proposal_id", _text(self.proposal_id, "proposal id"))
+        object.__setattr__(self, "shadow_evaluation_id", _text(self.shadow_evaluation_id, "shadow evaluation id"))
+        object.__setattr__(self, "review_receipt_id", _text(self.review_receipt_id, "review receipt id"))
+        object.__setattr__(self, "authorization_id", _text(self.authorization_id, "authorization id"))
         if self.source_policy_id == self.adopted_policy_id:
             raise ValueError("adoption source and target policies must differ")
         object.__setattr__(self, "receipt_id", _identity("reasoning-policy-adoption", self._semantic_state()))
@@ -833,7 +818,7 @@ class PolicyAdoptionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyAdoptionReceipt":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy adoption receipt schema")
         row = cls(
             source_policy_id=state["source_policy_id"],
@@ -843,11 +828,11 @@ class PolicyAdoptionReceipt:
             review_receipt_id=state["review_receipt_id"],
             authorization_id=state["authorization_id"],
         )
-        if str(state.get("authority")) != row.authority:
+        if state.get("authority") != row.authority:
             raise ValueError("policy adoption authority does not match receipt-only contract")
-        if str(state.get("receipt_id")) != row.receipt_id:
+        if state.get("receipt_id") != row.receipt_id:
             raise ValueError("policy adoption receipt identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy adoption receipt")
+        _canonical(state, row.to_state(), "policy adoption receipt")
         return row
 
 
@@ -860,17 +845,12 @@ def apply_authorized_policy_revision(
     review: PolicyReviewReceipt,
     authorization: ExternalPolicyAuthorization,
 ) -> PolicyAdoptionReceipt:
-    if not all(
-        (
-            isinstance(parent, MetareasoningPolicy),
-            isinstance(candidate, MetareasoningPolicy),
-            isinstance(proposal, PolicyRevisionProposal),
-            isinstance(shadow, PolicyShadowEvaluation),
-            isinstance(review, PolicyReviewReceipt),
-            isinstance(authorization, ExternalPolicyAuthorization),
-        )
-    ):
-        raise TypeError("policy adoption requires canonical policy-evolution artifacts")
+    if not isinstance(parent, MetareasoningPolicy) or not isinstance(candidate, MetareasoningPolicy):
+        raise TypeError("policy adoption requires canonical policy values")
+    if not isinstance(proposal, PolicyRevisionProposal) or not isinstance(shadow, PolicyShadowEvaluation):
+        raise TypeError("policy adoption requires canonical proposal and shadow artifacts")
+    if not isinstance(review, PolicyReviewReceipt) or not isinstance(authorization, ExternalPolicyAuthorization):
+        raise TypeError("policy adoption requires canonical review and authorization artifacts")
     if candidate.parent_policy_id != parent.policy_id or candidate.revision != parent.revision + 1:
         raise ValueError("candidate policy lineage does not match parent")
     if proposal.parent_policy_id != parent.policy_id or proposal.candidate_policy_id != candidate.policy_id:
@@ -911,10 +891,10 @@ class PolicyRollbackReceipt:
     receipt_id: str = field(init=False)
 
     def __post_init__(self) -> None:
-        object.__setattr__(self, "rolled_back_policy_id", _nonempty(self.rolled_back_policy_id, "rolled back policy id"))
-        object.__setattr__(self, "restored_policy_id", _nonempty(self.restored_policy_id, "restored policy id"))
-        object.__setattr__(self, "adoption_receipt_id", _nonempty(self.adoption_receipt_id, "adoption receipt id"))
-        object.__setattr__(self, "authorization_id", _nonempty(self.authorization_id, "authorization id"))
+        object.__setattr__(self, "rolled_back_policy_id", _text(self.rolled_back_policy_id, "rolled back policy id"))
+        object.__setattr__(self, "restored_policy_id", _text(self.restored_policy_id, "restored policy id"))
+        object.__setattr__(self, "adoption_receipt_id", _text(self.adoption_receipt_id, "adoption receipt id"))
+        object.__setattr__(self, "authorization_id", _text(self.authorization_id, "authorization id"))
         if self.rolled_back_policy_id == self.restored_policy_id:
             raise ValueError("rollback source and restored policies must differ")
         object.__setattr__(self, "receipt_id", _identity("reasoning-policy-rollback", self._semantic_state()))
@@ -933,7 +913,7 @@ class PolicyRollbackReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, object]) -> "PolicyRollbackReceipt":
-        if str(state.get("schema_version")) != SCHEMA_VERSION:
+        if state.get("schema_version") != SCHEMA_VERSION:
             raise ValueError("unsupported policy rollback receipt schema")
         row = cls(
             rolled_back_policy_id=state["rolled_back_policy_id"],
@@ -941,11 +921,11 @@ class PolicyRollbackReceipt:
             adoption_receipt_id=state["adoption_receipt_id"],
             authorization_id=state["authorization_id"],
         )
-        if str(state.get("authority")) != row.authority:
+        if state.get("authority") != row.authority:
             raise ValueError("policy rollback authority does not match receipt-only contract")
-        if str(state.get("receipt_id")) != row.receipt_id:
+        if state.get("receipt_id") != row.receipt_id:
             raise ValueError("policy rollback receipt identity does not match canonical content")
-        _assert_canonical_state(state, row.to_state(), "policy rollback receipt")
+        _canonical(state, row.to_state(), "policy rollback receipt")
         return row
 
 
