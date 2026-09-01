@@ -67,7 +67,7 @@ A concrete tool returning success is not enough to commit. `OrganizationExecutio
 7. External/irreversible failure is degraded unless domain-specific compensation is proven.
 8. A committed idempotency key never re-invokes the side effect.
 9. Lifecycle receipts are append-only and hash-chained. Modern persisted `ActionRecord` state is content-addressed and cross-checked against lifecycle events; schema-1 records created before record digests existed may omit that local digest only when the lifecycle projection itself validates, and are enriched with a digest when reserialized.
-10. Modern lease acquisition, renewal, and revocation bind lease identity into immutable lifecycle evidence (`lease:<id>` and, for renewals, `previous-lease:<id>`). Historical pre-binding schema-1 lease events remain loadable under their weaker compatibility semantics; E does not claim retroactive proof they never recorded.
+10. Modern lease acquisition, renewal, and revocation bind lease identity into immutable lifecycle evidence (`lease:<id>` and, for renewals, `previous-lease:<id>`). A persisted lease cannot be rebound by recomputing only its local identifier and record digest. Historical pre-binding schema-1 lease events remain loadable under their weaker compatibility semantics; E does not claim retroactive proof they never recorded.
 11. E never performs candidate selection or strategic authorization.
 12. Canonical execution control may infer only the minimum compatibility mapping needed to classify an already-selected tool action as read/local/external execution; it does not perform candidate or strategic reasoning.
 13. Transactional ledger state is part of canonical execution-control persistence and is restored across runtime restart.
