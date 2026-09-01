@@ -8,6 +8,7 @@ import pytest
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.acting_protocol import (
+    ActionBudget,
     ActionPhase,
     ActingProtocolLedger,
     EffectClass,
@@ -209,6 +210,11 @@ def test_noncommitted_terminal_replay_never_exports_core_outputs(tmp_path: Path)
         postconditions=("core-outcome-evidenced",),
         idempotency_key="replay-key-v1",
         recovery_plan="restore isolated workspace checkpoint",
+        budget=ActionBudget(
+            max_attempts=1,
+            max_local_mutations=1,
+            max_external_effects=0,
+        ),
         core_contract_digest="",
         workspace_epoch_id=epoch_id,
     )
