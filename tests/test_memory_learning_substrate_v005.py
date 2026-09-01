@@ -5,6 +5,7 @@ from types import SimpleNamespace
 import pytest
 
 from nolane.memory.fabric import MemoryFabric, MemoryScope, MemoryStatus
+from tests.memory_learning_authority_helpers import admit_memory, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -77,13 +78,13 @@ def test_learning_substrate_retrieval_excludes_expired_and_conflicting_lower_aut
         valid_until="2026-08-01T00:00:00+00:00",
         version_scope="<4",
     )
-    current = substrate.remember(
+    current = remember_verified(
+        substrate,
         text="API v4 removed legacy_id",
         owner_agent_id="memory.chief",
         scope=MemoryScope.PERSONAL,
         kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-new",),
+        evidence_id="evidence-new",
         confidence=0.99,
         valid_from="2026-08-01T00:00:00+00:00",
         version_scope=">=4",
@@ -106,22 +107,23 @@ def test_learning_substrate_retrieval_excludes_expired_and_conflicting_lower_aut
 
 
 def test_forgetting_archives_content_but_keeps_tombstone_lineage() -> None:
-    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+    from nolane.memory.learning_substrate import LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    row = substrate.remember(
+    row = remember_verified(
+        substrate,
         text="stale project decision",
         owner_agent_id="memory.chief",
         scope=MemoryScope.PERSONAL,
         kind=MemoryKind.DECISION,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-1",),
+        evidence_id="evidence-1",
     )
-    tombstone = substrate.forget(
-        row.memory_id,
+    tombstone = forget_memory(
+        substrate,
+        row,
         actor_agent_id="memory.worker",
         reason="superseded_version",
-        evidence_refs=("evidence-2",),
+        evidence_id="evidence-2",
     )
     assert substrate.memory.get(row.memory_id).status is MemoryStatus.ARCHIVED
     assert tombstone.memory_id == row.memory_id
@@ -142,7 +144,7 @@ def test_skill_persistence_requires_executed_regression_and_causal_ablation_evid
         body="revalidate anchors before use",
     )
     verifier = EvidenceRecord("evidence-verifier", "memory.worker", True, false_accepts=0, regressions=0)
-    substrate.skills.verify(skill.skill_id, verifier)
+    verify_skill(substrate, skill.skill_id, verifier)
 
     with pytest.raises(PermissionError, match="executed regression evidence"):
         substrate.promote_skill(skill.skill_id, SkillScope.PERSONAL)
@@ -192,16 +194,16 @@ def test_skill_validation_rejects_evidence_family_laundering() -> None:
 
 
 def test_memory_lifecycle_transition_matrix_blocks_terminal_resurrection() -> None:
-    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
+    from nolane.memory.learning_substrate import LearningSubstrate, MemoryKind
 
     substrate = LearningSubstrate(registry=_RegistryStub(), events=_EventStub())
-    row = substrate.remember(
+    row = remember_verified(
+        substrate,
         text="version-bound fact",
         owner_agent_id="memory.chief",
         scope=MemoryScope.PERSONAL,
         kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-initial",),
+        evidence_id="evidence-initial",
     )
     substrate.decay_memory(
         row.memory_id,
@@ -209,19 +211,15 @@ def test_memory_lifecycle_transition_matrix_blocks_terminal_resurrection() -> No
         reason="freshness_window_elapsed",
         evidence_refs=("evidence-stale",),
     )
-    substrate.validate_memory(
-        row.memory_id,
-        actor_agent_id="memory.chief",
-        evidence_refs=("evidence-revalidated",),
-        correction_ref="correction-revalidated",
-    )
+    row = admit_memory(substrate, row, evidence_id="evidence-revalidated")
     assert substrate.memory.get(row.memory_id).status is MemoryStatus.ACTIVE
 
-    substrate.forget(
-        row.memory_id,
+    forget_memory(
+        substrate,
+        row,
         actor_agent_id="memory.worker",
         reason="retention_policy",
-        evidence_refs=("evidence-forget",),
+        evidence_id="evidence-forget",
     )
     with pytest.raises(PermissionError, match="forbidden memory lifecycle transition"):
         substrate.lifecycle.transition(
@@ -233,21 +231,21 @@ def test_memory_lifecycle_transition_matrix_blocks_terminal_resurrection() -> No
             correction_ref="correction-resurrection",
         )
 
-    incumbent = substrate.remember(
+    incumbent = remember_verified(
+        substrate,
         text="old governed fact",
         owner_agent_id="memory.chief",
         scope=MemoryScope.PERSONAL,
         kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-old",),
+        evidence_id="evidence-old",
     )
-    substrate.remember(
+    remember_verified(
+        substrate,
         text="replacement governed fact",
         owner_agent_id="memory.chief",
         scope=MemoryScope.PERSONAL,
         kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-replacement",),
+        evidence_id="evidence-replacement",
         supersedes=incumbent.memory_id,
     )
     assert substrate.memory.get(incumbent.memory_id).status is MemoryStatus.SUPERSEDED
