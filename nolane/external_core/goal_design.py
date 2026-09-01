@@ -20,7 +20,7 @@ from .goal_design_stress import (
     StressWorldEvidence,
 )
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 
 
 def _refs(values: Iterable[str]) -> tuple[str, ...]:
@@ -101,6 +101,17 @@ def _base_option(option: DesignOption) -> _base.DesignOption:
 class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
     """Cross-plane coherence authority with truth and stress admission gates."""
 
+    def __init__(
+        self,
+        *,
+        irreversible_uncertainty_threshold: float = 0.55,
+        stress: GoalDesignStressAuthority | None = None,
+    ) -> None:
+        super().__init__(
+            irreversible_uncertainty_threshold=irreversible_uncertainty_threshold
+        )
+        self.stress = stress or GoalDesignStressAuthority()
+
     def admit_decision(
         self,
         *,
@@ -179,11 +190,8 @@ class GoalDesignCoherencePlane(_base.GoalDesignCoherencePlane):
                     "Goal/Design admission blocked by stress authority: "
                     "costly or irreversible decision requires quantified stress token"
                 )
-            stress = GoalDesignStressAuthority(
-                default_policy=stress_policy or StressPolicy()
-            )
             try:
-                verified = stress.verify_token(
+                verified = self.stress.verify_token(
                     stress_token,
                     goal=goal,
                     scenarios=scenarios,
