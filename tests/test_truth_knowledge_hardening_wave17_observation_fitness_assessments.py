@@ -173,3 +173,37 @@ def test_a17_fitness_projection_is_unassessed_until_exact_current_result_is_asse
     assert ledger.projection_digest(
         (fitness_requirement,), observation_results=results
     ) != before
+
+
+def test_a17_new_observation_result_snapshot_reopens_fitness_qualification():
+    _, claim = _claim()
+    requirement, fitness_requirement, evidence, results, first = _observed(claim)
+    ledger = ObservationFitnessAssessmentLedger()
+    ledger.register(
+        ObservationFitnessAssessmentRevision.create(
+            fitness_requirement=fitness_requirement,
+            observation_result=first,
+            fitness=ObservationFitness.FIT,
+            assessor_id="calibration-controller",
+            method_digest="sha256:method-v1",
+            basis_digests=("sha256:calibration-proof",),
+        ),
+        observation_results=results,
+    )
+    assert ledger.projection_state(
+        (fitness_requirement,), observation_results=results
+    )["requirements"][0]["status"] == "fit"
+
+    second = results.register(
+        ObservationResultRevision.create(
+            requirement=requirement,
+            revision=2,
+            predecessor_digest=first.digest,
+            outcome=ObservationOutcome.OBSERVED,
+            evidence=evidence.get(first.evidence_id),
+        ),
+        evidence=evidence,
+    )
+    reopened = ledger.projection_state((fitness_requirement,), observation_results=results)
+    assert reopened["requirements"][0]["status"] == "unassessed"
+    assert reopened["requirements"][0]["observation_result_digest"] == second.digest
