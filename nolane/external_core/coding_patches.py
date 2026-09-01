@@ -868,6 +868,9 @@ class CodingPatchLedger:
                 provenance_owners[row.provenance_id] = row.patch_id
             ledger._patches[row.patch_id] = row
 
+        if set(ledger._provenance) != set(provenance_owners):
+            raise ValueError("patch provenance must have exactly one canonical patch owner")
+
         grouped: dict[str, list[PatchTransitionReceipt]] = {}
         seen_transition_ids: set[str] = set()
         for value in state.get("transitions", ()):
@@ -877,7 +880,10 @@ class CodingPatchLedger:
             seen_transition_ids.add(receipt.receipt_id)
             if receipt.patch_id not in ledger._patches:
                 raise ValueError("patch transition references unknown patch")
-            provenance = ledger._provenance.get(receipt.provenance_id)
+            patch = ledger._patches[receipt.patch_id]
+            if not patch.provenance_id or receipt.provenance_id != patch.provenance_id:
+                raise ValueError("patch transition provenance binding mismatch")
+            provenance = ledger._provenance.get(patch.provenance_id)
             if provenance is None or provenance.digest != receipt.provenance_digest:
                 raise ValueError("patch transition provenance binding mismatch")
             grouped.setdefault(receipt.patch_id, []).append(receipt)
