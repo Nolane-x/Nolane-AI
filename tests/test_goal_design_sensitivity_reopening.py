@@ -79,28 +79,47 @@ def _admit(
     uncertainties=(),
 ):
     snapshot = runtime.freeze()
+    nontrivial = decision_class in {
+        DecisionClass.COSTLY_REVERSIBLE,
+        DecisionClass.IRREVERSIBLE,
+    }
+    scenarios = (
+        DesignScenario("base", tags=(("adversarial",) if nontrivial else ())),
+    )
+    options = [
+        DesignOption(
+            "option:sensitivity-reopening",
+            "Sensitivity-aware option",
+            {"base": 0.9},
+            {},
+            decision_class,
+            rollback_ref=(
+                "rollback:sensitivity-reopening"
+                if decision_class is not DecisionClass.IRREVERSIBLE
+                else None
+            ),
+            assumption_refs=("asm:core",),
+        )
+    ]
+    if nontrivial:
+        options.append(
+            DesignOption(
+                "option:sensitivity-alternative",
+                "Explicit reversible alternative",
+                {"base": 0.7},
+                {},
+                DecisionClass.REVERSIBLE,
+                assumption_refs=("asm:core",),
+            )
+        )
     return runtime.admit(
         goal=GoalSpec(
             "goal:sensitivity-reopening",
             "Preserve decision validity under material truth change",
             assumption_refs=("asm:core",),
         ),
-        scenarios=(DesignScenario("base"),),
-        options=(
-            DesignOption(
-                "option:sensitivity-reopening",
-                "Sensitivity-aware option",
-                {"base": 0.9},
-                {},
-                decision_class,
-                rollback_ref=(
-                    "rollback:sensitivity-reopening"
-                    if decision_class is not DecisionClass.IRREVERSIBLE
-                    else None
-                ),
-                assumption_refs=("asm:core",),
-            ),
-        ),
+        scenarios=scenarios,
+        options=tuple(options),
         selected_option_id="option:sensitivity-reopening",
         snapshot=snapshot,
         uncertainties=tuple(uncertainties),
@@ -216,7 +235,7 @@ def test_irreversible_high_criticality_contestation_reopens_under_lower_threshol
         affected_assumption_ids=("asm:core",),
     )
 
-    assert truth.assess("asm:core").status is AssumptionStatus.CONTESTED
+    assert truth.assessment("asm:core").status is AssumptionStatus.CONTESTED
     assert assessment.disposition is ReopeningDisposition.REOPEN_REQUIRED
     assert assessment.sensitivity_score > assessment.reopening_threshold
 
