@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.acting.protocol"
-COMPONENT_VERSION = "0.1.5"
+COMPONENT_VERSION = "0.1.6"
 PROTOCOL_SCHEMA_VERSION = 1
 
 
@@ -376,6 +376,7 @@ class ActionRecord:
     precondition_evidence_refs: tuple[str, ...] = ()
     outcome_ref: str = ""
     outcome_success: bool | None = None
+    outcome_digest: str = ""
     postcondition_evidence_refs: tuple[str, ...] = ()
     verifier_level: VerifierLevel = VerifierLevel.V0
     attempts: int = 0
@@ -391,7 +392,7 @@ class ActionRecord:
         return self.contract.action_id
 
     def _state_payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             "contract": self.contract.to_state(),
             "phase": self.phase.value,
             "lease": None if self.lease is None else self.lease.to_state(),
@@ -409,6 +410,9 @@ class ActionRecord:
             "failure_reason": self.failure_reason,
             "event_receipt_ids": list(self.event_receipt_ids),
         }
+        if self.outcome_digest:
+            payload["outcome_digest"] = self.outcome_digest
+        return payload
 
     @property
     def digest(self) -> str:
@@ -428,6 +432,7 @@ class ActionRecord:
             precondition_evidence_refs=tuple(str(x) for x in state.get("precondition_evidence_refs", ())),
             outcome_ref=str(state.get("outcome_ref", "")),
             outcome_success=state.get("outcome_success"),
+            outcome_digest=str(state.get("outcome_digest", "")),
             postcondition_evidence_refs=tuple(str(x) for x in state.get("postcondition_evidence_refs", ())),
             verifier_level=VerifierLevel(int(state.get("verifier_level", 0))),
             attempts=int(state.get("attempts", 0)),
@@ -744,6 +749,7 @@ class ActingProtocolLedger:
         outcome_ref: str,
         success: bool,
         now_ms: int,
+        outcome_digest: str = "",
     ) -> ActionRecord:
         del now_ms  # observation/recovery must remain possible after lease expiry
         row = self.get(action_id)
@@ -751,14 +757,19 @@ class ActingProtocolLedger:
         ref = str(outcome_ref).strip()
         if not ref:
             raise ValueError("outcome reference is required")
+        authority_digest = str(outcome_digest).strip()
+        payload: dict[str, Any] = {"success": bool(success)}
+        if authority_digest:
+            payload["outcome_digest"] = authority_digest
         return self._append_event(
             row,
             phase=ActionPhase.OUTCOME_OBSERVED,
             event_type="outcome_observed",
             evidence_refs=(ref,),
-            payload={"success": bool(success)},
+            payload=payload,
             outcome_ref=ref,
             outcome_success=bool(success),
+            outcome_digest=authority_digest,
         )
 
     @staticmethod
@@ -811,12 +822,15 @@ class ActingProtocolLedger:
         ref = str(commit_ref).strip()
         if not ref:
             raise ValueError("commit reference is required")
+        payload: dict[str, Any] = {"outcome_ref": row.outcome_ref}
+        if row.outcome_digest:
+            payload["outcome_digest"] = row.outcome_digest
         return self._append_event(
             row,
             phase=ActionPhase.COMMITTED,
             event_type="committed",
             evidence_refs=(ref,),
-            payload={"outcome_ref": row.outcome_ref},
+            payload=payload,
             commit_ref=ref,
         )
 
@@ -1095,12 +1109,15 @@ class ActingProtocolLedger:
 
         outcome = self._single_event(history, "outcome_observed")
         if outcome is None:
-            if row.outcome_ref or row.outcome_success is not None:
+            if row.outcome_ref or row.outcome_success is not None or row.outcome_digest:
                 raise ValueError("action record outcome disagrees with lifecycle events")
         else:
             if row.outcome_success is None or outcome.evidence_refs != (row.outcome_ref,):
                 raise ValueError("action record outcome disagrees with lifecycle event")
-            expected_payload = canonical_digest({"success": bool(row.outcome_success)})
+            outcome_payload: dict[str, Any] = {"success": bool(row.outcome_success)}
+            if row.outcome_digest:
+                outcome_payload["outcome_digest"] = row.outcome_digest
+            expected_payload = canonical_digest(outcome_payload)
             if outcome.payload_digest != expected_payload:
                 raise ValueError("action record outcome result disagrees with lifecycle event")
 
@@ -1127,7 +1144,10 @@ class ActingProtocolLedger:
         else:
             if committed.evidence_refs != (row.commit_ref,):
                 raise ValueError("action record commit reference disagrees with lifecycle event")
-            if committed.payload_digest != canonical_digest({"outcome_ref": row.outcome_ref}):
+            commit_payload: dict[str, Any] = {"outcome_ref": row.outcome_ref}
+            if row.outcome_digest:
+                commit_payload["outcome_digest"] = row.outcome_digest
+            if committed.payload_digest != canonical_digest(commit_payload):
                 raise ValueError("action record commit outcome disagrees with lifecycle event")
 
         rolled_back = self._single_event(history, "rolled_back")
