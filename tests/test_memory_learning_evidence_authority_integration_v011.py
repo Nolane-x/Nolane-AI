@@ -9,6 +9,7 @@ from nolane.external_core.evidence import EvidenceRecord
 from nolane.external_core.self_model import SelfModelRegistry
 from nolane.memory.experience import ExperienceLedger, ExperienceOutcome, LearningLayer
 from nolane.memory.learning_authority import LearningEvidenceAuthority
+from nolane.memory.skills import SkillEvolutionEngine
 
 
 class _RegistryStub:
@@ -226,12 +227,61 @@ def test_self_model_lease_becomes_stale_after_any_committed_model_revision() -> 
         )
 
 
+def test_bound_skill_positive_verification_requires_exact_lease_and_stales_parallel_lease() -> None:
+    authority = LearningEvidenceAuthority()
+    skills = SkillEvolutionEngine(learning_authority=authority)
+    skill = skills.propose(
+        owner_agent_id="producer",
+        region="memory-context-knowledge",
+        name="verified strategy",
+        body="apply only after independent verification",
+    )
+    first_evidence = _evidence("evidence-skill-first")
+    first_digest = skills.verification_subject_digest(skill.skill_id)
+    first = authority.issue(
+        subject_kind="skill",
+        subject_id=skill.skill_id,
+        operation_class="skill.verify",
+        producer_agent_id="producer",
+        evidence=first_evidence,
+        subject_digest=first_digest,
+    )
+    stale_evidence = _evidence("evidence-skill-stale")
+    stale = authority.issue(
+        subject_kind="skill",
+        subject_id=skill.skill_id,
+        operation_class="skill.verify",
+        producer_agent_id="producer",
+        evidence=stale_evidence,
+        subject_digest=first_digest,
+    )
+
+    with pytest.raises(PermissionError, match="preissued learning evidence lease"):
+        skills.verify(skill.skill_id, first_evidence)
+
+    verified = skills.verify(
+        skill.skill_id,
+        first_evidence,
+        authority_lease_id=first.lease_id,
+    )
+    assert verified.evidence == (first_evidence,)
+    assert len(authority.uses_for(first.lease_id)) == 1
+
+    with pytest.raises(PermissionError, match="exact learning operation"):
+        skills.verify(
+            skill.skill_id,
+            stale_evidence,
+            authority_lease_id=stale.lease_id,
+        )
+
+
 def test_runtime_b_graph_shares_one_learning_evidence_authority_and_restores_it() -> None:
     runtime = OrganizationRuntime.first_generation()
     authority = runtime.learning_substrate.learning_authority
 
     assert authority is not None
     assert runtime.learning_substrate.experiences.learning_authority is authority
+    assert runtime.evolution.learning_authority is authority
     assert runtime.individual_evolution.learning_authority is authority
     assert runtime.individual_evolution.experiences.learning_authority is authority
     assert runtime.individual_evolution.self_models.learning_authority is authority
@@ -240,6 +290,7 @@ def test_runtime_b_graph_shares_one_learning_evidence_authority_and_restores_it(
     restored = OrganizationRuntime.from_state(state)
     restored_authority = restored.learning_substrate.learning_authority
     assert restored_authority is not None
+    assert restored.evolution.learning_authority is restored_authority
     assert restored.individual_evolution.learning_authority is restored_authority
     assert restored.individual_evolution.experiences.learning_authority is restored_authority
     assert restored.individual_evolution.self_models.learning_authority is restored_authority
