@@ -4,7 +4,9 @@ from dataclasses import dataclass, replace
 import re
 from typing import Any, Mapping
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.learning_authority import LearningEvidenceAuthority
 from nolane.organization.identity import AgentRegistry
 
 COMPONENT_ID = "external.self_model"
@@ -85,8 +87,15 @@ class SelfModel:
 
 
 class SelfModelRegistry:
-    def __init__(self, registry: AgentRegistry, *, initialize: bool = True) -> None:
+    def __init__(
+        self,
+        registry: AgentRegistry,
+        *,
+        initialize: bool = True,
+        learning_authority: LearningEvidenceAuthority | None = None,
+    ) -> None:
         self.registry = registry
+        self.learning_authority = learning_authority
         self._models: dict[str, SelfModel] = {}
         self._revisions: dict[str, int] = {}
         if initialize:
@@ -109,6 +118,64 @@ class SelfModelRegistry:
         if evidence.verifier_agent_id == str(agent_id):
             raise PermissionError("self-model improvement requires evidence external to the producer")
 
+    def _mutation_subject_digest(
+        self,
+        agent_id: str,
+        *,
+        operation_class: str,
+        proposed_change: Mapping[str, Any],
+    ) -> str:
+        return canonical_digest(
+            {
+                "current_self_model": self.get(agent_id).to_state(),
+                "operation_class": str(operation_class),
+                "proposed_change": dict(proposed_change),
+            }
+        )
+
+    def competence_subject_digest(self, agent_id: str, *, domain: str, score: float) -> str:
+        normalized_domain = str(domain).strip()
+        if not normalized_domain:
+            raise ValueError("competence domain must be explicit")
+        value = float(score)
+        if not 0.0 <= value <= 1.0:
+            raise ValueError("competence score must lie in [0, 1]")
+        return self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.update_competence",
+            proposed_change={"domain": normalized_domain, "score": value},
+        )
+
+    def _authorize_mutation(
+        self,
+        agent_id: str,
+        *,
+        operation_class: str,
+        evidence: EvidenceRecord,
+        subject_digest: str,
+        authority_lease_id: str | None,
+        use_ref: str,
+    ) -> None:
+        authority = self.learning_authority
+        if authority is None:
+            return
+        if authority_lease_id is None or not str(authority_lease_id).strip():
+            raise PermissionError("self-model improvement requires a preissued learning evidence lease")
+        authority.consume(
+            str(authority_lease_id),
+            subject_kind="self_model",
+            subject_id=str(agent_id),
+            operation_class=operation_class,
+            producer_agent_id=str(agent_id),
+            evidence=evidence,
+            subject_digest=subject_digest,
+            use_ref=use_ref,
+        )
+
+    def _next_version(self, agent_id: str) -> str:
+        revision = self._revisions.get(str(agent_id), 1) + 1
+        return f"self-model-{revision:08d}"
+
     def _commit(self, agent_id: str, evidence: EvidenceRecord, **changes: Any) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
         old = self.get(agent_id)
@@ -125,57 +192,178 @@ class SelfModelRegistry:
             self.registry.set_self_model_version(row.agent_id, row.version)
         return row
 
-    def update_competence(self, agent_id: str, *, domain: str, score: float, evidence: EvidenceRecord) -> SelfModel:
+    def update_competence(
+        self,
+        agent_id: str,
+        *,
+        domain: str,
+        score: float,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
-        if not 0.0 <= float(score) <= 1.0:
+        value = float(score)
+        if not 0.0 <= value <= 1.0:
             raise ValueError("competence score must lie in [0, 1]")
         domain = str(domain).strip()
         if not domain:
             raise ValueError("competence domain must be explicit")
+        digest = self.competence_subject_digest(agent_id, domain=domain, score=value)
+        next_version = self._next_version(agent_id)
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.update_competence",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=next_version,
+        )
         values = dict(self.get(agent_id).domain_competence)
-        values[domain] = float(score)
+        values[domain] = value
         return self._commit(agent_id, evidence, domain_competence=tuple(sorted(values.items())))
 
-    def update_tool_competence(self, agent_id: str, *, tool: str, score: float, evidence: EvidenceRecord) -> SelfModel:
+    def update_tool_competence(
+        self,
+        agent_id: str,
+        *,
+        tool: str,
+        score: float,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
-        if not 0.0 <= float(score) <= 1.0:
+        value = float(score)
+        if not 0.0 <= value <= 1.0:
             raise ValueError("tool competence score must lie in [0, 1]")
         tool = str(tool).strip()
         if not tool:
             raise ValueError("tool identity must be explicit")
+        digest = self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.update_tool_competence",
+            proposed_change={"tool": tool, "score": value},
+        )
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.update_tool_competence",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=self._next_version(agent_id),
+        )
         values = dict(self.get(agent_id).tool_competence)
-        values[tool] = float(score)
+        values[tool] = value
         return self._commit(agent_id, evidence, tool_competence=tuple(sorted(values.items())))
 
-    def record_failure_mode(self, agent_id: str, *, failure_mode: str, evidence: EvidenceRecord) -> SelfModel:
+    def record_failure_mode(
+        self,
+        agent_id: str,
+        *,
+        failure_mode: str,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
         value = str(failure_mode).strip()
         if not value:
             raise ValueError("failure mode must be explicit")
         old = self.get(agent_id)
+        digest = self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.record_failure_mode",
+            proposed_change={"failure_mode": value},
+        )
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.record_failure_mode",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=self._next_version(agent_id),
+        )
         return self._commit(agent_id, evidence, failure_modes=tuple(dict.fromkeys(old.failure_modes + (value,))))
 
-    def record_blind_spot(self, agent_id: str, *, blind_spot: str, evidence: EvidenceRecord) -> SelfModel:
+    def record_blind_spot(
+        self,
+        agent_id: str,
+        *,
+        blind_spot: str,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
         value = str(blind_spot).strip()
         if not value:
             raise ValueError("blind spot must be explicit")
         old = self.get(agent_id)
+        digest = self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.record_blind_spot",
+            proposed_change={"blind_spot": value},
+        )
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.record_blind_spot",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=self._next_version(agent_id),
+        )
         return self._commit(agent_id, evidence, blind_spots=tuple(dict.fromkeys(old.blind_spots + (value,))))
 
-    def update_calibration(self, agent_id: str, *, calibration: float, evidence: EvidenceRecord) -> SelfModel:
+    def update_calibration(
+        self,
+        agent_id: str,
+        *,
+        calibration: float,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
         value = float(calibration)
         if not 0.0 <= value <= 1.0:
             raise ValueError("self-model calibration must lie in [0, 1]")
+        digest = self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.update_calibration",
+            proposed_change={"calibration": value},
+        )
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.update_calibration",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=self._next_version(agent_id),
+        )
         return self._commit(agent_id, evidence, calibration=value)
 
-    def trust_skill(self, agent_id: str, *, skill_id: str, evidence: EvidenceRecord) -> SelfModel:
+    def trust_skill(
+        self,
+        agent_id: str,
+        *,
+        skill_id: str,
+        evidence: EvidenceRecord,
+        authority_lease_id: str | None = None,
+    ) -> SelfModel:
         self._require_external_valid_evidence(agent_id, evidence)
         value = str(skill_id).strip()
         if not value:
             raise ValueError("trusted skill id must be explicit")
         old = self.get(agent_id)
+        digest = self._mutation_subject_digest(
+            agent_id,
+            operation_class="self_model.trust_skill",
+            proposed_change={"skill_id": value},
+        )
+        self._authorize_mutation(
+            agent_id,
+            operation_class="self_model.trust_skill",
+            evidence=evidence,
+            subject_digest=digest,
+            authority_lease_id=authority_lease_id,
+            use_ref=self._next_version(agent_id),
+        )
         return self._commit(agent_id, evidence, trusted_skill_ids=tuple(dict.fromkeys(old.trusted_skill_ids + (value,))))
 
     def to_state(self) -> dict[str, Any]:
@@ -185,8 +373,14 @@ class SelfModelRegistry:
         }
 
     @classmethod
-    def from_state(cls, registry: AgentRegistry, state: Mapping[str, Any]) -> "SelfModelRegistry":
-        result = cls(registry, initialize=False)
+    def from_state(
+        cls,
+        registry: AgentRegistry,
+        state: Mapping[str, Any],
+        *,
+        learning_authority: LearningEvidenceAuthority | None = None,
+    ) -> "SelfModelRegistry":
+        result = cls(registry, initialize=False, learning_authority=learning_authority)
         seen: set[str] = set()
         for value in state.get("models", ()):
             row = SelfModel.from_state(value)
