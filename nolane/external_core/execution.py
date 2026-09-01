@@ -15,6 +15,7 @@ from nolane.external_core.execution_types import (
     ExecutionActionKind,
     ExecutionBudget,
     ExecutionCounters,
+    InferenceRequest,
 )
 from nolane.external_core.execution_workspace import RepositoryWorkspace
 from nolane.external_core.invokable import ExternalCoreRegistry
@@ -25,7 +26,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.8"
+COMPONENT_VERSION = "0.0.9"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -576,6 +577,42 @@ class OrganizationExecutionControlPlane:
             return ''
         return self.external_cores.get(str(tool_id)).contract_digest
 
+    @staticmethod
+    def _attest_decision_receipt(
+        receipt: AgentDecisionReceipt,
+        *,
+        request: InferenceRequest,
+        backend: AgentInferenceBackend,
+    ) -> AgentDecisionReceipt:
+        try:
+            canonical = AgentDecisionReceipt.from_state(receipt.to_state())
+        except Exception as exc:
+            raise ValueError('decision receipt integrity validation failed') from exc
+        if canonical != receipt:
+            raise ValueError('decision receipt integrity validation failed')
+
+        expected = {
+            'backend_id': str(backend.backend_id),
+            'request_digest': request.digest,
+            'agent_id': request.agent_id,
+            'neural_version': request.neural_version,
+            'checkpoint_digest': request.checkpoint_digest,
+            'encoder_version': request.encoder_version,
+            'context_digest': request.context_digest,
+            'action_schema_digest': request.action_schema_digest,
+            'step_index': request.step_index,
+        }
+        mismatches = [
+            field
+            for field, expected_value in expected.items()
+            if getattr(canonical, field, None) != expected_value
+        ]
+        if mismatches:
+            raise ValueError(
+                'decision receipt authority mismatch: ' + ', '.join(mismatches)
+            )
+        return canonical
+
     def bind_backend(self, agent_id: str, backend: AgentInferenceBackend) -> None:
         identity = self.registry.get(agent_id)
         if not str(backend.backend_id).strip() or not str(backend.checkpoint_digest).strip():
@@ -828,7 +865,11 @@ class OrganizationExecutionControlPlane:
             step_index=session.step_index,
             checkpoint_digest=session.checkpoint_digest,
         )
-        decision = backend.decide(request)
+        decision = self._attest_decision_receipt(
+            backend.decide(request),
+            request=request,
+            backend=backend,
+        )
         if decision.receipt_id in self._decisions and self._decisions[decision.receipt_id] != decision:
             raise ValueError('decision receipt id collision')
         self._decisions[decision.receipt_id] = decision
