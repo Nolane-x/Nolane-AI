@@ -122,12 +122,14 @@ def test_forget_of_prearchived_memory_binds_existing_terminal_archive_receipt() 
         reason="retention_window_closed",
         evidence_refs=("archive-proof",),
     )
+    receipts_before_forget = substrate.lifecycle.receipts_for(row.memory_id)
     tombstone = forget_memory(substrate, row.memory_id, actor_agent_id="memory.chief", reason="later governed forgetting", evidence_id='forget-proof')
 
     assert tombstone.actor_agent_id == "memory.chief"
     assert tombstone.archive_receipt_id == archive.receipt_id
     assert tombstone.forget_receipt_id == "memory-forget-00000001"
-    assert substrate.lifecycle.receipts_for(row.memory_id) == (archive,)
+    assert receipts_before_forget[-1] == archive
+    assert substrate.lifecycle.receipts_for(row.memory_id) == receipts_before_forget
     restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state(), learning_authority=authority_copy(substrate))
     assert restored.tombstone(row.memory_id) == tombstone
 

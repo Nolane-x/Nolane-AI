@@ -109,17 +109,18 @@ def test_compaction_target_digest_ignores_later_lifecycle_status_changes() -> No
     from nolane.memory.learning_substrate import LearningSubstrate
 
     substrate, compacted, receipt = _compacted_substrate()
-    substrate.decay_memory(
+    substrate.lifecycle.transition(
         compacted.memory_id,
         actor_agent_id="memory.worker",
-        reason="freshness window elapsed",
-        evidence_refs=("freshness-observation",),
+        new_status=MemoryStatus.CONTRADICTED,
+        reason="later contradictory observation",
+        evidence_refs=("contradiction-observation",),
     )
     state = substrate.to_state()
 
     restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
-    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.STALE
+    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.CONTRADICTED
     assert tuple(row.memory_id for row in restored.reconstruct_compaction(receipt.compaction_id)) == receipt.source_memory_ids
 
 

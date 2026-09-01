@@ -97,7 +97,9 @@ def test_compaction_preserves_epistemic_type_and_raw_reconstructability() -> Non
         evidence_refs=("compaction-review",),
     )
 
-    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.VERIFIED
+    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert substrate.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert receipt.epistemic_type == EpistemicType.HYPOTHESIS.value
     assert substrate.memory.get(first.memory_id).status is MemoryStatus.ACTIVE
     assert substrate.memory.get(second.memory_id).status is MemoryStatus.ACTIVE
     assert receipt.source_memory_ids == tuple(sorted((first.memory_id, second.memory_id)))

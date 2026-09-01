@@ -549,6 +549,18 @@ class LearningSubstrate:
             last_verified_ref=evidence.evidence_id,
             source_refs=tuple(sorted(set(metadata.source_refs + (evidence.evidence_id,)))),
         )
+        admitted = self.memory.get(row.memory_id)
+        if admitted.supersedes is not None:
+            incumbent = self.memory.get(admitted.supersedes)
+            if incumbent.status is MemoryStatus.ACTIVE:
+                self.lifecycle.transition(
+                    incumbent.memory_id,
+                    actor_agent_id=actor.agent_id,
+                    new_status=MemoryStatus.SUPERSEDED,
+                    reason=f"superseded by {admitted.memory_id}",
+                    evidence_refs=(evidence.evidence_id,),
+                    correction_ref=use.receipt_id,
+                )
         return self.memory.get(row.memory_id)
 
     def decay_memory(
@@ -999,11 +1011,12 @@ class LearningSubstrate:
             last_verified_ref=evidence[0] if epistemic_type is EpistemicType.VERIFIED else None,
             salience=max(row.salience for row in metadata_rows),
         )
+        compacted_epistemic_type = self.metadata(compacted.memory_id).epistemic_type
         receipt = MemoryCompactionReceipt(
             source_memory_ids=source_ids,
             compacted_memory_id=compacted.memory_id,
             source_digest=self._compaction_source_digest(source_ids),
-            epistemic_type=epistemic_type.value,
+            epistemic_type=compacted_epistemic_type.value,
             actor_agent_id=actor,
             evidence_refs=evidence,
             compacted_digest=self._compaction_target_digest(compacted.memory_id),
@@ -1368,8 +1381,16 @@ class LearningSubstrate:
         epistemic_types = {row.epistemic_type for row in source_metadata}
         if len(epistemic_types) != 1:
             raise ValueError("memory compaction restore cannot mix epistemic type classes")
-        epistemic_type = next(iter(epistemic_types))
-        if receipt.epistemic_type != epistemic_type.value or compacted_metadata.epistemic_type is not epistemic_type:
+        source_epistemic_type = next(iter(epistemic_types))
+        expected_compacted_epistemic_type = (
+            EpistemicType.HYPOTHESIS
+            if source_epistemic_type is EpistemicType.VERIFIED
+            else source_epistemic_type
+        )
+        if (
+            receipt.epistemic_type != expected_compacted_epistemic_type.value
+            or compacted_metadata.epistemic_type is not expected_compacted_epistemic_type
+        ):
             raise ValueError("memory compaction restore epistemic type mismatch")
         regions = {row.region for row in source_rows}
         tasks = {row.task_id for row in source_rows}

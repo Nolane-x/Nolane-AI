@@ -133,7 +133,7 @@ def test_restore_rejects_snapshot_tombstone_without_archival_lifecycle_authority
         estimated_units=0,
     )
 
-    with pytest.raises(ValueError, match="memory tombstone requires archived lifecycle authority"):
+    with pytest.raises(ValueError, match="restored memory status disagrees with lifecycle history"):
         LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 

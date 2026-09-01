@@ -25,16 +25,41 @@ def authority_copy(substrate):
     return authority.from_state(authority.to_state())
 
 
+def _registered_independent_verifier(substrate, producer_agent_id: str, preferred: str | None = None) -> str:
+    candidates = (
+        preferred,
+        "memory.worker",
+        "memory.chief",
+        "memory.lifecycle.01",
+        "memory.context-compiler.01",
+        "memory.knowledge-graph.01",
+        "verification.unit-property.01",
+        "verification.chief",
+    )
+    for candidate in candidates:
+        if candidate is None or str(candidate) == str(producer_agent_id):
+            continue
+        try:
+            substrate.registry.get(str(candidate))
+        except KeyError:
+            continue
+        return str(candidate)
+    raise KeyError("no registered independent verifier is available for historical Memory/Learning contract")
+
+
 def admit_memory(
     substrate,
     memory_or_id,
     *,
     evidence_id: str,
     actor_agent_id: str = "memory.chief",
-    verifier_agent_id: str = "memory.worker",
+    verifier_agent_id: str | None = None,
 ):
     memory_id = str(getattr(memory_or_id, "memory_id", memory_or_id))
     row = substrate.memory.get(memory_id)
+    verifier_agent_id = _registered_independent_verifier(
+        substrate, row.owner_agent_id, verifier_agent_id
+    )
     evidence = clean_evidence(evidence_id, verifier_agent_id=verifier_agent_id)
     digest = substrate.memory_verification_subject_digest(
         memory_id,
@@ -77,8 +102,9 @@ def forget_memory(
 ):
     memory_id = str(getattr(memory_or_id, "memory_id", memory_or_id))
     actor_agent_id = str(actor_agent_id)
-    if verifier_agent_id is None:
-        verifier_agent_id = "memory.chief" if actor_agent_id == "memory.worker" else "memory.worker"
+    verifier_agent_id = _registered_independent_verifier(
+        substrate, actor_agent_id, verifier_agent_id
+    )
     evidence = clean_evidence(evidence_id, verifier_agent_id=verifier_agent_id)
     digest = substrate.forget_subject_digest(
         memory_id,
