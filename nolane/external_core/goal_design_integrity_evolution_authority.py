@@ -16,7 +16,7 @@ from .goal_design import stable_digest
 from ._goal_design_integrity_evolution_v01 import assess_goal_integrity_evolution
 from .goal_design_integrity import GoalIntegrityContract
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
 
 AUTHORITY_STATE_SCHEMA_VERSION = 1
 GOAL_INTEGRITY_EVOLUTION_ACTION = "goal_integrity_contract_evolution"
@@ -618,7 +618,10 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         trusted_root_issuers: Iterable[str],
         authority_key: bytes | bytearray | memoryview,
         clock: Callable[[], int],
+        expected_state_digest: str,
     ) -> "GoalIntegrityEvolutionAuthorityVerifier":
+        """Restore only the authenticated state selected by an external checkpoint."""
+
         verifier = cls(
             trusted_root_issuers=trusted_root_issuers,
             authority_key=authority_key,
@@ -639,6 +642,12 @@ class GoalIntegrityEvolutionAuthorityVerifier:
         expected_tag = _mac(verifier._authority_key, "state", digest)
         if not hmac.compare_digest(str(state.get("state_auth_tag", "")), expected_tag):
             raise ValueError("Goal/Design evolution authority state authenticator mismatch")
+        checkpoint = _ref("expected_state_digest", expected_state_digest)
+        if not hmac.compare_digest(digest, checkpoint):
+            raise ValueError(
+                "Goal/Design evolution authority rollback checkpoint mismatch; "
+                "serialized state is authentic but is not the externally selected snapshot"
+            )
 
         for row in payload["grants"]:
             grant = _grant_from_state(row)
