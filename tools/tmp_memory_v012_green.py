@@ -110,6 +110,7 @@ new = '''def _registered_independent_verifier(substrate, producer_agent_id: str,
     candidates = (
         preferred,
         "memory.worker",
+        "memory.chief",
         "memory.lifecycle.01",
         "memory.context-compiler.01",
         "memory.knowledge-graph.01",
