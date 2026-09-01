@@ -46,6 +46,27 @@ def _compacted_substrate():
     return substrate, compacted, receipt
 
 
+def test_verified_source_compaction_roundtrips_as_unadmitted_candidate() -> None:
+    from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate
+
+    substrate, compacted, receipt = _compacted_substrate()
+
+    assert substrate.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert substrate.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert receipt.epistemic_type == EpistemicType.HYPOTHESIS.value
+
+    restored = LearningSubstrate.from_state(
+        registry=_RegistryStub(),
+        events=_EventStub(),
+        state=substrate.to_state(),
+        learning_authority=authority_copy(substrate),
+    )
+
+    assert restored.memory.get(compacted.memory_id).status is MemoryStatus.QUARANTINED
+    assert restored.metadata(compacted.memory_id).epistemic_type is EpistemicType.HYPOTHESIS
+    assert restored.compaction_receipt(receipt.compaction_id) == receipt
+
+
 def test_restore_rejects_compacted_target_text_tampering() -> None:
     from nolane.memory.learning_substrate import LearningSubstrate
 
