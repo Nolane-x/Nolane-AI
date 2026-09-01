@@ -170,6 +170,7 @@ def _is_empty_experience_state(state: Mapping[str, Any]) -> bool:
 def _bind_downstream_authority(runtime, bound: LearningSubstrate) -> None:
     authority = bound.learning_authority
     individual = runtime.individual_evolution
+    runtime.evolution.learning_authority = authority
     individual.learning_authority = authority
     individual.experiences.learning_authority = authority
     individual.self_models.learning_authority = authority
