@@ -12,7 +12,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.experience"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.experience"
 
 
