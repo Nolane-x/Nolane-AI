@@ -104,7 +104,7 @@ def _ready(native, *, library: CognitiveLibrary | None = None, display_name: str
 def test_wave5ax_native_capability_acquisition_public_boundary_and_no_reverse_imports() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.capability_acquisition"
-    assert native.COMPONENT_VERSION == "0.0.1"
+    assert native.COMPONENT_VERSION == "0.0.2"
     assert native.MIGRATED_FROM == "cogcoder R2.55 hardened capability-acquisition lineage"
     for name in (
         "CapabilityKind",
@@ -243,7 +243,30 @@ def test_wave5ax_library_baseline_drift_and_unauthorized_receipts_fail_closed() 
             ),
         ),
     )
-    library.register_family(drift_family)
+    drift_governor = native.CapabilityAcquisitionGovernor(library)
+    drift_candidate = native.CapabilityCandidate.for_operator_family(drift_family)
+    drift_governor.admit(drift_candidate)
+    drift_governor.begin_probation(drift_candidate.candidate_id)
+    drift_evidence = ("independent:drift", "challenge:drift")
+    drift_governor.record_probation(
+        drift_candidate.candidate_id,
+        evidence_ids=drift_evidence,
+        independent_passed=True,
+        challenge_passed=True,
+        reliability=0.95,
+    )
+    drift_receipt = _promotion_receipt(
+        receipt_id="assurance-promotion-library-drift",
+        candidate_id=drift_candidate.candidate_id,
+        evidence_ids=drift_evidence,
+        predecessor_version=library.digest,
+    )
+    drift_governor.promote(
+        drift_candidate.candidate_id,
+        assurance=_assurance_plane(drift_receipt),
+        receipt=drift_receipt,
+    )
+
     drifted = _promotion_receipt(
         receipt_id="assurance-promotion-drifted",
         candidate_id=candidate.candidate_id,
@@ -294,8 +317,6 @@ def test_wave5ax_retrieval_firewall_revokes_promoted_capability_after_live_failu
     assert governor.retrievable_ids() == ()
     with pytest.raises(PermissionError):
         governor.retrieve(candidate.candidate_id)
-    # CognitiveLibrary is append-only; the acquisition firewall is therefore the
-    # authority boundary that makes the rolled-back capability non-actionable.
     assert library.family("wave5ax_candidate") == _family()
 
 
@@ -308,15 +329,19 @@ def test_wave5ax_snapshot_roundtrip_is_deterministic_and_rejects_tampering() -> 
         evidence_ids=evidence_ids,
         predecessor_version=library.digest,
     )
-    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
+    assurance = _assurance_plane(receipt)
+    governor.promote(candidate.candidate_id, assurance=assurance, receipt=receipt)
 
     state = governor.to_state()
     encoded = json.dumps(state, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    restored_library = CognitiveLibrary.from_state(json.loads(json.dumps(library.to_state())))
+    restored_library = CognitiveLibrary.from_state(
+        json.loads(json.dumps(library.to_state())),
+        assurance=assurance,
+    )
     restored = native.CapabilityAcquisitionGovernor.from_state(
         json.loads(encoded),
         library=restored_library,
-        assurance=_assurance_plane(receipt),
+        assurance=assurance,
     )
     assert json.dumps(
         restored.to_state(), sort_keys=True, separators=(",", ":"), ensure_ascii=False
@@ -345,8 +370,8 @@ def test_wave5ax_authority_version_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.capability_acquisition"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.capability_acquisition")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.capability_acquisition")) == "0.0.2"
     assert any("r255" in source for source in row.legacy_sources)
 
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))

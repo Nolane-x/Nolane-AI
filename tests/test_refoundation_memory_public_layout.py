@@ -62,7 +62,7 @@ def test_memory_public_modules_have_independent_component_ownership() -> None:
         retrieval: ("external.memory.retrieval", "0.0.4"),
         context: ("external.context", "0.0.1"),
         experience: ("external.experience", "0.0.3"),
-        skills: ("external.skills", "0.0.4"),
+        skills: ("external.skills", "0.0.5"),
     }
     for module, (component_id, component_version) in expected.items():
         assert module.COMPONENT_ID == component_id

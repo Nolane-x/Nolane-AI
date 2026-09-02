@@ -33,14 +33,14 @@ def test_wave5au_canonical_cognitive_library_owns_typed_operator_vocabulary_and_
     catalog = importlib.import_module("nolane.external_core.cognitive_catalog")
 
     assert library_module.COMPONENT_ID == "external.cognitive_library"
-    assert library_module.COMPONENT_VERSION == "0.0.1"
+    assert library_module.COMPONENT_VERSION == "0.0.2"
     assert library_module.MIGRATED_FROM == "cogcoder R2.53/R2.56/R2.57 cognitive-library lineage"
 
     for module, names in (
         (operators, ("Expr", "Field", "Const", "Unary", "Binary", "IfElse", "evaluate_expr", "expr_digest", "enumerate_expressions")),
         (vocabulary, ("TemplateParam", "AbstractionCall", "LearnedAbstraction", "CognitiveVocabulary", "make_abstraction", "expand_expr", "evaluate_with_vocabulary")),
         (catalog, ("SubOperatorDescriptor", "OperatorFamilyDescriptor", "build_default_externalization_catalog")),
-        (library_module, ("CognitiveLibrary",)),
+        (library_module, ("CognitiveLibrary", "CognitiveCapabilityDescriptor", "LibraryFitReport", "CognitiveVocabularyView")),
     ):
         for name in names:
             assert hasattr(module, name), f"missing canonical cognitive-library object: {module.__name__}.{name}"
@@ -118,7 +118,7 @@ def test_wave5au_library_snapshot_is_deterministic_roundtrippable_and_fail_close
     vocabulary = importlib.import_module("nolane.external_core.cognitive_vocabulary")
     catalog = importlib.import_module("nolane.external_core.cognitive_catalog")
 
-    library = library_module.CognitiveLibrary.with_defaults()
+    defaults = library_module.CognitiveLibrary.with_defaults()
     abstraction = vocabulary.make_abstraction(
         operators.Binary("add", vocabulary.TemplateParam(0), operators.Const(1)),
         parameter_count=1,
@@ -126,7 +126,10 @@ def test_wave5au_library_snapshot_is_deterministic_roundtrippable_and_fail_close
         raw_occurrence_cost=12,
         rewritten_cost=8,
     )
-    library.register_abstraction(abstraction)
+    library = library_module.CognitiveLibrary(
+        families=defaults.families(),
+        abstractions=(abstraction,),
+    )
     state = library.to_state()
     restored = library_module.CognitiveLibrary.from_state(state)
     assert restored.to_state() == state
@@ -140,7 +143,7 @@ def test_wave5au_library_snapshot_is_deterministic_roundtrippable_and_fail_close
         first_family.suboperators,
     )
     with pytest.raises(ValueError, match="conflicting cognitive operator family"):
-        library.register_family(conflicting)
+        library_module.CognitiveLibrary(families=(first_family, conflicting))
 
     conflicting_abstraction = vocabulary.LearnedAbstraction(
         abstraction.abstraction_id,
@@ -151,7 +154,7 @@ def test_wave5au_library_snapshot_is_deterministic_roundtrippable_and_fail_close
         abstraction.rewritten_cost,
     )
     with pytest.raises(ValueError, match="abstraction digest collision"):
-        library.register_abstraction(conflicting_abstraction)
+        library_module.CognitiveLibrary(abstractions=(abstraction, conflicting_abstraction))
 
 
 def test_wave5au_authority_version_and_native_debt_cutover() -> None:
@@ -159,8 +162,8 @@ def test_wave5au_authority_version_and_native_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.cognitive_library"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.cognitive_library")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.cognitive_library")) == "0.0.2"
     for source in (
         "cogcoder/r253_operator_catalog.py",
         "cogcoder/r256_operator_dsl.py",

@@ -46,7 +46,7 @@ def _hypothesis(native, probes, fn, *, display_name: str):
 def test_wave5aw_native_experimentation_public_boundary_and_no_reverse_imports() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.experimentation"
-    assert native.COMPONENT_VERSION == "0.0.1"
+    assert native.COMPONENT_VERSION == "0.0.2"
     assert native.MIGRATED_FROM == "cogcoder R2.60 active-probe lineage"
     for name in (
         "ExperimentProbe",
@@ -146,7 +146,6 @@ def test_wave5aw_noninformative_and_budget_paths_abstain_without_oracle_calls() 
         display_name="right",
     )
 
-    # Distinct globally, indistinguishable under the allowed probes.
     selection = native.select_informative_probe(native.VersionSpace((left, right)), probes)
     assert selection.status == "abstain"
     assert selection.reason == "no_informative_probe"
@@ -302,13 +301,10 @@ def test_wave5aw_authority_version_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.experimentation"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.experimentation")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.experimentation")) == "0.0.2"
     assert "cogcoder/r260_active_repository_probes.py" in row.legacy_sources
 
-    # Forward-stable migration invariant: Wave 5AW proved the 4 -> 3 transition
-    # in hosted cutover CI. Later waves may reduce global debt further, but
-    # Experimentation must never regress into the debt projection.
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in debt["components"]}
     assert "external.experimentation" not in ids

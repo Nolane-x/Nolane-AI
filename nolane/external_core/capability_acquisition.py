@@ -18,7 +18,7 @@ from nolane.external_core.cognitive_vocabulary import LearnedAbstraction
 
 
 COMPONENT_ID = "external.capability_acquisition"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder R2.55 hardened capability-acquisition lineage"
 _SCHEMA_VERSION = "capability-acquisition-v1"
 _DEFAULT_MIN_RELIABILITY = 0.75
@@ -54,11 +54,12 @@ def _payload_from_json(payload_json: str) -> dict[str, Any]:
 
 def _library_fragment(kind: CapabilityKind, payload: Mapping[str, Any]) -> dict[str, Any]:
     return {
-        "schema_version": "cognitive-library-v1",
+        "schema_version": "cognitive-library-v2",
         "component_id": COGNITIVE_LIBRARY_COMPONENT_ID,
         "component_version": COGNITIVE_LIBRARY_COMPONENT_VERSION,
         "families": [dict(payload)] if kind is CapabilityKind.OPERATOR_FAMILY else [],
         "abstractions": [dict(payload)] if kind is CapabilityKind.LEARNED_ABSTRACTION else [],
+        "descriptors": [],
     }
 
 
@@ -96,8 +97,6 @@ class CapabilityCandidate:
         kind = CapabilityKind(self.kind)
         payload_json = str(self.payload_json)
         payload = _payload_from_json(payload_json)
-        # Decode through the canonical Cognitive Library parser so malformed or
-        # non-canonical payloads never acquire a stable capability identity.
         _decode_payload(kind, payload)
         display_name = str(self.display_name).strip()
         semantic = {"kind": kind.value, "payload": payload}
@@ -412,8 +411,6 @@ class CapabilityAcquisitionGovernor:
             raise TypeError("assurance must be native AssuranceControlPlane")
         if not isinstance(receipt, PromotionAssuranceReceipt):
             raise TypeError("receipt must be PromotionAssuranceReceipt")
-        # Recompute the native receipt digest instead of trusting a detached
-        # dataclass instance supplied by the caller.
         PromotionAssuranceReceipt.from_state(receipt.to_state())
         try:
             persisted = AssuranceControlPlane.promotion_receipt(assurance, receipt.receipt_id)
@@ -490,10 +487,20 @@ class CapabilityAcquisitionGovernor:
         payload = record.candidate.payload()
         if record.candidate.kind is CapabilityKind.OPERATOR_FAMILY:
             assert isinstance(payload, OperatorFamilyDescriptor)
-            self.library.register_family(payload)
+            self.library.register_family(
+                payload,
+                candidate_id=record.candidate.candidate_id,
+                assurance=assurance,
+                receipt=persisted,
+            )
         else:
             assert isinstance(payload, LearnedAbstraction)
-            self.library.register_abstraction(payload)
+            self.library.register_abstraction(
+                payload,
+                candidate_id=record.candidate.candidate_id,
+                assurance=assurance,
+                receipt=persisted,
+            )
 
         updated = replace(
             record,

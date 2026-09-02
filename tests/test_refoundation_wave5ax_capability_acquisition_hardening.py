@@ -106,9 +106,26 @@ def test_wave5ax_restore_rejects_library_authority_for_non_promoted_state() -> N
     governor.admit(candidate)
     state = governor.to_state()
 
-    # The external library must not be able to mint acquisition authority for a
-    # record that the governor itself still classifies as non-promoted.
-    library.register_family(_family())
+    # A distinct governor can legitimately promote the same content into the
+    # shared library, but that must not retroactively promote this saved record.
+    promoting_governor = native.CapabilityAcquisitionGovernor(library)
+    promoting_governor.admit(candidate)
+    promoting_governor.begin_probation(candidate.candidate_id)
+    evidence_ids = ("independent:foreign-governor", "challenge:foreign-governor")
+    promoting_governor.record_probation(
+        candidate.candidate_id,
+        evidence_ids=evidence_ids,
+        independent_passed=True,
+        challenge_passed=True,
+        reliability=0.99,
+    )
+    receipt = _receipt(candidate.candidate_id, evidence_ids, library.digest)
+    promoting_governor.promote(
+        candidate.candidate_id,
+        assurance=_assurance_plane(receipt),
+        receipt=receipt,
+    )
+
     with pytest.raises(ValueError, match="non-promoted.*library|library.*non-promoted"):
         native.CapabilityAcquisitionGovernor.from_state(state, library=library)
 
@@ -130,9 +147,13 @@ def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assuranc
     )
     baseline = library.digest
     receipt = _receipt(candidate.candidate_id, evidence_ids, baseline)
-    governor.promote(candidate.candidate_id, assurance=_assurance_plane(receipt), receipt=receipt)
+    assurance = _assurance_plane(receipt)
+    governor.promote(candidate.candidate_id, assurance=assurance, receipt=receipt)
     state = governor.to_state()
-    restored_library = CognitiveLibrary.from_state(library.to_state())
+    restored_library = CognitiveLibrary.from_state(
+        library.to_state(),
+        assurance=assurance,
+    )
 
     with pytest.raises(ValueError, match="persisted assurance"):
         native.CapabilityAcquisitionGovernor.from_state(
@@ -152,7 +173,7 @@ def test_wave5ax_restore_rebinds_promoted_authority_to_persisted_native_assuranc
     restored = native.CapabilityAcquisitionGovernor.from_state(
         state,
         library=restored_library,
-        assurance=_assurance_plane(receipt),
+        assurance=assurance,
     )
     assert restored.retrievable_ids() == (candidate.candidate_id,)
     assert restored.retrieve(candidate.candidate_id) == _family()

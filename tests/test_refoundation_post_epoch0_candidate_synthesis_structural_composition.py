@@ -437,7 +437,7 @@ def test_candidate_matching_source_and_exact_installed_candidate_abstain() -> No
 
 def test_generated_identity_collision_fails_closed() -> None:
     _, CandidateSynthesisEngine, _, _, *_ = _api()
-    library, abs_, neg, add, _ = _library()
+    library, abs_, neg, add, max_ = _library()
     program = _binary_program(abs_.abstraction_id, neg.abstraction_id, add.abstraction_id)
     first = CandidateSynthesisEngine(library).synthesize(_request(program))
     assert first.candidate is not None
@@ -452,10 +452,10 @@ def test_generated_identity_collision_fails_closed() -> None:
         raw_occurrence_cost=generated.raw_occurrence_cost + 1,
         rewritten_cost=generated.rewritten_cost,
     )
-    library.vocabulary._items[generated.abstraction_id] = forged
+    collision_library = CognitiveLibrary(abstractions=(abs_, neg, add, max_, forged))
 
     with pytest.raises(ValueError, match="collides with different library payload"):
-        CandidateSynthesisEngine(library).synthesize(_request(program))
+        CandidateSynthesisEngine(collision_library).synthesize(_request(program))
 
 
 def test_expansion_budget_failure_is_fail_closed_and_non_mutating() -> None:

@@ -11,7 +11,7 @@ from .evidence import EvidenceRecord
 
 
 COMPONENT_ID = "external.experimentation"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder R2.60 active-probe lineage"
 _LEDGER_SCHEMA_VERSION = 1
 

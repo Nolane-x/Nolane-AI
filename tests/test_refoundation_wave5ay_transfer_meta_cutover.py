@@ -19,8 +19,8 @@ def test_wave5ay_transfer_meta_authority_version_provenance_and_debt_cutover() -
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.transfer_meta"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.transfer_meta")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.transfer_meta")) == "0.0.2"
     assert row.legacy_sources == (
         "cogcoder/r269_causal_basis_adapter.py",
         "cogcoder/r269_experience_compiler.py",
