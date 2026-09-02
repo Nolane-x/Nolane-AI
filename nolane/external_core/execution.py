@@ -26,7 +26,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.11"
+COMPONENT_VERSION = "0.0.12"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -365,6 +365,21 @@ class ExecutionTerminalReceipt:
 
 
 class OrganizationExecutionControlPlane:
+    @staticmethod
+    def _index_unique_authority(
+        rows: Sequence[Any],
+        *,
+        id_attr: str,
+        kind: str,
+    ) -> dict[str, Any]:
+        indexed: dict[str, Any] = {}
+        for row in rows:
+            row_id = str(getattr(row, id_attr))
+            if row_id in indexed:
+                raise ValueError(f'duplicate execution {kind} authority id: {row_id}')
+            indexed[row_id] = row
+        return indexed
+
     def __init__(
         self,
         *,
@@ -398,10 +413,18 @@ class OrganizationExecutionControlPlane:
             code_claims=getattr(coding, 'claims', None),
         )
         self.acting_executor = acting_executor or TransactionalExternalCoreExecutor(executor=self.executor)
-        self._sessions = {row.session_id: row for row in sessions}
-        self._decisions = {row.receipt_id: row for row in decisions}
-        self._steps = {row.receipt_id: row for row in steps}
-        self._terminals = {row.receipt_id: row for row in terminals}
+        self._sessions = self._index_unique_authority(
+            sessions, id_attr='session_id', kind='session'
+        )
+        self._decisions = self._index_unique_authority(
+            decisions, id_attr='receipt_id', kind='decision'
+        )
+        self._steps = self._index_unique_authority(
+            steps, id_attr='receipt_id', kind='step'
+        )
+        self._terminals = self._index_unique_authority(
+            terminals, id_attr='receipt_id', kind='terminal'
+        )
         self._session_counter = int(session_counter)
         self._backends: dict[str, AgentInferenceBackend] = {}
         self._workspaces: dict[str, RepositoryWorkspace] = {}
@@ -451,6 +474,7 @@ class OrganizationExecutionControlPlane:
 
             first_workspace_digest: str | None = None
             previous_workspace_digest: str | None = None
+            projected_core_receipt_ids: list[str] = []
             for receipt_id in session.step_receipt_ids:
                 step = self._steps.get(receipt_id)
                 if step is None:
@@ -465,8 +489,10 @@ class OrganizationExecutionControlPlane:
                 decision = self._decisions[step.decision_receipt_id]
                 if step.step_index != decision.step_index:
                     raise ValueError('execution step receipt index binding mismatch')
-                if step.core_receipt_id is not None and step.core_receipt_id not in session.core_receipt_ids:
-                    raise ValueError('execution step receipt core binding mismatch')
+                if step.core_receipt_id is not None:
+                    projected_core_receipt_ids.append(step.core_receipt_id)
+                    if step.core_receipt_id not in session.core_receipt_ids:
+                        raise ValueError('execution step receipt core binding mismatch')
                 if session.execution_proof_version >= 2:
                     if step.execution_proof_version < 2:
                         raise ValueError('modern execution session references legacy step proof')
@@ -489,6 +515,9 @@ class OrganizationExecutionControlPlane:
                 ):
                     raise ValueError('workspace digest continuity mismatch')
                 previous_workspace_digest = step.after_workspace_digest
+
+            if tuple(projected_core_receipt_ids) != session.core_receipt_ids:
+                raise ValueError('execution session core receipt projection mismatch')
 
             if session.workspace_provenance_version >= 2:
                 if session.step_receipt_ids:
@@ -538,6 +567,17 @@ class OrganizationExecutionControlPlane:
                     raise ValueError('execution terminal receipt core-history mismatch')
                 if terminal.output_artifact_ids != session.output_artifact_ids:
                     raise ValueError('execution terminal receipt output-history mismatch')
+
+        for receipt_id in self._decisions:
+            if receipt_id not in decision_owners:
+                raise ValueError(f'unowned execution decision receipt: {receipt_id}')
+        for receipt_id in self._steps:
+            if receipt_id not in step_owners:
+                raise ValueError(f'unowned execution step receipt: {receipt_id}')
+        for receipt_id in self._terminals:
+            if receipt_id not in terminal_owners:
+                raise ValueError(f'unowned execution terminal receipt: {receipt_id}')
+
         if self._session_counter < max_counter:
             raise ValueError('execution session counter is behind history')
 
