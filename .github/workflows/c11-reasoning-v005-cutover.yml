@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   cutover:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,7 +23,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "e67a7bebe450f7522657a8029c289b7ace8b0b65"
+          test "$(git rev-parse HEAD^)" = "4f2e85b5343d79cc950b425cf8de7f0a913b8876"
           git fetch origin main --quiet
           test "$(git rev-parse origin/main)" = "efe7b85cf30a66e9ae4c0012a3d54908569190bc"
 
