@@ -410,8 +410,6 @@ def _verify_entry_authority_semantics(
             raise ValueError("goal revision history root requires provenance source refs")
         if entry.evidence_refs:
             raise ValueError("goal revision history root cannot claim revision evidence")
-        if entry.transformation_history != _ROOT_TRANSFORMATION_HISTORY:
-            raise ValueError("goal revision history root transformation history mismatch")
         return
 
     if entry.predecessor_digest != previous_contract_digest:
@@ -432,8 +430,6 @@ def _verify_entry_authority_semantics(
             raise ValueError("legacy-unattested revision cannot fabricate evidence")
         if not entry.source_refs:
             raise ValueError("legacy-unattested revision requires contract provenance")
-        if entry.transformation_history != _LEGACY_TRANSFORMATION_HISTORY:
-            raise ValueError("legacy-unattested revision transformation history mismatch")
         return
 
     if entry.trust_label not in _RECEIPTED_REVISION_TRUSTS:
@@ -446,8 +442,21 @@ def _verify_entry_authority_semantics(
         raise ValueError("receipted revision requires freshness evidence")
     if entry.confidence_milli is None:
         raise ValueError("receipted revision requires bounded confidence")
-    if entry.transformation_history != _RECEIPTED_TRANSFORMATION_HISTORY:
-        raise ValueError("receipted revision transformation history mismatch")
+
+
+def _verify_entry_transformation_semantics(
+    entry: GoalRevisionHistoryEntry,
+    *,
+    ordinal: int,
+) -> None:
+    if ordinal == 0:
+        expected = _ROOT_TRANSFORMATION_HISTORY
+    elif entry.trust_label == LEGACY_UNATTESTED_TRUST:
+        expected = _LEGACY_TRANSFORMATION_HISTORY
+    else:
+        expected = _RECEIPTED_TRANSFORMATION_HISTORY
+    if entry.transformation_history != expected:
+        raise ValueError("goal revision history transformation provenance mismatch")
 
 
 def verify_goal_revision_history_export(
@@ -498,6 +507,9 @@ def verify_goal_revision_history_export(
         )
         previous_entry_digest = entry.entry_digest
         previous_contract_digest = entry.contract_digest
+
+    for ordinal, entry in enumerate(snapshot.entries):
+        _verify_entry_transformation_semantics(entry, ordinal=ordinal)
 
     expected_history = stable_digest(
         {"goal_revision_history_snapshot": _snapshot_payload(snapshot)}
