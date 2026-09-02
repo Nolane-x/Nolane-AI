@@ -26,5 +26,13 @@ jobs:
         run: python -m pip install --disable-pip-version-check pytest
       - name: Compile authority boundary
         run: python -m compileall -q nolane/external_core/execution.py tests/test_refoundation_acting_restore_authority.py
-      - name: RED - restore authority must currently fail
-        run: python -m pytest -q tests/test_refoundation_acting_restore_authority.py
+      - name: RED - prove exactly eight authority gaps
+        shell: bash
+        run: |
+          set +e
+          output="$(python -m pytest -q tests/test_refoundation_acting_restore_authority.py 2>&1)"
+          status=$?
+          set -e
+          printf '%s\n' "$output"
+          test "$status" -ne 0
+          printf '%s\n' "$output" | grep -Eq '8 failed( |,| in)'
