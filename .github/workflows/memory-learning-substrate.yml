@@ -10,7 +10,6 @@ on:
       - codex/memory-learning-compaction-target-v0.0.8
       - codex/memory-learning-retrieval-snapshot-authority-v0.0.9
       - codex/memory-learning-verified-admission-forgetting-v0.0.12
-      - codex/memory-learning-governed-skill-promotion-v0.0.13
     paths:
       - 'nolane/memory/**'
       - 'nolane/external_core/self_model.py'
