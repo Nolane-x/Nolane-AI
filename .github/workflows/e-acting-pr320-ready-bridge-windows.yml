@@ -1,0 +1,20 @@
+name: E Acting PR320 Ready Bridge Windows
+
+on:
+  push:
+    branches:
+      - e-acting-pr320-ready-bridge-windows
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  mark-ready:
+    runs-on: windows-2025
+    steps:
+      - name: Mark PR 320 ready
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh pr ready 320 --repo $env:GITHUB_REPOSITORY
