@@ -1,0 +1,57 @@
+name: E Acting F1.3 Integration Verify
+
+on:
+  push:
+    branches:
+      - e-acting-f13-integration-verify-85efa0d0
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-2025
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        shell: bash
+        run: python -m pip install -q pytest
+      - name: Compile E and F authority modules
+        shell: bash
+        run: |
+          python -m py_compile \
+            nolane/external_core/acting_protocol.py \
+            nolane/external_core/acting_runtime.py \
+            nolane/external_core/execution.py \
+            nolane/external_core/execution_executor.py \
+            nolane/external_core/execution_types.py \
+            nolane/external_core/coding_patches.py \
+            nolane/metadata/component_versions.py
+      - name: Run E plus F v1.3 overlap regression
+        shell: bash
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_*.py \
+            tests/test_refoundation_wave5r_native_invokable_cores.py \
+            tests/test_refoundation_wave5s_native_execution_workspace.py \
+            tests/test_refoundation_wave5w_native_execution_executor.py \
+            tests/test_refoundation_wave5z_native_neural_inference.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py \
+            tests/test_refoundation_wave5v_native_coding_patches.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_coding_agi_coding_patch_provenance_transitions.py \
+            tests/test_coding_agi_coding_patch_restore_provenance_binding.py \
+            tests/test_coding_agi_coding_patch_terminal_monotonicity.py \
+            tests/test_coding_agi_coding_readiness.py
+      - name: Check diff hygiene
+        shell: bash
+        run: git diff --check
