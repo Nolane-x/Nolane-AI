@@ -67,7 +67,11 @@ def _ready_property(
         verifier_region="verification-testing",
         kind=EngineeringEvidenceKind.TEST,
         passed=True,
-        evidence_refs=(f"run:{suffix}", oracle_ref),
+        evidence_refs=(
+            f"run:{suffix}",
+            oracle_ref,
+            "proof-method:property_test",
+        ),
         source_revision=SOURCE_REVISION,
         environment_digest=f"env:{suffix}",
     )
