@@ -29,7 +29,8 @@ jobs:
             nolane/external_core/execution.py \
             nolane/metadata/component_versions.py \
             tests/test_refoundation_acting_restore_authority.py \
-            tests/test_refoundation_component_versions.py
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py
       - name: Focused E Acting GREEN with diagnostic transport
         shell: bash
         run: |
@@ -62,7 +63,8 @@ jobs:
           git add \
             nolane/external_core/execution.py \
             nolane/metadata/component_versions.py \
-            tests/test_refoundation_component_versions.py
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py
           git diff --cached --check
           git commit -m "E Acting: close persisted restore authority [skip ci]"
           git push origin HEAD:e-acting-restore-authority-green-20260902
