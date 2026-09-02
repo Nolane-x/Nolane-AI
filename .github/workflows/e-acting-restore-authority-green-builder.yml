@@ -5,6 +5,10 @@ on:
     branches:
       - e-acting-restore-authority-green-20260902
 
+concurrency:
+  group: e-acting-restore-authority-green-builder
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
