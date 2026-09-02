@@ -48,10 +48,16 @@ on:
       - 'nolane/external_core/epistemic_observation_truth.py'
       - 'nolane/external_core/verification_observation_truth.py'
       - 'nolane/external_core/assurance_observation_truth.py'
+      - 'nolane/external_core/knowledge_observation_fitness_truth.py'
+      - 'nolane/external_core/evidence_observation_fitness_truth.py'
+      - 'nolane/external_core/epistemic_observation_fitness_truth.py'
+      - 'nolane/external_core/verification_observation_fitness_truth.py'
+      - 'nolane/external_core/assurance_observation_fitness_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
       - 'CURRENT/TRUTH_KNOWLEDGE_A16_CANDIDATE.md'
+      - 'CURRENT/TRUTH_KNOWLEDGE_A17_CANDIDATE.md'
       - '.github/workflows/truth-knowledge-a.yml'
   pull_request:
     paths:
@@ -98,10 +104,16 @@ on:
       - 'nolane/external_core/epistemic_observation_truth.py'
       - 'nolane/external_core/verification_observation_truth.py'
       - 'nolane/external_core/assurance_observation_truth.py'
+      - 'nolane/external_core/knowledge_observation_fitness_truth.py'
+      - 'nolane/external_core/evidence_observation_fitness_truth.py'
+      - 'nolane/external_core/epistemic_observation_fitness_truth.py'
+      - 'nolane/external_core/verification_observation_fitness_truth.py'
+      - 'nolane/external_core/assurance_observation_fitness_truth.py'
       - 'nolane/metadata/subprotocols.py'
       - 'tests/test_truth_knowledge_*.py'
       - 'CURRENT/TRUTH_KNOWLEDGE.md'
       - 'CURRENT/TRUTH_KNOWLEDGE_A16_CANDIDATE.md'
+      - 'CURRENT/TRUTH_KNOWLEDGE_A17_CANDIDATE.md'
       - '.github/workflows/truth-knowledge-a.yml'
   workflow_dispatch:
 
@@ -120,7 +132,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Compile canonical A authorities and A1-A16 v1-v10 truth sidecars
+      - name: Compile canonical A authorities and A1-A17 v1-v11 truth sidecars
         run: |
           python -m py_compile \
             nolane/core/canonical_digest.py \
@@ -166,6 +178,11 @@ jobs:
             nolane/external_core/epistemic_observation_truth.py \
             nolane/external_core/verification_observation_truth.py \
             nolane/external_core/assurance_observation_truth.py \
+            nolane/external_core/knowledge_observation_fitness_truth.py \
+            nolane/external_core/evidence_observation_fitness_truth.py \
+            nolane/external_core/epistemic_observation_fitness_truth.py \
+            nolane/external_core/verification_observation_fitness_truth.py \
+            nolane/external_core/assurance_observation_fitness_truth.py \
             nolane/metadata/subprotocols.py
       - name: Run Truth Knowledge contracts
         run: python -m pytest -q tests/test_truth_knowledge_*.py
