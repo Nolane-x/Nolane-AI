@@ -5,6 +5,7 @@ import pytest
 from cogcoder.organization.runtime import OrganizationRuntime
 from nolane.external_core.evidence import EvidenceRecord
 from nolane.memory import LearningSubstrate
+from nolane.memory.learning_substrate import LearningSubstrate as ModuleLearningSubstrate
 from nolane.memory.skills import SkillScope
 
 
@@ -47,3 +48,7 @@ def test_public_learning_substrate_blocks_direct_skill_engine_promotion_bypass()
         substrate.skills.promote(skill.skill_id, SkillScope.PERSONAL)
 
     assert substrate.skills.get(skill.skill_id).scope is SkillScope.CANDIDATE
+
+
+def test_package_and_module_export_one_governed_learning_substrate_identity() -> None:
+    assert LearningSubstrate is ModuleLearningSubstrate
