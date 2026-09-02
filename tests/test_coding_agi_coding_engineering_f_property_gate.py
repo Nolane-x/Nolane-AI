@@ -80,6 +80,19 @@ def _closure(
         source_revision=SOURCE_REVISION,
     )
     oracle_ref = f"oracle:{requirement.property_ref}"
+    semantic_refs = [
+        f"run:{suffix}",
+        oracle_ref,
+        f"proof-method:{method.value}",
+    ]
+    if role is not EngineeringWitnessRole.DIRECT:
+        semantic_refs.append(f"witness-role:{role.value}")
+    if baseline_revision is not None:
+        semantic_refs.append(f"baseline-revision:{baseline_revision}")
+    if falsifier_ref is not None:
+        semantic_refs.append(f"falsifier-ref:{falsifier_ref}")
+    if adversarial:
+        semantic_refs.append("adversarial:true")
     attestation = evidence.record(
         subject_ref=PATCH_REF,
         subject_digest=PATCH_DIGEST,
@@ -88,7 +101,7 @@ def _closure(
         verifier_region="verification-testing",
         kind=kind,
         passed=True,
-        evidence_refs=(f"run:{suffix}", oracle_ref),
+        evidence_refs=tuple(semantic_refs),
         source_revision=SOURCE_REVISION,
         environment_digest=f"env:{suffix}",
     )

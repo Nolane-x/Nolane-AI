@@ -24,7 +24,13 @@ def _attest(
     oracle_ref: str,
     source_family: str | None = None,
 ):
-    refs = [f"run:{suffix}", oracle_ref]
+    refs = [
+        f"run:{suffix}",
+        oracle_ref,
+        "proof-method:security_test",
+        "witness-role:adversarial",
+        "adversarial:true",
+    ]
     if source_family is not None:
         refs.append(source_family)
     return evidence.record(

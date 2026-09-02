@@ -10,7 +10,7 @@ from nolane.external_core.software_engineering_property_evidence import (
 
 
 def _attestation(evidence: EngineeringEvidenceLedger, *, oracle_ref: str | None):
-    refs = ["run:functional-contract"]
+    refs = ["run:functional-contract", "proof-method:integration_test"]
     if oracle_ref is not None:
         refs.append(oracle_ref)
     return evidence.record(

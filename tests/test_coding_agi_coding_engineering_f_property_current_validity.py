@@ -188,7 +188,11 @@ def _systems():
         verifier_region="verification-testing",
         kind=EngineeringEvidenceKind.TEST,
         passed=True,
-        evidence_refs=("run:property:semantic:1", oracle_ref),
+        evidence_refs=(
+            "run:property:semantic:1",
+            oracle_ref,
+            "proof-method:property_test",
+        ),
         source_revision=SOURCE_REVISION,
         environment_digest="env:property:semantic",
         dependencies=("artifact:property:semantic:1",),
