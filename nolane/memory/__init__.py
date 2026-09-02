@@ -23,7 +23,7 @@ _EXPORTS: dict[str, tuple[str, str]] = {
     "MemoryCompactionReceipt": ("nolane.memory.adaptive_policy", "MemoryCompactionReceipt"),
     "MemoryAnchorHealthReceipt": ("nolane.memory.adaptive_policy", "MemoryAnchorHealthReceipt"),
     "SkillEvolutionEngine": ("nolane.memory.skills", "SkillEvolutionEngine"),
-    "LearningSubstrate": ("nolane.memory.learning_substrate", "LearningSubstrate"),
+    "LearningSubstrate": ("nolane.memory.public_learning_substrate", "LearningSubstrate"),
     "LearningMemoryMetadata": ("nolane.memory.learning_substrate", "LearningMemoryMetadata"),
     "MemoryKind": ("nolane.memory.learning_substrate", "MemoryKind"),
     "EpistemicType": ("nolane.memory.learning_substrate", "EpistemicType"),
