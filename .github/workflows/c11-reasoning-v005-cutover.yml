@@ -1,0 +1,122 @@
+name: C11 Reasoning v0.0.5 Atomic Cutover
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+    paths:
+      - .github/workflows/c11-reasoning-v005-cutover.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cutover:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: post-epoch0/reasoning-invention-c-v0.0.1
+
+      - name: Guard exact staging ancestry and main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "e67a7bebe450f7522657a8029c289b7ace8b0b65"
+          git fetch origin main --quiet
+          test "$(git rev-parse origin/main)" = "efe7b85cf30a66e9ae4c0012a3d54908569190bc"
+
+      - name: Cut over Reasoning Invention family to v0.0.5
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          family = [
+              "nolane/external_core/reasoning_invention.py",
+              "nolane/external_core/reasoning_evaluation.py",
+              "nolane/external_core/reasoning_frontier.py",
+              "nolane/external_core/reasoning_metacontrol.py",
+              "nolane/external_core/reasoning_review.py",
+              "nolane/external_core/reasoning_meta_learning.py",
+              "nolane/external_core/reasoning_episode.py",
+              "nolane/external_core/reasoning_policy_evolution.py",
+          ]
+          for path_text in family:
+              path = Path(path_text)
+              text = path.read_text(encoding="utf-8")
+              old = 'COMPONENT_VERSION = "0.0.4"'
+              new = 'COMPONENT_VERSION = "0.0.5"'
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: expected exactly one v0.0.4 component version")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          metadata = Path("nolane/metadata/component_versions.py")
+          text = metadata.read_text(encoding="utf-8")
+          old = '"external.reasoning_invention": 4,'
+          new = '"external.reasoning_invention": 5,'
+          if text.count(old) != 1:
+              raise SystemExit("component_versions.py: expected exactly one revision-4 reasoning slot")
+          metadata.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          versions_test = Path("tests/test_refoundation_component_versions.py")
+          text = versions_test.read_text(encoding="utf-8")
+          if text.count(old) != 1:
+              raise SystemExit("component_versions test: expected exactly one revision-4 reasoning slot")
+          versions_test.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          legacy = Path("tests/test_refoundation_post_epoch0_reasoning_v004_revision.py")
+          text = legacy.read_text(encoding="utf-8")
+          if text.count('"0.0.4"') != 2:
+              raise SystemExit("legacy C10 revision test: expected exactly two v0.0.4 literals")
+          text = text.replace(
+              "def test_c10_reasoning_family_revision_is_atomic_at_v004() -> None:",
+              "def test_c10_family_participates_in_c11_atomic_v005_cutover() -> None:",
+          )
+          text = text.replace('"0.0.4"', '"0.0.5"')
+          legacy.write_text(text, encoding="utf-8")
+          PY
+
+      - name: Reject stale C family version assertions
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R --line-number --fixed-strings 'COMPONENT_VERSION = "0.0.4"' \
+            nolane/external_core/reasoning_invention.py \
+            nolane/external_core/reasoning_evaluation.py \
+            nolane/external_core/reasoning_frontier.py \
+            nolane/external_core/reasoning_metacontrol.py \
+            nolane/external_core/reasoning_review.py \
+            nolane/external_core/reasoning_meta_learning.py \
+            nolane/external_core/reasoning_episode.py \
+            nolane/external_core/reasoning_policy_evolution.py; then
+            exit 1
+          fi
+          grep -n --fixed-strings 'COMPONENT_VERSION = "0.0.5"' nolane/external_core/reasoning_policy_qualification.py
+          grep -n --fixed-strings '"external.reasoning_invention": 5,' nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py
+
+      - name: Verify focused C11 cutover
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m compileall -q nolane/external_core nolane/metadata
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_reasoning_policy_qualification.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_qualification_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_v004_revision.py \
+            tests/test_refoundation_post_epoch0_reasoning_v005_revision.py \
+            tests/test_refoundation_component_versions.py
+
+      - name: Commit substantive cutover and self-clean workflow
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/c11-reasoning-v005-cutover.yml
+          git config user.name "Nolane-x"
+          git config user.email "casioreview20@gmail.com"
+          git add nolane/external_core nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py tests/test_refoundation_post_epoch0_reasoning_v004_revision.py .github/workflows/c11-reasoning-v005-cutover.yml
+          git commit -m "feat: cut over Reasoning/Invention family to v0.0.5"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
