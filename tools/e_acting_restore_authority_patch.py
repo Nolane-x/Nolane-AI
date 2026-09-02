@@ -157,6 +157,22 @@ def patch_versions() -> None:
     )
     tests.write_text(text, encoding="utf-8")
 
+    wave5aa = ROOT / "tests/test_refoundation_wave5aa_native_execution_control.py"
+    text = wave5aa.read_text(encoding="utf-8")
+    text = replace_once(
+        text,
+        '    assert canonical.COMPONENT_VERSION == "0.0.11"',
+        '    assert canonical.COMPONENT_VERSION == "0.0.12"',
+        label="Wave 5AA canonical execution-control version",
+    )
+    text = replace_once(
+        text,
+        '    assert row.component_version == "0.0.11"\n    assert str(component_version("external.execution.control")) == "0.0.11"',
+        '    assert row.component_version == "0.0.12"\n    assert str(component_version("external.execution.control")) == "0.0.12"',
+        label="Wave 5AA authority version facade",
+    )
+    wave5aa.write_text(text, encoding="utf-8")
+
 
 def main() -> None:
     patch_execution()
