@@ -9,9 +9,13 @@ from nolane.memory.learning_substrate import LearningSubstrate as ModuleLearning
 from nolane.memory.skills import SkillScope
 
 
-def _public_substrate() -> LearningSubstrate:
+def _runtime_and_public_substrate() -> tuple[OrganizationRuntime, LearningSubstrate]:
     runtime = OrganizationRuntime.first_generation()
-    return LearningSubstrate(registry=runtime.registry, events=runtime.ledger)
+    return runtime, LearningSubstrate(registry=runtime.registry, events=runtime.ledger)
+
+
+def _public_substrate() -> LearningSubstrate:
+    return _runtime_and_public_substrate()[1]
 
 
 def _verified_candidate(substrate: LearningSubstrate):
@@ -52,3 +56,20 @@ def test_public_learning_substrate_blocks_direct_skill_engine_promotion_bypass()
 
 def test_package_and_module_export_one_governed_learning_substrate_identity() -> None:
     assert LearningSubstrate is ModuleLearningSubstrate
+
+
+def test_restored_public_learning_substrate_rebinds_the_same_promotion_boundary() -> None:
+    runtime, substrate = _runtime_and_public_substrate()
+    skill = _verified_candidate(substrate)
+
+    restored = LearningSubstrate.from_state(
+        registry=runtime.registry,
+        events=runtime.ledger,
+        state=substrate.to_state(),
+        learning_authority=substrate.learning_authority,
+    )
+
+    with pytest.raises(PermissionError, match="governed skill promotion.*executed regression evidence"):
+        restored.skills.promote(skill.skill_id, SkillScope.PERSONAL)
+
+    assert restored.skills.get(skill.skill_id).scope is SkillScope.CANDIDATE
