@@ -1,0 +1,19 @@
+{
+  "component": "external.memory.learning",
+  "release": "0.0.14",
+  "scope": [
+    "canonical_public_learning_substrate_authority",
+    "governed_skill_promotion_boundary",
+    "public_class_identity_unification",
+    "restore_governor_rebinding"
+  ],
+  "excluded": [
+    "standalone_skill_engine_breaking_change",
+    "proof_carrying_skill_forge",
+    "dependency_revocation_redesign",
+    "cross_family_redesign"
+  ],
+  "authority_plane": "LearningEvidenceAuthority",
+  "promotion_governor": "LearningSubstrate",
+  "merge_sha": "d34c2f8c8dbac85d0ea4ee5ab46da873ee8c9eb0"
+}
