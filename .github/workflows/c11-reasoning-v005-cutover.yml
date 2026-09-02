@@ -23,9 +23,87 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD^)" = "4f2e85b5343d79cc950b425cf8de7f0a913b8876"
+          test "$(git rev-parse HEAD^)" = "69bbc872da09f17c5388e356578783e5e8540691"
           git fetch origin main --quiet
-          test "$(git rev-parse origin/main)" = "efe7b85cf30a66e9ae4c0012a3d54908569190bc"
+          test "$(git rev-parse origin/main)" = "608411cba7b8ecdcb35a4881903459fcb9680b00"
+
+      - name: Merge latest main and reconcile shared revision authority
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          git merge --no-commit --no-ff origin/main
+          merge_rc=$?
+          set -e
+          if [ "$merge_rc" -ne 0 ]; then
+            conflicts="$(git diff --name-only --diff-filter=U | sort)"
+            expected="$(printf '%s\n' \
+              'nolane/metadata/component_versions.py' \
+              'tests/test_refoundation_component_versions.py' | sort)"
+            test "$conflicts" = "$expected"
+            git checkout --ours -- \
+              nolane/metadata/component_versions.py \
+              tests/test_refoundation_component_versions.py
+          fi
+
+          python - <<'PY'
+          from pathlib import Path
+
+          paths = [
+              Path("nolane/metadata/component_versions.py"),
+              Path("tests/test_refoundation_component_versions.py"),
+          ]
+          replacements = {
+              '"external.cognitive_library": 1,': '"external.cognitive_library": 2,',
+              '"external.capability_acquisition": 1,': '"external.capability_acquisition": 2,',
+              '"external.causal": 1,': '"external.causal": 2,',
+              '"external.transfer_meta": 1,': '"external.transfer_meta": 2,',
+              '"external.experimentation": 1,': '"external.experimentation": 2,',
+              '"external.execution.control": 8,': '"external.execution.control": 11,',
+              '"external.coding.patches": 1,': '"external.coding.patches": 2,',
+          }
+          for path in paths:
+              text = path.read_text(encoding="utf-8")
+              for old, new in replacements.items():
+                  if old in text:
+                      if text.count(old) != 1:
+                          raise SystemExit(f"{path}: expected one {old!r}")
+                      text = text.replace(old, new, 1)
+                  elif new not in text:
+                      raise SystemExit(f"{path}: neither {old!r} nor {new!r} present")
+              if '"external.reasoning_invention": 4,' not in text and '"external.reasoning_invention": 5,' not in text:
+                  anchor = '"external.candidate_synthesis": 4,'
+                  if text.count(anchor) != 1:
+                      raise SystemExit(f"{path}: cannot place reasoning revision slot")
+                  text = text.replace(anchor, anchor + '\n    "external.reasoning_invention": 4,', 1)
+              path.write_text(text, encoding="utf-8")
+
+          test_path = Path("tests/test_refoundation_component_versions.py")
+          text = test_path.read_text(encoding="utf-8")
+          assertion_replacements = {
+              'assert str(component_version("external.execution.control")) == "0.0.8"':
+                  'assert str(component_version("external.execution.control")) == "0.0.11"',
+              'assert str(next_component_version("external.execution.control")) == "0.0.9"':
+                  'assert str(next_component_version("external.execution.control")) == "0.0.12"',
+              'assert str(component_version("external.coding.patches")) == "0.0.1"':
+                  'assert str(component_version("external.coding.patches")) == "0.0.2"',
+              'assert str(next_component_version("external.coding.patches")) == "0.0.2"':
+                  'assert str(next_component_version("external.coding.patches")) == "0.0.3"',
+          }
+          for old, new in assertion_replacements.items():
+              if old in text:
+                  if text.count(old) != 1:
+                      raise SystemExit(f"test authority: expected one {old!r}")
+                  text = text.replace(old, new, 1)
+              elif new not in text:
+                  raise SystemExit(f"test authority: neither {old!r} nor {new!r} present")
+          test_path.write_text(text, encoding="utf-8")
+          PY
+
+          git add \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py
+          test -z "$(git diff --name-only --diff-filter=U)"
 
       - name: Cut over Reasoning Invention family to v0.0.5
         shell: bash
@@ -53,19 +131,17 @@ jobs:
                   raise SystemExit(f"{path}: expected exactly one v0.0.4 component version")
               path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
-          metadata = Path("nolane/metadata/component_versions.py")
-          text = metadata.read_text(encoding="utf-8")
-          old = '"external.reasoning_invention": 4,'
-          new = '"external.reasoning_invention": 5,'
-          if text.count(old) != 1:
-              raise SystemExit("component_versions.py: expected exactly one revision-4 reasoning slot")
-          metadata.write_text(text.replace(old, new, 1), encoding="utf-8")
-
-          versions_test = Path("tests/test_refoundation_component_versions.py")
-          text = versions_test.read_text(encoding="utf-8")
-          if text.count(old) != 1:
-              raise SystemExit("component_versions test: expected exactly one revision-4 reasoning slot")
-          versions_test.write_text(text.replace(old, new, 1), encoding="utf-8")
+          for path_text in (
+              "nolane/metadata/component_versions.py",
+              "tests/test_refoundation_component_versions.py",
+          ):
+              path = Path(path_text)
+              text = path.read_text(encoding="utf-8")
+              old = '"external.reasoning_invention": 4,'
+              new = '"external.reasoning_invention": 5,'
+              if text.count(old) != 1:
+                  raise SystemExit(f"{path}: expected exactly one revision-4 reasoning slot")
+              path.write_text(text.replace(old, new, 1), encoding="utf-8")
 
           legacy = Path("tests/test_refoundation_post_epoch0_reasoning_v004_revision.py")
           text = legacy.read_text(encoding="utf-8")
@@ -96,8 +172,10 @@ jobs:
           fi
           grep -n --fixed-strings 'COMPONENT_VERSION = "0.0.5"' nolane/external_core/reasoning_policy_qualification.py
           grep -n --fixed-strings '"external.reasoning_invention": 5,' nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py
+          grep -n --fixed-strings '"external.execution.control": 11,' nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py
+          grep -n --fixed-strings '"external.coding.patches": 2,' nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py
 
-      - name: Verify focused C11 cutover
+      - name: Verify focused C11 cutover and cross-authority revision union
         shell: bash
         run: |
           set -euo pipefail
@@ -108,15 +186,21 @@ jobs:
             tests/test_refoundation_post_epoch0_reasoning_policy_qualification_adversarial.py \
             tests/test_refoundation_post_epoch0_reasoning_v004_revision.py \
             tests/test_refoundation_post_epoch0_reasoning_v005_revision.py \
-            tests/test_refoundation_component_versions.py
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_acting_decision_request_authority.py \
+            tests/test_refoundation_acting_replay_authority.py \
+            tests/test_refoundation_acting_recovery_projection_authority.py \
+            tests/test_coding_agi_coding_patch_provenance_transitions.py \
+            tests/test_coding_agi_coding_patch_restore_provenance_binding.py \
+            tests/test_coding_agi_coding_patch_terminal_monotonicity.py
 
-      - name: Commit substantive cutover and self-clean workflow
+      - name: Commit integrated substantive cutover and self-clean workflow
         shell: bash
         run: |
           set -euo pipefail
           rm .github/workflows/c11-reasoning-v005-cutover.yml
           git config user.name "Nolane-x"
           git config user.email "casioreview20@gmail.com"
-          git add nolane/external_core nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py tests/test_refoundation_post_epoch0_reasoning_v004_revision.py .github/workflows/c11-reasoning-v005-cutover.yml
-          git commit -m "feat: cut over Reasoning/Invention family to v0.0.5"
+          git add -A
+          git commit -m "merge: sync latest main and cut over Reasoning/Invention to v0.0.5"
           git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
