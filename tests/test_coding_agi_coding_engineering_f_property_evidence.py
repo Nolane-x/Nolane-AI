@@ -97,6 +97,32 @@ def _witness(
     adversarial: bool = False,
 ):
     bound_attestation, oracle_ref = _oracle_bound_attestation(ledger, obligation, attestation)
+    semantic_refs = [f"proof-method:{method.value}"]
+    if role is not EngineeringWitnessRole.DIRECT:
+        semantic_refs.append(f"witness-role:{role.value}")
+    if baseline_revision is not None:
+        semantic_refs.append(f"baseline-revision:{baseline_revision}")
+    if falsifier_ref is not None:
+        semantic_refs.append(f"falsifier-ref:{falsifier_ref}")
+    if adversarial:
+        semantic_refs.append("adversarial:true")
+    missing = tuple(
+        ref for ref in semantic_refs if ref not in bound_attestation.evidence_refs
+    )
+    if missing:
+        bound_attestation = ledger.evidence.record(
+            subject_ref=bound_attestation.subject_ref,
+            subject_digest=bound_attestation.subject_digest,
+            producer_agent_id=bound_attestation.producer_agent_id,
+            verifier_agent_id=bound_attestation.verifier_agent_id,
+            verifier_region=bound_attestation.verifier_region,
+            kind=bound_attestation.kind,
+            passed=bound_attestation.passed,
+            evidence_refs=bound_attestation.evidence_refs + missing,
+            source_revision=bound_attestation.source_revision,
+            environment_digest=bound_attestation.environment_digest,
+            dependencies=bound_attestation.dependencies,
+        )
     return ledger.record_witness(
         obligation_id=obligation.obligation_id,
         attestation_id=bound_attestation.attestation_id,
