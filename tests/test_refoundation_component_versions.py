@@ -40,7 +40,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.evidence": 1,
     "external.experience": 3,
     "external.self_model": 3,
-    "external.skills": 4,
+    "external.skills": 5,
     "external.memory.fabric": 2,
     "external.memory.lifecycle": 6,
     "external.memory.retrieval": 4,
@@ -54,7 +54,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.invokable_cores": 3,
     "external.execution.workspace": 4,
     "external.execution.executor": 2,
-    "external.execution.control": 11,
+    "external.execution.control": 12,
     "external.coding.claims": 2,
     "external.coding.patches": 2,
     "external.coding.control": 1,
@@ -111,8 +111,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.execution.workspace")) == "0.0.5"
     assert str(component_version("external.execution.executor")) == "0.0.2"
     assert str(next_component_version("external.execution.executor")) == "0.0.3"
-    assert str(component_version("external.execution.control")) == "0.0.11"
-    assert str(next_component_version("external.execution.control")) == "0.0.12"
+    assert str(component_version("external.execution.control")) == "0.0.12"
+    assert str(next_component_version("external.execution.control")) == "0.0.13"
     assert str(component_version("external.coding.claims")) == "0.0.2"
     assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.2"

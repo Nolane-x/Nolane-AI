@@ -34,9 +34,18 @@ from .goal_design_integrity_evolution import (
 from .goal_design_integrity_evolution_authority import (
     GoalIntegrityEvolutionAuthorityVerifier,
 )
+from .goal_design_revision_history import (
+    GoalRevisionHistoryCapability,
+    GoalRevisionHistoryCompiler,
+    GoalRevisionHistoryEntry,
+    GoalRevisionHistoryExport,
+    GoalRevisionHistoryReceipt,
+    GoalRevisionHistorySnapshot,
+    verify_goal_revision_history_export,
+)
 from .goal_design_runtime import DecisionLifecycle
 
-__version__ = "0.3.3"
+__version__ = "0.3.4"
 
 VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
 LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
@@ -53,6 +62,7 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         evolution_authority_verifier: GoalIntegrityEvolutionAuthorityVerifier | None = None,
         decision_context_compiler: GoalDesignDecisionContextCompiler | None = None,
         decision_context_policy: DecisionContextPolicy | None = None,
+        goal_revision_history_compiler: GoalRevisionHistoryCompiler | None = None,
         **kwargs: Any,
     ) -> None:
         if decision_context_compiler is not None and not isinstance(
@@ -73,6 +83,12 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
             raise ValueError(
                 "decision context compiler and policy configuration disagree"
             )
+        if goal_revision_history_compiler is not None and not isinstance(
+            goal_revision_history_compiler, GoalRevisionHistoryCompiler
+        ):
+            raise TypeError(
+                "goal_revision_history_compiler must be GoalRevisionHistoryCompiler"
+            )
 
         super().__init__(*args, **kwargs)
         self.evolution_authority_verifier = evolution_authority_verifier
@@ -81,6 +97,9 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         self.decision_context_compiler = (
             decision_context_compiler
             or GoalDesignDecisionContextCompiler(policy=decision_context_policy)
+        )
+        self.goal_revision_history_compiler = (
+            goal_revision_history_compiler or GoalRevisionHistoryCompiler()
         )
 
     def _ensure_authority_authenticity_state(self) -> None:
@@ -93,6 +112,8 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
             self._verified_capability_evolution_digests = set()
         if not hasattr(self, "decision_context_compiler"):
             self.decision_context_compiler = GoalDesignDecisionContextCompiler()
+        if not hasattr(self, "goal_revision_history_compiler"):
+            self.goal_revision_history_compiler = GoalRevisionHistoryCompiler()
 
     def install_integrity_contract(
         self,
@@ -179,6 +200,40 @@ class GoalIntegrityRuntime(_v02.GoalIntegrityRuntime):
         if digest in self._legacy_unattested_evolution_digests:
             return LEGACY_UNATTESTED_TRUST
         raise KeyError(f"contract {digest} is not a Goal/Design integrity revision")
+
+    def goal_revision_history(
+        self,
+        goal_id: str,
+        *,
+        protocol_major: int = 1,
+        minimum_minor: int = 0,
+    ) -> GoalRevisionHistoryExport:
+        """Export deterministic read-only history from authenticated integrity state."""
+
+        self._ensure_authority_authenticity_state()
+        goal_id = str(goal_id).strip()
+        if not goal_id:
+            raise CoherenceError("Goal/Design revision history requires goal_id")
+        current_digest = self._current_contracts.get(goal_id)
+        if current_digest is None:
+            raise CoherenceError(
+                f"Goal/Design revision history requires an installed contract for {goal_id}"
+            )
+        try:
+            return self.goal_revision_history_compiler.compile(
+                goal_id=goal_id,
+                current_contract_digest=current_digest,
+                contracts=dict(self._integrity_contracts),
+                predecessors=dict(self._contract_predecessors),
+                evolution_receipts=dict(self._evolution_receipts),
+                trust_label_resolver=self.evolution_trust_label,
+                protocol_major=protocol_major,
+                minimum_minor=minimum_minor,
+            )
+        except (KeyError, TypeError, ValueError) as exc:
+            raise CoherenceError(
+                f"Goal/Design revision history export rejected: {exc}"
+            ) from exc
 
     def compile_decision_context(
         self,
@@ -432,5 +487,12 @@ __all__ = tuple(_v02.__all__) + (
     "GoalDesignDecisionContextCompiler",
     "GoalIntegrityEvolutionAuthorityVerifier",
     "GoalIntegrityEvolutionReceipt",
+    "GoalRevisionHistoryCapability",
+    "GoalRevisionHistoryCompiler",
+    "GoalRevisionHistoryEntry",
+    "GoalRevisionHistoryExport",
+    "GoalRevisionHistoryReceipt",
+    "GoalRevisionHistorySnapshot",
     "GoalIntegrityRuntime",
+    "verify_goal_revision_history_export",
 )
