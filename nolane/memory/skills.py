@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Mapping
@@ -77,7 +78,13 @@ class SkillEvolutionEngine:
         # Runtime-only composition authority. It is deliberately excluded from
         # serialized state so snapshots cannot manufacture a promotion bypass.
         self._governed_skill_promoter = None
-        self._governed_promotion_depth = 0
+        # Governed re-entry is context-local. A shared integer would let a
+        # concurrent caller observe another thread/task inside the governor and
+        # fall through to the local promotion implementation.
+        self._governed_promotion_depth: ContextVar[int] = ContextVar(
+            f"skill_promotion_depth_{id(self)}",
+            default=0,
+        )
 
     def _bind_governed_skill_promoter(self, promoter: object) -> None:
         if not callable(getattr(promoter, "promote_skill", None)):
@@ -221,19 +228,19 @@ class SkillEvolutionEngine:
     def promote(self, skill_id: str, scope: SkillScope) -> SkillRecord:
         # A canonical runtime binds the LearningSubstrate as promotion policy
         # authority. Any public engine entry therefore crosses that policy
-        # boundary instead of bypassing it. Re-entry occurs only when the
-        # governed promoter, after its checks, reaches this implementation
-        # authority again.
+        # boundary instead of bypassing it. Re-entry occurs only in this exact
+        # execution context after the governor has performed its checks.
         promoter = self._governed_skill_promoter
-        if promoter is not None and self._governed_promotion_depth == 0:
-            self._governed_promotion_depth += 1
+        depth = self._governed_promotion_depth.get()
+        if promoter is not None and depth == 0:
+            token = self._governed_promotion_depth.set(depth + 1)
             try:
                 try:
                     return promoter.promote_skill(skill_id, SkillScope(scope))
                 except PermissionError as exc:
                     raise PermissionError(f"governed skill promotion denied: {exc}") from exc
             finally:
-                self._governed_promotion_depth -= 1
+                self._governed_promotion_depth.reset(token)
         return self._promote_local(skill_id, scope)
 
     def quarantine(self, skill_id: str, *, reason: str) -> SkillRecord:
