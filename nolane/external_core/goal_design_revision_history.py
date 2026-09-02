@@ -18,12 +18,23 @@ from .goal_design_integrity_evolution import (
     verify_goal_integrity_evolution_receipt,
 )
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 GOAL_REVISION_HISTORY_PROTOCOL = "nolane.goal_revision_history"
 GOAL_REVISION_HISTORY_MAJOR = 1
 GOAL_REVISION_HISTORY_MINOR = 0
 ROOT_INTEGRITY_CONTRACT_TRUST = "root_integrity_contract"
+
+# Kept local to avoid a reverse import from the projection layer into the
+# runtime module that owns these public trust labels.
+_VERIFIED_CAPABILITY_AUTHORITY_TRUST = "verified_capability_authority"
+_LEGACY_UNVERIFIED_AUTHORITY_TRUST = "legacy_unverified_authority"
+_RECEIPTED_REVISION_TRUSTS = frozenset(
+    {
+        _VERIFIED_CAPABILITY_AUTHORITY_TRUST,
+        _LEGACY_UNVERIFIED_AUTHORITY_TRUST,
+    }
+)
 
 _MAX_TEXT = 4096
 _MAX_REF = 512
@@ -37,6 +48,20 @@ _FEATURES = (
     "local_deterministic_projection",
     "restart_verifiable_receipt",
     "truthful_legacy_missingness",
+)
+_ROOT_TRANSFORMATION_HISTORY = (
+    "goal_integrity_contract:v1",
+    "goal_revision_history_projection:v1",
+)
+_LEGACY_TRANSFORMATION_HISTORY = (
+    "goal_integrity_contract:v1",
+    "legacy_unattested_revision:v1",
+    "goal_revision_history_projection:v1",
+)
+_RECEIPTED_TRANSFORMATION_HISTORY = (
+    "goal_integrity_contract:v1",
+    "goal_integrity_evolution_receipt:v1",
+    "goal_revision_history_projection:v1",
 )
 
 
@@ -361,10 +386,80 @@ class GoalRevisionHistoryExport:
             raise ValueError("history receipt protocol does not bind snapshot capability")
 
 
+def _verify_supported_capability(capability: GoalRevisionHistoryCapability) -> None:
+    if capability.protocol_name != GOAL_REVISION_HISTORY_PROTOCOL:
+        raise ValueError("unsupported goal revision history protocol capability")
+    if capability.major != GOAL_REVISION_HISTORY_MAJOR:
+        raise ValueError("unsupported goal revision history protocol major")
+    if capability.minor != GOAL_REVISION_HISTORY_MINOR:
+        raise ValueError("unsupported goal revision history protocol minor")
+    if capability.features != _FEATURES:
+        raise ValueError("unsupported goal revision history capability feature set")
+
+
+def _verify_entry_authority_semantics(
+    entry: GoalRevisionHistoryEntry,
+    *,
+    ordinal: int,
+    previous_contract_digest: str | None,
+) -> None:
+    if ordinal == 0:
+        if entry.trust_label != ROOT_INTEGRITY_CONTRACT_TRUST:
+            raise ValueError("goal revision history root trust authority mismatch")
+        if not entry.source_refs:
+            raise ValueError("goal revision history root requires provenance source refs")
+        if entry.evidence_refs:
+            raise ValueError("goal revision history root cannot claim revision evidence")
+        if entry.transformation_history != _ROOT_TRANSFORMATION_HISTORY:
+            raise ValueError("goal revision history root transformation history mismatch")
+        return
+
+    if entry.predecessor_digest != previous_contract_digest:
+        raise ValueError("goal revision history predecessor contract chain mismatch")
+
+    if entry.trust_label == LEGACY_UNATTESTED_TRUST:
+        if any(
+            value is not None
+            for value in (
+                entry.evolution_receipt_id,
+                entry.delta_digest,
+                entry.freshness_ref,
+                entry.confidence_milli,
+            )
+        ):
+            raise ValueError("legacy-unattested revision cannot claim receipt authority")
+        if entry.evidence_refs:
+            raise ValueError("legacy-unattested revision cannot fabricate evidence")
+        if not entry.source_refs:
+            raise ValueError("legacy-unattested revision requires contract provenance")
+        if entry.transformation_history != _LEGACY_TRANSFORMATION_HISTORY:
+            raise ValueError("legacy-unattested revision transformation history mismatch")
+        return
+
+    if entry.trust_label not in _RECEIPTED_REVISION_TRUSTS:
+        raise ValueError("unsupported goal revision history trust provenance")
+    if entry.evolution_receipt_id is None or entry.delta_digest is None:
+        raise ValueError("receipted revision trust requires revision receipt authority")
+    if not entry.source_refs or not entry.evidence_refs:
+        raise ValueError("receipted revision requires source and evidence provenance")
+    if entry.freshness_ref is None:
+        raise ValueError("receipted revision requires freshness evidence")
+    if entry.confidence_milli is None:
+        raise ValueError("receipted revision requires bounded confidence")
+    if entry.transformation_history != _RECEIPTED_TRANSFORMATION_HISTORY:
+        raise ValueError("receipted revision transformation history mismatch")
+
+
 def verify_goal_revision_history_export(
     export: GoalRevisionHistoryExport,
 ) -> GoalRevisionHistorySnapshot:
-    """Statelessly verify all public content-addressed history identities."""
+    """Verify public hashes plus the sealed Goal/Design authority contract.
+
+    Content-addressed self-consistency is necessary but not sufficient: a caller
+    can otherwise recompute every digest around a forged trust label. This
+    verifier therefore also enforces the supported protocol and the semantic
+    evidence contract for root, receipted, and legacy-unattested revisions.
+    """
 
     if not isinstance(export, GoalRevisionHistoryExport):
         raise TypeError("expected GoalRevisionHistoryExport")
@@ -375,17 +470,34 @@ def verify_goal_revision_history_export(
     )
     if capability.digest != expected_capability:
         raise ValueError("goal revision history capability digest mismatch")
+    _verify_supported_capability(capability)
 
-    previous: str | None = None
+    if not snapshot.entries:
+        raise ValueError("goal revision history snapshot requires entries")
+    if len(snapshot.entries) > _MAX_HISTORY_ENTRIES:
+        raise ValueError("goal revision history snapshot exceeds bounded entry count")
+    if len({entry.contract_digest for entry in snapshot.entries}) != len(snapshot.entries):
+        raise ValueError("goal revision history contains duplicate contract identity")
+
+    previous_entry_digest: str | None = None
+    previous_contract_digest: str | None = None
     for ordinal, entry in enumerate(snapshot.entries):
         expected_entry = stable_digest({"goal_revision_history_entry": _entry_payload(entry)})
         if entry.entry_digest != expected_entry:
             raise ValueError("goal revision history entry digest mismatch")
+        if entry.goal_id != snapshot.goal_id:
+            raise ValueError("goal revision history entry goal mismatch")
         if entry.ordinal != ordinal:
             raise ValueError("goal revision history ordinal mismatch")
-        if entry.previous_entry_digest != previous:
+        if entry.previous_entry_digest != previous_entry_digest:
             raise ValueError("goal revision history chain link mismatch")
-        previous = entry.entry_digest
+        _verify_entry_authority_semantics(
+            entry,
+            ordinal=ordinal,
+            previous_contract_digest=previous_contract_digest,
+        )
+        previous_entry_digest = entry.entry_digest
+        previous_contract_digest = entry.contract_digest
 
     expected_history = stable_digest(
         {"goal_revision_history_snapshot": _snapshot_payload(snapshot)}
@@ -521,10 +633,7 @@ class GoalRevisionHistoryCompiler:
                     trust_label=ROOT_INTEGRITY_CONTRACT_TRUST,
                     source_refs=_contract_provenance(contract),
                     evidence_refs=(),
-                    transformation_history=(
-                        "goal_integrity_contract:v1",
-                        "goal_revision_history_projection:v1",
-                    ),
+                    transformation_history=_ROOT_TRANSFORMATION_HISTORY,
                 )
                 entries.append(entry)
                 continue
@@ -556,11 +665,7 @@ class GoalRevisionHistoryCompiler:
                     predecessor_digest=predecessor_digest,
                     source_refs=_contract_provenance(contract),
                     evidence_refs=(),
-                    transformation_history=(
-                        "goal_integrity_contract:v1",
-                        "legacy_unattested_revision:v1",
-                        "goal_revision_history_projection:v1",
-                    ),
+                    transformation_history=_LEGACY_TRANSFORMATION_HISTORY,
                     previous_entry_digest=previous_entry_digest,
                 )
             else:
@@ -585,11 +690,7 @@ class GoalRevisionHistoryCompiler:
                     evidence_refs=receipt.evidence_refs,
                     freshness_ref=receipt.freshness_ref,
                     confidence_milli=receipt.confidence_milli,
-                    transformation_history=(
-                        "goal_integrity_contract:v1",
-                        "goal_integrity_evolution_receipt:v1",
-                        "goal_revision_history_projection:v1",
-                    ),
+                    transformation_history=_RECEIPTED_TRANSFORMATION_HISTORY,
                     previous_entry_digest=previous_entry_digest,
                 )
             entries.append(entry)
