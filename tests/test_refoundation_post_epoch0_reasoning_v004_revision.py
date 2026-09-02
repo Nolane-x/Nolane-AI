@@ -17,8 +17,8 @@ REASONING_FAMILY_MODULES = (
 )
 
 
-def test_c10_reasoning_family_revision_is_atomic_at_v004() -> None:
+def test_c10_family_participates_in_c11_atomic_v005_cutover() -> None:
     rows = tuple(importlib.import_module(name) for name in REASONING_FAMILY_MODULES)
     assert {row.COMPONENT_ID for row in rows} == {"external.reasoning_invention"}
-    assert {row.COMPONENT_VERSION for row in rows} == {"0.0.4"}
-    assert str(component_version("external.reasoning_invention")) == "0.0.4"
+    assert {row.COMPONENT_VERSION for row in rows} == {"0.0.5"}
+    assert str(component_version("external.reasoning_invention")) == "0.0.5"

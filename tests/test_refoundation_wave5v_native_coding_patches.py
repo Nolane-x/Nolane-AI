@@ -16,6 +16,8 @@ from cogcoder.refoundation.implementation_status import (
 _PUBLIC_SYMBOLS = (
     "CodingPatchStatus",
     "ToolInvocationReceipt",
+    "PatchProvenanceEnvelope",
+    "PatchTransitionReceipt",
     "CodingPatchCandidate",
     "CodingPatchLedger",
 )
@@ -29,7 +31,7 @@ def test_wave5v_canonical_coding_patches_owns_complete_public_implementation() -
         for name in _PUBLIC_SYMBOLS
     )
     assert canonical.COMPONENT_ID == "external.coding.patches"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.coding_patches"
 
 
@@ -99,7 +101,9 @@ def test_wave5v_patch_scope_status_claim_coverage_and_path_validation_are_preser
     assert patch.touched_symbols == ("A.run",)
     assert patch.status is CodingPatchStatus.EVIDENCE_READY
     assert patches.claim_coverage(patch.patch_id)
-    assert patches.set_status(patch.patch_id, CodingPatchStatus.VERIFIED).status is CodingPatchStatus.VERIFIED
+    with pytest.raises(PermissionError, match="verified"):
+        patches.set_status(patch.patch_id, CodingPatchStatus.VERIFIED)
+    assert patches.set_status(patch.patch_id, CodingPatchStatus.REJECTED).status is CodingPatchStatus.REJECTED
 
     with pytest.raises(ValueError, match="repository-relative"):
         CodingPatchCandidate.from_state(
@@ -179,8 +183,8 @@ def test_wave5v_coding_patches_component_version_authority_and_debt_cutover() ->
     assert row.canonical_module == "nolane.external_core.coding_patches"
     assert row.legacy_sources == ("cogcoder/organization/coding_patches.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.coding.patches")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.coding.patches")) == "0.0.2"
 
     root = Path(__file__).resolve().parents[1]
     state = json.loads((root / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))

@@ -23,7 +23,7 @@ from nolane.external_core.execution_workspace import RepositoryWorkspace, Worksp
 
 
 COMPONENT_ID = "external.acting.runtime"
-COMPONENT_VERSION = "0.1.5"
+COMPONENT_VERSION = "0.1.7"
 
 
 class CoreReceipt(Protocol):
@@ -137,6 +137,30 @@ class TransactionalExternalCoreExecutor:
         return "acting-action-" + digest[:24]
 
     @staticmethod
+    def _core_receipt_authority_digest(receipt: CoreReceipt) -> str:
+        return canonical_digest(
+            {
+                "receipt_id": str(receipt.receipt_id),
+                "agent_id": str(receipt.agent_id),
+                "task_id": str(receipt.task_id),
+                "tool_id": str(receipt.tool_id),
+                "operation": str(receipt.operation),
+                "input_digest": str(receipt.input_digest),
+                "authorized": bool(receipt.authorized),
+                "success": bool(receipt.success),
+                "failure_kind": (
+                    None if receipt.failure_kind is None else str(receipt.failure_kind)
+                ),
+                "before_workspace_digest": str(receipt.before_workspace_digest),
+                "after_workspace_digest": str(receipt.after_workspace_digest),
+                "output_artifact_ids": [str(x) for x in receipt.output_artifact_ids],
+                "evidence_artifact_id": str(receipt.evidence_artifact_id),
+                "core_contract_digest": str(getattr(receipt, "core_contract_digest", "")),
+                "workspace_epoch_id": str(getattr(receipt, "workspace_epoch_id", "")),
+            }
+        )
+
+    @staticmethod
     def _validate_core_receipt(
         receipt: CoreReceipt,
         *,
@@ -174,7 +198,67 @@ class TransactionalExternalCoreExecutor:
                 "core receipt provenance mismatch: " + ", ".join(dict.fromkeys(mismatches))
             )
 
-    def _replay(self, row: ActionRecord) -> ActingInvocationResult:
+    @staticmethod
+    def _validate_replay_core_receipt(
+        receipt: CoreReceipt,
+        *,
+        receipt_id: str,
+        agent_id: str,
+        task_id: str,
+        action: ToolAction,
+        input_digest: str,
+        workspace_digest: str,
+        core_contract_digest: str,
+        workspace_epoch_id: str,
+        outcome_digest: str,
+    ) -> None:
+        expected = {
+            "receipt_id": str(receipt_id),
+            "agent_id": str(agent_id),
+            "task_id": str(task_id),
+            "tool_id": action.tool_id,
+            "operation": action.operation,
+            "input_digest": str(input_digest),
+            "after_workspace_digest": str(workspace_digest),
+            "core_contract_digest": str(core_contract_digest),
+            "workspace_epoch_id": str(workspace_epoch_id),
+        }
+        mismatches = [
+            field
+            for field, expected_value in expected.items()
+            if getattr(receipt, field, None) != expected_value
+        ]
+        if getattr(receipt, "authorized", None) is not True:
+            mismatches.append("authorized")
+        if getattr(receipt, "success", None) is not True:
+            mismatches.append("success")
+        expected_outcome_digest = str(outcome_digest).strip()
+        if (
+            not expected_outcome_digest
+            or TransactionalExternalCoreExecutor._core_receipt_authority_digest(receipt)
+            != expected_outcome_digest
+        ):
+            mismatches.append("outcome_digest")
+        if mismatches:
+            raise ValueError(
+                "replay core receipt provenance mismatch: "
+                + ", ".join(dict.fromkeys(mismatches))
+            )
+
+    def _replay(
+        self,
+        row: ActionRecord,
+        *,
+        expected_action_id: str,
+        agent_id: str,
+        task_id: str,
+        workspace: RepositoryWorkspace,
+        action: ToolAction,
+        core_contract_digest: str,
+        workspace_epoch_id: str,
+    ) -> ActingInvocationResult:
+        if row.action_id != str(expected_action_id):
+            raise PermissionError("replay action authority mismatch")
         if row.phase not in {
             ActionPhase.COMMITTED,
             ActionPhase.ROLLED_BACK,
@@ -184,15 +268,33 @@ class TransactionalExternalCoreExecutor:
             raise ProtocolViolation(
                 "idempotent action is already in progress; explicit resume/recovery is required"
             )
-        receipt_id = row.outcome_ref
-        outputs: tuple[str, ...] = ()
-        if receipt_id:
-            receipt = self.executor.get_receipt(receipt_id)
-            outputs = tuple(str(x) for x in receipt.output_artifact_ids)
+        if row.phase is not ActionPhase.COMMITTED:
+            return ActingInvocationResult(
+                record=row,
+                core_receipt_id="",
+                output_artifact_ids=(),
+                replayed=True,
+            )
+        receipt_id = str(row.outcome_ref).strip()
+        if not receipt_id or row.commit_ref != receipt_id:
+            raise ValueError("replay committed action lacks exact committed receipt authority")
+        receipt = self.executor.get_receipt(receipt_id)
+        self._validate_replay_core_receipt(
+            receipt,
+            receipt_id=receipt_id,
+            agent_id=str(agent_id),
+            task_id=str(task_id),
+            action=action,
+            input_digest=row.contract.input_digest,
+            workspace_digest=workspace.digest,
+            core_contract_digest=str(core_contract_digest),
+            workspace_epoch_id=str(workspace_epoch_id),
+            outcome_digest=str(row.outcome_digest),
+        )
         return ActingInvocationResult(
             record=row,
             core_receipt_id=receipt_id,
-            output_artifact_ids=outputs,
+            output_artifact_ids=tuple(str(x) for x in receipt.output_artifact_ids),
             replayed=True,
         )
 
@@ -326,7 +428,16 @@ class TransactionalExternalCoreExecutor:
         )
         row = self.protocol.propose(contract)
         if row.action_id != action_id or row.phase is not ActionPhase.PROPOSED:
-            return self._replay(row)
+            return self._replay(
+                row,
+                expected_action_id=action_id,
+                agent_id=str(agent_id),
+                task_id=str(task_id),
+                workspace=workspace,
+                action=action,
+                core_contract_digest=core_digest,
+                workspace_epoch_id=epoch_id,
+            )
 
         lease_clock_started_ns = time.monotonic_ns()
         base_now_ms = int(now_ms)
@@ -382,6 +493,7 @@ class TransactionalExternalCoreExecutor:
                 action_id,
                 outcome_ref=str(receipt.receipt_id),
                 success=bool(receipt.success),
+                outcome_digest=self._core_receipt_authority_digest(receipt),
                 now_ms=current_now_ms(),
             )
             if not receipt.success:

@@ -11,7 +11,7 @@ from .reasoning_frontier import ReasoningFrontier
 
 
 COMPONENT_ID = "external.reasoning_invention"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 SCHEMA_VERSION = "reasoning-metacontrol-v1"
 DESIGN_LINEAGE = (
     "post-Epoch-0 bounded value-of-thought control over immutable reasoning frontiers; "
