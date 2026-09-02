@@ -1,0 +1,158 @@
+name: C11 Final Closure
+
+on:
+  push:
+    branches:
+      - post-epoch0/reasoning-invention-c-v0.0.1
+    paths:
+      - .github/workflows/c11-final-closure.yml
+
+permissions:
+  contents: write
+
+jobs:
+  close:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: post-epoch0/reasoning-invention-c-v0.0.1
+
+      - name: Guard exact C11 checkpoint and main
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD^)" = "86f369b35147ce74bb6e8c6746ed60e2fe950055"
+          git fetch origin main --quiet
+          test "$(git rev-parse origin/main)" = "608411cba7b8ecdcb35a4881903459fcb9680b00"
+
+      - name: Close stale C11 revision expectations
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          stale_tests = [
+              "tests/test_refoundation_post_epoch0_reasoning_episode.py",
+              "tests/test_refoundation_post_epoch0_reasoning_invention.py",
+              "tests/test_refoundation_post_epoch0_reasoning_invention_evaluation.py",
+              "tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py",
+              "tests/test_refoundation_post_epoch0_reasoning_metacontrol.py",
+              "tests/test_refoundation_post_epoch0_reasoning_policy_evolution.py",
+          ]
+          for path_text in stale_tests:
+              path = Path(path_text)
+              text = path.read_text(encoding="utf-8")
+              if '"0.0.4"' not in text:
+                  raise SystemExit(f"{path}: expected stale v0.0.4 assertion")
+              path.write_text(text.replace('"0.0.4"', '"0.0.5"'), encoding="utf-8")
+
+          cdoc = Path("CURRENT/REASONING_INVENTION_C_LAYER.md")
+          text = cdoc.read_text(encoding="utf-8")
+          replacements = {
+              "protocol family at **v0.0.4**.": "protocol family at **v0.0.5**.",
+              "The v0.0.4 cutover is additive. The original `reasoning-invention-v1` wire/state schema and every C8 schema remain unchanged, so prior serialized identities remain backward compatible. v0.0.4 retains the separate `reasoning-episode-v1` temporal protocol and adds `reasoning-policy-evolution-v1` rather than widening frontier, control or review artifacts into a mutable monolith.":
+                  "The v0.0.5 cutover is additive. The original `reasoning-invention-v1` wire/state schema, every C8 schema, `reasoning-episode-v1`, and `reasoning-policy-evolution-v1` remain unchanged, so prior serialized identities remain backward compatible. v0.0.5 adds the separate `reasoning-policy-qualification-v1` evidence protocol rather than widening policy evolution into a mutable router or governor.",
+              "v0.0.4 composes C1–C10 into a bounded, replayable reasoning ecology:": "v0.0.5 composes C1–C11 into a bounded, replayable reasoning ecology:",
+              "The component version is `0.0.4` while schemas remain independently versioned:": "The component version is `0.0.5` while schemas remain independently versioned:",
+              "| `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |": "| `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |\n| `reasoning_policy_qualification.py` | `reasoning-policy-qualification-v1` |",
+              "The v1 core schema, all C8 schemas and `reasoning-episode-v1` are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9/C10 exists.": "The v1 core schema, all C8 schemas, `reasoning-episode-v1`, and `reasoning-policy-evolution-v1` are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9/C10/C11 exists.",
+              "C1–C10 reject, as applicable:": "C1–C11 reject, as applicable:",
+              "- C10 policy evolution consumes exact episode/evaluation evidence plus external adoption/rollback authorization and emits immutable proposal/review/adoption/rollback receipts without owning a mutable current-policy governor.": "- C10 policy evolution consumes exact episode/evaluation evidence plus external adoption/rollback authorization and emits immutable proposal/review/adoption/rollback receipts without owning a mutable current-policy governor.\n- C11 qualification consumes exact C10 proposal/shadow/adoption identities plus externally supplied context snapshots and emits matched-trial, regime-qualification and applicability evidence without routing policies or widening D/E/Truth/Memory authority.",
+              "C8–C10 were developed RED -> GREEN. The closure gate requires:": "C8–C11 were developed RED -> GREEN. The closure gate requires:",
+              "1. coherent `external.reasoning_invention == 0.0.4` across all Reasoning/Invention modules and the canonical revision map;": "1. coherent `external.reasoning_invention == 0.0.5` across all Reasoning/Invention modules and the canonical revision map;",
+              "14. source scans preventing mutable C/Assurance/model/execution authority backdoors;\n15. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.":
+                  "14. C11 matched counterfactual trials bound to exact context, holdout-only episode authority, tail-regression blocking, exact regime scope and explicit `ABSTAIN_OUT_OF_SCOPE`;\n15. source scans preventing mutable C/Assurance/model/execution/policy-routing authority backdoors;\n16. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.",
+          }
+          for old, new in replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"C doc guard failed for: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+          c11 = """
+
+## C11 — Counterfactual Policy Qualification
+
+Schema: `reasoning-policy-qualification-v1`.
+
+C11 closes the scope-and-attribution gap left intentionally outside C10. `PolicyTrialContext` content-addresses the exact task, objective, environment, world revision, ontology revision, evidence root, Cognitive Library digest, action class, initial frontier and canonical context tags under which a parent/candidate comparison is meaningful. These are opaque external references and transfer no Truth, Memory, D, E, Cognitive Library or Assurance authority into C.
+
+`MatchedPolicyTrial` pairs parent and candidate outcomes under one exact context, requires both episode IDs to come from the exact C10 holdout set, derives a sign-normalized `PolicyEffectVector`, and records improved/regressed metric identities rather than accepting caller-supplied attribution. Holdout episode authority cannot be reused across qualification trials.
+
+`PolicyRegimeQualification` requires at least two distinct-task matched trials bound to the same proposal/shadow/adopted-policy lineage and exact regime. Any tail-regressing trial blocks qualification; there is no average or hidden scalar that can compensate for a bad trial. Environment, world revision, ontology revision, Cognitive Library digest and action class match exactly, with required tags as a subset and no wildcards.
+
+`PolicyApplicabilityReceipt` yields only `QUALIFIED_FOR_CONTEXT` or fail-closed `ABSTAIN_OUT_OF_SCOPE`. Applicability is evidence, not routing authority: C11 cannot choose a current policy, create adoption or rollback authority, mutate D/E execution state, write Truth/Memory, mint Assurance or expand caller-owned reasoning budgets.
+"""
+          marker = "\n## Non-goals\n"
+          if marker not in text:
+              raise SystemExit("C doc: Non-goals marker missing")
+          text = text.replace(marker, c11 + marker, 1)
+          cdoc.write_text(text, encoding="utf-8")
+
+          ext = Path("CURRENT/EXTERNAL_CORE.md")
+          text = ext.read_text(encoding="utf-8")
+          ext_replacements = {
+              "`external.reasoning_invention` is canonical-native at **v0.0.4** as the immutable protocol family for C. Reasoning / Invention. The original `reasoning-invention-v1` and C8 schemas are intentionally retained, while v0.0.4 retains the independently content-addressed `reasoning-episode-v1` temporal/replay envelope and adds governed `reasoning-policy-evolution-v1`.":
+                  "`external.reasoning_invention` is canonical-native at **v0.0.5** as the immutable protocol family for C. Reasoning / Invention. The original `reasoning-invention-v1`, C8 schemas, `reasoning-episode-v1` and `reasoning-policy-evolution-v1` are intentionally retained, while v0.0.5 adds the independently content-addressed `reasoning-policy-qualification-v1` evidence protocol.",
+              "v0.0.4 retains the bounded **Reasoning Ecology** introduced by C8 around that spine.": "v0.0.5 retains the bounded **Reasoning Ecology** introduced by C8 around that spine.",
+              "`nolane.external_core.reasoning_evaluation` closes the fixed-budget evaluation loop for Reasoning/Invention v0.0.4.": "`nolane.external_core.reasoning_evaluation` closes the fixed-budget evaluation loop for Reasoning/Invention v0.0.5.",
+          }
+          for old, new in ext_replacements.items():
+              if text.count(old) != 1:
+                  raise SystemExit(f"External Core guard failed for: {old[:80]!r}")
+              text = text.replace(old, new, 1)
+          anchor = "C10 adds governed metareasoning policy evolution without creating self-modification authority. `reasoning-policy-evolution-v1` binds immutable one-step policy lineage, constraint-only budget/action-kind tightening, disjoint development/holdout evidence, Pareto shadow evaluation, self-contained fresh-context review provenance, and exact externally authorized adoption/rollback. Reasoning/Invention cannot self-authorize, maintain a mutable current-policy governor, relax caller safety bounds, or treat policy adoption as Assurance."
+          addition = anchor + "\n\nC11 adds counterfactual policy qualification without creating routing authority. `reasoning-policy-qualification-v1` binds exact externally supplied trial contexts, matched parent/candidate holdout episodes, derived non-scalar effect vectors, exact regime scope, tail-regression blocking and applicability receipts that fail closed as `ABSTAIN_OUT_OF_SCOPE`. Qualification requires an already externally adopted C10 policy and cannot create adoption, select a current policy, execute actions or mint Assurance."
+          if text.count(anchor) != 1:
+              raise SystemExit("External Core: C10 anchor mismatch")
+          ext.write_text(text.replace(anchor, addition, 1), encoding="utf-8")
+
+          specs = Path("nolane/metadata/_component_specs.py")
+          text = specs.read_text(encoding="utf-8")
+          old = '"evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning, replayable budget-conserving reasoning episodes, and governed policy evolution with exact external authorization"'
+          new = '"evidence-bound invention, bounded epistemic frontier, Pareto metacontrol, fresh-context adversarial review, descriptive meta-learning, replayable budget-conserving reasoning episodes, governed policy evolution with exact external authorization, and exact-context counterfactual policy qualification with tail-regression blocking and fail-closed scope abstention"'
+          if text.count(old) != 1:
+              raise SystemExit("component spec reasoning description guard failed")
+          specs.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          status = Path("nolane/metadata/implementation_status.py")
+          text = status.read_text(encoding="utf-8")
+          old = "and governed policy evolution with exact external authorization. It owns reasoning protocol, trajectory and policy-proposal identity only:"
+          new = "governed policy evolution with exact external authorization, and exact-context counterfactual policy qualification with tail-regression blocking and fail-closed out-of-scope evidence. It owns reasoning protocol, trajectory, policy-proposal and qualification-evidence identity only:"
+          if text.count(old) != 1:
+              raise SystemExit("implementation status reasoning description guard failed")
+          status.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
+
+      - name: Verify C11 closure
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install -q pytest
+          python -m compileall -q nolane
+          python -m pytest -q \
+            tests/test_refoundation_post_epoch0_reasoning_policy_qualification.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_qualification_adversarial.py \
+            tests/test_refoundation_post_epoch0_reasoning_v004_revision.py \
+            tests/test_refoundation_post_epoch0_reasoning_v005_revision.py \
+            tests/test_refoundation_post_epoch0_reasoning_episode.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention_evaluation.py \
+            tests/test_refoundation_post_epoch0_reasoning_invention_metadata.py \
+            tests/test_refoundation_post_epoch0_reasoning_metacontrol.py \
+            tests/test_refoundation_post_epoch0_reasoning_policy_evolution.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_implementation_status.py
+          python -m pytest -q tests/test_refoundation_*.py
+
+      - name: Commit substantive closure and self-clean
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/c11-final-closure.yml
+          git config user.name "Nolane-x"
+          git config user.email "casioreview20@gmail.com"
+          git add -A
+          git commit -m "test/docs: close C11 v0.0.5 revision and canonical surfaces"
+          git push origin HEAD:post-epoch0/reasoning-invention-c-v0.0.1
