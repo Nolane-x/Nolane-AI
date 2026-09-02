@@ -8,6 +8,7 @@ from nolane.external_core.evidence import EvidenceRecord
 from nolane.memory.fabric import MemoryScope, MemoryStatus
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 from nolane.memory.skills import SkillScope
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -35,14 +36,7 @@ def _substrate() -> LearningSubstrate:
 
 
 def _verified_memory(substrate: LearningSubstrate):
-    return substrate.remember(
-        text="verified durable anchor",
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-anchor",),
-    )
+    return remember_verified(substrate, evidence_id='evidence-anchor', text="verified durable anchor", owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC)
 
 
 def _promoted_skill_state() -> tuple[LearningSubstrate, dict]:
@@ -53,10 +47,7 @@ def _promoted_skill_state() -> tuple[LearningSubstrate, dict]:
         name="proof-bounded-skill",
         body="promote only from independent regression and causal evidence",
     )
-    substrate.skills.verify(
-        skill.skill_id,
-        EvidenceRecord("skill-verifier", "memory.worker", True, false_accepts=0, regressions=0),
-    )
+    verify_skill(substrate, skill.skill_id, EvidenceRecord("skill-verifier", "memory.worker", True, false_accepts=0, regressions=0))
     substrate.record_skill_validation(
         skill.skill_id,
         regression_evidence_ids=("reg-a", "reg-b"),
@@ -71,12 +62,7 @@ def _promoted_skill_state() -> tuple[LearningSubstrate, dict]:
 def test_tombstone_is_hard_retrieval_deny_even_if_memory_status_drifts_active() -> None:
     substrate = _substrate()
     row = _verified_memory(substrate)
-    substrate.forget(
-        row.memory_id,
-        actor_agent_id="memory.worker",
-        reason="explicit_forgetting",
-        evidence_refs=("forget-proof",),
-    )
+    forget_memory(substrate, row.memory_id, actor_agent_id="memory.worker", reason="explicit_forgetting", evidence_id='forget-proof')
 
     # Simulate a lower-level status drift. A tombstone is a terminal deny marker,
     # not merely a convenience alias for ARCHIVED status.
@@ -95,12 +81,7 @@ def test_tombstone_is_hard_retrieval_deny_even_if_memory_status_drifts_active() 
 def test_restore_rejects_tombstone_without_archived_lifecycle_authority() -> None:
     substrate = _substrate()
     row = _verified_memory(substrate)
-    substrate.forget(
-        row.memory_id,
-        actor_agent_id="memory.worker",
-        reason="explicit_forgetting",
-        evidence_refs=("forget-proof",),
-    )
+    forget_memory(substrate, row.memory_id, actor_agent_id="memory.worker", reason="explicit_forgetting", evidence_id='forget-proof')
     state = substrate.to_state()
 
     # Strip the archival proof and rebind the memory to ACTIVE while retaining
@@ -110,7 +91,7 @@ def test_restore_rejects_tombstone_without_archived_lifecycle_authority() -> Non
     state["lifecycle"] = {"receipts": [], "counter": 0}
 
     with pytest.raises(ValueError, match="tombstone.*archiv|archiv.*tombstone"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_forget_reauthorizes_actor_even_when_memory_was_already_archived() -> None:
@@ -125,12 +106,7 @@ def test_forget_reauthorizes_actor_even_when_memory_was_already_archived() -> No
     )
 
     with pytest.raises(PermissionError, match="Memory/Context|memory lifecycle|forget"):
-        substrate.forget(
-            row.memory_id,
-            actor_agent_id="coding.worker",
-            reason="unauthorized_forgetting",
-            evidence_refs=("delete-proof",),
-        )
+        forget_memory(substrate, row.memory_id, actor_agent_id="coding.worker", reason="unauthorized_forgetting", evidence_id='delete-proof')
 
 
 def test_restore_rejects_promoted_skill_with_laundered_validation_families() -> None:
@@ -169,7 +145,7 @@ def test_restore_rejects_active_learning_memory_without_verification_proof() -> 
     state["metadata"][0]["epistemic_type"] = EpistemicType.VERIFIED.value
 
     with pytest.raises(ValueError, match="active.*verification|verification.*active|proof"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_active_nonverified_learning_metadata() -> None:
@@ -179,7 +155,7 @@ def test_restore_rejects_active_nonverified_learning_metadata() -> None:
     state["metadata"][0]["epistemic_type"] = EpistemicType.INFERENCE.value
 
     with pytest.raises(ValueError, match="active.*verified|verified.*active"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_accepts_revalidated_memory_with_lifecycle_verification_proof() -> None:
@@ -191,15 +167,10 @@ def test_restore_accepts_revalidated_memory_with_lifecycle_verification_proof() 
         kind=MemoryKind.SEMANTIC,
         epistemic_type=EpistemicType.HYPOTHESIS,
     )
-    substrate.validate_memory(
-        row.memory_id,
-        actor_agent_id="memory.chief",
-        evidence_refs=("external-review",),
-        correction_ref="correction-proof",
-    )
+    admit_memory(substrate, row.memory_id, actor_agent_id="memory.chief", evidence_id='external-review')
 
     state = substrate.to_state()
-    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
     assert restored.to_state() == state
     assert restored.memory.get(row.memory_id).status is MemoryStatus.ACTIVE
@@ -222,12 +193,7 @@ def test_retrieval_receipt_state_digest_binds_tombstone_set() -> None:
         region="memory-context-knowledge",
         as_of="2026-08-30T00:00:00+00:00",
     )
-    substrate.forget(
-        row.memory_id,
-        actor_agent_id="memory.worker",
-        reason="explicit_forgetting",
-        evidence_refs=("forget-proof",),
-    )
+    forget_memory(substrate, row.memory_id, actor_agent_id="memory.worker", reason="explicit_forgetting", evidence_id='forget-proof')
     substrate.memory.set_status(row.memory_id, MemoryStatus.ACTIVE, reason="unsafe drift")
     after = substrate.retrieve(
         agent_id="memory.chief",

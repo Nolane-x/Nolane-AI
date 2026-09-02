@@ -11,6 +11,7 @@ from nolane.memory.fabric import MemoryScope
 from nolane.memory.learning_substrate import EpistemicType, LearningSubstrate, MemoryKind
 from nolane.memory.retrieval import COMPONENT_VERSION as RETRIEVAL_COMPONENT_VERSION
 from nolane.metadata.component_versions import component_version
+from tests.memory_learning_authority_helpers import admit_memory, authority_copy, forget_memory, remember_verified, verify_skill
 
 
 class _RegistryStub:
@@ -37,16 +38,7 @@ def _substrate() -> LearningSubstrate:
 
 
 def _remember_verified(substrate: LearningSubstrate, text: str = "snapshot authority anchor"):
-    return substrate.remember(
-        text=text,
-        owner_agent_id="memory.chief",
-        scope=MemoryScope.PERSONAL,
-        kind=MemoryKind.SEMANTIC,
-        epistemic_type=EpistemicType.VERIFIED,
-        evidence_ids=("evidence-snapshot-authority",),
-        confidence=0.9,
-        salience=0.8,
-    )
+    return remember_verified(substrate, evidence_id='evidence-snapshot-authority', text=text, owner_agent_id="memory.chief", scope=MemoryScope.PERSONAL, kind=MemoryKind.SEMANTIC, confidence=0.9, salience=0.8)
 
 
 def _rebind_snapshot_receipt(
@@ -93,7 +85,7 @@ def test_restore_rejects_rehashed_snapshot_with_active_unverified_memory() -> No
     _rebind_snapshot_receipt(state, bundle.receipt, snapshot)
 
     with pytest.raises(ValueError, match="active learning memory requires verified epistemic metadata"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_rehashed_snapshot_without_lifecycle_authority() -> None:
@@ -111,7 +103,7 @@ def test_restore_rejects_rehashed_snapshot_without_lifecycle_authority() -> None
     _rebind_snapshot_receipt(state, bundle.receipt, snapshot)
 
     with pytest.raises(ValueError, match="retrieval replay snapshot requires lifecycle authority"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_restore_rejects_snapshot_tombstone_without_archival_lifecycle_authority() -> None:
@@ -126,12 +118,7 @@ def test_restore_rejects_snapshot_tombstone_without_archival_lifecycle_authority
     state = substrate.to_state()
     snapshot = deepcopy(state["retrieval_snapshots"][0]["state"])
 
-    substrate.forget(
-        row.memory_id,
-        actor_agent_id="memory.worker",
-        reason="later legitimate archive",
-        evidence_refs=("evidence-forget",),
-    )
+    forget_memory(substrate, row.memory_id, actor_agent_id="memory.worker", reason="later legitimate archive", evidence_id='evidence-forget')
     archived_state = substrate.to_state()
     snapshot["memory"] = deepcopy(archived_state["memory"])
     snapshot["tombstones"] = deepcopy(archived_state["tombstones"])
@@ -146,8 +133,8 @@ def test_restore_rejects_snapshot_tombstone_without_archival_lifecycle_authority
         estimated_units=0,
     )
 
-    with pytest.raises(ValueError, match="memory tombstone requires archived lifecycle authority"):
-        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state)
+    with pytest.raises(ValueError, match="restored memory status disagrees with lifecycle history"):
+        LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=state, learning_authority=authority_copy(substrate))
 
 
 def test_historical_snapshot_replay_survives_later_live_lifecycle_advance() -> None:
@@ -166,9 +153,7 @@ def test_historical_snapshot_replay_survives_later_live_lifecycle_advance() -> N
         evidence_refs=("evidence-decay",),
     )
 
-    restored = LearningSubstrate.from_state(
-        registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state()
-    )
+    restored = LearningSubstrate.from_state(registry=_RegistryStub(), events=_EventStub(), state=substrate.to_state(), learning_authority=authority_copy(substrate))
     assert restored.retrieval_receipt(bundle.receipt.receipt_id) == bundle.receipt
 
 

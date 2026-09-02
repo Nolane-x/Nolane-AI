@@ -139,7 +139,14 @@ def restore_runtime_learning_state(
         registry=registry,
         events=events,
         state=full_state,
+        learning_authority=authority,
     )
+    # Do not mutate the canonical runtime consumers until the persisted overlay
+    # and its authority ledger have passed fail-closed replay validation. Once
+    # validated, rebind both consumers before constructing the target substrate
+    # so the constructor observes one exact shared authority object.
+    skills.learning_authority = authority
+    experiences.learning_authority = authority
     target = LearningSubstrate(
         registry=registry,
         events=events,
@@ -148,10 +155,14 @@ def restore_runtime_learning_state(
         relations=relations,
         skills=skills,
         experiences=experiences,
+        learning_authority=authority,
     )
     _copy_validated_overlay(target, validated)
-    target.learning_authority = authority
     experiences.learning_authority = authority
+    # Promotion policy authority is a runtime-only object binding. It is attached
+    # only after persisted state has passed canonical replay, so a snapshot cannot
+    # manufacture or replace the governor that authorizes scope expansion.
+    skills._bind_governed_skill_promoter(target)
     return target
 
 
@@ -171,6 +182,7 @@ def _bind_downstream_authority(runtime, bound: LearningSubstrate) -> None:
     authority = bound.learning_authority
     individual = runtime.individual_evolution
     runtime.evolution.learning_authority = authority
+    runtime.evolution._bind_governed_skill_promoter(bound)
     individual.learning_authority = authority
     individual.experiences.learning_authority = authority
     individual.self_models.learning_authority = authority
