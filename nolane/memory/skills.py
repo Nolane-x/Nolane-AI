@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextvars import ContextVar
 from dataclasses import dataclass, replace
 from enum import Enum
 from typing import Any, Mapping
@@ -10,7 +11,7 @@ from nolane.memory.learning_authority import LearningEvidenceAuthority
 
 
 COMPONENT_ID = "external.skills"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.evolution"
 
 
@@ -74,6 +75,21 @@ class SkillEvolutionEngine:
     def __init__(self, *, learning_authority: LearningEvidenceAuthority | None = None) -> None:
         self.learning_authority = learning_authority
         self._skills: dict[str, SkillRecord] = {}
+        # Runtime-only composition authority. It is deliberately excluded from
+        # serialized state so snapshots cannot manufacture a promotion bypass.
+        self._governed_skill_promoter = None
+        # Governed re-entry is context-local. A shared integer would let a
+        # concurrent caller observe another thread/task inside the governor and
+        # fall through to the local promotion implementation.
+        self._governed_promotion_depth: ContextVar[int] = ContextVar(
+            f"skill_promotion_depth_{id(self)}",
+            default=0,
+        )
+
+    def _bind_governed_skill_promoter(self, promoter: object) -> None:
+        if not callable(getattr(promoter, "promote_skill", None)):
+            raise TypeError("governed skill promoter must expose promote_skill")
+        self._governed_skill_promoter = promoter
 
     def propose(self, *, owner_agent_id: str, region: str, name: str, body: str) -> SkillRecord:
         if not all(str(value).strip() for value in (owner_agent_id, region, name, body)):
@@ -149,6 +165,9 @@ class SkillEvolutionEngine:
                 raise ValueError("evidence id cannot be rebound to different evidence")
             return old
 
+        if self._clean(evidence) and evidence.verifier_agent_id == old.owner_agent_id:
+            raise PermissionError("skill owner cannot serve as an independent verifier")
+
         if self._clean(evidence) and self.learning_authority is not None:
             if authority_lease_id is None or not str(authority_lease_id).strip():
                 raise PermissionError("positive skill verification requires a preissued learning evidence lease")
@@ -178,10 +197,13 @@ class SkillEvolutionEngine:
         return {
             row.verifier_agent_id
             for row in skill.evidence
-            if row.passed and row.false_accepts == 0 and row.regressions == 0
+            if row.verifier_agent_id != skill.owner_agent_id
+            and row.passed
+            and row.false_accepts == 0
+            and row.regressions == 0
         }
 
-    def promote(self, skill_id: str, scope: SkillScope) -> SkillRecord:
+    def _promote_local(self, skill_id: str, scope: SkillScope) -> SkillRecord:
         old = self.get(skill_id)
         scope = SkillScope(scope)
         if old.quarantined:
@@ -202,6 +224,24 @@ class SkillEvolutionEngine:
         row = replace(old, scope=scope)
         self._skills[row.skill_id] = row
         return row
+
+    def promote(self, skill_id: str, scope: SkillScope) -> SkillRecord:
+        # A canonical runtime binds the LearningSubstrate as promotion policy
+        # authority. Any public engine entry therefore crosses that policy
+        # boundary instead of bypassing it. Re-entry occurs only in this exact
+        # execution context after the governor has performed its checks.
+        promoter = self._governed_skill_promoter
+        depth = self._governed_promotion_depth.get()
+        if promoter is not None and depth == 0:
+            token = self._governed_promotion_depth.set(depth + 1)
+            try:
+                try:
+                    return promoter.promote_skill(skill_id, SkillScope(scope))
+                except PermissionError as exc:
+                    raise PermissionError(f"governed skill promotion denied: {exc}") from exc
+            finally:
+                self._governed_promotion_depth.reset(token)
+        return self._promote_local(skill_id, scope)
 
     def quarantine(self, skill_id: str, *, reason: str) -> SkillRecord:
         old = self.get(skill_id)

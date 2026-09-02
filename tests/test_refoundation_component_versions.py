@@ -39,7 +39,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.evidence": 1,
     "external.experience": 3,
     "external.self_model": 3,
-    "external.skills": 4,
+    "external.skills": 5,
     "external.memory.fabric": 2,
     "external.memory.lifecycle": 6,
     "external.memory.retrieval": 4,
