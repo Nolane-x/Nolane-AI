@@ -1,11 +1,11 @@
 # CURRENT — F. Software Engineering
 
-Date: 2026-09-01
-Engineering wave: v1.3.0
+Date: 2026-09-02
+Engineering wave: v1.4.0
 Unified control API: `external.software_engineering.control` v1.1.0
 Canonical Coding Claims: `external.coding.claims` v0.0.2
 Canonical Coding Patches: `external.coding.patches` v0.0.2
-Property-evidence protocol: `external.software_engineering.property_evidence` v0.1.0
+Property-evidence protocol: `external.software_engineering.property_evidence` v0.3.0
 Property-gate protocol: `external.software_engineering.property_gate` v0.1.0
 Current-property-validity protocol: `external.software_engineering.current_property_validity` v0.1.0
 Effects state protocol: `external.software_engineering.effects` v0.1.0
@@ -15,11 +15,13 @@ Effect-recovery protocol: `external.software_engineering.effect_recovery` v0.1.0
 Effect-dispatch protocol: `external.software_engineering.effect_dispatch` v0.1.0
 Recovery-frontier protocol: `external.software_engineering.recovery_frontier` v0.1.0
 
-F v1.3 keeps the v1.2 epoch-fenced Coding Claims authority and the v1.1 truth-maintained engineering candidate plane intact, then hardens canonical Coding Patches. Patch identity is no longer reducible to a mutable status plus an opaque artifact id: a provenance-aware patch can bind the exact artifact digest, base source revision and immutable registration operation, and every provenance-aware status transition is represented by a content-addressed lineage receipt.
+F v1.4 keeps the v1.3 provenance-aware Coding Patches authority, v1.2 epoch-fenced Coding Claims authority and v1.1 truth-maintained engineering candidate plane intact, then closes semantic proof laundering in the public property-evidence protocol. A caller can no longer turn a coarse canonical `TEST` or `ROOT_CAUSE` attestation into a stronger property proof merely by choosing `proof_method`, `baseline_revision`, `falsifier_ref`, witness role or `adversarial=True` metadata.
 
-The strongest new patch result is deliberately narrow. `VERIFIED` is an immutable historical engineering fact backed by canonical compile/test attestations for the exact artifact digest and source revision. It is not mutation, merge, release, deployment, Assurance-acceptance or capability-promotion authority. Current verification is recomputed from live evidence and can reopen after evidence revocation or caller-supplied artifact/source drift without rewriting historical receipts.
+The frozen v0.2 witness schema is not changed. Instead, public property evidence advances to v0.3.0 and requires policy-significant semantic claims to be grounded in immutable verifier evidence. Exact markers such as `proof-method:<method>`, `baseline-revision:<revision>`, `falsifier-ref:<ref>`, `witness-role:<role>` and `adversarial:true` are verifier-owned facts; production never synthesizes them on behalf of a caller.
 
-The public Software Engineering control plane remains v1.1.0 because v1.3 does not reinterpret its frozen state schema or widen its authority. Canonical `external.coding.patches` advances from v0.0.1 to v0.0.2. The historical `cogcoder.organization.coding_patches` module remains a bridge to the canonical public objects and now re-exports provenance and transition receipt types as well.
+The strongest positive result remains deliberately narrow. Property witnesses remain `evidence_scope_only`, and property closures/property gates/current-property receipts remain `candidate_only`. F v1.4 does not gain repository mutation, merge, release, deployment, Assurance-acceptance or capability-promotion authority. Historical v0.2 state remains audit-compatible, but historical `ready=True` is not imported as current semantic authority when its policy-significant semantics are not verifier-grounded.
+
+The public Software Engineering control plane remains v1.1.0 because v1.4 does not reinterpret its frozen outer state schema or widen its authority. The five canonical F component revisions also remain unchanged: the change is a composition/control protocol hardening, not a transfer of canonical component ownership.
 
 ## Canonical authority
 
@@ -82,6 +84,7 @@ work / source scope
   -> externally supplied required-property manifest
   -> claim-class-specific property obligations
   -> verifier-attested property oracles
+  -> verifier-attested semantic proof markers
   -> exact property witnesses
   -> per-property closure
   -> complete-set property gate / historical candidate_only fact
@@ -91,7 +94,7 @@ work / source scope
   -> live property-gate reassessment
   -> exact source/patch drift check
   -> CURRENT PROPERTY-BOUND CANDIDATE / candidate_only
-  -> premise revocation, source drift or ownership drift reopens eligibility
+  -> premise revocation, source drift or semantic-proof invalidation reopens eligibility
 ```
 
 The architecture remains monotonic. Historical claim, patch transition, Coding, Debug, UI/UX, engineering closure and property-gate receipts remain audit facts. Current views are re-evaluated rather than rewriting historical green state.
@@ -118,7 +121,7 @@ Ownership transfer is a first-class atomic supersession operation. A valid hando
 
 A retry with the same handoff operation ref and exact intent is idempotent. Rebinding that operation ref to another intent or using a stale epoch fails before mutation.
 
-## v1.3 Coding Patches — provenance and verified-transition authority
+## v1.3 Coding Patches — provenance and verified-transition authority retained
 
 ### Patch provenance envelope
 
@@ -178,7 +181,7 @@ This distinction is intentional:
 - historical `patch.status == VERIFIED` records what was concluded at that transition;
 - current verification answers whether the latest evidence lineage remains live for the exact bound artifact/source state.
 
-## v1.3 restore and anti-laundering invariants
+## v1.3 restore and anti-laundering invariants retained
 
 v1.3 restore does not trust serialized provenance or transition metadata merely because an attacker recomputed an outer digest.
 
@@ -208,6 +211,43 @@ A recomputed VERIFIED transition without canonical evidence is rejected. Content
 
 Legacy v0.0.1 snapshots remain restorable without invented provenance envelopes, transition receipts, artifact digests, source revisions, operation refs or current verification authority. A historical legacy `VERIFIED` label remains an audit-compatible legacy fact only; `is_currently_verified(...)` returns false because no v0.0.2 evidence/provenance lineage exists.
 
+## v1.4 Property Evidence — semantic verifier grounding
+
+F v1.4 moves semantic authority from caller-owned witness labels to immutable verifier attestations while preserving the frozen witness record shape.
+
+### Proof-method grounding
+
+Canonical evidence kinds are intentionally coarser than some property proof methods. `TEST` can back unit, integration, property, metamorphic or regression testing, and `ROOT_CAUSE` can back causal-probe or bisect evidence. Therefore kind matching alone cannot authorize those semantic distinctions.
+
+For ambiguous method families, the verifier must bind the exact marker `proof-method:<method>`. If an attestation advertises any `proof-method:*` marker, a caller also cannot reinterpret it as a different method. Exact marker mismatch fails before witness admission.
+
+Methods whose canonical evidence kind is already semantically singular remain kind-grounded unless an attestation explicitly declares a conflicting proof-method marker; an explicit marker never becomes advisory metadata.
+
+### Baseline, falsifier and role grounding
+
+Policy-significant witness fields require exact immutable evidence refs:
+
+- `baseline_revision=<revision>` requires `baseline-revision:<revision>`;
+- `falsifier_ref=<ref>` requires `falsifier-ref:<ref>`;
+- any non-`direct` role requires `witness-role:<role>`;
+- `adversarial=True` requires `adversarial:true`.
+
+These markers are not inferred from the caller, method kind, claim class or a previously green closure. The verifier must have emitted them in the canonical attestation. Legitimate tests and integrations therefore create a new canonical verifier attestation carrying the exact semantic markers rather than asking production to decorate evidence after the fact.
+
+### Assessment and independence composition
+
+Semantic grounding is checked both at witness admission and during live property assessment. The v1.3 source-family independence calculation only treats a witness as baseline-valid after its semantic authority remains grounded. This prevents an ungrounded semantic witness from participating indirectly in an independence proof.
+
+If the frozen v0.2 assessment would transiently create an optimistic green receipt but the v0.3 semantic layer immediately invalidates that result, the new optimistic receipt is not retained as history. Pre-existing historical receipts are never deleted or rewritten.
+
+### v0.2 audit compatibility and v0.3 restore
+
+The frozen v0.2 parser remains the authority for the historical witness/state shape. Public v0.3 restore accepts both v0.2 and v0.3 outer property-evidence protocol versions, normalizes only the outer tag for the frozen parser, and never rewrites witness content or fabricates verifier markers.
+
+A restored v0.2 ledger preserves its historical serialization version until new public v0.3 work is performed. This allows containing historical control snapshots to remain state-identical when merely audited. Once a new witness or assessment is produced, the public property ledger serializes as v0.3.0.
+
+Compatibility is not semantic promotion. Any historical `ready=True` property receipt whose policy-significant semantics are not verifier-grounded fails closed during public restore/current replay. A native v0.3 snapshot is stricter still: it cannot contain a witness that could not have passed the v0.3 admission boundary.
+
 ## Property evidence model retained from v1.0/v1.1
 
 The property ledger distinguishes build integrity, functional behavior, regression preservation, debugging root cause, UI visual fidelity, UI interaction, UI accessibility, security property and performance property.
@@ -230,11 +270,11 @@ Claim-specific proof floors remain:
 
 A ready individual property closure is insufficient. The property gate consumes the immutable required-property manifest supplied by the requirement/goal authority and checks the complete exact set for one patch digest and source revision.
 
-It fails closed on missing or unexpected properties, duplicates, obligation/closure digest mismatch, patch/source mismatch, revoked attestations, stale witnesses, insufficient source-family independence and lineage tampering. Each assessment re-runs the historical witness set against the live evidence ledger.
+It fails closed on missing or unexpected properties, duplicates, obligation/closure digest mismatch, patch/source mismatch, revoked attestations, stale witnesses, ungrounded semantic metadata, insufficient source-family independence and lineage tampering. Each assessment re-runs the historical witness set against the live evidence ledger.
 
 `SoftwareEngineeringCurrentPropertyValidity` remains above the immutable legacy closure and historical property gate. Current eligibility requires simultaneous live validity of the legacy engineering truth line, complete semantic-property gate, exact historical lineage, current patch identity/state digest and absence of live blockers.
 
-Historical green receipts remain audit facts. Premise revocation creates a newly blocked current view rather than deleting or rewriting history.
+Historical green receipts remain audit facts. Premise revocation or semantic-proof invalidation creates a newly blocked current view rather than deleting or rewriting history.
 
 ## Coding / Debugging / UI implications
 
@@ -248,7 +288,7 @@ v1.3 makes patch provenance and verification lineage explicit. An opaque artifac
 
 ### Debugging
 
-A root-cause statement cannot close from reproduction alone. It requires a discriminating causal probe/bisect and a falsifier. If supporting evidence is later revoked, current eligibility reopens without erasing the historical debugging result.
+A root-cause statement cannot close from reproduction alone. It requires a discriminating causal probe/bisect and a falsifier. F v1.4 additionally requires the verifier to attest the exact causal method, non-direct falsifier role and falsifier reference used as semantic authority. If supporting evidence is later revoked or semantic grounding fails, current eligibility reopens without erasing valid historical audit facts.
 
 ### UI/UX
 
@@ -269,13 +309,15 @@ All crash-consistency invariants remain in force:
 
 ## State and compatibility integrity
 
-The unified Software Engineering v1.1 snapshot retains its frozen v1.0/v0.9 property state and current-property-validity substate under one outer content digest. F v1.3 changes Coding Patches state semantics independently and does not reinterpret historical Software Engineering control-plane receipts or v1.2 claim leases/handoffs.
+The unified Software Engineering v1.1 snapshot retains its frozen v1.0/v0.9 property state and current-property-validity substate under one outer content digest. F v1.4 hardens the current public property-evidence protocol independently and does not reinterpret historical Software Engineering control-plane receipts, v1.2 claim leases/handoffs or v1.3 Coding Patches transitions.
 
 Compatibility remains explicit:
 
 - Software Engineering v0.8 snapshot -> frozen v0.8 restore -> v0.9 property lift -> v1.1 current-validity lift;
 - Software Engineering v0.9 snapshot -> frozen v1.0 public boundary -> v1.1 current-validity lift;
 - Software Engineering v1.1 snapshot -> exact frozen-base reconstruction + current-validity semantic replay;
+- Property Evidence v0.2 snapshot -> frozen v0.2 shape verification -> public v0.3 semantic replay without invented markers;
+- Property Evidence v0.3 snapshot -> exact frozen-shape verification + mandatory semantic-grounding validation;
 - Coding Claims legacy unbound snapshot -> canonical v0.0.2 restore without invented lease/epoch state;
 - Coding Claims v0.0.2 bound snapshot -> exact lease/handoff lineage replay and exact epoch-frontier validation;
 - Coding Patches v0.0.1 snapshot -> compatibility restore without invented provenance/transition/current-verification authority;
@@ -285,8 +327,14 @@ The v0.0.1 positional constructor order of `CodingPatchCandidate` is preserved t
 
 ## Non-claims
 
-F v1.3 does not claim that:
+F v1.4 does not claim that:
 
+- witness metadata can manufacture a stronger proof method than the verifier attested;
+- a baseline revision is authoritative without an exact verifier-owned baseline marker;
+- a falsifier role/reference is authoritative because a caller labeled it as such;
+- `adversarial=True` is semantic evidence without `adversarial:true` in immutable verifier evidence;
+- historical v0.2 `ready=True` automatically becomes current v0.3 semantic authority;
+- property protocol v0.3 expands canonical component ownership or write authority;
 - a patch `VERIFIED` label grants repository mutation, merge, release or deployment authority;
 - historical legacy VERIFIED state proves current v1.3 verification;
 - content-addressed provenance or transition receipts alone prove semantic truth;
@@ -309,13 +357,21 @@ F v1.3 does not claim that:
 
 ## Validation gates
 
-F v1.3 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
+F v1.4 final acceptance requires the exact latest PR synthetic merge-ref, after the latest independent subsystem merges, to pass:
 
 - `Coding AGI Coding Organization Part V` on Python 3.11 and 3.13;
 - `Nolane-AI Refoundation Epoch 0` on Python 3.11 and 3.13.
 
 Part V must cover at minimum:
 
+- generic TEST -> stronger property-test relabeling rejection;
+- mismatched verifier proof-method marker rejection;
+- verifier-grounded baseline revision requirement;
+- verifier-grounded falsifier role and reference requirement;
+- caller-manufactured adversarial semantics rejection;
+- exact semantic markers supporting legitimate property closure;
+- v0.2 historical ready semantic laundering rejection on public restore;
+- source-family independence grounding retained from v1.3 property hardening;
 - direct VERIFIED status-label laundering rejection;
 - content-bound provenance registration;
 - exact operation-ref idempotency and changed-intent rebinding rejection;
@@ -333,6 +389,6 @@ Part V must cover at minimum:
 - legacy v0.0.1 snapshot restore without invented current verification authority;
 - all retained v1.2 Coding Claims regressions and earlier organization tests.
 
-Refoundation must independently verify canonical native ownership, component-version metadata, historical bridge identity, repository audit/materialization freshness, Truth/Knowledge contracts, organization/campaign/execution regressions and frozen Neural R2.3 metadata on both supported Python versions.
+Refoundation must independently verify canonical native ownership, unchanged F canonical component revisions, component-version metadata, historical bridge identity, repository audit/materialization freshness, Truth/Knowledge contracts, organization/campaign/execution regressions and frozen Neural R2.3 metadata on both supported Python versions.
 
 Immediately before merge, re-check exact `main`, PR head, synthetic merge-ref, changed-file scope and mergeability. If `main` advances, acceptance is stale and must be repeated on the recomposed edge.
