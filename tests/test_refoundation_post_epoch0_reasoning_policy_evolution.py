@@ -133,7 +133,7 @@ def _authorization(*, operation, source, target, decision_artifact_id):
 
 
 def test_c10_revision_and_policy_identity_are_explicit_and_round_trip() -> None:
-    assert COMPONENT_VERSION == "0.0.4"
+    assert COMPONENT_VERSION == "0.0.5"
     root = _root()
     assert root.revision == 1
     assert root.parent_policy_id is None

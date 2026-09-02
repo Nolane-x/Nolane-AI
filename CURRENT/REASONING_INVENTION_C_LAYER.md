@@ -2,9 +2,9 @@
 
 ## Status
 
-`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.4**.
+`external.reasoning_invention` is the canonical post-Epoch-0 Reasoning / Invention protocol family at **v0.0.5**.
 
-The v0.0.4 cutover is additive. The original `reasoning-invention-v1` wire/state schema and every C8 schema remain unchanged, so prior serialized identities remain backward compatible. v0.0.4 retains the separate `reasoning-episode-v1` temporal protocol and adds `reasoning-policy-evolution-v1` rather than widening frontier, control or review artifacts into a mutable monolith.
+The v0.0.5 cutover is additive. Existing C1–C10 schemas remain unchanged for backward-compatible identity. v0.0.5 adds `reasoning-policy-qualification-v1` as a separate evidence protocol rather than widening policy evolution into a mutable router or governor.
 
 Nolane World 0.12.0 is design provenance only. Nolane AI owns the runtime contracts, identities, authority boundaries and verification rules.
 
@@ -24,7 +24,7 @@ Reasoning/Invention is deliberately **not** a seventh mutable governor. It compo
 
 ## Architecture: Reasoning Ecology
 
-v0.0.4 composes C1–C10 into a bounded, replayable reasoning ecology:
+v0.0.5 composes C1–C11 into a bounded, replayable reasoning ecology:
 
 ```text
 Cognitive Library / evidence / observations
@@ -334,7 +334,7 @@ Outcome aggregation cannot modify its own policy, neural state, Cognitive Librar
 
 ## Canonical schemas
 
-The component version is `0.0.4` while schemas remain independently versioned:
+The component version is `0.0.5` while schemas remain independently versioned:
 
 | Module | Schema |
 | --- | --- |
@@ -345,13 +345,14 @@ The component version is `0.0.4` while schemas remain independently versioned:
 | `reasoning_meta_learning.py` | `reasoning-meta-learning-v1` |
 | `reasoning_episode.py` | `reasoning-episode-v1` |
 | `reasoning_policy_evolution.py` | `reasoning-policy-evolution-v1` |
+| `reasoning_policy_qualification.py` | `reasoning-policy-qualification-v1` |
 | `reasoning_evaluation.py` | existing C7 evaluation schema |
 
 The v1 core schema, all C8 schemas and `reasoning-episode-v1` are intentionally retained during the component revision cutover so earlier serialized states and content identities do not change merely because C9/C10 exists.
 
 ## Fail-closed behavior
 
-C1–C10 reject, as applicable:
+C1–C11 reject, as applicable:
 
 - empty semantic identities;
 - duplicate set-like identities;
@@ -406,9 +407,9 @@ This boundary is intentionally narrow so A, B, D, E, F, Memory and Truth can evo
 
 ## Verification contract
 
-C8–C10 were developed RED -> GREEN. The closure gate requires:
+C8–C11 were developed RED -> GREEN. The closure gate requires:
 
-1. coherent `external.reasoning_invention == 0.0.4` across all Reasoning/Invention modules and the canonical revision map;
+1. coherent `external.reasoning_invention == 0.0.5` across all Reasoning/Invention modules and the canonical revision map;
 2. canonical round-trip and forged-ID rejection for every C8/C9/C10 artifact;
 3. branch-budget and structural-rival constraints;
 4. Pareto/order-invariant metacontrol;
@@ -423,6 +424,14 @@ C8–C10 were developed RED -> GREEN. The closure gate requires:
 13. fresh-context policy review plus external-only adoption/rollback authorization with exact lineage;
 14. source scans preventing mutable C/Assurance/model/execution authority backdoors;
 15. exact-head repository Refoundation gates on Python 3.11 and 3.13 plus resynchronization with latest `main` before certification if the base advances.
+
+## C11 — Counterfactual Policy Qualification
+
+Schema: `reasoning-policy-qualification-v1`.
+
+C11 binds parent/candidate policy outcomes to exact externally supplied `PolicyTrialContext` snapshots and exact C10 holdout authority. `MatchedPolicyTrial` derives the effect vector rather than trusting caller attribution. `PolicyRegimeQualification` requires multiple distinct-task matched trials, blocks any tail regression, preserves separate Pareto dimensions, and admits no wildcard regime matching.
+
+`PolicyApplicabilityReceipt` returns only `QUALIFIED_FOR_CONTEXT` or fail-closed `ABSTAIN_OUT_OF_SCOPE`. Qualification requires an already externally adopted C10 policy and remains evidence-only: it cannot route a current policy, create adoption/rollback authority, mutate D/E, write Truth/Memory, mint Assurance, or expand caller reasoning budgets.
 
 ## Non-goals
 

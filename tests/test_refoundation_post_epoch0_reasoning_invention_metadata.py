@@ -15,7 +15,7 @@ def test_reasoning_invention_is_declared_as_canonical_native_v004_component() ->
     manifests = {row.component_id: row for row in build_component_manifests()}
     assert COMPONENT_ID in manifests
     manifest = manifests[COMPONENT_ID]
-    assert str(manifest.version) == "0.0.4"
+    assert str(manifest.version) == "0.0.5"
     assert manifest.layer == "external_core"
     assert manifest.state_schema == "reasoning-invention-v1"
     assert manifest.dependencies == (
@@ -34,7 +34,7 @@ def test_reasoning_invention_is_declared_as_canonical_native_v004_component() ->
     ledger = build_component_implementation_ledger()
     record = ledger[COMPONENT_ID]
     assert record.status is ImplementationStatus.CANONICAL_NATIVE
-    assert record.component_version == "0.0.4"
+    assert record.component_version == "0.0.5"
     assert record.canonical_module == CANONICAL_MODULE
     assert record.legacy_sources == ()
     assert record.canonical_write_authority

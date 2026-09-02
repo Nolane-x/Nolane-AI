@@ -71,9 +71,9 @@ def test_reasoning_invention_revision_is_coherent() -> None:
 
     assert core.COMPONENT_ID == "external.reasoning_invention"
     assert evaluation.COMPONENT_ID == "external.reasoning_invention"
-    assert core.COMPONENT_VERSION == "0.0.4"
-    assert evaluation.COMPONENT_VERSION == "0.0.4"
-    assert str(component_version("external.reasoning_invention")) == "0.0.4"
+    assert core.COMPONENT_VERSION == "0.0.5"
+    assert evaluation.COMPONENT_VERSION == "0.0.5"
+    assert str(component_version("external.reasoning_invention")) == "0.0.5"
 
 
 def test_frontier_is_bounded_canonical_and_tamper_evident() -> None:

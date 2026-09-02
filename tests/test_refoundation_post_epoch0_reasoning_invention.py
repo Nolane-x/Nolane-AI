@@ -148,7 +148,7 @@ def test_reasoning_invention_canonical_module_exists() -> None:
 def test_reasoning_invention_declares_exact_component_revision() -> None:
     module = importlib.import_module(CANONICAL_MODULE)
     assert module.COMPONENT_ID == COMPONENT_ID
-    assert module.COMPONENT_VERSION == "0.0.4"
+    assert module.COMPONENT_VERSION == "0.0.5"
     assert module.SCHEMA_VERSION == "reasoning-invention-v1"
 
 

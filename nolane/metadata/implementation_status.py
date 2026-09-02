@@ -190,7 +190,7 @@ _NATIVE: dict[str, tuple[str, tuple[str, ...], str]] = {
     "external.reasoning_invention": (
         "nolane.external_core.reasoning_invention",
         (),
-        "Native post-Epoch-0 Reasoning/Invention family for evidence-bound hypotheses, deterministic Pareto reasoning, bounded epistemic frontiers, fresh-context challenge, descriptive meta-learning, replayable reasoning episodes with monotonic generations, stale-authority fencing and transition-derived budget conservation, and governed policy evolution with exact external authorization. It owns reasoning protocol, trajectory and policy-proposal identity only: Cognitive Library registration, Capability Acquisition lifecycle, Transfer/Meta acceptance, D Goal/Design, E execution, Assurance and neural mutation remain separate authorities; Nolane World 0.12.0 is design provenance only.",
+        "Native post-Epoch-0 Reasoning/Invention family for evidence-bound hypotheses, deterministic Pareto reasoning, bounded epistemic frontiers, fresh-context challenge, descriptive meta-learning, replayable reasoning episodes with monotonic generations, stale-authority fencing and transition-derived budget conservation, governed policy evolution with exact external authorization, and exact-context counterfactual policy qualification with fail-closed scope evidence. It owns reasoning protocol, trajectory, policy-proposal and qualification-evidence identity only: Cognitive Library registration, Capability Acquisition lifecycle, Transfer/Meta acceptance, D Goal/Design, E execution, Assurance and neural mutation remain separate authorities; Nolane World 0.12.0 is design provenance only.",
     ),
     "external.transfer_meta": (
         "nolane.external_core.transfer_meta",
