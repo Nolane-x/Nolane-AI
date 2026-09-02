@@ -426,7 +426,7 @@ class EngineeringPropertyEvidenceLedger(_EngineeringPropertyEvidenceLedgerV01):
             )
             if semantic:
                 raise ValueError(
-                    "ready property closure contains ungrounded semantic verifier claims"
+                    "semantic verifier claims are not grounded for ready property closure"
                 )
             if independence:
                 raise ValueError(
