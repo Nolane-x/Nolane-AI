@@ -159,6 +159,10 @@ def restore_runtime_learning_state(
     )
     _copy_validated_overlay(target, validated)
     experiences.learning_authority = authority
+    # Promotion policy authority is a runtime-only object binding. It is attached
+    # only after persisted state has passed canonical replay, so a snapshot cannot
+    # manufacture or replace the governor that authorizes scope expansion.
+    skills._bind_governed_skill_promoter(target)
     return target
 
 
@@ -178,6 +182,7 @@ def _bind_downstream_authority(runtime, bound: LearningSubstrate) -> None:
     authority = bound.learning_authority
     individual = runtime.individual_evolution
     runtime.evolution.learning_authority = authority
+    runtime.evolution._bind_governed_skill_promoter(bound)
     individual.learning_authority = authority
     individual.experiences.learning_authority = authority
     individual.self_models.learning_authority = authority

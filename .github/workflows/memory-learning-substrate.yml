@@ -98,6 +98,7 @@ jobs:
             tests/test_memory_learning_multi_agent_authority_v011.py
             tests/test_memory_learning_verified_admission_forgetting_v012.py
             tests/test_memory_learning_lease_transactionality_v012.py
+            tests/test_memory_learning_governed_skill_promotion_v013.py
             tests/test_refoundation_component_versions.py
             tests/test_refoundation_runtime_state_map.py
             tests/test_refoundation_wave2_zero_loss_runtime_digest.py
