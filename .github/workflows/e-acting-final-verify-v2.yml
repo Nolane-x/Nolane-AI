@@ -1,0 +1,45 @@
+name: E Acting Final Verify v2
+
+on:
+  push:
+    branches:
+      - e-acting-final-verify-9dc711b8
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.12']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install pytest
+        run: python -m pip install -q pytest
+      - name: Compile E authority modules
+        run: |
+          python -m py_compile \
+            nolane/external_core/acting_protocol.py \
+            nolane/external_core/acting_runtime.py \
+            nolane/external_core/execution.py \
+            nolane/external_core/execution_executor.py \
+            nolane/external_core/execution_types.py \
+            nolane/metadata/component_versions.py
+      - name: Run final E and version regression
+        run: |
+          python -m pytest -q \
+            tests/test_refoundation_acting_*.py \
+            tests/test_refoundation_wave5r_native_invokable_cores.py \
+            tests/test_refoundation_wave5s_native_execution_workspace.py \
+            tests/test_refoundation_wave5w_native_execution_executor.py \
+            tests/test_refoundation_wave5z_native_neural_inference.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py \
+            tests/test_refoundation_component_versions.py
+      - name: Check repository diff hygiene
+        run: git diff --check
