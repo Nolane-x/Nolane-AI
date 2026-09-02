@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from threading import Event, Lock, Thread
+
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
@@ -98,3 +100,58 @@ def test_restore_rejects_promoted_skill_laundered_through_owner_self_evidence() 
 
     with pytest.raises((PermissionError, ValueError), match="owner.*independent verifier"):
         SkillEvolutionEngine.from_state({"skills": [forged_row]})
+
+
+def test_governed_promotion_reentry_is_context_local_under_concurrency() -> None:
+    engine = SkillEvolutionEngine()
+    skill = engine.propose(
+        owner_agent_id="agent-a",
+        region="coding",
+        name="concurrent-governed-promotion",
+        body="one concurrent promotion must never unlock another caller",
+    )
+    engine.verify(skill.skill_id, _clean_evidence("v013-thread-verifier", "agent-b"))
+
+    entered = Event()
+    release = Event()
+    lock = Lock()
+    first_errors: list[BaseException] = []
+
+    class BlockingDenyPromoter:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def promote_skill(self, skill_id: str, scope: SkillScope):
+            with lock:
+                self.calls += 1
+                call_number = self.calls
+            if call_number == 1:
+                entered.set()
+                if not release.wait(5):
+                    raise AssertionError("concurrent promotion test did not release first policy call")
+            raise PermissionError("blocked by governed policy")
+
+    promoter = BlockingDenyPromoter()
+    engine._bind_governed_skill_promoter(promoter)
+
+    def first_call() -> None:
+        try:
+            engine.promote(skill.skill_id, SkillScope.PERSONAL)
+        except BaseException as exc:  # captured for assertion in the parent thread
+            first_errors.append(exc)
+
+    worker = Thread(target=first_call)
+    worker.start()
+    assert entered.wait(5), "first promotion never entered the governed policy"
+    try:
+        with pytest.raises(PermissionError, match="governed skill promotion"):
+            engine.promote(skill.skill_id, SkillScope.PERSONAL)
+    finally:
+        release.set()
+        worker.join(5)
+
+    assert not worker.is_alive()
+    assert promoter.calls == 2
+    assert len(first_errors) == 1
+    assert isinstance(first_errors[0], PermissionError)
+    assert engine.get(skill.skill_id).scope is SkillScope.CANDIDATE
