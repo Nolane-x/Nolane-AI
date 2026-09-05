@@ -129,6 +129,22 @@ def test_duplicate_component_roots_fail_closed() -> None:
         discover_component_ownership(sources, {"nolane.external_core.one"}, {"external.integration"})
 
 
+def test_same_component_public_surface_can_depend_on_one_canonical_root() -> None:
+    sources = {
+        "nolane.external_core.capability_acquisition": 'COMPONENT_ID = "external.capability_acquisition"\nROOT_VALUE = 1\n',
+        "nolane.external_core.capability_probation": 'from nolane.external_core.capability_acquisition import ROOT_VALUE\nCOMPONENT_ID = "external.capability_acquisition"\nSURFACE_VALUE = ROOT_VALUE\n',
+    }
+    ownership = discover_component_ownership(
+        sources,
+        {"nolane.external_core.capability_probation", "nolane.external_core.capability_acquisition"},
+        {"external.capability_acquisition"},
+    )
+    assert ownership == {
+        "nolane.external_core.capability_acquisition": ("external.capability_acquisition",),
+        "nolane.external_core.capability_probation": ("external.capability_acquisition",),
+    }
+
+
 def test_nonliteral_component_id_diagnostic_names_exact_module() -> None:
     sources = {
         "nolane.external_core.integration": 'COMPONENT_ID = component_id()\n',
