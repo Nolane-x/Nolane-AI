@@ -23,6 +23,20 @@ class ResearchHandoffDisposition(str, Enum):
     BLOCKED = 'blocked'
 
 
+class CurrentResearchHandoffDisposition(str, Enum):
+    """Current assessment of a historical research handoff.
+
+    This disposition never creates authority. AUTHORIZED means the existing
+    handoff still satisfies every current binding that originally made it
+    authorizing; UNKNOWN means required current evidence cannot be established.
+    """
+
+    INFORMATIVE = 'informative'
+    AUTHORIZED = 'authorized'
+    BLOCKED = 'blocked'
+    UNKNOWN = 'unknown'
+
+
 @dataclass(frozen=True, slots=True)
 class ResearchSynthesis:
     synthesis_id: str
@@ -145,6 +159,38 @@ class ResearchHandoff:
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('research handoff digest mismatch')
         return row
+
+
+@dataclass(frozen=True, slots=True)
+class CurrentResearchHandoffAssessment:
+    handoff_id: str
+    historical_handoff_digest: str
+    synthesis_id: str
+    synthesis_digest: str
+    artifact_id: str
+    artifact_digest: str | None
+    provenance_digest: str
+    assurance_disposition: AssuranceDisposition | None
+    disposition: CurrentResearchHandoffDisposition
+    reasons: tuple[str, ...]
+    digest: str
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            'handoff_id': self.handoff_id,
+            'historical_handoff_digest': self.historical_handoff_digest,
+            'synthesis_id': self.synthesis_id,
+            'synthesis_digest': self.synthesis_digest,
+            'artifact_id': self.artifact_id,
+            'artifact_digest': self.artifact_digest,
+            'provenance_digest': self.provenance_digest,
+            'assurance_disposition': None if self.assurance_disposition is None else self.assurance_disposition.value,
+            'disposition': self.disposition.value,
+            'reasons': list(self.reasons),
+        }
+
+    def to_state(self) -> dict[str, Any]:
+        return {**self.payload(), 'digest': self.digest}
 
 
 _ENGINEERING_TARGET_REGIONS = {'planning-program', 'architecture-system', 'core-coding'}
@@ -338,6 +384,139 @@ class ResearchControlPlane:
         self._handoffs[row.handoff_id] = row
         return row
 
+    def assess_current_handoff(self, handoff_id: str) -> CurrentResearchHandoffAssessment:
+        """Revalidate a historical handoff against current evidence and authority.
+
+        Historical AUTHORIZED is not durable authority. Current authorization is
+        preserved only when the synthesis artifact still has exact integrity,
+        the underlying research findings/claims are current, and the Assurance
+        subject remains independently VERIFIED for the exact synthesis artifact.
+        """
+
+        handoff = self.handoff(handoff_id)
+        synthesis = self.synthesis(handoff.synthesis_id)
+        blocking: list[str] = []
+        unknown: list[str] = []
+        current_assurance: AssuranceDisposition | None = None
+        artifact_digest: str | None = None
+
+        if handoff.synthesis_artifact_id != synthesis.artifact_id:
+            blocking.append('handoff_synthesis_artifact_mismatch')
+        if handoff.disposition is ResearchHandoffDisposition.BLOCKED:
+            blocking.append('historical_handoff_blocked')
+        if not synthesis.shareable:
+            blocking.append('synthesis_not_shareable')
+
+        try:
+            artifact = self.artifacts.get(synthesis.artifact_id)
+        except KeyError:
+            unknown.append('synthesis_artifact_unavailable')
+        else:
+            artifact_digest = artifact.digest
+            if not _legacy_artifact_integrity_is_current(artifact):
+                blocking.append('artifact_integrity_mismatch')
+            if artifact.kind != 'research-synthesis' or artifact.producer_agent_id != synthesis.producer_agent_id:
+                blocking.append('artifact_provenance_mismatch')
+            expected_content = canonical_json(_synthesis_core_payload(synthesis))
+            if artifact.content != expected_content:
+                blocking.append('artifact_integrity_mismatch')
+            try:
+                metadata = artifact.metadata
+            except (TypeError, ValueError):
+                blocking.append('artifact_integrity_mismatch')
+            else:
+                if metadata.get('synthesis_id') != synthesis.synthesis_id:
+                    blocking.append('artifact_synthesis_binding_mismatch')
+                if metadata.get('shareable') is not synthesis.shareable:
+                    blocking.append('artifact_synthesis_binding_mismatch')
+            if tuple(sorted(artifact.evidence_refs)) != tuple(sorted(set(synthesis.evidence_refs))):
+                blocking.append('artifact_evidence_binding_mismatch')
+
+        try:
+            for finding_id in synthesis.finding_ids:
+                if not self.provenance.is_finding_fresh(finding_id):
+                    blocking.append('stale_finding')
+            for claim_key in synthesis.claim_keys:
+                assessment = self.provenance.assess_claim(claim_key)
+                if assessment.disposition is ClaimDisposition.CONTRADICTED:
+                    blocking.append('unresolved_contradiction')
+                elif assessment.disposition is ClaimDisposition.STALE:
+                    blocking.append('stale_finding')
+                elif assessment.disposition is ClaimDisposition.UNKNOWN:
+                    unknown.append('claim_currentness_unknown')
+        except KeyError:
+            unknown.append('research_basis_unavailable')
+
+        if handoff.authorizing:
+            if handoff.assurance_subject_id is None:
+                blocking.append('missing_assurance_subject')
+            else:
+                try:
+                    subject = self.assurance.evidence.get_subject(handoff.assurance_subject_id)
+                except KeyError:
+                    unknown.append('assurance_subject_unavailable')
+                else:
+                    if subject.artifact_id != synthesis.artifact_id:
+                        blocking.append('assurance_subject_artifact_mismatch')
+                    try:
+                        current_assurance = self.assurance.effective_disposition(subject.subject_id)
+                    except KeyError:
+                        unknown.append('assurance_currentness_unavailable')
+                    else:
+                        if current_assurance is AssuranceDisposition.PENDING:
+                            unknown.append('assurance_currentness_unresolved')
+                        elif current_assurance is not AssuranceDisposition.VERIFIED:
+                            blocking.append('assurance_not_currently_verified')
+        elif handoff.assurance_subject_id is not None:
+            try:
+                subject = self.assurance.evidence.get_subject(handoff.assurance_subject_id)
+                if subject.artifact_id != synthesis.artifact_id:
+                    blocking.append('assurance_subject_artifact_mismatch')
+                else:
+                    current_assurance = self.assurance.effective_disposition(subject.subject_id)
+            except KeyError:
+                unknown.append('assurance_subject_unavailable')
+
+        if blocking:
+            disposition = CurrentResearchHandoffDisposition.BLOCKED
+            reasons = tuple(dict.fromkeys(blocking + unknown))
+        elif unknown:
+            disposition = CurrentResearchHandoffDisposition.UNKNOWN
+            reasons = tuple(dict.fromkeys(unknown))
+        elif handoff.authorizing:
+            disposition = CurrentResearchHandoffDisposition.AUTHORIZED
+            reasons = ()
+        else:
+            disposition = CurrentResearchHandoffDisposition.INFORMATIVE
+            reasons = ()
+
+        provenance_digest = str(getattr(self.provenance, 'digest', ''))
+        payload = {
+            'handoff_id': handoff.handoff_id,
+            'historical_handoff_digest': handoff.digest,
+            'synthesis_id': synthesis.synthesis_id,
+            'synthesis_digest': synthesis.digest,
+            'artifact_id': synthesis.artifact_id,
+            'artifact_digest': artifact_digest,
+            'provenance_digest': provenance_digest,
+            'assurance_disposition': None if current_assurance is None else current_assurance.value,
+            'disposition': disposition.value,
+            'reasons': list(reasons),
+        }
+        return CurrentResearchHandoffAssessment(
+            handoff_id=handoff.handoff_id,
+            historical_handoff_digest=handoff.digest,
+            synthesis_id=synthesis.synthesis_id,
+            synthesis_digest=synthesis.digest,
+            artifact_id=synthesis.artifact_id,
+            artifact_digest=artifact_digest,
+            provenance_digest=provenance_digest,
+            assurance_disposition=current_assurance,
+            disposition=disposition,
+            reasons=reasons,
+            digest=canonical_digest(payload),
+        )
+
     def propose_personal_skill(
         self,
         *,
@@ -414,6 +593,56 @@ class ResearchControlPlane:
         return result
 
 
+def _synthesis_core_payload(synthesis: ResearchSynthesis) -> dict[str, Any]:
+    return {
+        'synthesis_id': synthesis.synthesis_id,
+        'producer_agent_id': synthesis.producer_agent_id,
+        'title': synthesis.title,
+        'finding_ids': list(synthesis.finding_ids),
+        'claim_keys': list(synthesis.claim_keys),
+        'source_ids': list(synthesis.source_ids),
+        'evidence_modes': [x.value for x in synthesis.evidence_modes],
+        'domains': [x.value for x in synthesis.domains],
+        'conclusion': synthesis.conclusion,
+        'limitations': list(synthesis.limitations),
+        'evidence_refs': list(synthesis.evidence_refs),
+        'reasons': list(synthesis.reasons),
+        'shareable': synthesis.shareable,
+        'created_epoch': synthesis.created_epoch,
+    }
+
+
+def _legacy_artifact_integrity_is_current(artifact: Any) -> bool:
+    try:
+        metadata = artifact.metadata
+    except (TypeError, ValueError):
+        return False
+    payload = {
+        'kind': artifact.kind,
+        'producer_agent_id': artifact.producer_agent_id,
+        'content': artifact.content,
+        'evidence_refs': sorted({str(x) for x in artifact.evidence_refs}),
+        'metadata': metadata,
+    }
+    digest = canonical_digest(payload)
+    return artifact.digest == digest and artifact.artifact_id == 'artifact-' + digest[:24]
+
+
 COMPONENT_ID = "external.research"
 COMPONENT_VERSION = "0.0.1"
+RESEARCH_PROTOCOL_VERSION = "2"
 MIGRATED_FROM = "cogcoder.organization.research"
+
+
+__all__ = (
+    'COMPONENT_ID',
+    'COMPONENT_VERSION',
+    'CurrentResearchHandoffAssessment',
+    'CurrentResearchHandoffDisposition',
+    'MIGRATED_FROM',
+    'RESEARCH_PROTOCOL_VERSION',
+    'ResearchControlPlane',
+    'ResearchHandoff',
+    'ResearchHandoffDisposition',
+    'ResearchSynthesis',
+)
