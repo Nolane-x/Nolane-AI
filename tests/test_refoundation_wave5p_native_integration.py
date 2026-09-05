@@ -28,7 +28,7 @@ def test_wave5p_canonical_integration_owns_complete_public_implementation() -> N
 
     assert all(getattr(canonical, name).__module__ == "nolane.external_core.integration" for name in _PUBLIC_SYMBOLS)
     assert canonical.COMPONENT_ID == "external.integration"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.integration"
 
 
@@ -120,8 +120,8 @@ def test_wave5p_integration_component_version_and_authority_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.integration"
     assert row.legacy_sources == ("cogcoder/organization/integration.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.integration")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.integration")) == "0.0.2"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.integration" not in facade_ids
