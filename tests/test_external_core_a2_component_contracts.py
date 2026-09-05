@@ -119,6 +119,34 @@ def test_descriptive_component_cannot_gain_authority_through_edge():
         graph.validate()
 
 
+def test_relation_cannot_launder_authority_not_declared_by_source_manifest():
+    reporter = _manifest(
+        "external.reporter",
+        ExternalCoreFamily.G,
+        authorities=("observe",),
+        produces=("verification-result",),
+    )
+    consumer = _manifest(
+        "external.consumer",
+        ExternalCoreFamily.D,
+        consumes=("verification-result",),
+    )
+    graph = ExternalAuthorityGraph(
+        (reporter, consumer),
+        (
+            AuthorityEdge.create(
+                source_component_id=reporter.component_id,
+                target_component_id=consumer.component_id,
+                relation=AuthorityRelation.VERIFIES,
+                contract_kind="verification-result",
+            ),
+        ),
+    )
+    assert "UNDECLARED_SOURCE_AUTHORITY" in {row.code for row in graph.findings()}
+    with pytest.raises(ValueError, match="UNDECLARED_SOURCE_AUTHORITY"):
+        graph.validate()
+
+
 def test_self_verification_and_authority_cycles_are_rejected():
     verifier = _manifest(
         "external.verification",
