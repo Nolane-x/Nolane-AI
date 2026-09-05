@@ -127,3 +127,11 @@ def test_duplicate_component_roots_fail_closed() -> None:
     }
     with pytest.raises(ValueError, match="duplicate canonical component root"):
         discover_component_ownership(sources, {"nolane.external_core.one"}, {"external.integration"})
+
+
+def test_nonliteral_component_id_diagnostic_names_exact_module() -> None:
+    sources = {
+        "nolane.external_core.integration": 'COMPONENT_ID = component_id()\n',
+    }
+    with pytest.raises(ValueError, match=r"nolane\.external_core\.integration.*literal"):
+        discover_component_ownership(sources, {"nolane.external_core.integration"}, {"external.integration"})
