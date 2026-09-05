@@ -186,3 +186,16 @@ def test_git_checker_treats_component_spec_metadata_change_as_semantic(tmp_path:
     report = check_git_revision_discipline(repo, base, _head(repo, "spec semantic change"))
     assert _codes(report) == {VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION.value}
     assert {row.component_id for row in report.findings} == {"external.integration"}
+
+
+def test_revision_bump_cannot_mask_canonical_root_disappearance(tmp_path: Path) -> None:
+    repo, base = _fixture_repo(tmp_path)
+    (repo / "nolane/external_core/integration.py").unlink()
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 2, "external.planning": 1})\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "remove root with bump"))
+    assert _codes(report) == {"MISSING_CANONICAL_COMPONENT_ROOT"}
+    assert {row.component_id for row in report.findings} == {"external.integration"}
