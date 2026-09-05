@@ -145,6 +145,33 @@ def test_same_component_public_surface_can_depend_on_one_canonical_root() -> Non
     }
 
 
+def test_public_component_id_can_be_exact_imported_alias_of_literal_identity() -> None:
+    sources = {
+        "nolane.external_core.integration_base": 'COMPONENT_ID = "external.integration"\nROOT_VALUE = 1\n',
+        "nolane.external_core.integration": 'from nolane.external_core.integration_base import COMPONENT_ID as BASE_COMPONENT_ID, ROOT_VALUE\nCOMPONENT_ID = BASE_COMPONENT_ID\nSURFACE_VALUE = ROOT_VALUE\n',
+    }
+    ownership = discover_component_ownership(
+        sources,
+        {"nolane.external_core.integration"},
+        {"external.integration"},
+    )
+    assert ownership == {"nolane.external_core.integration": ("external.integration",)}
+
+
+def test_public_component_id_imported_alias_can_resolve_through_frozen_chain() -> None:
+    sources = {
+        "nolane.external_core._f_v09": 'COMPONENT_ID = "external.f-control"\n',
+        "nolane.external_core._f_v10": 'from nolane.external_core._f_v09 import COMPONENT_ID\n',
+        "nolane.external_core.software_engineering_control": 'from nolane.external_core._f_v10 import COMPONENT_ID as BASE_COMPONENT_ID\nCOMPONENT_ID = BASE_COMPONENT_ID\n',
+    }
+    ownership = discover_component_ownership(
+        sources,
+        {"nolane.external_core.software_engineering_control"},
+        {"external.f-control"},
+    )
+    assert ownership == {"nolane.external_core.software_engineering_control": ("external.f-control",)}
+
+
 def test_nonliteral_component_id_diagnostic_names_exact_module() -> None:
     sources = {
         "nolane.external_core.integration": 'COMPONENT_ID = component_id()\n',
