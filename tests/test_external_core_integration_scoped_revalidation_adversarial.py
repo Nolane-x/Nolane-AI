@@ -7,7 +7,11 @@ import pytest
 from nolane.external_core.authority_graph import AuthorityEdge, AuthorityRelation, ExternalAuthorityGraph
 from nolane.external_core.component_contracts import ExternalComponentManifest, ExternalCoreFamily
 from nolane.external_core.evidence import EvidenceRecord, ScopedEvidenceRecord
-from nolane.external_core.integration_evolution import ComponentEvolutionDelta, build_integration_impact_closure, qualify_component_evolution
+from nolane.external_core.integration_evolution import (
+    ComponentEvolutionDelta,
+    build_integration_impact_closure,
+    qualify_component_evolution,
+)
 from nolane.external_core.integration_revalidation import RevalidationDisposition, build_revalidation_plan
 from nolane.external_core.integration_scoped_revalidation import (
     RevalidationCompletionReceipt,
@@ -20,7 +24,13 @@ from nolane.external_core.integration_scoped_revalidation import (
 )
 
 
-def _manifest(component_id: str, version: str, *, consumes: tuple[str, ...] = (), produces: tuple[str, ...] = ()) -> ExternalComponentManifest:
+def _manifest(
+    component_id: str,
+    version: str,
+    *,
+    consumes: tuple[str, ...] = (),
+    produces: tuple[str, ...] = (),
+) -> ExternalComponentManifest:
     return ExternalComponentManifest.create(
         component_id=component_id,
         component_version=version,
@@ -56,13 +66,24 @@ def _case(new_version: str = "0.0.3", *, planning_version: str = "0.0.1"):
     )
     delta = ComponentEvolutionDelta.create(old, new)
     closure = build_integration_impact_closure(("external.integration",), graph)
-    plan = build_revalidation_plan(delta=delta, qualification=qualify_component_evolution(delta), impact_closure=closure)
+    plan = build_revalidation_plan(
+        delta=delta,
+        qualification=qualify_component_evolution(delta),
+        impact_closure=closure,
+    )
     scope = build_revalidation_scope(delta=delta, impact_closure=closure, plan=plan)
     challenges = build_revalidation_challenges(scope=scope, plan=plan, authority_graph=graph)
     return graph, delta, closure, plan, scope, challenges
 
 
-def _evidence(challenge, suffix: str, *, epoch: int = 10, passed: bool = True, regressions: int = 0) -> ScopedEvidenceRecord:
+def _evidence(
+    challenge,
+    suffix: str,
+    *,
+    epoch: int = 10,
+    passed: bool = True,
+    regressions: int = 0,
+) -> ScopedEvidenceRecord:
     return ScopedEvidenceRecord.create(
         evidence_id=f"scoped-{suffix}",
         subject_id=challenge.component_id,
@@ -81,21 +102,32 @@ def _evidence(challenge, suffix: str, *, epoch: int = 10, passed: bool = True, r
 
 def _bindings(challenges, *, epoch: int = 10):
     return tuple(
-        ScopedRevalidationEvidenceBinding.create(challenge=row, evidence=_evidence(row, str(index), epoch=epoch))
+        ScopedRevalidationEvidenceBinding.create(
+            challenge=row,
+            evidence=_evidence(row, str(index), epoch=epoch),
+        )
         for index, row in enumerate(challenges)
     )
 
 
-def test_adversarial_all_exact_scoped_evidence_can_make_transition_current() -> None:
-    _, _, _, plan, scope, challenges = _case()
-    bindings = _bindings(challenges)
-    assessment = assess_scoped_revalidation(
+def _assess(case, bindings, *, minimum_observed_epoch: int = 0):
+    graph, delta, closure, plan, scope, challenges = case
+    return assess_scoped_revalidation(
+        delta=delta,
+        impact_closure=closure,
+        authority_graph=graph,
         scope=scope,
         plan=plan,
         challenges=challenges,
         evidence_bindings=bindings,
-        minimum_observed_epoch=5,
+        minimum_observed_epoch=minimum_observed_epoch,
     )
+
+
+def test_adversarial_all_exact_scoped_evidence_can_make_transition_current() -> None:
+    case = _case()
+    challenges = case[-1]
+    assessment = _assess(case, _bindings(challenges), minimum_observed_epoch=5)
     assert assessment.disposition is RevalidationDisposition.CURRENT
     assert not assessment.missing_challenge_ids
 
@@ -110,20 +142,21 @@ def test_adversarial_cross_version_evidence_replay_is_rejected() -> None:
 
 
 def test_adversarial_cross_scope_or_plan_replay_cannot_satisfy_new_transition() -> None:
-    _, _, _, old_plan, old_scope, old_challenges = _case()
-    old_binding = ScopedRevalidationEvidenceBinding.create(challenge=old_challenges[0], evidence=_evidence(old_challenges[0], "old"))
-
-    _, _, _, new_plan, new_scope, new_challenges = _case(planning_version="0.0.2")
-    assert new_scope.scope_id != old_scope.scope_id
-    assessment = assess_scoped_revalidation(
-        scope=new_scope,
-        plan=new_plan,
-        challenges=new_challenges,
-        evidence_bindings=(old_binding,),
-        minimum_observed_epoch=0,
+    old_case = _case()
+    old_challenges = old_case[-1]
+    old_binding = ScopedRevalidationEvidenceBinding.create(
+        challenge=old_challenges[0],
+        evidence=_evidence(old_challenges[0], "old"),
     )
+
+    new_case = _case(planning_version="0.0.2")
+    assert new_case[-2].scope_id != old_case[-2].scope_id
+    assessment = _assess(new_case, (old_binding,))
     assert assessment.disposition is RevalidationDisposition.BLOCKED
-    assert any(code in assessment.reason_codes for code in ("SCOPE_MISMATCH", "UNEXPECTED_EVIDENCE_BINDING", "CHALLENGE_MISMATCH"))
+    assert any(
+        code in assessment.reason_codes
+        for code in ("SCOPE_MISMATCH", "UNEXPECTED_EVIDENCE_BINDING", "CHALLENGE_MISMATCH")
+    )
 
 
 def test_adversarial_wrong_scope_digest_or_subject_digest_is_rejected() -> None:
@@ -157,40 +190,33 @@ def test_adversarial_self_certification_is_rejected() -> None:
 
 
 def test_adversarial_duplicate_binding_blocks_instead_of_double_counting() -> None:
-    _, _, _, plan, scope, challenges = _case()
-    binding = ScopedRevalidationEvidenceBinding.create(challenge=challenges[0], evidence=_evidence(challenges[0], "dup"))
-    assessment = assess_scoped_revalidation(
-        scope=scope,
-        plan=plan,
-        challenges=challenges,
-        evidence_bindings=(binding, binding),
-        minimum_observed_epoch=0,
+    case = _case()
+    challenge = case[-1][0]
+    binding = ScopedRevalidationEvidenceBinding.create(
+        challenge=challenge,
+        evidence=_evidence(challenge, "dup"),
     )
+    assessment = _assess(case, (binding, binding))
     assert assessment.disposition is RevalidationDisposition.BLOCKED
     assert "DUPLICATE_EVIDENCE_BINDING" in assessment.reason_codes
 
 
 def test_adversarial_stale_or_dirty_scoped_evidence_blocks() -> None:
-    _, _, _, plan, scope, challenges = _case()
-    stale = ScopedRevalidationEvidenceBinding.create(challenge=challenges[0], evidence=_evidence(challenges[0], "stale", epoch=3))
-    stale_assessment = assess_scoped_revalidation(
-        scope=scope,
-        plan=plan,
-        challenges=challenges,
-        evidence_bindings=(stale,),
-        minimum_observed_epoch=5,
+    case = _case()
+    challenge = case[-1][0]
+    stale = ScopedRevalidationEvidenceBinding.create(
+        challenge=challenge,
+        evidence=_evidence(challenge, "stale", epoch=3),
     )
+    stale_assessment = _assess(case, (stale,), minimum_observed_epoch=5)
     assert stale_assessment.disposition is RevalidationDisposition.BLOCKED
     assert "EVIDENCE_STALE" in stale_assessment.reason_codes
 
-    dirty = ScopedRevalidationEvidenceBinding.create(challenge=challenges[0], evidence=_evidence(challenges[0], "dirty", regressions=1))
-    dirty_assessment = assess_scoped_revalidation(
-        scope=scope,
-        plan=plan,
-        challenges=challenges,
-        evidence_bindings=(dirty,),
-        minimum_observed_epoch=0,
+    dirty = ScopedRevalidationEvidenceBinding.create(
+        challenge=challenge,
+        evidence=_evidence(challenge, "dirty", regressions=1),
     )
+    dirty_assessment = _assess(case, (dirty,))
     assert dirty_assessment.disposition is RevalidationDisposition.BLOCKED
     assert "EVIDENCE_NOT_CLEAN" in dirty_assessment.reason_codes
 
@@ -199,43 +225,46 @@ def test_adversarial_v1_evidence_cannot_enter_v2_binding() -> None:
     _, _, _, _, _, challenges = _case()
     legacy = EvidenceRecord("legacy", "verification.agent.legacy", True)
     with pytest.raises(ValueError, match="scoped"):
-        ScopedRevalidationEvidenceBinding.create(challenge=challenges[0], evidence=legacy)  # type: ignore[arg-type]
+        ScopedRevalidationEvidenceBinding.create(  # type: ignore[arg-type]
+            challenge=challenges[0],
+            evidence=legacy,
+        )
 
 
 def test_adversarial_completion_requires_current_exact_assessment() -> None:
-    _, _, _, plan, scope, challenges = _case()
-    incomplete = assess_scoped_revalidation(
-        scope=scope,
-        plan=plan,
-        challenges=challenges,
-        evidence_bindings=(),
-        minimum_observed_epoch=0,
-    )
+    case = _case()
+    graph, delta, closure, plan, scope, challenges = case
+    incomplete = _assess(case, ())
     assert incomplete.disposition is RevalidationDisposition.REVALIDATION_REQUIRED
-    with pytest.raises(ValueError, match="CURRENT|current"):
+    with pytest.raises(ValueError, match="CURRENT|current|canonical"):
         RevalidationCompletionReceipt.create(
+            delta=delta,
+            impact_closure=closure,
+            authority_graph=graph,
             scope=scope,
+            plan=plan,
             assessment=incomplete,
             challenges=challenges,
             evidence_bindings=(),
+            minimum_observed_epoch=0,
         )
 
 
 def test_adversarial_completion_is_exactly_restorable_and_forgery_fails() -> None:
-    _, _, _, plan, scope, challenges = _case()
+    case = _case()
+    graph, delta, closure, plan, scope, challenges = case
     bindings = _bindings(challenges)
-    assessment = assess_scoped_revalidation(
+    assessment = _assess(case, bindings)
+    receipt = RevalidationCompletionReceipt.create(
+        delta=delta,
+        impact_closure=closure,
+        authority_graph=graph,
         scope=scope,
         plan=plan,
-        challenges=challenges,
-        evidence_bindings=bindings,
-        minimum_observed_epoch=0,
-    )
-    receipt = RevalidationCompletionReceipt.create(
-        scope=scope,
         assessment=assessment,
         challenges=challenges,
         evidence_bindings=bindings,
+        minimum_observed_epoch=0,
     )
     assert RevalidationCompletionReceipt.from_state(receipt.to_state()) == receipt
     forged = replace(receipt, receipt_id="forged")
@@ -244,7 +273,21 @@ def test_adversarial_completion_is_exactly_restorable_and_forgery_fails() -> Non
 
 
 def test_adversarial_v2_surfaces_expose_no_control_authority() -> None:
-    forbidden = ("authorize", "verify", "assure", "promote", "execute", "deploy", "repair", "auto_migrate", "register_runtime")
-    for cls in (RevalidationScope, ScopedRevalidationEvidenceBinding, RevalidationCompletionReceipt):
+    forbidden = (
+        "authorize",
+        "verify",
+        "assure",
+        "promote",
+        "execute",
+        "deploy",
+        "repair",
+        "auto_migrate",
+        "register_runtime",
+    )
+    for cls in (
+        RevalidationScope,
+        ScopedRevalidationEvidenceBinding,
+        RevalidationCompletionReceipt,
+    ):
         for name in forbidden:
             assert not hasattr(cls, name)
