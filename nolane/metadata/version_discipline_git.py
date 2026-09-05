@@ -9,6 +9,7 @@ from nolane.metadata.version_discipline import (
     VersionDisciplineCode,
     VersionDisciplineFinding,
     VersionDisciplineReport,
+    _is_private_module,
     discover_component_ownership,
     evaluate_revision_delta,
 )
@@ -238,6 +239,8 @@ def _root_ids(sources: Mapping[str, str], component_ids: set[str]) -> set[str]:
     roots: set[str] = set()
     seen: dict[str, str] = {}
     for module, source in sorted(sources.items()):
+        if _is_private_module(module):
+            continue
         try:
             tree = ast.parse(source, filename=module)
         except SyntaxError as exc:
@@ -245,8 +248,8 @@ def _root_ids(sources: Mapping[str, str], component_ids: set[str]) -> set[str]:
         candidate = _assignment_value(tree, "COMPONENT_ID")
         if candidate is None:
             continue
-        if not isinstance(candidate, ast.Constant) or not isinstance(candidate.value, str):
-            raise ValueError(f"canonical COMPONENT_ID is not a literal string: {module}")
+        if not isinstance(candidate, ast.Constant) or not isinstance(candidate.value, str) or not candidate.value.strip():
+            raise ValueError(f"canonical COMPONENT_ID is not a literal non-empty string: {module}")
         component_id = candidate.value
         if component_id not in component_ids:
             continue
