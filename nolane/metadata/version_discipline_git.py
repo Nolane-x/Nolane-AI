@@ -323,11 +323,28 @@ def check_git_revision_discipline(
         base_roots = _root_ids(base_sources, canonical_ids)
         head_roots = _root_ids(head_sources, canonical_ids)
         new_roots = head_roots - base_roots
-        return evaluate_revision_delta(
+        revision_report = evaluate_revision_delta(
             base_revisions,
             head_revisions,
             affected,
             new_component_roots=new_roots,
+        )
+        missing_roots = sorted((base_roots - head_roots) & set(head_revisions))
+        root_findings = tuple(
+            VersionDisciplineFinding(
+                VersionDisciplineCode.MISSING_CANONICAL_COMPONENT_ROOT,
+                component_id,
+                "canonical component revision slot remains live but no canonical component root is discoverable",
+            )
+            for component_id in missing_roots
+        )
+        return VersionDisciplineReport(
+            tuple(
+                sorted(
+                    revision_report.findings + root_findings,
+                    key=lambda row: (row.code.value, row.component_id, row.detail),
+                )
+            )
         )
     except ValueError as exc:
         return VersionDisciplineReport(
