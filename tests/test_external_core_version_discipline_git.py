@@ -32,8 +32,16 @@ def _fixture_repo(tmp_path: Path) -> tuple[Path, str]:
         "nolane/metadata/component_versions.py",
         '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 1, "external.planning": 1})\n',
     )
-    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nVALUE = 1\n')
-    _write(repo, "nolane/external_core/planning.py", 'COMPONENT_ID = "external.planning"\nVALUE = 1\n')
+    _write(
+        repo,
+        "nolane/external_core/integration.py",
+        'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = 1\n',
+    )
+    _write(
+        repo,
+        "nolane/external_core/planning.py",
+        'COMPONENT_ID = "external.planning"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = 1\n',
+    )
     _run(repo, "add", ".")
     _run(repo, "commit", "-qm", "base")
     return repo, _run(repo, "rev-parse", "HEAD")
@@ -51,14 +59,14 @@ def _codes(report) -> set[str]:
 
 def test_git_checker_rejects_changed_component_without_bump(tmp_path: Path) -> None:
     repo, base = _fixture_repo(tmp_path)
-    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nVALUE = 2\n')
+    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = 2\n')
     report = check_git_revision_discipline(repo, base, _head(repo))
     assert _codes(report) == {VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION.value}
 
 
 def test_git_checker_accepts_exact_owner_bump(tmp_path: Path) -> None:
     repo, base = _fixture_repo(tmp_path)
-    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nVALUE = 2\n')
+    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.2"\nVALUE = 2\n')
     _write(
         repo,
         "nolane/metadata/component_versions.py",
@@ -67,9 +75,37 @@ def test_git_checker_accepts_exact_owner_bump(tmp_path: Path) -> None:
     assert check_git_revision_discipline(repo, base, _head(repo)).clean
 
 
+def test_git_checker_rejects_version_only_self_justifying_bump(tmp_path: Path) -> None:
+    repo, base = _fixture_repo(tmp_path)
+    _write(
+        repo,
+        "nolane/external_core/integration.py",
+        'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.2"\nVALUE = 1\n',
+    )
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 2, "external.planning": 1})\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "version only"))
+    assert _codes(report) == {VersionDisciplineCode.REVISION_WITHOUT_SEMANTIC_CHANGE.value}
+    assert {row.component_id for row in report.findings} == {"external.integration"}
+
+
+def test_git_checker_ignores_formatting_and_docstring_only_edits_for_revision_ownership(tmp_path: Path) -> None:
+    repo, base = _fixture_repo(tmp_path)
+    _write(
+        repo,
+        "nolane/external_core/integration.py",
+        '"""Documentation only."""\nCOMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.1"\nVALUE    =    1\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "nonsemantic text"))
+    assert report.clean
+
+
 def test_git_checker_rejects_unrelated_bump(tmp_path: Path) -> None:
     repo, base = _fixture_repo(tmp_path)
-    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nVALUE = 2\n')
+    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = 2\n')
     _write(
         repo,
         "nolane/metadata/component_versions.py",
@@ -85,8 +121,8 @@ def test_git_checker_rejects_unrelated_bump(tmp_path: Path) -> None:
 def test_git_checker_tracks_shared_helper_to_all_importing_roots(tmp_path: Path) -> None:
     repo, base = _fixture_repo(tmp_path)
     _write(repo, "nolane/external_core/_shared.py", "VALUE = 1\n")
-    _write(repo, "nolane/external_core/integration.py", 'from nolane.external_core._shared import VALUE\nCOMPONENT_ID = "external.integration"\n')
-    _write(repo, "nolane/external_core/planning.py", 'from nolane.external_core._shared import VALUE\nCOMPONENT_ID = "external.planning"\n')
+    _write(repo, "nolane/external_core/integration.py", 'from nolane.external_core._shared import VALUE\nCOMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.1"\n')
+    _write(repo, "nolane/external_core/planning.py", 'from nolane.external_core._shared import VALUE\nCOMPONENT_ID = "external.planning"\nCOMPONENT_VERSION = "0.0.1"\n')
     baseline = _head(repo, "shared base")
     _write(repo, "nolane/external_core/_shared.py", "VALUE = 2\n")
     report = check_git_revision_discipline(repo, baseline, _head(repo, "shared changed"))
