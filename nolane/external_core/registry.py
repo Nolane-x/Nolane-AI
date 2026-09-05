@@ -50,6 +50,14 @@ class ManifestAdapter:
     def to_state(self) -> dict[str, Any]:
         return {**self.payload(), "adapter_digest": self.adapter_digest}
 
+    def validate_integrity(self) -> None:
+        try:
+            restored = type(self).from_state(self.to_state())
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            raise ValueError("manifest adapter integrity validation failed") from exc
+        if restored != self:
+            raise ValueError("manifest adapter integrity validation failed")
+
     @classmethod
     def create(
         cls,
@@ -141,7 +149,17 @@ class CanonicalComponentRegistry:
 
     @classmethod
     def create(cls, adapters: tuple[ManifestAdapter, ...]) -> "CanonicalComponentRegistry":
-        rows = tuple(adapters)
+        raw_rows = tuple(adapters)
+        validated_rows: list[ManifestAdapter] = []
+        for row in raw_rows:
+            if not isinstance(row, ManifestAdapter):
+                raise ValueError("canonical registry entry must be a ManifestAdapter")
+            try:
+                row.validate_integrity()
+            except ValueError as exc:
+                raise ValueError("manifest adapter integrity invalid for canonical registry") from exc
+            validated_rows.append(row)
+        rows = tuple(validated_rows)
         component_ids = [row.source_component_id for row in rows]
         adapter_ids = [row.adapter_id for row in rows]
         locators = [row.source_locator for row in rows]
@@ -192,6 +210,14 @@ class CanonicalComponentRegistry:
 
     def to_state(self) -> dict[str, Any]:
         return {**self.payload(), "registry_digest": self.registry_digest}
+
+    def validate_integrity(self) -> None:
+        try:
+            restored = type(self).from_state(self.to_state())
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            raise ValueError("canonical registry integrity validation failed") from exc
+        if restored != self:
+            raise ValueError("canonical registry integrity validation failed")
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "CanonicalComponentRegistry":
