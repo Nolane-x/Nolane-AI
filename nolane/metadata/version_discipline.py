@@ -60,10 +60,10 @@ def _component_ids(values: Collection[str], label: str) -> set[str]:
 def _is_private_module(module: str) -> bool:
     """Return whether a module is implementation-private rather than a root.
 
-    Private modules remain full members of the internal import DAG.  This
-    predicate only prevents versioned compatibility/helper modules such as
+    Private modules remain full members of the internal import DAG. This only
+    prevents compatibility/helper modules such as
     ``_software_engineering_control_v07`` from laundering an inherited
-    ``COMPONENT_ID`` alias into a second canonical component root.
+    ``COMPONENT_ID`` alias into a canonical component root.
     """
 
     return module.rsplit(".", 1)[-1].startswith("_")
@@ -165,12 +165,68 @@ def _internal_imports(module: str, tree: ast.AST, known_modules: set[str]) -> tu
     return tuple(sorted(imports))
 
 
+def _reachable_modules(start: str, graph: Mapping[str, tuple[str, ...]]) -> set[str]:
+    reachable: set[str] = set()
+    stack = [start]
+    while stack:
+        current = stack.pop()
+        if current in reachable:
+            continue
+        reachable.add(current)
+        stack.extend(reversed(graph.get(current, ())))
+    return reachable
+
+
+def _component_surfaces_and_roots(
+    trees: Mapping[str, ast.AST],
+    graph: Mapping[str, tuple[str, ...]],
+    canonical_ids: set[str],
+) -> tuple[dict[str, tuple[str, ...]], dict[str, str]]:
+    """Resolve public component surfaces to exactly one dependency-root each.
+
+    A component may expose more than one public module with the same literal
+    identity. That is valid only when the import topology proves one canonical
+    dependency-root and every additional surface is layered on top of another
+    same-component surface. Independent duplicate roots and same-ID cycles are
+    rejected rather than guessed.
+    """
+
+    declared: dict[str, list[str]] = {}
+    for module in sorted(trees):
+        if _is_private_module(module):
+            continue
+        try:
+            component_id = _literal_component_id(trees[module])
+        except ValueError as exc:
+            raise ValueError(f"ownership discovery failed for {module}: {exc}") from exc
+        if component_id is None or component_id not in canonical_ids:
+            continue
+        declared.setdefault(component_id, []).append(module)
+
+    surfaces: dict[str, tuple[str, ...]] = {}
+    roots: dict[str, str] = {}
+    for component_id, rows in sorted(declared.items()):
+        ordered = tuple(sorted(rows))
+        candidates: list[str] = []
+        for module in ordered:
+            reachable = _reachable_modules(module, graph)
+            if not any(peer != module and peer in reachable for peer in ordered):
+                candidates.append(module)
+        if len(candidates) != 1:
+            raise ValueError(
+                f"duplicate canonical component root for {component_id}: " + ", ".join(ordered)
+            )
+        surfaces[component_id] = ordered
+        roots[component_id] = candidates[0]
+    return surfaces, roots
+
+
 def discover_component_ownership(
     source_by_module: Mapping[str, str],
     changed_modules: Collection[str],
     component_ids: Collection[str],
 ) -> dict[str, tuple[str, ...]]:
-    """Derive semantic ownership from public literal roots and the import DAG."""
+    """Derive semantic ownership from public surfaces and the internal DAG."""
 
     canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
     modules: dict[str, str] = {}
@@ -184,33 +240,15 @@ def discover_component_ownership(
         except SyntaxError as exc:
             raise ValueError(f"ownership discovery cannot parse canonical module: {module}") from exc
 
-    roots: dict[str, str] = {}
-    for module in sorted(trees):
-        if _is_private_module(module):
-            continue
-        try:
-            component_id = _literal_component_id(trees[module])
-        except ValueError as exc:
-            raise ValueError(f"ownership discovery failed for {module}: {exc}") from exc
-        if component_id is None or component_id not in canonical_ids:
-            continue
-        previous = roots.get(component_id)
-        if previous is not None and previous != module:
-            raise ValueError(f"duplicate canonical component root for {component_id}: {previous}, {module}")
-        roots[component_id] = module
-
     known_modules = set(modules)
     graph = {module: _internal_imports(module, trees[module], known_modules) for module in sorted(trees)}
+    surfaces, _roots = _component_surfaces_and_roots(trees, graph, canonical_ids)
+
     reachable_by_component: dict[str, set[str]] = {}
-    for component_id, root in sorted(roots.items()):
+    for component_id, component_surfaces in sorted(surfaces.items()):
         reachable: set[str] = set()
-        stack = [root]
-        while stack:
-            current = stack.pop()
-            if current in reachable:
-                continue
-            reachable.add(current)
-            stack.extend(reversed(graph.get(current, ())))
+        for surface in component_surfaces:
+            reachable.update(_reachable_modules(surface, graph))
         reachable_by_component[component_id] = reachable
 
     result: dict[str, tuple[str, ...]] = {}
