@@ -1,20 +1,22 @@
-name: External Core A2
+name: External Core A2+A3
 
 on:
   push:
     branches:
       - design/external-core-a2-g-infrastructure
+      - design/external-core-a3-live-registry
   pull_request:
     paths:
       - 'nolane/external_core/**'
       - 'nolane/metadata/**'
       - 'tests/test_external_core_a2_*.py'
+      - 'tests/test_external_core_a3_*.py'
       - 'tests/test_external_core_g*.py'
       - 'CURRENT/EXTERNAL_CORE.md'
       - '.github/workflows/external-core-a2.yml'
 
 jobs:
-  external-core-a2:
+  external-core-a2-a3:
     # REF0-CI-ISOLATION: refoundation PRs use the dedicated Refoundation regression gate.
     if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-24.04
@@ -33,21 +35,21 @@ jobs:
         run: |
           python -m py_compile nolane/core/*.py
           python -m py_compile nolane/external_core/*.py
-      - name: Run External Core A2 contracts
+      - name: Run External Core A2+A3 contracts
         shell: bash
         run: |
           shopt -s nullglob
-          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py)
+          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py)
           if [ ${#tests[@]} -eq 0 ]; then
-            echo 'No A2 tests found' >&2
+            echo 'No External Core A2/A3 tests found' >&2
             exit 1
           fi
           python -m pytest -q "${tests[@]}"
-      - name: Verify canonical External Core A2 coherence audit
+      - name: Verify canonical External Core coherence audit
         run: |
           python -m nolane.external_core.audit --check
-          python -m nolane.external_core.audit --json > /tmp/external-core-a2-audit.json
-          python -c "import json; p='/tmp/external-core-a2-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
+          python -m nolane.external_core.audit --json > /tmp/external-core-audit.json
+          python -c "import json; p='/tmp/external-core-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
       - name: Run prior G/Assurance regressions
         shell: bash
         run: |
