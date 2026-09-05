@@ -5,6 +5,7 @@ import pytest
 from nolane.external_core.authority_graph import AuthorityEdge, AuthorityRelation, ExternalAuthorityGraph
 from nolane.external_core.component_contracts import ExternalComponentManifest, ExternalCoreFamily
 from nolane.external_core.evidence import EvidenceRecord
+from nolane.external_core.integration import COMPONENT_VERSION as INTEGRATION_COMPONENT_VERSION
 from nolane.external_core.integration_evolution import (
     ComponentEvolutionDelta,
     EvolutionCompatibilityDisposition,
@@ -18,6 +19,7 @@ from nolane.external_core.integration_revalidation import (
     assess_revalidation,
     build_revalidation_plan,
 )
+from nolane.metadata.component_versions import component_version
 
 
 def _manifest(component_id: str, version: str, *, consumes: tuple[str, ...] = (), produces: tuple[str, ...] = ()) -> ExternalComponentManifest:
@@ -74,6 +76,11 @@ def _binding(component_id: str, kind: str, suffix: str) -> RevalidationEvidenceB
         regressions=0,
     )
     return RevalidationEvidenceBinding.create(component_id=component_id, evidence_kind=kind, evidence=record)
+
+
+def test_integration_component_advances_exactly_to_v002() -> None:
+    assert INTEGRATION_COMPONENT_VERSION == "0.0.2"
+    assert str(component_version("external.integration")) == "0.0.2"
 
 
 def test_revalidation_plan_is_exactly_scoped_to_impact_closure() -> None:
