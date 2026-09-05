@@ -236,8 +236,12 @@ def _revision_map(repo_root: Path, ref: str) -> dict[str, int]:
 
 
 def _root_ids(sources: Mapping[str, str], component_ids: set[str]) -> set[str]:
+    # First validate the exact same surface/root topology used by semantic
+    # ownership. Multiple public surfaces are allowed only when they resolve to
+    # one dependency-root; private compatibility aliases never become roots.
+    discover_component_ownership(sources, (), component_ids)
+
     roots: set[str] = set()
-    seen: dict[str, str] = {}
     for module, source in sorted(sources.items()):
         if _is_private_module(module):
             continue
@@ -250,13 +254,8 @@ def _root_ids(sources: Mapping[str, str], component_ids: set[str]) -> set[str]:
             continue
         if not isinstance(candidate, ast.Constant) or not isinstance(candidate.value, str) or not candidate.value.strip():
             raise ValueError(f"canonical COMPONENT_ID is not a literal non-empty string: {module}")
-        component_id = candidate.value
-        if component_id not in component_ids:
-            continue
-        if component_id in seen and seen[component_id] != module:
-            raise ValueError(f"duplicate canonical component root for {component_id}: {seen[component_id]}, {module}")
-        seen[component_id] = module
-        roots.add(component_id)
+        if candidate.value in component_ids:
+            roots.add(candidate.value)
     return roots
 
 
