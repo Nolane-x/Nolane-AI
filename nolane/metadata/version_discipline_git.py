@@ -128,7 +128,7 @@ def _semantic_source_changed(
     return _semantic_ast_dump(base, module) != _semantic_ast_dump(head, module)
 
 
-def _component_ids_from_specs(source: str) -> tuple[str, ...]:
+def _component_specs(source: str) -> dict[str, tuple[object, ...]]:
     try:
         tree = ast.parse(source)
     except SyntaxError as exc:
@@ -142,14 +142,39 @@ def _component_ids_from_specs(source: str) -> tuple[str, ...]:
         raise ValueError("COMPONENT_SPECS must remain literal for version discipline") from exc
     if not isinstance(rows, (tuple, list)):
         raise ValueError("COMPONENT_SPECS must be a literal sequence")
-    component_ids: list[str] = []
+
+    result: dict[str, tuple[object, ...]] = {}
     for row in rows:
-        if not isinstance(row, (tuple, list)) or not row or not isinstance(row[0], str) or not row[0].strip():
+        if not isinstance(row, (tuple, list)) or len(row) != 5:
             raise ValueError("COMPONENT_SPECS contains a non-canonical component row")
-        component_ids.append(row[0])
-    if len(set(component_ids)) != len(component_ids):
-        raise ValueError("COMPONENT_SPECS contains duplicate component identities")
-    return tuple(component_ids)
+        component_id, layer, responsibility, state_schema, dependencies = row
+        if not isinstance(component_id, str) or not component_id.strip():
+            raise ValueError("COMPONENT_SPECS contains an invalid component identity")
+        if component_id in result:
+            raise ValueError("COMPONENT_SPECS contains duplicate component identities")
+        if not all(isinstance(value, str) and value.strip() for value in (layer, responsibility, state_schema)):
+            raise ValueError(f"COMPONENT_SPECS metadata must be explicit for {component_id}")
+        if not isinstance(dependencies, (tuple, list)):
+            raise ValueError(f"COMPONENT_SPECS dependencies must be a literal sequence for {component_id}")
+        dependency_ids = tuple(dependencies)
+        if any(not isinstance(value, str) or not value.strip() for value in dependency_ids):
+            raise ValueError(f"COMPONENT_SPECS contains an invalid dependency for {component_id}")
+        if len(set(dependency_ids)) != len(dependency_ids):
+            raise ValueError(f"COMPONENT_SPECS contains duplicate dependencies for {component_id}")
+        if component_id in dependency_ids:
+            raise ValueError(f"COMPONENT_SPECS component depends on itself: {component_id}")
+        result[component_id] = (
+            component_id,
+            layer,
+            responsibility,
+            state_schema,
+            tuple(dependency_ids),
+        )
+    return result
+
+
+def _component_ids_from_specs(source: str) -> tuple[str, ...]:
+    return tuple(_component_specs(source))
 
 
 def _revision_overrides(source: str) -> Mapping[str, int]:
@@ -241,8 +266,10 @@ def check_git_revision_discipline(
 
     The checker executes Git only. Python source being evaluated is parsed with
     AST and never imported or executed. Semantic ownership is based on
-    normalized AST changes, so revision constants, docstrings and formatting
-    cannot manufacture a semantic change.
+    normalized AST changes plus canonical component-spec row changes, so
+    revision constants, docstrings and formatting cannot manufacture a
+    semantic change while responsibility/schema/dependency metadata cannot
+    escape revision discipline.
     """
 
     root = Path(repo_root)
@@ -250,6 +277,10 @@ def check_git_revision_discipline(
         raise ValueError("base/head refs must be explicit strings")
 
     try:
+        base_spec_source = _source_at(root, base_ref, "nolane/metadata/_component_specs.py")
+        head_spec_source = _source_at(root, head_ref, "nolane/metadata/_component_specs.py")
+        base_specs = _component_specs(base_spec_source)
+        head_specs = _component_specs(head_spec_source)
         base_revisions = _revision_map(root, base_ref)
         head_revisions = _revision_map(root, head_ref)
         canonical_ids = set(base_revisions) | set(head_revisions)
@@ -267,7 +298,11 @@ def check_git_revision_discipline(
             if _semantic_source_changed(module, base_sources, head_sources)
         }
 
-        affected: set[str] = set()
+        affected: set[str] = {
+            component_id
+            for component_id in set(base_specs) & set(head_specs)
+            if base_specs[component_id] != head_specs[component_id]
+        }
         if changed_modules:
             for source_map in (base_sources, head_sources):
                 ownership = discover_component_ownership(source_map, changed_modules, canonical_ids)
