@@ -6,11 +6,17 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.authority_graph import ExternalAuthorityGraph
 from nolane.external_core.evidence import ScopedEvidenceRecord
-from nolane.external_core.integration_evolution import ComponentEvolutionDelta, IntegrationImpactClosure
+from nolane.external_core.integration_evolution import (
+    ComponentEvolutionDelta,
+    IntegrationImpactClosure,
+    build_integration_impact_closure,
+    qualify_component_evolution,
+)
 from nolane.external_core.integration_revalidation import (
     ComponentRevalidationRequirement,
     RevalidationDisposition,
     RevalidationPlan,
+    build_revalidation_plan,
 )
 
 
@@ -93,7 +99,7 @@ class RevalidationScope:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "RevalidationScope":
-        if state.get("protocol") != REVALIDATION_SCOPE_PROTOCOL:
+        if not isinstance(state, Mapping) or state.get("protocol") != REVALIDATION_SCOPE_PROTOCOL:
             raise ValueError("revalidation scope protocol mismatch")
         expected = cls.create(
             delta_id=state.get("delta_id"),
@@ -111,12 +117,7 @@ class RevalidationScope:
         return expected
 
     def validate_integrity(self) -> None:
-        try:
-            restored = type(self).from_state(self.to_state())
-        except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise ValueError("revalidation scope integrity validation failed") from exc
-        if restored != self:
-            raise ValueError("revalidation scope integrity validation failed")
+        _validate_round_trip(self, type(self).from_state, "revalidation scope")
 
 
 @dataclass(frozen=True, slots=True)
@@ -142,7 +143,11 @@ class RevalidationChallenge:
         basis_codes: tuple[str, ...],
         target_component_version: str,
     ) -> "RevalidationChallenge":
-        basis = _sorted_unique_strings(basis_codes, "revalidation challenge basis", require_non_empty=True)
+        basis = _sorted_unique_strings(
+            basis_codes,
+            "revalidation challenge basis",
+            require_non_empty=True,
+        )
         payload = {
             "protocol": REVALIDATION_CHALLENGE_PROTOCOL,
             "scope_id": _explicit(scope_id, "revalidation challenge scope"),
@@ -151,7 +156,10 @@ class RevalidationChallenge:
             "component_id": _explicit(component_id, "revalidation challenge component"),
             "evidence_kind": _explicit(evidence_kind, "revalidation challenge evidence kind"),
             "basis_codes": list(basis),
-            "target_component_version": _explicit(target_component_version, "revalidation challenge target version"),
+            "target_component_version": _explicit(
+                target_component_version,
+                "revalidation challenge target version",
+            ),
         }
         return cls(
             scope_id=payload["scope_id"],
@@ -181,7 +189,7 @@ class RevalidationChallenge:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "RevalidationChallenge":
-        if state.get("protocol") != REVALIDATION_CHALLENGE_PROTOCOL:
+        if not isinstance(state, Mapping) or state.get("protocol") != REVALIDATION_CHALLENGE_PROTOCOL:
             raise ValueError("revalidation challenge protocol mismatch")
         raw_basis = state.get("basis_codes")
         if not isinstance(raw_basis, list):
@@ -200,12 +208,7 @@ class RevalidationChallenge:
         return expected
 
     def validate_integrity(self) -> None:
-        try:
-            restored = type(self).from_state(self.to_state())
-        except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise ValueError("revalidation challenge integrity validation failed") from exc
-        if restored != self:
-            raise ValueError("revalidation challenge integrity validation failed")
+        _validate_round_trip(self, type(self).from_state, "revalidation challenge")
 
 
 @dataclass(frozen=True, slots=True)
@@ -276,7 +279,7 @@ class ScopedRevalidationEvidenceBinding:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ScopedRevalidationEvidenceBinding":
-        if state.get("protocol") != REVALIDATION_BINDING_PROTOCOL:
+        if not isinstance(state, Mapping) or state.get("protocol") != REVALIDATION_BINDING_PROTOCOL:
             raise ValueError("scoped revalidation binding protocol mismatch")
         raw_challenge = state.get("challenge")
         raw_evidence = state.get("evidence")
@@ -291,12 +294,7 @@ class ScopedRevalidationEvidenceBinding:
         return expected
 
     def validate_integrity(self) -> None:
-        try:
-            restored = type(self).from_state(self.to_state())
-        except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise ValueError("scoped revalidation binding integrity validation failed") from exc
-        if restored != self:
-            raise ValueError("scoped revalidation binding integrity validation failed")
+        _validate_round_trip(self, type(self).from_state, "scoped revalidation binding")
 
 
 @dataclass(frozen=True, slots=True)
@@ -323,10 +321,26 @@ class ScopedRevalidationAssessment:
         evidence_binding_ids: tuple[str, ...],
     ) -> "ScopedRevalidationAssessment":
         state = RevalidationDisposition(disposition)
-        missing = _sorted_unique_strings(missing_challenge_ids, "scoped revalidation missing challenge", require_non_empty=False)
-        reasons = _sorted_unique_strings(reason_codes, "scoped revalidation reason", require_non_empty=False)
-        challenges = _sorted_unique_strings(challenge_ids, "scoped revalidation challenge id", require_non_empty=False)
-        bindings = _sorted_unique_strings(evidence_binding_ids, "scoped revalidation binding id", require_non_empty=False)
+        missing = _sorted_unique_strings(
+            missing_challenge_ids,
+            "scoped revalidation missing challenge",
+            require_non_empty=False,
+        )
+        reasons = _sorted_unique_strings(
+            reason_codes,
+            "scoped revalidation reason",
+            require_non_empty=False,
+        )
+        challenges = _sorted_unique_strings(
+            challenge_ids,
+            "scoped revalidation challenge id",
+            require_non_empty=False,
+        )
+        bindings = _sorted_unique_strings(
+            evidence_binding_ids,
+            "scoped revalidation binding id",
+            require_non_empty=False,
+        )
         if state is RevalidationDisposition.CURRENT and (missing or reasons):
             raise ValueError("CURRENT scoped revalidation assessment cannot carry missing challenges or reasons")
         if state is RevalidationDisposition.REVALIDATION_REQUIRED and not missing:
@@ -371,13 +385,16 @@ class ScopedRevalidationAssessment:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ScopedRevalidationAssessment":
-        if state.get("protocol") != REVALIDATION_ASSESSMENT_V2_PROTOCOL:
+        if not isinstance(state, Mapping) or state.get("protocol") != REVALIDATION_ASSESSMENT_V2_PROTOCOL:
             raise ValueError("scoped revalidation assessment protocol mismatch")
         raw_missing = state.get("missing_challenge_ids")
         raw_reasons = state.get("reason_codes")
         raw_challenges = state.get("challenge_ids")
         raw_bindings = state.get("evidence_binding_ids")
-        if not all(isinstance(value, list) for value in (raw_missing, raw_reasons, raw_challenges, raw_bindings)):
+        if not all(
+            isinstance(value, list)
+            for value in (raw_missing, raw_reasons, raw_challenges, raw_bindings)
+        ):
             raise ValueError("scoped revalidation assessment state shape is invalid")
         try:
             disposition = RevalidationDisposition(state.get("disposition"))
@@ -397,12 +414,7 @@ class ScopedRevalidationAssessment:
         return expected
 
     def validate_integrity(self) -> None:
-        try:
-            restored = type(self).from_state(self.to_state())
-        except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise ValueError("scoped revalidation assessment integrity validation failed") from exc
-        if restored != self:
-            raise ValueError("scoped revalidation assessment integrity validation failed")
+        _validate_round_trip(self, type(self).from_state, "scoped revalidation assessment")
 
 
 @dataclass(frozen=True, slots=True)
@@ -418,31 +430,39 @@ class RevalidationCompletionReceipt:
     def create(
         cls,
         *,
+        delta: ComponentEvolutionDelta,
+        impact_closure: IntegrationImpactClosure,
+        authority_graph: ExternalAuthorityGraph,
         scope: RevalidationScope,
+        plan: RevalidationPlan,
         assessment: ScopedRevalidationAssessment,
         challenges: tuple[RevalidationChallenge, ...],
         evidence_bindings: tuple[ScopedRevalidationEvidenceBinding, ...],
+        minimum_observed_epoch: int = 0,
     ) -> "RevalidationCompletionReceipt":
-        if not isinstance(scope, RevalidationScope):
-            raise ValueError("completion receipt requires a canonical revalidation scope")
-        scope.validate_integrity()
         if not isinstance(assessment, ScopedRevalidationAssessment):
             raise ValueError("completion receipt requires a canonical scoped assessment")
         assessment.validate_integrity()
-        if assessment.disposition is not RevalidationDisposition.CURRENT:
-            raise ValueError("completion receipt requires a CURRENT scoped revalidation assessment")
-        if assessment.scope_id != scope.scope_id or assessment.plan_id != scope.plan_id:
-            raise ValueError("completion assessment does not match exact revalidation scope")
-        challenge_ids = _validated_challenge_ids(challenges, scope)
-        binding_ids = _validated_binding_ids(evidence_bindings)
-        if challenge_ids != assessment.challenge_ids or binding_ids != assessment.evidence_binding_ids:
-            raise ValueError("completion receipt inputs do not match exact CURRENT assessment")
+        canonical_assessment = assess_scoped_revalidation(
+            delta=delta,
+            impact_closure=impact_closure,
+            authority_graph=authority_graph,
+            scope=scope,
+            plan=plan,
+            challenges=challenges,
+            evidence_bindings=evidence_bindings,
+            minimum_observed_epoch=minimum_observed_epoch,
+        )
+        if assessment != canonical_assessment:
+            raise ValueError("completion assessment does not match canonical transition assessment")
+        if canonical_assessment.disposition is not RevalidationDisposition.CURRENT:
+            raise ValueError("completion receipt requires a canonical CURRENT scoped assessment")
         return cls._from_values(
-            scope_id=scope.scope_id,
-            plan_id=scope.plan_id,
-            assessment_id=assessment.assessment_id,
-            challenge_ids=challenge_ids,
-            evidence_binding_ids=binding_ids,
+            scope_id=canonical_assessment.scope_id,
+            plan_id=canonical_assessment.plan_id,
+            assessment_id=canonical_assessment.assessment_id,
+            challenge_ids=canonical_assessment.challenge_ids,
+            evidence_binding_ids=canonical_assessment.evidence_binding_ids,
         )
 
     @classmethod
@@ -455,8 +475,16 @@ class RevalidationCompletionReceipt:
         challenge_ids: tuple[str, ...],
         evidence_binding_ids: tuple[str, ...],
     ) -> "RevalidationCompletionReceipt":
-        challenge_rows = _sorted_unique_strings(challenge_ids, "completion challenge id", require_non_empty=False)
-        binding_rows = _sorted_unique_strings(evidence_binding_ids, "completion binding id", require_non_empty=False)
+        challenge_rows = _sorted_unique_strings(
+            challenge_ids,
+            "completion challenge id",
+            require_non_empty=False,
+        )
+        binding_rows = _sorted_unique_strings(
+            evidence_binding_ids,
+            "completion binding id",
+            require_non_empty=False,
+        )
         payload = {
             "protocol": REVALIDATION_COMPLETION_PROTOCOL,
             "scope_id": _explicit(scope_id, "completion scope"),
@@ -489,7 +517,7 @@ class RevalidationCompletionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "RevalidationCompletionReceipt":
-        if state.get("protocol") != REVALIDATION_COMPLETION_PROTOCOL:
+        if not isinstance(state, Mapping) or state.get("protocol") != REVALIDATION_COMPLETION_PROTOCOL:
             raise ValueError("completion receipt protocol mismatch")
         raw_challenges = state.get("challenge_ids")
         raw_bindings = state.get("evidence_binding_ids")
@@ -507,12 +535,7 @@ class RevalidationCompletionReceipt:
         return expected
 
     def validate_integrity(self) -> None:
-        try:
-            restored = type(self).from_state(self.to_state())
-        except (KeyError, TypeError, ValueError, AttributeError) as exc:
-            raise ValueError("completion receipt integrity validation failed") from exc
-        if restored != self:
-            raise ValueError("completion receipt integrity validation failed")
+        _validate_round_trip(self, type(self).from_state, "completion receipt")
 
 
 def build_revalidation_scope(
@@ -563,16 +586,15 @@ def build_revalidation_challenges(
     if not isinstance(plan, RevalidationPlan):
         raise ValueError("challenge derivation requires a canonical revalidation plan")
     plan.validate_integrity()
-    if not isinstance(authority_graph, ExternalAuthorityGraph):
-        raise ValueError("challenge derivation requires an ExternalAuthorityGraph")
+    canonical_graph = _canonical_authority_graph(authority_graph)
     if plan.plan_id != scope.plan_id:
         raise ValueError("challenge derivation plan does not match exact scope")
     if plan.authority_graph_digest != scope.authority_graph_digest:
         raise ValueError("challenge derivation plan graph does not match exact scope")
-    if authority_graph.digest != scope.authority_graph_digest:
+    if canonical_graph.digest != scope.authority_graph_digest:
         raise ValueError("challenge derivation authority graph drift")
     try:
-        evolved_manifest = authority_graph.manifest(scope.component_id)
+        evolved_manifest = canonical_graph.manifest(scope.component_id)
     except KeyError as exc:
         raise ValueError("evolved component is missing from challenge authority graph") from exc
     if evolved_manifest.component_version != scope.new_component_version:
@@ -584,10 +606,14 @@ def build_revalidation_challenges(
             raise ValueError("challenge derivation requires canonical plan requirements")
         requirement.validate_integrity()
         try:
-            manifest = authority_graph.manifest(requirement.component_id)
+            manifest = canonical_graph.manifest(requirement.component_id)
         except KeyError as exc:
             raise ValueError("revalidation requirement component missing from authority graph") from exc
-        target_version = scope.new_component_version if requirement.component_id == scope.component_id else manifest.component_version
+        target_version = (
+            scope.new_component_version
+            if requirement.component_id == scope.component_id
+            else manifest.component_version
+        )
         for evidence_kind in requirement.required_evidence_kinds:
             rows.append(
                 RevalidationChallenge.create(
@@ -600,7 +626,9 @@ def build_revalidation_challenges(
                     target_component_version=target_version,
                 )
             )
-    return tuple(sorted(rows, key=lambda row: (row.component_id, row.evidence_kind, row.challenge_id)))
+    return tuple(
+        sorted(rows, key=lambda row: (row.component_id, row.evidence_kind, row.challenge_id))
+    )
 
 
 def challenge_subject_digest(challenge: RevalidationChallenge) -> str:
@@ -621,36 +649,42 @@ def challenge_subject_digest(challenge: RevalidationChallenge) -> str:
 
 def assess_scoped_revalidation(
     *,
+    delta: ComponentEvolutionDelta,
+    impact_closure: IntegrationImpactClosure,
+    authority_graph: ExternalAuthorityGraph,
     scope: RevalidationScope,
     plan: RevalidationPlan,
     challenges: tuple[RevalidationChallenge, ...],
     evidence_bindings: tuple[ScopedRevalidationEvidenceBinding, ...],
     minimum_observed_epoch: int = 0,
 ) -> ScopedRevalidationAssessment:
-    if not isinstance(scope, RevalidationScope):
-        raise ValueError("scoped revalidation assessment requires a canonical scope")
-    scope.validate_integrity()
-    if not isinstance(plan, RevalidationPlan):
-        raise ValueError("scoped revalidation assessment requires a canonical plan")
-    plan.validate_integrity()
-    if plan.plan_id != scope.plan_id or plan.authority_graph_digest != scope.authority_graph_digest:
-        raise ValueError("scoped revalidation plan does not match exact scope")
-    minimum_epoch = _strict_non_negative_int(minimum_observed_epoch, "minimum observed epoch")
+    canonical_scope, canonical_plan, canonical_challenges = _canonical_transition_context(
+        delta=delta,
+        impact_closure=impact_closure,
+        authority_graph=authority_graph,
+        scope=scope,
+        plan=plan,
+        challenges=challenges,
+    )
+    minimum_epoch = _strict_non_negative_int(
+        minimum_observed_epoch,
+        "minimum observed epoch",
+    )
 
-    if plan.disposition is RevalidationDisposition.BLOCKED:
+    if canonical_plan.disposition is RevalidationDisposition.BLOCKED:
         return ScopedRevalidationAssessment.create(
-            scope_id=scope.scope_id,
-            plan_id=plan.plan_id,
+            scope_id=canonical_scope.scope_id,
+            plan_id=canonical_plan.plan_id,
             disposition=RevalidationDisposition.BLOCKED,
             missing_challenge_ids=(),
-            reason_codes=tuple("PLAN:" + code for code in plan.blocker_reason_codes),
+            reason_codes=tuple("PLAN:" + code for code in canonical_plan.blocker_reason_codes),
             challenge_ids=(),
             evidence_binding_ids=(),
         )
-    if plan.disposition is RevalidationDisposition.UNKNOWN:
+    if canonical_plan.disposition is RevalidationDisposition.UNKNOWN:
         return ScopedRevalidationAssessment.create(
-            scope_id=scope.scope_id,
-            plan_id=plan.plan_id,
+            scope_id=canonical_scope.scope_id,
+            plan_id=canonical_plan.plan_id,
             disposition=RevalidationDisposition.UNKNOWN,
             missing_challenge_ids=(),
             reason_codes=(),
@@ -658,49 +692,16 @@ def assess_scoped_revalidation(
             evidence_binding_ids=(),
         )
 
-    required_pairs: dict[tuple[str, str], str] = {}
-    for requirement in plan.requirements:
-        requirement.validate_integrity()
-        for kind in requirement.required_evidence_kinds:
-            required_pairs[(requirement.component_id, kind)] = requirement.requirement_id
-
+    challenges_by_id = {row.challenge_id: row for row in canonical_challenges}
     reasons: list[str] = []
-    challenges_by_pair: dict[tuple[str, str], RevalidationChallenge] = {}
-    challenges_by_id: dict[str, RevalidationChallenge] = {}
-    for challenge in challenges:
-        if not isinstance(challenge, RevalidationChallenge):
-            raise ValueError("scoped revalidation challenges must be canonical")
-        challenge.validate_integrity()
-        if challenge.scope_id != scope.scope_id:
-            reasons.append("SCOPE_MISMATCH")
-            continue
-        if challenge.plan_id != plan.plan_id:
-            reasons.append("CHALLENGE_MISMATCH")
-            continue
-        pair = (challenge.component_id, challenge.evidence_kind)
-        expected_requirement = required_pairs.get(pair)
-        if expected_requirement is None or expected_requirement != challenge.requirement_id:
-            reasons.append("UNEXPECTED_CHALLENGE")
-            continue
-        if pair in challenges_by_pair or challenge.challenge_id in challenges_by_id:
-            reasons.append("DUPLICATE_CHALLENGE")
-            continue
-        challenges_by_pair[pair] = challenge
-        challenges_by_id[challenge.challenge_id] = challenge
-
-    missing_tokens = [
-        f"{requirement_id}:{component_id}:{kind}"
-        for (component_id, kind), requirement_id in required_pairs.items()
-        if (component_id, kind) not in challenges_by_pair
-    ]
-
     bindings_by_challenge: dict[str, ScopedRevalidationEvidenceBinding] = {}
     accepted_binding_ids: list[str] = []
+
     for binding in evidence_bindings:
         if not isinstance(binding, ScopedRevalidationEvidenceBinding):
             raise ValueError("scoped revalidation evidence must use canonical v2 bindings")
         binding.validate_integrity()
-        if binding.scope_id != scope.scope_id:
+        if binding.scope_id != canonical_scope.scope_id:
             reasons.append("SCOPE_MISMATCH")
             continue
         expected_challenge = challenges_by_id.get(binding.challenge_id)
@@ -720,12 +721,14 @@ def assess_scoped_revalidation(
         if not binding.evidence.passed or binding.evidence.false_accepts or binding.evidence.regressions:
             reasons.append("EVIDENCE_NOT_CLEAN")
 
-    missing_tokens.extend(
-        challenge_id for challenge_id in challenges_by_id if challenge_id not in bindings_by_challenge
+    missing = tuple(
+        sorted(
+            challenge_id
+            for challenge_id in challenges_by_id
+            if challenge_id not in bindings_by_challenge
+        )
     )
-    missing = tuple(sorted(set(missing_tokens)))
     unique_reasons = tuple(sorted(set(reasons)))
-
     if unique_reasons:
         disposition = RevalidationDisposition.BLOCKED
     elif missing:
@@ -734,8 +737,8 @@ def assess_scoped_revalidation(
         disposition = RevalidationDisposition.CURRENT
 
     return ScopedRevalidationAssessment.create(
-        scope_id=scope.scope_id,
-        plan_id=plan.plan_id,
+        scope_id=canonical_scope.scope_id,
+        plan_id=canonical_plan.plan_id,
         disposition=disposition,
         missing_challenge_ids=missing,
         reason_codes=unique_reasons,
@@ -744,31 +747,93 @@ def assess_scoped_revalidation(
     )
 
 
-def _validated_challenge_ids(
-    challenges: tuple[RevalidationChallenge, ...],
+def _canonical_transition_context(
+    *,
+    delta: ComponentEvolutionDelta,
+    impact_closure: IntegrationImpactClosure,
+    authority_graph: ExternalAuthorityGraph,
     scope: RevalidationScope,
-) -> tuple[str, ...]:
-    ids: list[str] = []
-    for challenge in challenges:
-        if not isinstance(challenge, RevalidationChallenge):
-            raise ValueError("completion challenges must be canonical")
-        challenge.validate_integrity()
-        if challenge.scope_id != scope.scope_id or challenge.plan_id != scope.plan_id:
-            raise ValueError("completion challenge escapes exact revalidation scope")
-        ids.append(challenge.challenge_id)
-    return _sorted_unique_strings(tuple(ids), "completion challenge id", require_non_empty=False)
+    plan: RevalidationPlan,
+    challenges: tuple[RevalidationChallenge, ...],
+) -> tuple[RevalidationScope, RevalidationPlan, tuple[RevalidationChallenge, ...]]:
+    if not isinstance(delta, ComponentEvolutionDelta):
+        raise ValueError("canonical transition requires a component evolution delta")
+    if not isinstance(impact_closure, IntegrationImpactClosure):
+        raise ValueError("canonical transition requires an integration impact closure")
+    if not isinstance(scope, RevalidationScope):
+        raise ValueError("canonical transition requires a revalidation scope")
+    if not isinstance(plan, RevalidationPlan):
+        raise ValueError("canonical transition requires a revalidation plan")
+    try:
+        delta.validate_integrity()
+        impact_closure.validate_integrity()
+        scope.validate_integrity()
+        plan.validate_integrity()
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError("canonical transition input integrity validation failed") from exc
+
+    canonical_graph = _canonical_authority_graph(authority_graph)
+    try:
+        graph_new_manifest = canonical_graph.manifest(delta.component_id)
+    except KeyError as exc:
+        raise ValueError("canonical transition evolved component is absent from authority graph") from exc
+    if graph_new_manifest.to_state() != delta.new_manifest.to_state():
+        raise ValueError("canonical transition new manifest does not match authority graph")
+
+    canonical_closure = build_integration_impact_closure(
+        (delta.component_id,),
+        canonical_graph,
+    )
+    if impact_closure != canonical_closure:
+        raise ValueError("impact closure does not match canonical transition authority graph")
+
+    canonical_plan = build_revalidation_plan(
+        delta=delta,
+        qualification=qualify_component_evolution(delta),
+        impact_closure=canonical_closure,
+    )
+    if plan != canonical_plan:
+        raise ValueError("revalidation plan does not match canonical transition")
+
+    canonical_scope = build_revalidation_scope(
+        delta=delta,
+        impact_closure=canonical_closure,
+        plan=canonical_plan,
+    )
+    if scope != canonical_scope:
+        raise ValueError("revalidation scope does not match canonical transition")
+
+    canonical_challenges = build_revalidation_challenges(
+        scope=canonical_scope,
+        plan=canonical_plan,
+        authority_graph=canonical_graph,
+    )
+    if challenges != canonical_challenges:
+        raise ValueError("revalidation challenges do not match canonical transition")
+    return canonical_scope, canonical_plan, canonical_challenges
 
 
-def _validated_binding_ids(
-    bindings: tuple[ScopedRevalidationEvidenceBinding, ...],
-) -> tuple[str, ...]:
-    ids: list[str] = []
-    for binding in bindings:
-        if not isinstance(binding, ScopedRevalidationEvidenceBinding):
-            raise ValueError("completion evidence bindings must be canonical")
-        binding.validate_integrity()
-        ids.append(binding.binding_id)
-    return _sorted_unique_strings(tuple(ids), "completion binding id", require_non_empty=False)
+def _canonical_authority_graph(authority_graph: ExternalAuthorityGraph) -> ExternalAuthorityGraph:
+    if not isinstance(authority_graph, ExternalAuthorityGraph):
+        raise ValueError("canonical transition requires an ExternalAuthorityGraph")
+    try:
+        state = authority_graph.to_state()
+        restored = ExternalAuthorityGraph.from_state(state)
+        restored.validate()
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        raise ValueError("canonical transition authority graph integrity validation failed") from exc
+    if restored.to_state() != state:
+        raise ValueError("canonical transition authority graph is non-canonical")
+    return restored
+
+
+def _validate_round_trip(value: Any, restore: Any, label: str) -> None:
+    try:
+        restored = restore(value.to_state())
+    except (KeyError, TypeError, ValueError, AttributeError) as exc:
+        raise ValueError(f"{label} integrity validation failed") from exc
+    if restored != value:
+        raise ValueError(f"{label} integrity validation failed")
 
 
 def _explicit(value: object, label: str) -> str:
@@ -783,7 +848,12 @@ def _strict_non_negative_int(value: object, label: str) -> int:
     return value
 
 
-def _sorted_unique_strings(values: object, label: str, *, require_non_empty: bool) -> tuple[str, ...]:
+def _sorted_unique_strings(
+    values: object,
+    label: str,
+    *,
+    require_non_empty: bool,
+) -> tuple[str, ...]:
     if not isinstance(values, tuple):
         raise ValueError(f"{label} must be a tuple")
     normalized = tuple(_explicit(value, label) for value in values)
