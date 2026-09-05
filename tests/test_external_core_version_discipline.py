@@ -145,6 +145,23 @@ def test_same_component_public_surface_can_depend_on_one_canonical_root() -> Non
     }
 
 
+def test_canonical_named_root_anchors_independent_same_component_surfaces() -> None:
+    sources = {
+        "nolane.external_core.reasoning_invention": 'COMPONENT_ID = "external.reasoning_invention"\nROOT_VALUE = 1\n',
+        "nolane.external_core.reasoning_frontier": 'COMPONENT_ID = "external.reasoning_invention"\nFRONTIER_VALUE = 2\n',
+        "nolane.external_core.reasoning_review": 'COMPONENT_ID = "external.reasoning_invention"\nREVIEW_VALUE = 3\n',
+    }
+    ownership = discover_component_ownership(
+        sources,
+        {"nolane.external_core.reasoning_frontier", "nolane.external_core.reasoning_review"},
+        {"external.reasoning_invention"},
+    )
+    assert ownership == {
+        "nolane.external_core.reasoning_frontier": ("external.reasoning_invention",),
+        "nolane.external_core.reasoning_review": ("external.reasoning_invention",),
+    }
+
+
 def test_public_component_id_can_be_exact_imported_alias_of_literal_identity() -> None:
     sources = {
         "nolane.external_core.integration_base": 'COMPONENT_ID = "external.integration"\nROOT_VALUE = 1\n',
