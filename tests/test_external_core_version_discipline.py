@@ -135,3 +135,17 @@ def test_nonliteral_component_id_diagnostic_names_exact_module() -> None:
     }
     with pytest.raises(ValueError, match=r"nolane\.external_core\.integration.*literal"):
         discover_component_ownership(sources, {"nolane.external_core.integration"}, {"external.integration"})
+
+
+def test_private_component_id_alias_is_not_a_canonical_root_but_remains_reachable() -> None:
+    sources = {
+        "nolane.external_core.integration": 'from nolane.external_core._integration_v2 import VALUE\nCOMPONENT_ID = "external.integration"\n',
+        "nolane.external_core._integration_v2": 'from nolane.external_core.integration_base import COMPONENT_ID as BASE_COMPONENT_ID\nCOMPONENT_ID = BASE_COMPONENT_ID\nVALUE = 2\n',
+        "nolane.external_core.integration_base": 'COMPONENT_ID = "external.base"\n',
+    }
+    ownership = discover_component_ownership(
+        sources,
+        {"nolane.external_core._integration_v2"},
+        {"external.integration", "external.base"},
+    )
+    assert ownership == {"nolane.external_core._integration_v2": ("external.integration",)}
