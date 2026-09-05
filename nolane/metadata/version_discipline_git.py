@@ -58,6 +58,76 @@ def _assignment_value(tree: ast.Module, name: str) -> ast.expr | None:
     return None
 
 
+def _is_docstring_expr(node: ast.stmt) -> bool:
+    return isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str)
+
+
+def _is_component_version_assignment(node: ast.stmt) -> bool:
+    if isinstance(node, ast.AnnAssign):
+        return isinstance(node.target, ast.Name) and node.target.id == "COMPONENT_VERSION"
+    if not isinstance(node, ast.Assign) or not node.targets:
+        return False
+    return all(isinstance(target, ast.Name) and target.id == "COMPONENT_VERSION" for target in node.targets)
+
+
+class _SemanticAstNormalizer(ast.NodeTransformer):
+    """Remove non-behavioral text/version metadata from semantic comparison.
+
+    Component revision metadata cannot be allowed to justify its own revision.
+    Comments/formatting are absent from the AST already; docstrings are removed
+    so documentation-only edits also cannot create a synthetic semantic delta.
+    """
+
+    @staticmethod
+    def _without_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
+        if body and _is_docstring_expr(body[0]):
+            return body[1:]
+        return body
+
+    def visit_Module(self, node: ast.Module) -> ast.AST:
+        node.body = self._without_docstring(node.body)
+        node.body = [row for row in node.body if not _is_component_version_assignment(row)]
+        self.generic_visit(node)
+        return node
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+        node.body = self._without_docstring(node.body)
+        self.generic_visit(node)
+        return node
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AST:
+        node.body = self._without_docstring(node.body)
+        self.generic_visit(node)
+        return node
+
+    def visit_ClassDef(self, node: ast.ClassDef) -> ast.AST:
+        node.body = self._without_docstring(node.body)
+        self.generic_visit(node)
+        return node
+
+
+def _semantic_ast_dump(source: str, module: str) -> str:
+    try:
+        tree = ast.parse(source, filename=module)
+    except SyntaxError as exc:
+        raise ValueError(f"cannot parse canonical source for semantic delta: {module}") from exc
+    normalized = _SemanticAstNormalizer().visit(tree)
+    ast.fix_missing_locations(normalized)
+    return ast.dump(normalized, annotate_fields=True, include_attributes=False)
+
+
+def _semantic_source_changed(
+    module: str,
+    base_sources: Mapping[str, str],
+    head_sources: Mapping[str, str],
+) -> bool:
+    base = base_sources.get(module)
+    head = head_sources.get(module)
+    if base is None or head is None:
+        return base != head
+    return _semantic_ast_dump(base, module) != _semantic_ast_dump(head, module)
+
+
 def _component_ids_from_specs(source: str) -> tuple[str, ...]:
     try:
         tree = ast.parse(source)
@@ -170,7 +240,9 @@ def check_git_revision_discipline(
     """Evaluate component-local revisions from exact Git base/head trees.
 
     The checker executes Git only. Python source being evaluated is parsed with
-    AST and never imported or executed.
+    AST and never imported or executed. Semantic ownership is based on
+    normalized AST changes, so revision constants, docstrings and formatting
+    cannot manufacture a semantic change.
     """
 
     root = Path(repo_root)
@@ -184,10 +256,15 @@ def check_git_revision_discipline(
         base_sources = _tree_sources(root, base_ref)
         head_sources = _tree_sources(root, head_ref)
         changed_paths = _git(root, "diff", "--name-only", base_ref, head_ref, "--", "nolane")
-        changed_modules = {
+        candidate_modules = {
             _module_name(path)
             for path in (line.strip() for line in changed_paths.splitlines())
             if path.endswith(".py")
+        }
+        changed_modules = {
+            module
+            for module in candidate_modules
+            if _semantic_source_changed(module, base_sources, head_sources)
         }
 
         affected: set[str] = set()
