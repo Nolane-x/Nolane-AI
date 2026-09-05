@@ -174,7 +174,10 @@ def discover_component_ownership(
 
     roots: dict[str, str] = {}
     for module in sorted(trees):
-        component_id = _literal_component_id(trees[module])
+        try:
+            component_id = _literal_component_id(trees[module])
+        except ValueError as exc:
+            raise ValueError(f"ownership discovery failed for {module}: {exc}") from exc
         if component_id is None or component_id not in canonical_ids:
             continue
         previous = roots.get(component_id)
