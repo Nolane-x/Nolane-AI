@@ -6,9 +6,11 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.authority_graph import ExternalAuthorityGraph
 from nolane.external_core.component_contracts import ExternalComponentManifest, ExternalCoreFamily
+from nolane.external_core.registry import CanonicalComponentRegistry
 
 
 DISCOVERY_PROTOCOL = "external-capability-discovery-v1"
+REGISTRY_DISCOVERY_PROTOCOL = "external-registry-capability-discovery-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -188,6 +190,93 @@ class CapabilityDiscoveryIndex:
         return index
 
 
+class RegistryCapabilityDiscoveryIndex:
+    """A3 read-only discovery bound to an exact canonical registry digest.
+
+    The registry is a provenance/coverage source only. Discovery never turns a
+    declared capability into an invocation or authorization right.
+    """
+
+    def __init__(
+        self,
+        registry: CanonicalComponentRegistry,
+        authority_graph: ExternalAuthorityGraph,
+    ) -> None:
+        graph_manifests = tuple(authority_graph.manifests)
+        if tuple(row.component_id for row in graph_manifests) != tuple(
+            row.component_id for row in registry.manifests
+        ) or tuple(row.manifest_digest for row in graph_manifests) != tuple(
+            row.manifest_digest for row in registry.manifests
+        ):
+            raise ValueError("canonical registry manifests do not match authority graph")
+        self._registry = registry
+        self._index = CapabilityDiscoveryIndex(registry.manifests, authority_graph)
+
+    @classmethod
+    def create(
+        cls,
+        registry: CanonicalComponentRegistry,
+        authority_graph: ExternalAuthorityGraph,
+    ) -> "RegistryCapabilityDiscoveryIndex":
+        return cls(registry, authority_graph)
+
+    @property
+    def registry_digest(self) -> str:
+        return self._registry.registry_digest
+
+    @property
+    def authority_graph_digest(self) -> str:
+        return self._index.authority_graph_digest
+
+    @property
+    def digest(self) -> str:
+        return canonical_digest(self._payload())
+
+    def describe(self, component_id: str) -> CapabilityDescriptor:
+        return self._index.describe(component_id)
+
+    def components(self) -> tuple[CapabilityDescriptor, ...]:
+        return self._index.components()
+
+    def by_contract(self, contract_kind: str) -> ContractDiscoveryResult:
+        return self._index.by_contract(contract_kind)
+
+    def by_authority(self, authority: str) -> tuple[CapabilityDescriptor, ...]:
+        return self._index.by_authority(authority)
+
+    def _payload(self) -> dict[str, Any]:
+        return {
+            "protocol": REGISTRY_DISCOVERY_PROTOCOL,
+            "registry": self._registry.to_state(),
+            "registry_digest": self._registry.registry_digest,
+            "discovery": self._index.to_state(),
+            "authority_graph_digest": self._index.authority_graph_digest,
+        }
+
+    def to_state(self) -> dict[str, Any]:
+        payload = self._payload()
+        return {**payload, "digest": canonical_digest(payload)}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "RegistryCapabilityDiscoveryIndex":
+        if str(state.get("protocol", "")) != REGISTRY_DISCOVERY_PROTOCOL:
+            raise ValueError("unsupported registry capability discovery protocol")
+        registry_state = state.get("registry")
+        discovery_state = state.get("discovery")
+        if not isinstance(registry_state, Mapping) or not isinstance(discovery_state, Mapping):
+            raise ValueError("registry capability discovery state is incomplete")
+        registry = CanonicalComponentRegistry.from_state(registry_state)
+        if str(state.get("registry_digest", "")) != registry.registry_digest:
+            raise ValueError("registry capability discovery registry digest mismatch")
+        discovery = CapabilityDiscoveryIndex.from_state(discovery_state)
+        if str(state.get("authority_graph_digest", "")) != discovery.authority_graph_digest:
+            raise ValueError("registry capability discovery authority graph digest mismatch")
+        index = cls(registry, discovery._graph)
+        if dict(state) != index.to_state():
+            raise ValueError("registry capability discovery state is non-canonical or drifted")
+        return index
+
+
 def _explicit(value: object, label: str) -> str:
     text = str(value)
     if not text.strip():
@@ -197,7 +286,9 @@ def _explicit(value: object, label: str) -> str:
 
 __all__ = (
     "DISCOVERY_PROTOCOL",
+    "REGISTRY_DISCOVERY_PROTOCOL",
     "CapabilityDescriptor",
     "CapabilityDiscoveryIndex",
     "ContractDiscoveryResult",
+    "RegistryCapabilityDiscoveryIndex",
 )
