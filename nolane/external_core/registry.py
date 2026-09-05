@@ -178,17 +178,21 @@ class CanonicalComponentRegistry:
 
     @property
     def component_ids(self) -> tuple[str, ...]:
+        self.validate_integrity()
         return tuple(row.source_component_id for row in self.adapters)
 
     @property
     def manifests(self) -> tuple[ExternalComponentManifest, ...]:
+        self.validate_integrity()
         return tuple(row.manifest for row in self.adapters)
 
     @property
     def component_versions(self) -> dict[str, str]:
+        self.validate_integrity()
         return {row.source_component_id: row.source_component_version for row in self.adapters}
 
     def manifest_for(self, component_id: str) -> ExternalComponentManifest:
+        self.validate_integrity()
         target = _explicit(component_id, "component id")
         for row in self.adapters:
             if row.source_component_id == target:
@@ -196,6 +200,7 @@ class CanonicalComponentRegistry:
         raise KeyError(target)
 
     def adapter_for(self, component_id: str) -> ManifestAdapter:
+        self.validate_integrity()
         target = _explicit(component_id, "component id")
         for row in self.adapters:
             if row.source_component_id == target:
@@ -243,6 +248,7 @@ class CanonicalComponentRegistry:
         *,
         reject_unexpected: bool = False,
     ) -> RegistryCoverageReport:
+        self.validate_integrity()
         actual = {row.source_locator: row for row in self.adapters}
         findings: list[RegistryCoverageFinding] = []
         for locator, identity_version in sorted(expected_sources.items(), key=lambda item: str(item[0])):
