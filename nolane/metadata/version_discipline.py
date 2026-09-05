@@ -122,22 +122,125 @@ def evaluate_revision_delta(
     return VersionDisciplineReport(tuple(sorted(findings, key=lambda row: (row.code.value, row.component_id, row.detail))))
 
 
-def _literal_component_id(tree: ast.AST) -> str | None:
-    value: str | None = None
+def _component_id_assignments(tree: ast.AST) -> tuple[ast.expr, ...]:
+    values: list[ast.expr] = []
     for node in getattr(tree, "body", ()):
-        candidate: ast.expr | None = None
         if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == "COMPONENT_ID" for target in node.targets):
-            candidate = node.value
-        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "COMPONENT_ID":
-            candidate = node.value
-        if candidate is None:
+            values.append(node.value)
+        elif isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == "COMPONENT_ID" and node.value is not None:
+            values.append(node.value)
+    return tuple(values)
+
+
+def _import_from_base(module: str, node: ast.ImportFrom) -> str:
+    if node.level:
+        package_parts = module.split(".")[:-1]
+        ascend = max(node.level - 1, 0)
+        if ascend:
+            package_parts = package_parts[:-ascend]
+        return ".".join(package_parts + ([node.module] if node.module else []))
+    return node.module or ""
+
+
+def _import_bindings(
+    module: str,
+    tree: ast.AST,
+    known_modules: set[str],
+) -> dict[str, tuple[str, str]]:
+    """Map local imported names to exact source module/symbol pairs.
+
+    Only ``from module import symbol [as local]`` participates in component
+    identity proof. Star imports, module attributes and runtime expressions are
+    intentionally not identity authority.
+    """
+
+    bindings: dict[str, tuple[str, str]] = {}
+    for node in getattr(tree, "body", ()):
+        if not isinstance(node, ast.ImportFrom):
             continue
-        if not isinstance(candidate, ast.Constant) or not isinstance(candidate.value, str) or not candidate.value.strip():
-            raise ValueError("canonical COMPONENT_ID must be a literal non-empty string")
-        if value is not None and value != candidate.value:
+        base = _import_from_base(module, node)
+        if base not in known_modules:
+            continue
+        for alias in node.names:
+            if alias.name == "*":
+                continue
+            local = alias.asname or alias.name
+            pair = (base, alias.name)
+            previous = bindings.get(local)
+            if previous is not None and previous != pair:
+                raise ValueError(f"ambiguous imported identity symbol in {module}: {local}")
+            bindings[local] = pair
+    return bindings
+
+
+def _resolve_component_id(
+    module: str,
+    trees: Mapping[str, ast.AST],
+    bindings_by_module: Mapping[str, Mapping[str, tuple[str, str]]],
+    *,
+    stack: tuple[str, ...] = (),
+    allow_import_passthrough: bool = False,
+) -> str | None:
+    """Resolve COMPONENT_ID without executing source.
+
+    Accepted authority forms are deliberately narrow:
+    1. a literal non-empty string assignment; or
+    2. an assignment from a local name imported *exactly* from another known
+       module's ``COMPONENT_ID``; private frozen chains may also re-export
+       ``COMPONENT_ID`` directly with no assignment.
+
+    Arbitrary expressions, calls, attributes, computed strings and cycles fail
+    closed.
+    """
+
+    if module in stack:
+        raise ValueError("component identity import alias cycle: " + " -> ".join(stack + (module,)))
+    tree = trees[module]
+    bindings = bindings_by_module.get(module, {})
+    assignments = _component_id_assignments(tree)
+
+    def resolve_expression(expression: ast.expr) -> str:
+        if isinstance(expression, ast.Constant) and isinstance(expression.value, str) and expression.value.strip():
+            return expression.value
+        if isinstance(expression, ast.Name):
+            binding = bindings.get(expression.id)
+            if binding is None:
+                raise ValueError("canonical COMPONENT_ID must be a literal non-empty string or exact imported alias")
+            source_module, imported_name = binding
+            if imported_name != "COMPONENT_ID":
+                raise ValueError("canonical COMPONENT_ID alias must import the exact COMPONENT_ID symbol")
+            resolved = _resolve_component_id(
+                source_module,
+                trees,
+                bindings_by_module,
+                stack=stack + (module,),
+                allow_import_passthrough=True,
+            )
+            if resolved is None:
+                raise ValueError(f"imported COMPONENT_ID source has no statically resolvable identity: {source_module}")
+            return resolved
+        raise ValueError("canonical COMPONENT_ID must be a literal non-empty string or exact imported alias")
+
+    if assignments:
+        resolved_values = tuple(resolve_expression(expression) for expression in assignments)
+        if len(set(resolved_values)) != 1:
             raise ValueError("module declares multiple canonical component identities")
-        value = candidate.value
-    return value
+        return resolved_values[0]
+
+    if allow_import_passthrough:
+        binding = bindings.get("COMPONENT_ID")
+        if binding is not None:
+            source_module, imported_name = binding
+            if imported_name != "COMPONENT_ID":
+                raise ValueError("COMPONENT_ID passthrough must import the exact COMPONENT_ID symbol")
+            return _resolve_component_id(
+                source_module,
+                trees,
+                bindings_by_module,
+                stack=stack + (module,),
+                allow_import_passthrough=True,
+            )
+    return None
 
 
 def _internal_imports(module: str, tree: ast.AST, known_modules: set[str]) -> tuple[str, ...]:
@@ -148,14 +251,7 @@ def _internal_imports(module: str, tree: ast.AST, known_modules: set[str]) -> tu
                 if alias.name in known_modules:
                     imports.add(alias.name)
         elif isinstance(node, ast.ImportFrom):
-            if node.level:
-                package_parts = module.split(".")[:-1]
-                ascend = max(node.level - 1, 0)
-                if ascend:
-                    package_parts = package_parts[:-ascend]
-                base = ".".join(package_parts + ([node.module] if node.module else []))
-            else:
-                base = node.module or ""
+            base = _import_from_base(module, node)
             if base in known_modules:
                 imports.add(base)
             for alias in node.names:
@@ -177,26 +273,41 @@ def _reachable_modules(start: str, graph: Mapping[str, tuple[str, ...]]) -> set[
     return reachable
 
 
+def _parse_topology_sources(source_by_module: Mapping[str, str]) -> tuple[dict[str, ast.AST], dict[str, tuple[str, ...]], dict[str, dict[str, tuple[str, str]]]]:
+    trees: dict[str, ast.AST] = {}
+    for module, source in source_by_module.items():
+        if not isinstance(module, str) or not module.strip() or not isinstance(source, str):
+            raise ValueError("ownership source map must contain explicit module names and source text")
+        try:
+            trees[module] = ast.parse(source, filename=module)
+        except SyntaxError as exc:
+            raise ValueError(f"ownership discovery cannot parse canonical module: {module}") from exc
+    known_modules = set(trees)
+    graph = {module: _internal_imports(module, trees[module], known_modules) for module in sorted(trees)}
+    bindings = {module: _import_bindings(module, trees[module], known_modules) for module in sorted(trees)}
+    return trees, graph, bindings
+
+
 def _component_surfaces_and_roots(
     trees: Mapping[str, ast.AST],
     graph: Mapping[str, tuple[str, ...]],
+    bindings_by_module: Mapping[str, Mapping[str, tuple[str, str]]],
     canonical_ids: set[str],
 ) -> tuple[dict[str, tuple[str, ...]], dict[str, str]]:
     """Resolve public component surfaces to exactly one dependency-root each.
 
-    A component may expose more than one public module with the same literal
-    identity. That is valid only when the import topology proves one canonical
-    dependency-root and every additional surface is layered on top of another
-    same-component surface. Independent duplicate roots and same-ID cycles are
-    rejected rather than guessed.
+    A component may expose more than one public module with the same statically
+    proven identity. That is valid only when the import topology proves one
+    canonical dependency-root. Independent duplicate roots and same-ID cycles
+    are rejected rather than guessed.
     """
 
     declared: dict[str, list[str]] = {}
     for module in sorted(trees):
-        if _is_private_module(module):
+        if _is_private_module(module) or not _component_id_assignments(trees[module]):
             continue
         try:
-            component_id = _literal_component_id(trees[module])
+            component_id = _resolve_component_id(module, trees, bindings_by_module)
         except ValueError as exc:
             raise ValueError(f"ownership discovery failed for {module}: {exc}") from exc
         if component_id is None or component_id not in canonical_ids:
@@ -213,12 +324,17 @@ def _component_surfaces_and_roots(
             if not any(peer != module and peer in reachable for peer in ordered):
                 candidates.append(module)
         if len(candidates) != 1:
-            raise ValueError(
-                f"duplicate canonical component root for {component_id}: " + ", ".join(ordered)
-            )
+            raise ValueError(f"duplicate canonical component root for {component_id}: " + ", ".join(ordered))
         surfaces[component_id] = ordered
         roots[component_id] = candidates[0]
     return surfaces, roots
+
+
+def _discover_component_root_ids(source_by_module: Mapping[str, str], component_ids: Collection[str]) -> set[str]:
+    canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
+    trees, graph, bindings = _parse_topology_sources(source_by_module)
+    _surfaces, roots = _component_surfaces_and_roots(trees, graph, bindings, canonical_ids)
+    return set(roots)
 
 
 def discover_component_ownership(
@@ -229,20 +345,8 @@ def discover_component_ownership(
     """Derive semantic ownership from public surfaces and the internal DAG."""
 
     canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
-    modules: dict[str, str] = {}
-    trees: dict[str, ast.AST] = {}
-    for module, source in source_by_module.items():
-        if not isinstance(module, str) or not module.strip() or not isinstance(source, str):
-            raise ValueError("ownership source map must contain explicit module names and source text")
-        modules[module] = source
-        try:
-            trees[module] = ast.parse(source, filename=module)
-        except SyntaxError as exc:
-            raise ValueError(f"ownership discovery cannot parse canonical module: {module}") from exc
-
-    known_modules = set(modules)
-    graph = {module: _internal_imports(module, trees[module], known_modules) for module in sorted(trees)}
-    surfaces, _roots = _component_surfaces_and_roots(trees, graph, canonical_ids)
+    trees, graph, bindings = _parse_topology_sources(source_by_module)
+    surfaces, _roots = _component_surfaces_and_roots(trees, graph, bindings, canonical_ids)
 
     reachable_by_component: dict[str, set[str]] = {}
     for component_id, component_surfaces in sorted(surfaces.items()):
