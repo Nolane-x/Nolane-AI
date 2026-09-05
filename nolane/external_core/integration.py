@@ -24,9 +24,20 @@ from nolane.external_core.integration_revalidation import (
     assess_revalidation,
     build_revalidation_plan,
 )
+from nolane.external_core.integration_scoped_revalidation import (
+    RevalidationChallenge,
+    RevalidationCompletionReceipt,
+    RevalidationScope,
+    ScopedRevalidationAssessment,
+    ScopedRevalidationEvidenceBinding,
+    assess_scoped_revalidation,
+    build_revalidation_challenges,
+    build_revalidation_scope,
+    challenge_subject_digest,
+)
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.integration"
 
 
@@ -370,4 +381,13 @@ __all__ = [
     "RevalidationPlan",
     "assess_revalidation",
     "build_revalidation_plan",
+    "RevalidationChallenge",
+    "RevalidationCompletionReceipt",
+    "RevalidationScope",
+    "ScopedRevalidationAssessment",
+    "ScopedRevalidationEvidenceBinding",
+    "assess_scoped_revalidation",
+    "build_revalidation_challenges",
+    "build_revalidation_scope",
+    "challenge_subject_digest",
 ]

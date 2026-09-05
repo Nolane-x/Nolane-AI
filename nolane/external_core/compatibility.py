@@ -8,7 +8,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.architecture import InterfaceStability
 
 SEMANTIC_SURFACE_ID = "external.integration.compatibility"
-SEMANTIC_SURFACE_VERSION = "0.0.2"
+SEMANTIC_SURFACE_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.compatibility"
 
 

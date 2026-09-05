@@ -22,8 +22,8 @@ def test_wave5b_external_evidence_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.evidence"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.evidence")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.evidence")) == "0.0.2"
 
 
 def test_wave5b_legacy_evidence_imports_bridge_to_canonical_class_identity() -> None:
