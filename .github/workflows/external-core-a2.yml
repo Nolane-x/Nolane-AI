@@ -43,6 +43,11 @@ jobs:
             exit 1
           fi
           python -m pytest -q "${tests[@]}"
+      - name: Verify canonical External Core A2 coherence audit
+        run: |
+          python -m nolane.external_core.audit --check
+          python -m nolane.external_core.audit --json > /tmp/external-core-a2-audit.json
+          python -c "import json; p='/tmp/external-core-a2-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
       - name: Run prior G/Assurance regressions
         shell: bash
         run: |
