@@ -134,6 +134,14 @@ class LiveExternalCoreSnapshot:
     def to_state(self) -> dict[str, Any]:
         return {**self.payload(), "snapshot_id": self.snapshot_id}
 
+    def validate_integrity(self) -> None:
+        try:
+            restored = type(self).from_state(self.to_state())
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            raise ValueError("live snapshot integrity validation failed") from exc
+        if restored != self:
+            raise ValueError("live snapshot integrity validation failed")
+
     @classmethod
     def create(
         cls,
@@ -236,6 +244,11 @@ def assess_live_restore(
     current_source_state_frontier_digest: str | None,
     current_component_versions: Mapping[str, object] | None,
 ) -> LiveRestoreAssessment:
+    try:
+        snapshot.validate_integrity()
+    except (AttributeError, TypeError, ValueError):
+        return LiveRestoreAssessment(LiveRestoreDisposition.QUARANTINED, ("invalid-snapshot",))
+
     current_values = (
         ("registry", current_registry_digest),
         ("authority-graph", current_authority_graph_digest),
