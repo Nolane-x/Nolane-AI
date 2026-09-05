@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from nolane.external_core.authority_graph import AuthorityEdge, AuthorityRelation, ExternalAuthorityGraph
 from nolane.external_core.component_contracts import ExternalComponentManifest, ExternalCoreFamily
-from nolane.external_core.integration_evolution import build_integration_impact_closure
+from nolane.external_core.integration_evolution import IntegrationImpactClosure, build_integration_impact_closure
 
 
 def _manifest(
@@ -29,11 +31,11 @@ def _manifest(
     )
 
 
-def test_impact_closure_propagates_downstream_across_declared_contract_edge() -> None:
+def _graph() -> ExternalAuthorityGraph:
     integration = _manifest("external.integration", produces=("integrated",))
     planning = _manifest("external.planning", consumes=("integrated",), produces=("plan",))
     execution = _manifest("external.execution", consumes=("plan",))
-    graph = ExternalAuthorityGraph(
+    return ExternalAuthorityGraph(
         (integration, planning, execution),
         (
             AuthorityEdge.create(
@@ -50,7 +52,10 @@ def test_impact_closure_propagates_downstream_across_declared_contract_edge() ->
             ),
         ),
     )
-    closure = build_integration_impact_closure(("external.integration",), graph)
+
+
+def test_impact_closure_propagates_downstream_across_declared_contract_edge() -> None:
+    closure = build_integration_impact_closure(("external.integration",), _graph())
     assert closure.changed_component_ids == ("external.integration",)
     assert closure.impacted_component_ids == (
         "external.execution",
@@ -63,9 +68,31 @@ def test_impact_closure_propagates_downstream_across_declared_contract_edge() ->
 
 def test_impact_closure_rejects_unknown_changed_component() -> None:
     graph = ExternalAuthorityGraph((_manifest("external.integration"),), ())
-    try:
+    with pytest.raises(ValueError, match="unknown"):
         build_integration_impact_closure(("external.unknown",), graph)
-    except ValueError as exc:
-        assert "unknown" in str(exc).lower()
-    else:
-        raise AssertionError("unknown changed component was accepted")
+
+
+def test_impact_closure_exact_restore_is_canonical() -> None:
+    closure = build_integration_impact_closure(("external.integration",), _graph())
+    assert IntegrationImpactClosure.from_state(closure.to_state()) == closure
+
+
+def test_impact_closure_restore_rejects_tampering() -> None:
+    closure = build_integration_impact_closure(("external.integration",), _graph())
+    state = closure.to_state()
+    state["closure_id"] = "forged"
+    with pytest.raises(ValueError, match="impact"):
+        IntegrationImpactClosure.from_state(state)
+
+
+def test_direct_constructor_forged_impact_closure_fails_integrity() -> None:
+    closure = build_integration_impact_closure(("external.integration",), _graph())
+    forged = IntegrationImpactClosure(
+        changed_component_ids=closure.changed_component_ids,
+        impacted_component_ids=closure.impacted_component_ids,
+        reasons=closure.reasons,
+        authority_graph_digest=closure.authority_graph_digest,
+        closure_id="forged",
+    )
+    with pytest.raises(ValueError, match="impact"):
+        forged.validate_integrity()
