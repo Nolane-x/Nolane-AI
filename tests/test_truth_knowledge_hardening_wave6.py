@@ -56,12 +56,13 @@ def test_registry_validates_parent_and_helper_authority_bidirectionally_without_
         assert not hasattr(helper, "COMPONENT_ID")
         # Binding metadata is orthogonal to component software revision: the canonical
         # manifest and implementation ledger must agree, while a parent may legitimately
-        # advance when its own accepted API/semantics change (A10 advances Knowledge only).
+        # advance when its own accepted API/semantics change (A10 advances Knowledge; scoped
+        # evidence advances Evidence without advancing the unchanged Truth helper protocol).
         assert str(component_version(row.parent_component_id)) == parent.component_version
 
     assert str(component_version("external.knowledge")) == "0.0.2"
+    assert str(component_version("external.evidence")) == "0.0.2"
     for component_id in (
-        "external.evidence",
         "external.epistemic",
         "external.verification",
         "external.assurance",
