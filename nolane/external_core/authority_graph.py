@@ -93,6 +93,8 @@ class AuthorityEdge:
         )
         if str(state.get("digest", "")) != expected.digest:
             raise ValueError("authority edge digest mismatch")
+        if dict(state) != expected.to_state():
+            raise ValueError("authority edge state is non-canonical or semantically drifted")
         return expected
 
 
@@ -199,6 +201,15 @@ class ExternalAuthorityGraph:
                 continue
 
             implied = _RELATION_AUTHORITY.get(edge.relation)
+            if implied is not None and implied not in source.authority_capabilities:
+                rows.append(
+                    AuthorityGraphFinding(
+                        "UNDECLARED_SOURCE_AUTHORITY",
+                        (source.component_id, target.component_id),
+                        implied,
+                        f"{edge.relation.value} requires source authority not declared by source manifest",
+                    )
+                )
             if implied is not None and implied in source.forbidden_authorities:
                 rows.append(
                     AuthorityGraphFinding(
@@ -318,6 +329,8 @@ class ExternalAuthorityGraph:
         )
         if str(state.get("digest", "")) != graph.digest:
             raise ValueError("authority graph digest mismatch")
+        if dict(state) != graph.to_state():
+            raise ValueError("authority graph state is non-canonical or semantically drifted")
         return graph
 
 
