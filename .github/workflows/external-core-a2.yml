@@ -1,22 +1,23 @@
-name: External Core A2+A3
+name: External Core
 
 on:
   push:
     branches:
       - design/external-core-a2-g-infrastructure
       - design/external-core-a3-live-registry
+      - upgrade/external-core-version-discipline
   pull_request:
     paths:
       - 'nolane/external_core/**'
       - 'nolane/metadata/**'
-      - 'tests/test_external_core_a2_*.py'
-      - 'tests/test_external_core_a3_*.py'
+      - 'tests/test_external_core_*.py'
       - 'tests/test_external_core_g*.py'
+      - 'tests/test_refoundation_component_versions.py'
       - 'CURRENT/EXTERNAL_CORE.md'
       - '.github/workflows/external-core-a2.yml'
 
 jobs:
-  external-core-a2-a3:
+  external-core:
     # REF0-CI-ISOLATION: refoundation PRs use the dedicated Refoundation regression gate.
     if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-24.04
@@ -26,6 +27,8 @@ jobs:
         python-version: ['3.11', '3.13']
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -35,16 +38,25 @@ jobs:
         run: |
           python -m py_compile nolane/core/*.py
           python -m py_compile nolane/external_core/*.py
-      - name: Run External Core A2+A3 contracts
+          python -m py_compile nolane/metadata/*.py
+      - name: Run External Core contracts
         shell: bash
         run: |
           shopt -s nullglob
-          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py)
+          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_evolution*.py)
           if [ ${#tests[@]} -eq 0 ]; then
-            echo 'No External Core A2/A3 tests found' >&2
+            echo 'No External Core tests found' >&2
             exit 1
           fi
           python -m pytest -q "${tests[@]}"
+      - name: Enforce component-local version discipline
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: python -m nolane.metadata.version_discipline_cli --base "$BASE_SHA" --head "$HEAD_SHA" --check
+      - name: Verify canonical component version projection
+        run: python -m pytest -q tests/test_refoundation_component_versions.py
       - name: Verify canonical External Core coherence audit
         run: |
           python -m nolane.external_core.audit --check
