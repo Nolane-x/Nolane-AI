@@ -4,11 +4,13 @@ The conceptual External Core is intentionally wider than the invokable
 ExternalCoreRegistry: it also contains persistent memory, context, planning,
 architecture, evidence-backed engineering and other governed cognition.
 
-The A2/A3 and integration-evolution exports below are deliberately structural
-and authority-neutral. They expose immutable contracts, registry provenance,
-validation, discovery, restore classification, compatibility/impact structure,
-revalidation assessment and audit surfaces; they do not expose an invocation,
-authorization, promotion, deployment, repair, or runtime registration path.
+The A2/A3, integration-evolution and scoped-revalidation exports below are
+deliberately structural and authority-neutral. They expose immutable contracts,
+registry provenance, validation, discovery, restore classification,
+compatibility/impact structure, exact-context evidence binding, revalidation
+assessment and audit surfaces; they do not expose an invocation, authorization,
+promotion, deployment, repair, Assurance, Verification, or runtime registration
+path.
 """
 
 from nolane.external_core.authority_graph import (
@@ -38,6 +40,7 @@ from nolane.external_core.component_contracts import (
     ExternalComponentManifest,
     ExternalCoreFamily,
 )
+from nolane.external_core.evidence import ScopedEvidenceRecord
 from nolane.external_core.handoff import (
     ExternalHandoffEnvelope,
     HandoffAuthorityClass,
@@ -62,6 +65,17 @@ from nolane.external_core.integration_revalidation import (
     RevalidationPlan,
     assess_revalidation,
     build_revalidation_plan,
+)
+from nolane.external_core.integration_scoped_revalidation import (
+    RevalidationChallenge,
+    RevalidationCompletionReceipt,
+    RevalidationScope,
+    ScopedRevalidationAssessment,
+    ScopedRevalidationEvidenceBinding,
+    assess_scoped_revalidation,
+    build_revalidation_challenges,
+    build_revalidation_scope,
+    challenge_subject_digest,
 )
 from nolane.external_core.live_fabric import (
     LiveExternalCoreSnapshot,
@@ -125,9 +139,15 @@ __all__ = (
     "RegistryCoverageReport",
     "RestorePreflightResult",
     "RevalidationAssessment",
+    "RevalidationChallenge",
+    "RevalidationCompletionReceipt",
     "RevalidationDisposition",
     "RevalidationEvidenceBinding",
     "RevalidationPlan",
+    "RevalidationScope",
+    "ScopedEvidenceRecord",
+    "ScopedRevalidationAssessment",
+    "ScopedRevalidationEvidenceBinding",
     "TraceDiagnostic",
     "TraceNode",
     "TraceNodeStatus",
@@ -136,10 +156,14 @@ __all__ = (
     "assess_live_restore",
     "assess_live_restore_state",
     "assess_revalidation",
+    "assess_scoped_revalidation",
     "audit_external_core",
     "audit_live_external_core",
     "build_integration_impact_closure",
+    "build_revalidation_challenges",
     "build_revalidation_plan",
+    "build_revalidation_scope",
+    "challenge_subject_digest",
     "handoff_frontier_digest",
     "preflight_restore",
     "qualify_component_evolution",
