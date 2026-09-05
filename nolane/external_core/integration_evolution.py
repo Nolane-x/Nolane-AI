@@ -141,6 +141,21 @@ class IntegrationImpactReason:
     def to_state(self) -> dict[str, str]:
         return {"source_id": self.source_id, "target_id": self.target_id, "relation": self.relation, "contract_kind": self.contract_kind, "digest": self.digest}
 
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "IntegrationImpactReason":
+        expected = cls.create(state.get("source_id"), state.get("target_id"), state.get("relation"), state.get("contract_kind"))
+        if state.get("digest") != expected.digest or dict(state) != expected.to_state():
+            raise ValueError("integration impact reason integrity mismatch")
+        return expected
+
+    def validate_integrity(self) -> None:
+        try:
+            restored = type(self).from_state(self.to_state())
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("integration impact reason integrity validation failed") from exc
+        if restored != self:
+            raise ValueError("integration impact reason integrity validation failed")
+
 
 @dataclass(frozen=True, slots=True)
 class IntegrationImpactClosure:
@@ -150,14 +165,91 @@ class IntegrationImpactClosure:
     authority_graph_digest: str
     closure_id: str
 
+    @classmethod
+    def create(
+        cls,
+        *,
+        changed_component_ids: tuple[str, ...],
+        impacted_component_ids: tuple[str, ...],
+        reasons: tuple[IntegrationImpactReason, ...],
+        authority_graph_digest: str,
+    ) -> "IntegrationImpactClosure":
+        changed = _sorted_unique_ids(changed_component_ids, "changed component identity")
+        impacted = _sorted_unique_ids(impacted_component_ids, "impacted component identity")
+        if not changed:
+            raise ValueError("integration impact requires at least one changed component")
+        if not set(changed).issubset(impacted):
+            raise ValueError("integration impact must include every changed component")
+        graph_digest = _explicit(authority_graph_digest, "authority graph digest")
+        canonical_reasons: list[IntegrationImpactReason] = []
+        for row in reasons:
+            if not isinstance(row, IntegrationImpactReason):
+                raise ValueError("integration impact reasons must be canonical")
+            row.validate_integrity()
+            if row.source_id not in impacted or row.target_id not in impacted:
+                raise ValueError("integration impact reason escapes impacted component set")
+            canonical_reasons.append(row)
+        ordered_reasons = tuple(sorted(canonical_reasons, key=lambda row: (row.source_id, row.target_id, row.relation, row.contract_kind, row.digest)))
+        if len({row.digest for row in ordered_reasons}) != len(ordered_reasons):
+            raise ValueError("integration impact reasons must be unique")
+        payload = {
+            "protocol": INTEGRATION_IMPACT_PROTOCOL,
+            "changed_component_ids": list(changed),
+            "impacted_component_ids": list(impacted),
+            "reasons": [row.to_state() for row in ordered_reasons],
+            "authority_graph_digest": graph_digest,
+        }
+        return cls(changed, impacted, ordered_reasons, graph_digest, "integration-impact-v1-" + canonical_digest(payload))
+
+    def payload(self) -> dict[str, Any]:
+        return {
+            "protocol": INTEGRATION_IMPACT_PROTOCOL,
+            "changed_component_ids": list(self.changed_component_ids),
+            "impacted_component_ids": list(self.impacted_component_ids),
+            "reasons": [row.to_state() for row in self.reasons],
+            "authority_graph_digest": self.authority_graph_digest,
+        }
+
     def to_state(self) -> dict[str, Any]:
-        return {"protocol": INTEGRATION_IMPACT_PROTOCOL, "changed_component_ids": list(self.changed_component_ids), "impacted_component_ids": list(self.impacted_component_ids), "reasons": [row.to_state() for row in self.reasons], "authority_graph_digest": self.authority_graph_digest, "closure_id": self.closure_id}
+        return {**self.payload(), "closure_id": self.closure_id}
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "IntegrationImpactClosure":
+        if state.get("protocol") != INTEGRATION_IMPACT_PROTOCOL:
+            raise ValueError("integration impact protocol mismatch")
+        raw_changed = state.get("changed_component_ids")
+        raw_impacted = state.get("impacted_component_ids")
+        raw_reasons = state.get("reasons")
+        if not isinstance(raw_changed, list) or not isinstance(raw_impacted, list) or not isinstance(raw_reasons, list):
+            raise ValueError("integration impact state shape is invalid")
+        reasons: list[IntegrationImpactReason] = []
+        for row in raw_reasons:
+            if not isinstance(row, Mapping):
+                raise ValueError("integration impact reason state must be an object")
+            reasons.append(IntegrationImpactReason.from_state(row))
+        expected = cls.create(
+            changed_component_ids=tuple(raw_changed),
+            impacted_component_ids=tuple(raw_impacted),
+            reasons=tuple(reasons),
+            authority_graph_digest=state.get("authority_graph_digest"),
+        )
+        if state.get("closure_id") != expected.closure_id or dict(state) != expected.to_state():
+            raise ValueError("integration impact closure integrity mismatch")
+        return expected
+
+    def validate_integrity(self) -> None:
+        try:
+            restored = type(self).from_state(self.to_state())
+        except (KeyError, TypeError, ValueError, AttributeError) as exc:
+            raise ValueError("integration impact closure integrity validation failed") from exc
+        if restored != self:
+            raise ValueError("integration impact closure integrity validation failed")
 
 
 def build_integration_impact_closure(changed_component_ids: tuple[str, ...], authority_graph: ExternalAuthorityGraph) -> IntegrationImpactClosure:
     if not isinstance(authority_graph, ExternalAuthorityGraph):
         raise ValueError("integration impact requires an ExternalAuthorityGraph")
-    changed = tuple(sorted({_explicit(value, "changed component identity") for value in changed_component_ids}))
+    changed = _sorted_unique_ids(changed_component_ids, "changed component identity")
     if not changed:
         raise ValueError("integration impact requires at least one changed component")
     graph_ids = {manifest.component_id for manifest in authority_graph.manifests}
@@ -177,9 +269,19 @@ def build_integration_impact_closure(changed_component_ids: tuple[str, ...], aut
             reason = IntegrationImpactReason.create(edge.source_component_id, edge.target_component_id, edge.relation.value, edge.contract_kind)
             reasons[reason.digest] = reason
             progressed = True
-    ordered_reasons = tuple(sorted(reasons.values(), key=lambda row: (row.source_id, row.target_id, row.relation, row.contract_kind)))
-    payload = {"protocol": INTEGRATION_IMPACT_PROTOCOL, "changed_component_ids": list(changed), "impacted_component_ids": sorted(impacted), "reasons": [row.to_state() for row in ordered_reasons], "authority_graph_digest": authority_graph.digest}
-    return IntegrationImpactClosure(changed, tuple(sorted(impacted)), ordered_reasons, authority_graph.digest, "integration-impact-v1-" + canonical_digest(payload))
+    return IntegrationImpactClosure.create(
+        changed_component_ids=changed,
+        impacted_component_ids=tuple(impacted),
+        reasons=tuple(reasons.values()),
+        authority_graph_digest=authority_graph.digest,
+    )
+
+
+def _sorted_unique_ids(values: tuple[str, ...], label: str) -> tuple[str, ...]:
+    normalized = tuple(_explicit(value, label) for value in values)
+    if len(set(normalized)) != len(normalized):
+        raise ValueError(f"duplicate {label}")
+    return tuple(sorted(normalized))
 
 
 def _explicit(value: object, label: str) -> str:
