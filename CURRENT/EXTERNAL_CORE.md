@@ -53,3 +53,47 @@ C9 adds replayable reasoning episodes above those immutable C8 objects. `reasoni
 ## Transfer/meta reuse
 
 `external.transfer_meta` is canonical-native in Wave 5AY. It consumes only externally verified successful canonical Experience attribution, emits an identity-free portable semantic payload plus a separate content-addressed source-authority receipt, optionally binds an accepted canonical Causal program, and deterministically adapts the portable lesson to a distinct destination domain. Accepted reuse is not caller-authorized: it requires the exact persisted native Assurance promotion receipt bound to the transfer subject, evidence set, predecessor/source authority and verifier identities. Negative-transfer evidence quarantines and revokes reuse. Snapshot restoration re-compiles native source authority and therefore rejects same-ID source rebinding or drift instead of trusting serialized authority claims.
+
+## Post-Epoch-0 A2 — External Core Coherence Fabric
+
+A2 is an explicit post-Epoch-0 interoperability and integrity program. It is **not** a new External Core family, not an H-layer governor, and not a replacement for any A–G canonical authority. Its job is to make independently governed components understand exact contracts, lineage, currentness, restore boundaries and authority limits across family boundaries without creating a central super-authority.
+
+### G infrastructure progression
+
+A2 strengthens G first because cross-family cognition cannot be reliable when its artifacts, research records or operational recovery semantics are weaker than the authorities they carry between.
+
+`external.artifacts` retains its legacy v0.0.1 API and adds the separate `ArtifactEnvelope` protocol version 2. V2 envelopes are content-addressed over producer/component identity, source-state digest, exact evidence-digest bindings, dependency/predecessor lineage, contract identity, epoch/currentness limits and canonical metadata. Restore recomputes the envelope identity and rejects semantic rebinding. `ArtifactProvenanceGraph` is append-only, rejects cycles, carries revocation/supersession receipts, and propagates dependency invalidity. Legacy/empty artifact-store serialization remains byte-semantically compatible and does not materialize empty A2 fields into the canonical organization runtime state.
+
+Research adds explicit content-addressed question/hypothesis contracts, rival hypotheses and falsifiers for high-stakes work, an exactly partitioned finite research budget, append-only positive/negative/failed/inconclusive trials, and categorical research closure. Research closure is `CLOSED`, `BLOCKED` or `UNKNOWN`; it is never Truth, Verification, Assurance, promotion or execution authority. `ResearchControlPlane.assess_current_handoff` revalidates current finding/provenance/artifact/Assurance state so a historically `AUTHORIZED` handoff cannot remain authoritative after stale, rejected or incomplete current evidence.
+
+Operations adds a replay-verifiable hash-chained journal, exact snapshots, `EXACT`/`FAST_FORWARD`/`QUARANTINED` recovery, monotonic G-only operational lease fencing, and current release-readiness assessment. Divergent history, registry drift, authority-graph drift or incompatible state is quarantined instead of auto-merged. G operational leases do not replace E workspace leases or F engineering claim leases.
+
+### Federated component contracts and authority graph
+
+`ExternalComponentManifest` declares component/family/version, protocol versions, produced/consumed contracts, allowed and forbidden authority capabilities, mutable resources, evidence I/O, restore protocol and exact compatibility range. Manifests are immutable and self-digesting.
+
+`ExternalAuthorityGraph` is descriptive/constraining. It detects duplicate canonical writers, undeclared producer/consumer contract edges, forbidden authority composition, self-verification/self-Assurance loops and directed authority-escalation cycles. The graph can refuse an incoherent composition but cannot authorize a task, execute an action, verify a claim, issue Assurance, promote a capability or mutate a canonical resource.
+
+### Typed cross-family handoff
+
+`external-handoff-v1` is the common content-addressed envelope for cross-family transfer. It binds producer component/version/agent, consumer and contract range, subject digest, authority class already obtained from an external canonical owner, exact source-state digest, evidence and artifact digest bindings, predecessor handoffs, freshness fence, limitations, known unknowns and canonical payload digest.
+
+Consumer validation always rechecks the current producer/consumer manifests, exact contract/version range, source state, evidence/artifact digests, predecessor existence and freshness fence. Missing required current proof yields `UNKNOWN`; semantic drift or authority overreach yields `BLOCKED`; only exact current compatibility yields `ACCEPTED`. An envelope's authority-class field describes the authority supplied by its canonical producer; it never creates that authority by itself.
+
+### Cognitive work trace
+
+`cognitive-work-trace-v1` is an append-only, content-addressed descriptive DAG. It retains forks, counterexamples, blocked/aborted/negative nodes and separate supersession receipts. Trace restoration recomputes node identity, verifies predecessor closure and rejects cycles. The trace exposes no authorize, promote or execute API; provenance visibility must never be confused with control authority.
+
+### Capability discovery, restore preflight and coherence audit
+
+`CapabilityDiscoveryIndex` is read-only. It can answer which components declare a contract or authority, their evidence prerequisites and restore semantics, but it exposes no invocation path.
+
+`external-core-restore-preflight-v1` binds registry digest, authority-graph digest, artifact-graph digest, handoff-frontier digest and exact component versions. Any drift is a fail-closed restore rejection; a locally valid component state cannot silently become globally authoritative under a different fabric state.
+
+`external-core-coherence-audit-v1` deterministically surfaces authority-graph findings, manifest/graph drift, duplicate identities, orphan or stale/unknown handoffs, missing trace links and negative lineage without retained evidence. `python -m nolane.external_core.audit --check` is read-only and exits non-zero on findings; `--json` emits the canonical report. There is intentionally no audit write/repair mode.
+
+### Structural coherence is not correctness or authority
+
+**ECF structural coherence does not mean task correctness, Truth, Verification, Assurance, authorization, promotion, successful execution, release readiness or deployment approval.** A clean authority graph means only that declared authority ownership and contract composition are structurally coherent. An `ACCEPTED` handoff means only that the envelope is currently compatible with its declared producer/consumer contract and current evidence bindings. A clean work trace means only that provenance is internally well-formed. All semantic correctness and mutable authority remain with their existing A–G canonical owners.
+
+The permanent adversarial matrix covers A→C, C→D, D→E, E→F, F→A, A→B, B→C and C→G plus a full-loop trace. It rejects digest tampering, stale evidence, contract downgrade, producer upgrade during handoff, registry/source-state drift, boolean-as-integer and non-finite scalar smuggling, partial restore snapshots, replay forks, duplicate writers and self-verification laundering. No arrow in that matrix grants write authority.
