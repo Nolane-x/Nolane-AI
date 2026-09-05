@@ -12,12 +12,9 @@ LIVE_FABRIC_PROTOCOL = "external-core-live-fabric-v1"
 
 
 def _explicit(value: object, label: str) -> str:
-    if isinstance(value, bool):
+    if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{label} must be an explicit string")
-    text = str(value)
-    if not text.strip():
-        raise ValueError(f"{label} must be explicit")
-    return text
+    return value
 
 
 def _validate_canonical(value: Any, path: str = "$") -> None:
@@ -40,14 +37,25 @@ def _validate_canonical(value: Any, path: str = "$") -> None:
     raise ValueError(f"unsupported canonical value at {path}: {type(value).__name__}")
 
 
-def _frontier_digest(domain: str, rows: Sequence[Mapping[str, Any]]) -> str:
+def _frontier_digest(
+    domain: str,
+    rows: Sequence[Mapping[str, Any]],
+    *,
+    identity_key: str,
+) -> str:
     normalized: list[dict[str, Any]] = []
     row_digests: set[str] = set()
+    semantic_ids: set[str] = set()
     for row in rows:
         if not isinstance(row, Mapping):
             raise ValueError(f"{domain} frontier entries must be objects")
         state = dict(row)
         _validate_canonical(state)
+        if identity_key in state:
+            semantic_id = _explicit(state[identity_key], f"{domain} frontier identity")
+            if semantic_id in semantic_ids:
+                raise ValueError(f"duplicate {domain} frontier semantic identity: {semantic_id}")
+            semantic_ids.add(semantic_id)
         digest = canonical_digest(state)
         if digest in row_digests:
             raise ValueError(f"duplicate {domain} frontier entry")
@@ -60,11 +68,11 @@ def _frontier_digest(domain: str, rows: Sequence[Mapping[str, Any]]) -> str:
 
 
 def handoff_frontier_digest(rows: Sequence[Mapping[str, Any]]) -> str:
-    return _frontier_digest("handoff", rows)
+    return _frontier_digest("handoff", rows, identity_key="handoff_id")
 
 
 def work_trace_frontier_digest(rows: Sequence[Mapping[str, Any]]) -> str:
-    return _frontier_digest("work-trace", rows)
+    return _frontier_digest("work-trace", rows, identity_key="trace_id")
 
 
 def source_state_frontier_digest(source_states: Mapping[str, str]) -> str:
@@ -171,8 +179,6 @@ class LiveExternalCoreSnapshot:
         for row in raw_versions:
             if not isinstance(row, list) or len(row) != 2:
                 raise ValueError("live fabric component version entry must be [component_id, version]")
-            if isinstance(row[1], bool):
-                raise ValueError("component version must be an explicit string")
             component_id = _explicit(row[0], "component identity")
             version = _explicit(row[1], "component version")
             if component_id in seen:
@@ -180,12 +186,12 @@ class LiveExternalCoreSnapshot:
             seen.add(component_id)
             pairs.append((component_id, version))
         expected = cls.create(
-            registry_digest=str(state.get("registry_digest", "")),
-            authority_graph_digest=str(state.get("authority_graph_digest", "")),
-            artifact_graph_digest=str(state.get("artifact_graph_digest", "")),
-            handoff_frontier_digest=str(state.get("handoff_frontier_digest", "")),
-            work_trace_frontier_digest=str(state.get("work_trace_frontier_digest", "")),
-            source_state_frontier_digest=str(state.get("source_state_frontier_digest", "")),
+            registry_digest=state.get("registry_digest", ""),  # type: ignore[arg-type]
+            authority_graph_digest=state.get("authority_graph_digest", ""),  # type: ignore[arg-type]
+            artifact_graph_digest=state.get("artifact_graph_digest", ""),  # type: ignore[arg-type]
+            handoff_frontier_digest=state.get("handoff_frontier_digest", ""),  # type: ignore[arg-type]
+            work_trace_frontier_digest=state.get("work_trace_frontier_digest", ""),  # type: ignore[arg-type]
+            source_state_frontier_digest=state.get("source_state_frontier_digest", ""),  # type: ignore[arg-type]
             component_versions=dict(pairs),
         )
         if str(state.get("snapshot_id", "")) != expected.snapshot_id:
