@@ -4,9 +4,10 @@ The conceptual External Core is intentionally wider than the invokable
 ExternalCoreRegistry: it also contains persistent memory, context, planning,
 architecture, evidence-backed engineering and other governed cognition.
 
-The A2/A3 exports below are deliberately structural and authority-neutral.
-They expose immutable contracts, registry provenance, validation, discovery,
-restore classification and audit surfaces; they do not expose an invocation,
+The A2/A3 and integration-evolution exports below are deliberately structural
+and authority-neutral. They expose immutable contracts, registry provenance,
+validation, discovery, restore classification, compatibility/impact structure,
+revalidation assessment and audit surfaces; they do not expose an invocation,
 authorization, promotion, deployment, repair, or runtime registration path.
 """
 
@@ -43,6 +44,24 @@ from nolane.external_core.handoff import (
     HandoffValidationDisposition,
     HandoffValidationResult,
     validate_handoff_for_consumer,
+)
+from nolane.external_core.integration_evolution import (
+    ComponentEvolutionDelta,
+    EvolutionCompatibilityDisposition,
+    EvolutionCompatibilityQualification,
+    IntegrationImpactClosure,
+    IntegrationImpactReason,
+    build_integration_impact_closure,
+    qualify_component_evolution,
+)
+from nolane.external_core.integration_revalidation import (
+    ComponentRevalidationRequirement,
+    RevalidationAssessment,
+    RevalidationDisposition,
+    RevalidationEvidenceBinding,
+    RevalidationPlan,
+    assess_revalidation,
+    build_revalidation_plan,
 )
 from nolane.external_core.live_fabric import (
     LiveExternalCoreSnapshot,
@@ -82,7 +101,11 @@ __all__ = (
     "CognitiveWorkTrace",
     "CoherenceAuditReport",
     "CoherenceFinding",
+    "ComponentEvolutionDelta",
+    "ComponentRevalidationRequirement",
     "ContractDiscoveryResult",
+    "EvolutionCompatibilityDisposition",
+    "EvolutionCompatibilityQualification",
     "ExternalAuthorityGraph",
     "ExternalComponentManifest",
     "ExternalCoreFamily",
@@ -91,6 +114,8 @@ __all__ = (
     "HandoffAuthorityClass",
     "HandoffValidationDisposition",
     "HandoffValidationResult",
+    "IntegrationImpactClosure",
+    "IntegrationImpactReason",
     "LiveExternalCoreSnapshot",
     "LiveRestoreAssessment",
     "LiveRestoreDisposition",
@@ -99,6 +124,10 @@ __all__ = (
     "RegistryCoverageFinding",
     "RegistryCoverageReport",
     "RestorePreflightResult",
+    "RevalidationAssessment",
+    "RevalidationDisposition",
+    "RevalidationEvidenceBinding",
+    "RevalidationPlan",
     "TraceDiagnostic",
     "TraceNode",
     "TraceNodeStatus",
@@ -106,10 +135,14 @@ __all__ = (
     "artifact_state_digest",
     "assess_live_restore",
     "assess_live_restore_state",
+    "assess_revalidation",
     "audit_external_core",
     "audit_live_external_core",
+    "build_integration_impact_closure",
+    "build_revalidation_plan",
     "handoff_frontier_digest",
     "preflight_restore",
+    "qualify_component_evolution",
     "source_state_frontier_digest",
     "validate_handoff_for_consumer",
     "work_trace_frontier_digest",

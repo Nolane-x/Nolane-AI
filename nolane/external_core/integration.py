@@ -6,9 +6,27 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.compatibility import CompatibilityAssessment, CompatibilityClass
+from nolane.external_core.integration_evolution import (
+    ComponentEvolutionDelta,
+    EvolutionCompatibilityDisposition,
+    EvolutionCompatibilityQualification,
+    IntegrationImpactClosure,
+    IntegrationImpactReason,
+    build_integration_impact_closure,
+    qualify_component_evolution,
+)
+from nolane.external_core.integration_revalidation import (
+    ComponentRevalidationRequirement,
+    RevalidationAssessment,
+    RevalidationDisposition,
+    RevalidationEvidenceBinding,
+    RevalidationPlan,
+    assess_revalidation,
+    build_revalidation_plan,
+)
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.integration"
 
 
@@ -338,4 +356,18 @@ __all__ = [
     "IntegrationReceipt",
     "IntegrationGraph",
     "IntegrationControlPlane",
+    "ComponentEvolutionDelta",
+    "EvolutionCompatibilityDisposition",
+    "EvolutionCompatibilityQualification",
+    "IntegrationImpactClosure",
+    "IntegrationImpactReason",
+    "build_integration_impact_closure",
+    "qualify_component_evolution",
+    "ComponentRevalidationRequirement",
+    "RevalidationAssessment",
+    "RevalidationDisposition",
+    "RevalidationEvidenceBinding",
+    "RevalidationPlan",
+    "assess_revalidation",
+    "build_revalidation_plan",
 ]
