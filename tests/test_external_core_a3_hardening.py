@@ -4,12 +4,14 @@ import pytest
 
 from nolane.external_core.authority_graph import ExternalAuthorityGraph
 from nolane.external_core.capability_discovery import RegistryCapabilityDiscoveryIndex
+from nolane.external_core.coherence_audit import artifact_state_digest, audit_live_external_core
 from nolane.external_core.component_contracts import ExternalComponentManifest, ExternalCoreFamily
 from nolane.external_core.live_fabric import (
     LiveExternalCoreSnapshot,
     LiveRestoreDisposition,
     assess_live_restore,
     handoff_frontier_digest,
+    source_state_frontier_digest,
     work_trace_frontier_digest,
 )
 from nolane.external_core.registry import (
@@ -48,6 +50,32 @@ def _registry() -> CanonicalComponentRegistry:
         manifest=manifest,
     )
     return CanonicalComponentRegistry.create((adapter,))
+
+
+def _live_snapshot(registry: CanonicalComponentRegistry, graph: ExternalAuthorityGraph) -> LiveExternalCoreSnapshot:
+    return LiveExternalCoreSnapshot.create(
+        registry_digest=registry.registry_digest,
+        authority_graph_digest=graph.digest,
+        artifact_graph_digest=artifact_state_digest({}),
+        handoff_frontier_digest=handoff_frontier_digest(()),
+        work_trace_frontier_digest=work_trace_frontier_digest(()),
+        source_state_frontier_digest=source_state_frontier_digest({}),
+        component_versions=registry.component_versions,
+    )
+
+
+def _audit(registry: CanonicalComponentRegistry, graph: ExternalAuthorityGraph, snapshot: LiveExternalCoreSnapshot):
+    return audit_live_external_core(
+        registry=registry,
+        authority_graph=graph,
+        snapshot=snapshot,
+        handoffs=(),
+        traces=(),
+        current_source_state_digests={},
+        current_evidence_digests={},
+        current_artifact_digests={},
+        current_freshness_fences={},
+    )
 
 
 def test_handoff_frontier_rejects_same_identity_with_different_payloads():
@@ -170,3 +198,30 @@ def test_canonical_live_snapshot_builder_rejects_direct_registry_digest_forgery(
     profile = build_canonical_fabric_profile()
     with pytest.raises(ValueError, match="registry integrity"):
         build_canonical_live_snapshot(registry=forged, profile=profile)
+
+
+def test_live_audit_rejects_direct_registry_digest_forgery_before_auditing():
+    valid = _registry()
+    graph = ExternalAuthorityGraph(valid.manifests, ())
+    snapshot = _live_snapshot(valid, graph)
+    forged = CanonicalComponentRegistry(adapters=valid.adapters, registry_digest="registry-v1-forged")
+    with pytest.raises(ValueError, match="registry integrity"):
+        _audit(forged, graph, snapshot)
+
+
+def test_live_audit_rejects_direct_snapshot_identity_forgery_before_auditing():
+    registry = _registry()
+    graph = ExternalAuthorityGraph(registry.manifests, ())
+    valid = _live_snapshot(registry, graph)
+    forged = LiveExternalCoreSnapshot(
+        registry_digest=valid.registry_digest,
+        authority_graph_digest=valid.authority_graph_digest,
+        artifact_graph_digest=valid.artifact_graph_digest,
+        handoff_frontier_digest=valid.handoff_frontier_digest,
+        work_trace_frontier_digest=valid.work_trace_frontier_digest,
+        source_state_frontier_digest=valid.source_state_frontier_digest,
+        component_versions=valid.component_versions,
+        snapshot_id="live-fabric-v1-forged",
+    )
+    with pytest.raises(ValueError, match="snapshot integrity"):
+        _audit(registry, graph, forged)
