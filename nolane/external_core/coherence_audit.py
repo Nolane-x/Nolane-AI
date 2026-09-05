@@ -405,6 +405,11 @@ def audit_live_external_core(
 ) -> CoherenceAuditReport:
     """Audit an A3 registry-bound live fabric without acquiring runtime authority."""
 
+    try:
+        snapshot.validate_integrity()
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("live snapshot integrity validation failed before audit") from exc
+
     base = audit_external_core(
         manifests=registry.manifests,
         authority_graph=authority_graph,
