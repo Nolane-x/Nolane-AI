@@ -474,11 +474,13 @@ class ArtifactStore:
         return assess(artifact)
 
     def to_state(self) -> dict[str, Any]:
-        return {
+        state: dict[str, Any] = {
             "artifacts": [row.to_state() for row in self.records()],
-            "artifact_envelopes": [row.to_state() for row in self.v2_records()],
-            "artifact_provenance": self.provenance.to_state(),
         }
+        if self._v2_rows or self.provenance.nodes:
+            state["artifact_envelopes"] = [row.to_state() for row in self.v2_records()]
+            state["artifact_provenance"] = self.provenance.to_state()
+        return state
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArtifactStore":
