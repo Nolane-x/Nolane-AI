@@ -57,6 +57,18 @@ def _component_ids(values: Collection[str], label: str) -> set[str]:
     return result
 
 
+def _is_private_module(module: str) -> bool:
+    """Return whether a module is implementation-private rather than a root.
+
+    Private modules remain full members of the internal import DAG.  This
+    predicate only prevents versioned compatibility/helper modules such as
+    ``_software_engineering_control_v07`` from laundering an inherited
+    ``COMPONENT_ID`` alias into a second canonical component root.
+    """
+
+    return module.rsplit(".", 1)[-1].startswith("_")
+
+
 def evaluate_revision_delta(
     base_revisions: Mapping[str, int],
     head_revisions: Mapping[str, int],
@@ -158,7 +170,7 @@ def discover_component_ownership(
     changed_modules: Collection[str],
     component_ids: Collection[str],
 ) -> dict[str, tuple[str, ...]]:
-    """Derive semantic ownership from literal roots and the internal import DAG."""
+    """Derive semantic ownership from public literal roots and the import DAG."""
 
     canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
     modules: dict[str, str] = {}
@@ -174,6 +186,8 @@ def discover_component_ownership(
 
     roots: dict[str, str] = {}
     for module in sorted(trees):
+        if _is_private_module(module):
+            continue
         try:
             component_id = _literal_component_id(trees[module])
         except ValueError as exc:
