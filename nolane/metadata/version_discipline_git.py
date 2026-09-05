@@ -9,7 +9,7 @@ from nolane.metadata.version_discipline import (
     VersionDisciplineCode,
     VersionDisciplineFinding,
     VersionDisciplineReport,
-    _is_private_module,
+    _discover_component_root_ids,
     discover_component_ownership,
     evaluate_revision_delta,
 )
@@ -236,27 +236,7 @@ def _revision_map(repo_root: Path, ref: str) -> dict[str, int]:
 
 
 def _root_ids(sources: Mapping[str, str], component_ids: set[str]) -> set[str]:
-    # First validate the exact same surface/root topology used by semantic
-    # ownership. Multiple public surfaces are allowed only when they resolve to
-    # one dependency-root; private compatibility aliases never become roots.
-    discover_component_ownership(sources, (), component_ids)
-
-    roots: set[str] = set()
-    for module, source in sorted(sources.items()):
-        if _is_private_module(module):
-            continue
-        try:
-            tree = ast.parse(source, filename=module)
-        except SyntaxError as exc:
-            raise ValueError(f"cannot parse canonical source for component-root discovery: {module}") from exc
-        candidate = _assignment_value(tree, "COMPONENT_ID")
-        if candidate is None:
-            continue
-        if not isinstance(candidate, ast.Constant) or not isinstance(candidate.value, str) or not candidate.value.strip():
-            raise ValueError(f"canonical COMPONENT_ID is not a literal non-empty string: {module}")
-        if candidate.value in component_ids:
-            roots.add(candidate.value)
-    return roots
+    return _discover_component_root_ids(sources, component_ids)
 
 
 def check_git_revision_discipline(
