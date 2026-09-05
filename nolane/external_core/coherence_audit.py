@@ -11,11 +11,19 @@ from nolane.external_core.handoff import (
     HandoffValidationDisposition,
     validate_handoff_for_consumer,
 )
+from nolane.external_core.live_fabric import (
+    LiveExternalCoreSnapshot,
+    handoff_frontier_digest as live_handoff_frontier_digest,
+    source_state_frontier_digest,
+    work_trace_frontier_digest,
+)
+from nolane.external_core.registry import CanonicalComponentRegistry
 from nolane.external_core.work_trace import CognitiveWorkTrace
 
 
 RESTORE_PROTOCOL = "external-core-restore-preflight-v1"
 COHERENCE_AUDIT_PROTOCOL = "external-core-coherence-audit-v1"
+ARTIFACT_STATE_PROTOCOL = "external-core-artifact-state-v1"
 
 
 @dataclass(frozen=True, slots=True)
@@ -354,6 +362,158 @@ def audit_external_core(
                 )
             )
 
+    return _build_report(
+        findings=findings,
+        authority_graph=authority_graph,
+        ordered_manifests=ordered_manifests,
+        ordered_handoffs=ordered_handoffs,
+        ordered_traces=ordered_traces,
+    )
+
+
+def artifact_state_digest(current_artifact_digests: Mapping[str, str]) -> str:
+    """Deterministically bind the artifact-currentness view supplied to audit.
+
+    This is a structural view digest, not an Artifact Provenance authority and
+    not a substitute for ArtifactStore or ArtifactProvenanceGraph validation.
+    """
+
+    rows = tuple(
+        sorted(
+            (_explicit(key, "artifact id"), _explicit(value, "artifact digest"))
+            for key, value in current_artifact_digests.items()
+        )
+    )
+    payload = {
+        "protocol": ARTIFACT_STATE_PROTOCOL,
+        "artifact_digests": {key: value for key, value in rows},
+    }
+    return "artifact-state-v1-" + canonical_digest(payload)
+
+
+def audit_live_external_core(
+    *,
+    registry: CanonicalComponentRegistry,
+    authority_graph: ExternalAuthorityGraph,
+    snapshot: LiveExternalCoreSnapshot,
+    handoffs: tuple[ExternalHandoffEnvelope, ...],
+    traces: tuple[CognitiveWorkTrace, ...],
+    current_source_state_digests: Mapping[str, str],
+    current_evidence_digests: Mapping[str, str],
+    current_artifact_digests: Mapping[str, str],
+    current_freshness_fences: Mapping[str, str],
+) -> CoherenceAuditReport:
+    """Audit an A3 registry-bound live fabric without acquiring runtime authority."""
+
+    try:
+        snapshot.validate_integrity()
+    except (AttributeError, TypeError, ValueError) as exc:
+        raise ValueError("live snapshot integrity validation failed before audit") from exc
+
+    base = audit_external_core(
+        manifests=registry.manifests,
+        authority_graph=authority_graph,
+        handoffs=handoffs,
+        traces=traces,
+        current_source_state_digests=current_source_state_digests,
+        current_evidence_digests=current_evidence_digests,
+        current_artifact_digests=current_artifact_digests,
+        current_freshness_fences=current_freshness_fences,
+    )
+    findings = list(base.findings)
+
+    registry_ids = tuple(row.component_id for row in registry.manifests)
+    graph_ids = tuple(row.component_id for row in authority_graph.manifests)
+    registry_manifest_digests = tuple(row.manifest_digest for row in registry.manifests)
+    graph_manifest_digests = tuple(row.manifest_digest for row in authority_graph.manifests)
+    if registry_ids != graph_ids or registry_manifest_digests != graph_manifest_digests:
+        findings.append(
+            CoherenceFinding(
+                "REGISTRY_GRAPH_DRIFT",
+                tuple(sorted(set(registry_ids) | set(graph_ids))),
+                "canonical registry manifest population differs from authority graph",
+            )
+        )
+
+    if snapshot.registry_digest != registry.registry_digest:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_REGISTRY_DIGEST_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot is not bound to the supplied canonical registry",
+            )
+        )
+    if snapshot.authority_graph_digest != authority_graph.digest:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_AUTHORITY_GRAPH_DIGEST_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot authority graph digest differs from current graph",
+            )
+        )
+
+    expected_artifact_state = artifact_state_digest(current_artifact_digests)
+    if snapshot.artifact_graph_digest != expected_artifact_state:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_ARTIFACT_STATE_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot artifact-currentness view differs from current audit evidence",
+            )
+        )
+
+    expected_handoff_frontier = live_handoff_frontier_digest(
+        tuple(row.to_state() for row in handoffs)
+    )
+    if snapshot.handoff_frontier_digest != expected_handoff_frontier:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_HANDOFF_FRONTIER_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot handoff frontier differs from audited handoffs",
+            )
+        )
+
+    expected_trace_frontier = work_trace_frontier_digest(tuple(row.to_state() for row in traces))
+    if snapshot.work_trace_frontier_digest != expected_trace_frontier:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_WORK_TRACE_FRONTIER_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot work-trace frontier differs from audited traces",
+            )
+        )
+
+    expected_source_frontier = source_state_frontier_digest(current_source_state_digests)
+    if snapshot.source_state_frontier_digest != expected_source_frontier:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_SOURCE_STATE_FRONTIER_DRIFT",
+                (snapshot.snapshot_id,),
+                "live snapshot source-state frontier differs from current source-state evidence",
+            )
+        )
+
+    if dict(snapshot.component_versions) != registry.component_versions:
+        findings.append(
+            CoherenceFinding(
+                "LIVE_COMPONENT_VERSION_DRIFT",
+                tuple(sorted(set(dict(snapshot.component_versions)) | set(registry.component_versions))),
+                "live snapshot component versions differ from canonical registry versions",
+            )
+        )
+
+    return _replace_report_findings(base, findings)
+
+
+def _build_report(
+    *,
+    findings: list[CoherenceFinding],
+    authority_graph: ExternalAuthorityGraph,
+    ordered_manifests: tuple[ExternalComponentManifest, ...],
+    ordered_handoffs: tuple[ExternalHandoffEnvelope, ...],
+    ordered_traces: tuple[CognitiveWorkTrace, ...],
+) -> CoherenceAuditReport:
     unique: dict[tuple[str, tuple[str, ...], str], CoherenceFinding] = {}
     for finding in findings:
         key = (finding.code, finding.subjects, finding.detail)
@@ -364,7 +524,7 @@ def audit_external_core(
     manifest_set_digest = canonical_digest(
         {"manifests": [row.to_state() for row in ordered_manifests]}
     )
-    handoff_frontier_digest = canonical_digest(
+    handoff_digest = canonical_digest(
         {"handoffs": [row.to_state() for row in ordered_handoffs]}
     )
     trace_set_digest = canonical_digest(
@@ -375,15 +535,42 @@ def audit_external_core(
         "findings": [row.payload() for row in ordered_findings],
         "authority_graph_digest": authority_graph.digest,
         "manifest_set_digest": manifest_set_digest,
-        "handoff_frontier_digest": handoff_frontier_digest,
+        "handoff_frontier_digest": handoff_digest,
         "trace_set_digest": trace_set_digest,
     }
     return CoherenceAuditReport(
         findings=ordered_findings,
         authority_graph_digest=authority_graph.digest,
         manifest_set_digest=manifest_set_digest,
-        handoff_frontier_digest=handoff_frontier_digest,
+        handoff_frontier_digest=handoff_digest,
         trace_set_digest=trace_set_digest,
+        digest=canonical_digest(payload),
+    )
+
+
+def _replace_report_findings(
+    report: CoherenceAuditReport,
+    findings: list[CoherenceFinding],
+) -> CoherenceAuditReport:
+    unique = {
+        (row.code, row.subjects, row.detail): row
+        for row in findings
+    }
+    ordered = tuple(sorted(unique.values(), key=lambda row: (row.code, row.subjects, row.detail)))
+    payload = {
+        "protocol": COHERENCE_AUDIT_PROTOCOL,
+        "findings": [row.payload() for row in ordered],
+        "authority_graph_digest": report.authority_graph_digest,
+        "manifest_set_digest": report.manifest_set_digest,
+        "handoff_frontier_digest": report.handoff_frontier_digest,
+        "trace_set_digest": report.trace_set_digest,
+    }
+    return CoherenceAuditReport(
+        findings=ordered,
+        authority_graph_digest=report.authority_graph_digest,
+        manifest_set_digest=report.manifest_set_digest,
+        handoff_frontier_digest=report.handoff_frontier_digest,
+        trace_set_digest=report.trace_set_digest,
         digest=canonical_digest(payload),
     )
 
@@ -403,12 +590,15 @@ def _explicit(value: object, label: str) -> str:
 
 
 __all__ = (
+    "ARTIFACT_STATE_PROTOCOL",
     "COHERENCE_AUDIT_PROTOCOL",
     "RESTORE_PROTOCOL",
     "CoherenceAuditReport",
     "CoherenceFinding",
     "ExternalCoreRestoreSnapshot",
     "RestorePreflightResult",
+    "artifact_state_digest",
     "audit_external_core",
+    "audit_live_external_core",
     "preflight_restore",
 )

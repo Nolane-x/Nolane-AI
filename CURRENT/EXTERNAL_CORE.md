@@ -97,3 +97,35 @@ Consumer validation always rechecks the current producer/consumer manifests, exa
 **ECF structural coherence does not mean task correctness, Truth, Verification, Assurance, authorization, promotion, successful execution, release readiness or deployment approval.** A clean authority graph means only that declared authority ownership and contract composition are structurally coherent. An `ACCEPTED` handoff means only that the envelope is currently compatible with its declared producer/consumer contract and current evidence bindings. A clean work trace means only that provenance is internally well-formed. All semantic correctness and mutable authority remain with their existing A–G canonical owners.
 
 The permanent adversarial matrix covers A→C, C→D, D→E, E→F, F→A, A→B, B→C and C→G plus a full-loop trace. It rejects digest tampering, stale evidence, contract downgrade, producer upgrade during handoff, registry/source-state drift, boolean-as-integer and non-finite scalar smuggling, partial restore snapshots, replay forks, duplicate writers and self-verification laundering. No arrow in that matrix grants write authority.
+
+## Post-Epoch-0 A3 — Canonical Registry & Live Coherence
+
+A3 binds the A2 coherence protocols to the canonical External Core component population and to an explicit live fabric frontier. Its governing law is: **Registration proves identity and declared compatibility; registration never creates authority.** A3 is not family H, a global governor, an orchestrator, an invoker, a repair service, or a runtime authorization plane.
+
+### Canonical component registry
+
+`ManifestAdapter` is an immutable, content-addressed binding between a canonical source locator, the source component's exact `COMPONENT_ID`/`COMPONENT_VERSION`, and its A2 `ExternalComponentManifest`. Adapter creation rejects identity or version substitution; exact restore recomputes the digest and rejects non-canonical state. The pre-existing `nolane.external_core.registry` organization-identity compatibility bridge remains intact.
+
+`CanonicalComponentRegistry` is a deterministic, content-addressed registry of those adapters. It rejects duplicate component identities, adapter identities and source locators, supports categorical coverage findings for missing/orphan adapters and identity/version drift, and provides read-only manifest/adapter lookup. The canonical builder reads component identity and version from the live canonical modules on every build rather than duplicating those values in an A3 version table.
+
+The canonical A–G interoperability profile and authority graph are now derived from this registry. A registered manifest may describe authority already owned by its component, but registry presence cannot manufacture Verification, Assurance, authorization, promotion, execution, learning, release, deployment or mutation authority.
+
+### Live fabric snapshot and restore currentness
+
+`external-core-live-fabric-v1` binds registry digest, authority-graph digest, artifact-currentness view digest, domain-separated handoff frontier, work-trace frontier, source-state frontier and exact component versions into a content-addressed `LiveExternalCoreSnapshot`. Frontier construction is deterministic and rejects non-finite state, duplicate semantic entries and ambiguous/non-canonical identity fields.
+
+A3 restore assessment is categorical. `CURRENT` means the historical snapshot exactly matches every supplied current structural proof and is the only structurally authoritative restore disposition. `REQUIRES_REVALIDATION` means a valid historical snapshot has registry, graph, frontier or component-version drift. `QUARANTINED` means serialized snapshot integrity is invalid. `UNKNOWN` means required current proof is absent. None of these dispositions is Truth, Verification, Assurance, task authorization, execution success or release approval.
+
+### Registry-bound discovery and live audit
+
+`RegistryCapabilityDiscoveryIndex` binds the existing read-only capability discovery surface to both an exact registry digest and exact authority-graph digest. Restore revalidates the embedded registry, legacy discovery state and graph digest. It exposes description and lookup only; it has no invoke, execute, authorize, promote, repair or runtime-registration API.
+
+`audit_live_external_core` layers live registry/snapshot validation over the A2 coherence auditor. It detects registry/graph population drift, registry substitution, authority-graph substitution, artifact-currentness drift, handoff/work-trace/source-state frontier substitution and mixed component versions, while retaining A2's handoff, trace and authority-graph adversarial checks. The canonical CLI now runs this registry-backed live audit while preserving `run_canonical_audit()` as a compatibility entry point.
+
+### Capability metadata binding remains descriptive
+
+`CapabilityCatalogBindingReceipt` content-addresses the organization External Core capability-catalog digest together with the registry digest and hard-binds `descriptive_only=True`. It exists for provenance/reconciliation only. Agent capability metadata, regional bindings or catalog membership cannot be translated by A3 into component authority, invocation rights or authorization.
+
+### A3 authority boundary
+
+A3 may identify the current canonical topology, prove exact registry/snapshot identity, describe declared capabilities, and fail closed on structural drift. It may not invoke a component, select or authorize a task, verify a claim, issue Assurance, promote learning, mutate canonical A–G state, repair an incoherent fabric, release software or deploy anything. **Live coherence is a stronger structural precondition, not a new source of semantic authority.**
