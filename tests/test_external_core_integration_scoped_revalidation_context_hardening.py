@@ -77,6 +77,23 @@ def _binding(challenge: RevalidationChallenge, suffix: str) -> ScopedRevalidatio
     return ScopedRevalidationEvidenceBinding.create(challenge=challenge, evidence=evidence)
 
 
+def _current_assessment(*, minimum_observed_epoch: int):
+    graph, delta, closure, plan, scope, challenges = _case()
+    bindings = tuple(_binding(row, str(index)) for index, row in enumerate(challenges))
+    assessment = assess_scoped_revalidation(
+        delta=delta,
+        impact_closure=closure,
+        authority_graph=graph,
+        scope=scope,
+        plan=plan,
+        challenges=challenges,
+        evidence_bindings=bindings,
+        minimum_observed_epoch=minimum_observed_epoch,
+    )
+    assert assessment.disposition is RevalidationDisposition.CURRENT
+    return graph, delta, closure, plan, scope, challenges, bindings, assessment
+
+
 def test_assessment_recomputes_scope_from_canonical_transition_context() -> None:
     graph, delta, closure, plan, scope, _ = _case()
     forged_scope = RevalidationScope.create(
@@ -134,21 +151,48 @@ def test_assessment_recomputes_challenges_instead_of_trusting_rehashed_metadata(
         )
 
 
-def test_completion_recomputes_current_assessment_before_minting_receipt() -> None:
-    graph, delta, closure, plan, scope, challenges = _case()
-    bindings = tuple(_binding(row, str(index)) for index, row in enumerate(challenges))
-    assessment = assess_scoped_revalidation(
+def test_current_assessment_identity_binds_minimum_observed_epoch() -> None:
+    *_, assessment_zero = _current_assessment(minimum_observed_epoch=0)
+    *_, assessment_five = _current_assessment(minimum_observed_epoch=5)
+    assert assessment_zero.minimum_observed_epoch == 0
+    assert assessment_five.minimum_observed_epoch == 5
+    assert assessment_zero.assessment_id != assessment_five.assessment_id
+    assert ScopedRevalidationAssessment.from_state(assessment_five.to_state()) == assessment_five
+
+
+def test_completion_identity_binds_the_assessment_freshness_fence() -> None:
+    graph, delta, closure, plan, scope, challenges, bindings, assessment_zero = _current_assessment(minimum_observed_epoch=0)
+    receipt_zero = RevalidationCompletionReceipt.create(
         delta=delta,
         impact_closure=closure,
         authority_graph=graph,
         scope=scope,
         plan=plan,
+        assessment=assessment_zero,
         challenges=challenges,
         evidence_bindings=bindings,
         minimum_observed_epoch=0,
     )
-    assert assessment.disposition is RevalidationDisposition.CURRENT
+    graph, delta, closure, plan, scope, challenges, bindings, assessment_five = _current_assessment(minimum_observed_epoch=5)
+    receipt_five = RevalidationCompletionReceipt.create(
+        delta=delta,
+        impact_closure=closure,
+        authority_graph=graph,
+        scope=scope,
+        plan=plan,
+        assessment=assessment_five,
+        challenges=challenges,
+        evidence_bindings=bindings,
+        minimum_observed_epoch=5,
+    )
+    assert receipt_zero.minimum_observed_epoch == 0
+    assert receipt_five.minimum_observed_epoch == 5
+    assert receipt_zero.receipt_id != receipt_five.receipt_id
+    assert RevalidationCompletionReceipt.from_state(receipt_five.to_state()) == receipt_five
 
+
+def test_completion_recomputes_current_assessment_before_minting_receipt() -> None:
+    graph, delta, closure, plan, scope, challenges, bindings, assessment = _current_assessment(minimum_observed_epoch=0)
     forged_assessment = ScopedRevalidationAssessment.create(
         scope_id=scope.scope_id,
         plan_id=plan.plan_id,
@@ -157,6 +201,7 @@ def test_completion_recomputes_current_assessment_before_minting_receipt() -> No
         reason_codes=(),
         challenge_ids=assessment.challenge_ids,
         evidence_binding_ids=(),
+        minimum_observed_epoch=0,
     )
     with pytest.raises(ValueError, match="canonical|assessment|CURRENT|binding"):
         RevalidationCompletionReceipt.create(
