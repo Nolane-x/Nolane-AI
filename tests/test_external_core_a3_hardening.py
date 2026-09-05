@@ -105,6 +105,20 @@ def test_capability_binding_identity_fields_are_strict_strings():
         )
 
 
+def test_registry_factory_revalidates_directly_constructed_adapter_integrity():
+    valid = _registry().adapters[0]
+    forged = ManifestAdapter(
+        adapter_id=valid.adapter_id,
+        source_locator=valid.source_locator,
+        source_component_id=valid.source_component_id,
+        source_component_version=valid.source_component_version,
+        manifest=valid.manifest,
+        adapter_digest="adapter-v1-forged",
+    )
+    with pytest.raises(ValueError, match="adapter integrity"):
+        CanonicalComponentRegistry.create((forged,))
+
+
 def test_assess_live_restore_revalidates_directly_constructed_snapshot_integrity():
     valid = LiveExternalCoreSnapshot.create(
         registry_digest="registry-current",
