@@ -43,7 +43,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_evolution*.py)
+          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_*.py)
           if [ ${#tests[@]} -eq 0 ]; then
             echo 'No External Core tests found' >&2
             exit 1
