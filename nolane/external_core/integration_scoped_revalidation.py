@@ -306,6 +306,7 @@ class ScopedRevalidationAssessment:
     reason_codes: tuple[str, ...]
     challenge_ids: tuple[str, ...]
     evidence_binding_ids: tuple[str, ...]
+    minimum_observed_epoch: int
     assessment_id: str
 
     @classmethod
@@ -319,6 +320,7 @@ class ScopedRevalidationAssessment:
         reason_codes: tuple[str, ...],
         challenge_ids: tuple[str, ...],
         evidence_binding_ids: tuple[str, ...],
+        minimum_observed_epoch: int,
     ) -> "ScopedRevalidationAssessment":
         state = RevalidationDisposition(disposition)
         missing = _sorted_unique_strings(
@@ -341,6 +343,10 @@ class ScopedRevalidationAssessment:
             "scoped revalidation binding id",
             require_non_empty=False,
         )
+        minimum_epoch = _strict_non_negative_int(
+            minimum_observed_epoch,
+            "scoped assessment minimum observed epoch",
+        )
         if state is RevalidationDisposition.CURRENT and (missing or reasons):
             raise ValueError("CURRENT scoped revalidation assessment cannot carry missing challenges or reasons")
         if state is RevalidationDisposition.REVALIDATION_REQUIRED and not missing:
@@ -356,6 +362,7 @@ class ScopedRevalidationAssessment:
             "reason_codes": list(reasons),
             "challenge_ids": list(challenges),
             "evidence_binding_ids": list(bindings),
+            "minimum_observed_epoch": minimum_epoch,
         }
         return cls(
             scope_id=payload["scope_id"],
@@ -365,6 +372,7 @@ class ScopedRevalidationAssessment:
             reason_codes=reasons,
             challenge_ids=challenges,
             evidence_binding_ids=bindings,
+            minimum_observed_epoch=minimum_epoch,
             assessment_id="integration-revalidation-assessment-v2-" + canonical_digest(payload),
         )
 
@@ -378,6 +386,7 @@ class ScopedRevalidationAssessment:
             "reason_codes": list(self.reason_codes),
             "challenge_ids": list(self.challenge_ids),
             "evidence_binding_ids": list(self.evidence_binding_ids),
+            "minimum_observed_epoch": self.minimum_observed_epoch,
         }
 
     def to_state(self) -> dict[str, Any]:
@@ -408,6 +417,7 @@ class ScopedRevalidationAssessment:
             reason_codes=tuple(raw_reasons),
             challenge_ids=tuple(raw_challenges),
             evidence_binding_ids=tuple(raw_bindings),
+            minimum_observed_epoch=state.get("minimum_observed_epoch"),
         )
         if state.get("assessment_id") != expected.assessment_id or dict(state) != expected.to_state():
             raise ValueError("scoped revalidation assessment integrity mismatch or non-canonical state")
@@ -424,6 +434,7 @@ class RevalidationCompletionReceipt:
     assessment_id: str
     challenge_ids: tuple[str, ...]
     evidence_binding_ids: tuple[str, ...]
+    minimum_observed_epoch: int
     receipt_id: str
 
     @classmethod
@@ -443,6 +454,10 @@ class RevalidationCompletionReceipt:
         if not isinstance(assessment, ScopedRevalidationAssessment):
             raise ValueError("completion receipt requires a canonical scoped assessment")
         assessment.validate_integrity()
+        minimum_epoch = _strict_non_negative_int(
+            minimum_observed_epoch,
+            "completion minimum observed epoch",
+        )
         canonical_assessment = assess_scoped_revalidation(
             delta=delta,
             impact_closure=impact_closure,
@@ -451,10 +466,12 @@ class RevalidationCompletionReceipt:
             plan=plan,
             challenges=challenges,
             evidence_bindings=evidence_bindings,
-            minimum_observed_epoch=minimum_observed_epoch,
+            minimum_observed_epoch=minimum_epoch,
         )
         if assessment != canonical_assessment:
             raise ValueError("completion assessment does not match canonical transition assessment")
+        if canonical_assessment.minimum_observed_epoch != minimum_epoch:
+            raise ValueError("completion freshness fence does not match canonical assessment")
         if canonical_assessment.disposition is not RevalidationDisposition.CURRENT:
             raise ValueError("completion receipt requires a canonical CURRENT scoped assessment")
         return cls._from_values(
@@ -463,6 +480,7 @@ class RevalidationCompletionReceipt:
             assessment_id=canonical_assessment.assessment_id,
             challenge_ids=canonical_assessment.challenge_ids,
             evidence_binding_ids=canonical_assessment.evidence_binding_ids,
+            minimum_observed_epoch=canonical_assessment.minimum_observed_epoch,
         )
 
     @classmethod
@@ -474,6 +492,7 @@ class RevalidationCompletionReceipt:
         assessment_id: str,
         challenge_ids: tuple[str, ...],
         evidence_binding_ids: tuple[str, ...],
+        minimum_observed_epoch: int,
     ) -> "RevalidationCompletionReceipt":
         challenge_rows = _sorted_unique_strings(
             challenge_ids,
@@ -485,6 +504,10 @@ class RevalidationCompletionReceipt:
             "completion binding id",
             require_non_empty=False,
         )
+        minimum_epoch = _strict_non_negative_int(
+            minimum_observed_epoch,
+            "completion minimum observed epoch",
+        )
         payload = {
             "protocol": REVALIDATION_COMPLETION_PROTOCOL,
             "scope_id": _explicit(scope_id, "completion scope"),
@@ -492,6 +515,7 @@ class RevalidationCompletionReceipt:
             "assessment_id": _explicit(assessment_id, "completion assessment"),
             "challenge_ids": list(challenge_rows),
             "evidence_binding_ids": list(binding_rows),
+            "minimum_observed_epoch": minimum_epoch,
         }
         return cls(
             scope_id=payload["scope_id"],
@@ -499,6 +523,7 @@ class RevalidationCompletionReceipt:
             assessment_id=payload["assessment_id"],
             challenge_ids=challenge_rows,
             evidence_binding_ids=binding_rows,
+            minimum_observed_epoch=minimum_epoch,
             receipt_id="integration-revalidation-completion-v2-" + canonical_digest(payload),
         )
 
@@ -510,6 +535,7 @@ class RevalidationCompletionReceipt:
             "assessment_id": self.assessment_id,
             "challenge_ids": list(self.challenge_ids),
             "evidence_binding_ids": list(self.evidence_binding_ids),
+            "minimum_observed_epoch": self.minimum_observed_epoch,
         }
 
     def to_state(self) -> dict[str, Any]:
@@ -529,6 +555,7 @@ class RevalidationCompletionReceipt:
             assessment_id=state.get("assessment_id"),
             challenge_ids=tuple(raw_challenges),
             evidence_binding_ids=tuple(raw_bindings),
+            minimum_observed_epoch=state.get("minimum_observed_epoch"),
         )
         if state.get("receipt_id") != expected.receipt_id or dict(state) != expected.to_state():
             raise ValueError("completion receipt integrity mismatch or non-canonical state")
@@ -680,6 +707,7 @@ def assess_scoped_revalidation(
             reason_codes=tuple("PLAN:" + code for code in canonical_plan.blocker_reason_codes),
             challenge_ids=(),
             evidence_binding_ids=(),
+            minimum_observed_epoch=minimum_epoch,
         )
     if canonical_plan.disposition is RevalidationDisposition.UNKNOWN:
         return ScopedRevalidationAssessment.create(
@@ -690,6 +718,7 @@ def assess_scoped_revalidation(
             reason_codes=(),
             challenge_ids=(),
             evidence_binding_ids=(),
+            minimum_observed_epoch=minimum_epoch,
         )
 
     challenges_by_id = {row.challenge_id: row for row in canonical_challenges}
@@ -744,6 +773,7 @@ def assess_scoped_revalidation(
         reason_codes=unique_reasons,
         challenge_ids=tuple(challenges_by_id),
         evidence_binding_ids=tuple(accepted_binding_ids),
+        minimum_observed_epoch=minimum_epoch,
     )
 
 
