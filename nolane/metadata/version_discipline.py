@@ -376,11 +376,26 @@ def discover_component_ownership(
     changed_modules: Collection[str],
     component_ids: Collection[str],
 ) -> dict[str, tuple[str, ...]]:
-    """Derive semantic ownership from public surfaces and the internal DAG."""
+    """Derive semantic ownership from public surfaces and the internal DAG.
+
+    A statically proven canonical component surface is an ownership boundary:
+    changing that surface advances the component that declares it, not every
+    downstream component that merely imports it. Modules without a canonical
+    surface identity remain implementation helpers and propagate to every
+    component surface that can reach them.
+    """
 
     canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
     trees, graph, bindings = _parse_topology_sources(source_by_module)
     surfaces, _roots = _component_surfaces_and_roots(trees, graph, bindings, canonical_ids)
+
+    surface_owner_by_module: dict[str, str] = {}
+    for component_id, component_surfaces in sorted(surfaces.items()):
+        for surface in component_surfaces:
+            previous = surface_owner_by_module.get(surface)
+            if previous is not None and previous != component_id:
+                raise ValueError(f"canonical surface has ambiguous component ownership: {surface}")
+            surface_owner_by_module[surface] = component_id
 
     reachable_by_component: dict[str, set[str]] = {}
     for component_id, component_surfaces in sorted(surfaces.items()):
@@ -391,7 +406,15 @@ def discover_component_ownership(
 
     result: dict[str, tuple[str, ...]] = {}
     for module in sorted(_component_ids(tuple(changed_modules), "changed module")):
-        result[module] = tuple(component_id for component_id in sorted(reachable_by_component) if module in reachable_by_component[component_id])
+        direct_owner = surface_owner_by_module.get(module)
+        if direct_owner is not None:
+            result[module] = (direct_owner,)
+            continue
+        result[module] = tuple(
+            component_id
+            for component_id in sorted(reachable_by_component)
+            if module in reachable_by_component[component_id]
+        )
     return result
 
 
