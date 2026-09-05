@@ -129,3 +129,13 @@ A3 restore assessment is categorical. `CURRENT` means the historical snapshot ex
 ### A3 authority boundary
 
 A3 may identify the current canonical topology, prove exact registry/snapshot identity, describe declared capabilities, and fail closed on structural drift. It may not invoke a component, select or authorize a task, verify a claim, issue Assurance, promote learning, mutate canonical A–G state, repair an incoherent fabric, release software or deploy anything. **Live coherence is a stronger structural precondition, not a new source of semantic authority.**
+
+## Component-local version discipline and Integration evolution
+
+External Core uses **component-local version** state for canonical semantic boundaries. Each component advances independently in the `0.0.N` grammar, and **No global External Core version** is created by this discipline. In this evolution, only `external.integration` advances from `0.0.1` to `0.0.2`; its `external.integration.compatibility` semantic surface advances with the same integration boundary.
+
+Version Discipline is read-only repository tooling. It statically derives component ownership from exact Git base/head source trees and canonical import/identity topology, rejects ambiguous or missing canonical roots, and checks that semantic changes have exactly the matching component revision movement. It has no component identity or component version of its own and cannot repair, migrate, authorize, promote, assure, execute, release or deploy anything.
+
+Integration evolution adds immutable/content-addressed component deltas, deterministic impact closure and evidence-bound revalidation requirements/assessments. These structures may classify compatibility, impact and whether revalidation evidence is structurally sufficient; they do not create Verification, Truth, Assurance, authorization, promotion, execution, repair, deployment or automatic migration authority. Existing A–G owners remain the only canonical owners of their respective mutable and semantic authorities.
+
+Historical A2/A3 states and frozen release locks remain historical evidence and are not refrozen merely because a component-local revision advances. Structural compatibility or a clean version-discipline report is a precondition for coherent integration, not proof of task correctness or authorization.
