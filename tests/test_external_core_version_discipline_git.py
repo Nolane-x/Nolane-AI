@@ -128,3 +128,15 @@ def test_git_checker_tracks_shared_helper_to_all_importing_roots(tmp_path: Path)
     report = check_git_revision_discipline(repo, baseline, _head(repo, "shared changed"))
     assert _codes(report) == {VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION.value}
     assert {row.component_id for row in report.findings} == {"external.integration", "external.planning"}
+
+
+def test_git_checker_treats_component_spec_metadata_change_as_semantic(tmp_path: Path) -> None:
+    repo, base = _fixture_repo(tmp_path)
+    _write(
+        repo,
+        "nolane/metadata/_component_specs.py",
+        'COMPONENT_SPECS = (("external.integration", "external_core", "integration + revalidation", "integration-v1", ()), ("external.planning", "external_core", "planning", "planning-v1", ()))\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "spec semantic change"))
+    assert _codes(report) == {VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION.value}
+    assert {row.component_id for row in report.findings} == {"external.integration"}
