@@ -25,11 +25,7 @@ class VersionDisciplineFinding:
     detail: str
 
     def to_state(self) -> dict[str, str]:
-        return {
-            "code": self.code.value,
-            "component_id": self.component_id,
-            "detail": self.detail,
-        }
+        return {"code": self.code.value, "component_id": self.component_id, "detail": self.detail}
 
 
 @dataclass(frozen=True, slots=True)
@@ -41,10 +37,7 @@ class VersionDisciplineReport:
         return not self.findings
 
     def to_state(self) -> dict[str, object]:
-        return {
-            "clean": self.clean,
-            "findings": [finding.to_state() for finding in self.findings],
-        }
+        return {"clean": self.clean, "findings": [finding.to_state() for finding in self.findings]}
 
 
 def _revision(value: object, component_id: str) -> int:
@@ -71,13 +64,7 @@ def evaluate_revision_delta(
     *,
     new_component_roots: Collection[str] = (),
 ) -> VersionDisciplineReport:
-    """Compare exact component-local revision state with semantic ownership.
-
-    This function is read-only. It never repairs or advances a revision. A
-    semantic change is admitted only when the owning existing component moves
-    exactly one local 0.0.N revision; unrelated, skipped or reversed movement
-    is a categorical finding.
-    """
+    """Compare exact component-local revision state with semantic ownership."""
 
     base: dict[str, int] = {}
     head: dict[str, int] = {}
@@ -93,88 +80,34 @@ def evaluate_revision_delta(
     affected = _component_ids(tuple(affected_components), "affected component")
     new_roots = _component_ids(tuple(new_component_roots), "new component root")
     findings: list[VersionDisciplineFinding] = []
-
-    all_ids = sorted(set(base) | set(head) | affected | new_roots)
-    for component_id in all_ids:
+    for component_id in sorted(set(base) | set(head) | affected | new_roots):
         in_base = component_id in base
         in_head = component_id in head
-
         if in_base and not in_head:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.REMOVED_COMPONENT,
-                    component_id,
-                    "canonical component revision slot was removed without a retirement protocol",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.REMOVED_COMPONENT, component_id, "canonical component revision slot was removed without a retirement protocol"))
             continue
-
         if not in_base and in_head:
             if head[component_id] != 0:
-                findings.append(
-                    VersionDisciplineFinding(
-                        VersionDisciplineCode.NEW_COMPONENT_NOT_BOOTSTRAP,
-                        component_id,
-                        f"new component must begin at revision 0; got {head[component_id]}",
-                    )
-                )
+                findings.append(VersionDisciplineFinding(VersionDisciplineCode.NEW_COMPONENT_NOT_BOOTSTRAP, component_id, f"new component must begin at revision 0; got {head[component_id]}"))
             elif component_id not in new_roots:
-                findings.append(
-                    VersionDisciplineFinding(
-                        VersionDisciplineCode.MISSING_COMPONENT_REVISION_SLOT,
-                        component_id,
-                        "new revision slot has no newly discovered canonical component root",
-                    )
-                )
+                findings.append(VersionDisciplineFinding(VersionDisciplineCode.MISSING_COMPONENT_REVISION_SLOT, component_id, "new revision slot has no newly discovered canonical component root"))
             continue
-
         if not in_base and not in_head:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.UNKNOWN_COMPONENT_REVISION,
-                    component_id,
-                    "semantic ownership references a component with no canonical revision slot",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.UNKNOWN_COMPONENT_REVISION, component_id, "semantic ownership references a component with no canonical revision slot"))
             continue
 
         delta = head[component_id] - base[component_id]
         is_affected = component_id in affected
         if delta < 0:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.REVISION_DOWNGRADE,
-                    component_id,
-                    f"component revision moved backward {base[component_id]}->{head[component_id]}",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.REVISION_DOWNGRADE, component_id, f"component revision moved backward {base[component_id]}->{head[component_id]}"))
         elif delta > 1:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.REVISION_JUMP,
-                    component_id,
-                    f"component revision must advance exactly once; got {base[component_id]}->{head[component_id]}",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.REVISION_JUMP, component_id, f"component revision must advance exactly once; got {base[component_id]}->{head[component_id]}"))
         elif delta == 1 and not is_affected:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.REVISION_WITHOUT_SEMANTIC_CHANGE,
-                    component_id,
-                    "component revision advanced without an owned semantic source change",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.REVISION_WITHOUT_SEMANTIC_CHANGE, component_id, "component revision advanced without an owned semantic source change"))
         elif delta == 0 and is_affected:
-            findings.append(
-                VersionDisciplineFinding(
-                    VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION,
-                    component_id,
-                    "owned semantic source changed without advancing the component revision",
-                )
-            )
+            findings.append(VersionDisciplineFinding(VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION, component_id, "owned semantic source changed without advancing the component revision"))
 
-    ordered = tuple(sorted(findings, key=lambda row: (row.code.value, row.component_id, row.detail)))
-    return VersionDisciplineReport(ordered)
+    return VersionDisciplineReport(tuple(sorted(findings, key=lambda row: (row.code.value, row.component_id, row.detail))))
 
 
 def _literal_component_id(tree: ast.AST) -> str | None:
@@ -204,9 +137,6 @@ def _internal_imports(module: str, tree: ast.AST, known_modules: set[str]) -> tu
                     imports.add(alias.name)
         elif isinstance(node, ast.ImportFrom):
             if node.level:
-                # Canonical production modules use absolute nolane imports for
-                # cross-module authority wiring. Relative imports are resolved
-                # conservatively when their package target is available.
                 package_parts = module.split(".")[:-1]
                 ascend = max(node.level - 1, 0)
                 if ascend:
@@ -228,11 +158,7 @@ def discover_component_ownership(
     changed_modules: Collection[str],
     component_ids: Collection[str],
 ) -> dict[str, tuple[str, ...]]:
-    """Derive semantic ownership from literal roots and the internal import DAG.
-
-    A helper belongs to every canonical component root that can reach it. No
-    second hand-maintained path->component table is introduced.
-    """
+    """Derive semantic ownership from literal roots and the internal import DAG."""
 
     canonical_ids = _component_ids(tuple(component_ids), "canonical component id")
     modules: dict[str, str] = {}
@@ -253,17 +179,11 @@ def discover_component_ownership(
             continue
         previous = roots.get(component_id)
         if previous is not None and previous != module:
-            raise ValueError(
-                f"duplicate canonical component root for {component_id}: {previous}, {module}"
-            )
+            raise ValueError(f"duplicate canonical component root for {component_id}: {previous}, {module}")
         roots[component_id] = module
 
     known_modules = set(modules)
-    graph = {
-        module: _internal_imports(module, trees[module], known_modules)
-        for module in sorted(trees)
-    }
-
+    graph = {module: _internal_imports(module, trees[module], known_modules) for module in sorted(trees)}
     reachable_by_component: dict[str, set[str]] = {}
     for component_id, root in sorted(roots.items()):
         reachable: set[str] = set()
@@ -278,19 +198,20 @@ def discover_component_ownership(
 
     result: dict[str, tuple[str, ...]] = {}
     for module in sorted(_component_ids(tuple(changed_modules), "changed module")):
-        owners = tuple(
-            component_id
-            for component_id in sorted(reachable_by_component)
-            if module in reachable_by_component[component_id]
-        )
-        result[module] = owners
+        result[module] = tuple(component_id for component_id in sorted(reachable_by_component) if module in reachable_by_component[component_id])
     return result
+
+
+# Imported after the pure definitions so the Git reader can reuse these types
+# without a circular initialization dependency.
+from nolane.metadata.version_discipline_git import check_git_revision_discipline  # noqa: E402
 
 
 __all__ = (
     "VersionDisciplineCode",
     "VersionDisciplineFinding",
     "VersionDisciplineReport",
+    "check_git_revision_discipline",
     "discover_component_ownership",
     "evaluate_revision_delta",
 )
