@@ -71,13 +71,40 @@ def _is_component_version_assignment(node: ast.stmt) -> bool:
     return all(isinstance(target, ast.Name) and target.id == "COMPONENT_VERSION" for target in node.targets)
 
 
+def _is_component_revision_metadata_statement(node: ast.stmt) -> bool:
+    """Identify canonical revision-state declarations without hiding helper logic."""
+
+    if isinstance(node, ast.AnnAssign):
+        return isinstance(node.target, ast.Name) and node.target.id == "_COMPONENT_REVISIONS"
+    if isinstance(node, ast.Assign):
+        return bool(node.targets) and all(
+            isinstance(target, ast.Name) and target.id == "_COMPONENT_REVISIONS"
+            for target in node.targets
+        )
+    if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+        return False
+    call = node.value
+    return (
+        isinstance(call.func, ast.Attribute)
+        and isinstance(call.func.value, ast.Name)
+        and call.func.value.id == "_COMPONENT_REVISIONS"
+        and call.func.attr == "update"
+    )
+
+
 class _SemanticAstNormalizer(ast.NodeTransformer):
     """Remove non-behavioral text/version metadata from semantic comparison.
 
     Component revision metadata cannot be allowed to justify its own revision.
     Comments/formatting are absent from the AST already; docstrings are removed
     so documentation-only edits also cannot create a synthetic semantic delta.
+    The canonical revision ledger itself is stripped only from its authoritative
+    module; real helper/function logic in that module remains semantic.
     """
+
+    def __init__(self, module: str) -> None:
+        super().__init__()
+        self.module = module
 
     @staticmethod
     def _without_docstring(body: list[ast.stmt]) -> list[ast.stmt]:
@@ -88,6 +115,8 @@ class _SemanticAstNormalizer(ast.NodeTransformer):
     def visit_Module(self, node: ast.Module) -> ast.AST:
         node.body = self._without_docstring(node.body)
         node.body = [row for row in node.body if not _is_component_version_assignment(row)]
+        if self.module == "nolane.metadata.component_versions":
+            node.body = [row for row in node.body if not _is_component_revision_metadata_statement(row)]
         self.generic_visit(node)
         return node
 
@@ -112,7 +141,7 @@ def _semantic_ast_dump(source: str, module: str) -> str:
         tree = ast.parse(source, filename=module)
     except SyntaxError as exc:
         raise ValueError(f"cannot parse canonical source for semantic delta: {module}") from exc
-    normalized = _SemanticAstNormalizer().visit(tree)
+    normalized = _SemanticAstNormalizer(module).visit(tree)
     ast.fix_missing_locations(normalized)
     return ast.dump(normalized, annotate_fields=True, include_attributes=False)
 
