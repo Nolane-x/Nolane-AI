@@ -3,6 +3,7 @@ name: External Core
 on:
   push:
     branches:
+      - main
       - design/external-core-a2-g-infrastructure
       - design/external-core-a3-live-registry
       - upgrade/external-core-version-discipline
@@ -49,12 +50,45 @@ jobs:
             exit 1
           fi
           python -m pytest -q "${tests[@]}"
-      - name: Enforce component-local version discipline
-        if: github.event_name == 'pull_request'
+      - name: Resolve component-version comparison boundary
+        shell: bash
         env:
-          BASE_SHA: ${{ github.event.pull_request.base.sha }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-        run: python -m nolane.metadata.version_discipline_cli --base "$BASE_SHA" --head "$HEAD_SHA" --check
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_SHA: ${{ github.sha }}
+          REF_NAME: ${{ github.ref_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            base="$PR_BASE_SHA"
+            head="$PR_HEAD_SHA"
+          elif [[ "$REF_NAME" == "main" ]]; then
+            base="$EVENT_BEFORE"
+            head="$EVENT_SHA"
+            if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+              base="$(git rev-parse "$head^")"
+            fi
+          else
+            base="$(git rev-parse origin/main)"
+            head="$EVENT_SHA"
+          fi
+          test -n "$base"
+          test -n "$head"
+          git cat-file -e "$base^{commit}"
+          git cat-file -e "$head^{commit}"
+          echo "BASE_SHA=$base" >> "$GITHUB_ENV"
+          echo "HEAD_SHA=$head" >> "$GITHUB_ENV"
+          echo "Version discipline boundary: $base -> $head"
+      - name: Enforce component-local version discipline
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m nolane.metadata.version_discipline_cli --base "$BASE_SHA" --head "$HEAD_SHA" --json > /tmp/version-discipline.json
+          cat /tmp/version-discipline.json
+          python -m nolane.metadata.version_discipline_cli --base "$BASE_SHA" --head "$HEAD_SHA" --check
+          git diff --check "$BASE_SHA" "$HEAD_SHA" --
       - name: Verify canonical component version projection
         run: python -m pytest -q tests/test_refoundation_component_versions.py
       - name: Verify canonical External Core coherence audit
