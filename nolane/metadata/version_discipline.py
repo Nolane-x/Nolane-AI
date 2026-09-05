@@ -69,6 +69,33 @@ def _is_private_module(module: str) -> bool:
     return module.rsplit(".", 1)[-1].startswith("_")
 
 
+def _canonical_root_locator(component_id: str) -> str | None:
+    """Project a canonical component id to its conventional public module.
+
+    This is a locator, never identity authority.  The projected module must
+    actually exist among statically proven same-component surfaces before it
+    can anchor them.  Unknown namespaces deliberately return ``None`` so root
+    selection falls back to import-topology proof rather than guessing.
+    """
+
+    namespace_roots = {
+        "core": "nolane.core",
+        "schemas": "nolane.schemas",
+        "organization": "nolane.organization",
+        "external": "nolane.external_core",
+        "evaluation": "nolane.evaluation",
+        "neural": "nolane.neural",
+    }
+    parts = component_id.split(".")
+    if len(parts) < 2 or any(not part for part in parts):
+        return None
+    package = namespace_roots.get(parts[0])
+    if package is None:
+        return None
+    module_leaf = "_".join(parts[1:])
+    return f"{package}.{module_leaf}"
+
+
 def evaluate_revision_delta(
     base_revisions: Mapping[str, int],
     head_revisions: Mapping[str, int],
@@ -294,12 +321,13 @@ def _component_surfaces_and_roots(
     bindings_by_module: Mapping[str, Mapping[str, tuple[str, str]]],
     canonical_ids: set[str],
 ) -> tuple[dict[str, tuple[str, ...]], dict[str, str]]:
-    """Resolve public component surfaces to exactly one dependency-root each.
+    """Resolve public component surfaces to one canonical root each.
 
-    A component may expose more than one public module with the same statically
-    proven identity. That is valid only when the import topology proves one
-    canonical dependency-root. Independent duplicate roots and same-ID cycles
-    are rejected rather than guessed.
+    A canonical-locator module, when it actually exists among statically proven
+    same-component surfaces, anchors all of those surfaces even when they are
+    independent semantic modules.  If no locator exists, import topology must
+    prove exactly one dependency-root.  Thus legitimate multi-surface
+    components are supported without accepting ambiguous duplicate roots.
     """
 
     declared: dict[str, list[str]] = {}
@@ -318,15 +346,20 @@ def _component_surfaces_and_roots(
     roots: dict[str, str] = {}
     for component_id, rows in sorted(declared.items()):
         ordered = tuple(sorted(rows))
-        candidates: list[str] = []
-        for module in ordered:
-            reachable = _reachable_modules(module, graph)
-            if not any(peer != module and peer in reachable for peer in ordered):
-                candidates.append(module)
-        if len(candidates) != 1:
-            raise ValueError(f"duplicate canonical component root for {component_id}: " + ", ".join(ordered))
+        locator = _canonical_root_locator(component_id)
+        if locator is not None and locator in ordered:
+            root = locator
+        else:
+            candidates: list[str] = []
+            for module in ordered:
+                reachable = _reachable_modules(module, graph)
+                if not any(peer != module and peer in reachable for peer in ordered):
+                    candidates.append(module)
+            if len(candidates) != 1:
+                raise ValueError(f"duplicate canonical component root for {component_id}: " + ", ".join(ordered))
+            root = candidates[0]
         surfaces[component_id] = ordered
-        roots[component_id] = candidates[0]
+        roots[component_id] = root
     return surfaces, roots
 
 
