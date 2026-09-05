@@ -16,17 +16,16 @@ CAPABILITY_BINDING_PROTOCOL = "external-capability-binding-v1"
 
 
 def _explicit(value: object, label: str) -> str:
-    text = str(value)
-    if not text.strip():
-        raise ValueError(f"{label} must be explicit")
-    return text
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{label} must be an explicit string")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
 class ManifestAdapter:
     """Immutable binding between a canonical source identity and an A2 manifest.
 
-    The adapter is descriptive.  It cannot grant any authority represented by the
+    The adapter is descriptive. It cannot grant any authority represented by the
     manifest; it only proves that the declared manifest is bound to the exact
     source component identity/version supplied by the canonical adapter builder.
     """
@@ -94,10 +93,10 @@ class ManifestAdapter:
         if not isinstance(manifest_state, Mapping):
             raise ValueError("manifest adapter manifest must be an object")
         expected = cls.create(
-            adapter_id=str(state.get("adapter_id", "")),
-            source_locator=str(state.get("source_locator", "")),
-            source_component_id=str(state.get("source_component_id", "")),
-            source_component_version=str(state.get("source_component_version", "")),
+            adapter_id=state.get("adapter_id", ""),  # type: ignore[arg-type]
+            source_locator=state.get("source_locator", ""),  # type: ignore[arg-type]
+            source_component_id=state.get("source_component_id", ""),  # type: ignore[arg-type]
+            source_component_version=state.get("source_component_version", ""),  # type: ignore[arg-type]
             manifest=ExternalComponentManifest.from_state(manifest_state),
         )
         if str(state.get("adapter_digest", "")) != expected.adapter_digest:
@@ -172,14 +171,14 @@ class CanonicalComponentRegistry:
         return {row.source_component_id: row.source_component_version for row in self.adapters}
 
     def manifest_for(self, component_id: str) -> ExternalComponentManifest:
-        target = str(component_id)
+        target = _explicit(component_id, "component id")
         for row in self.adapters:
             if row.source_component_id == target:
                 return row.manifest
         raise KeyError(target)
 
     def adapter_for(self, component_id: str) -> ManifestAdapter:
-        target = str(component_id)
+        target = _explicit(component_id, "component id")
         for row in self.adapters:
             if row.source_component_id == target:
                 return row
@@ -221,7 +220,7 @@ class CanonicalComponentRegistry:
         actual = {row.source_locator: row for row in self.adapters}
         findings: list[RegistryCoverageFinding] = []
         for locator, identity_version in sorted(expected_sources.items(), key=lambda item: str(item[0])):
-            source_locator = str(locator)
+            source_locator = _explicit(locator, "expected source locator")
             if not isinstance(identity_version, tuple) or len(identity_version) != 2:
                 raise ValueError("coverage expectation must be (component_id, component_version)")
             expected_id = _explicit(identity_version[0], "expected component identity")
@@ -325,9 +324,9 @@ class CapabilityCatalogBindingReceipt:
         if state.get("descriptive_only") is not True:
             raise ValueError("capability catalog binding must remain descriptive-only")
         expected = cls.create(
-            catalog_version=str(state.get("catalog_version", "")),
-            catalog_digest=str(state.get("catalog_digest", "")),
-            registry_digest=str(state.get("registry_digest", "")),
+            catalog_version=state.get("catalog_version", ""),  # type: ignore[arg-type]
+            catalog_digest=state.get("catalog_digest", ""),  # type: ignore[arg-type]
+            registry_digest=state.get("registry_digest", ""),  # type: ignore[arg-type]
         )
         if str(state.get("receipt_id", "")) != expected.receipt_id:
             raise ValueError("capability catalog binding digest mismatch")
