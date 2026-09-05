@@ -75,6 +75,52 @@ def test_git_checker_accepts_exact_owner_bump(tmp_path: Path) -> None:
     assert check_git_revision_discipline(repo, base, _head(repo)).clean
 
 
+def test_revision_map_change_does_not_create_transitive_semantic_ownership(tmp_path: Path) -> None:
+    repo, _ = _fixture_repo(tmp_path)
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 1, "external.planning": 1})\ndef component_version(component_id):\n    return _COMPONENT_REVISIONS[component_id]\n',
+    )
+    _write(
+        repo,
+        "nolane/external_core/planning.py",
+        'from nolane.metadata.component_versions import component_version\nCOMPONENT_ID = "external.planning"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = component_version("external.planning")\n',
+    )
+    base = _head(repo, "metadata import base")
+    _write(repo, "nolane/external_core/integration.py", 'COMPONENT_ID = "external.integration"\nCOMPONENT_VERSION = "0.0.2"\nVALUE = 2\n')
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 2, "external.planning": 1})\ndef component_version(component_id):\n    return _COMPONENT_REVISIONS[component_id]\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "owner bump with metadata"))
+    assert report.clean
+
+
+def test_component_version_helper_logic_change_remains_semantic(tmp_path: Path) -> None:
+    repo, _ = _fixture_repo(tmp_path)
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 1, "external.planning": 1})\ndef component_version(component_id):\n    return _COMPONENT_REVISIONS[component_id]\n',
+    )
+    _write(
+        repo,
+        "nolane/external_core/planning.py",
+        'from nolane.metadata.component_versions import component_version\nCOMPONENT_ID = "external.planning"\nCOMPONENT_VERSION = "0.0.1"\nVALUE = component_version("external.planning")\n',
+    )
+    base = _head(repo, "metadata helper base")
+    _write(
+        repo,
+        "nolane/metadata/component_versions.py",
+        '_COMPONENT_REVISIONS = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}\n_COMPONENT_REVISIONS.update({"external.integration": 1, "external.planning": 1})\ndef component_version(component_id):\n    return _COMPONENT_REVISIONS[component_id] + 1\n',
+    )
+    report = check_git_revision_discipline(repo, base, _head(repo, "metadata helper semantic change"))
+    assert _codes(report) == {VersionDisciplineCode.SEMANTIC_CHANGE_WITHOUT_REVISION.value}
+    assert {row.component_id for row in report.findings} == {"external.planning"}
+
+
 def test_git_checker_rejects_version_only_self_justifying_bump(tmp_path: Path) -> None:
     repo, base = _fixture_repo(tmp_path)
     _write(
