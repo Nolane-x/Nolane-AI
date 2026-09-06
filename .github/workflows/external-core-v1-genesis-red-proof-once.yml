@@ -8,9 +8,13 @@ on:
       - tests/test_external_core_a10_v1_transition_genesis_exact_bool.py
       - .github/workflows/external-core-v1-genesis-red-proof-once.yml
 
+concurrency:
+  group: external-core-v1-genesis-red-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   red:
-    runs-on: macos-latest
+    runs-on: macos-15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
