@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest
@@ -509,6 +509,72 @@ def _surface_digest_map(envelope: CanonicalObservationEnvelope) -> dict[str, str
     }
 
 
+def _surface_shape_anomaly_explains_integrity_failure(
+    envelope: CanonicalObservationEnvelope,
+) -> bool:
+    """Return true only when removing duplicate/unknown receipts restores exact integrity."""
+
+    rows: list[SurfaceObservationReceipt] = []
+    seen: set[str] = set()
+    for receipt in envelope.surface_receipts:
+        if not isinstance(receipt, SurfaceObservationReceipt):
+            return False
+        if receipt.surface_kind not in REQUIRED_SURFACE_KINDS:
+            continue
+        if receipt.surface_kind in seen:
+            continue
+        seen.add(receipt.surface_kind)
+        rows.append(receipt)
+
+    repaired = replace(envelope, surface_receipts=tuple(rows))
+    try:
+        repaired.validate_integrity()
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return False
+    return True
+
+
+def _forged_receipt_anomaly_explains_integrity_failure(
+    envelope: CanonicalObservationEnvelope,
+) -> bool:
+    """Return true only when canonicalizing forged receipt bytes restores exact envelope integrity."""
+
+    rows: list[SurfaceObservationReceipt] = []
+    repaired_any = False
+    for receipt in envelope.surface_receipts:
+        if not isinstance(receipt, SurfaceObservationReceipt):
+            return False
+        try:
+            receipt.validate_integrity()
+        except (AttributeError, KeyError, TypeError, ValueError):
+            try:
+                repaired = SurfaceObservationReceipt.create(
+                    surface_kind=receipt.surface_kind,
+                    provider_id=receipt.provider_id,
+                    provider_version=receipt.provider_version,
+                    source_locator=receipt.source_locator,
+                    scope_digest=receipt.scope_digest,
+                    observed_state_digest=receipt.observed_state_digest,
+                    enumeration_complete=receipt.enumeration_complete,
+                    observed_epoch=receipt.observed_epoch,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError):
+                return False
+            rows.append(repaired)
+            repaired_any = True
+        else:
+            rows.append(receipt)
+
+    if not repaired_any:
+        return False
+    repaired_envelope = replace(envelope, surface_receipts=tuple(rows))
+    try:
+        repaired_envelope.validate_integrity()
+    except (AttributeError, KeyError, TypeError, ValueError):
+        return False
+    return True
+
+
 def validate_observation_completeness(
     envelope: CanonicalObservationEnvelope,
     *,
@@ -631,10 +697,15 @@ def validate_observation_completeness(
         "OBSERVATION_SURFACE_DUPLICATE",
         "OBSERVATION_SURFACE_UNEXPECTED",
     }
-    if envelope_integrity_error is not None and not any(
-        row.code in malformed_surface_codes for row in findings
-    ):
-        raise envelope_integrity_error
+    if envelope_integrity_error is not None:
+        has_categorical_surface_shape = any(
+            row.code in malformed_surface_codes for row in findings
+        )
+        if (
+            not has_categorical_surface_shape
+            or not _surface_shape_anomaly_explains_integrity_failure(envelope)
+        ):
+            raise envelope_integrity_error
 
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
@@ -741,10 +812,15 @@ def validate_observation_provenance(
                     )
                 )
 
-    if envelope_integrity_error is not None and not any(
-        row.code == "OBSERVATION_RECEIPT_FORGED" for row in findings
-    ):
-        raise envelope_integrity_error
+    if envelope_integrity_error is not None:
+        has_categorical_forgery = any(
+            row.code == "OBSERVATION_RECEIPT_FORGED" for row in findings
+        )
+        if (
+            not has_categorical_forgery
+            or not _forged_receipt_anomaly_explains_integrity_failure(envelope)
+        ):
+            raise envelope_integrity_error
 
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
