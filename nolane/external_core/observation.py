@@ -288,6 +288,22 @@ class SurfaceObservationReceipt:
 
 
 @dataclass(frozen=True, slots=True)
+class CanonicalSurfaceProviderExpectation:
+    surface_kind: str
+    provider_id: str
+    provider_version: str
+    source_locator: str
+
+    def __post_init__(self) -> None:
+        kind = _exact_non_empty_string(self.surface_kind, "surface kind")
+        if kind not in REQUIRED_SURFACE_KINDS:
+            raise ValueError(f"unknown observation surface kind: {kind}")
+        _exact_non_empty_string(self.provider_id, "provider id")
+        _exact_non_empty_string(self.provider_version, "provider version")
+        _exact_non_empty_string(self.source_locator, "source locator")
+
+
+@dataclass(frozen=True, slots=True)
 class CanonicalObservationEnvelope:
     protocol: str
     surface_contract: CanonicalObservationSurfaceContract
@@ -609,9 +625,110 @@ def validate_observation_completeness(
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
 
+def validate_observation_provenance(
+    envelope: CanonicalObservationEnvelope,
+    *,
+    provider_expectations: Mapping[str, CanonicalSurfaceProviderExpectation],
+    expected_scope_digests: Mapping[str, str] | None = None,
+) -> tuple[ObservationFinding, ...]:
+    envelope.validate_integrity()
+    committed_digests = _surface_digest_map(envelope)
+    findings: list[ObservationFinding] = []
+
+    for kind in REQUIRED_SURFACE_KINDS:
+        try:
+            receipt = envelope.surface_receipt(kind)
+        except KeyError:
+            continue
+        try:
+            receipt.validate_integrity()
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            findings.append(
+                ObservationFinding(
+                    code="OBSERVATION_RECEIPT_FORGED",
+                    detail=str(exc),
+                    subject_id=kind,
+                )
+            )
+            continue
+
+        expectation = provider_expectations.get(kind)
+        if expectation is None:
+            findings.append(
+                ObservationFinding(
+                    code="OBSERVATION_PROVIDER_ID_MISMATCH",
+                    detail="canonical provider expectation is unavailable for the observed surface",
+                    subject_id=kind,
+                )
+            )
+        else:
+            if expectation.surface_kind != kind:
+                findings.append(
+                    ObservationFinding(
+                        code="OBSERVATION_PROVIDER_ID_MISMATCH",
+                        detail="provider expectation is bound to another surface kind",
+                        subject_id=kind,
+                    )
+                )
+            if receipt.provider_id != expectation.provider_id:
+                findings.append(
+                    ObservationFinding(
+                        code="OBSERVATION_PROVIDER_ID_MISMATCH",
+                        detail="surface receipt provider identity does not match the canonical expectation",
+                        subject_id=kind,
+                    )
+                )
+            if receipt.provider_version != expectation.provider_version:
+                findings.append(
+                    ObservationFinding(
+                        code="OBSERVATION_PROVIDER_VERSION_MISMATCH",
+                        detail="surface receipt provider version does not match the canonical expectation",
+                        subject_id=kind,
+                    )
+                )
+            if receipt.source_locator != expectation.source_locator:
+                findings.append(
+                    ObservationFinding(
+                        code="OBSERVATION_SOURCE_LOCATOR_MISMATCH",
+                        detail="surface receipt source locator does not match the canonical expectation",
+                        subject_id=kind,
+                    )
+                )
+
+        if receipt.observed_epoch != envelope.observed_epoch:
+            findings.append(
+                ObservationFinding(
+                    code="OBSERVATION_PROVENANCE_EPOCH_MISMATCH",
+                    detail="surface provenance epoch does not match the observation envelope epoch",
+                    subject_id=kind,
+                )
+            )
+        if receipt.observed_state_digest != committed_digests[kind]:
+            findings.append(
+                ObservationFinding(
+                    code="OBSERVATION_PROVENANCE_CONTENT_MISMATCH",
+                    detail="surface provenance content digest does not match the observation commitment",
+                    subject_id=kind,
+                )
+            )
+        if expected_scope_digests is not None:
+            expected_scope = expected_scope_digests.get(kind)
+            if expected_scope is None or receipt.scope_digest != expected_scope:
+                findings.append(
+                    ObservationFinding(
+                        code="OBSERVATION_PROVENANCE_SCOPE_MISMATCH",
+                        detail="surface provenance scope does not match the canonical expectation",
+                        subject_id=kind,
+                    )
+                )
+
+    return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+
+
 __all__ = (
     "CanonicalObservationEnvelope",
     "CanonicalObservationSurfaceContract",
+    "CanonicalSurfaceProviderExpectation",
     "OBSERVATION_PROTOCOL",
     "OBSERVATION_SURFACE_PROTOCOL",
     "ObservationFinding",
@@ -619,4 +736,5 @@ __all__ = (
     "SURFACE_RECEIPT_PROTOCOL",
     "SurfaceObservationReceipt",
     "validate_observation_completeness",
+    "validate_observation_provenance",
 )
