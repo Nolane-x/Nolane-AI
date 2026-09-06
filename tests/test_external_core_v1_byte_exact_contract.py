@@ -207,7 +207,27 @@ def test_canonical_registry_population_matches_independent_adapter_sources_and_p
 def test_provider_expectation_vocabulary_is_exact_for_every_surface() -> None:
     expectations = observation_integration.canonical_observation_provider_expectations()
     assert tuple(sorted(expectations)) == tuple(sorted(observation.REQUIRED_SURFACE_KINDS))
-    for kind in observation.REQUIRED_SURFACE_KINDS:
+
+    registry = expectations["registry"]
+    assert registry.surface_kind == "registry"
+    assert registry.provider_id == "external-core:canonical-registry"
+    assert registry.provider_version == "1"
+    assert registry.source_locator == "nolane.external_core.audit:build_canonical_registry"
+
+    graph = expectations["authority-graph"]
+    assert graph.surface_kind == "authority-graph"
+    assert graph.provider_id == "external-core:canonical-authority-graph"
+    assert graph.provider_version == "1"
+    assert graph.source_locator == "nolane.external_core.audit:build_canonical_fabric_profile"
+
+    for kind in (
+        "artifact",
+        "evidence",
+        "freshness",
+        "handoff",
+        "source-state",
+        "work-trace",
+    ):
         row = expectations[kind]
         assert row.surface_kind == kind
         assert row.provider_id == f"external-core:canonical-observer:{kind}"
