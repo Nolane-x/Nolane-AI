@@ -28,17 +28,34 @@ A6 preserves A5 admission-state compatibility and changes only live-audit qualif
 - A6 adds a stricter current/live audit protocol and explicit live epoch input.
 - Building and auditing a fresh bundle in the same call remains deterministic and clean when the supplied observation epoch is exact.
 
+### Frozen admission-v2 artifact lane
+
+A5 receipts content-address `owner_component_version`, and `ProtocolAdmissionReceipt.from_state()` validates that owner version. Therefore changing the admission-v2 implementation constant from `0.0.4` to `0.0.5` would silently make existing A5 receipts non-restorable even though their protocol and serialized schema did not change.
+
+A6 therefore deliberately freezes the artifact issuer lane:
+
+- `nolane.external_core.integration_admission.COMPONENT_VERSION == "0.0.4"`
+- `ADMISSION_PROTOCOL == "external-integration-admission-v2"`
+- historical A5 receipt identities remain unchanged and exactly restorable.
+
+This frozen artifact version is not the current canonical component revision. It is the version embedded in the unchanged admission-v2 artifact identity contract.
+
 ## Ownership and versioning
 
 A6 remains owned exclusively by `external.integration`.
 
-Accepted local semantic revision:
+Accepted current local semantic revision:
 
-- `external.integration`: `0.0.4 -> 0.0.5`
+- canonical `external.integration`: `0.0.4 -> 0.0.5`
+- `nolane.external_core.integration.COMPONENT_VERSION`: `0.0.5`
+- `nolane.external_core.compatibility.SEMANTIC_SURFACE_VERSION`: `0.0.5`
+- `nolane.external_core.integration_admission_bundle.COMPONENT_VERSION`: `0.0.5`
+- canonical component revision table: `external.integration == 5`
+- frozen `integration_admission` artifact issuer: `0.0.4` under unchanged admission-v2 identity semantics.
 
-The canonical `nolane.external_core.integration` surface, `integration_admission`, and `integration_admission_bundle` secondary surfaces must project the same component identity/version. No unrelated component version is advanced.
+No unrelated component version is advanced. There is no global External Core version.
 
-A6 audit protocol becomes `external-integration-admission-audit-v2`. Admission protocol remains `external-integration-admission-v2`; the underlying admission artifacts are not reformatted.
+A6 audit protocol becomes `external-integration-admission-audit-v2` and its report digest namespace becomes `admission-audit-v2-*`. Admission protocol remains `external-integration-admission-v2`; admission bundle protocol remains `external-integration-admission-bundle-v2`.
 
 ## Live observation epoch contract
 
@@ -61,8 +78,6 @@ A6 intentionally does **not** accept `current_epoch >= admitted_epoch`. A later 
 ## API design
 
 `run_canonical_admission_audit` gains a separate keyword-only live epoch input for persisted-bundle auditing while retaining `observed_epoch` as the canonical-builder epoch.
-
-Preferred shape:
 
 ```python
 run_canonical_admission_audit(
@@ -98,7 +113,7 @@ Temporal findings do not suppress independent structural findings; the report ca
 
 ## Adversarial matrix
 
-Permanent tests must prove at least:
+Permanent tests prove or must preserve:
 
 - epoch-N bundle + live epoch N is clean;
 - epoch-N bundle + no live epoch fails closed with `CURRENT_OBSERVATION_EPOCH_UNAVAILABLE`;
@@ -109,18 +124,27 @@ Permanent tests must prove at least:
 - explicit fresh-builder live epoch mismatch is reported;
 - temporal mismatch can coexist deterministically with registry/frontier mismatch;
 - A5 forged/self-issued receipt defenses remain intact;
+- admission-v2 receipts continue to embed owner `external.integration` version `0.0.4` and round-trip exactly;
 - historical A5 admission bundle restore remains unchanged.
 
-## TDD and closure
+## TDD evidence
 
-Implementation is RED -> GREEN:
+A6 was driven through explicit RED -> GREEN cycles before version closure:
 
-1. first commit tests proving persisted epoch replay is currently accepted and that missing/invalid live epoch proof is not fail-closed;
-2. run External Core CI on that exact RED head and record the intended failures;
-3. minimally implement explicit live epoch re-attestation and audit-v2/version projection;
-4. run exact-head Python 3.11 + 3.13 External Core contracts, component-local version discipline, component projection, A2/A3 audit, A6 audit, and prior G/Assurance regressions;
-5. run broader Refoundation/Truth/Knowledge/Memory/E-Acting gates on the exact synthetic merge-ref before any merge decision;
-6. frozen historical release witnesses remain frozen and are not rewritten for cosmetic green CI.
+1. Missing live epoch proof — RED head `25e4c730187c035a678ca147370cec764721da0b`: 267 passed / exactly 1 failed; persisted epoch-11 bundle audited clean without any live epoch proof.
+2. Epoch drift replay — RED head `c4b4056d23f7e83129bee7fd78c5b2a0831b0ad4`: 269 passed / exactly 2 failed; live epochs 10 and 12 were accepted clean while exact 11 passed.
+3. Type laundering — RED head `c9602506e559a02ab52f426d9521690bc9cc7fdb`: 271 passed / exactly 6 failed; `True`, `False`, `-1`, `1.0`, `"11"`, and `b"11"` were misclassified as ordinary drift rather than invalid temporal evidence.
+4. GREEN behavior head `9d04aa612db6474e4dc5f3f4de833b9573373076`: 277 External Core contracts passed on Python 3.11 and 3.13; the only remaining gate finding was the intentional `SEMANTIC_CHANGE_WITHOUT_REVISION` for `external.integration`, which triggers the A6 patch revision closure.
+
+## Closure requirements
+
+- exact-head Python 3.11 + 3.13 External Core contracts pass;
+- component-local version discipline reports zero findings after revision 5 projection;
+- canonical component projection passes;
+- canonical A2/A3 coherence audit and A6 admission audit are clean;
+- prior G/Assurance regressions pass;
+- broader Refoundation/Truth/Knowledge/Memory/E-Acting gates pass on the exact synthetic merge-ref before merge;
+- frozen historical release witnesses remain frozen and are not rewritten for cosmetic green CI.
 
 ## Success criteria
 
