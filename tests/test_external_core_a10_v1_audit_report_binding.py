@@ -84,6 +84,15 @@ def test_audit_report_rejects_non_boolean_current_mode(bad_current_mode: object)
         )
 
 
+def test_historical_v3_rejects_supplied_observation_digest_instead_of_silently_dropping_it() -> None:
+    with pytest.raises(ValueError, match="historical.*observation digest"):
+        CanonicalAdmissionAuditReport.create(
+            (_finding(),),
+            current_observation=False,
+            observation_digest=VALID_OBSERVATION_DIGEST,
+        )
+
+
 def test_failed_current_v4_report_may_represent_unavailable_witness() -> None:
     report = CanonicalAdmissionAuditReport.create(
         (
