@@ -6,6 +6,7 @@ on:
       - audit/external-core-v1-deep-verification-gpt56sol
     paths:
       - tools/external_core_v1_hardening_apply_once.py
+      - tools/external_core_v1_cli_hardening_apply_once.py
       - .github/workflows/external-core-v1-hardening-apply-once.yml
 
 permissions:
@@ -24,8 +25,10 @@ jobs:
           python-version: '3.11'
       - name: Install test dependency
         run: python -m pip install -q pytest
-      - name: Apply exact hardening patch
-        run: python tools/external_core_v1_hardening_apply_once.py
+      - name: Apply exact hardening patches
+        run: |
+          python tools/external_core_v1_hardening_apply_once.py
+          python tools/external_core_v1_cli_hardening_apply_once.py
       - name: Compile canonical namespaces
         run: |
           python -m py_compile nolane/core/*.py
@@ -45,13 +48,15 @@ jobs:
         run: |
           python -m nolane.external_core.audit --check
           python -m nolane.external_core.integration_admission_bundle --check
+          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a10-v4.json
+          python -c "import json; d=json.load(open('/tmp/external-core-a10-v4.json', encoding='utf-8')); assert d['protocol']=='external-integration-admission-audit-v4'; assert d['observation_digest'].startswith('canonical-observation-v1-'); assert not d['findings']; assert d['digest'].startswith('admission-audit-v4-')"
       - name: Prepare clean semantic commit
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git rm tools/external_core_v1_hardening_apply_once.py .github/workflows/external-core-v1-hardening-apply-once.yml
+          git rm tools/external_core_v1_hardening_apply_once.py tools/external_core_v1_cli_hardening_apply_once.py .github/workflows/external-core-v1-hardening-apply-once.yml
           git add \
             CURRENT/EXTERNAL_CORE.md \
             nolane/external_core/observation.py \
@@ -65,6 +70,7 @@ jobs:
             tests/test_external_core_a10_observation_audit.py \
             tests/test_external_core_a10_v1_byte_exact_contract.py \
             tests/test_external_core_a10_v1_document_contract.py \
+            tests/test_external_core_a10_v1_cli_current_audit.py \
             tests/test_external_core_integration_evolution_public_contract.py \
             tests/test_external_core_integration_revalidation.py \
             tests/test_external_core_scoped_revalidation_public_contract.py \
