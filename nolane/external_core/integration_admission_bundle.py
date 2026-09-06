@@ -266,7 +266,11 @@ class CanonicalAdmissionBundle:
 
 
 def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
-    return {} if value is None else dict(value.items())
+    if value is None:
+        return {}
+    if not isinstance(value, Mapping):
+        raise ValueError("frontier must be an object")
+    return dict(value.items())
 
 
 def _context_from_observation(
@@ -673,6 +677,18 @@ def _authority_graph_readmission_from_observation(
     return (AdmissionDisposition.BLOCKED if codes else AdmissionDisposition.ADMITTED), codes
 
 
+def _snapshot_optional_frontier(
+    kind: str,
+    value: Mapping[str, str] | None,
+) -> tuple[Mapping[str, str] | None, Exception | None]:
+    if value is None:
+        return None, None
+    try:
+        return admission_protocol._strict_frontier(value, kind), None
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return None, exc
+
+
 def _observed_frontier(
     kind: str,
     *,
@@ -709,7 +725,42 @@ def run_canonical_admission_audit(
     current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionAuditReport:
     persisted_bundle = bundle is not None
+    raw_frontiers = (
+        ("source-state", current_source_state_digests),
+        ("evidence", current_evidence_digests),
+        ("artifact", current_artifact_digests),
+        ("freshness", current_freshness_fences),
+        ("handoff", known_handoff_digests),
+        ("work-trace", current_work_trace_digests),
+    )
+    frontier_snapshots: dict[str, Mapping[str, str] | None] = {}
+    frontier_snapshot_errors: dict[str, Exception] = {}
+    for kind, values in raw_frontiers:
+        snapshot, snapshot_error = _snapshot_optional_frontier(kind, values)
+        frontier_snapshots[kind] = snapshot
+        if snapshot_error is not None:
+            frontier_snapshot_errors[kind] = snapshot_error
+
+    current_source_state_digests = frontier_snapshots["source-state"]
+    current_evidence_digests = frontier_snapshots["evidence"]
+    current_artifact_digests = frontier_snapshots["artifact"]
+    current_freshness_fences = frontier_snapshots["freshness"]
+    known_handoff_digests = frontier_snapshots["handoff"]
+    current_work_trace_digests = frontier_snapshots["work-trace"]
+
     if bundle is None:
+        if frontier_snapshot_errors:
+            first_kind = next(kind for kind, _values in raw_frontiers if kind in frontier_snapshot_errors)
+            exc = frontier_snapshot_errors[first_kind]
+            return CanonicalAdmissionAuditReport.create(
+                (
+                    AdmissionAuditFinding(
+                        code="CANONICAL_ADMISSION_BUILD_FAILED",
+                        detail=str(exc),
+                        subject_id="canonical-admission-bundle",
+                    ),
+                )
+            )
         try:
             bundle = build_canonical_admission_bundle(
                 observed_epoch=observed_epoch,
@@ -808,6 +859,7 @@ def run_canonical_admission_audit(
             "source-state",
             bundle.context.source_state_frontier_digest,
             current_source_state_digests,
+            frontier_snapshot_errors.get("source-state"),
             "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE",
             "SOURCE_STATE_FRONTIER_CONTEXT_MISMATCH",
         ),
@@ -815,6 +867,7 @@ def run_canonical_admission_audit(
             "evidence",
             bundle.context.evidence_frontier_digest,
             current_evidence_digests,
+            frontier_snapshot_errors.get("evidence"),
             "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE",
             "EVIDENCE_FRONTIER_CONTEXT_MISMATCH",
         ),
@@ -822,6 +875,7 @@ def run_canonical_admission_audit(
             "artifact",
             bundle.context.artifact_frontier_digest,
             current_artifact_digests,
+            frontier_snapshot_errors.get("artifact"),
             "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE",
             "ARTIFACT_FRONTIER_CONTEXT_MISMATCH",
         ),
@@ -829,6 +883,7 @@ def run_canonical_admission_audit(
             "freshness",
             bundle.context.freshness_fence_frontier_digest,
             current_freshness_fences,
+            frontier_snapshot_errors.get("freshness"),
             "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE",
             "FRESHNESS_FRONTIER_CONTEXT_MISMATCH",
         ),
@@ -836,6 +891,7 @@ def run_canonical_admission_audit(
             "handoff",
             bundle.context.handoff_frontier_digest,
             known_handoff_digests,
+            frontier_snapshot_errors.get("handoff"),
             "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE",
             "HANDOFF_FRONTIER_CONTEXT_MISMATCH",
         ),
@@ -843,12 +899,22 @@ def run_canonical_admission_audit(
             "work-trace",
             bundle.context.work_trace_frontier_digest,
             current_work_trace_digests,
+            frontier_snapshot_errors.get("work-trace"),
             "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE",
             "WORK_TRACE_FRONTIER_CONTEXT_MISMATCH",
         ),
     )
-    for kind, bound_digest, current_values, unavailable_code, mismatch_code in frontier_specs:
+    for kind, bound_digest, current_values, snapshot_error, unavailable_code, mismatch_code in frontier_specs:
         empty_digest = canonical_frontier_digest(kind, {})
+        if snapshot_error is not None:
+            findings.append(
+                AdmissionAuditFinding(
+                    code=f"CURRENT_{kind.upper().replace('-', '_')}_FRONTIER_INVALID",
+                    detail=str(snapshot_error),
+                    subject_id="canonical-admission-bundle",
+                )
+            )
+            continue
         if current_values is None:
             if bound_digest != empty_digest:
                 findings.append(
