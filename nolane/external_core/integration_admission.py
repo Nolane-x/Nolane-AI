@@ -15,6 +15,11 @@ from nolane.external_core.handoff import (
     HandoffValidationDisposition,
     validate_handoff_for_consumer,
 )
+from nolane.external_core.work_trace import (
+    WORK_TRACE_PROTOCOL,
+    CognitiveWorkTrace,
+    TraceNodeStatus,
+)
 
 
 COMPONENT_ID = "external.integration"
@@ -377,6 +382,52 @@ _MANIFEST_LIST_FIELDS = (
     "evidence_inputs",
     "evidence_outputs",
 )
+_EDGE_KEYS = frozenset({"source_component_id", "target_component_id", "relation", "contract_kind", "digest"})
+_HANDOFF_KEYS = frozenset(
+    {
+        "handoff_id",
+        "producer_component_id",
+        "producer_component_version",
+        "producer_agent_id",
+        "consumer_component_id",
+        "consumer_contract_range",
+        "subject_id",
+        "subject_digest",
+        "contract_kind",
+        "contract_version",
+        "authority_class",
+        "source_state_digest",
+        "predecessor_handoff_ids",
+        "evidence_bindings",
+        "artifact_bindings",
+        "freshness_fence",
+        "limitations",
+        "known_unknowns",
+        "payload_json",
+        "payload_digest",
+        "digest",
+    }
+)
+_TRACE_KEYS = frozenset({"trace_id", "protocol", "nodes", "supersessions", "digest"})
+_TRACE_NODE_KEYS = frozenset(
+    {
+        "node_id",
+        "trace_id",
+        "component_id",
+        "subject_id",
+        "subject_digest",
+        "status",
+        "predecessor_node_ids",
+        "handoff_id",
+        "evidence_refs",
+        "limitations",
+        "digest",
+    }
+)
+_TRACE_SUPERSESSION_KEYS = frozenset(
+    {"receipt_id", "trace_id", "predecessor_node_id", "successor_node_id", "reason", "evidence_refs", "digest"}
+)
+_FRONTIER_KINDS = frozenset({"source-state", "evidence", "artifact", "freshness", "handoff", "work-trace"})
 
 
 def _strict_manifest_state(state: object) -> Mapping[str, Any]:
@@ -393,9 +444,6 @@ def _strict_manifest_state(state: object) -> Mapping[str, Any]:
     for field in ("restore_protocol", "compatibility_floor", "compatibility_ceiling", "manifest_digest"):
         _explicit(state.get(field), f"component manifest {field}")
     return state
-
-
-_EDGE_KEYS = frozenset({"source_component_id", "target_component_id", "relation", "contract_kind", "digest"})
 
 
 def _strict_edge_state(state: object) -> Mapping[str, Any]:
@@ -428,9 +476,6 @@ def _strict_graph_state(state: object) -> Mapping[str, Any]:
     return state
 
 
-_FRONTIER_KINDS = frozenset({"source-state", "evidence", "artifact", "freshness", "handoff", "work-trace"})
-
-
 def _strict_frontier(values: object, label: str) -> dict[str, str]:
     if not isinstance(values, Mapping):
         raise ValueError(f"{label} frontier must be an object")
@@ -455,33 +500,6 @@ def canonical_frontier_digest(kind: str, values: Mapping[str, str]) -> str:
         "entries": [{"id": key, "digest": value} for key, value in rows.items()],
     }
     return f"admission-{frontier_kind}-frontier-v2-" + canonical_digest(payload)
-
-
-_HANDOFF_KEYS = frozenset(
-    {
-        "handoff_id",
-        "producer_component_id",
-        "producer_component_version",
-        "producer_agent_id",
-        "consumer_component_id",
-        "consumer_contract_range",
-        "subject_id",
-        "subject_digest",
-        "contract_kind",
-        "contract_version",
-        "authority_class",
-        "source_state_digest",
-        "predecessor_handoff_ids",
-        "evidence_bindings",
-        "artifact_bindings",
-        "freshness_fence",
-        "limitations",
-        "known_unknowns",
-        "payload_json",
-        "payload_digest",
-        "digest",
-    }
-)
 
 
 def _strict_bindings(value: object, label: str) -> None:
@@ -535,6 +553,64 @@ def _strict_handoff_state(state: object) -> Mapping[str, Any]:
         json.loads(state["payload_json"])
     except (TypeError, ValueError) as exc:
         raise ValueError("handoff payload_json is invalid JSON") from exc
+    return state
+
+
+def _strict_trace_node_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("work trace node state must be an object")
+    _exact_state_keys(state, _TRACE_NODE_KEYS, "work trace node")
+    for field in ("node_id", "trace_id", "component_id", "subject_id", "subject_digest", "digest"):
+        _explicit(state.get(field), f"work trace node {field}")
+    status = _explicit(state.get("status"), "work trace node status")
+    try:
+        TraceNodeStatus(status)
+    except ValueError as exc:
+        raise ValueError("work trace node status is invalid") from exc
+    _serialized_strings(state.get("predecessor_node_ids"), "work trace node predecessor_node_ids")
+    if state.get("handoff_id") is not None:
+        _explicit(state.get("handoff_id"), "work trace node handoff_id")
+    _serialized_strings(state.get("evidence_refs"), "work trace node evidence_refs")
+    _serialized_strings(state.get("limitations"), "work trace node limitations")
+    return state
+
+
+def _strict_trace_supersession_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("work trace supersession state must be an object")
+    _exact_state_keys(state, _TRACE_SUPERSESSION_KEYS, "work trace supersession")
+    for field in ("receipt_id", "trace_id", "predecessor_node_id", "successor_node_id", "reason", "digest"):
+        _explicit(state.get(field), f"work trace supersession {field}")
+    _serialized_strings(state.get("evidence_refs"), "work trace supersession evidence_refs")
+    return state
+
+
+def _strict_work_trace_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("work trace state must be an object")
+    _exact_state_keys(state, _TRACE_KEYS, "work trace")
+    _explicit(state.get("trace_id"), "work trace trace_id")
+    if state.get("protocol") != WORK_TRACE_PROTOCOL:
+        raise ValueError("work trace protocol mismatch")
+    nodes = state.get("nodes")
+    supersessions = state.get("supersessions")
+    if type(nodes) is not list or type(supersessions) is not list:
+        raise ValueError("work trace nodes and supersessions must be serialized lists")
+    node_ids: set[str] = set()
+    for row in nodes:
+        _strict_trace_node_state(row)
+        node_id = row["node_id"]
+        if node_id in node_ids:
+            raise ValueError("duplicate work trace node id")
+        node_ids.add(node_id)
+    predecessor_ids: set[str] = set()
+    for row in supersessions:
+        _strict_trace_supersession_state(row)
+        predecessor = row["predecessor_node_id"]
+        if predecessor in predecessor_ids:
+            raise ValueError("duplicate work trace supersession predecessor")
+        predecessor_ids.add(predecessor)
+    _explicit(state.get("digest"), "work trace digest")
     return state
 
 
@@ -644,6 +720,18 @@ class AdmittedHandoff(_AdmittedSubject):
         return envelope.handoff_id, envelope.digest, HANDOFF_PROTOCOL
 
 
+class AdmittedWorkTrace(_AdmittedSubject):
+    KIND = AdmissionSubjectKind.WORK_TRACE
+
+    @classmethod
+    def _strict_state(cls, state: object) -> Mapping[str, Any]:
+        return _strict_work_trace_state(state)
+
+    def _semantic(self) -> tuple[str, str, str]:
+        trace = CognitiveWorkTrace.from_state(self.subject_state)
+        return trace.trace_id, trace.digest, WORK_TRACE_PROTOCOL
+
+
 def _make_wrapper(cls: type[_AdmittedSubject], state: Mapping[str, Any], receipt: ProtocolAdmissionReceipt) -> _AdmittedSubject:
     subject_json = canonical_json(state)
     wrapper = cls(subject_json, receipt, _wrapper_digest(cls.KIND, subject_json, receipt))
@@ -660,6 +748,16 @@ def _context_reasons(context: CanonicalAdmissionContext) -> list[str]:
     if context.authority_graph_digest != profile.authority_graph.digest:
         reasons.append("CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH")
     return reasons
+
+
+def _disposition(blocked: list[str], unknown: list[str]) -> tuple[AdmissionDisposition, tuple[str, ...]]:
+    blocked_codes = tuple(sorted(set(blocked)))
+    unknown_codes = tuple(sorted(set(unknown)))
+    if blocked_codes:
+        return AdmissionDisposition.BLOCKED, blocked_codes + unknown_codes
+    if unknown_codes:
+        return AdmissionDisposition.UNKNOWN, unknown_codes
+    return AdmissionDisposition.ADMITTED, ()
 
 
 def admit_manifest_state(state: Mapping[str, Any], *, context: CanonicalAdmissionContext) -> AdmittedManifest:
@@ -724,7 +822,7 @@ def admit_handoff_state(
 ) -> AdmittedHandoff:
     _strict_handoff_state(state)
     envelope = ExternalHandoffEnvelope.from_state(state)
-    registry, profile = _canonical_current_objects()
+    registry, _profile = _canonical_current_objects()
     source = _strict_frontier(current_source_state_digests, "source-state")
     evidence = _strict_frontier(current_evidence_digests, "evidence")
     artifact = _strict_frontier(current_artifact_digests, "artifact")
@@ -761,17 +859,7 @@ def admit_handoff_state(
             blocked.extend(validation.reason_codes)
         elif validation.disposition is HandoffValidationDisposition.UNKNOWN:
             unknown.extend(validation.reason_codes)
-    blocked_codes = tuple(sorted(set(blocked)))
-    unknown_codes = tuple(sorted(set(unknown)))
-    if blocked_codes:
-        disposition = AdmissionDisposition.BLOCKED
-        reasons = blocked_codes + unknown_codes
-    elif unknown_codes:
-        disposition = AdmissionDisposition.UNKNOWN
-        reasons = unknown_codes
-    else:
-        disposition = AdmissionDisposition.ADMITTED
-        reasons = ()
+    disposition, reasons = _disposition(blocked, unknown)
     receipt = ProtocolAdmissionReceipt.create(
         subject_kind=AdmissionSubjectKind.HANDOFF,
         subject_protocol=HANDOFF_PROTOCOL,
@@ -786,6 +874,45 @@ def admit_handoff_state(
     return _make_wrapper(AdmittedHandoff, envelope.to_state(), receipt)  # type: ignore[return-value]
 
 
+def admit_work_trace_state(
+    state: Mapping[str, Any],
+    *,
+    context: CanonicalAdmissionContext,
+    known_handoff_digests: Mapping[str, str],
+    current_work_trace_digests: Mapping[str, str],
+) -> AdmittedWorkTrace:
+    _strict_work_trace_state(state)
+    trace = CognitiveWorkTrace.from_state(state)
+    handoffs = _strict_frontier(known_handoff_digests, "handoff")
+    traces = _strict_frontier(current_work_trace_digests, "work-trace")
+    blocked = _context_reasons(context)
+    if context.handoff_frontier_digest != canonical_frontier_digest("handoff", handoffs):
+        blocked.append("HANDOFF_FRONTIER_CONTEXT_MISMATCH")
+    if context.work_trace_frontier_digest != canonical_frontier_digest("work-trace", traces):
+        blocked.append("WORK_TRACE_FRONTIER_CONTEXT_MISMATCH")
+    unknown: list[str] = []
+    current = traces.get(trace.trace_id)
+    if current is None:
+        unknown.append("MISSING_CURRENT_WORK_TRACE")
+    elif current != trace.digest:
+        blocked.append("WORK_TRACE_DIGEST_DRIFT")
+    diagnostics = trace.diagnostics(known_handoff_ids=tuple(handoffs))
+    blocked.extend(row.code for row in diagnostics)
+    disposition, reasons = _disposition(blocked, unknown)
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.WORK_TRACE,
+        subject_protocol=WORK_TRACE_PROTOCOL,
+        subject_id=trace.trace_id,
+        subject_state_digest=canonical_digest(trace.to_state()),
+        semantic_digest=trace.digest,
+        context_digest=context.digest,
+        disposition=disposition,
+        reason_codes=reasons,
+        limitations=("structural-currentness-only", "work-trace-provenance-does-not-mint-authority"),
+    )
+    return _make_wrapper(AdmittedWorkTrace, trace.to_state(), receipt)  # type: ignore[return-value]
+
+
 __all__ = (
     "ADMISSION_PROTOCOL",
     "AdmissionDisposition",
@@ -795,9 +922,11 @@ __all__ = (
     "AdmittedManifest",
     "AdmittedAuthorityGraph",
     "AdmittedHandoff",
+    "AdmittedWorkTrace",
     "admit_manifest_state",
     "admit_authority_graph_state",
     "admit_handoff_state",
+    "admit_work_trace_state",
     "canonical_frontier_digest",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
