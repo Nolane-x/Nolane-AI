@@ -23,9 +23,9 @@ from nolane.external_core.integration_admission import (
     AdmittedWorkTrace,
     CanonicalAdmissionContext,
     ProtocolAdmissionReceipt,
-    admit_work_trace_state,
     canonical_frontier_digest,
 )
+from nolane.external_core.work_trace import WORK_TRACE_PROTOCOL, CognitiveWorkTrace
 
 
 COMPONENT_ID = "external.integration"
@@ -443,6 +443,55 @@ def _admit_handoff_from_observation(
     return wrapper
 
 
+def _admit_work_trace_from_observation(
+    state: Mapping[str, Any],
+    *,
+    context: CanonicalAdmissionContext,
+    registry: Any,
+    profile: Any,
+    known_handoff_digests: Mapping[str, str],
+    current_work_trace_digests: Mapping[str, str],
+) -> AdmittedWorkTrace:
+    admission_protocol._strict_work_trace_state(state)
+    trace = CognitiveWorkTrace.from_state(state)
+    handoffs = admission_protocol._strict_frontier(known_handoff_digests, "handoff")
+    traces = admission_protocol._strict_frontier(current_work_trace_digests, "work-trace")
+    blocked = list(_context_reasons_from_observation(context, registry=registry, profile=profile))
+    if context.handoff_frontier_digest != canonical_frontier_digest("handoff", handoffs):
+        blocked.append("HANDOFF_FRONTIER_CONTEXT_MISMATCH")
+    if context.work_trace_frontier_digest != canonical_frontier_digest("work-trace", traces):
+        blocked.append("WORK_TRACE_FRONTIER_CONTEXT_MISMATCH")
+    unknown: list[str] = []
+    current = traces.get(trace.trace_id)
+    if current is None:
+        unknown.append("MISSING_CURRENT_WORK_TRACE")
+    elif current != trace.digest:
+        blocked.append("WORK_TRACE_DIGEST_DRIFT")
+    diagnostics = trace.diagnostics(known_handoff_ids=tuple(handoffs))
+    blocked.extend(row.code for row in diagnostics)
+    disposition, reasons = admission_protocol._disposition(blocked, unknown)
+    subject_state = trace.to_state()
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.WORK_TRACE,
+        subject_protocol=WORK_TRACE_PROTOCOL,
+        subject_id=trace.trace_id,
+        subject_state_digest=canonical_digest(subject_state),
+        semantic_digest=trace.digest,
+        context_digest=context.digest,
+        disposition=disposition,
+        reason_codes=reasons,
+        limitations=("structural-currentness-only", "work-trace-provenance-does-not-mint-authority"),
+    )
+    subject_json = canonical_json(subject_state)
+    wrapper = AdmittedWorkTrace(
+        subject_json,
+        receipt,
+        admission_protocol._wrapper_digest(AdmissionSubjectKind.WORK_TRACE, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
 def build_canonical_admission_bundle(
     *,
     observed_epoch: int = 0,
@@ -508,9 +557,11 @@ def build_canonical_admission_bundle(
         for state in handoff_states
     )
     admitted_traces = tuple(
-        admit_work_trace_state(
+        _admit_work_trace_from_observation(
             state,
             context=context,
+            registry=registry,
+            profile=profile,
             known_handoff_digests=handoffs,
             current_work_trace_digests=traces,
         )
@@ -947,9 +998,11 @@ def run_canonical_admission_audit(
     if handoffs is not None and traces is not None:
         for child in bundle.work_traces:
             try:
-                replay = admit_work_trace_state(
+                replay = _admit_work_trace_from_observation(
                     child.subject_state,
                     context=bundle.context,
+                    registry=registry,
+                    profile=profile,
                     known_handoff_digests=handoffs,
                     current_work_trace_digests=traces,
                 )
