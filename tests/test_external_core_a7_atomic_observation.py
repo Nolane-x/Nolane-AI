@@ -1,9 +1,35 @@
 from __future__ import annotations
 
+from collections.abc import Iterator, Mapping
+
 import nolane.external_core.integration_admission as admission
 import nolane.external_core.integration_admission_bundle as admission_bundle
 from nolane.external_core.handoff import ExternalHandoffEnvelope, HandoffAuthorityClass
 from nolane.external_core.work_trace import CognitiveWorkTrace
+
+
+class _FlippingFrontier(Mapping[str, str]):
+    def __init__(self, key: str, first: str, later: str) -> None:
+        self._key = key
+        self._first = first
+        self._later = later
+        self.reads = 0
+
+    def __getitem__(self, key: str) -> str:
+        if key != self._key:
+            raise KeyError(key)
+        return self._first if self.reads <= 1 else self._later
+
+    def __iter__(self) -> Iterator[str]:
+        yield self._key
+
+    def __len__(self) -> int:
+        return 1
+
+    def items(self):
+        self.reads += 1
+        value = self._first if self.reads == 1 else self._later
+        return ((self._key, value),)
 
 
 def _count_canonical_reads(monkeypatch):
@@ -111,3 +137,19 @@ def test_bundle_build_with_work_trace_reuses_one_canonical_observation(monkeypat
 
     assert len(bundle.work_traces) == 1
     assert reads == {"bundle": 1, "admission": 0}
+
+
+def test_bundle_snapshots_mutable_frontier_once_before_handoff_admission() -> None:
+    handoff_state, source = _valid_handoff_state()
+    component_id, source_digest = next(iter(source.items()))
+    flipping = _FlippingFrontier(component_id, source_digest, "a7-mutated-source-state-digest")
+
+    bundle = admission_bundle.build_canonical_admission_bundle(
+        observed_epoch=11,
+        current_source_state_digests=flipping,
+        handoff_states=(handoff_state,),
+    )
+    bundle.validate_integrity()
+
+    assert len(bundle.handoffs) == 1
+    assert flipping.reads == 1
