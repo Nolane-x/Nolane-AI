@@ -61,15 +61,16 @@ def test_fresh_canonical_audit_rejects_explicit_live_epoch_mismatch() -> None:
     assert {row.code for row in report.findings} == {"OBSERVATION_EPOCH_CONTEXT_MISMATCH"}
 
 
-def test_a6_temporal_contract_survives_a7_current_lane_advance_without_rewriting_a5_admission_artifacts() -> None:
+def test_a6_temporal_contract_survives_a10_current_lane_advance_without_rewriting_a5_admission_artifacts() -> None:
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.6"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.6"
+    assert integration.COMPONENT_VERSION == "0.0.7"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.7"
     assert admission_bundle.COMPONENT_ID == "external.integration"
-    assert admission_bundle.COMPONENT_VERSION == "0.0.6"
-    assert component_revision_map()["external.integration"] == 6
+    assert admission_bundle.COMPONENT_VERSION == "0.0.7"
+    assert component_revision_map()["external.integration"] == 7
 
-    assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v3"
+    assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"
+    assert admission_bundle.HISTORICAL_ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v3"
     assert admission_bundle.ADMISSION_BUNDLE_PROTOCOL == "external-integration-admission-bundle-v2"
     assert integration_admission.ADMISSION_PROTOCOL == "external-integration-admission-v2"
     assert integration_admission.COMPONENT_VERSION == "0.0.4"

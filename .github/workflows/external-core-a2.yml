@@ -11,6 +11,7 @@ on:
       - upgrade/external-core-a5-admission-firewall
       - upgrade/external-core-a6-temporal-reattestation
       - upgrade/external-core-a7-atomic-observation
+      - upgrade/external-core-a8-a10-v1-closure
   pull_request:
     paths:
       - 'nolane/external_core/**'
@@ -48,7 +49,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_*.py tests/test_external_core_scoped_*.py tests/test_external_core_a5_*.py tests/test_external_core_a6_*.py tests/test_external_core_a7_*.py)
+          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_*.py tests/test_external_core_scoped_*.py tests/test_external_core_a5_*.py tests/test_external_core_a6_*.py tests/test_external_core_a7_*.py tests/test_external_core_a8_*.py tests/test_external_core_a9_*.py tests/test_external_core_a10_*.py)
           if [ ${#tests[@]} -eq 0 ]; then
             echo 'No External Core tests found' >&2
             exit 1
@@ -100,11 +101,11 @@ jobs:
           python -m nolane.external_core.audit --check
           python -m nolane.external_core.audit --json > /tmp/external-core-audit.json
           python -c "import json; p='/tmp/external-core-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
-      - name: Verify canonical A7 admission audit
+      - name: Verify canonical A10 External Core v1 admission audit
         run: |
           python -m nolane.external_core.integration_admission_bundle --check
-          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a7-admission-audit.json
-          python -c "import json; p='/tmp/external-core-a7-admission-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
+          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a10-admission-audit.json
+          python -c "import json; p='/tmp/external-core-a10-admission-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
       - name: Run prior G/Assurance regressions
         shell: bash
         run: |

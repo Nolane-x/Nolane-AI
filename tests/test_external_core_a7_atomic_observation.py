@@ -186,13 +186,13 @@ def test_fresh_audit_reuses_builder_canonical_observation(monkeypatch) -> None:
     assert reads == {"bundle": 1, "admission": 0}
 
 
-def test_a7_advances_only_current_integration_audit_lane() -> None:
+def test_a7_atomic_contract_survives_a10_current_lane_advance() -> None:
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.6"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.6"
+    assert integration.COMPONENT_VERSION == "0.0.7"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.7"
     assert admission_bundle.COMPONENT_ID == "external.integration"
-    assert admission_bundle.COMPONENT_VERSION == "0.0.6"
-    assert component_revision_map()["external.integration"] == 6
+    assert admission_bundle.COMPONENT_VERSION == "0.0.7"
+    assert component_revision_map()["external.integration"] == 7
 
     report = admission_bundle.run_canonical_admission_audit(observed_epoch=11)
     assert report.protocol == "external-integration-admission-audit-v3"
