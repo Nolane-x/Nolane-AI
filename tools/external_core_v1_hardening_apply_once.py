@@ -205,6 +205,79 @@ replace_once(
     'assert admission_bundle.COMPONENT_VERSION == "0.0.8"',
 )
 
+# Older A4-A7 and integration/revalidation tests project the current owner and
+# must move with the same revision; frozen admission-v2 assertions stay 0.0.4.
+replace_count(
+    "tests/test_external_core_integration_evolution_public_contract.py",
+    '"0.0.7"',
+    '"0.0.8"',
+    2,
+)
+replace_once(
+    "tests/test_external_core_integration_revalidation.py",
+    "test_integration_component_current_version_is_v007",
+    "test_integration_component_current_version_is_v008",
+)
+replace_count(
+    "tests/test_external_core_integration_revalidation.py",
+    '"0.0.7"',
+    '"0.0.8"',
+    2,
+)
+replace_count(
+    "tests/test_external_core_scoped_revalidation_public_contract.py",
+    '"0.0.7"',
+    '"0.0.8"',
+    3,
+)
+replace_once(
+    "tests/test_external_core_a5_public_contract.py",
+    "test_current_integration_owner_contract_projects_final_a10_revision_seven",
+    "test_current_integration_owner_contract_projects_v1_hardening_revision_eight",
+)
+replace_once(
+    "tests/test_external_core_a5_public_contract.py",
+    'assert integration.COMPONENT_VERSION == "0.0.7"',
+    'assert integration.COMPONENT_VERSION == "0.0.8"',
+)
+replace_once(
+    "tests/test_external_core_a5_public_contract.py",
+    'assert component_revision_map()["external.integration"] == 7',
+    'assert component_revision_map()["external.integration"] == 8',
+)
+replace_once(
+    "tests/test_external_core_a6_temporal_reattestation.py",
+    "test_a6_temporal_contract_survives_a10_current_lane_advance_without_rewriting_a5_admission_artifacts",
+    "test_a6_temporal_contract_survives_v1_hardening_without_rewriting_a5_admission_artifacts",
+)
+replace_count(
+    "tests/test_external_core_a6_temporal_reattestation.py",
+    '"0.0.7"',
+    '"0.0.8"',
+    3,
+)
+replace_once(
+    "tests/test_external_core_a6_temporal_reattestation.py",
+    'assert component_revision_map()["external.integration"] == 7',
+    'assert component_revision_map()["external.integration"] == 8',
+)
+replace_once(
+    "tests/test_external_core_a7_atomic_observation.py",
+    "test_a7_atomic_contract_survives_a10_current_lane_advance",
+    "test_a7_atomic_contract_survives_v1_hardening",
+)
+replace_count(
+    "tests/test_external_core_a7_atomic_observation.py",
+    '"0.0.7"',
+    '"0.0.8"',
+    3,
+)
+replace_once(
+    "tests/test_external_core_a7_atomic_observation.py",
+    'assert component_revision_map()["external.integration"] == 7',
+    'assert component_revision_map()["external.integration"] == 8',
+)
+
 # Seal the already-verified A10 production architecture fact, then describe this
 # bounded v1 hardening as a conformance revision rather than a new architecture.
 replace_once(
