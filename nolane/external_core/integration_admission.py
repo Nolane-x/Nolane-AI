@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Mapping
 
-from nolane.core.canonical_digest import canonical_digest
+from nolane.core.canonical_digest import canonical_digest, canonical_json
+from nolane.external_core.authority_graph import AuthorityRelation, ExternalAuthorityGraph
+from nolane.external_core.component_contracts import ExternalComponentManifest
 
 
 COMPONENT_ID = "external.integration"
@@ -38,6 +41,8 @@ def _strict_non_negative_int(value: object, label: str) -> int:
 
 
 def _exact_state_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
+    if any(not isinstance(key, str) for key in state):
+        raise ValueError(f"{label} state keys must be exact strings")
     actual = frozenset(state)
     if actual != expected:
         missing = sorted(expected - actual)
@@ -57,6 +62,45 @@ def _canonical_strings(values: object, label: str) -> tuple[str, ...]:
     if len(set(rows)) != len(rows):
         raise ValueError(f"duplicate {label}")
     return tuple(sorted(rows))
+
+
+def _strict_serialized_string_list(value: object, label: str) -> list[str]:
+    if type(value) is not list:
+        raise ValueError(f"{label} must be a serialized list")
+    rows = [_explicit(item, label) for item in value]
+    if len(set(rows)) != len(rows):
+        raise ValueError(f"duplicate {label}")
+    return rows
+
+
+def _strict_serialized_string_map(value: object, label: str) -> dict[str, str]:
+    if type(value) is not dict:
+        raise ValueError(f"{label} must be a serialized object")
+    rows: dict[str, str] = {}
+    for raw_key, raw_value in value.items():
+        key = _explicit(raw_key, f"{label} key")
+        item = _explicit(raw_value, f"{label} value")
+        rows[key] = item
+    return rows
+
+
+def _canonical_current_objects() -> tuple[Any, Any]:
+    # Local import avoids turning the historical A2/A3 audit module into an
+    # A5 dependency. These builders are read-only canonical-current sources.
+    from nolane.external_core.audit import build_canonical_fabric_profile, build_canonical_registry
+
+    return build_canonical_registry(), build_canonical_fabric_profile()
+
+
+def _current_context_reasons(context: "CanonicalAdmissionContext") -> tuple[str, ...]:
+    context.validate_integrity()
+    registry, profile = _canonical_current_objects()
+    reasons: list[str] = []
+    if context.registry_digest != registry.registry_digest:
+        reasons.append("CANONICAL_REGISTRY_CONTEXT_MISMATCH")
+    if context.authority_graph_digest != profile.authority_graph.digest:
+        reasons.append("CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH")
+    return tuple(sorted(reasons))
 
 
 @dataclass(frozen=True, slots=True)
@@ -319,12 +363,307 @@ class ProtocolAdmissionReceipt:
             raise ValueError("admission receipt integrity validation failed")
 
 
+_MANIFEST_KEYS = frozenset(
+    {
+        "component_id",
+        "component_version",
+        "family",
+        "protocol_versions",
+        "consumes_contracts",
+        "produces_contracts",
+        "authority_capabilities",
+        "forbidden_authorities",
+        "mutable_resources",
+        "evidence_inputs",
+        "evidence_outputs",
+        "restore_protocol",
+        "compatibility_floor",
+        "compatibility_ceiling",
+        "manifest_digest",
+    }
+)
+_MANIFEST_LIST_FIELDS = (
+    "consumes_contracts",
+    "produces_contracts",
+    "authority_capabilities",
+    "forbidden_authorities",
+    "mutable_resources",
+    "evidence_inputs",
+    "evidence_outputs",
+)
+
+
+def _strict_manifest_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("component manifest state must be an object")
+    _exact_state_keys(state, _MANIFEST_KEYS, "component manifest")
+    _explicit(state.get("component_id"), "component manifest component_id")
+    _explicit(state.get("component_version"), "component manifest component_version")
+    family = _explicit(state.get("family"), "component manifest family")
+    if family not in {"A", "B", "C", "D", "E", "F", "G"}:
+        raise ValueError("component manifest family is invalid")
+    _strict_serialized_string_map(state.get("protocol_versions"), "component manifest protocol_versions")
+    for field in _MANIFEST_LIST_FIELDS:
+        _strict_serialized_string_list(state.get(field), f"component manifest {field}")
+    _explicit(state.get("restore_protocol"), "component manifest restore_protocol")
+    _explicit(state.get("compatibility_floor"), "component manifest compatibility_floor")
+    _explicit(state.get("compatibility_ceiling"), "component manifest compatibility_ceiling")
+    _explicit(state.get("manifest_digest"), "component manifest manifest_digest")
+    return state
+
+
+_EDGE_KEYS = frozenset(
+    {"source_component_id", "target_component_id", "relation", "contract_kind", "digest"}
+)
+
+
+def _strict_authority_edge_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("authority edge state must be an object")
+    _exact_state_keys(state, _EDGE_KEYS, "authority edge")
+    _explicit(state.get("source_component_id"), "authority edge source_component_id")
+    _explicit(state.get("target_component_id"), "authority edge target_component_id")
+    relation = _explicit(state.get("relation"), "authority edge relation")
+    try:
+        AuthorityRelation(relation)
+    except ValueError as exc:
+        raise ValueError("authority edge relation is invalid") from exc
+    _explicit(state.get("contract_kind"), "authority edge contract_kind")
+    _explicit(state.get("digest"), "authority edge digest")
+    return state
+
+
+_GRAPH_KEYS = frozenset({"manifests", "edges", "digest"})
+
+
+def _strict_authority_graph_state(state: object) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping):
+        raise ValueError("authority graph state must be an object")
+    _exact_state_keys(state, _GRAPH_KEYS, "authority graph")
+    manifests = state.get("manifests")
+    edges = state.get("edges")
+    if type(manifests) is not list or type(edges) is not list:
+        raise ValueError("authority graph manifests and edges must be serialized lists")
+    for row in manifests:
+        _strict_manifest_state(row)
+    for row in edges:
+        _strict_authority_edge_state(row)
+    _explicit(state.get("digest"), "authority graph digest")
+    return state
+
+
+def _wrapper_digest(kind: AdmissionSubjectKind, subject_state_json: str, receipt: ProtocolAdmissionReceipt) -> str:
+    payload = {
+        "protocol": ADMISSION_PROTOCOL,
+        "subject_kind": kind.value,
+        "subject_state_digest": canonical_digest(json.loads(subject_state_json)),
+        "receipt_id": receipt.receipt_id,
+    }
+    return "admission-wrapper-v2-" + canonical_digest(payload)
+
+
+@dataclass(frozen=True, slots=True)
+class AdmittedManifest:
+    subject_state_json: str
+    receipt: ProtocolAdmissionReceipt
+    digest: str
+
+    @property
+    def subject_state(self) -> dict[str, Any]:
+        value = json.loads(self.subject_state_json)
+        if not isinstance(value, dict):
+            raise ValueError("admitted manifest state must decode to an object")
+        return value
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "subject_state": self.subject_state,
+            "receipt": self.receipt.to_state(),
+            "digest": self.digest,
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "AdmittedManifest":
+        _exact_state_keys(state, frozenset({"subject_state", "receipt", "digest"}), "admitted manifest")
+        raw_subject = state.get("subject_state")
+        raw_receipt = state.get("receipt")
+        _strict_manifest_state(raw_subject)
+        if not isinstance(raw_receipt, Mapping):
+            raise ValueError("admitted manifest receipt must be an object")
+        receipt = ProtocolAdmissionReceipt.from_state(raw_receipt)
+        subject_json = canonical_json(raw_subject)
+        expected = cls(
+            subject_state_json=subject_json,
+            receipt=receipt,
+            digest=_wrapper_digest(AdmissionSubjectKind.COMPONENT_MANIFEST, subject_json, receipt),
+        )
+        if state.get("digest") != expected.digest or dict(state) != expected.to_state():
+            raise ValueError("admitted manifest state is non-canonical")
+        expected.validate_integrity()
+        return expected
+
+    def validate_integrity(self) -> None:
+        self.receipt.validate_integrity()
+        state = self.subject_state
+        _strict_manifest_state(state)
+        manifest = ExternalComponentManifest.from_state(state)
+        if self.receipt.subject_kind is not AdmissionSubjectKind.COMPONENT_MANIFEST:
+            raise ValueError("admitted manifest receipt kind mismatch")
+        if self.receipt.subject_id != manifest.component_id:
+            raise ValueError("admitted manifest receipt identity mismatch")
+        if self.receipt.subject_state_digest != canonical_digest(state):
+            raise ValueError("admitted manifest receipt state digest mismatch")
+        if self.receipt.semantic_digest != manifest.manifest_digest:
+            raise ValueError("admitted manifest receipt semantic digest mismatch")
+        if self.digest != _wrapper_digest(AdmissionSubjectKind.COMPONENT_MANIFEST, self.subject_state_json, self.receipt):
+            raise ValueError("admitted manifest wrapper digest mismatch")
+
+
+@dataclass(frozen=True, slots=True)
+class AdmittedAuthorityGraph:
+    subject_state_json: str
+    receipt: ProtocolAdmissionReceipt
+    digest: str
+
+    @property
+    def subject_state(self) -> dict[str, Any]:
+        value = json.loads(self.subject_state_json)
+        if not isinstance(value, dict):
+            raise ValueError("admitted authority graph state must decode to an object")
+        return value
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "subject_state": self.subject_state,
+            "receipt": self.receipt.to_state(),
+            "digest": self.digest,
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "AdmittedAuthorityGraph":
+        _exact_state_keys(state, frozenset({"subject_state", "receipt", "digest"}), "admitted authority graph")
+        raw_subject = state.get("subject_state")
+        raw_receipt = state.get("receipt")
+        _strict_authority_graph_state(raw_subject)
+        if not isinstance(raw_receipt, Mapping):
+            raise ValueError("admitted authority graph receipt must be an object")
+        receipt = ProtocolAdmissionReceipt.from_state(raw_receipt)
+        subject_json = canonical_json(raw_subject)
+        expected = cls(
+            subject_state_json=subject_json,
+            receipt=receipt,
+            digest=_wrapper_digest(AdmissionSubjectKind.AUTHORITY_GRAPH, subject_json, receipt),
+        )
+        if state.get("digest") != expected.digest or dict(state) != expected.to_state():
+            raise ValueError("admitted authority graph state is non-canonical")
+        expected.validate_integrity()
+        return expected
+
+    def validate_integrity(self) -> None:
+        self.receipt.validate_integrity()
+        state = self.subject_state
+        _strict_authority_graph_state(state)
+        graph = ExternalAuthorityGraph.from_state(state)
+        graph.validate()
+        if self.receipt.subject_kind is not AdmissionSubjectKind.AUTHORITY_GRAPH:
+            raise ValueError("admitted authority graph receipt kind mismatch")
+        if self.receipt.subject_id != "canonical-authority-graph":
+            raise ValueError("admitted authority graph receipt identity mismatch")
+        if self.receipt.subject_state_digest != canonical_digest(state):
+            raise ValueError("admitted authority graph receipt state digest mismatch")
+        if self.receipt.semantic_digest != graph.digest:
+            raise ValueError("admitted authority graph receipt semantic digest mismatch")
+        if self.digest != _wrapper_digest(AdmissionSubjectKind.AUTHORITY_GRAPH, self.subject_state_json, self.receipt):
+            raise ValueError("admitted authority graph wrapper digest mismatch")
+
+
+def admit_manifest_state(
+    state: Mapping[str, Any],
+    *,
+    context: CanonicalAdmissionContext,
+) -> AdmittedManifest:
+    _strict_manifest_state(state)
+    manifest = ExternalComponentManifest.from_state(state)
+    registry, _profile = _canonical_current_objects()
+    reasons = list(_current_context_reasons(context))
+    try:
+        current = registry.manifest_for(manifest.component_id)
+    except KeyError:
+        reasons.append("CANONICAL_MANIFEST_IDENTITY_UNKNOWN")
+    else:
+        if current.to_state() != manifest.to_state():
+            reasons.append("CANONICAL_MANIFEST_MISMATCH")
+    disposition = AdmissionDisposition.BLOCKED if reasons else AdmissionDisposition.ADMITTED
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.COMPONENT_MANIFEST,
+        subject_protocol=AdmissionSubjectKind.COMPONENT_MANIFEST.value,
+        subject_id=manifest.component_id,
+        subject_state_digest=canonical_digest(manifest.to_state()),
+        semantic_digest=manifest.manifest_digest,
+        context_digest=context.digest,
+        disposition=disposition,
+        reason_codes=tuple(sorted(set(reasons))),
+        limitations=("structural-currentness-only", "no-semantic-authority"),
+    )
+    subject_json = canonical_json(manifest.to_state())
+    wrapper = AdmittedManifest(
+        subject_state_json=subject_json,
+        receipt=receipt,
+        digest=_wrapper_digest(AdmissionSubjectKind.COMPONENT_MANIFEST, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
+def admit_authority_graph_state(
+    state: Mapping[str, Any],
+    *,
+    context: CanonicalAdmissionContext,
+) -> AdmittedAuthorityGraph:
+    _strict_authority_graph_state(state)
+    graph = ExternalAuthorityGraph.from_state(state)
+    graph.validate()
+    registry, profile = _canonical_current_objects()
+    reasons = list(_current_context_reasons(context))
+    canonical_graph = profile.authority_graph
+    if graph.to_state() != canonical_graph.to_state():
+        reasons.append("CANONICAL_AUTHORITY_GRAPH_MISMATCH")
+    graph_manifest_states = tuple(row.to_state() for row in graph.manifests)
+    registry_manifest_states = tuple(row.to_state() for row in registry.manifests)
+    if graph_manifest_states != registry_manifest_states:
+        reasons.append("CANONICAL_GRAPH_REGISTRY_POPULATION_MISMATCH")
+    disposition = AdmissionDisposition.BLOCKED if reasons else AdmissionDisposition.ADMITTED
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.AUTHORITY_GRAPH,
+        subject_protocol=AdmissionSubjectKind.AUTHORITY_GRAPH.value,
+        subject_id="canonical-authority-graph",
+        subject_state_digest=canonical_digest(graph.to_state()),
+        semantic_digest=graph.digest,
+        context_digest=context.digest,
+        disposition=disposition,
+        reason_codes=tuple(sorted(set(reasons))),
+        limitations=("structural-currentness-only", "no-semantic-authority"),
+    )
+    subject_json = canonical_json(graph.to_state())
+    wrapper = AdmittedAuthorityGraph(
+        subject_state_json=subject_json,
+        receipt=receipt,
+        digest=_wrapper_digest(AdmissionSubjectKind.AUTHORITY_GRAPH, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
 __all__ = (
     "ADMISSION_PROTOCOL",
     "AdmissionDisposition",
     "AdmissionSubjectKind",
     "CanonicalAdmissionContext",
     "ProtocolAdmissionReceipt",
+    "AdmittedManifest",
+    "AdmittedAuthorityGraph",
+    "admit_manifest_state",
+    "admit_authority_graph_state",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
 )
