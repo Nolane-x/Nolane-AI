@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
+from nolane.external_core.observation import CanonicalObservationEnvelope, ObservationFinding
+from nolane.external_core.observation_integration import (
+    CANONICAL_OBSERVATION_CHAIN_ID,
+    build_observation_from_snapshot,
+    validate_observation_against_snapshot,
+)
 from nolane.external_core.handoff import (
     HANDOFF_PROTOCOL,
     ExternalHandoffEnvelope,
@@ -32,6 +38,7 @@ COMPONENT_ID = "external.integration"
 COMPONENT_VERSION = "0.0.6"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
 ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
+CURRENT_ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
 
 
 def _exact_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
@@ -609,6 +616,40 @@ def build_canonical_admission_bundle(
     )
 
 
+def build_canonical_observation(
+    *,
+    observed_epoch: int = 0,
+    current_source_state_digests: Mapping[str, str] | None = None,
+    current_evidence_digests: Mapping[str, str] | None = None,
+    current_artifact_digests: Mapping[str, str] | None = None,
+    current_freshness_fences: Mapping[str, str] | None = None,
+    known_handoff_digests: Mapping[str, str] | None = None,
+    current_work_trace_digests: Mapping[str, str] | None = None,
+    chain_id: str = CANONICAL_OBSERVATION_CHAIN_ID,
+    previous_observation_digest: str | None = None,
+) -> CanonicalObservationEnvelope:
+    source = _frontier(current_source_state_digests)
+    evidence = _frontier(current_evidence_digests)
+    artifact = _frontier(current_artifact_digests)
+    freshness = _frontier(current_freshness_fences)
+    handoffs = _frontier(known_handoff_digests)
+    traces = _frontier(current_work_trace_digests)
+    registry, profile = _strict_current_objects()
+    return build_observation_from_snapshot(
+        registry,
+        profile,
+        observed_epoch=observed_epoch,
+        source=source,
+        evidence=evidence,
+        artifact=artifact,
+        freshness=freshness,
+        handoffs=handoffs,
+        traces=traces,
+        chain_id=chain_id,
+        previous_observation_digest=previous_observation_digest,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class AdmissionAuditFinding:
     code: str
@@ -624,26 +665,41 @@ class CanonicalAdmissionAuditReport:
     protocol: str
     findings: tuple[AdmissionAuditFinding, ...]
     digest: str
+    observation_digest: str | None = None
 
     @classmethod
-    def create(cls, findings: Sequence[AdmissionAuditFinding]) -> "CanonicalAdmissionAuditReport":
+    def create(
+        cls,
+        findings: Sequence[AdmissionAuditFinding],
+        *,
+        current_observation: bool = False,
+        observation_digest: str | None = None,
+    ) -> "CanonicalAdmissionAuditReport":
         rows = tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
-        payload = {
-            "protocol": ADMISSION_AUDIT_PROTOCOL,
+        protocol = CURRENT_ADMISSION_AUDIT_PROTOCOL if current_observation else ADMISSION_AUDIT_PROTOCOL
+        payload: dict[str, Any] = {
+            "protocol": protocol,
             "findings": [row.to_state() for row in rows],
         }
+        namespace = "admission-audit-v4-" if current_observation else "admission-audit-v3-"
+        if current_observation:
+            payload["observation_digest"] = observation_digest
         return cls(
-            protocol=ADMISSION_AUDIT_PROTOCOL,
+            protocol=protocol,
             findings=rows,
-            digest="admission-audit-v3-" + canonical_digest(payload),
+            digest=namespace + canonical_digest(payload),
+            observation_digest=observation_digest if current_observation else None,
         )
 
     def to_state(self) -> dict[str, Any]:
-        return {
+        state: dict[str, Any] = {
             "protocol": self.protocol,
             "findings": [row.to_state() for row in self.findings],
             "digest": self.digest,
         }
+        if self.protocol == CURRENT_ADMISSION_AUDIT_PROTOCOL:
+            state["observation_digest"] = self.observation_digest
+        return state
 
 
 def _append_readmission_findings(
@@ -752,7 +808,31 @@ def run_canonical_admission_audit(
     current_freshness_fences: Mapping[str, str] | None = None,
     known_handoff_digests: Mapping[str, str] | None = None,
     current_work_trace_digests: Mapping[str, str] | None = None,
+    current_observation: CanonicalObservationEnvelope | None = None,
+    predecessor_observation: CanonicalObservationEnvelope | None = None,
+    competing_successors: Sequence[CanonicalObservationEnvelope] = (),
+    observation_genesis: bool | None = None,
+    observation_chain_id: str = CANONICAL_OBSERVATION_CHAIN_ID,
 ) -> CanonicalAdmissionAuditReport:
+    current_observation_mode = (
+        observation_genesis is not None
+        or current_observation is not None
+        or predecessor_observation is not None
+        or bool(competing_successors)
+    )
+    current_observation_for_report = current_observation
+
+    def make_report(rows: Sequence[AdmissionAuditFinding]) -> CanonicalAdmissionAuditReport:
+        return CanonicalAdmissionAuditReport.create(
+            rows,
+            current_observation=current_observation_mode,
+            observation_digest=(
+                None
+                if current_observation_for_report is None
+                else current_observation_for_report.digest
+            ),
+        )
+
     persisted_bundle = bundle is not None
     registry: Any | None = None
     profile: Any | None = None
@@ -783,7 +863,7 @@ def run_canonical_admission_audit(
         if frontier_snapshot_errors:
             first_kind = next(kind for kind, _values in raw_frontiers if kind in frontier_snapshot_errors)
             exc = frontier_snapshot_errors[first_kind]
-            return CanonicalAdmissionAuditReport.create(
+            return make_report(
                 (
                     AdmissionAuditFinding(
                         code="CANONICAL_ADMISSION_BUILD_FAILED",
@@ -806,7 +886,7 @@ def run_canonical_admission_audit(
                 traces={} if current_work_trace_digests is None else current_work_trace_digests,
             )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
-            return CanonicalAdmissionAuditReport.create(
+            return make_report(
                 (
                     AdmissionAuditFinding(
                         code="CANONICAL_ADMISSION_BUILD_FAILED",
@@ -818,7 +898,7 @@ def run_canonical_admission_audit(
     try:
         bundle.validate_integrity()
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
-        return CanonicalAdmissionAuditReport.create(
+        return make_report(
             (
                 AdmissionAuditFinding(
                     code="FORGED_ADMISSION_BUNDLE",
@@ -832,7 +912,7 @@ def run_canonical_admission_audit(
         try:
             registry, profile = _strict_current_objects()
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
-            return CanonicalAdmissionAuditReport.create(
+            return make_report(
                 (
                     AdmissionAuditFinding(
                         code="CANONICAL_ADMISSION_CURRENT_STATE_BUILD_FAILED",
@@ -843,6 +923,133 @@ def run_canonical_admission_audit(
             )
 
     findings: list[AdmissionAuditFinding] = []
+
+    if current_observation_mode:
+        if type(observation_genesis) not in (bool, type(None)):
+            findings.append(
+                AdmissionAuditFinding(
+                    code="CURRENT_OBSERVATION_GENESIS_INVALID",
+                    detail="observation_genesis must be an exact boolean when supplied",
+                    subject_id="canonical-observation",
+                )
+            )
+        snapshot_values = (
+            current_source_state_digests,
+            current_evidence_digests,
+            current_artifact_digests,
+            current_freshness_fences,
+            known_handoff_digests,
+            current_work_trace_digests,
+        )
+        snapshot_available = not frontier_snapshot_errors and all(
+            row is not None for row in snapshot_values
+        )
+        if current_observation_for_report is None:
+            if observation_genesis is True and snapshot_available:
+                assert current_source_state_digests is not None
+                assert current_evidence_digests is not None
+                assert current_artifact_digests is not None
+                assert current_freshness_fences is not None
+                assert known_handoff_digests is not None
+                assert current_work_trace_digests is not None
+                current_observation_for_report = build_observation_from_snapshot(
+                    registry,
+                    profile,
+                    observed_epoch=bundle.context.observed_epoch,
+                    source=current_source_state_digests,
+                    evidence=current_evidence_digests,
+                    artifact=current_artifact_digests,
+                    freshness=current_freshness_fences,
+                    handoffs=known_handoff_digests,
+                    traces=current_work_trace_digests,
+                    chain_id=observation_chain_id,
+                    previous_observation_digest=None,
+                )
+            else:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="CURRENT_OBSERVATION_WITNESS_UNAVAILABLE",
+                        detail="current observation audit requires an explicit canonical observation witness",
+                        subject_id="canonical-observation",
+                    )
+                )
+
+        if current_observation_for_report is not None:
+            if not snapshot_available:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="CURRENT_OBSERVATION_SURFACE_UNAVAILABLE",
+                        detail="current observation witness cannot be re-attested without all six detached live frontiers",
+                        subject_id="canonical-observation",
+                    )
+                )
+            else:
+                assert current_source_state_digests is not None
+                assert current_evidence_digests is not None
+                assert current_artifact_digests is not None
+                assert current_freshness_fences is not None
+                assert known_handoff_digests is not None
+                assert current_work_trace_digests is not None
+                try:
+                    observation_findings = validate_observation_against_snapshot(
+                        current_observation_for_report,
+                        registry=registry,
+                        profile=profile,
+                        source=current_source_state_digests,
+                        evidence=current_evidence_digests,
+                        artifact=current_artifact_digests,
+                        freshness=current_freshness_fences,
+                        handoffs=known_handoff_digests,
+                        traces=current_work_trace_digests,
+                        predecessor=predecessor_observation,
+                        genesis=bool(observation_genesis),
+                        competing_successors=competing_successors,
+                    )
+                except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                    findings.append(
+                        AdmissionAuditFinding(
+                            code="CURRENT_OBSERVATION_WITNESS_INVALID",
+                            detail=str(exc),
+                            subject_id="canonical-observation",
+                        )
+                    )
+                else:
+                    findings.extend(
+                        AdmissionAuditFinding(
+                            code=row.code,
+                            detail=row.detail,
+                            subject_id=row.subject_id,
+                        )
+                        for row in observation_findings
+                    )
+
+                observation_context_pairs = (
+                    ("registry", current_observation_for_report.registry_digest, bundle.context.registry_digest),
+                    ("authority-graph", current_observation_for_report.authority_graph_digest, bundle.context.authority_graph_digest),
+                    ("source-state", current_observation_for_report.source_state_frontier_digest, bundle.context.source_state_frontier_digest),
+                    ("evidence", current_observation_for_report.evidence_frontier_digest, bundle.context.evidence_frontier_digest),
+                    ("artifact", current_observation_for_report.artifact_frontier_digest, bundle.context.artifact_frontier_digest),
+                    ("freshness", current_observation_for_report.freshness_fence_frontier_digest, bundle.context.freshness_fence_frontier_digest),
+                    ("handoff", current_observation_for_report.handoff_frontier_digest, bundle.context.handoff_frontier_digest),
+                    ("work-trace", current_observation_for_report.work_trace_frontier_digest, bundle.context.work_trace_frontier_digest),
+                )
+                for kind, observation_digest, context_digest in observation_context_pairs:
+                    if observation_digest != context_digest:
+                        findings.append(
+                            AdmissionAuditFinding(
+                                code="OBSERVATION_ADMISSION_CONTEXT_MISMATCH",
+                                detail="canonical observation commitment does not match the audited admission context",
+                                subject_id=kind,
+                            )
+                        )
+                if current_observation_for_report.observed_epoch != bundle.context.observed_epoch:
+                    findings.append(
+                        AdmissionAuditFinding(
+                            code="OBSERVATION_ADMISSION_CONTEXT_MISMATCH",
+                            detail="canonical observation epoch does not match the audited admission context",
+                            subject_id="observed-epoch",
+                        )
+                    )
     if persisted_bundle and current_observed_epoch is None:
         findings.append(
             AdmissionAuditFinding(
@@ -1124,7 +1331,7 @@ def run_canonical_admission_audit(
                     reason_codes=replay.receipt.reason_codes,
                 )
 
-    return CanonicalAdmissionAuditReport.create(findings)
+    return make_report(findings)
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
@@ -1144,12 +1351,14 @@ def _main(argv: Sequence[str] | None = None) -> int:
 
 __all__ = (
     "ADMISSION_AUDIT_PROTOCOL",
+    "CURRENT_ADMISSION_AUDIT_PROTOCOL",
     "ADMISSION_BUNDLE_PROTOCOL",
     "AdmissionAuditFinding",
     "CanonicalAdmissionAuditReport",
     "CanonicalAdmissionBundle",
     "build_canonical_admission_bundle",
     "build_canonical_admission_context",
+    "build_canonical_observation",
     "run_canonical_admission_audit",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
