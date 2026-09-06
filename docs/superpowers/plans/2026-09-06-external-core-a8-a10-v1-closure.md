@@ -4,7 +4,7 @@
 
 **Goal:** Complete the common External Core architectural generation at A10 by adding complete-surface observation, provenance-bound observation receipts, and caller-evidence-driven continuity/fork validation while preserving all frozen A5–A7 artifact identities.
 
-**Architecture:** Add one focused `nolane.external_core.observation` module containing the final reusable observation model. A8, A9 and A10 are implemented as separate TDD milestones against that one model, then `integration_admission_bundle.py` consumes the observation envelope in the current audit lane. Frozen admission-v2 and bundle-v2 remain byte-semantically unchanged; the final current lane advances once to `external.integration 0.0.7` and audit-v4.
+**Architecture:** Add one focused `nolane.external_core.observation` module containing the final reusable observation model. A8, A9 and A10 are separate TDD milestones against that one model, then `integration_admission_bundle.py` consumes the observation envelope in the current audit lane. Frozen admission-v2 and bundle-v2 remain byte-semantically unchanged; the final current lane advances once to `external.integration 0.0.7` and audit-v4.
 
 **Tech Stack:** Python 3.11/3.13, dataclasses, canonical JSON/digest helpers, pytest, GitHub Actions, existing External Core registry/profile/admission contracts.
 
@@ -28,44 +28,96 @@
 
 ## File Structure
 
-- Create `nolane/external_core/observation.py` — owns surface contracts, surface receipts, canonical observation envelopes, strict serialization, completeness/provenance validation, transition validation and fork detection.
-- Modify `nolane/external_core/integration_admission_bundle.py` — captures/consumes one observation envelope in the current build/audit lane; does not duplicate observation-model logic.
-- Modify `nolane/external_core/integration.py` — current component version only at final closure.
-- Modify `nolane/external_core/compatibility.py` — current semantic projection only at final closure.
-- Modify `nolane/metadata/component_versions.py` — `external.integration` revision only at final closure.
-- Modify `.github/workflows/external-core-a2.yml` — include A8/A9/A10 tests and final A10 audit naming.
-- Modify `CURRENT/EXTERNAL_CORE.md` — append A8/A9/A10 closure without rewriting A2–A7 history.
-- Create `tests/test_external_core_a8_observation_completeness.py` — A8 RED/GREEN.
-- Create `tests/test_external_core_a9_observation_provenance.py` — A9 RED/GREEN.
-- Create `tests/test_external_core_a10_observation_continuity.py` — A10 RED/GREEN.
-- Update current projection/revalidation tests only where they assert the current `external.integration` semantic surface.
+- Create `nolane/external_core/observation.py` — surface contracts, surface receipts, canonical observation envelopes, strict serialization, completeness/provenance validation, transition validation and fork detection.
+- Modify `nolane/external_core/integration_admission_bundle.py` — one capture path and current v4 audit integration.
+- Modify `nolane/external_core/integration.py`, `nolane/external_core/compatibility.py`, `nolane/metadata/component_versions.py` — final current-lane version projection only.
+- Modify `.github/workflows/external-core-a2.yml` and `CURRENT/EXTERNAL_CORE.md` — final test/audit coverage and architecture seal.
+- Create `tests/test_external_core_a8_observation_completeness.py`.
+- Create `tests/test_external_core_a9_observation_provenance.py`.
+- Create `tests/test_external_core_a10_observation_continuity.py`.
+- Update only tests that intentionally project the current `external.integration` version.
 
 ---
 
-### Task 1: A8 RED — prove completeness is missing after A7
+### Task 1: A8 RED — prove completeness is absent after A7
 
 **Files:**
 - Create: `tests/test_external_core_a8_observation_completeness.py`
-- Read only: `nolane/external_core/integration_admission_bundle.py`
-- Read only: `nolane/external_core/audit.py`
 
 **Interfaces:**
-- Consumes: `build_canonical_registry()`, `build_canonical_fabric_profile()`, `canonical_frontier_digest()` and A7 current audit APIs.
-- Produces: failing behavioral expectations that define A8 negative-space semantics.
+- Consumes: current canonical registry/profile and frontier digest helpers.
+- Produces: failing A8 expectations before `observation.py` exists.
 
-- [ ] **Step 1: Write failing tests for missing observation representation**
-
-Create tests whose imports intentionally fail before `observation.py` exists:
+- [ ] **Step 1: Write the test module with exact helpers**
 
 ```python
+from __future__ import annotations
+
+import pytest
+
+from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.audit import build_canonical_registry
+from nolane.external_core.integration_admission import canonical_frontier_digest
 from nolane.external_core.observation import (
-    CanonicalObservationSurfaceContract,
-    SurfaceObservationReceipt,
     CanonicalObservationEnvelope,
+    CanonicalObservationSurfaceContract,
     REQUIRED_SURFACE_KINDS,
+    SurfaceObservationReceipt,
+    validate_observation_completeness,
 )
 
 
+def _surface_digests() -> dict[str, str]:
+    return {
+        "registry": "registry-state-1",
+        "authority-graph": "authority-state-1",
+        "source-state": canonical_frontier_digest("source-state", {}),
+        "evidence": canonical_frontier_digest("evidence", {}),
+        "artifact": canonical_frontier_digest("artifact", {}),
+        "freshness": canonical_frontier_digest("freshness", {}),
+        "handoff": canonical_frontier_digest("handoff", {}),
+        "work-trace": canonical_frontier_digest("work-trace", {}),
+    }
+
+
+def _receipt(kind: str, state_digest: str, *, complete: bool = True, epoch: int = 7) -> SurfaceObservationReceipt:
+    return SurfaceObservationReceipt.create(
+        surface_kind=kind,
+        provider_id=f"provider:{kind}",
+        provider_version="1",
+        source_locator=f"tests:{kind}",
+        scope_digest=canonical_digest({"surface_kind": kind, "scope": "complete"}),
+        observed_state_digest=state_digest,
+        enumeration_complete=complete,
+        observed_epoch=epoch,
+    )
+
+
+def _envelope(*, receipts: tuple[SurfaceObservationReceipt, ...], epoch: int = 7) -> CanonicalObservationEnvelope:
+    registry = build_canonical_registry()
+    digests = _surface_digests()
+    return CanonicalObservationEnvelope.create(
+        surface_contract=CanonicalObservationSurfaceContract.create(
+            required_component_ids=tuple(row.component_id for row in registry.manifests),
+        ),
+        observed_epoch=epoch,
+        registry_digest=digests["registry"],
+        authority_graph_digest=digests["authority-graph"],
+        source_state_frontier_digest=digests["source-state"],
+        evidence_frontier_digest=digests["evidence"],
+        artifact_frontier_digest=digests["artifact"],
+        freshness_fence_frontier_digest=digests["freshness"],
+        handoff_frontier_digest=digests["handoff"],
+        work_trace_frontier_digest=digests["work-trace"],
+        surface_receipts=receipts,
+        chain_id="external-core:default",
+        previous_observation_digest=None,
+    )
+```
+
+- [ ] **Step 2: Add exact A8 tests**
+
+```python
 def test_required_surface_kinds_are_exact_and_closed() -> None:
     assert REQUIRED_SURFACE_KINDS == (
         "artifact",
@@ -77,52 +129,90 @@ def test_required_surface_kinds_are_exact_and_closed() -> None:
         "source-state",
         "work-trace",
     )
+
+
+def test_contract_rejects_duplicate_component_identity() -> None:
+    with pytest.raises(ValueError, match="duplicate required component identity"):
+        CanonicalObservationSurfaceContract.create(required_component_ids=("external.a", "external.a"))
+
+
+def test_receipt_rejects_bool_epoch() -> None:
+    with pytest.raises(ValueError, match="exact non-negative integer"):
+        SurfaceObservationReceipt.create(
+            surface_kind="source-state",
+            provider_id="provider:source",
+            provider_version="1",
+            source_locator="tests:source",
+            scope_digest="scope-1",
+            observed_state_digest="state-1",
+            enumeration_complete=True,
+            observed_epoch=True,
+        )
+
+
+def test_missing_required_surface_is_reported() -> None:
+    digests = _surface_digests()
+    receipts = tuple(_receipt(kind, digest) for kind, digest in digests.items() if kind != "artifact")
+    envelope = _envelope(receipts=receipts)
+    findings = validate_observation_completeness(
+        envelope,
+        expected_component_ids=envelope.surface_contract.required_component_ids,
+        observed_surface_digests=digests,
+    )
+    assert "OBSERVATION_REQUIRED_SURFACE_MISSING" in {row.code for row in findings}
+
+
+def test_incomplete_enumeration_is_reported() -> None:
+    digests = _surface_digests()
+    receipts = tuple(
+        _receipt(kind, digest, complete=(kind != "source-state"))
+        for kind, digest in digests.items()
+    )
+    findings = validate_observation_completeness(
+        _envelope(receipts=receipts),
+        expected_component_ids=build_canonical_registry().component_ids,
+        observed_surface_digests=digests,
+    )
+    assert "OBSERVATION_ENUMERATION_INCOMPLETE" in {row.code for row in findings}
+
+
+def test_surface_epoch_mismatch_is_reported() -> None:
+    digests = _surface_digests()
+    receipts = tuple(
+        _receipt(kind, digest, epoch=(6 if kind == "evidence" else 7))
+        for kind, digest in digests.items()
+    )
+    findings = validate_observation_completeness(
+        _envelope(receipts=receipts),
+        expected_component_ids=build_canonical_registry().component_ids,
+        observed_surface_digests=digests,
+    )
+    assert "OBSERVATION_SURFACE_EPOCH_MISMATCH" in {row.code for row in findings}
+
+
+def test_surface_state_digest_mismatch_is_reported() -> None:
+    digests = _surface_digests()
+    receipts = tuple(
+        _receipt(kind, "wrong-state" if kind == "handoff" else digest)
+        for kind, digest in digests.items()
+    )
+    findings = validate_observation_completeness(
+        _envelope(receipts=receipts),
+        expected_component_ids=build_canonical_registry().component_ids,
+        observed_surface_digests=digests,
+    )
+    assert "OBSERVATION_SURFACE_STATE_DIGEST_MISMATCH" in {row.code for row in findings}
 ```
 
-- [ ] **Step 2: Add A8 behavior tests**
-
-Include concrete tests for:
-
-```python
-def test_surface_contract_rejects_missing_required_surface() -> None:
-    ...
-
-
-def test_surface_contract_rejects_unexpected_surface() -> None:
-    ...
-
-
-def test_surface_contract_rejects_incomplete_component_population() -> None:
-    ...
-
-
-def test_required_surface_receipt_must_declare_complete_enumeration() -> None:
-    ...
-
-
-def test_required_surface_receipt_epoch_must_match_observation_epoch() -> None:
-    ...
-
-
-def test_required_surface_receipt_digest_must_match_detached_snapshot() -> None:
-    ...
-
-
-def test_none_surface_is_not_equivalent_to_explicit_empty_surface() -> None:
-    ...
-```
-
-Use exact strings and exact non-negative integer epochs. Include `True` as an invalid epoch case.
+If `CanonicalComponentRegistry` does not expose `component_ids`, use `tuple(row.component_id for row in registry.manifests)` consistently in the test before committing RED; do not add a registry API solely for this test.
 
 - [ ] **Step 3: Run A8 RED**
-
-Run:
 
 ```bash
 python -m pytest -q tests/test_external_core_a8_observation_completeness.py
 ```
 
-Expected: FAIL because the observation model and/or A8 completeness enforcement does not exist.
+Expected: import/collection failure because `nolane.external_core.observation` does not exist.
 
 - [ ] **Step 4: Commit test-only RED**
 
@@ -133,27 +223,46 @@ git commit -m "test: expose External Core A8 completeness gap"
 
 ---
 
-### Task 2: A8 GREEN — add strict surface contract, receipts and completeness validation
+### Task 2: A8 GREEN — strict surface contract, receipts and completeness
 
 **Files:**
 - Create: `nolane/external_core/observation.py`
 - Test: `tests/test_external_core_a8_observation_completeness.py`
 
-**Interfaces:**
-- Produces:
-  - `OBSERVATION_SURFACE_PROTOCOL = "external-canonical-observation-surface-v1"`
-  - `SURFACE_RECEIPT_PROTOCOL = "external-surface-observation-receipt-v1"`
-  - `OBSERVATION_PROTOCOL = "external-canonical-observation-v1"`
-  - `REQUIRED_SURFACE_KINDS: tuple[str, ...]`
-  - `CanonicalObservationSurfaceContract.create(required_component_ids: Sequence[str])`
-  - `SurfaceObservationReceipt.create(...)`
-  - `CanonicalObservationEnvelope.create(...)`
-  - `.to_state()`, `.from_state()`, `.validate_integrity()` on all three types
-  - `validate_observation_completeness(envelope, *, expected_component_ids, observed_surface_digests) -> tuple[ObservationFinding, ...]`
+**Interfaces produced:**
 
-- [ ] **Step 1: Implement strict primitives**
+```python
+OBSERVATION_SURFACE_PROTOCOL = "external-canonical-observation-surface-v1"
+SURFACE_RECEIPT_PROTOCOL = "external-surface-observation-receipt-v1"
+OBSERVATION_PROTOCOL = "external-canonical-observation-v1"
+REQUIRED_SURFACE_KINDS: tuple[str, ...]
 
-Use frozen dataclasses with slots. Add exact helpers equivalent in strictness to A5/A7 patterns:
+@dataclass(frozen=True, slots=True)
+class ObservationFinding:
+    code: str
+    detail: str
+    subject_id: str
+
+@dataclass(frozen=True, slots=True)
+class CanonicalObservationSurfaceContract: ...
+
+@dataclass(frozen=True, slots=True)
+class SurfaceObservationReceipt: ...
+
+@dataclass(frozen=True, slots=True)
+class CanonicalObservationEnvelope: ...
+
+def validate_observation_completeness(
+    envelope: CanonicalObservationEnvelope,
+    *,
+    expected_component_ids: tuple[str, ...],
+    observed_surface_digests: Mapping[str, str],
+) -> tuple[ObservationFinding, ...]: ...
+```
+
+The class bodies above are type/interface declarations in the plan; implementation steps below define their required behavior without leaving code placeholders in the repository.
+
+- [ ] **Step 1: Implement strict scalar/key helpers**
 
 ```python
 def _exact_non_empty_string(value: object, label: str) -> str:
@@ -168,23 +277,28 @@ def _exact_epoch(value: object) -> int:
     return value
 ```
 
+Add `_exact_keys` equivalent to current A7 strict parsing. Unknown/missing keys fail before restore.
+
 - [ ] **Step 2: Implement `CanonicalObservationSurfaceContract`**
 
-Canonical contract must:
-- deduplicate/reject duplicate component IDs rather than silently set-normalizing input;
-- sort canonical component IDs and required surface kinds;
-- require required surface kinds to equal `REQUIRED_SURFACE_KINDS` exactly;
-- content-address its digest;
-- reject unknown/missing serialized keys.
+`create(required_component_ids)` must reject non-string/empty IDs and duplicates, sort the final tuple, set required kinds to exactly `REQUIRED_SURFACE_KINDS`, and digest this payload:
+
+```python
+payload = {
+    "protocol": OBSERVATION_SURFACE_PROTOCOL,
+    "required_component_ids": list(component_ids),
+    "required_surface_kinds": list(REQUIRED_SURFACE_KINDS),
+}
+```
+
+`from_state()` accepts only exact serialized lists and requires `dict(state) == expected.to_state()` after reconstruction.
 
 - [ ] **Step 3: Implement `SurfaceObservationReceipt`**
 
-Signature:
+Use exact signature:
 
 ```python
-@classmethod
-def create(
-    cls,
+SurfaceObservationReceipt.create(
     *,
     surface_kind: str,
     provider_id: str,
@@ -194,46 +308,38 @@ def create(
     observed_state_digest: str,
     enumeration_complete: bool,
     observed_epoch: int,
-) -> "SurfaceObservationReceipt": ...
+) -> SurfaceObservationReceipt
 ```
 
-Rules:
-- `surface_kind` must be in `REQUIRED_SURFACE_KINDS`;
-- `enumeration_complete` must be exact bool;
-- all strings exact/non-empty;
-- epoch exact int/non-negative;
-- digest is content-addressed over protocol + all semantic fields.
+Reject unknown surface kinds, non-bool completeness, bool epochs, empty/coercible strings and forged state. Digest protocol + all semantic fields.
 
-- [ ] **Step 4: Implement minimal `CanonicalObservationEnvelope` needed for A8**
+- [ ] **Step 4: Implement final-shape `CanonicalObservationEnvelope`**
 
-Create the full final field shape now so A9/A10 do not churn schema:
+Fields are fixed now so A9/A10 do not alter serialization:
 
-```python
-@classmethod
-def create(
-    cls,
-    *,
-    surface_contract: CanonicalObservationSurfaceContract,
-    observed_epoch: int,
-    registry_digest: str,
-    authority_graph_digest: str,
-    source_state_frontier_digest: str,
-    evidence_frontier_digest: str,
-    artifact_frontier_digest: str,
-    freshness_fence_frontier_digest: str,
-    handoff_frontier_digest: str,
-    work_trace_frontier_digest: str,
-    surface_receipts: Sequence[SurfaceObservationReceipt],
-    chain_id: str,
-    previous_observation_digest: str | None,
-) -> "CanonicalObservationEnvelope": ...
+```text
+protocol
+surface_contract
+observed_epoch
+registry_digest
+authority_graph_digest
+source_state_frontier_digest
+evidence_frontier_digest
+artifact_frontier_digest
+freshness_fence_frontier_digest
+handoff_frontier_digest
+work_trace_frontier_digest
+surface_receipts
+chain_id
+previous_observation_digest
+digest
 ```
 
-A8 validation may accept `previous_observation_digest=None`; genesis semantics are enforced in A10, not here.
+`surface_receipts` is sorted by `surface_kind` but duplicate kinds must be rejected before sorting. `previous_observation_digest` is either `None` or exact non-empty string. Genesis semantics are deferred to A10.
 
-- [ ] **Step 5: Implement `validate_observation_completeness`**
+- [ ] **Step 5: Implement completeness validator**
 
-Return deterministic `ObservationFinding(code, detail, subject_id)` rows. Required A8 codes:
+Emit deterministic findings with these exact codes:
 
 ```text
 OBSERVATION_REQUIRED_COMPONENT_MISSING
@@ -247,25 +353,18 @@ OBSERVATION_SURFACE_STATE_DIGEST_MISMATCH
 OBSERVATION_SURFACE_SCOPE_MISMATCH
 ```
 
-Do not turn `None` into `{}` inside this model.
+Compute expected component differences without coercion. Do not map missing surface evidence to an empty digest.
 
-- [ ] **Step 6: Run A8 GREEN**
+- [ ] **Step 6: Run A8 GREEN and frozen regressions**
 
 ```bash
 python -m pytest -q tests/test_external_core_a8_observation_completeness.py
-```
-
-Expected: PASS.
-
-- [ ] **Step 7: Run strict serialization regressions**
-
-```bash
 python -m pytest -q tests/test_external_core_a5_*.py tests/test_external_core_a6_*.py tests/test_external_core_a7_*.py
 ```
 
-Expected: PASS with no frozen protocol changes.
+Expected: all pass.
 
-- [ ] **Step 8: Commit A8 GREEN**
+- [ ] **Step 7: Commit A8 GREEN**
 
 ```bash
 git add nolane/external_core/observation.py tests/test_external_core_a8_observation_completeness.py
@@ -274,46 +373,45 @@ git commit -m "feat: add External Core A8 observation completeness"
 
 ---
 
-### Task 3: A9 RED — prove provenance substitution remains possible
+### Task 3: A9 RED — provenance substitution
 
 **Files:**
 - Create: `tests/test_external_core_a9_observation_provenance.py`
-- Read: `nolane/external_core/observation.py`
 
 **Interfaces:**
-- Consumes: A8 contract/receipt/envelope types.
-- Produces: failing expectations for exact provider provenance and persisted replay.
+- Consumes A8 receipt/envelope.
+- Produces failing expectations for provider identity/path checks.
 
-- [ ] **Step 1: Write provenance substitution tests**
+- [ ] **Step 1: Add concrete provenance tests**
 
-Construct two receipts with identical state/scope/epoch but different provider identity/source locator and prove A8 completeness alone does not reject the substitution.
-
-Required tests:
+Use an A8 fixture that creates a clean envelope. Add:
 
 ```python
-def test_provider_identity_substitution_changes_observation_identity() -> None:
-    ...
+def test_provider_identity_substitution_is_rejected(clean_envelope, provider_expectations) -> None:
+    receipt = clean_envelope.receipt_for("registry")
+    forged = receipt.replace(provider_id="provider:substitute")
+    candidate = clean_envelope.replace_surface_receipt(forged)
+    findings = validate_observation_provenance(candidate, provider_expectations=provider_expectations)
+    assert "OBSERVATION_PROVIDER_ID_MISMATCH" in {row.code for row in findings}
 
 
-def test_provider_version_substitution_changes_observation_identity() -> None:
-    ...
+def test_provider_version_substitution_is_rejected(clean_envelope, provider_expectations) -> None:
+    receipt = clean_envelope.receipt_for("authority-graph")
+    forged = receipt.replace(provider_version="999")
+    candidate = clean_envelope.replace_surface_receipt(forged)
+    findings = validate_observation_provenance(candidate, provider_expectations=provider_expectations)
+    assert "OBSERVATION_PROVIDER_VERSION_MISMATCH" in {row.code for row in findings}
 
 
-def test_source_locator_substitution_changes_observation_identity() -> None:
-    ...
-
-
-def test_cross_epoch_surface_receipt_reuse_is_blocked() -> None:
-    ...
-
-
-def test_registry_provider_must_match_canonical_provider_expectation() -> None:
-    ...
-
-
-def test_authority_graph_provider_must_match_canonical_provider_expectation() -> None:
-    ...
+def test_source_locator_substitution_is_rejected(clean_envelope, provider_expectations) -> None:
+    receipt = clean_envelope.receipt_for("registry")
+    forged = receipt.replace(source_locator="tests:wrong-source")
+    candidate = clean_envelope.replace_surface_receipt(forged)
+    findings = validate_observation_provenance(candidate, provider_expectations=provider_expectations)
+    assert "OBSERVATION_SOURCE_LOCATOR_MISMATCH" in {row.code for row in findings}
 ```
+
+Do **not** add production `replace` convenience methods merely for tests. In the real test, reconstruct the receipt/envelope through `.create(...)` using changed values. The snippets describe the semantic mutation only.
 
 - [ ] **Step 2: Run A9 RED**
 
@@ -321,7 +419,7 @@ def test_authority_graph_provider_must_match_canonical_provider_expectation() ->
 python -m pytest -q tests/test_external_core_a9_observation_provenance.py
 ```
 
-Expected: at least one test fails because there is no dedicated provenance validation API/current-provider expectation yet.
+Expected: collection/import failure for missing provenance expectation/validator API.
 
 - [ ] **Step 3: Commit test-only RED**
 
@@ -332,19 +430,13 @@ git commit -m "test: expose External Core A9 provenance gap"
 
 ---
 
-### Task 4: A9 GREEN — bind provider identity, source, scope, content and epoch
+### Task 4: A9 GREEN — exact provider/source binding
 
 **Files:**
 - Modify: `nolane/external_core/observation.py`
 - Test: `tests/test_external_core_a9_observation_provenance.py`
 
-**Interfaces:**
-- Produces:
-  - `CanonicalSurfaceProviderExpectation`
-  - `validate_observation_provenance(envelope, *, provider_expectations) -> tuple[ObservationFinding, ...]`
-  - `surface_receipt_for(...)` or equivalent canonical helper used later by integration audit.
-
-- [ ] **Step 1: Add provider expectation type**
+**Interfaces produced:**
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -353,13 +445,37 @@ class CanonicalSurfaceProviderExpectation:
     provider_id: str
     provider_version: str
     source_locator: str
+
+
+def validate_observation_provenance(
+    envelope: CanonicalObservationEnvelope,
+    *,
+    provider_expectations: Mapping[str, CanonicalSurfaceProviderExpectation],
+) -> tuple[ObservationFinding, ...]: ...
 ```
 
-Use strict exact fields and content-addressed digest only if serialized/persisted; otherwise keep it a pure runtime expectation value.
+- [ ] **Step 1: Implement strict runtime provider expectation type**
 
-- [ ] **Step 2: Implement provenance validation**
+It is not a persisted protocol. Constructor validates exact surface kind and exact non-empty strings. Use explicit registry/graph expectations:
 
-Required deterministic codes:
+```python
+CanonicalSurfaceProviderExpectation(
+    surface_kind="registry",
+    provider_id="external-core:canonical-registry",
+    provider_version="1",
+    source_locator="nolane.external_core.audit:build_canonical_registry",
+)
+CanonicalSurfaceProviderExpectation(
+    surface_kind="authority-graph",
+    provider_id="external-core:canonical-authority-graph",
+    provider_version="1",
+    source_locator="nolane.external_core.audit:build_canonical_fabric_profile",
+)
+```
+
+- [ ] **Step 2: Implement provenance validator**
+
+Required codes:
 
 ```text
 OBSERVATION_PROVIDER_ID_MISMATCH
@@ -371,28 +487,17 @@ OBSERVATION_PROVENANCE_EPOCH_MISMATCH
 OBSERVATION_RECEIPT_FORGED
 ```
 
-Do not claim provider truthfulness. Only bind identity/path/scope/content/epoch.
+Call `receipt.validate_integrity()` first. Compare exact provider values, receipt epoch to envelope epoch, and receipt state digest to the envelope's committed digest for the corresponding surface.
 
-- [ ] **Step 3: Make registry and authority-graph expectations canonical**
-
-Build expectations from the current canonical in-process builder path using explicit provider IDs such as:
-
-```text
-external-core:canonical-registry
-external-core:canonical-authority-graph
-```
-
-and exact source locators tied to the canonical builder functions/modules. Do not use display strings derived from arbitrary objects.
-
-- [ ] **Step 4: Run A9 GREEN + A8 regression**
+- [ ] **Step 3: Run A8+A9**
 
 ```bash
 python -m pytest -q tests/test_external_core_a8_observation_completeness.py tests/test_external_core_a9_observation_provenance.py
 ```
 
-Expected: PASS.
+Expected: pass.
 
-- [ ] **Step 5: Commit A9 GREEN**
+- [ ] **Step 4: Commit A9 GREEN**
 
 ```bash
 git add nolane/external_core/observation.py tests/test_external_core_a9_observation_provenance.py
@@ -401,43 +506,52 @@ git commit -m "feat: add External Core A9 observation provenance"
 
 ---
 
-### Task 5: A10 RED — prove continuity and forks are not represented
+### Task 5: A10 RED — predecessor and fork semantics
 
 **Files:**
 - Create: `tests/test_external_core_a10_observation_continuity.py`
-- Read: `nolane/external_core/observation.py`
 
 **Interfaces:**
-- Consumes: A8/A9 envelope.
-- Produces: failing expectations for explicit genesis, predecessor binding, monotonic cross-observation epochs, chain IDs and fork classification.
+- Consumes A8/A9 envelope.
+- Produces failing transition/fork expectations.
 
-- [ ] **Step 1: Write transition tests**
+- [ ] **Step 1: Add exact transition tests**
 
-Required cases:
+Create helper `_successor(previous, *, epoch, chain_id=None, previous_digest=None, salt="next")` that reconstructs a new envelope with changed epoch and one receipt content digest so the successor digest is distinct.
+
+Add:
 
 ```python
-def test_successor_requires_exact_predecessor_digest() -> None:
-    ...
+def test_successor_requires_exact_predecessor_digest(previous) -> None:
+    current = _successor(previous, epoch=previous.observed_epoch + 1, previous_digest="wrong")
+    findings = validate_observation_transition(previous, current)
+    assert "OBSERVATION_PREDECESSOR_DIGEST_MISMATCH" in {row.code for row in findings}
 
 
-def test_successor_requires_same_chain_id() -> None:
-    ...
+def test_successor_requires_same_chain_id(previous) -> None:
+    current = _successor(previous, epoch=previous.observed_epoch + 1, chain_id="external-core:other")
+    findings = validate_observation_transition(previous, current)
+    assert "OBSERVATION_CHAIN_ID_MISMATCH" in {row.code for row in findings}
 
 
-def test_successor_epoch_must_be_strictly_greater_than_predecessor() -> None:
-    ...
+def test_successor_epoch_must_be_strictly_greater(previous) -> None:
+    current = _successor(previous, epoch=previous.observed_epoch)
+    findings = validate_observation_transition(previous, current)
+    assert "OBSERVATION_EPOCH_NOT_MONOTONIC" in {row.code for row in findings}
 
 
-def test_genesis_must_be_explicit_not_inferred_from_missing_predecessor() -> None:
-    ...
+def test_missing_predecessor_is_not_silently_genesis(previous) -> None:
+    current = _successor(previous, epoch=previous.observed_epoch + 1)
+    findings = validate_observation_transition(None, current, genesis=False)
+    assert "OBSERVATION_PREDECESSOR_UNAVAILABLE" in {row.code for row in findings}
 ```
 
-- [ ] **Step 2: Write fork test**
-
-Build two individually valid successors with the same `(chain_id, previous_observation_digest)` but different canonical successor digests:
+- [ ] **Step 2: Add exact fork test**
 
 ```python
-def test_sibling_successors_are_classified_as_observation_fork() -> None:
+def test_distinct_sibling_successors_are_a_fork(previous) -> None:
+    left = _successor(previous, epoch=previous.observed_epoch + 1, salt="left")
+    right = _successor(previous, epoch=previous.observed_epoch + 1, salt="right")
     findings = detect_observation_forks((left, right))
     assert [row.code for row in findings] == ["OBSERVATION_FORK_DETECTED"]
 ```
@@ -448,9 +562,9 @@ def test_sibling_successors_are_classified_as_observation_fork() -> None:
 python -m pytest -q tests/test_external_core_a10_observation_continuity.py
 ```
 
-Expected: FAIL because transition/fork APIs do not exist yet.
+Expected: import/collection failure for missing transition/fork APIs.
 
-- [ ] **Step 4: Commit test-only RED**
+- [ ] **Step 4: Commit RED**
 
 ```bash
 git add tests/test_external_core_a10_observation_continuity.py
@@ -459,20 +573,31 @@ git commit -m "test: expose External Core A10 continuity gap"
 
 ---
 
-### Task 6: A10 GREEN — pure continuity validation and fork detection
+### Task 6: A10 GREEN — pure continuity/fork validation
 
 **Files:**
 - Modify: `nolane/external_core/observation.py`
 - Test: `tests/test_external_core_a10_observation_continuity.py`
 
-**Interfaces:**
-- Produces:
-  - `validate_observation_transition(previous, current, *, genesis=False) -> tuple[ObservationFinding, ...]`
-  - `detect_observation_forks(successors: Sequence[CanonicalObservationEnvelope]) -> tuple[ObservationFinding, ...]`
+**Interfaces produced:**
+
+```python
+def validate_observation_transition(
+    previous: CanonicalObservationEnvelope | None,
+    current: CanonicalObservationEnvelope,
+    *,
+    genesis: bool = False,
+) -> tuple[ObservationFinding, ...]: ...
+
+
+def detect_observation_forks(
+    successors: Sequence[CanonicalObservationEnvelope],
+) -> tuple[ObservationFinding, ...]: ...
+```
 
 - [ ] **Step 1: Implement transition validation**
 
-Required codes:
+Exact codes:
 
 ```text
 OBSERVATION_PREDECESSOR_UNAVAILABLE
@@ -482,30 +607,24 @@ OBSERVATION_EPOCH_NOT_MONOTONIC
 OBSERVATION_GENESIS_CONTEXT_INVALID
 ```
 
-Genesis rules:
-- `genesis=True` requires `previous is None` and `current.previous_observation_digest is None`;
-- `genesis=False` requires predecessor evidence;
-- no fallback from missing predecessor to genesis.
+Rules:
+- `genesis=True`: `previous is None` and `current.previous_observation_digest is None` are both required.
+- `genesis=False`: predecessor is required.
+- successor requires exact predecessor digest and chain ID.
+- successor requires `current.observed_epoch > previous.observed_epoch`.
+- call both envelope integrity validators before comparisons.
 
-Successor rules:
-- exact predecessor digest;
-- exact chain ID equality;
-- `current.observed_epoch > previous.observed_epoch`.
+- [ ] **Step 2: Implement deterministic fork detection**
 
-- [ ] **Step 2: Implement pure fork detection**
+Validate each envelope, group by `(chain_id, previous_observation_digest)`, ignore exact duplicate successor digests, and emit one finding per group with more than one distinct digest. Sort findings by `(chain_id, predecessor_digest)` before return.
 
-Group integrity-valid envelopes by `(chain_id, previous_observation_digest)`. Ignore exact duplicate envelope digests. If a group contains more than one distinct successor digest, emit exactly one deterministic `OBSERVATION_FORK_DETECTED` finding for that predecessor group.
-
-- [ ] **Step 3: Run A10 GREEN and all observation tests**
+- [ ] **Step 3: Run A8+A9+A10**
 
 ```bash
-python -m pytest -q \
-  tests/test_external_core_a8_observation_completeness.py \
-  tests/test_external_core_a9_observation_provenance.py \
-  tests/test_external_core_a10_observation_continuity.py
+python -m pytest -q tests/test_external_core_a8_*.py tests/test_external_core_a9_*.py tests/test_external_core_a10_*.py
 ```
 
-Expected: PASS.
+Expected: pass.
 
 - [ ] **Step 4: Commit A10 GREEN**
 
@@ -516,57 +635,97 @@ git commit -m "feat: add External Core A10 observation continuity"
 
 ---
 
-### Task 7: Integrate the final observation envelope into current admission/audit lane
+### Task 7: Integrate observation-v1 into the current admission/audit lane
 
 **Files:**
 - Modify: `nolane/external_core/integration_admission_bundle.py`
 - Modify: `nolane/external_core/observation.py`
-- Test: all A8/A9/A10 tests plus focused A7 regressions.
+- Test: A7/A8/A9/A10 tests.
 
-**Interfaces:**
-- Consumes: `CanonicalObservationEnvelope`, A8/A9/A10 validators.
-- Produces:
-  - `build_canonical_observation(...) -> CanonicalObservationEnvelope`
-  - `run_canonical_admission_audit(..., current_observation: CanonicalObservationEnvelope | None = None, predecessor_observation: CanonicalObservationEnvelope | None = None, competing_successors: Sequence[CanonicalObservationEnvelope] = ())`
-  - `CanonicalAdmissionAuditReport` v4 binding `observation_digest`.
-
-- [ ] **Step 1: Write integration RED tests first**
-
-Add to A8/A9/A10 files or a focused current-audit section:
+**Interfaces produced:**
 
 ```python
-def test_current_audit_cannot_be_clean_without_complete_required_surface_evidence() -> None:
-    ...
-
-
-def test_persisted_audit_rejects_provider_substitution() -> None:
-    ...
-
-
-def test_persisted_audit_requires_explicit_predecessor_for_non_genesis_observation() -> None:
-    ...
-
-
-def test_fresh_audit_builds_bundle_and_observation_from_same_a7_snapshot() -> None:
-    ...
+def build_canonical_observation(
+    *,
+    observed_epoch: int,
+    chain_id: str,
+    previous_observation_digest: str | None,
+    current_source_state_digests: Mapping[str, str],
+    current_evidence_digests: Mapping[str, str],
+    current_artifact_digests: Mapping[str, str],
+    current_freshness_fences: Mapping[str, str],
+    known_handoff_digests: Mapping[str, str],
+    current_work_trace_digests: Mapping[str, str],
+) -> CanonicalObservationEnvelope: ...
 ```
 
-Expected before integration: FAIL.
+`run_canonical_admission_audit` gains keyword-only inputs:
 
-- [ ] **Step 2: Add one capture helper**
+```python
+current_observation: CanonicalObservationEnvelope | None = None
+predecessor_observation: CanonicalObservationEnvelope | None = None
+competing_successors: Sequence[CanonicalObservationEnvelope] = ()
+observation_genesis: bool = False
+```
 
-Implement a single current-lane capture function that:
-1. snapshots six frontier mappings once using A7 strict snapshot rules;
-2. captures registry/profile once;
-3. creates exact registry/graph receipts;
-4. requires explicit complete receipts for dynamic frontier surfaces or uses one narrow canonical caller-provider adapter that creates those receipts from the exact detached mapping and explicit completeness declaration;
-5. builds both `CanonicalAdmissionBundle` and `CanonicalObservationEnvelope` from the same detached observation.
+- [ ] **Step 1: Write integration RED tests before production edits**
 
-Do not call `_strict_current_objects()` again inside the same fresh transaction.
+Add exact tests:
 
-- [ ] **Step 3: Bind observation digest into audit report**
+```python
+def test_current_v4_audit_requires_complete_surface_witness() -> None:
+    report = run_canonical_admission_audit(bundle=persisted_bundle, current_observed_epoch=7)
+    assert "CURRENT_OBSERVATION_WITNESS_UNAVAILABLE" in {row.code for row in report.findings}
 
-Change current audit report schema only:
+
+def test_current_v4_audit_rejects_provider_substitution() -> None:
+    report = run_canonical_admission_audit(
+        bundle=persisted_bundle,
+        current_observed_epoch=7,
+        current_observation=provider_substituted_observation,
+        predecessor_observation=predecessor,
+    )
+    assert "OBSERVATION_PROVIDER_ID_MISMATCH" in {row.code for row in report.findings}
+
+
+def test_fresh_capture_reads_current_objects_once(monkeypatch) -> None:
+    reads = {"count": 0}
+    original = admission_bundle._strict_current_objects
+    def counted():
+        reads["count"] += 1
+        return original()
+    monkeypatch.setattr(admission_bundle, "_strict_current_objects", counted)
+    report = admission_bundle.run_canonical_admission_audit(
+        observed_epoch=7,
+        observation_genesis=True,
+        current_source_state_digests={},
+        current_evidence_digests={},
+        current_artifact_digests={},
+        current_freshness_fences={},
+        known_handoff_digests={},
+        current_work_trace_digests={},
+    )
+    assert not report.findings
+    assert reads == {"count": 1}
+```
+
+Before integration, at least the first two behaviors must fail.
+
+- [ ] **Step 2: Add one capture helper, not a second observation implementation**
+
+Capture sequence:
+1. strict-snapshot all six caller mappings exactly once;
+2. capture registry/profile exactly once;
+3. compute detached state digests from those snapshots;
+4. create canonical registry/graph receipts and dynamic frontier receipts for the same epoch;
+5. build `CanonicalObservationEnvelope`;
+6. build `CanonicalAdmissionBundle` from the same registry/profile/snapshot objects.
+
+The dynamic caller-provider adapter must explicitly mark enumeration complete and use stable provider IDs such as `external-core:caller-source-state`. It does not assert truthfulness; it asserts that the caller supplied a complete enumeration for that surface.
+
+- [ ] **Step 3: Upgrade current audit report schema**
+
+Final schema:
 
 ```python
 @dataclass(frozen=True, slots=True)
@@ -577,34 +736,30 @@ class CanonicalAdmissionAuditReport:
     digest: str
 ```
 
-Digest payload includes `observation_digest`.
+Include `observation_digest` in report digest payload. This is a current audit protocol change only.
 
-- [ ] **Step 4: Persisted audit rules**
+- [ ] **Step 4: Persisted audit validation order**
 
-For persisted current v4 audit:
-- require explicit `current_observation` or enough complete inputs to construct one under the same transaction;
-- do not silently regenerate provenance from partial old inputs and call it equivalent;
-- require envelope/context registry, graph, six frontier digests and epoch to match exactly;
-- run completeness then provenance then continuity validators;
-- append deterministic findings; never mutate/repair.
+For persisted v4 current audit:
+1. bundle integrity;
+2. current observation integrity;
+3. exact envelope/context registry/graph/six frontier/epoch equality;
+4. A8 completeness;
+5. A9 provenance;
+6. A10 transition; and supplied sibling fork detection;
+7. existing A5/A6/A7 live re-admission checks.
 
-- [ ] **Step 5: Preserve old structural restore paths**
+Missing current observation emits `CURRENT_OBSERVATION_WITNESS_UNAVAILABLE`; do not silently reconstruct provenance from old partial inputs.
 
-`CanonicalAdmissionBundle.from_state()` and admission-v2 receipts remain unchanged. Historical callers may still restore bundle-v2; only a clean *current v4 audit* requires the new observation witness.
-
-- [ ] **Step 6: Run focused integration tests**
+- [ ] **Step 5: Run focused tests**
 
 ```bash
-python -m pytest -q \
-  tests/test_external_core_a7_*.py \
-  tests/test_external_core_a8_*.py \
-  tests/test_external_core_a9_*.py \
-  tests/test_external_core_a10_*.py
+python -m pytest -q tests/test_external_core_a7_*.py tests/test_external_core_a8_*.py tests/test_external_core_a9_*.py tests/test_external_core_a10_*.py
 ```
 
-Expected: PASS.
+Expected: pass.
 
-- [ ] **Step 7: Commit integration**
+- [ ] **Step 6: Commit integration**
 
 ```bash
 git add nolane/external_core/observation.py nolane/external_core/integration_admission_bundle.py tests/test_external_core_a8_*.py tests/test_external_core_a9_*.py tests/test_external_core_a10_*.py
@@ -613,86 +768,70 @@ git commit -m "feat: integrate final External Core observation witness"
 
 ---
 
-### Task 8: Final protocol/version closure to 0.0.7 and audit-v4
+### Task 8: Final current-lane version/protocol closure
 
 **Files:**
 - Modify: `nolane/external_core/integration.py`
 - Modify: `nolane/external_core/compatibility.py`
 - Modify: `nolane/external_core/integration_admission_bundle.py`
 - Modify: `nolane/metadata/component_versions.py`
-- Modify: current projection tests identified by grep for `external.integration` current `0.0.6` assertions.
+- Modify: current projection tests found by repository search for `external.integration` and `0.0.6`.
 
-**Interfaces:**
-- Produces final public identities:
-  - `external.integration == 0.0.7`
-  - semantic compatibility surface `0.0.7`
-  - metadata revision `7`
-  - `ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"`
-  - audit digest prefix `admission-audit-v4-`
-  - observation protocol `external-canonical-observation-v1`
+- [ ] **Step 1: Capture expected version-discipline RED**
 
-- [ ] **Step 1: Run version discipline before bump to capture expected RED**
+Run version discipline against base `63f3d3a89e93fc92868dc0829b6a15777283e74d` before bump. Expected: semantic change without owner revision for `external.integration`.
 
-```bash
-python -m nolane.metadata.version_discipline_cli --base 63f3d3a89e93fc92868dc0829b6a15777283e74d --head HEAD --check
-```
-
-Expected: semantic-change-without-revision finding for `external.integration`.
-
-- [ ] **Step 2: Apply only current-lane bump**
-
-Set:
+- [ ] **Step 2: Apply exact final identities**
 
 ```text
-integration.COMPONENT_VERSION = "0.0.7"
-compatibility.SEMANTIC_SURFACE_VERSION = "0.0.7"
-integration_admission_bundle.COMPONENT_VERSION = "0.0.7"
-component_versions["external.integration"].revision = 7
-ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
+nolane.external_core.integration.COMPONENT_VERSION = 0.0.7
+nolane.external_core.compatibility.SEMANTIC_SURFACE_VERSION = 0.0.7
+nolane.external_core.integration_admission_bundle.COMPONENT_VERSION = 0.0.7
+external.integration metadata revision = 7
+ADMISSION_AUDIT_PROTOCOL = external-integration-admission-audit-v4
+audit digest prefix = admission-audit-v4-
+OBSERVATION_PROTOCOL = external-canonical-observation-v1
 ```
 
-Keep:
+Preserve exactly:
 
 ```text
-integration_admission.COMPONENT_VERSION = "0.0.4"
-ADMISSION_PROTOCOL = "external-integration-admission-v2"
-ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
+nolane.external_core.integration_admission.COMPONENT_VERSION = 0.0.4
+ADMISSION_PROTOCOL = external-integration-admission-v2
+ADMISSION_BUNDLE_PROTOCOL = external-integration-admission-bundle-v2
 ```
 
-- [ ] **Step 3: Update only current projection tests**
+- [ ] **Step 3: Update only current projection assertions**
 
-Use repository search to update assertions that intentionally represent current `external.integration`. Do not alter historical receipt owner 0.0.4 assertions or historical A5/A6/A7 protocol assertions.
+Do not change historical owner/protocol assertions in A5/A6/A7 tests.
 
-- [ ] **Step 4: Run projection/version gates**
+- [ ] **Step 4: Verify version/projected surfaces**
 
 ```bash
 python -m pytest -q tests/test_refoundation_component_versions.py
 python -m nolane.metadata.version_discipline_cli --base 63f3d3a89e93fc92868dc0829b6a15777283e74d --head HEAD --check
 ```
 
-Expected: projection PASS and version discipline 0 findings.
+Expected: projection pass and zero findings.
 
 - [ ] **Step 5: Commit closure**
 
 ```bash
-git add nolane/external_core/integration.py nolane/external_core/compatibility.py nolane/external_core/integration_admission_bundle.py nolane/metadata/component_versions.py tests/
+git add nolane/external_core/integration.py nolane/external_core/compatibility.py nolane/external_core/integration_admission_bundle.py nolane/metadata/component_versions.py tests
 git commit -m "chore: close External Core v1 at integration 0.0.7"
 ```
 
 ---
 
-### Task 9: CI and CURRENT documentation closure
+### Task 9: CI and CURRENT seal
 
 **Files:**
 - Modify: `.github/workflows/external-core-a2.yml`
 - Modify: `CURRENT/EXTERNAL_CORE.md`
 
-**Interfaces:**
-- Produces final CI coverage for A8/A9/A10 and final architectural declaration.
+- [ ] **Step 1: Extend External Core contract glob**
 
-- [ ] **Step 1: Update workflow test glob**
-
-Ensure contract array includes:
+Include:
 
 ```bash
 tests/test_external_core_a8_*.py
@@ -700,55 +839,39 @@ tests/test_external_core_a9_*.py
 tests/test_external_core_a10_*.py
 ```
 
-Rename audit step/output to A10/current-v1 closure, e.g.:
+Rename the canonical audit step/output to:
 
 ```text
 Verify canonical A10 External Core v1 admission audit
 /tmp/external-core-a10-admission-audit.json
 ```
 
-- [ ] **Step 2: Append CURRENT sections without rewriting history**
+- [ ] **Step 2: Append zero-loss CURRENT sections**
 
-Append three sections:
-- `Post-Epoch-0 A8 — Observation Completeness`
-- `Post-Epoch-0 A9 — Observation Provenance`
-- `Post-Epoch-0 A10 — Observation Continuity / External Core v1 Architecture Complete`
+Append A8 completeness, A9 provenance, A10 continuity. Final A10 paragraph must explicitly state:
 
-Final wording must explicitly state:
-- no governor/stateful ledger;
-- fork detection only for supplied competing evidence;
-- no Verification/Assurance/authorization/etc authority;
-- A1→A10 architectural generation is now frozen as External Core v1.
+```text
+External Core v1 Architecture Complete — A1 through A10 frozen architectural generation.
+```
 
-- [ ] **Step 3: Run docs/workflow diff check**
+Also state that fork detection operates only on supplied competing evidence and External Core owns no mutable chain head.
+
+- [ ] **Step 3: Run whitespace check and commit**
 
 ```bash
 git diff --check
-```
-
-Expected: clean.
-
-- [ ] **Step 4: Commit docs/CI closure**
-
-```bash
 git add .github/workflows/external-core-a2.yml CURRENT/EXTERNAL_CORE.md
 git commit -m "docs: seal External Core v1 architecture at A10"
 ```
 
 ---
 
-### Task 10: Full feature verification and PR acceptance
+### Task 10: Full verification, PR, merge and production seal
 
 **Files:**
-- No production code changes unless a new RED/current regression proves a defect.
+- No production edits unless a fresh current regression demonstrates a defect.
 
-**Interfaces:**
-- Consumes exact feature head.
-- Produces merge-ready evidence package.
-
-- [ ] **Step 1: Fresh local/exact-tree verification**
-
-Run:
+- [ ] **Step 1: Fresh feature-head verification**
 
 ```bash
 python -m py_compile nolane/core/*.py nolane/external_core/*.py nolane/metadata/*.py
@@ -760,62 +883,36 @@ python -m pytest -q tests/test_coding_agi_ops_*.py tests/test_coding_agi_researc
 git diff --check
 ```
 
-Expected: all green.
+Require every command green.
 
-- [ ] **Step 2: Run component-local version discipline**
+- [ ] **Step 2: Version discipline on exact A7→A10 boundary**
 
-Against exact production base `63f3d3a89e93fc92868dc0829b6a15777283e74d`, require `clean=true`, `findings=[]`.
+Require `clean=true` and `findings=[]` for base `63f3d3a89e93fc92868dc0829b6a15777283e74d` to exact feature head.
 
-- [ ] **Step 3: Open draft PR from exact feature head**
+- [ ] **Step 3: Open draft PR and record exact evidence**
 
-PR body records:
-- A8 RED/GREEN evidence;
-- A9 RED/GREEN evidence;
-- A10 RED/GREEN evidence;
-- final protocol/version identities;
-- frozen A5–A7 boundaries;
-- exact test counts and run IDs.
+PR body records all RED/GREEN heads, exact test counts, current/frozen protocol identities and final boundary SHA.
 
-- [ ] **Step 4: Run External Core on Python 3.11 and 3.13**
+- [ ] **Step 4: Require External Core Python 3.11 and 3.13 acceptance**
 
-Require both jobs green through:
-- compile;
-- all External Core contracts;
-- version discipline;
-- component projection;
-- A2+A3 coherence audit;
-- final A10 current audit;
-- prior G/Assurance regressions.
+Both jobs must pass compile, all External Core contracts, version discipline, component projection, A2+A3 audit, final A10 audit and prior G/Assurance regressions.
 
 - [ ] **Step 5: Run broad current gates**
 
-Require current Refoundation, Memory, E Acting, R1.9, R2.0i, R2.63/R2.64.1 and relevant replacement-evidence gates to pass or be explicitly classified from fresh logs.
-
-Frozen R2.62/R2.65/R2.66/R2.67.1 full-release failures may be classified only when logs prove the failure is the known historical frozen-boundary witness and no A8–A10 file participates.
+Require current Refoundation, Memory, E Acting, R1.9, R2.0i, R2.63/R2.64.1 and applicable replacement-evidence gates. Historical R2.62/R2.65/R2.66/R2.67.1 full-release reds may be classified only from fresh logs proving the known frozen boundary and no A8–A10 involvement.
 
 - [ ] **Step 6: Verify synthetic merge-ref**
 
-Require:
-- parent 1 = current production main;
-- parent 2 = exact feature head;
-- merge tree introduces no merge-only drift;
-- GitHub signature valid;
-- zero unresolved review/thread blockers.
+Require parent 1 = current production main, parent 2 = exact feature head, no merge-only tree drift, valid GitHub signature, zero unresolved review/thread blockers.
 
-- [ ] **Step 7: Merge with exact expected head**
+- [ ] **Step 7: Merge with exact expected head SHA**
 
-Use merge commit and exact expected head SHA so drift fails closed.
+Use merge commit. Any head drift must fail closed.
 
 - [ ] **Step 8: Post-merge production verification**
 
-Require `main` SHA/tree/parents/signature and post-merge External Core run on Python 3.11/3.13. Re-run exact production version discipline against A7 base and confirm final A10 audit clean.
+Verify production `main` SHA/tree/parents/signature and a fresh post-merge External Core run on Python 3.11/3.13. Re-run version discipline on A7→A10 boundary and require final A10 audit clean.
 
-- [ ] **Step 9: Declare architecture complete**
+- [ ] **Step 9: Freeze architectural generation**
 
-Only after post-merge evidence is green, declare:
-
-```text
-External Core v1 Architecture Complete — A1 through A10 frozen architectural generation.
-```
-
-No A11 is created as part of this work.
+Only after production verification, declare External Core v1 complete and do not create A11 as part of this work.
