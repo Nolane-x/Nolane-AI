@@ -15,6 +15,7 @@ from nolane.external_core.integration_admission import (
 from nolane.external_core.integration_admission_bundle import (
     CanonicalAdmissionBundle,
     build_canonical_admission_bundle,
+    build_canonical_admission_context,
 )
 
 
@@ -94,3 +95,10 @@ def test_bundle_integrity_rejects_direct_constructor_digest_forgery() -> None:
     forged = replace(bundle, digest="forged-bundle-digest")
     with pytest.raises(ValueError, match="integrity|digest|canonical"):
         forged.validate_integrity()
+
+
+def test_context_builder_does_not_coerce_falsey_wrong_type_frontier_to_empty_mapping() -> None:
+    with pytest.raises(ValueError, match="frontier.*object|object"):
+        build_canonical_admission_context(
+            current_evidence_digests=[],  # type: ignore[arg-type]
+        )
