@@ -26,7 +26,7 @@ from nolane.external_core.integration_admission_bundle import (
 
 def test_canonical_admission_audit_is_clean_for_exact_current_bundle() -> None:
     bundle = build_canonical_admission_bundle(observed_epoch=11)
-    report = run_canonical_admission_audit(bundle=bundle)
+    report = run_canonical_admission_audit(bundle=bundle, current_observed_epoch=11)
     assert report.findings == ()
     assert report.digest
 
@@ -42,7 +42,7 @@ def test_canonical_admission_audit_reports_forged_bundle_without_repairing_it() 
 def test_canonical_admission_audit_default_builder_is_read_only_and_clean() -> None:
     report = run_canonical_admission_audit(observed_epoch=0)
     assert report.findings == ()
-    assert report.protocol == "external-integration-admission-audit-v1"
+    assert report.protocol == "external-integration-admission-audit-v2"
 
 
 def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_registry_drift(monkeypatch) -> None:
@@ -55,7 +55,7 @@ def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_reg
         lambda: (drifted_registry, profile),
     )
 
-    report = run_canonical_admission_audit(bundle=bundle)
+    report = run_canonical_admission_audit(bundle=bundle, current_observed_epoch=11)
 
     assert {row.code for row in report.findings} == {"CANONICAL_REGISTRY_CONTEXT_MISMATCH"}
     assert bundle.context.registry_digest == registry.registry_digest
@@ -81,7 +81,7 @@ def test_canonical_admission_audit_fails_closed_when_bound_frontier_is_not_reobs
     values = {"subject": "digest"}
     bundle = build_canonical_admission_bundle(observed_epoch=11, **{frontier_arg: values})
 
-    report = run_canonical_admission_audit(bundle=bundle)
+    report = run_canonical_admission_audit(bundle=bundle, current_observed_epoch=11)
 
     assert {row.code for row in report.findings} == {unavailable_code}
 
@@ -96,7 +96,11 @@ def test_canonical_admission_audit_accepts_exact_live_frontier_reobservation(
     values = {"subject": "digest"}
     bundle = build_canonical_admission_bundle(observed_epoch=11, **{frontier_arg: values})
 
-    report = run_canonical_admission_audit(bundle=bundle, **{frontier_arg: values})
+    report = run_canonical_admission_audit(
+        bundle=bundle,
+        current_observed_epoch=11,
+        **{frontier_arg: values},
+    )
 
     assert report.findings == ()
 
@@ -115,6 +119,7 @@ def test_canonical_admission_audit_rejects_live_frontier_drift(
 
     report = run_canonical_admission_audit(
         bundle=bundle,
+        current_observed_epoch=11,
         **{frontier_arg: {"subject": "drifted-digest"}},
     )
 
@@ -203,7 +208,7 @@ def test_canonical_admission_audit_replays_admission_instead_of_trusting_self_is
     )
     forged_bundle.validate_integrity()
 
-    report = run_canonical_admission_audit(bundle=forged_bundle)
+    report = run_canonical_admission_audit(bundle=forged_bundle, current_observed_epoch=11)
     codes = {row.code for row in report.findings}
 
     assert "CANONICAL_MANIFEST_MISMATCH" in codes

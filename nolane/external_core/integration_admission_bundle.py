@@ -23,9 +23,9 @@ from nolane.external_core.integration_admission import (
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
-ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v1"
+ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v2"
 
 
 def _exact_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
@@ -379,7 +379,7 @@ class CanonicalAdmissionAuditReport:
         return cls(
             protocol=ADMISSION_AUDIT_PROTOCOL,
             findings=rows,
-            digest="admission-audit-v1-" + canonical_digest(payload),
+            digest="admission-audit-v2-" + canonical_digest(payload),
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -428,10 +428,17 @@ def _observed_frontier(
     return None
 
 
+def _live_observation_epoch(value: object) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError("current observation epoch must be a non-negative integer")
+    return value
+
+
 def run_canonical_admission_audit(
     *,
     bundle: CanonicalAdmissionBundle | None = None,
     observed_epoch: int = 0,
+    current_observed_epoch: int | None = None,
     current_source_state_digests: Mapping[str, str] | None = None,
     current_evidence_digests: Mapping[str, str] | None = None,
     current_artifact_digests: Mapping[str, str] | None = None,
@@ -439,6 +446,7 @@ def run_canonical_admission_audit(
     known_handoff_digests: Mapping[str, str] | None = None,
     current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionAuditReport:
+    persisted_bundle = bundle is not None
     if bundle is None:
         try:
             bundle = build_canonical_admission_bundle(
@@ -487,6 +495,35 @@ def run_canonical_admission_audit(
         )
 
     findings: list[AdmissionAuditFinding] = []
+    if persisted_bundle and current_observed_epoch is None:
+        findings.append(
+            AdmissionAuditFinding(
+                code="CURRENT_OBSERVATION_EPOCH_UNAVAILABLE",
+                detail="admission context observation epoch was not re-observed for the live audit",
+                subject_id="canonical-admission-bundle",
+            )
+        )
+    else:
+        raw_live_epoch: object = observed_epoch if current_observed_epoch is None else current_observed_epoch
+        try:
+            live_epoch = _live_observation_epoch(raw_live_epoch)
+        except ValueError as exc:
+            findings.append(
+                AdmissionAuditFinding(
+                    code="CURRENT_OBSERVATION_EPOCH_INVALID",
+                    detail=str(exc),
+                    subject_id="canonical-admission-bundle",
+                )
+            )
+        else:
+            if live_epoch != bundle.context.observed_epoch:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="OBSERVATION_EPOCH_CONTEXT_MISMATCH",
+                        detail="admission context observation epoch does not match the live re-observation",
+                        subject_id="canonical-admission-bundle",
+                    )
+                )
     if bundle.context.registry_digest != registry.registry_digest:
         findings.append(
             AdmissionAuditFinding(
@@ -714,7 +751,7 @@ def run_canonical_admission_audit(
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Audit the canonical A5 current-admission bundle")
+    parser = argparse.ArgumentParser(description="Audit the canonical A6 current-admission bundle")
     parser.add_argument("--check", action="store_true", help="exit non-zero when categorical findings exist")
     parser.add_argument("--json", action="store_true", help="emit canonical audit JSON")
     parser.add_argument("--observed-epoch", type=int, default=0)
