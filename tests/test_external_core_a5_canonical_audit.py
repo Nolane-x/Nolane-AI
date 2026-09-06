@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from types import SimpleNamespace
 
+import pytest
+
 import nolane.external_core.integration_admission_bundle as admission_bundle
 from nolane.external_core.integration_admission_bundle import (
     build_canonical_admission_bundle,
@@ -45,3 +47,25 @@ def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_reg
 
     assert {row.code for row in report.findings} == {"CANONICAL_REGISTRY_CONTEXT_MISMATCH"}
     assert bundle.context.registry_digest == registry.registry_digest
+
+
+@pytest.mark.parametrize(
+    ("builder_kwargs", "expected_code"),
+    (
+        ({"current_source_state_digests": {"source": "digest"}}, "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE"),
+        ({"current_evidence_digests": {"evidence": "digest"}}, "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE"),
+        ({"current_artifact_digests": {"artifact": "digest"}}, "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE"),
+        ({"current_freshness_fences": {"producer": "fence"}}, "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE"),
+        ({"known_handoff_digests": {"handoff": "digest"}}, "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE"),
+        ({"current_work_trace_digests": {"trace": "digest"}}, "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE"),
+    ),
+)
+def test_canonical_admission_audit_fails_closed_when_bound_frontier_is_not_reobserved(
+    builder_kwargs: dict[str, dict[str, str]],
+    expected_code: str,
+) -> None:
+    bundle = build_canonical_admission_bundle(observed_epoch=11, **builder_kwargs)
+
+    report = run_canonical_admission_audit(bundle=bundle)
+
+    assert {row.code for row in report.findings} == {expected_code}
