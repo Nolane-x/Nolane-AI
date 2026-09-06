@@ -1,0 +1,21 @@
+name: External Core v1 Genesis RED Proof Once
+
+on:
+  push:
+    branches:
+      - audit/external-core-v1-deep-verification-gpt56sol
+    paths:
+      - tests/test_external_core_a10_v1_transition_genesis_exact_bool.py
+      - .github/workflows/external-core-v1-genesis-red-proof-once.yml
+
+jobs:
+  red:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: python -m pip install -q pytest
+      - name: Reproduce exact-boolean genesis defect
+        run: python -m pytest -q tests/test_external_core_a10_v1_transition_genesis_exact_bool.py
