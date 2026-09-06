@@ -29,9 +29,9 @@ from nolane.external_core.work_trace import WORK_TRACE_PROTOCOL, CognitiveWorkTr
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.5"
+COMPONENT_VERSION = "0.0.6"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
-ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v2"
+ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
 
 
 def _exact_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
@@ -496,25 +496,20 @@ def _admit_work_trace_from_observation(
     return wrapper
 
 
-def build_canonical_admission_bundle(
+def _build_canonical_admission_bundle_from_observation(
+    registry: Any,
+    profile: Any,
     *,
-    observed_epoch: int = 0,
-    current_source_state_digests: Mapping[str, str] | None = None,
-    current_evidence_digests: Mapping[str, str] | None = None,
-    current_artifact_digests: Mapping[str, str] | None = None,
-    current_freshness_fences: Mapping[str, str] | None = None,
-    known_handoff_digests: Mapping[str, str] | None = None,
-    current_work_trace_digests: Mapping[str, str] | None = None,
+    observed_epoch: int,
+    source: Mapping[str, str],
+    evidence: Mapping[str, str],
+    artifact: Mapping[str, str],
+    freshness: Mapping[str, str],
+    handoffs: Mapping[str, str],
+    traces: Mapping[str, str],
     handoff_states: Sequence[Mapping[str, Any]] = (),
     work_trace_states: Sequence[Mapping[str, Any]] = (),
 ) -> CanonicalAdmissionBundle:
-    source = _frontier(current_source_state_digests)
-    evidence = _frontier(current_evidence_digests)
-    artifact = _frontier(current_artifact_digests)
-    freshness = _frontier(current_freshness_fences)
-    handoffs = _frontier(known_handoff_digests)
-    traces = _frontier(current_work_trace_digests)
-    registry, profile = _strict_current_objects()
     context = _context_from_observation(
         registry,
         profile,
@@ -580,6 +575,40 @@ def build_canonical_admission_bundle(
     )
 
 
+def build_canonical_admission_bundle(
+    *,
+    observed_epoch: int = 0,
+    current_source_state_digests: Mapping[str, str] | None = None,
+    current_evidence_digests: Mapping[str, str] | None = None,
+    current_artifact_digests: Mapping[str, str] | None = None,
+    current_freshness_fences: Mapping[str, str] | None = None,
+    known_handoff_digests: Mapping[str, str] | None = None,
+    current_work_trace_digests: Mapping[str, str] | None = None,
+    handoff_states: Sequence[Mapping[str, Any]] = (),
+    work_trace_states: Sequence[Mapping[str, Any]] = (),
+) -> CanonicalAdmissionBundle:
+    source = _frontier(current_source_state_digests)
+    evidence = _frontier(current_evidence_digests)
+    artifact = _frontier(current_artifact_digests)
+    freshness = _frontier(current_freshness_fences)
+    handoffs = _frontier(known_handoff_digests)
+    traces = _frontier(current_work_trace_digests)
+    registry, profile = _strict_current_objects()
+    return _build_canonical_admission_bundle_from_observation(
+        registry,
+        profile,
+        observed_epoch=observed_epoch,
+        source=source,
+        evidence=evidence,
+        artifact=artifact,
+        freshness=freshness,
+        handoffs=handoffs,
+        traces=traces,
+        handoff_states=handoff_states,
+        work_trace_states=work_trace_states,
+    )
+
+
 @dataclass(frozen=True, slots=True)
 class AdmissionAuditFinding:
     code: str
@@ -606,7 +635,7 @@ class CanonicalAdmissionAuditReport:
         return cls(
             protocol=ADMISSION_AUDIT_PROTOCOL,
             findings=rows,
-            digest="admission-audit-v2-" + canonical_digest(payload),
+            digest="admission-audit-v3-" + canonical_digest(payload),
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -725,6 +754,8 @@ def run_canonical_admission_audit(
     current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionAuditReport:
     persisted_bundle = bundle is not None
+    registry: Any | None = None
+    profile: Any | None = None
     raw_frontiers = (
         ("source-state", current_source_state_digests),
         ("evidence", current_evidence_digests),
@@ -762,14 +793,17 @@ def run_canonical_admission_audit(
                 )
             )
         try:
-            bundle = build_canonical_admission_bundle(
+            registry, profile = _strict_current_objects()
+            bundle = _build_canonical_admission_bundle_from_observation(
+                registry,
+                profile,
                 observed_epoch=observed_epoch,
-                current_source_state_digests=current_source_state_digests,
-                current_evidence_digests=current_evidence_digests,
-                current_artifact_digests=current_artifact_digests,
-                current_freshness_fences=current_freshness_fences,
-                known_handoff_digests=known_handoff_digests,
-                current_work_trace_digests=current_work_trace_digests,
+                source={} if current_source_state_digests is None else current_source_state_digests,
+                evidence={} if current_evidence_digests is None else current_evidence_digests,
+                artifact={} if current_artifact_digests is None else current_artifact_digests,
+                freshness={} if current_freshness_fences is None else current_freshness_fences,
+                handoffs={} if known_handoff_digests is None else known_handoff_digests,
+                traces={} if current_work_trace_digests is None else current_work_trace_digests,
             )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
             return CanonicalAdmissionAuditReport.create(
@@ -794,18 +828,19 @@ def run_canonical_admission_audit(
             )
         )
 
-    try:
-        registry, profile = _strict_current_objects()
-    except (AttributeError, KeyError, TypeError, ValueError) as exc:
-        return CanonicalAdmissionAuditReport.create(
-            (
-                AdmissionAuditFinding(
-                    code="CANONICAL_ADMISSION_CURRENT_STATE_BUILD_FAILED",
-                    detail=str(exc),
-                    subject_id="canonical-admission-bundle",
-                ),
+    if registry is None or profile is None:
+        try:
+            registry, profile = _strict_current_objects()
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            return CanonicalAdmissionAuditReport.create(
+                (
+                    AdmissionAuditFinding(
+                        code="CANONICAL_ADMISSION_CURRENT_STATE_BUILD_FAILED",
+                        detail=str(exc),
+                        subject_id="canonical-admission-bundle",
+                    ),
+                )
             )
-        )
 
     findings: list[AdmissionAuditFinding] = []
     if persisted_bundle and current_observed_epoch is None:
@@ -1093,7 +1128,7 @@ def run_canonical_admission_audit(
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Audit the canonical A6 current-admission bundle")
+    parser = argparse.ArgumentParser(description="Audit the canonical A7 atomic-observation admission bundle")
     parser.add_argument("--check", action="store_true", help="exit non-zero when categorical findings exist")
     parser.add_argument("--json", action="store_true", help="emit canonical audit JSON")
     parser.add_argument("--observed-epoch", type=int, default=0)
