@@ -49,23 +49,61 @@ def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_reg
     assert bundle.context.registry_digest == registry.registry_digest
 
 
-@pytest.mark.parametrize(
-    ("builder_kwargs", "expected_code"),
-    (
-        ({"current_source_state_digests": {"source": "digest"}}, "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE"),
-        ({"current_evidence_digests": {"evidence": "digest"}}, "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE"),
-        ({"current_artifact_digests": {"artifact": "digest"}}, "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE"),
-        ({"current_freshness_fences": {"producer": "fence"}}, "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE"),
-        ({"known_handoff_digests": {"handoff": "digest"}}, "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE"),
-        ({"current_work_trace_digests": {"trace": "digest"}}, "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE"),
-    ),
+_FRONTIER_CASES = (
+    ("current_source_state_digests", "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE", "SOURCE_STATE_FRONTIER_CONTEXT_MISMATCH"),
+    ("current_evidence_digests", "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE", "EVIDENCE_FRONTIER_CONTEXT_MISMATCH"),
+    ("current_artifact_digests", "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE", "ARTIFACT_FRONTIER_CONTEXT_MISMATCH"),
+    ("current_freshness_fences", "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE", "FRESHNESS_FRONTIER_CONTEXT_MISMATCH"),
+    ("known_handoff_digests", "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE", "HANDOFF_FRONTIER_CONTEXT_MISMATCH"),
+    ("current_work_trace_digests", "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE", "WORK_TRACE_FRONTIER_CONTEXT_MISMATCH"),
 )
+
+
+@pytest.mark.parametrize(("frontier_arg", "unavailable_code", "mismatch_code"), _FRONTIER_CASES)
 def test_canonical_admission_audit_fails_closed_when_bound_frontier_is_not_reobserved(
-    builder_kwargs: dict[str, dict[str, str]],
-    expected_code: str,
+    frontier_arg: str,
+    unavailable_code: str,
+    mismatch_code: str,
 ) -> None:
-    bundle = build_canonical_admission_bundle(observed_epoch=11, **builder_kwargs)
+    del mismatch_code
+    values = {"subject": "digest"}
+    bundle = build_canonical_admission_bundle(observed_epoch=11, **{frontier_arg: values})
 
     report = run_canonical_admission_audit(bundle=bundle)
 
-    assert {row.code for row in report.findings} == {expected_code}
+    assert {row.code for row in report.findings} == {unavailable_code}
+
+
+@pytest.mark.parametrize(("frontier_arg", "unavailable_code", "mismatch_code"), _FRONTIER_CASES)
+def test_canonical_admission_audit_accepts_exact_live_frontier_reobservation(
+    frontier_arg: str,
+    unavailable_code: str,
+    mismatch_code: str,
+) -> None:
+    del unavailable_code, mismatch_code
+    values = {"subject": "digest"}
+    bundle = build_canonical_admission_bundle(observed_epoch=11, **{frontier_arg: values})
+
+    report = run_canonical_admission_audit(bundle=bundle, **{frontier_arg: values})
+
+    assert report.findings == ()
+
+
+@pytest.mark.parametrize(("frontier_arg", "unavailable_code", "mismatch_code"), _FRONTIER_CASES)
+def test_canonical_admission_audit_rejects_live_frontier_drift(
+    frontier_arg: str,
+    unavailable_code: str,
+    mismatch_code: str,
+) -> None:
+    del unavailable_code
+    bundle = build_canonical_admission_bundle(
+        observed_epoch=11,
+        **{frontier_arg: {"subject": "admitted-digest"}},
+    )
+
+    report = run_canonical_admission_audit(
+        bundle=bundle,
+        **{frontier_arg: {"subject": "drifted-digest"}},
+    )
+
+    assert {row.code for row in report.findings} == {mismatch_code}
