@@ -85,13 +85,13 @@ replace_once(
         observation_digest: str | None = None
         if current_observation_for_report is not None:
             try:
+                current_observation_for_report.validate_integrity()
                 observation_digest = _exact_canonical_observation_digest(
                     current_observation_for_report.digest
                 )
-            except (AttributeError, TypeError, ValueError):
-                # A malformed current witness is evidence of failure, never a witness
-                # that may be rebound into the audit report. The corresponding audit
-                # finding remains categorical while the report carries no forged digest.
+            except (AttributeError, KeyError, TypeError, ValueError):
+                # A malformed or integrity-invalid current witness is failure evidence,
+                # never a witness that may be rebound into the audit report.
                 observation_digest = None
         return CanonicalAdmissionAuditReport.create(
             rows,
@@ -183,6 +183,26 @@ replace_once(
         tuple(reversed(rows)),
         current_observation=True,
         observation_digest="canonical-observation-v1-" + ("a" * 64),
+''',
+)
+
+DOC = "CURRENT/EXTERNAL_CORE.md"
+replace_once(
+    DOC,
+    '''The current admission audit is `external-integration-admission-audit-v4`. A current v4 report binds the exact `external-canonical-observation-v1` envelope digest and revalidates observation integrity, A8 completeness, A9 provenance, A10 predecessor continuity and supplied sibling-fork evidence together with the existing A5/A6/A7 admission checks. Historical call shapes remain historical v3 evidence and are not auto-migrated or relabeled as v4. The frozen `external-integration-admission-v2` issuer remains component version `0.0.4`, and `external-integration-admission-bundle-v2` remains unchanged.''',
+    '''The current admission audit is `external-integration-admission-audit-v4`. A current v4 report binds an observation digest only when the supplied or constructed `external-canonical-observation-v1` envelope passes canonical integrity; an integrity-invalid witness is recorded as failure evidence and its digest is not rebound into the report. A clean v4 report therefore always carries an exact canonical-observation-v1 digest and revalidates A8 completeness, A9 provenance, A10 predecessor continuity and supplied sibling-fork evidence together with the existing A5/A6/A7 admission checks. Historical call shapes remain historical v3 evidence and are not auto-migrated or relabeled as v4. The frozen `external-integration-admission-v2` issuer remains component version `0.0.4`, and `external-integration-admission-bundle-v2` remains unchanged.''',
+)
+
+DOC_TEST = "tests/test_external_core_a10_v1_document_contract.py"
+replace_once(
+    DOC_TEST,
+    '''        "The current admission audit is `external-integration-admission-audit-v4`",
+        "Historical call shapes remain historical v3 evidence",
+''',
+    '''        "The current admission audit is `external-integration-admission-audit-v4`",
+        "A current v4 report binds an observation digest only when the supplied or constructed `external-canonical-observation-v1` envelope passes canonical integrity",
+        "an integrity-invalid witness is recorded as failure evidence and its digest is not rebound into the report",
+        "Historical call shapes remain historical v3 evidence",
 ''',
 )
 
