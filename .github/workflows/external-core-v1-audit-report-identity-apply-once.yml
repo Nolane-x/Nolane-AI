@@ -32,7 +32,10 @@ jobs:
           python -m py_compile nolane/external_core/*.py
           python -m py_compile nolane/metadata/*.py
       - name: Verify focused audit-report identity contracts
-        run: python -m pytest -q tests/test_external_core_a10_v1_audit_report_binding.py
+        run: |
+          python -m pytest -q \
+            tests/test_external_core_a10_v1_audit_report_binding.py \
+            tests/test_external_core_a10_v1_crosslayer_audit.py
       - name: Run complete External Core contract suite
         shell: bash
         run: |
@@ -58,7 +61,9 @@ jobs:
           git rm \
             tools/external_core_v1_audit_report_identity_apply_once.py \
             .github/workflows/external-core-v1-audit-report-identity-apply-once.yml
-          git add nolane/external_core/integration_admission_bundle.py
+          git add \
+            nolane/external_core/integration_admission_bundle.py \
+            tests/test_external_core_a10_v1_crosslayer_audit.py
           git diff --cached --check
           git commit -m "fix: require canonical audit-v4 witness identity"
       - name: Verify exact component-local revision discipline
