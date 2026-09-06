@@ -451,6 +451,54 @@ def run_canonical_admission_audit(
                 subject_id="canonical-admission-bundle",
             )
         )
+
+    frontier_specs = (
+        (
+            "source-state",
+            bundle.context.source_state_frontier_digest,
+            "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE",
+            "source-state frontier was bound at admission but was not re-observed for the live audit",
+        ),
+        (
+            "evidence",
+            bundle.context.evidence_frontier_digest,
+            "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE",
+            "evidence frontier was bound at admission but was not re-observed for the live audit",
+        ),
+        (
+            "artifact",
+            bundle.context.artifact_frontier_digest,
+            "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE",
+            "artifact frontier was bound at admission but was not re-observed for the live audit",
+        ),
+        (
+            "freshness",
+            bundle.context.freshness_fence_frontier_digest,
+            "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE",
+            "freshness frontier was bound at admission but was not re-observed for the live audit",
+        ),
+        (
+            "handoff",
+            bundle.context.handoff_frontier_digest,
+            "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE",
+            "handoff frontier was bound at admission but was not re-observed for the live audit",
+        ),
+        (
+            "work-trace",
+            bundle.context.work_trace_frontier_digest,
+            "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE",
+            "work-trace frontier was bound at admission but was not re-observed for the live audit",
+        ),
+    )
+    for kind, bound_digest, code, detail in frontier_specs:
+        if bound_digest != canonical_frontier_digest(kind, {}):
+            findings.append(
+                AdmissionAuditFinding(
+                    code=code,
+                    detail=detail,
+                    subject_id="canonical-admission-bundle",
+                )
+            )
     return CanonicalAdmissionAuditReport.create(findings)
 
 
