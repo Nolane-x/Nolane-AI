@@ -7,6 +7,7 @@ on:
     paths:
       - tools/external_core_v1_hardening_apply_once.py
       - tools/external_core_v1_cli_hardening_apply_once.py
+      - tools/external_core_v1_completeness_reachability_apply_once.py
       - .github/workflows/external-core-v1-hardening-apply-once.yml
 
 permissions:
@@ -29,6 +30,7 @@ jobs:
         run: |
           python tools/external_core_v1_hardening_apply_once.py
           python tools/external_core_v1_cli_hardening_apply_once.py
+          python tools/external_core_v1_completeness_reachability_apply_once.py
       - name: Compile canonical namespaces
         run: |
           python -m py_compile nolane/core/*.py
@@ -56,7 +58,11 @@ jobs:
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git rm tools/external_core_v1_hardening_apply_once.py tools/external_core_v1_cli_hardening_apply_once.py .github/workflows/external-core-v1-hardening-apply-once.yml
+          git rm \
+            tools/external_core_v1_hardening_apply_once.py \
+            tools/external_core_v1_cli_hardening_apply_once.py \
+            tools/external_core_v1_completeness_reachability_apply_once.py \
+            .github/workflows/external-core-v1-hardening-apply-once.yml
           git add \
             CURRENT/EXTERNAL_CORE.md \
             nolane/external_core/observation.py \
@@ -71,6 +77,7 @@ jobs:
             tests/test_external_core_a10_v1_byte_exact_contract.py \
             tests/test_external_core_a10_v1_document_contract.py \
             tests/test_external_core_a10_v1_cli_current_audit.py \
+            tests/test_external_core_a10_v1_completeness_diagnostic_reachability.py \
             tests/test_external_core_integration_evolution_public_contract.py \
             tests/test_external_core_integration_revalidation.py \
             tests/test_external_core_scoped_revalidation_public_contract.py \
