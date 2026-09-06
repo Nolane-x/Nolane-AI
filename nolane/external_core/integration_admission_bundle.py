@@ -670,6 +670,20 @@ class AdmissionAuditFinding:
         return {"code": self.code, "detail": self.detail, "subject_id": self.subject_id}
 
 
+def _exact_canonical_observation_digest(value: object) -> str:
+    if type(value) is not str:
+        raise ValueError("current observation audit observation digest must be an exact string")
+    prefix = "canonical-observation-v1-"
+    if not value.startswith(prefix):
+        raise ValueError("current observation audit observation digest protocol identity mismatch")
+    suffix = value[len(prefix) :]
+    if len(suffix) != 64 or any(ch not in "0123456789abcdef" for ch in suffix):
+        raise ValueError(
+            "current observation audit observation digest must carry exactly 64 lowercase hexadecimal characters"
+        )
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class CanonicalAdmissionAuditReport:
     protocol: str
@@ -686,13 +700,15 @@ class CanonicalAdmissionAuditReport:
         observation_digest: str | None = None,
     ) -> "CanonicalAdmissionAuditReport":
         rows = tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+        if type(current_observation) is not bool:
+            raise ValueError("current_observation must be an exact boolean")
         if current_observation:
-            if observation_digest is not None and (
-                type(observation_digest) is not str or not observation_digest.strip()
-            ):
-                raise ValueError("current observation audit observation digest must be an exact non-empty string")
+            if observation_digest is not None:
+                observation_digest = _exact_canonical_observation_digest(observation_digest)
             if not rows and observation_digest is None:
                 raise ValueError("clean current observation audit requires an exact observation digest")
+        elif observation_digest is not None:
+            raise ValueError("historical audit-v3 must not receive an observation digest witness")
         protocol = ADMISSION_AUDIT_PROTOCOL if current_observation else HISTORICAL_ADMISSION_AUDIT_PROTOCOL
         payload: dict[str, Any] = {
             "protocol": protocol,
@@ -840,14 +856,21 @@ def run_canonical_admission_audit(
     current_observation_for_report = current_observation
 
     def make_report(rows: Sequence[AdmissionAuditFinding]) -> CanonicalAdmissionAuditReport:
+        observation_digest: str | None = None
+        if current_observation_for_report is not None:
+            try:
+                current_observation_for_report.validate_integrity()
+                observation_digest = _exact_canonical_observation_digest(
+                    current_observation_for_report.digest
+                )
+            except (AttributeError, KeyError, TypeError, ValueError):
+                # A malformed or integrity-invalid current witness is failure evidence,
+                # never a witness that may be rebound into the audit report.
+                observation_digest = None
         return CanonicalAdmissionAuditReport.create(
             rows,
             current_observation=current_observation_mode,
-            observation_digest=(
-                None
-                if current_observation_for_report is None
-                else current_observation_for_report.digest
-            ),
+            observation_digest=observation_digest,
         )
 
     persisted_bundle = bundle is not None

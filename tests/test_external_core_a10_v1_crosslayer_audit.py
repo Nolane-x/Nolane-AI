@@ -187,12 +187,12 @@ def test_v4_audit_digest_binds_exact_observation_digest() -> None:
     left = admission_bundle.CanonicalAdmissionAuditReport.create(
         (),
         current_observation=True,
-        observation_digest="canonical-observation-v1-left",
+        observation_digest="canonical-observation-v1-" + ("1" * 64),
     )
     right = admission_bundle.CanonicalAdmissionAuditReport.create(
         (),
         current_observation=True,
-        observation_digest="canonical-observation-v1-right",
+        observation_digest="canonical-observation-v1-" + ("2" * 64),
     )
     assert left.protocol == right.protocol == "external-integration-admission-audit-v4"
     assert left.findings == right.findings == ()
@@ -206,21 +206,13 @@ def test_v4_audit_digest_binds_exact_observation_digest() -> None:
     }
 
 
-def test_historical_v3_audit_does_not_relabel_or_bind_observation_digest() -> None:
-    left = admission_bundle.CanonicalAdmissionAuditReport.create(
-        (),
-        current_observation=False,
-        observation_digest="ignored-left",
-    )
-    right = admission_bundle.CanonicalAdmissionAuditReport.create(
-        (),
-        current_observation=False,
-        observation_digest="ignored-right",
-    )
-    assert left.protocol == right.protocol == "external-integration-admission-audit-v3"
-    assert left.observation_digest is right.observation_digest is None
-    assert left.digest == right.digest
-    assert "observation_digest" not in left.to_state()
+def test_historical_v3_audit_rejects_observation_digest_smuggling() -> None:
+    with pytest.raises(ValueError, match="historical audit-v3"):
+        admission_bundle.CanonicalAdmissionAuditReport.create(
+            (),
+            current_observation=False,
+            observation_digest="canonical-observation-v1-" + ("3" * 64),
+        )
 
 
 def test_clean_current_genesis_audit_is_exact_v4_and_finding_free() -> None:
@@ -284,6 +276,7 @@ def test_forged_current_witness_is_converted_to_audit_finding_not_exception() ->
     assert "CURRENT_OBSERVATION_WITNESS_INVALID" in {
         row.code for row in report.findings
     }
+    assert report.observation_digest is None
 
 
 @pytest.mark.parametrize(
@@ -351,12 +344,12 @@ def test_audit_report_order_and_digest_are_deterministic() -> None:
     forward = admission_bundle.CanonicalAdmissionAuditReport.create(
         rows,
         current_observation=True,
-        observation_digest="canonical-observation-v1-fixed",
+        observation_digest="canonical-observation-v1-" + ("a" * 64),
     )
     reverse = admission_bundle.CanonicalAdmissionAuditReport.create(
         tuple(reversed(rows)),
         current_observation=True,
-        observation_digest="canonical-observation-v1-fixed",
+        observation_digest="canonical-observation-v1-" + ("a" * 64),
     )
     assert forward.to_state() == reverse.to_state()
     assert forward.digest == reverse.digest
