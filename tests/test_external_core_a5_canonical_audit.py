@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-from nolane.external_core.integration_admission import (
+from nolane.external_core.integration_admission_bundle import (
     build_canonical_admission_bundle,
     run_canonical_admission_audit,
 )
