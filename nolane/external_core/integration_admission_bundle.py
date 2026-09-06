@@ -432,6 +432,7 @@ def run_canonical_admission_audit(
     *,
     bundle: CanonicalAdmissionBundle | None = None,
     observed_epoch: int = 0,
+    current_observed_epoch: int | None = None,
     current_source_state_digests: Mapping[str, str] | None = None,
     current_evidence_digests: Mapping[str, str] | None = None,
     current_artifact_digests: Mapping[str, str] | None = None,
@@ -439,6 +440,7 @@ def run_canonical_admission_audit(
     known_handoff_digests: Mapping[str, str] | None = None,
     current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionAuditReport:
+    persisted_bundle = bundle is not None
     if bundle is None:
         try:
             bundle = build_canonical_admission_bundle(
@@ -487,6 +489,14 @@ def run_canonical_admission_audit(
         )
 
     findings: list[AdmissionAuditFinding] = []
+    if persisted_bundle and current_observed_epoch is None:
+        findings.append(
+            AdmissionAuditFinding(
+                code="CURRENT_OBSERVATION_EPOCH_UNAVAILABLE",
+                detail="admission context observation epoch was not re-observed for the live audit",
+                subject_id="canonical-admission-bundle",
+            )
+        )
     if bundle.context.registry_digest != registry.registry_digest:
         findings.append(
             AdmissionAuditFinding(
