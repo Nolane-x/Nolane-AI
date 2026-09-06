@@ -153,3 +153,23 @@ def test_bundle_snapshots_mutable_frontier_once_before_handoff_admission() -> No
 
     assert len(bundle.handoffs) == 1
     assert flipping.reads == 1
+
+
+def test_persisted_bundle_audit_snapshots_mutable_frontier_once_before_replay() -> None:
+    handoff_state, source = _valid_handoff_state()
+    bundle = admission_bundle.build_canonical_admission_bundle(
+        observed_epoch=11,
+        current_source_state_digests=source,
+        handoff_states=(handoff_state,),
+    )
+    component_id, source_digest = next(iter(source.items()))
+    flipping = _FlippingFrontier(component_id, source_digest, "a7-mutated-source-state-digest")
+
+    report = admission_bundle.run_canonical_admission_audit(
+        bundle=bundle,
+        current_observed_epoch=11,
+        current_source_state_digests=flipping,
+    )
+
+    assert report.findings == ()
+    assert flipping.reads == 1
