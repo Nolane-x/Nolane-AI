@@ -725,6 +725,95 @@ def validate_observation_provenance(
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
 
+def validate_observation_transition(
+    previous: CanonicalObservationEnvelope | None,
+    current: CanonicalObservationEnvelope,
+    *,
+    genesis: bool = False,
+) -> tuple[ObservationFinding, ...]:
+    current.validate_integrity()
+    findings: list[ObservationFinding] = []
+
+    if genesis:
+        if previous is not None or current.previous_observation_digest is not None:
+            findings.append(
+                ObservationFinding(
+                    code="OBSERVATION_GENESIS_CONTEXT_INVALID",
+                    detail="genesis observation must not carry or receive predecessor evidence",
+                    subject_id=current.chain_id,
+                )
+            )
+        return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+
+    if previous is None:
+        findings.append(
+            ObservationFinding(
+                code="OBSERVATION_PREDECESSOR_UNAVAILABLE",
+                detail="non-genesis observation requires explicit predecessor evidence",
+                subject_id=current.chain_id,
+            )
+        )
+        return tuple(findings)
+
+    previous.validate_integrity()
+    if current.previous_observation_digest != previous.digest:
+        findings.append(
+            ObservationFinding(
+                code="OBSERVATION_PREDECESSOR_DIGEST_MISMATCH",
+                detail="observation predecessor digest does not match supplied predecessor evidence",
+                subject_id=current.chain_id,
+            )
+        )
+    if current.chain_id != previous.chain_id:
+        findings.append(
+            ObservationFinding(
+                code="OBSERVATION_CHAIN_ID_MISMATCH",
+                detail="successor observation chain id does not match predecessor chain id",
+                subject_id=current.chain_id,
+            )
+        )
+    if current.observed_epoch <= previous.observed_epoch:
+        findings.append(
+            ObservationFinding(
+                code="OBSERVATION_EPOCH_NOT_MONOTONIC",
+                detail="successor observation epoch must be strictly greater than predecessor epoch",
+                subject_id=current.chain_id,
+            )
+        )
+
+    return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+
+
+def detect_observation_forks(
+    successors: Sequence[CanonicalObservationEnvelope],
+) -> tuple[ObservationFinding, ...]:
+    groups: dict[tuple[str, str], set[str]] = {}
+    for successor in successors:
+        successor.validate_integrity()
+        predecessor_digest = successor.previous_observation_digest
+        if predecessor_digest is None:
+            continue
+        key = (successor.chain_id, predecessor_digest)
+        groups.setdefault(key, set()).add(successor.digest)
+
+    findings: list[ObservationFinding] = []
+    for chain_id, predecessor_digest in sorted(groups):
+        successor_digests = groups[(chain_id, predecessor_digest)]
+        if len(successor_digests) <= 1:
+            continue
+        findings.append(
+            ObservationFinding(
+                code="OBSERVATION_FORK_DETECTED",
+                detail=(
+                    "multiple distinct canonical successors extend the same predecessor: "
+                    + ",".join(sorted(successor_digests))
+                ),
+                subject_id=f"{chain_id}:{predecessor_digest}",
+            )
+        )
+    return tuple(findings)
+
+
 __all__ = (
     "CanonicalObservationEnvelope",
     "CanonicalObservationSurfaceContract",
@@ -735,6 +824,8 @@ __all__ = (
     "REQUIRED_SURFACE_KINDS",
     "SURFACE_RECEIPT_PROTOCOL",
     "SurfaceObservationReceipt",
+    "detect_observation_forks",
     "validate_observation_completeness",
     "validate_observation_provenance",
+    "validate_observation_transition",
 )
