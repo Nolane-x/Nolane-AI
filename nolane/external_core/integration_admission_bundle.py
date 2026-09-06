@@ -23,9 +23,9 @@ from nolane.external_core.integration_admission import (
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
-ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v1"
+ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v2"
 
 
 def _exact_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
@@ -379,7 +379,7 @@ class CanonicalAdmissionAuditReport:
         return cls(
             protocol=ADMISSION_AUDIT_PROTOCOL,
             findings=rows,
-            digest="admission-audit-v1-" + canonical_digest(payload),
+            digest="admission-audit-v2-" + canonical_digest(payload),
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -751,7 +751,7 @@ def run_canonical_admission_audit(
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Audit the canonical A5 current-admission bundle")
+    parser = argparse.ArgumentParser(description="Audit the canonical A6 current-admission bundle")
     parser.add_argument("--check", action="store_true", help="exit non-zero when categorical findings exist")
     parser.add_argument("--json", action="store_true", help="emit canonical audit JSON")
     parser.add_argument("--observed-epoch", type=int, default=0)
