@@ -2,10 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
 
+from nolane.external_core import compatibility, integration
 import nolane.external_core.integration_admission as admission
 import nolane.external_core.integration_admission_bundle as admission_bundle
 from nolane.external_core.handoff import ExternalHandoffEnvelope, HandoffAuthorityClass
 from nolane.external_core.work_trace import CognitiveWorkTrace
+from nolane.metadata.component_versions import component_revision_map
 
 
 class _FlippingFrontier(Mapping[str, str]):
@@ -182,3 +184,20 @@ def test_fresh_audit_reuses_builder_canonical_observation(monkeypatch) -> None:
 
     assert report.findings == ()
     assert reads == {"bundle": 1, "admission": 0}
+
+
+def test_a7_advances_only_current_integration_audit_lane() -> None:
+    assert integration.COMPONENT_ID == "external.integration"
+    assert integration.COMPONENT_VERSION == "0.0.6"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.6"
+    assert admission_bundle.COMPONENT_ID == "external.integration"
+    assert admission_bundle.COMPONENT_VERSION == "0.0.6"
+    assert component_revision_map()["external.integration"] == 6
+
+    report = admission_bundle.run_canonical_admission_audit(observed_epoch=11)
+    assert report.protocol == "external-integration-admission-audit-v3"
+    assert report.digest.startswith("admission-audit-v3-")
+
+    assert admission_bundle.ADMISSION_BUNDLE_PROTOCOL == "external-integration-admission-bundle-v2"
+    assert admission.ADMISSION_PROTOCOL == "external-integration-admission-v2"
+    assert admission.COMPONENT_VERSION == "0.0.4"
