@@ -99,11 +99,11 @@ jobs:
           python -m nolane.external_core.audit --check
           python -m nolane.external_core.audit --json > /tmp/external-core-audit.json
           python -c "import json; p='/tmp/external-core-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
-      - name: Verify canonical A5 admission audit
+      - name: Verify canonical A6 admission audit
         run: |
           python -m nolane.external_core.integration_admission_bundle --check
-          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a5-admission-audit.json
-          python -c "import json; p='/tmp/external-core-a5-admission-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
+          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a6-admission-audit.json
+          python -c "import json; p='/tmp/external-core-a6-admission-audit.json'; d=json.load(open(p, encoding='utf-8')); assert not d['findings']; assert d['digest']"
       - name: Run prior G/Assurance regressions
         shell: bash
         run: |
