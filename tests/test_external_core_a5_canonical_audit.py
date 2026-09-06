@@ -5,8 +5,20 @@ from types import SimpleNamespace
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest, canonical_json
+from nolane.external_core.authority_graph import ExternalAuthorityGraph
+from nolane.external_core.component_contracts import ExternalComponentManifest
+import nolane.external_core.integration_admission as admission
+from nolane.external_core.integration_admission import (
+    AdmissionDisposition,
+    AdmissionSubjectKind,
+    AdmittedAuthorityGraph,
+    AdmittedManifest,
+    ProtocolAdmissionReceipt,
+)
 import nolane.external_core.integration_admission_bundle as admission_bundle
 from nolane.external_core.integration_admission_bundle import (
+    CanonicalAdmissionBundle,
     build_canonical_admission_bundle,
     run_canonical_admission_audit,
 )
@@ -107,3 +119,93 @@ def test_canonical_admission_audit_rejects_live_frontier_drift(
     )
 
     assert {row.code for row in report.findings} == {mismatch_code}
+
+
+def _self_issued_admitted_manifest(manifest: ExternalComponentManifest, context_digest: str) -> AdmittedManifest:
+    state = manifest.to_state()
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.COMPONENT_MANIFEST,
+        subject_protocol=AdmissionSubjectKind.COMPONENT_MANIFEST.value,
+        subject_id=manifest.component_id,
+        subject_state_digest=canonical_digest(state),
+        semantic_digest=manifest.manifest_digest,
+        context_digest=context_digest,
+        disposition=AdmissionDisposition.ADMITTED,
+        reason_codes=(),
+        limitations=("structural-currentness-only", "no-semantic-authority"),
+    )
+    subject_json = canonical_json(state)
+    wrapper = AdmittedManifest(
+        subject_json,
+        receipt,
+        admission._wrapper_digest(AdmissionSubjectKind.COMPONENT_MANIFEST, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
+def _self_issued_admitted_graph(graph: ExternalAuthorityGraph, context_digest: str) -> AdmittedAuthorityGraph:
+    state = graph.to_state()
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.AUTHORITY_GRAPH,
+        subject_protocol=AdmissionSubjectKind.AUTHORITY_GRAPH.value,
+        subject_id="canonical-authority-graph",
+        subject_state_digest=canonical_digest(state),
+        semantic_digest=graph.digest,
+        context_digest=context_digest,
+        disposition=AdmissionDisposition.ADMITTED,
+        reason_codes=(),
+        limitations=("structural-currentness-only", "no-semantic-authority"),
+    )
+    subject_json = canonical_json(state)
+    wrapper = AdmittedAuthorityGraph(
+        subject_json,
+        receipt,
+        admission._wrapper_digest(AdmissionSubjectKind.AUTHORITY_GRAPH, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
+def test_canonical_admission_audit_replays_admission_instead_of_trusting_self_issued_admitted_receipts() -> None:
+    current_bundle = build_canonical_admission_bundle(observed_epoch=11)
+    registry, profile = admission_bundle._strict_current_objects()
+    current = registry.manifests[0]
+    stale = ExternalComponentManifest.create(
+        component_id=current.component_id,
+        component_version="9.9.9",
+        family=current.family,
+        protocol_versions=dict(current.protocol_versions),
+        consumes_contracts=current.consumes_contracts,
+        produces_contracts=current.produces_contracts,
+        authority_capabilities=current.authority_capabilities,
+        forbidden_authorities=current.forbidden_authorities,
+        mutable_resources=current.mutable_resources,
+        evidence_inputs=current.evidence_inputs,
+        evidence_outputs=current.evidence_outputs,
+        restore_protocol=current.restore_protocol,
+        compatibility_floor="9.9.9",
+        compatibility_ceiling="9.9.9",
+    )
+    forged_manifests = tuple(stale if row.component_id == current.component_id else row for row in registry.manifests)
+    forged_graph = ExternalAuthorityGraph(forged_manifests, profile.authority_graph.edges)
+    forged_graph.validate()
+
+    admitted_manifests = tuple(
+        _self_issued_admitted_manifest(row, current_bundle.context.digest)
+        for row in forged_manifests
+    )
+    admitted_graph = _self_issued_admitted_graph(forged_graph, current_bundle.context.digest)
+    forged_bundle = CanonicalAdmissionBundle.create(
+        context=current_bundle.context,
+        manifests=admitted_manifests,
+        authority_graph=admitted_graph,
+    )
+    forged_bundle.validate_integrity()
+
+    report = run_canonical_admission_audit(bundle=forged_bundle)
+    codes = {row.code for row in report.findings}
+
+    assert "CANONICAL_MANIFEST_MISMATCH" in codes
+    assert "CANONICAL_AUTHORITY_GRAPH_MISMATCH" in codes
+    assert "CANONICAL_GRAPH_REGISTRY_POPULATION_MISMATCH" in codes
