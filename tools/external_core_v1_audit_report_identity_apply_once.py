@@ -15,22 +15,13 @@ def replace_once(old: str, new: str) -> None:
 
 
 replace_once(
-    "from nolane.external_core.observation import CanonicalObservationEnvelope, ObservationFinding\n",
-    "from nolane.external_core.observation import (\n"
-    "    OBSERVATION_PROTOCOL,\n"
-    "    CanonicalObservationEnvelope,\n"
-    "    ObservationFinding,\n"
-    ")\n",
-)
-
-replace_once(
     '''@dataclass(frozen=True, slots=True)
 class CanonicalAdmissionAuditReport:
 ''',
     '''def _exact_canonical_observation_digest(value: object) -> str:
     if type(value) is not str:
         raise ValueError("current observation audit observation digest must be an exact string")
-    prefix = OBSERVATION_PROTOCOL + "-"
+    prefix = "canonical-observation-v1-"
     if not value.startswith(prefix):
         raise ValueError("current observation audit observation digest protocol identity mismatch")
     suffix = value[len(prefix) :]
