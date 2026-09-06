@@ -5,15 +5,18 @@ import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
-from nolane.core.canonical_digest import canonical_digest
+from nolane.core.canonical_digest import canonical_digest, canonical_json
+import nolane.external_core.integration_admission as admission_protocol
 from nolane.external_core.integration_admission import (
     ADMISSION_PROTOCOL,
     AdmissionDisposition,
+    AdmissionSubjectKind,
     AdmittedAuthorityGraph,
     AdmittedHandoff,
     AdmittedManifest,
     AdmittedWorkTrace,
     CanonicalAdmissionContext,
+    ProtocolAdmissionReceipt,
     admit_authority_graph_state,
     admit_handoff_state,
     admit_manifest_state,
@@ -263,6 +266,62 @@ def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
     return {} if value is None else value
 
 
+def _context_from_observation(
+    registry: Any,
+    profile: Any,
+    *,
+    observed_epoch: int,
+    source: Mapping[str, str],
+    evidence: Mapping[str, str],
+    artifact: Mapping[str, str],
+    freshness: Mapping[str, str],
+    handoffs: Mapping[str, str],
+    traces: Mapping[str, str],
+) -> CanonicalAdmissionContext:
+    return CanonicalAdmissionContext.create(
+        registry_digest=registry.registry_digest,
+        authority_graph_digest=profile.authority_graph.digest,
+        source_state_frontier_digest=canonical_frontier_digest("source-state", source),
+        evidence_frontier_digest=canonical_frontier_digest("evidence", evidence),
+        artifact_frontier_digest=canonical_frontier_digest("artifact", artifact),
+        freshness_fence_frontier_digest=canonical_frontier_digest("freshness", freshness),
+        handoff_frontier_digest=canonical_frontier_digest("handoff", handoffs),
+        work_trace_frontier_digest=canonical_frontier_digest("work-trace", traces),
+        observed_epoch=observed_epoch,
+    )
+
+
+def _make_observed_wrapper(
+    cls: type[AdmittedManifest] | type[AdmittedAuthorityGraph],
+    *,
+    kind: AdmissionSubjectKind,
+    state: Mapping[str, Any],
+    subject_id: str,
+    semantic_digest: str,
+    context: CanonicalAdmissionContext,
+) -> AdmittedManifest | AdmittedAuthorityGraph:
+    subject_state = dict(state)
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=kind,
+        subject_protocol=kind.value,
+        subject_id=subject_id,
+        subject_state_digest=canonical_digest(subject_state),
+        semantic_digest=semantic_digest,
+        context_digest=context.digest,
+        disposition=AdmissionDisposition.ADMITTED,
+        reason_codes=(),
+        limitations=("structural-currentness-only", "no-semantic-authority"),
+    )
+    subject_json = canonical_json(subject_state)
+    wrapper = cls(
+        subject_json,
+        receipt,
+        admission_protocol._wrapper_digest(kind, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
 def build_canonical_admission_context(
     *,
     observed_epoch: int = 0,
@@ -280,16 +339,16 @@ def build_canonical_admission_context(
     freshness = _frontier(current_freshness_fences)
     handoffs = _frontier(known_handoff_digests)
     traces = _frontier(current_work_trace_digests)
-    return CanonicalAdmissionContext.create(
-        registry_digest=registry.registry_digest,
-        authority_graph_digest=profile.authority_graph.digest,
-        source_state_frontier_digest=canonical_frontier_digest("source-state", source),
-        evidence_frontier_digest=canonical_frontier_digest("evidence", evidence),
-        artifact_frontier_digest=canonical_frontier_digest("artifact", artifact),
-        freshness_fence_frontier_digest=canonical_frontier_digest("freshness", freshness),
-        handoff_frontier_digest=canonical_frontier_digest("handoff", handoffs),
-        work_trace_frontier_digest=canonical_frontier_digest("work-trace", traces),
+    return _context_from_observation(
+        registry,
+        profile,
         observed_epoch=observed_epoch,
+        source=source,
+        evidence=evidence,
+        artifact=artifact,
+        freshness=freshness,
+        handoffs=handoffs,
+        traces=traces,
     )
 
 
@@ -311,18 +370,38 @@ def build_canonical_admission_bundle(
     freshness = _frontier(current_freshness_fences)
     handoffs = _frontier(known_handoff_digests)
     traces = _frontier(current_work_trace_digests)
-    context = build_canonical_admission_context(
-        observed_epoch=observed_epoch,
-        current_source_state_digests=source,
-        current_evidence_digests=evidence,
-        current_artifact_digests=artifact,
-        current_freshness_fences=freshness,
-        known_handoff_digests=handoffs,
-        current_work_trace_digests=traces,
-    )
     registry, profile = _strict_current_objects()
-    admitted_manifests = tuple(admit_manifest_state(row.to_state(), context=context) for row in registry.manifests)
-    admitted_graph = admit_authority_graph_state(profile.authority_graph.to_state(), context=context)
+    context = _context_from_observation(
+        registry,
+        profile,
+        observed_epoch=observed_epoch,
+        source=source,
+        evidence=evidence,
+        artifact=artifact,
+        freshness=freshness,
+        handoffs=handoffs,
+        traces=traces,
+    )
+    admitted_manifests = tuple(
+        _make_observed_wrapper(
+            AdmittedManifest,
+            kind=AdmissionSubjectKind.COMPONENT_MANIFEST,
+            state=row.to_state(),
+            subject_id=row.component_id,
+            semantic_digest=row.manifest_digest,
+            context=context,
+        )
+        for row in registry.manifests
+    )
+    admitted_graph = _make_observed_wrapper(
+        AdmittedAuthorityGraph,
+        kind=AdmissionSubjectKind.AUTHORITY_GRAPH,
+        state=profile.authority_graph.to_state(),
+        subject_id="canonical-authority-graph",
+        semantic_digest=profile.authority_graph.digest,
+        context=context,
+    )
+    assert isinstance(admitted_graph, AdmittedAuthorityGraph)
     admitted_handoffs = tuple(
         admit_handoff_state(
             state,
