@@ -428,6 +428,12 @@ def _observed_frontier(
     return None
 
 
+def _live_observation_epoch(value: object) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError("current observation epoch must be a non-negative integer")
+    return value
+
+
 def run_canonical_admission_audit(
     *,
     bundle: CanonicalAdmissionBundle | None = None,
@@ -497,14 +503,27 @@ def run_canonical_admission_audit(
                 subject_id="canonical-admission-bundle",
             )
         )
-    elif current_observed_epoch is not None and current_observed_epoch != bundle.context.observed_epoch:
-        findings.append(
-            AdmissionAuditFinding(
-                code="OBSERVATION_EPOCH_CONTEXT_MISMATCH",
-                detail="admission context observation epoch does not match the live re-observation",
-                subject_id="canonical-admission-bundle",
+    else:
+        raw_live_epoch: object = observed_epoch if current_observed_epoch is None else current_observed_epoch
+        try:
+            live_epoch = _live_observation_epoch(raw_live_epoch)
+        except ValueError as exc:
+            findings.append(
+                AdmissionAuditFinding(
+                    code="CURRENT_OBSERVATION_EPOCH_INVALID",
+                    detail=str(exc),
+                    subject_id="canonical-admission-bundle",
+                )
             )
-        )
+        else:
+            if live_epoch != bundle.context.observed_epoch:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="OBSERVATION_EPOCH_CONTEXT_MISMATCH",
+                        detail="admission context observation epoch does not match the live re-observation",
+                        subject_id="canonical-admission-bundle",
+                    )
+                )
     if bundle.context.registry_digest != registry.registry_digest:
         findings.append(
             AdmissionAuditFinding(
