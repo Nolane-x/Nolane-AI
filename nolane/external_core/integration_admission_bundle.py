@@ -497,6 +497,14 @@ def run_canonical_admission_audit(
                 subject_id="canonical-admission-bundle",
             )
         )
+    elif current_observed_epoch is not None and current_observed_epoch != bundle.context.observed_epoch:
+        findings.append(
+            AdmissionAuditFinding(
+                code="OBSERVATION_EPOCH_CONTEXT_MISMATCH",
+                detail="admission context observation epoch does not match the live re-observation",
+                subject_id="canonical-admission-bundle",
+            )
+        )
     if bundle.context.registry_digest != registry.registry_digest:
         findings.append(
             AdmissionAuditFinding(
