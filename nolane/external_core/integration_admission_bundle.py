@@ -6,6 +6,12 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Sequence
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
+from nolane.external_core.handoff import (
+    HANDOFF_PROTOCOL,
+    ExternalHandoffEnvelope,
+    HandoffValidationDisposition,
+    validate_handoff_for_consumer,
+)
 import nolane.external_core.integration_admission as admission_protocol
 from nolane.external_core.integration_admission import (
     ADMISSION_PROTOCOL,
@@ -17,7 +23,6 @@ from nolane.external_core.integration_admission import (
     AdmittedWorkTrace,
     CanonicalAdmissionContext,
     ProtocolAdmissionReceipt,
-    admit_handoff_state,
     admit_work_trace_state,
     canonical_frontier_digest,
 )
@@ -350,6 +355,94 @@ def build_canonical_admission_context(
     )
 
 
+def _context_reasons_from_observation(
+    context: CanonicalAdmissionContext,
+    *,
+    registry: Any,
+    profile: Any,
+) -> tuple[str, ...]:
+    context.validate_integrity()
+    reasons: list[str] = []
+    if context.registry_digest != registry.registry_digest:
+        reasons.append("CANONICAL_REGISTRY_CONTEXT_MISMATCH")
+    if context.authority_graph_digest != profile.authority_graph.digest:
+        reasons.append("CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH")
+    return tuple(sorted(set(reasons)))
+
+
+def _admit_handoff_from_observation(
+    state: Mapping[str, Any],
+    *,
+    context: CanonicalAdmissionContext,
+    registry: Any,
+    profile: Any,
+    current_source_state_digests: Mapping[str, str],
+    current_evidence_digests: Mapping[str, str],
+    current_artifact_digests: Mapping[str, str],
+    current_freshness_fences: Mapping[str, str],
+    known_handoff_digests: Mapping[str, str],
+) -> AdmittedHandoff:
+    admission_protocol._strict_handoff_state(state)
+    envelope = ExternalHandoffEnvelope.from_state(state)
+    source = admission_protocol._strict_frontier(current_source_state_digests, "source-state")
+    evidence = admission_protocol._strict_frontier(current_evidence_digests, "evidence")
+    artifact = admission_protocol._strict_frontier(current_artifact_digests, "artifact")
+    freshness = admission_protocol._strict_frontier(current_freshness_fences, "freshness")
+    handoffs = admission_protocol._strict_frontier(known_handoff_digests, "handoff")
+    blocked = list(_context_reasons_from_observation(context, registry=registry, profile=profile))
+    for expected, actual, code in (
+        (context.source_state_frontier_digest, canonical_frontier_digest("source-state", source), "SOURCE_STATE_FRONTIER_CONTEXT_MISMATCH"),
+        (context.evidence_frontier_digest, canonical_frontier_digest("evidence", evidence), "EVIDENCE_FRONTIER_CONTEXT_MISMATCH"),
+        (context.artifact_frontier_digest, canonical_frontier_digest("artifact", artifact), "ARTIFACT_FRONTIER_CONTEXT_MISMATCH"),
+        (context.freshness_fence_frontier_digest, canonical_frontier_digest("freshness", freshness), "FRESHNESS_FRONTIER_CONTEXT_MISMATCH"),
+        (context.handoff_frontier_digest, canonical_frontier_digest("handoff", handoffs), "HANDOFF_FRONTIER_CONTEXT_MISMATCH"),
+    ):
+        if expected != actual:
+            blocked.append(code)
+    unknown: list[str] = []
+    try:
+        producer = registry.manifest_for(envelope.producer_component_id)
+        consumer = registry.manifest_for(envelope.consumer_component_id)
+    except KeyError:
+        blocked.append("CANONICAL_HANDOFF_COMPONENT_UNKNOWN")
+    else:
+        validation = validate_handoff_for_consumer(
+            envelope,
+            producer_manifest=producer,
+            consumer_manifest=consumer,
+            current_source_state_digest=source.get(envelope.producer_component_id),
+            current_evidence_digests=evidence,
+            current_artifact_digests=artifact,
+            known_predecessor_handoff_ids=tuple(handoffs),
+            current_freshness_fence=freshness.get(envelope.producer_component_id),
+        )
+        if validation.disposition is HandoffValidationDisposition.BLOCKED:
+            blocked.extend(validation.reason_codes)
+        elif validation.disposition is HandoffValidationDisposition.UNKNOWN:
+            unknown.extend(validation.reason_codes)
+    disposition, reasons = admission_protocol._disposition(blocked, unknown)
+    subject_state = envelope.to_state()
+    receipt = ProtocolAdmissionReceipt.create(
+        subject_kind=AdmissionSubjectKind.HANDOFF,
+        subject_protocol=HANDOFF_PROTOCOL,
+        subject_id=envelope.handoff_id,
+        subject_state_digest=canonical_digest(subject_state),
+        semantic_digest=envelope.digest,
+        context_digest=context.digest,
+        disposition=disposition,
+        reason_codes=reasons,
+        limitations=("structural-currentness-only", "handoff-authority-class-does-not-mint-authority"),
+    )
+    subject_json = canonical_json(subject_state)
+    wrapper = AdmittedHandoff(
+        subject_json,
+        receipt,
+        admission_protocol._wrapper_digest(AdmissionSubjectKind.HANDOFF, subject_json, receipt),
+    )
+    wrapper.validate_integrity()
+    return wrapper
+
+
 def build_canonical_admission_bundle(
     *,
     observed_epoch: int = 0,
@@ -401,9 +494,11 @@ def build_canonical_admission_bundle(
     )
     assert isinstance(admitted_graph, AdmittedAuthorityGraph)
     admitted_handoffs = tuple(
-        admit_handoff_state(
+        _admit_handoff_from_observation(
             state,
             context=context,
+            registry=registry,
+            profile=profile,
             current_source_state_digests=source,
             current_evidence_digests=evidence,
             current_artifact_digests=artifact,
@@ -486,21 +581,6 @@ def _append_readmission_findings(
                 subject_id=subject_id,
             )
         )
-
-
-def _context_reasons_from_observation(
-    context: CanonicalAdmissionContext,
-    *,
-    registry: Any,
-    profile: Any,
-) -> tuple[str, ...]:
-    context.validate_integrity()
-    reasons: list[str] = []
-    if context.registry_digest != registry.registry_digest:
-        reasons.append("CANONICAL_REGISTRY_CONTEXT_MISMATCH")
-    if context.authority_graph_digest != profile.authority_graph.digest:
-        reasons.append("CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH")
-    return tuple(sorted(set(reasons)))
 
 
 def _manifest_readmission_from_observation(
@@ -836,9 +916,11 @@ def run_canonical_admission_audit(
         assert handoffs is not None
         for child in bundle.handoffs:
             try:
-                replay = admit_handoff_state(
+                replay = _admit_handoff_from_observation(
                     child.subject_state,
                     context=bundle.context,
+                    registry=registry,
+                    profile=profile,
                     current_source_state_digests=source,
                     current_evidence_digests=evidence,
                     current_artifact_digests=artifact,
