@@ -7,12 +7,14 @@ import pytest
 from nolane.external_core.audit import build_canonical_fabric_profile, build_canonical_registry
 from nolane.external_core.integration_admission import (
     AdmissionDisposition,
-    CanonicalAdmissionBundle,
     CanonicalAdmissionContext,
     admit_authority_graph_state,
     admit_manifest_state,
-    build_canonical_admission_bundle,
     canonical_frontier_digest,
+)
+from nolane.external_core.integration_admission_bundle import (
+    CanonicalAdmissionBundle,
+    build_canonical_admission_bundle,
 )
 
 
