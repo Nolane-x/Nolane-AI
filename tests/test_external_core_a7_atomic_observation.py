@@ -173,3 +173,12 @@ def test_persisted_bundle_audit_snapshots_mutable_frontier_once_before_replay() 
 
     assert report.findings == ()
     assert flipping.reads == 1
+
+
+def test_fresh_audit_reuses_builder_canonical_observation(monkeypatch) -> None:
+    reads = _count_canonical_reads(monkeypatch)
+
+    report = admission_bundle.run_canonical_admission_audit(observed_epoch=11)
+
+    assert report.findings == ()
+    assert reads == {"bundle": 1, "admission": 0}
