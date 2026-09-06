@@ -48,7 +48,11 @@ def test_canonical_admission_audit_default_builder_is_read_only_and_clean() -> N
 def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_registry_drift(monkeypatch) -> None:
     bundle = build_canonical_admission_bundle(observed_epoch=11)
     registry, profile = admission_bundle._strict_current_objects()
-    drifted_registry = SimpleNamespace(registry_digest="drifted-current-registry")
+    drifted_registry = SimpleNamespace(
+        registry_digest="drifted-current-registry",
+        manifests=registry.manifests,
+        manifest_for=registry.manifest_for,
+    )
     monkeypatch.setattr(
         admission_bundle,
         "_strict_current_objects",
