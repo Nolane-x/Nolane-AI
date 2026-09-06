@@ -11,10 +11,10 @@ def test_scoped_revalidation_preserves_its_two_semantic_owner_boundaries() -> No
     assert evidence.COMPONENT_ID == "external.evidence"
     assert evidence.COMPONENT_VERSION == "0.0.2"
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.6"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.6"
+    assert integration.COMPONENT_VERSION == "0.0.7"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.7"
     assert str(component_version("external.evidence")) == "0.0.2"
-    assert str(component_version("external.integration")) == "0.0.6"
+    assert str(component_version("external.integration")) == "0.0.7"
 
     # Sentinel neighbors: later integration evolution must not manufacture dependency bumps.
     assert str(component_version("external.planning")) == "0.0.1"

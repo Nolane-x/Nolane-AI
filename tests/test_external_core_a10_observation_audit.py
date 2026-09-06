@@ -212,3 +212,8 @@ def test_current_audit_reports_supplied_sibling_fork() -> None:
     )
 
     assert "OBSERVATION_FORK_DETECTED" in {row.code for row in report.findings}
+
+def test_current_lane_identity_is_closed_at_v4() -> None:
+    assert admission_bundle.COMPONENT_VERSION == "0.0.7"
+    assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"
+    assert admission_bundle.CURRENT_ADMISSION_AUDIT_PROTOCOL == admission_bundle.ADMISSION_AUDIT_PROTOCOL

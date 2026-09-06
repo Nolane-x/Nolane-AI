@@ -35,10 +35,11 @@ from nolane.external_core.work_trace import WORK_TRACE_PROTOCOL, CognitiveWorkTr
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.6"
+COMPONENT_VERSION = "0.0.7"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
-ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
-CURRENT_ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
+HISTORICAL_ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
+ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
+CURRENT_ADMISSION_AUDIT_PROTOCOL = ADMISSION_AUDIT_PROTOCOL
 
 
 def _exact_keys(state: Mapping[str, Any], expected: frozenset[str], label: str) -> None:
@@ -676,7 +677,7 @@ class CanonicalAdmissionAuditReport:
         observation_digest: str | None = None,
     ) -> "CanonicalAdmissionAuditReport":
         rows = tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
-        protocol = CURRENT_ADMISSION_AUDIT_PROTOCOL if current_observation else ADMISSION_AUDIT_PROTOCOL
+        protocol = ADMISSION_AUDIT_PROTOCOL if current_observation else HISTORICAL_ADMISSION_AUDIT_PROTOCOL
         payload: dict[str, Any] = {
             "protocol": protocol,
             "findings": [row.to_state() for row in rows],
