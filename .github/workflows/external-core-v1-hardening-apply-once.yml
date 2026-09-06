@@ -52,7 +52,25 @@ jobs:
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git rm tools/external_core_v1_hardening_apply_once.py .github/workflows/external-core-v1-hardening-apply-once.yml
-          git add CURRENT/EXTERNAL_CORE.md nolane/external_core/observation.py nolane/external_core/observation_integration.py nolane/external_core/integration.py nolane/external_core/compatibility.py nolane/external_core/integration_admission_bundle.py nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py tests/test_refoundation_wave5p_native_integration.py tests/test_external_core_a10_observation_audit.py tests/test_external_core_a10_v1_byte_exact_contract.py tests/test_external_core_a10_v1_document_contract.py
+          git add \
+            CURRENT/EXTERNAL_CORE.md \
+            nolane/external_core/observation.py \
+            nolane/external_core/observation_integration.py \
+            nolane/external_core/integration.py \
+            nolane/external_core/compatibility.py \
+            nolane/external_core/integration_admission_bundle.py \
+            nolane/metadata/component_versions.py \
+            tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5p_native_integration.py \
+            tests/test_external_core_a10_observation_audit.py \
+            tests/test_external_core_a10_v1_byte_exact_contract.py \
+            tests/test_external_core_a10_v1_document_contract.py \
+            tests/test_external_core_integration_evolution_public_contract.py \
+            tests/test_external_core_integration_revalidation.py \
+            tests/test_external_core_scoped_revalidation_public_contract.py \
+            tests/test_external_core_a5_public_contract.py \
+            tests/test_external_core_a6_temporal_reattestation.py \
+            tests/test_external_core_a7_atomic_observation.py
           git diff --cached --check
           git commit -m "fix: harden External Core v1 trust boundary"
       - name: Verify exact component-local revision discipline
