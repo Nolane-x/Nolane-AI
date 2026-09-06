@@ -1,25 +1,70 @@
-name: External Core v1 Genesis RED Proof Once
+name: External Core v1 Genesis Exact Bool Apply Once
 
 on:
   push:
     branches:
       - audit/external-core-v1-deep-verification-gpt56sol
     paths:
-      - tests/test_external_core_a10_v1_transition_genesis_exact_bool.py
+      - tools/external_core_v1_genesis_exact_bool_apply_once.py
       - .github/workflows/external-core-v1-genesis-red-proof-once.yml
 
 concurrency:
-  group: external-core-v1-genesis-red-${{ github.ref }}
+  group: external-core-v1-genesis-hardening-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: write
+
 jobs:
-  red:
+  apply:
     runs-on: macos-14
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - run: python -m pip install -q pytest
-      - name: Reproduce exact-boolean genesis defect
+      - name: Apply minimal exact-boolean guard
+        run: python tools/external_core_v1_genesis_exact_bool_apply_once.py
+      - name: Compile canonical namespaces
+        run: |
+          python -m py_compile nolane/core/*.py
+          python -m py_compile nolane/external_core/*.py
+          python -m py_compile nolane/metadata/*.py
+      - name: Verify focused genesis type contract
         run: python -m pytest -q tests/test_external_core_a10_v1_transition_genesis_exact_bool.py
+      - name: Run complete External Core contract suite
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          tests=(tests/test_external_core_g*.py tests/test_external_core_a2_*.py tests/test_external_core_a3_*.py tests/test_external_core_version_discipline*.py tests/test_external_core_integration_*.py tests/test_external_core_scoped_*.py tests/test_external_core_a5_*.py tests/test_external_core_a6_*.py tests/test_external_core_a7_*.py tests/test_external_core_a8_*.py tests/test_external_core_a9_*.py tests/test_external_core_a10_*.py)
+          python -m pytest -q "${tests[@]}"
+      - name: Run projection regressions
+        run: python -m pytest -q tests/test_refoundation_component_versions.py tests/test_refoundation_wave5p_native_integration.py
+      - name: Run canonical read-only audits
+        run: |
+          python -m nolane.external_core.audit --check
+          python -m nolane.external_core.integration_admission_bundle --check
+          python -m nolane.external_core.integration_admission_bundle --json > /tmp/external-core-a10-v4.json
+          python -c "import json; d=json.load(open('/tmp/external-core-a10-v4.json', encoding='utf-8')); assert d['protocol']=='external-integration-admission-audit-v4'; assert d['observation_digest'].startswith('canonical-observation-v1-'); assert len(d['observation_digest']) == len('canonical-observation-v1-') + 64; assert not d['findings']; assert d['digest'].startswith('admission-audit-v4-')"
+      - name: Prepare clean semantic commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git rm \
+            tools/external_core_v1_genesis_exact_bool_apply_once.py \
+            .github/workflows/external-core-v1-genesis-red-proof-once.yml
+          git add nolane/external_core/observation.py
+          git diff --cached --check
+          git commit -m "fix: require exact boolean A10 genesis flag"
+      - name: Verify exact component-local revision discipline
+        run: |
+          python -m nolane.metadata.version_discipline_cli --base origin/main --head HEAD --json
+          python -m nolane.metadata.version_discipline_cli --base origin/main --head HEAD --check
+      - name: Push clean verified semantic fix
+        run: git push origin HEAD:audit/external-core-v1-deep-verification-gpt56sol
