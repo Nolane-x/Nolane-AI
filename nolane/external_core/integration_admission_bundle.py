@@ -420,7 +420,38 @@ def run_canonical_admission_audit(
                 ),
             )
         )
-    return CanonicalAdmissionAuditReport.create(())
+
+    try:
+        registry, profile = _strict_current_objects()
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        return CanonicalAdmissionAuditReport.create(
+            (
+                AdmissionAuditFinding(
+                    code="CANONICAL_ADMISSION_CURRENT_STATE_BUILD_FAILED",
+                    detail=str(exc),
+                    subject_id="canonical-admission-bundle",
+                ),
+            )
+        )
+
+    findings: list[AdmissionAuditFinding] = []
+    if bundle.context.registry_digest != registry.registry_digest:
+        findings.append(
+            AdmissionAuditFinding(
+                code="CANONICAL_REGISTRY_CONTEXT_MISMATCH",
+                detail="admission context registry digest does not match the current canonical registry",
+                subject_id="canonical-admission-bundle",
+            )
+        )
+    if bundle.context.authority_graph_digest != profile.authority_graph.digest:
+        findings.append(
+            AdmissionAuditFinding(
+                code="CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH",
+                detail="admission context authority graph digest does not match the current canonical authority graph",
+                subject_id="canonical-admission-bundle",
+            )
+        )
+    return CanonicalAdmissionAuditReport.create(findings)
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
