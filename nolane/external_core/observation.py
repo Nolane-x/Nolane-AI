@@ -516,7 +516,12 @@ def validate_observation_completeness(
     observed_surface_digests: Mapping[str, str],
     expected_scope_digests: Mapping[str, str] | None = None,
 ) -> tuple[ObservationFinding, ...]:
-    envelope.validate_integrity()
+    envelope_integrity_error: Exception | None = None
+    try:
+        envelope.validate_integrity()
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        envelope_integrity_error = exc
+
     expected_components = _validated_component_ids(expected_component_ids)
     actual_components = envelope.surface_contract.required_component_ids
     findings: list[ObservationFinding] = []
@@ -622,6 +627,15 @@ def validate_observation_completeness(
                     )
                 )
 
+    malformed_surface_codes = {
+        "OBSERVATION_SURFACE_DUPLICATE",
+        "OBSERVATION_SURFACE_UNEXPECTED",
+    }
+    if envelope_integrity_error is not None and not any(
+        row.code in malformed_surface_codes for row in findings
+    ):
+        raise envelope_integrity_error
+
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
 
@@ -631,7 +645,12 @@ def validate_observation_provenance(
     provider_expectations: Mapping[str, CanonicalSurfaceProviderExpectation],
     expected_scope_digests: Mapping[str, str] | None = None,
 ) -> tuple[ObservationFinding, ...]:
-    envelope.validate_integrity()
+    envelope_integrity_error: Exception | None = None
+    try:
+        envelope.validate_integrity()
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        envelope_integrity_error = exc
+
     committed_digests = _surface_digest_map(envelope)
     findings: list[ObservationFinding] = []
 
@@ -721,6 +740,11 @@ def validate_observation_provenance(
                         subject_id=kind,
                     )
                 )
+
+    if envelope_integrity_error is not None and not any(
+        row.code == "OBSERVATION_RECEIPT_FORGED" for row in findings
+    ):
+        raise envelope_integrity_error
 
     return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 

@@ -20,7 +20,7 @@ def test_current_external_core_a8_a10_seal_matches_runtime_literals() -> None:
         "External Core owns no mutable chain head",
         "The current admission audit is `external-integration-admission-audit-v4`",
         "Historical call shapes remain historical v3 evidence",
-        "The current `external.integration` owner, compatibility semantic surface and admission-audit owner projection are `0.0.7`; metadata revision is `7`",
+        "The current `external.integration` owner, compatibility semantic surface and admission-audit owner projection are `0.0.8`; metadata revision is `8`",
         "The A10 architecture production freeze was verified on `main@99de2ff334d5a0cafa25e4f76f02e974fa391f0f`",
     )
     for sentence in required_sentences:
@@ -34,6 +34,6 @@ def test_current_external_core_a8_a10_seal_matches_runtime_literals() -> None:
     assert expectations["authority-graph"].provider_id == "external-core:canonical-authority-graph"
     assert expectations["authority-graph"].source_locator == "nolane.external_core.audit:build_canonical_fabric_profile"
 
-    assert admission_bundle.COMPONENT_VERSION == "0.0.7"
+    assert admission_bundle.COMPONENT_VERSION == "0.0.8"
     assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"
     assert admission_bundle.HISTORICAL_ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v3"

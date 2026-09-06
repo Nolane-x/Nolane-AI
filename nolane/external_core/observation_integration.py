@@ -265,7 +265,7 @@ def validate_observation_against_snapshot(
     )
     findings.extend(validate_observation_transition(predecessor, envelope, genesis=genesis))
     findings.extend(detect_observation_forks((envelope, *competing_successors)))
-    return tuple(sorted(set(findings), key=lambda row: (row.code, row.subject_id, row.detail)))
+    return tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
 
 
 __all__ = (

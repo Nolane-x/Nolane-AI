@@ -35,7 +35,7 @@ from nolane.external_core.work_trace import WORK_TRACE_PROTOCOL, CognitiveWorkTr
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.7"
+COMPONENT_VERSION = "0.0.8"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
 HISTORICAL_ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
 ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
@@ -279,6 +279,15 @@ def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
     if not isinstance(value, Mapping):
         raise ValueError("frontier must be an object")
     return dict(value.items())
+
+
+def _current_observation_frontier(
+    value: Mapping[str, str] | None,
+    label: str,
+) -> Mapping[str, str]:
+    if value is None:
+        raise ValueError(f"current observation {label} surface unavailable")
+    return _frontier(value)
 
 
 def _context_from_observation(
@@ -629,12 +638,12 @@ def build_canonical_observation(
     chain_id: str = CANONICAL_OBSERVATION_CHAIN_ID,
     previous_observation_digest: str | None = None,
 ) -> CanonicalObservationEnvelope:
-    source = _frontier(current_source_state_digests)
-    evidence = _frontier(current_evidence_digests)
-    artifact = _frontier(current_artifact_digests)
-    freshness = _frontier(current_freshness_fences)
-    handoffs = _frontier(known_handoff_digests)
-    traces = _frontier(current_work_trace_digests)
+    source = _current_observation_frontier(current_source_state_digests, "source-state")
+    evidence = _current_observation_frontier(current_evidence_digests, "evidence")
+    artifact = _current_observation_frontier(current_artifact_digests, "artifact")
+    freshness = _current_observation_frontier(current_freshness_fences, "freshness")
+    handoffs = _current_observation_frontier(known_handoff_digests, "handoff")
+    traces = _current_observation_frontier(current_work_trace_digests, "work-trace")
     registry, profile = _strict_current_objects()
     return build_observation_from_snapshot(
         registry,
@@ -677,6 +686,13 @@ class CanonicalAdmissionAuditReport:
         observation_digest: str | None = None,
     ) -> "CanonicalAdmissionAuditReport":
         rows = tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+        if current_observation:
+            if observation_digest is not None and (
+                type(observation_digest) is not str or not observation_digest.strip()
+            ):
+                raise ValueError("current observation audit observation digest must be an exact non-empty string")
+            if not rows and observation_digest is None:
+                raise ValueError("clean current observation audit requires an exact observation digest")
         protocol = ADMISSION_AUDIT_PROTOCOL if current_observation else HISTORICAL_ADMISSION_AUDIT_PROTOCOL
         payload: dict[str, Any] = {
             "protocol": protocol,
@@ -1336,12 +1352,21 @@ def run_canonical_admission_audit(
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Audit the canonical A7 atomic-observation admission bundle")
+    parser = argparse.ArgumentParser(description="Audit the canonical A10 External Core v1 observation-bound admission surface")
     parser.add_argument("--check", action="store_true", help="exit non-zero when categorical findings exist")
     parser.add_argument("--json", action="store_true", help="emit canonical audit JSON")
     parser.add_argument("--observed-epoch", type=int, default=0)
     args = parser.parse_args(argv)
-    report = run_canonical_admission_audit(observed_epoch=args.observed_epoch)
+    report = run_canonical_admission_audit(
+        observed_epoch=args.observed_epoch,
+        observation_genesis=True,
+        current_source_state_digests={},
+        current_evidence_digests={},
+        current_artifact_digests={},
+        current_freshness_fences={},
+        known_handoff_digests={},
+        current_work_trace_digests={},
+    )
     if args.json or not args.check:
         print(json.dumps(report.to_state(), sort_keys=True, separators=(",", ":")))
     elif report.findings:

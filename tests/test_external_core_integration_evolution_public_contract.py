@@ -38,9 +38,9 @@ FORBIDDEN_CONTROL_EXPORT_FRAGMENTS = (
 
 def test_integration_and_compatibility_semantic_surfaces_advance_together() -> None:
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.7"
+    assert integration.COMPONENT_VERSION == "0.0.8"
     assert compatibility.SEMANTIC_SURFACE_ID == "external.integration.compatibility"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.7"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.8"
 
 
 def test_package_root_exports_only_read_only_integration_evolution_surfaces() -> None:

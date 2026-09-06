@@ -40,12 +40,12 @@ def test_frozen_admission_protocol_owner_is_byte_exact() -> None:
 
 def test_current_external_core_v1_literal_identity_matrix_is_exact() -> None:
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.7"
+    assert integration.COMPONENT_VERSION == "0.0.8"
     assert compatibility.SEMANTIC_SURFACE_ID == "external.integration.compatibility"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.7"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.8"
 
     assert admission_bundle.COMPONENT_ID == "external.integration"
-    assert admission_bundle.COMPONENT_VERSION == "0.0.7"
+    assert admission_bundle.COMPONENT_VERSION == "0.0.8"
     assert admission_bundle.ADMISSION_BUNDLE_PROTOCOL == "external-integration-admission-bundle-v2"
     assert admission_bundle.HISTORICAL_ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v3"
     assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"
