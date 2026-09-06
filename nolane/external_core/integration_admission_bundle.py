@@ -390,6 +390,44 @@ class CanonicalAdmissionAuditReport:
         }
 
 
+def _append_readmission_findings(
+    findings: list[AdmissionAuditFinding],
+    *,
+    subject_id: str,
+    label: str,
+    disposition: AdmissionDisposition,
+    reason_codes: tuple[str, ...],
+) -> None:
+    if disposition is AdmissionDisposition.ADMITTED:
+        return
+    codes = reason_codes or ("CANONICAL_ADMISSION_READMISSION_NOT_ADMITTED",)
+    for code in codes:
+        findings.append(
+            AdmissionAuditFinding(
+                code=code,
+                detail=f"live {label} re-admission returned {disposition.value}",
+                subject_id=subject_id,
+            )
+        )
+
+
+def _observed_frontier(
+    kind: str,
+    *,
+    bound_digest: str,
+    current_values: Mapping[str, str] | None,
+) -> Mapping[str, str] | None:
+    if current_values is not None:
+        try:
+            canonical_frontier_digest(kind, current_values)
+        except (AttributeError, KeyError, TypeError, ValueError):
+            return None
+        return current_values
+    if bound_digest == canonical_frontier_digest(kind, {}):
+        return {}
+    return None
+
+
 def run_canonical_admission_audit(
     *,
     bundle: CanonicalAdmissionBundle | None = None,
@@ -541,6 +579,137 @@ def run_canonical_admission_audit(
                     subject_id="canonical-admission-bundle",
                 )
             )
+
+    for child in bundle.manifests:
+        try:
+            replay = admit_manifest_state(child.subject_state, context=bundle.context)
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
+            findings.append(
+                AdmissionAuditFinding(
+                    code="CANONICAL_MANIFEST_READMISSION_FAILED",
+                    detail=str(exc),
+                    subject_id=child.receipt.subject_id,
+                )
+            )
+        else:
+            _append_readmission_findings(
+                findings,
+                subject_id=child.receipt.subject_id,
+                label="manifest",
+                disposition=replay.receipt.disposition,
+                reason_codes=replay.receipt.reason_codes,
+            )
+
+    try:
+        graph_replay = admit_authority_graph_state(bundle.authority_graph.subject_state, context=bundle.context)
+    except (AttributeError, KeyError, TypeError, ValueError) as exc:
+        findings.append(
+            AdmissionAuditFinding(
+                code="CANONICAL_AUTHORITY_GRAPH_READMISSION_FAILED",
+                detail=str(exc),
+                subject_id=bundle.authority_graph.receipt.subject_id,
+            )
+        )
+    else:
+        _append_readmission_findings(
+            findings,
+            subject_id=bundle.authority_graph.receipt.subject_id,
+            label="authority graph",
+            disposition=graph_replay.receipt.disposition,
+            reason_codes=graph_replay.receipt.reason_codes,
+        )
+
+    source = _observed_frontier(
+        "source-state",
+        bound_digest=bundle.context.source_state_frontier_digest,
+        current_values=current_source_state_digests,
+    )
+    evidence = _observed_frontier(
+        "evidence",
+        bound_digest=bundle.context.evidence_frontier_digest,
+        current_values=current_evidence_digests,
+    )
+    artifact = _observed_frontier(
+        "artifact",
+        bound_digest=bundle.context.artifact_frontier_digest,
+        current_values=current_artifact_digests,
+    )
+    freshness = _observed_frontier(
+        "freshness",
+        bound_digest=bundle.context.freshness_fence_frontier_digest,
+        current_values=current_freshness_fences,
+    )
+    handoffs = _observed_frontier(
+        "handoff",
+        bound_digest=bundle.context.handoff_frontier_digest,
+        current_values=known_handoff_digests,
+    )
+    traces = _observed_frontier(
+        "work-trace",
+        bound_digest=bundle.context.work_trace_frontier_digest,
+        current_values=current_work_trace_digests,
+    )
+
+    if all(row is not None for row in (source, evidence, artifact, freshness, handoffs)):
+        assert source is not None
+        assert evidence is not None
+        assert artifact is not None
+        assert freshness is not None
+        assert handoffs is not None
+        for child in bundle.handoffs:
+            try:
+                replay = admit_handoff_state(
+                    child.subject_state,
+                    context=bundle.context,
+                    current_source_state_digests=source,
+                    current_evidence_digests=evidence,
+                    current_artifact_digests=artifact,
+                    current_freshness_fences=freshness,
+                    known_handoff_digests=handoffs,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="CANONICAL_HANDOFF_READMISSION_FAILED",
+                        detail=str(exc),
+                        subject_id=child.receipt.subject_id,
+                    )
+                )
+            else:
+                _append_readmission_findings(
+                    findings,
+                    subject_id=child.receipt.subject_id,
+                    label="handoff",
+                    disposition=replay.receipt.disposition,
+                    reason_codes=replay.receipt.reason_codes,
+                )
+
+    if handoffs is not None and traces is not None:
+        for child in bundle.work_traces:
+            try:
+                replay = admit_work_trace_state(
+                    child.subject_state,
+                    context=bundle.context,
+                    known_handoff_digests=handoffs,
+                    current_work_trace_digests=traces,
+                )
+            except (AttributeError, KeyError, TypeError, ValueError) as exc:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code="CANONICAL_WORK_TRACE_READMISSION_FAILED",
+                        detail=str(exc),
+                        subject_id=child.receipt.subject_id,
+                    )
+                )
+            else:
+                _append_readmission_findings(
+                    findings,
+                    subject_id=child.receipt.subject_id,
+                    label="work trace",
+                    disposition=replay.receipt.disposition,
+                    reason_codes=replay.receipt.reason_codes,
+                )
+
     return CanonicalAdmissionAuditReport.create(findings)
 
 
