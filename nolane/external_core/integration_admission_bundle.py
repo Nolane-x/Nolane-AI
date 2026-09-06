@@ -259,6 +259,10 @@ class CanonicalAdmissionBundle:
             raise ValueError("canonical admission bundle integrity validation failed")
 
 
+def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
+    return {} if value is None else value
+
+
 def build_canonical_admission_context(
     *,
     observed_epoch: int = 0,
@@ -270,12 +274,12 @@ def build_canonical_admission_context(
     current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionContext:
     registry, profile = _strict_current_objects()
-    source = current_source_state_digests or {}
-    evidence = current_evidence_digests or {}
-    artifact = current_artifact_digests or {}
-    freshness = current_freshness_fences or {}
-    handoffs = known_handoff_digests or {}
-    traces = current_work_trace_digests or {}
+    source = _frontier(current_source_state_digests)
+    evidence = _frontier(current_evidence_digests)
+    artifact = _frontier(current_artifact_digests)
+    freshness = _frontier(current_freshness_fences)
+    handoffs = _frontier(known_handoff_digests)
+    traces = _frontier(current_work_trace_digests)
     return CanonicalAdmissionContext.create(
         registry_digest=registry.registry_digest,
         authority_graph_digest=profile.authority_graph.digest,
@@ -301,12 +305,12 @@ def build_canonical_admission_bundle(
     handoff_states: Sequence[Mapping[str, Any]] = (),
     work_trace_states: Sequence[Mapping[str, Any]] = (),
 ) -> CanonicalAdmissionBundle:
-    source = current_source_state_digests or {}
-    evidence = current_evidence_digests or {}
-    artifact = current_artifact_digests or {}
-    freshness = current_freshness_fences or {}
-    handoffs = known_handoff_digests or {}
-    traces = current_work_trace_digests or {}
+    source = _frontier(current_source_state_digests)
+    evidence = _frontier(current_evidence_digests)
+    artifact = _frontier(current_artifact_digests)
+    freshness = _frontier(current_freshness_fences)
+    handoffs = _frontier(known_handoff_digests)
+    traces = _frontier(current_work_trace_digests)
     context = build_canonical_admission_context(
         observed_epoch=observed_epoch,
         current_source_state_digests=source,
