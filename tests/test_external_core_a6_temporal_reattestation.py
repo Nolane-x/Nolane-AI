@@ -31,3 +31,15 @@ def test_persisted_bundle_rejects_observation_epoch_drift(live_epoch: int) -> No
     report = run_canonical_admission_audit(bundle=bundle, current_observed_epoch=live_epoch)
 
     assert {row.code for row in report.findings} == {"OBSERVATION_EPOCH_CONTEXT_MISMATCH"}
+
+
+@pytest.mark.parametrize("live_epoch", (True, False, -1, 1.0, "11", b"11"))
+def test_persisted_bundle_rejects_noncanonical_live_observation_epoch(live_epoch: object) -> None:
+    bundle = build_canonical_admission_bundle(observed_epoch=11)
+
+    report = run_canonical_admission_audit(
+        bundle=bundle,
+        current_observed_epoch=live_epoch,  # type: ignore[arg-type]
+    )
+
+    assert {row.code for row in report.findings} == {"CURRENT_OBSERVATION_EPOCH_INVALID"}
