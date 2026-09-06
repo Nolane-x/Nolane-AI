@@ -4,13 +4,13 @@ The conceptual External Core is intentionally wider than the invokable
 ExternalCoreRegistry: it also contains persistent memory, context, planning,
 architecture, evidence-backed engineering and other governed cognition.
 
-The A2/A3, integration-evolution and scoped-revalidation exports below are
-deliberately structural and authority-neutral. They expose immutable contracts,
-registry provenance, validation, discovery, restore classification,
-compatibility/impact structure, exact-context evidence binding, revalidation
-assessment and audit surfaces; they do not expose an invocation, authorization,
-promotion, deployment, repair, Assurance, Verification, or runtime registration
-path.
+The A2/A3, integration-evolution, scoped-revalidation and A5 admission exports
+below are deliberately structural and authority-neutral. They expose immutable
+contracts, registry provenance, validation, discovery, restore classification,
+compatibility/impact structure, exact-context evidence binding, strict current
+admission and read-only audit surfaces; they do not expose an invocation,
+authorization, promotion, deployment, repair, Assurance, Verification, runtime
+registration or migration path.
 """
 
 from nolane.external_core.authority_graph import (
@@ -47,6 +47,29 @@ from nolane.external_core.handoff import (
     HandoffValidationDisposition,
     HandoffValidationResult,
     validate_handoff_for_consumer,
+)
+from nolane.external_core.integration_admission import (
+    AdmissionDisposition,
+    AdmissionSubjectKind,
+    AdmittedAuthorityGraph,
+    AdmittedHandoff,
+    AdmittedManifest,
+    AdmittedWorkTrace,
+    CanonicalAdmissionContext,
+    ProtocolAdmissionReceipt,
+    admit_authority_graph_state,
+    admit_handoff_state,
+    admit_manifest_state,
+    admit_work_trace_state,
+    canonical_frontier_digest,
+)
+from nolane.external_core.integration_admission_bundle import (
+    AdmissionAuditFinding,
+    CanonicalAdmissionAuditReport,
+    CanonicalAdmissionBundle,
+    build_canonical_admission_bundle,
+    build_canonical_admission_context,
+    run_canonical_admission_audit,
 )
 from nolane.external_core.integration_evolution import (
     ComponentEvolutionDelta,
@@ -104,6 +127,13 @@ from nolane.external_core.work_trace import (
 
 
 __all__ = (
+    "AdmissionAuditFinding",
+    "AdmissionDisposition",
+    "AdmissionSubjectKind",
+    "AdmittedAuthorityGraph",
+    "AdmittedHandoff",
+    "AdmittedManifest",
+    "AdmittedWorkTrace",
     "AuthorityEdge",
     "AuthorityGraphFinding",
     "AuthorityGraphValidationReport",
@@ -111,6 +141,9 @@ __all__ = (
     "CapabilityCatalogBindingReceipt",
     "CapabilityDescriptor",
     "CapabilityDiscoveryIndex",
+    "CanonicalAdmissionAuditReport",
+    "CanonicalAdmissionBundle",
+    "CanonicalAdmissionContext",
     "CanonicalComponentRegistry",
     "CognitiveWorkTrace",
     "CoherenceAuditReport",
@@ -134,6 +167,7 @@ __all__ = (
     "LiveRestoreAssessment",
     "LiveRestoreDisposition",
     "ManifestAdapter",
+    "ProtocolAdmissionReceipt",
     "RegistryCapabilityDiscoveryIndex",
     "RegistryCoverageFinding",
     "RegistryCoverageReport",
@@ -152,6 +186,10 @@ __all__ = (
     "TraceNode",
     "TraceNodeStatus",
     "TraceSupersessionReceipt",
+    "admit_authority_graph_state",
+    "admit_handoff_state",
+    "admit_manifest_state",
+    "admit_work_trace_state",
     "artifact_state_digest",
     "assess_live_restore",
     "assess_live_restore_state",
@@ -159,14 +197,18 @@ __all__ = (
     "assess_scoped_revalidation",
     "audit_external_core",
     "audit_live_external_core",
+    "build_canonical_admission_bundle",
+    "build_canonical_admission_context",
     "build_integration_impact_closure",
     "build_revalidation_challenges",
     "build_revalidation_plan",
     "build_revalidation_scope",
+    "canonical_frontier_digest",
     "challenge_subject_digest",
     "handoff_frontier_digest",
     "preflight_restore",
     "qualify_component_evolution",
+    "run_canonical_admission_audit",
     "source_state_frontier_digest",
     "validate_handoff_for_consumer",
     "work_trace_frontier_digest",

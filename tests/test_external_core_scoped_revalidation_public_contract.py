@@ -7,16 +7,16 @@ from nolane.external_core import compatibility, evidence, integration
 from nolane.metadata.component_versions import component_version
 
 
-def test_scoped_revalidation_advances_only_its_two_semantic_owner_versions() -> None:
+def test_scoped_revalidation_preserves_its_two_semantic_owner_boundaries() -> None:
     assert evidence.COMPONENT_ID == "external.evidence"
     assert evidence.COMPONENT_VERSION == "0.0.2"
     assert integration.COMPONENT_ID == "external.integration"
-    assert integration.COMPONENT_VERSION == "0.0.3"
-    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.3"
+    assert integration.COMPONENT_VERSION == "0.0.4"
+    assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.4"
     assert str(component_version("external.evidence")) == "0.0.2"
-    assert str(component_version("external.integration")) == "0.0.3"
+    assert str(component_version("external.integration")) == "0.0.4"
 
-    # Sentinel neighbors: this feature must not manufacture dependency bumps.
+    # Sentinel neighbors: later integration evolution must not manufacture dependency bumps.
     assert str(component_version("external.planning")) == "0.0.1"
     assert str(component_version("external.assurance")) == "0.0.1"
     assert str(component_version("external.verification")) == "0.0.1"
@@ -68,7 +68,7 @@ def test_legacy_v1_revalidation_public_contract_remains_available() -> None:
 def test_current_external_core_authority_documents_scoped_evidence_without_global_version() -> None:
     text = Path("CURRENT/EXTERNAL_CORE.md").read_text(encoding="utf-8")
     assert "external.evidence" in text and "0.0.2" in text
-    assert "external.integration" in text and "0.0.3" in text
+    assert "external.integration" in text and "0.0.4" in text
     assert "scoped-evidence-v2" in text
     assert "integration-revalidation-scope-v2" in text
     assert "Evidence may prove only the exact subject and context it was produced against" in text

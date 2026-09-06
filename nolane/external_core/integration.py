@@ -6,6 +6,29 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.compatibility import CompatibilityAssessment, CompatibilityClass
+from nolane.external_core.integration_admission import (
+    AdmissionDisposition,
+    AdmissionSubjectKind,
+    AdmittedAuthorityGraph,
+    AdmittedHandoff,
+    AdmittedManifest,
+    AdmittedWorkTrace,
+    CanonicalAdmissionContext,
+    ProtocolAdmissionReceipt,
+    admit_authority_graph_state,
+    admit_handoff_state,
+    admit_manifest_state,
+    admit_work_trace_state,
+    canonical_frontier_digest,
+)
+from nolane.external_core.integration_admission_bundle import (
+    AdmissionAuditFinding,
+    CanonicalAdmissionAuditReport,
+    CanonicalAdmissionBundle,
+    build_canonical_admission_bundle,
+    build_canonical_admission_context,
+    run_canonical_admission_audit,
+)
 from nolane.external_core.integration_evolution import (
     ComponentEvolutionDelta,
     EvolutionCompatibilityDisposition,
@@ -37,7 +60,7 @@ from nolane.external_core.integration_scoped_revalidation import (
 )
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.integration"
 
 
@@ -390,4 +413,23 @@ __all__ = [
     "build_revalidation_challenges",
     "build_revalidation_scope",
     "challenge_subject_digest",
+    "AdmissionDisposition",
+    "AdmissionSubjectKind",
+    "CanonicalAdmissionContext",
+    "ProtocolAdmissionReceipt",
+    "AdmittedManifest",
+    "AdmittedAuthorityGraph",
+    "AdmittedHandoff",
+    "AdmittedWorkTrace",
+    "admit_manifest_state",
+    "admit_authority_graph_state",
+    "admit_handoff_state",
+    "admit_work_trace_state",
+    "canonical_frontier_digest",
+    "CanonicalAdmissionBundle",
+    "AdmissionAuditFinding",
+    "CanonicalAdmissionAuditReport",
+    "build_canonical_admission_context",
+    "build_canonical_admission_bundle",
+    "run_canonical_admission_audit",
 ]
