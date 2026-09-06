@@ -21,9 +21,12 @@ def test_current_external_core_a8_a10_seal_matches_runtime_literals() -> None:
         "The current admission audit is `external-integration-admission-audit-v4`",
         "Historical call shapes remain historical v3 evidence",
         "The current `external.integration` owner, compatibility semantic surface and admission-audit owner projection are `0.0.7`; metadata revision is `7`",
+        "The A10 architecture production freeze was verified on `main@99de2ff334d5a0cafa25e4f76f02e974fa391f0f`",
     )
     for sentence in required_sentences:
         assert sentence in text
+
+    assert "production freeze declaration is withheld until Task 10 verifies" not in text
 
     expectations = observation_integration.canonical_observation_provider_expectations()
     assert expectations["registry"].provider_id == "external-core:canonical-registry"
