@@ -394,10 +394,24 @@ def run_canonical_admission_audit(
     *,
     bundle: CanonicalAdmissionBundle | None = None,
     observed_epoch: int = 0,
+    current_source_state_digests: Mapping[str, str] | None = None,
+    current_evidence_digests: Mapping[str, str] | None = None,
+    current_artifact_digests: Mapping[str, str] | None = None,
+    current_freshness_fences: Mapping[str, str] | None = None,
+    known_handoff_digests: Mapping[str, str] | None = None,
+    current_work_trace_digests: Mapping[str, str] | None = None,
 ) -> CanonicalAdmissionAuditReport:
     if bundle is None:
         try:
-            bundle = build_canonical_admission_bundle(observed_epoch=observed_epoch)
+            bundle = build_canonical_admission_bundle(
+                observed_epoch=observed_epoch,
+                current_source_state_digests=current_source_state_digests,
+                current_evidence_digests=current_evidence_digests,
+                current_artifact_digests=current_artifact_digests,
+                current_freshness_fences=current_freshness_fences,
+                known_handoff_digests=known_handoff_digests,
+                current_work_trace_digests=current_work_trace_digests,
+            )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
             return CanonicalAdmissionAuditReport.create(
                 (
@@ -456,46 +470,74 @@ def run_canonical_admission_audit(
         (
             "source-state",
             bundle.context.source_state_frontier_digest,
+            current_source_state_digests,
             "CURRENT_SOURCE_STATE_FRONTIER_UNAVAILABLE",
-            "source-state frontier was bound at admission but was not re-observed for the live audit",
+            "SOURCE_STATE_FRONTIER_CONTEXT_MISMATCH",
         ),
         (
             "evidence",
             bundle.context.evidence_frontier_digest,
+            current_evidence_digests,
             "CURRENT_EVIDENCE_FRONTIER_UNAVAILABLE",
-            "evidence frontier was bound at admission but was not re-observed for the live audit",
+            "EVIDENCE_FRONTIER_CONTEXT_MISMATCH",
         ),
         (
             "artifact",
             bundle.context.artifact_frontier_digest,
+            current_artifact_digests,
             "CURRENT_ARTIFACT_FRONTIER_UNAVAILABLE",
-            "artifact frontier was bound at admission but was not re-observed for the live audit",
+            "ARTIFACT_FRONTIER_CONTEXT_MISMATCH",
         ),
         (
             "freshness",
             bundle.context.freshness_fence_frontier_digest,
+            current_freshness_fences,
             "CURRENT_FRESHNESS_FRONTIER_UNAVAILABLE",
-            "freshness frontier was bound at admission but was not re-observed for the live audit",
+            "FRESHNESS_FRONTIER_CONTEXT_MISMATCH",
         ),
         (
             "handoff",
             bundle.context.handoff_frontier_digest,
+            known_handoff_digests,
             "CURRENT_HANDOFF_FRONTIER_UNAVAILABLE",
-            "handoff frontier was bound at admission but was not re-observed for the live audit",
+            "HANDOFF_FRONTIER_CONTEXT_MISMATCH",
         ),
         (
             "work-trace",
             bundle.context.work_trace_frontier_digest,
+            current_work_trace_digests,
             "CURRENT_WORK_TRACE_FRONTIER_UNAVAILABLE",
-            "work-trace frontier was bound at admission but was not re-observed for the live audit",
+            "WORK_TRACE_FRONTIER_CONTEXT_MISMATCH",
         ),
     )
-    for kind, bound_digest, code, detail in frontier_specs:
-        if bound_digest != canonical_frontier_digest(kind, {}):
+    for kind, bound_digest, current_values, unavailable_code, mismatch_code in frontier_specs:
+        empty_digest = canonical_frontier_digest(kind, {})
+        if current_values is None:
+            if bound_digest != empty_digest:
+                findings.append(
+                    AdmissionAuditFinding(
+                        code=unavailable_code,
+                        detail=f"{kind} frontier was bound at admission but was not re-observed for the live audit",
+                        subject_id="canonical-admission-bundle",
+                    )
+                )
+            continue
+        try:
+            current_digest = canonical_frontier_digest(kind, current_values)
+        except (AttributeError, KeyError, TypeError, ValueError) as exc:
             findings.append(
                 AdmissionAuditFinding(
-                    code=code,
-                    detail=detail,
+                    code=f"CURRENT_{kind.upper().replace('-', '_')}_FRONTIER_INVALID",
+                    detail=str(exc),
+                    subject_id="canonical-admission-bundle",
+                )
+            )
+            continue
+        if current_digest != bound_digest:
+            findings.append(
+                AdmissionAuditFinding(
+                    code=mismatch_code,
+                    detail=f"admission context {kind} frontier digest does not match the live re-observation",
                     subject_id="canonical-admission-bundle",
                 )
             )
