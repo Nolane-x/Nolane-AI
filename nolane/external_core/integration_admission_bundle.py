@@ -266,7 +266,7 @@ class CanonicalAdmissionBundle:
 
 
 def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
-    return {} if value is None else value
+    return {} if value is None else dict(value.items())
 
 
 def _context_from_observation(
