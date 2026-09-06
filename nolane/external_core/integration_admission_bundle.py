@@ -17,9 +17,7 @@ from nolane.external_core.integration_admission import (
     AdmittedWorkTrace,
     CanonicalAdmissionContext,
     ProtocolAdmissionReceipt,
-    admit_authority_graph_state,
     admit_handoff_state,
-    admit_manifest_state,
     admit_work_trace_state,
     canonical_frontier_digest,
 )
@@ -490,6 +488,60 @@ def _append_readmission_findings(
         )
 
 
+def _context_reasons_from_observation(
+    context: CanonicalAdmissionContext,
+    *,
+    registry: Any,
+    profile: Any,
+) -> tuple[str, ...]:
+    context.validate_integrity()
+    reasons: list[str] = []
+    if context.registry_digest != registry.registry_digest:
+        reasons.append("CANONICAL_REGISTRY_CONTEXT_MISMATCH")
+    if context.authority_graph_digest != profile.authority_graph.digest:
+        reasons.append("CANONICAL_AUTHORITY_GRAPH_CONTEXT_MISMATCH")
+    return tuple(sorted(set(reasons)))
+
+
+def _manifest_readmission_from_observation(
+    child: AdmittedManifest,
+    *,
+    context: CanonicalAdmissionContext,
+    registry: Any,
+    profile: Any,
+) -> tuple[AdmissionDisposition, tuple[str, ...]]:
+    reasons = list(_context_reasons_from_observation(context, registry=registry, profile=profile))
+    try:
+        current = registry.manifest_for(child.receipt.subject_id)
+    except KeyError:
+        reasons.append("CANONICAL_MANIFEST_IDENTITY_UNKNOWN")
+    else:
+        if current.to_state() != child.subject_state:
+            reasons.append("CANONICAL_MANIFEST_MISMATCH")
+    codes = tuple(sorted(set(reasons)))
+    return (AdmissionDisposition.BLOCKED if codes else AdmissionDisposition.ADMITTED), codes
+
+
+def _authority_graph_readmission_from_observation(
+    child: AdmittedAuthorityGraph,
+    *,
+    context: CanonicalAdmissionContext,
+    registry: Any,
+    profile: Any,
+) -> tuple[AdmissionDisposition, tuple[str, ...]]:
+    reasons = list(_context_reasons_from_observation(context, registry=registry, profile=profile))
+    state = child.subject_state
+    if state != profile.authority_graph.to_state():
+        reasons.append("CANONICAL_AUTHORITY_GRAPH_MISMATCH")
+    graph_manifests = state.get("manifests")
+    if type(graph_manifests) is not list:
+        raise ValueError("admitted authority graph manifest population is non-canonical")
+    if tuple(graph_manifests) != tuple(row.to_state() for row in registry.manifests):
+        reasons.append("CANONICAL_GRAPH_REGISTRY_POPULATION_MISMATCH")
+    codes = tuple(sorted(set(reasons)))
+    return (AdmissionDisposition.BLOCKED if codes else AdmissionDisposition.ADMITTED), codes
+
+
 def _observed_frontier(
     kind: str,
     *,
@@ -698,7 +750,12 @@ def run_canonical_admission_audit(
 
     for child in bundle.manifests:
         try:
-            replay = admit_manifest_state(child.subject_state, context=bundle.context)
+            disposition, reason_codes = _manifest_readmission_from_observation(
+                child,
+                context=bundle.context,
+                registry=registry,
+                profile=profile,
+            )
         except (AttributeError, KeyError, TypeError, ValueError) as exc:
             findings.append(
                 AdmissionAuditFinding(
@@ -712,12 +769,17 @@ def run_canonical_admission_audit(
                 findings,
                 subject_id=child.receipt.subject_id,
                 label="manifest",
-                disposition=replay.receipt.disposition,
-                reason_codes=replay.receipt.reason_codes,
+                disposition=disposition,
+                reason_codes=reason_codes,
             )
 
     try:
-        graph_replay = admit_authority_graph_state(bundle.authority_graph.subject_state, context=bundle.context)
+        graph_disposition, graph_reason_codes = _authority_graph_readmission_from_observation(
+            bundle.authority_graph,
+            context=bundle.context,
+            registry=registry,
+            profile=profile,
+        )
     except (AttributeError, KeyError, TypeError, ValueError) as exc:
         findings.append(
             AdmissionAuditFinding(
@@ -731,8 +793,8 @@ def run_canonical_admission_audit(
             findings,
             subject_id=bundle.authority_graph.receipt.subject_id,
             label="authority graph",
-            disposition=graph_replay.receipt.disposition,
-            reason_codes=graph_replay.receipt.reason_codes,
+            disposition=graph_disposition,
+            reason_codes=graph_reason_codes,
         )
 
     source = _observed_frontier(
