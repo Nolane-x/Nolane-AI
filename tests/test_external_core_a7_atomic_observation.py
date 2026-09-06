@@ -3,6 +3,7 @@ from __future__ import annotations
 import nolane.external_core.integration_admission as admission
 import nolane.external_core.integration_admission_bundle as admission_bundle
 from nolane.external_core.handoff import ExternalHandoffEnvelope, HandoffAuthorityClass
+from nolane.external_core.work_trace import CognitiveWorkTrace
 
 
 def _count_canonical_reads(monkeypatch):
@@ -55,6 +56,11 @@ def _valid_handoff_state() -> tuple[dict[str, object], dict[str, str]]:
     raise AssertionError("canonical registry has no producer/consumer contract pair for an A7 handoff fixture")
 
 
+def _valid_work_trace_state() -> tuple[dict[str, object], dict[str, str]]:
+    trace = CognitiveWorkTrace("a7-work-trace")
+    return trace.to_state(), {trace.trace_id: trace.digest}
+
+
 def test_bundle_build_uses_one_canonical_observation(monkeypatch) -> None:
     reads = _count_canonical_reads(monkeypatch)
 
@@ -89,4 +95,19 @@ def test_bundle_build_with_handoff_reuses_one_canonical_observation(monkeypatch)
     bundle.validate_integrity()
 
     assert len(bundle.handoffs) == 1
+    assert reads == {"bundle": 1, "admission": 0}
+
+
+def test_bundle_build_with_work_trace_reuses_one_canonical_observation(monkeypatch) -> None:
+    trace_state, traces = _valid_work_trace_state()
+    reads = _count_canonical_reads(monkeypatch)
+
+    bundle = admission_bundle.build_canonical_admission_bundle(
+        observed_epoch=11,
+        current_work_trace_digests=traces,
+        work_trace_states=(trace_state,),
+    )
+    bundle.validate_integrity()
+
+    assert len(bundle.work_traces) == 1
     assert reads == {"bundle": 1, "admission": 0}
