@@ -92,7 +92,16 @@ def test_observation_public_export_surface_is_exact() -> None:
 
 def test_observation_finding_code_lexicon_is_exact() -> None:
     literals = _string_literals(ROOT / "nolane" / "external_core" / "observation.py")
-    codes = {value for value in literals if value.startswith("OBSERVATION_")}
+    non_finding_observation_constants = {
+        "OBSERVATION_PROTOCOL",
+        "OBSERVATION_SURFACE_PROTOCOL",
+    }
+    codes = {
+        value
+        for value in literals
+        if value.startswith("OBSERVATION_")
+        and value not in non_finding_observation_constants
+    }
     assert codes == {
         "OBSERVATION_CHAIN_ID_MISMATCH",
         "OBSERVATION_ENUMERATION_INCOMPLETE",
