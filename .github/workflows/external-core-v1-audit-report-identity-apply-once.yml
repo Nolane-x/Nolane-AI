@@ -8,6 +8,10 @@ on:
       - tools/external_core_v1_audit_report_identity_apply_once.py
       - .github/workflows/external-core-v1-audit-report-identity-apply-once.yml
 
+concurrency:
+  group: external-core-v1-audit-report-identity-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
 
