@@ -831,6 +831,8 @@ def validate_observation_transition(
     *,
     genesis: bool = False,
 ) -> tuple[ObservationFinding, ...]:
+    if type(genesis) is not bool:
+        raise ValueError("genesis must be an exact boolean")
     current.validate_integrity()
     findings: list[ObservationFinding] = []
 
