@@ -35,7 +35,7 @@ from nolane.external_core.work_trace import WORK_TRACE_PROTOCOL, CognitiveWorkTr
 
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.7"
+COMPONENT_VERSION = "0.0.8"
 ADMISSION_BUNDLE_PROTOCOL = "external-integration-admission-bundle-v2"
 HISTORICAL_ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v3"
 ADMISSION_AUDIT_PROTOCOL = "external-integration-admission-audit-v4"
@@ -279,6 +279,15 @@ def _frontier(value: Mapping[str, str] | None) -> Mapping[str, str]:
     if not isinstance(value, Mapping):
         raise ValueError("frontier must be an object")
     return dict(value.items())
+
+
+def _current_observation_frontier(
+    value: Mapping[str, str] | None,
+    label: str,
+) -> Mapping[str, str]:
+    if value is None:
+        raise ValueError(f"current observation {label} surface unavailable")
+    return _frontier(value)
 
 
 def _context_from_observation(
@@ -629,12 +638,12 @@ def build_canonical_observation(
     chain_id: str = CANONICAL_OBSERVATION_CHAIN_ID,
     previous_observation_digest: str | None = None,
 ) -> CanonicalObservationEnvelope:
-    source = _frontier(current_source_state_digests)
-    evidence = _frontier(current_evidence_digests)
-    artifact = _frontier(current_artifact_digests)
-    freshness = _frontier(current_freshness_fences)
-    handoffs = _frontier(known_handoff_digests)
-    traces = _frontier(current_work_trace_digests)
+    source = _current_observation_frontier(current_source_state_digests, "source-state")
+    evidence = _current_observation_frontier(current_evidence_digests, "evidence")
+    artifact = _current_observation_frontier(current_artifact_digests, "artifact")
+    freshness = _current_observation_frontier(current_freshness_fences, "freshness")
+    handoffs = _current_observation_frontier(known_handoff_digests, "handoff")
+    traces = _current_observation_frontier(current_work_trace_digests, "work-trace")
     registry, profile = _strict_current_objects()
     return build_observation_from_snapshot(
         registry,
@@ -661,6 +670,20 @@ class AdmissionAuditFinding:
         return {"code": self.code, "detail": self.detail, "subject_id": self.subject_id}
 
 
+def _exact_canonical_observation_digest(value: object) -> str:
+    if type(value) is not str:
+        raise ValueError("current observation audit observation digest must be an exact string")
+    prefix = "canonical-observation-v1-"
+    if not value.startswith(prefix):
+        raise ValueError("current observation audit observation digest protocol identity mismatch")
+    suffix = value[len(prefix) :]
+    if len(suffix) != 64 or any(ch not in "0123456789abcdef" for ch in suffix):
+        raise ValueError(
+            "current observation audit observation digest must carry exactly 64 lowercase hexadecimal characters"
+        )
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class CanonicalAdmissionAuditReport:
     protocol: str
@@ -677,6 +700,15 @@ class CanonicalAdmissionAuditReport:
         observation_digest: str | None = None,
     ) -> "CanonicalAdmissionAuditReport":
         rows = tuple(sorted(findings, key=lambda row: (row.code, row.subject_id, row.detail)))
+        if type(current_observation) is not bool:
+            raise ValueError("current_observation must be an exact boolean")
+        if current_observation:
+            if observation_digest is not None:
+                observation_digest = _exact_canonical_observation_digest(observation_digest)
+            if not rows and observation_digest is None:
+                raise ValueError("clean current observation audit requires an exact observation digest")
+        elif observation_digest is not None:
+            raise ValueError("historical audit-v3 must not receive an observation digest witness")
         protocol = ADMISSION_AUDIT_PROTOCOL if current_observation else HISTORICAL_ADMISSION_AUDIT_PROTOCOL
         payload: dict[str, Any] = {
             "protocol": protocol,
@@ -824,14 +856,21 @@ def run_canonical_admission_audit(
     current_observation_for_report = current_observation
 
     def make_report(rows: Sequence[AdmissionAuditFinding]) -> CanonicalAdmissionAuditReport:
+        observation_digest: str | None = None
+        if current_observation_for_report is not None:
+            try:
+                current_observation_for_report.validate_integrity()
+                observation_digest = _exact_canonical_observation_digest(
+                    current_observation_for_report.digest
+                )
+            except (AttributeError, KeyError, TypeError, ValueError):
+                # A malformed or integrity-invalid current witness is failure evidence,
+                # never a witness that may be rebound into the audit report.
+                observation_digest = None
         return CanonicalAdmissionAuditReport.create(
             rows,
             current_observation=current_observation_mode,
-            observation_digest=(
-                None
-                if current_observation_for_report is None
-                else current_observation_for_report.digest
-            ),
+            observation_digest=observation_digest,
         )
 
     persisted_bundle = bundle is not None
@@ -1336,12 +1375,21 @@ def run_canonical_admission_audit(
 
 
 def _main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="Audit the canonical A7 atomic-observation admission bundle")
+    parser = argparse.ArgumentParser(description="Audit the canonical A10 External Core v1 observation-bound admission surface")
     parser.add_argument("--check", action="store_true", help="exit non-zero when categorical findings exist")
     parser.add_argument("--json", action="store_true", help="emit canonical audit JSON")
     parser.add_argument("--observed-epoch", type=int, default=0)
     args = parser.parse_args(argv)
-    report = run_canonical_admission_audit(observed_epoch=args.observed_epoch)
+    report = run_canonical_admission_audit(
+        observed_epoch=args.observed_epoch,
+        observation_genesis=True,
+        current_source_state_digests={},
+        current_evidence_digests={},
+        current_artifact_digests={},
+        current_freshness_fences={},
+        known_handoff_digests={},
+        current_work_trace_digests={},
+    )
     if args.json or not args.check:
         print(json.dumps(report.to_state(), sort_keys=True, separators=(",", ":")))
     elif report.findings:

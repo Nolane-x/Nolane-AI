@@ -60,7 +60,7 @@ from nolane.external_core.integration_scoped_revalidation import (
 )
 
 COMPONENT_ID = "external.integration"
-COMPONENT_VERSION = "0.0.7"
+COMPONENT_VERSION = "0.0.8"
 MIGRATED_FROM = "cogcoder.organization.integration"
 
 
