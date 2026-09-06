@@ -42,7 +42,7 @@ def test_canonical_admission_audit_reports_forged_bundle_without_repairing_it() 
 def test_canonical_admission_audit_default_builder_is_read_only_and_clean() -> None:
     report = run_canonical_admission_audit(observed_epoch=0)
     assert report.findings == ()
-    assert report.protocol == "external-integration-admission-audit-v1"
+    assert report.protocol == "external-integration-admission-audit-v2"
 
 
 def test_canonical_admission_audit_rejects_self_consistent_bundle_after_live_registry_drift(monkeypatch) -> None:
