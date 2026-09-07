@@ -71,6 +71,24 @@ def test_from_state_requires_explicit_authority_in_serialized_provenance():
         CognitiveState.from_state(state)
 
 
+def test_from_state_rejects_unknown_top_level_fields():
+    state = CognitiveState.create(payload={"goal": "x"}, provenance=[_evidence(receipt_id="r1")]).to_state()
+    state["implicit_authority"] = "verified"
+
+    with pytest.raises(NeuralInvariantError, match="unknown fields"):
+        CognitiveState.from_state(state)
+
+
+def test_evidence_digest_must_already_be_canonical_lowercase_hex():
+    with pytest.raises(NeuralInvariantError, match="lowercase"):
+        EvidenceRef.create(
+            source_core="memory",
+            receipt_id="r1",
+            digest="A" * 64,
+            authority="observation",
+        )
+
+
 def test_neural_authority_aliases_cannot_mint_authoritative_evidence():
     for source_core in ("neural", "neural.router", "neural-core", "nolane.neural"):
         with pytest.raises(NeuralInvariantError, match="cannot mint"):
