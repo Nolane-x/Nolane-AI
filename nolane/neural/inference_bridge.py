@@ -15,6 +15,7 @@ from nolane.external_core.execution_types import (
     ExecutionCounters,
     InferenceRequest,
 )
+from nolane.neural.core_contract import CognitiveState
 from nolane.schemas.identity import AgentIdentity
 
 
@@ -73,6 +74,7 @@ class CognitiveStateEncoder:
         counters: ExecutionCounters,
         step_index: int,
         checkpoint_digest: str,
+        cognitive_state: CognitiveState | None = None,
     ) -> InferenceRequest:
         if capsule.agent_id != identity.agent_id:
             raise ValueError('context capsule identity mismatch')
@@ -81,11 +83,16 @@ class CognitiveStateEncoder:
         schema = tuple(str(x) for x in action_schema if str(x).strip())
         if not schema:
             raise ValueError('action schema must be non-empty')
+        context_digest = canonical_digest(self.capsule_payload(capsule))
+        if cognitive_state is not None:
+            if not isinstance(cognitive_state, CognitiveState):
+                raise TypeError('cognitive_state must be a CognitiveState')
+            context_digest = cognitive_state.bind_context_digest(context_digest)
         return InferenceRequest(
             agent_id=identity.agent_id,
             neural_version=identity.neural_version,
             task_id=str(task_id),
-            context_digest=canonical_digest(self.capsule_payload(capsule)),
+            context_digest=context_digest,
             encoder_version=self.version,
             checkpoint_digest=str(checkpoint_digest),
             action_schema=schema,
