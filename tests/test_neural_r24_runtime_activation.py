@@ -8,6 +8,9 @@ from cogcoder.organization.context_intelligence import ContextBudget
 from cogcoder.organization.execution import OrganizationExecutionControlPlane
 from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import EventKind
+from nolane.external_core.execution import (
+    OrganizationExecutionControlPlane as NativeOrganizationExecutionControlPlane,
+)
 
 
 TASK_ID = "T-NEURAL-R24-RUNTIME-ACTIVATION"
@@ -125,6 +128,16 @@ def test_execution_composition_uses_memory_context_for_live_and_restored_runtime
     assert restored.execution.context is not restored.context
 
 
+def test_execution_composition_does_not_mutate_shared_memory_context_with_legacy_compile_surface():
+    runtime = OrganizationRuntime.first_generation()
+
+    assert "compile" not in runtime.memory_context.__dict__
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+
+    assert "compile" not in restored.memory_context.__dict__
+
+
 def test_execution_compiles_and_verifies_modern_context_before_inference_boundary():
     runtime, _ = _compiled_context()
     events: list[str] = []
@@ -146,6 +159,25 @@ def test_execution_compiles_and_verifies_modern_context_before_inference_boundar
     assert capsule.context_compilation_receipt_id is not None
     assert capsule.semantic_delta_digest is not None
     assert runtime.memory_context.verify_context_capsule(capsule) is not None
+
+
+def test_native_execution_authority_compiles_and_verifies_modern_context_without_compatibility_patch():
+    runtime, _ = _compiled_context()
+    native = NativeOrganizationExecutionControlPlane(
+        registry=runtime.registry,
+        tasks=runtime.tasks,
+        context=runtime.memory_context,
+        artifacts=runtime.artifacts,
+        external_cores=runtime.external_cores,
+        coding=runtime.coding,
+    )
+
+    capsule = native._compile_context_capsule(AGENT_ID, task_id=TASK_ID)
+
+    assert capsule.context_compilation_receipt_id is not None
+    assert capsule.semantic_delta_digest is not None
+    assert runtime.memory_context.verify_context_capsule(capsule) is not None
+    assert "compile" not in runtime.memory_context.__dict__
 
 
 def test_execution_modern_context_verification_fails_closed():
@@ -201,7 +233,7 @@ def test_execution_bridge_prefers_verified_modern_compiler_when_both_surfaces_ex
         coding=runtime.coding,
     )
 
-    capsule = execution.context.compile(AGENT_ID, task_id=TASK_ID)
+    capsule = execution._compile_context_capsule(AGENT_ID, task_id=TASK_ID)
 
     assert events == ["modern-compile", "verify"]
     assert capsule.context_compilation_receipt_id is not None
