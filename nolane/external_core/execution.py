@@ -197,6 +197,29 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             raise ValueError("cognitive state digest does not resolve uniquely")
         return matches[0]
 
+    def _validate_state(self) -> None:
+        super()._validate_state()
+        for session in self._sessions.values():
+            for receipt_id in session.decision_receipt_ids:
+                decision = self._decisions[receipt_id]
+                digest = getattr(decision, "cognitive_state_digest", None)
+                if digest is None:
+                    continue
+                try:
+                    cognitive_state = self.resolve_cognitive_state(digest)
+                except KeyError as exc:
+                    raise ValueError(
+                        "persisted execution decision references unknown cognitive state"
+                    ) from exc
+                if cognitive_state.payload["agent_id"] != session.agent_id:
+                    raise ValueError(
+                        "persisted execution decision cognitive state agent binding mismatch"
+                    )
+                if cognitive_state.payload["task_id"] != session.task_id:
+                    raise ValueError(
+                        "persisted execution decision cognitive state task binding mismatch"
+                    )
+
     @staticmethod
     def _attest_decision_receipt(receipt: Any, *, request: Any, backend: Any):
         canonical = _BaseOrganizationExecutionControlPlane._attest_decision_receipt(
