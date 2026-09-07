@@ -7,6 +7,7 @@ import pytest
 from cogcoder.organization.context_intelligence import ContextBudget
 from cogcoder.organization.execution import OrganizationExecutionControlPlane
 from cogcoder.organization.runtime import OrganizationRuntime
+from cogcoder.organization.runtime_core import OrganizationRuntime as NativeOrganizationRuntime
 from cogcoder.organization.types import EventKind
 from nolane.external_core.execution import (
     OrganizationExecutionControlPlane as NativeOrganizationExecutionControlPlane,
@@ -37,7 +38,7 @@ def _compiled_context():
     return runtime, result
 
 
-def _emit_post_checkpoint_evidence(runtime: OrganizationRuntime, *, evidence_id: str):
+def _emit_post_checkpoint_evidence(runtime, *, evidence_id: str):
     identity = runtime.registry.get(AGENT_ID)
     return runtime.ledger.append(
         EventKind.TEST_PASSED,
@@ -300,3 +301,50 @@ def test_pre_activation_checkpoint_without_continuity_index_falls_back_to_verifi
     assert verified.delta.checkpoint_id is None
     assert capsule.since_event_id is None
     assert verified.receipt.replayed_full_history is True
+
+
+def test_native_runtime_core_owns_checkpoint_and_wake_provenance_gate():
+    assert OrganizationRuntime.checkpoint_agent is NativeOrganizationRuntime.checkpoint_agent
+    assert OrganizationRuntime.wake_agent is NativeOrganizationRuntime.wake_agent
+
+
+def test_native_runtime_core_checkpoint_wake_emits_verified_continuity():
+    runtime = NativeOrganizationRuntime.first_generation()
+    scheduler_checkpoint = runtime.checkpoint_agent(AGENT_ID)
+    assert scheduler_checkpoint is not None
+    post_checkpoint = _emit_post_checkpoint_evidence(runtime, evidence_id="EV-NATIVE-WAKE")
+
+    capsule = runtime.wake_agent(AGENT_ID, reason="native core resume")
+    verified = runtime.memory_context.verify_context_capsule(capsule)
+
+    assert verified is not None
+    assert verified.receipt.continuity_checkpoint_id is not None
+    continuity = runtime.memory_context.context_intelligence.checkpoint(
+        verified.receipt.continuity_checkpoint_id
+    )
+    assert continuity.scheduler_checkpoint_event_id == scheduler_checkpoint
+    assert capsule.since_event_id == scheduler_checkpoint
+    assert verified.receipt.replayed_full_history is False
+    assert post_checkpoint.event_id in tuple(event.event_id for event in capsule.event_delta)
+
+
+def test_native_runtime_core_wake_continuity_survives_restore():
+    runtime = NativeOrganizationRuntime.first_generation()
+    scheduler_checkpoint = runtime.checkpoint_agent(AGENT_ID)
+    assert scheduler_checkpoint is not None
+
+    restored = NativeOrganizationRuntime.from_state(runtime.to_state())
+    post_checkpoint = _emit_post_checkpoint_evidence(restored, evidence_id="EV-NATIVE-WAKE-RESTORE")
+
+    capsule = restored.wake_agent(AGENT_ID, reason="native core restore resume")
+    verified = restored.memory_context.verify_context_capsule(capsule)
+
+    assert verified is not None
+    assert verified.receipt.continuity_checkpoint_id is not None
+    continuity = restored.memory_context.context_intelligence.checkpoint(
+        verified.receipt.continuity_checkpoint_id
+    )
+    assert continuity.scheduler_checkpoint_event_id == scheduler_checkpoint
+    assert capsule.since_event_id == scheduler_checkpoint
+    assert verified.receipt.replayed_full_history is False
+    assert post_checkpoint.event_id in tuple(event.event_id for event in capsule.event_delta)
