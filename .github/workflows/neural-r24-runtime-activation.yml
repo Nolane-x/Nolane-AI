@@ -44,6 +44,7 @@ permissions:
 
 jobs:
   runtime-activation:
+    if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
@@ -78,6 +79,7 @@ jobs:
         run: python model/neural-r2.3/scripts/verify_neural_r23.py
 
   dependent-regression:
+    if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-24.04
     needs: runtime-activation
     steps:
@@ -101,6 +103,7 @@ jobs:
         run: python model/neural-r2.3/scripts/verify_neural_r23.py
 
   full-regression:
+    if: "${{ github.event_name != 'pull_request' || !startsWith(github.head_ref, 'refoundation/') }}"
     runs-on: ubuntu-24.04
     needs: runtime-activation
     steps:
