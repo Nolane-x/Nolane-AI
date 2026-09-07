@@ -73,18 +73,27 @@ NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST = (
     "1dadbad06aac44d8fbaefd127b81cc0fa0fc3f96279111b333ae33864d2678af"
 )
 
+# Neural R2.4 request provenance adds a persisted execution-state authority
+# marker so a self-consistent decision receipt cannot silently downgrade its
+# embedded canonical InferenceRequest from provenance v2 to legacy v1.  The
+# prior wake-continuity fingerprint remains historical provenance.
+NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
+    "fa998270df05e6fd2c9186027eb21889f2858dab4765a4b12d7aad3452b2a5d3"
+)
 
-def test_runtime_state_fingerprint_tracks_neural_r24_wake_continuity_cutover() -> None:
+
+def test_runtime_state_fingerprint_tracks_neural_r24_request_provenance_cutover() -> None:
     first = CanonicalOrganization.first_generation()
     second = CanonicalOrganization.first_generation()
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert first.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert second.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert first.state_digest == NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert second.state_digest == NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST != F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
     assert F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
