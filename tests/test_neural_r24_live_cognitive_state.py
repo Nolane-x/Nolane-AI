@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from cogcoder.organization.runtime import OrganizationRuntime
-from nolane.external_core.execution import OrganizationExecutionControlPlane
+from nolane.external_core.execution_neural import OrganizationExecutionControlPlane
+from nolane.external_core.execution_types import ExecutionCounters
+from nolane.neural.inference_bridge import CognitiveStateEncoder
 
 
 TASK_ID = "T-NEURAL-R24-LIVE-COGNITIVE-STATE"
@@ -65,6 +67,35 @@ def test_native_execution_builds_cognitive_state_from_exact_verified_context_pro
         verified.delta.digest,
         "observation",
     ) in provenance
+
+
+def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
+    runtime, native = _native_execution()
+    capsule, cognitive_state = native._compile_context_for_inference(
+        AGENT_ID,
+        task_id=TASK_ID,
+    )
+    identity = runtime.registry.get(AGENT_ID)
+    kwargs = dict(
+        identity=identity,
+        capsule=capsule,
+        task_id=TASK_ID,
+        action_schema=("repository.read",),
+        counters=ExecutionCounters(),
+        step_index=0,
+        checkpoint_digest="checkpoint-test",
+    )
+
+    plain_request = CognitiveStateEncoder(
+        version=native.encoder.version
+    ).build_request(**kwargs)
+    live_request = native.encoder.build_request(**kwargs)
+
+    assert cognitive_state is not None
+    assert live_request.context_digest == cognitive_state.bind_context_digest(
+        plain_request.context_digest
+    )
+    assert live_request.context_digest != plain_request.context_digest
 
 
 def test_native_execution_legacy_context_never_fabricates_cognitive_provenance():
