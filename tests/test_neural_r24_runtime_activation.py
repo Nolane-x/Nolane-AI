@@ -5,6 +5,7 @@ from dataclasses import replace
 import pytest
 
 from cogcoder.organization.context_intelligence import ContextBudget
+from cogcoder.organization.execution import OrganizationExecutionControlPlane
 from cogcoder.organization.runtime import OrganizationRuntime
 
 
@@ -158,3 +159,37 @@ def test_execution_preserves_legacy_context_compiler_fallback():
 
     assert capsule.context_compilation_receipt_id is None
     assert capsule.semantic_delta_digest is None
+
+
+def test_execution_bridge_prefers_verified_modern_compiler_when_both_surfaces_exist():
+    runtime, _ = _compiled_context()
+    events: list[str] = []
+
+    class AmbiguousContext:
+        def compile_context(self, agent_id: str, *, task_id: str | None = None):
+            events.append("modern-compile")
+            return runtime.memory_context.compile_context(agent_id, task_id=task_id)
+
+        def verify_context_capsule(self, capsule):
+            events.append("verify")
+            return runtime.memory_context.verify_context_capsule(capsule)
+
+        def compile(self, agent_id: str, *, task_id: str | None = None):
+            events.append("legacy-compile")
+            return runtime.context.compile(agent_id, task_id=task_id)
+
+    ambiguous = AmbiguousContext()
+    execution = OrganizationExecutionControlPlane(
+        registry=runtime.registry,
+        tasks=runtime.tasks,
+        context=ambiguous,
+        artifacts=runtime.artifacts,
+        external_cores=runtime.external_cores,
+        coding=runtime.coding,
+    )
+
+    capsule = execution.context.compile(AGENT_ID, task_id=TASK_ID)
+
+    assert events == ["modern-compile", "verify"]
+    assert capsule.context_compilation_receipt_id is not None
+    assert capsule.semantic_delta_digest is not None
