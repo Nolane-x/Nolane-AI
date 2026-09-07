@@ -97,7 +97,7 @@ def _authority_with_persisted_decision():
         decisions=(decision,),
         session_counter=1,
     )
-    return runtime, persisted, cognitive_state
+    return runtime, persisted, cognitive_state, request
 
 
 def _restore(runtime, state):
@@ -113,7 +113,7 @@ def _restore(runtime, state):
 
 
 def test_persisted_execution_decision_cognitive_identity_survives_restore():
-    runtime, persisted, cognitive_state = _authority_with_persisted_decision()
+    runtime, persisted, cognitive_state, _ = _authority_with_persisted_decision()
 
     restored = _restore(runtime, persisted.to_state())
     decision = restored.get_decision(restored.get_session("execution-00000001").decision_receipt_ids[0])
@@ -122,11 +122,41 @@ def test_persisted_execution_decision_cognitive_identity_survives_restore():
     assert restored.resolve_cognitive_state(decision.cognitive_state_digest) == cognitive_state
 
 
+def test_modern_decision_persists_canonical_inference_request_provenance():
+    runtime, persisted, _, request = _authority_with_persisted_decision()
+    decision = persisted.get_decision("execution-00000001".replace("execution", "decision", 1)) if False else persisted.get_decision(
+        persisted.get_session("execution-00000001").decision_receipt_ids[0]
+    )
+
+    state = decision.to_state()
+    assert state["request_provenance_version"] == 2
+    assert state["request"] == request.to_state()
+    assert decision.request == request
+    assert persisted.get_inference_request(decision.receipt_id) == request
+
+    restored = _restore(runtime, persisted.to_state())
+    restored_decision = restored.get_decision(decision.receipt_id)
+    assert restored_decision.request == request
+    assert restored.get_inference_request(decision.receipt_id) == request
+
+
+def test_restore_rejects_request_provenance_downgrade_without_request_payload():
+    runtime, persisted, _, _ = _authority_with_persisted_decision()
+    state = persisted.to_state()
+    state["decisions"][0]["request_provenance_version"] = 2
+
+    with pytest.raises(ValueError, match="inference request"):
+        _restore(runtime, state)
+
+
 def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest():
-    runtime, persisted, _ = _authority_with_persisted_decision()
+    runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
     forged = dict(state["decisions"][0])
     forged["cognitive_state_digest"] = "f" * 64
+    if "request" in forged:
+        forged["request"] = dict(forged["request"])
+        forged["request"]["cognitive_state_digest"] = "f" * 64
     payload = {
         key: value
         for key, value in forged.items()
