@@ -97,3 +97,64 @@ def test_context_provenance_verifier_rejects_receipt_or_delta_identity_mismatch(
         runtime.memory_context.verify_context_capsule(
             replace(result.capsule, task_id="T-OTHER")
         )
+
+
+def test_execution_composition_uses_memory_context_for_live_and_restored_runtime():
+    runtime = OrganizationRuntime.first_generation()
+
+    assert runtime.execution.context is runtime.memory_context
+    assert runtime.execution.context is not runtime.context
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+
+    assert restored.execution.context is restored.memory_context
+    assert restored.execution.context is not restored.context
+
+
+def test_execution_compiles_and_verifies_modern_context_before_inference_boundary():
+    runtime, _ = _compiled_context()
+    events: list[str] = []
+
+    class RecordingModernContext:
+        def compile_context(self, agent_id: str, *, task_id: str | None = None):
+            events.append("compile")
+            return runtime.memory_context.compile_context(agent_id, task_id=task_id)
+
+        def verify_context_capsule(self, capsule):
+            events.append("verify")
+            return runtime.memory_context.verify_context_capsule(capsule)
+
+    runtime.execution.context = RecordingModernContext()
+
+    capsule = runtime.execution._compile_context_capsule(AGENT_ID, task_id=TASK_ID)
+
+    assert events == ["compile", "verify"]
+    assert capsule.context_compilation_receipt_id is not None
+    assert capsule.semantic_delta_digest is not None
+    assert runtime.memory_context.verify_context_capsule(capsule) is not None
+
+
+def test_execution_modern_context_verification_fails_closed():
+    runtime, _ = _compiled_context()
+
+    class RejectingModernContext:
+        def compile_context(self, agent_id: str, *, task_id: str | None = None):
+            return runtime.memory_context.compile_context(agent_id, task_id=task_id)
+
+        def verify_context_capsule(self, capsule):
+            raise ValueError("rejected modern context provenance")
+
+    runtime.execution.context = RejectingModernContext()
+
+    with pytest.raises(ValueError, match="rejected modern context provenance"):
+        runtime.execution._compile_context_capsule(AGENT_ID, task_id=TASK_ID)
+
+
+def test_execution_preserves_legacy_context_compiler_fallback():
+    runtime, _ = _compiled_context()
+    runtime.execution.context = runtime.context
+
+    capsule = runtime.execution._compile_context_capsule(AGENT_ID, task_id=TASK_ID)
+
+    assert capsule.context_compilation_receipt_id is None
+    assert capsule.semantic_delta_digest is None
