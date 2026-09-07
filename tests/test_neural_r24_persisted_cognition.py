@@ -2,12 +2,18 @@ from __future__ import annotations
 
 import pytest
 
+from cogcoder.organization.execution import (
+    OrganizationExecutionControlPlane as CompatibilityOrganizationExecutionControlPlane,
+)
 from cogcoder.organization.runtime import OrganizationRuntime
 from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.execution import (
     ExecutionSession,
     ExecutionState,
     OrganizationExecutionControlPlane,
+)
+from nolane.external_core.execution_neural import (
+    OrganizationExecutionControlPlane as NeuralCompatibilityExecutionControlPlane,
 )
 from nolane.external_core.execution_types import (
     AgentDecisionReceipt,
@@ -134,3 +140,28 @@ def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest()
 
     with pytest.raises(ValueError, match="persisted execution decision.*cognitive state"):
         _restore(runtime, state)
+
+
+def test_public_execution_compatibility_surfaces_inherit_cognition_aware_authority():
+    assert CompatibilityOrganizationExecutionControlPlane.__bases__ == (
+        OrganizationExecutionControlPlane,
+    )
+    assert NeuralCompatibilityExecutionControlPlane.__bases__ == (
+        OrganizationExecutionControlPlane,
+    )
+    assert hasattr(CompatibilityOrganizationExecutionControlPlane, "resolve_cognitive_state")
+    assert hasattr(NeuralCompatibilityExecutionControlPlane, "resolve_cognitive_state")
+
+
+def test_public_runtime_composes_only_cognition_aware_execution_authority():
+    runtime = OrganizationRuntime.first_generation()
+
+    assert isinstance(runtime.execution, OrganizationExecutionControlPlane)
+    assert runtime.execution.context is runtime.memory_context
+    assert callable(runtime.execution.resolve_cognitive_state)
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+
+    assert isinstance(restored.execution, OrganizationExecutionControlPlane)
+    assert restored.execution.context is restored.memory_context
+    assert callable(restored.execution.resolve_cognitive_state)
