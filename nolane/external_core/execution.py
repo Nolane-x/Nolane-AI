@@ -220,6 +220,12 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         for session in self._sessions.values():
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
+                if getattr(decision, "request_provenance_version", 1) >= 2:
+                    request = self.get_inference_request(receipt_id)
+                    if request.task_id != session.task_id:
+                        raise ValueError(
+                            "persisted inference request task binding mismatch with execution session"
+                        )
                 digest = getattr(decision, "cognitive_state_digest", None)
                 if digest is None:
                     continue
