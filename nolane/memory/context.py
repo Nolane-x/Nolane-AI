@@ -8,6 +8,7 @@ COMPONENT_VERSION = "0.0.1"
 MIGRATED_FROM = "cogcoder.organization.memory_context"
 
 from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.context import ContextCapsule
 from nolane.memory.context_intelligence import (
     ContextBudget,
     ContextCompilationResult,
@@ -168,6 +169,48 @@ class MemoryContextControlPlane:
             task_id=task_id,
             continuity_checkpoint_id=continuity_checkpoint_id,
             budget=effective_budget,
+        )
+
+    def verify_context_capsule(
+        self,
+        capsule: ContextCapsule,
+    ) -> ContextCompilationResult | None:
+        receipt_id = capsule.context_compilation_receipt_id
+        delta_digest = capsule.semantic_delta_digest
+        if receipt_id is None and delta_digest is None:
+            return None
+        if receipt_id is None or delta_digest is None:
+            raise ValueError('context capsule has partial compilation provenance')
+
+        try:
+            receipt = self.context_intelligence.receipt(receipt_id)
+            delta = self.context_intelligence.semantic_delta(delta_digest)
+        except KeyError as exc:
+            raise ValueError('context capsule references unknown compilation provenance') from exc
+
+        if receipt.compiler_version != self.context_intelligence.COMPILER_VERSION:
+            raise ValueError('context compilation receipt compiler version mismatch')
+        if receipt.semantic_delta_digest != delta_digest or delta.digest != delta_digest:
+            raise ValueError('context capsule semantic delta provenance mismatch')
+        if receipt.agent_id != capsule.agent_id or delta.agent_id != capsule.agent_id:
+            raise ValueError('context capsule agent provenance mismatch')
+        if receipt.task_id != capsule.task_id or delta.task_id != capsule.task_id:
+            raise ValueError('context capsule task provenance mismatch')
+        if delta.checkpoint_id != receipt.continuity_checkpoint_id:
+            raise ValueError('context capsule continuity provenance mismatch')
+        if receipt.selected_units != capsule.context_budget_units:
+            raise ValueError('context capsule budget provenance mismatch')
+        if receipt.overload_ratio != capsule.context_overload_ratio:
+            raise ValueError('context capsule overload provenance mismatch')
+        if receipt.stale_context_warnings != capsule.stale_context_warnings:
+            raise ValueError('context capsule stale-warning provenance mismatch')
+        if receipt.capsule_digest != self.context_intelligence.capsule_digest(capsule):
+            raise ValueError('context capsule digest provenance mismatch')
+
+        return ContextCompilationResult(
+            capsule=capsule,
+            delta=delta,
+            receipt=receipt,
         )
 
     def repair_contradiction(
