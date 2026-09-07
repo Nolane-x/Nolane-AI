@@ -150,6 +150,28 @@ def test_restore_rejects_request_provenance_downgrade_without_request_payload():
         _restore(runtime, state)
 
 
+def test_restore_rejects_self_consistent_request_rebound_to_different_task():
+    runtime, persisted, _, _ = _authority_with_persisted_decision()
+    state = persisted.to_state()
+    forged = dict(state["decisions"][0])
+    forged["request"] = dict(forged["request"])
+    forged["request"]["task_id"] = TASK_ID + "-rebound"
+    forged["request_digest"] = canonical_digest(forged["request"])
+    payload = {
+        key: value
+        for key, value in forged.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    forged_digest = canonical_digest(payload)
+    forged["digest"] = forged_digest
+    forged["receipt_id"] = "decision-" + forged_digest[:24]
+    state["decisions"][0] = forged
+    state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+
+    with pytest.raises(ValueError, match="inference request.*task.*session"):
+        _restore(runtime, state)
+
+
 def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest():
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
