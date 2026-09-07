@@ -197,6 +197,21 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             raise ValueError("cognitive state digest does not resolve uniquely")
         return matches[0]
 
+    def get_inference_request(self, decision_receipt_id: str):
+        """Return the canonical request persisted by one modern decision receipt."""
+
+        decision = self.get_decision(decision_receipt_id)
+        if getattr(decision, "request_provenance_version", 1) < 2:
+            raise KeyError(
+                f"decision has no persisted inference request: {decision_receipt_id}"
+            )
+        request = getattr(decision, "request", None)
+        if request is None:
+            raise ValueError("modern decision is missing persisted inference request")
+        if request.digest != decision.request_digest:
+            raise ValueError("persisted inference request digest mismatch")
+        return request
+
     def _validate_state(self) -> None:
         super()._validate_state()
         for session in self._sessions.values():
