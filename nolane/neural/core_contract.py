@@ -21,6 +21,7 @@ _PROTECTED_ADAPTATION_PREFIXES = (
     "external.authority",
 )
 _EVIDENCE_STATE_FIELDS = frozenset({"source_core", "receipt_id", "digest", "authority"})
+_COGNITIVE_STATE_FIELDS = frozenset({"revision", "payload", "provenance", "digest"})
 
 
 class NeuralInvariantError(ValueError):
@@ -28,6 +29,8 @@ class NeuralInvariantError(ValueError):
 
 
 def _nonempty(value: object, field: str) -> str:
+    if value is None:
+        raise NeuralInvariantError(f"{field} must be explicit and non-empty")
     text = str(value).strip()
     if not text:
         raise NeuralInvariantError(f"{field} must be explicit and non-empty")
@@ -42,7 +45,9 @@ def _confidence(value: float, field: str = "confidence") -> float:
 
 
 def _digest(value: object, field: str = "digest") -> str:
-    text = _nonempty(value, field).lower()
+    text = _nonempty(value, field)
+    if text != text.lower():
+        raise NeuralInvariantError(f"{field} must be a 64-character lowercase SHA-256 digest")
     if len(text) != 64 or any(char not in "0123456789abcdef" for char in text):
         raise NeuralInvariantError(f"{field} must be a 64-character lowercase SHA-256 digest")
     return text
@@ -55,6 +60,18 @@ def _evidence_rows(values: Iterable["EvidenceRef"], field: str) -> tuple["Eviden
     if any(not isinstance(row, EvidenceRef) for row in rows):
         raise NeuralInvariantError(f"{field} must contain EvidenceRef values only")
     return tuple(sorted(rows, key=lambda row: canonical_json(row.to_state())))
+
+
+def _is_neural_source(source: str) -> bool:
+    return source == "neural" or source.startswith(("neural.", "neural-", "nolane.neural", "nolane-neural"))
+
+
+def _canonical_parameter(value: object) -> str:
+    return _nonempty(value, "adaptation parameter").lower()
+
+
+def _is_protected_parameter(name: str) -> bool:
+    return name.startswith(_PROTECTED_ADAPTATION_PREFIXES)
 
 
 @dataclass(frozen=True, slots=True)
@@ -77,7 +94,7 @@ class EvidenceRef:
     ) -> "EvidenceRef":
         source = _nonempty(source_core, "source_core").lower()
         authority_name = _nonempty(authority, "authority").lower()
-        if source == "neural" and authority_name in _AUTHORITATIVE_DOMAINS:
+        if _is_neural_source(source) and authority_name in _AUTHORITATIVE_DOMAINS:
             raise NeuralInvariantError(
                 f"Neural Core cannot mint {authority_name} authority; it may only reference externally issued evidence"
             )
@@ -152,10 +169,18 @@ class CognitiveState:
     def from_state(cls, state: Mapping[str, Any]) -> "CognitiveState":
         if not isinstance(state, Mapping):
             raise NeuralInvariantError("cognitive state must be a mapping")
-        if state.get("revision") != NEURAL_CORE_REVISION:
+        missing_state_fields = sorted(_COGNITIVE_STATE_FIELDS.difference(state.keys()))
+        if missing_state_fields:
+            raise NeuralInvariantError(
+                "cognitive state missing fields: " + ", ".join(missing_state_fields)
+            )
+        unknown_state_fields = sorted(set(state.keys()).difference(_COGNITIVE_STATE_FIELDS))
+        if unknown_state_fields:
+            raise NeuralInvariantError(
+                "cognitive state has unknown fields: " + ", ".join(str(x) for x in unknown_state_fields)
+            )
+        if state["revision"] != NEURAL_CORE_REVISION:
             raise NeuralInvariantError("cognitive state revision mismatch")
-        if "payload" not in state or "digest" not in state or "provenance" not in state:
-            raise NeuralInvariantError("cognitive state requires explicit payload, provenance, and digest")
         raw_provenance = state["provenance"]
         if not isinstance(raw_provenance, Sequence) or isinstance(raw_provenance, (str, bytes)):
             raise NeuralInvariantError("cognitive provenance must be explicit")
@@ -426,10 +451,10 @@ class AdaptationBoundary:
         evidence: Iterable[EvidenceRef],
     ) -> "AdaptationBoundary":
         revision = _nonempty(policy_revision, "policy_revision")
-        allowed = frozenset(_nonempty(row, "allowed adaptation parameter") for row in allowed_parameters)
+        allowed = frozenset(_canonical_parameter(row) for row in allowed_parameters)
         if not allowed:
             raise NeuralInvariantError("adaptation authority boundary must name at least one allowed parameter")
-        if any(name.startswith(_PROTECTED_ADAPTATION_PREFIXES) for name in allowed):
+        if any(_is_protected_parameter(name) for name in allowed):
             raise NeuralInvariantError("adaptation authority boundary cannot include protected authority domains")
         ordered = _evidence_rows(evidence, "adaptation boundary evidence")
         digest = canonical_digest(
@@ -444,8 +469,8 @@ class AdaptationBoundary:
     def validate_update(self, update: Mapping[str, Any]) -> None:
         if not isinstance(update, Mapping) or not update:
             raise NeuralInvariantError("adaptation update must be a non-empty mapping")
-        names = tuple(str(name) for name in update)
-        if any(name.startswith(_PROTECTED_ADAPTATION_PREFIXES) for name in names):
+        names = tuple(_canonical_parameter(name) for name in update)
+        if any(_is_protected_parameter(name) for name in names):
             raise NeuralInvariantError("adaptation update crosses the Neural authority boundary")
         disallowed = sorted(set(names).difference(self.allowed_parameters))
         if disallowed:
