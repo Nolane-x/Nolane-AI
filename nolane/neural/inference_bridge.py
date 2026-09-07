@@ -84,9 +84,11 @@ class CognitiveStateEncoder:
         if not schema:
             raise ValueError('action schema must be non-empty')
         context_digest = canonical_digest(self.capsule_payload(capsule))
+        cognitive_state_digest = None
         if cognitive_state is not None:
             if not isinstance(cognitive_state, CognitiveState):
                 raise TypeError('cognitive_state must be a CognitiveState')
+            cognitive_state_digest = cognitive_state.digest
             context_digest = cognitive_state.bind_context_digest(context_digest)
         return InferenceRequest(
             agent_id=identity.agent_id,
@@ -99,6 +101,7 @@ class CognitiveStateEncoder:
             action_schema_digest=canonical_digest(list(schema)),
             counters=counters,
             step_index=int(step_index),
+            cognitive_state_digest=cognitive_state_digest,
         )
 
 
