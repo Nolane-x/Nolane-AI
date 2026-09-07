@@ -124,7 +124,7 @@ def test_persisted_execution_decision_cognitive_identity_survives_restore():
 
 def test_modern_decision_persists_canonical_inference_request_provenance():
     runtime, persisted, _, request = _authority_with_persisted_decision()
-    decision = persisted.get_decision("execution-00000001".replace("execution", "decision", 1)) if False else persisted.get_decision(
+    decision = persisted.get_decision(
         persisted.get_session("execution-00000001").decision_receipt_ids[0]
     )
 
