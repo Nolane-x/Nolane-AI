@@ -418,6 +418,24 @@ class ContextIntelligenceCompiler:
         except KeyError as exc:
             raise KeyError(f'unknown continuity checkpoint: {checkpoint_id}') from exc
 
+    def receipt(self, receipt_id: str) -> ContextCompilationReceipt:
+        try:
+            row = self._receipts[str(receipt_id)]
+        except KeyError as exc:
+            raise KeyError(f'unknown context compilation receipt: {receipt_id}') from exc
+        return ContextCompilationReceipt.from_state(row.to_state())
+
+    def semantic_delta(self, digest: str) -> SemanticContextDelta:
+        matches = tuple(row for row in self._deltas.values() if row.digest == str(digest))
+        if not matches:
+            raise KeyError(f'unknown semantic context delta digest: {digest}')
+        if len(matches) != 1:
+            raise ValueError('semantic context delta digest is not unique')
+        return SemanticContextDelta.from_state(matches[0].to_state())
+
+    def capsule_digest(self, capsule: ContextCapsule) -> str:
+        return self._capsule_digest(capsule)
+
     def _event_relevant(self, event: CognitiveEvent, *, agent_id: str, region: str, task_id: str | None) -> bool:
         if event.kind in _ADMIN_EVENT_KINDS:
             return False
