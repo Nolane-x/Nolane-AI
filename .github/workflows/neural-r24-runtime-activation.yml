@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - neural-r24-runtime-cognition-activation-gpt56sol
+      - main
     paths:
       - 'nolane/neural/**'
       - 'nolane/memory/**'
