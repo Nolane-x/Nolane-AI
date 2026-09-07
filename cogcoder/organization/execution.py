@@ -1,6 +1,6 @@
-"""Historical compatibility bridge for native neural execution authority."""
+"""Historical compatibility bridge for native execution-control authority."""
 
-from nolane.external_core.execution_neural import (
+from nolane.external_core.execution import (
     ExecutionSession,
     ExecutionState,
     ExecutionStepReceipt,
