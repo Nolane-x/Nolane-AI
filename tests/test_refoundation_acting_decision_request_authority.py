@@ -77,14 +77,14 @@ def _forge_receipt(receipt: AgentDecisionReceipt, field: str) -> AgentDecisionRe
         )
         replacements[field] = request.action_schema_digest
 
-    forged = replace(
-        receipt,
-        request=request,
-        request_digest=request.digest,
-        **{field: replacements[field]},
-        receipt_id="",
-        digest="",
-    )
+    overrides = {
+        "request": request,
+        "request_digest": request.digest,
+        field: replacements[field],
+        "receipt_id": "",
+        "digest": "",
+    }
+    forged = replace(receipt, **overrides)
     digest = canonical_digest(forged.payload())
     forged = replace(forged, receipt_id="decision-" + digest[:24], digest=digest)
     # Prove the hostile object is internally canonical. The rejection under test
