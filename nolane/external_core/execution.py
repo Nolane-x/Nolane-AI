@@ -12,6 +12,7 @@ from nolane.external_core._execution_base import (
     ExecutionTerminalReceipt,
     OrganizationExecutionControlPlane as _BaseOrganizationExecutionControlPlane,
 )
+from nolane.memory.context_intelligence import ContextCompilationReceipt
 from nolane.neural.core_contract import CognitiveState, EvidenceRef
 from nolane.neural.inference_bridge import CognitiveStateEncoder
 
@@ -20,23 +21,27 @@ COMPONENT_ID = _BASE_COMPONENT_ID
 COMPONENT_VERSION = _BASE_COMPONENT_VERSION
 
 
-def _cognitive_state_from_verified_context(verified: Any) -> CognitiveState:
-    """Build R2.4 cognition only from canonical context evidence."""
+def _cognitive_state_from_context_provenance(
+    *,
+    agent_id: str,
+    task_id: str | None,
+    receipt: Any,
+    delta: Any,
+) -> CognitiveState:
+    """Build R2.4 cognition from canonical compilation receipt + semantic delta."""
 
-    capsule = verified.capsule
-    receipt = verified.receipt
-    delta = verified.delta
-    if receipt.receipt_id != capsule.context_compilation_receipt_id:
-        raise ValueError("verified receipt does not match context capsule provenance")
-    if delta.digest != capsule.semantic_delta_digest:
-        raise ValueError("verified semantic delta does not match context capsule provenance")
+    if receipt.agent_id != str(agent_id) or delta.agent_id != str(agent_id):
+        raise ValueError("cognitive provenance agent binding mismatch")
+    normalized_task_id = None if task_id is None else str(task_id)
+    if receipt.task_id != normalized_task_id or delta.task_id != normalized_task_id:
+        raise ValueError("cognitive provenance task binding mismatch")
     if receipt.semantic_delta_digest != delta.digest:
-        raise ValueError("verified receipt does not bind the canonical semantic delta")
+        raise ValueError("cognitive provenance receipt does not bind semantic delta")
 
     return CognitiveState.create(
         payload={
-            "agent_id": capsule.agent_id,
-            "task_id": capsule.task_id,
+            "agent_id": str(agent_id),
+            "task_id": normalized_task_id,
             "context_compilation_receipt_id": receipt.receipt_id,
             "context_compilation_receipt_digest": receipt.digest,
             "semantic_delta_id": delta.delta_id,
@@ -56,6 +61,24 @@ def _cognitive_state_from_verified_context(verified: Any) -> CognitiveState:
                 authority="observation",
             ),
         ),
+    )
+
+
+def _cognitive_state_from_verified_context(verified: Any) -> CognitiveState:
+    """Build R2.4 cognition only from canonical context evidence."""
+
+    capsule = verified.capsule
+    receipt = verified.receipt
+    delta = verified.delta
+    if receipt.receipt_id != capsule.context_compilation_receipt_id:
+        raise ValueError("verified receipt does not match context capsule provenance")
+    if delta.digest != capsule.semantic_delta_digest:
+        raise ValueError("verified semantic delta does not match context capsule provenance")
+    return _cognitive_state_from_context_provenance(
+        agent_id=capsule.agent_id,
+        task_id=capsule.task_id,
+        receipt=receipt,
+        delta=delta,
     )
 
 
@@ -127,6 +150,52 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
     ) -> tuple[Any, CognitiveState | None]:
         capsule = super()._compile_context_capsule(agent_id, task_id=task_id)
         return capsule, self.encoder.cognitive_state_for(capsule)
+
+    def resolve_cognitive_state(self, cognitive_state_digest: str) -> CognitiveState:
+        """Resolve one persisted R2.4 cognition identity from canonical context authority.
+
+        CognitiveState is deliberately not stored a second time by execution.  The
+        resolver reconstructs it from the persisted context compilation receipt and
+        semantic delta so restore/replay has one provenance source of truth.
+        """
+
+        target_digest = str(cognitive_state_digest).strip()
+        compiler = getattr(self.context, "context_intelligence", None)
+        to_state = getattr(compiler, "to_state", None)
+        receipt_lookup = getattr(compiler, "receipt", None)
+        delta_lookup = getattr(compiler, "semantic_delta", None)
+        if not (
+            callable(to_state)
+            and callable(receipt_lookup)
+            and callable(delta_lookup)
+        ):
+            raise KeyError(f"unknown cognitive state digest: {target_digest}")
+
+        snapshot = to_state()
+        raw_receipts = snapshot.get("receipts", ())
+        matches: list[CognitiveState] = []
+        for raw_receipt in raw_receipts:
+            canonical_snapshot = ContextCompilationReceipt.from_state(raw_receipt)
+            receipt = receipt_lookup(canonical_snapshot.receipt_id)
+            if receipt != canonical_snapshot:
+                raise ValueError("persisted context receipt snapshot is not canonical")
+            if receipt.compiler_version != getattr(compiler, "COMPILER_VERSION", None):
+                raise ValueError("persisted context receipt compiler version mismatch")
+            delta = delta_lookup(receipt.semantic_delta_digest)
+            candidate = _cognitive_state_from_context_provenance(
+                agent_id=receipt.agent_id,
+                task_id=receipt.task_id,
+                receipt=receipt,
+                delta=delta,
+            )
+            if candidate.digest == target_digest:
+                matches.append(candidate)
+
+        if not matches:
+            raise KeyError(f"unknown cognitive state digest: {target_digest}")
+        if len(matches) != 1:
+            raise ValueError("cognitive state digest does not resolve uniquely")
+        return matches[0]
 
     @staticmethod
     def _attest_decision_receipt(receipt: Any, *, request: Any, backend: Any):
