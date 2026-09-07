@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from cogcoder.organization.runtime import OrganizationRuntime
-from nolane.external_core.execution_neural import OrganizationExecutionControlPlane
+from nolane.external_core.execution import (
+    OrganizationExecutionControlPlane as GenericOrganizationExecutionControlPlane,
+)
+from nolane.external_core.execution_neural import (
+    OrganizationExecutionControlPlane as NeuralOrganizationExecutionControlPlane,
+)
 from nolane.external_core.execution_types import ExecutionCounters
 from nolane.neural.inference_bridge import CognitiveStateEncoder
 
@@ -10,7 +15,7 @@ TASK_ID = "T-NEURAL-R24-LIVE-COGNITIVE-STATE"
 AGENT_ID = "coding.backend.01"
 
 
-def _native_execution():
+def _native_execution(control_plane_cls=NeuralOrganizationExecutionControlPlane):
     runtime = OrganizationRuntime.first_generation()
     runtime.tasks.add_task(
         TASK_ID,
@@ -18,7 +23,7 @@ def _native_execution():
         plan_node_id="P-NEURAL-R24-LIVE-COGNITIVE-STATE",
     )
     runtime.tasks.lease(TASK_ID, AGENT_ID)
-    native = OrganizationExecutionControlPlane(
+    native = control_plane_cls(
         registry=runtime.registry,
         tasks=runtime.tasks,
         context=runtime.memory_context,
@@ -29,9 +34,7 @@ def _native_execution():
     return runtime, native
 
 
-def test_native_execution_builds_cognitive_state_from_exact_verified_context_provenance():
-    runtime, native = _native_execution()
-
+def _assert_verified_cognitive_state(runtime, native):
     capsule, cognitive_state = native._compile_context_for_inference(
         AGENT_ID,
         task_id=TASK_ID,
@@ -67,14 +70,31 @@ def test_native_execution_builds_cognitive_state_from_exact_verified_context_pro
         verified.delta.digest,
         "observation",
     ) in provenance
+    return capsule, cognitive_state
+
+
+def test_native_execution_builds_cognitive_state_from_exact_verified_context_provenance():
+    runtime, native = _native_execution()
+
+    _assert_verified_cognitive_state(runtime, native)
+
+
+def test_generic_native_execution_owns_cognitive_state_activation_gate():
+    runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
+
+    _assert_verified_cognitive_state(runtime, native)
+
+
+def test_neural_execution_specialization_inherits_generic_cognition_gate():
+    assert (
+        NeuralOrganizationExecutionControlPlane._compile_context_for_inference
+        is GenericOrganizationExecutionControlPlane._compile_context_for_inference
+    )
 
 
 def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
-    runtime, native = _native_execution()
-    capsule, cognitive_state = native._compile_context_for_inference(
-        AGENT_ID,
-        task_id=TASK_ID,
-    )
+    runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
+    capsule, cognitive_state = _assert_verified_cognitive_state(runtime, native)
     identity = runtime.registry.get(AGENT_ID)
     kwargs = dict(
         identity=identity,
@@ -91,7 +111,6 @@ def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
     ).build_request(**kwargs)
     live_request = native.encoder.build_request(**kwargs)
 
-    assert cognitive_state is not None
     assert live_request.context_digest == cognitive_state.bind_context_digest(
         plain_request.context_digest
     )
@@ -99,7 +118,7 @@ def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
 
 
 def test_native_execution_legacy_context_never_fabricates_cognitive_provenance():
-    runtime, native = _native_execution()
+    runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
     native.context = runtime.context
 
     capsule, cognitive_state = native._compile_context_for_inference(
