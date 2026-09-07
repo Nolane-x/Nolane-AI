@@ -172,9 +172,6 @@ def test_restore_rejects_request_provenance_downgrade_without_request_payload():
 def test_restore_rejects_self_consistent_decision_request_provenance_downgrade():
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
-    # This outer authority marker is intentionally injected while RED. Current
-    # restore ignores it, proving that a self-consistent v2 -> v1 receipt rewrite
-    # is accepted unless execution state itself owns the provenance epoch.
     state["request_provenance_version"] = 2
     _downgrade_first_decision_to_v1(state)
 
@@ -243,10 +240,8 @@ def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest()
         _restore(runtime, state)
 
 
-def test_public_execution_compatibility_surfaces_inherit_cognition_aware_authority():
-    assert CompatibilityOrganizationExecutionControlPlane.__bases__ == (
-        OrganizationExecutionControlPlane,
-    )
+def test_public_execution_compatibility_surfaces_are_cognition_aware():
+    assert CompatibilityOrganizationExecutionControlPlane is OrganizationExecutionControlPlane
     assert NeuralCompatibilityExecutionControlPlane.__bases__ == (
         OrganizationExecutionControlPlane,
     )
