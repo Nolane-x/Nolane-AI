@@ -9,6 +9,7 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/context.py'
       - 'nolane/external_core/execution.py'
+      - 'cogcoder/organization/execution.py'
       - 'cogcoder/organization/runtime.py'
       - 'tests/test_neural_r24_*.py'
       - '.github/workflows/neural-r24-runtime-activation.yml'
@@ -18,6 +19,7 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/context.py'
       - 'nolane/external_core/execution.py'
+      - 'cogcoder/organization/execution.py'
       - 'cogcoder/organization/runtime.py'
       - 'tests/test_neural_r24_*.py'
       - '.github/workflows/neural-r24-runtime-activation.yml'
@@ -48,6 +50,7 @@ jobs:
             nolane/memory/context.py \
             nolane/external_core/context.py \
             nolane/external_core/execution.py \
+            cogcoder/organization/execution.py \
             cogcoder/organization/runtime.py
       - name: Run Neural R2.4 runtime activation contract suite
         run: |
