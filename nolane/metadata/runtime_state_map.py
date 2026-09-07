@@ -54,6 +54,7 @@ def build_runtime_state_bindings() -> tuple[RuntimeStateBinding, ...]:
         RuntimeStateBinding("operations", "external.operations"),
         RuntimeStateBinding("research", "external.research"),
         RuntimeStateBinding("memory_context", "external.context"),
+        RuntimeStateBinding("wake_continuity", "external.context"),
         RuntimeStateBinding("individual_evolution", "external.individual_evolution"),
         RuntimeStateBinding("central", "organization.central"),
         RuntimeStateBinding("coordination", "organization.coordination", legacy_semantics=True),
