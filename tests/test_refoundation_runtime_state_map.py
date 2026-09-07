@@ -18,6 +18,16 @@ def test_every_current_runtime_top_level_state_section_has_exactly_one_binding()
     assert len({row.legacy_section for row in bindings}) == len(bindings)
 
 
+def test_wake_continuity_state_is_owned_by_context_authority() -> None:
+    state = OrganizationRuntime.first_generation().to_state()
+    bindings = {row.legacy_section: row for row in build_runtime_state_bindings()}
+
+    assert "wake_continuity" in state
+    assert "wake_continuity" in bindings
+    assert bindings["wake_continuity"].canonical_owner == "external.context"
+    assert bindings["wake_continuity"].legacy_semantics is False
+
+
 def test_runtime_state_mapping_preserves_every_legacy_section_byte_semantically() -> None:
     runtime = OrganizationRuntime.first_generation()
     state = runtime.to_state()
