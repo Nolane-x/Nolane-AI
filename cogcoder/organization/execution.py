@@ -60,8 +60,6 @@ def _bind_native_compile_surface(context: Any) -> Any:
     cognition through the provenance-verifying Neural R2.4 compiler.
     """
 
-    if callable(getattr(context, "compile", None)):
-        return context
     if not callable(getattr(context, "compile_context", None)):
         return context
 
