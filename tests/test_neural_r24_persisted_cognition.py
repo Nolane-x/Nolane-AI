@@ -144,6 +144,7 @@ def test_restore_rejects_request_provenance_downgrade_without_request_payload():
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
     state["decisions"][0]["request_provenance_version"] = 2
+    state["decisions"][0].pop("request")
 
     with pytest.raises(ValueError, match="inference request"):
         _restore(runtime, state)
@@ -157,6 +158,7 @@ def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest()
     if "request" in forged:
         forged["request"] = dict(forged["request"])
         forged["request"]["cognitive_state_digest"] = "f" * 64
+        forged["request_digest"] = canonical_digest(forged["request"])
     payload = {
         key: value
         for key, value in forged.items()
