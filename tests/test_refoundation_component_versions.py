@@ -49,12 +49,12 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.requirements": 1,
     "external.planning": 1,
     "external.architecture": 1,
-    "external.integration": 8,
+    "external.integration": 9,
     "external.context": 1,
     "external.invokable_cores": 3,
     "external.execution.workspace": 4,
-    "external.execution.executor": 2,
-    "external.execution.control": 12,
+    "external.execution.executor": 3,
+    "external.execution.control": 13,
     "external.coding.claims": 2,
     "external.coding.patches": 2,
     "external.coding.control": 1,
@@ -68,7 +68,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "evaluation.release": 1,
     "evaluation.scaling": 1,
     "evaluation.campaign": 1,
-    "neural.inference_bridge": 1,
+    "neural.inference_bridge": 2,
 }
 ACCEPTED_REVISION_ONE_COMPONENTS = {
     component_id for component_id, revision in ACCEPTED_COMPONENT_REVISIONS.items() if revision == 1
@@ -105,16 +105,16 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.architecture")) == "0.0.2"
     assert str(component_version("external.evidence")) == "0.0.2"
     assert str(next_component_version("external.evidence")) == "0.0.3"
-    assert str(component_version("external.integration")) == "0.0.8"
-    assert str(next_component_version("external.integration")) == "0.0.9"
+    assert str(component_version("external.integration")) == "0.0.9"
+    assert str(next_component_version("external.integration")) == "0.0.10"
     assert str(component_version("external.invokable_cores")) == "0.0.3"
     assert str(next_component_version("external.invokable_cores")) == "0.0.4"
     assert str(component_version("external.execution.workspace")) == "0.0.4"
     assert str(next_component_version("external.execution.workspace")) == "0.0.5"
-    assert str(component_version("external.execution.executor")) == "0.0.2"
-    assert str(next_component_version("external.execution.executor")) == "0.0.3"
-    assert str(component_version("external.execution.control")) == "0.0.12"
-    assert str(next_component_version("external.execution.control")) == "0.0.13"
+    assert str(component_version("external.execution.executor")) == "0.0.3"
+    assert str(next_component_version("external.execution.executor")) == "0.0.4"
+    assert str(component_version("external.execution.control")) == "0.0.13"
+    assert str(next_component_version("external.execution.control")) == "0.0.14"
     assert str(component_version("external.coding.claims")) == "0.0.2"
     assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.2"
@@ -141,8 +141,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("evaluation.scaling")) == "0.0.2"
     assert str(component_version("evaluation.campaign")) == "0.0.1"
     assert str(next_component_version("evaluation.campaign")) == "0.0.2"
-    assert str(component_version("neural.inference_bridge")) == "0.0.1"
-    assert str(next_component_version("neural.inference_bridge")) == "0.0.2"
+    assert str(component_version("neural.inference_bridge")) == "0.0.2"
+    assert str(next_component_version("neural.inference_bridge")) == "0.0.3"
     assert str(component_version("organization.tasks")) == "0.0.2"
     assert str(next_component_version("organization.tasks")) == "0.0.3"
 
