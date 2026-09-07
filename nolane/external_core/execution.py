@@ -150,11 +150,13 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         state = super().to_state()
         if "acting_executor" not in state:
             raise ValueError("execution state is missing transactional acting authority")
-        if all(
-            getattr(decision, "request_provenance_version", 1) >= 2
-            for decision in self._decisions.values()
-        ):
-            state["request_provenance_version"] = 2
+        modern_decision_ids = [
+            receipt_id
+            for receipt_id in sorted(self._decisions)
+            if getattr(self._decisions[receipt_id], "request_provenance_version", 1) >= 2
+        ]
+        state["request_provenance_version"] = 2
+        state["request_provenance_decision_ids"] = modern_decision_ids
         return state
 
     @classmethod
@@ -172,6 +174,24 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         request_provenance_version = int(state.get("request_provenance_version", 1))
         if request_provenance_version not in {1, 2}:
             raise ValueError("unsupported execution request provenance version")
+
+        raw_provenance_decision_ids = state.get("request_provenance_decision_ids")
+        if request_provenance_version >= 2:
+            if not isinstance(raw_provenance_decision_ids, (list, tuple)):
+                raise ValueError("execution request provenance binding is missing")
+            provenance_decision_ids = tuple(
+                str(receipt_id).strip() for receipt_id in raw_provenance_decision_ids
+            )
+            if (
+                any(not receipt_id for receipt_id in provenance_decision_ids)
+                or provenance_decision_ids != tuple(sorted(set(provenance_decision_ids)))
+            ):
+                raise ValueError("execution request provenance binding is non-canonical")
+        else:
+            if raw_provenance_decision_ids is not None:
+                raise ValueError("legacy execution request provenance state contains modern binding")
+            provenance_decision_ids = ()
+
         restored = super().from_state(
             registry=registry,
             tasks=tasks,
@@ -187,10 +207,19 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         )
         if canonical_acting.to_state() != restored.acting_executor.to_state():
             raise ValueError("restored transactional acting authority mismatch")
-        if request_provenance_version >= 2 and any(
-            getattr(decision, "request_provenance_version", 1) < 2
-            for decision in restored._decisions.values()
-        ):
+
+        actual_modern_decision_ids = tuple(
+            receipt_id
+            for receipt_id in sorted(restored._decisions)
+            if getattr(
+                restored._decisions[receipt_id], "request_provenance_version", 1
+            )
+            >= 2
+        )
+        if request_provenance_version >= 2:
+            if provenance_decision_ids != actual_modern_decision_ids:
+                raise ValueError("execution request provenance binding mismatch")
+        elif actual_modern_decision_ids:
             raise ValueError("execution request provenance downgrade detected")
         return restored
 
