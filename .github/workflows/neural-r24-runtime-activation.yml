@@ -9,6 +9,7 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/context.py'
       - 'nolane/external_core/_execution_base.py'
+      - 'nolane/external_core/execution_types.py'
       - 'nolane/external_core/execution.py'
       - 'nolane/external_core/execution_neural.py'
       - 'cogcoder/organization/execution.py'
@@ -21,6 +22,7 @@ on:
       - 'nolane/memory/**'
       - 'nolane/external_core/context.py'
       - 'nolane/external_core/_execution_base.py'
+      - 'nolane/external_core/execution_types.py'
       - 'nolane/external_core/execution.py'
       - 'nolane/external_core/execution_neural.py'
       - 'cogcoder/organization/execution.py'
@@ -54,6 +56,7 @@ jobs:
             nolane/memory/context.py \
             nolane/external_core/context.py \
             nolane/external_core/_execution_base.py \
+            nolane/external_core/execution_types.py \
             nolane/external_core/execution.py \
             nolane/external_core/execution_neural.py \
             cogcoder/organization/execution.py \
