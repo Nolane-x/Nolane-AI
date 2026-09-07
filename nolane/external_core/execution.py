@@ -26,7 +26,7 @@ from nolane.schemas.identity import AgentStatus
 
 
 COMPONENT_ID = "external.execution.control"
-COMPONENT_VERSION = "0.0.12"
+COMPONENT_VERSION = "0.0.13"
 MIGRATED_FROM = "cogcoder.organization.execution"
 
 
@@ -429,6 +429,39 @@ class OrganizationExecutionControlPlane:
         self._backends: dict[str, AgentInferenceBackend] = {}
         self._workspaces: dict[str, RepositoryWorkspace] = {}
         self._validate_state()
+
+    def _compile_context_capsule(
+        self,
+        agent_id: str,
+        *,
+        task_id: str | None = None,
+    ):
+        compile_context = getattr(self.context, 'compile_context', None)
+        if callable(compile_context):
+            verifier = getattr(self.context, 'verify_context_capsule', None)
+            if not callable(verifier):
+                raise RuntimeError(
+                    'modern execution context requires context provenance verification'
+                )
+            compiled = compile_context(agent_id, task_id=task_id)
+            capsule = getattr(compiled, 'capsule', None)
+            if capsule is None:
+                raise TypeError('modern execution context returned no context capsule')
+            verified = verifier(capsule)
+            if verified is None:
+                raise ValueError(
+                    'modern execution context returned an unverifiable context capsule'
+                )
+            if getattr(verified, 'capsule', None) != capsule:
+                raise ValueError(
+                    'verified execution context capsule does not match compilation'
+                )
+            return capsule
+
+        legacy_compile = getattr(self.context, 'compile', None)
+        if not callable(legacy_compile):
+            raise TypeError('execution context does not expose a supported compiler')
+        return legacy_compile(agent_id, task_id=task_id)
 
     def _validate_state(self) -> None:
         max_counter = 0
@@ -972,7 +1005,7 @@ class OrganizationExecutionControlPlane:
             raise RuntimeError('active backend differs from persisted execution session')
 
         started = time.perf_counter_ns()
-        capsule = self.context.compile(session.agent_id, task_id=session.task_id)
+        capsule = self._compile_context_capsule(session.agent_id, task_id=session.task_id)
         request = self.encoder.build_request(
             identity=identity,
             capsule=capsule,
