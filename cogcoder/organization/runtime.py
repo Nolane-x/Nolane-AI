@@ -37,7 +37,7 @@ class OrganizationRuntime(_OrganizationRuntimePart15):
         self.execution = execution or OrganizationExecutionControlPlane(
             registry=self.registry,
             tasks=self.tasks,
-            context=self.context,
+            context=self.memory_context,
             artifacts=self.artifacts,
             external_cores=self.external_cores,
             coding=self.coding,
@@ -69,7 +69,7 @@ class OrganizationRuntime(_OrganizationRuntimePart15):
         runtime.execution = OrganizationExecutionControlPlane.from_state(
             registry=runtime.registry,
             tasks=runtime.tasks,
-            context=runtime.context,
+            context=runtime.memory_context,
             artifacts=runtime.artifacts,
             external_cores=runtime.external_cores,
             coding=runtime.coding,
