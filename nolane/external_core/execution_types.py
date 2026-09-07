@@ -8,6 +8,19 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 
+def _optional_digest(value: object, label: str) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    if (
+        len(text) != 64
+        or text != text.lower()
+        or any(char not in '0123456789abcdef' for char in text)
+    ):
+        raise ValueError(f'{label} must be a 64-character lowercase SHA-256 digest')
+    return text
+
+
 class ExecutionActionKind(str, Enum):
     TOOL = 'tool'
     COMPLETE = 'complete'
@@ -230,6 +243,7 @@ class InferenceRequest:
     action_schema_digest: str
     counters: ExecutionCounters
     step_index: int
+    cognitive_state_digest: str | None = None
 
     def __post_init__(self) -> None:
         for value, label in (
@@ -248,9 +262,14 @@ class InferenceRequest:
             raise ValueError('inference request requires action schema')
         if self.action_schema_digest != canonical_digest(list(self.action_schema)):
             raise ValueError('action schema digest mismatch')
+        object.__setattr__(
+            self,
+            'cognitive_state_digest',
+            _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
+        )
 
     def payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             'agent_id': self.agent_id,
             'neural_version': self.neural_version,
             'task_id': self.task_id,
@@ -262,6 +281,9 @@ class InferenceRequest:
             'counters': self.counters.to_state(),
             'step_index': self.step_index,
         }
+        if self.cognitive_state_digest is not None:
+            payload['cognitive_state_digest'] = self.cognitive_state_digest
+        return payload
 
     @property
     def digest(self) -> str:
@@ -283,6 +305,11 @@ class InferenceRequest:
             action_schema_digest=str(state['action_schema_digest']),
             counters=ExecutionCounters.from_state(state.get('counters', {})),
             step_index=int(state['step_index']),
+            cognitive_state_digest=(
+                None
+                if state.get('cognitive_state_digest') is None
+                else str(state['cognitive_state_digest'])
+            ),
         )
 
 
@@ -301,9 +328,17 @@ class AgentDecisionReceipt:
     action: ExecutionAction
     compute_units: int
     digest: str
+    cognitive_state_digest: str | None = None
+
+    def __post_init__(self) -> None:
+        object.__setattr__(
+            self,
+            'cognitive_state_digest',
+            _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
+        )
 
     def payload(self) -> dict[str, Any]:
-        return {
+        payload = {
             'backend_id': self.backend_id,
             'request_digest': self.request_digest,
             'agent_id': self.agent_id,
@@ -316,6 +351,9 @@ class AgentDecisionReceipt:
             'action': self.action.to_state(),
             'compute_units': self.compute_units,
         }
+        if self.cognitive_state_digest is not None:
+            payload['cognitive_state_digest'] = self.cognitive_state_digest
+        return payload
 
     @classmethod
     def create(
@@ -343,6 +381,8 @@ class AgentDecisionReceipt:
             'action': action.to_state(),
             'compute_units': int(compute_units),
         }
+        if request.cognitive_state_digest is not None:
+            payload['cognitive_state_digest'] = request.cognitive_state_digest
         digest = canonical_digest(payload)
         return cls(
             receipt_id='decision-' + digest[:24],
@@ -358,6 +398,7 @@ class AgentDecisionReceipt:
             action=action,
             compute_units=int(compute_units),
             digest=digest,
+            cognitive_state_digest=request.cognitive_state_digest,
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -379,6 +420,11 @@ class AgentDecisionReceipt:
             action=ExecutionAction.from_state(state['action']),
             compute_units=int(state['compute_units']),
             digest=str(state['digest']),
+            cognitive_state_digest=(
+                None
+                if state.get('cognitive_state_digest') is None
+                else str(state['cognitive_state_digest'])
+            ),
         )
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != 'decision-' + expected[:24]:
