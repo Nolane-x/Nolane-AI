@@ -253,3 +253,19 @@ def test_neural_ci_tracks_and_compiles_private_execution_base_and_execution_type
     assert "            nolane/external_core/_execution_base.py \\\n" in workflow
     assert workflow.count("'nolane/external_core/execution_types.py'") == 2
     assert "            nolane/external_core/execution_types.py \\\n" in workflow
+
+
+def test_neural_ci_covers_postmerge_runtime_state_closure():
+    workflow = Path(".github/workflows/neural-r24-runtime-activation.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert "      - main\n" in workflow
+    assert workflow.count("'cogcoder/organization/runtime_core.py'") == 2
+    assert "            cogcoder/organization/runtime_core.py \\\n" in workflow
+    assert workflow.count("'nolane/metadata/runtime_state_map.py'") == 2
+    assert "            nolane/metadata/runtime_state_map.py \\\n" in workflow
+    assert workflow.count("'tests/test_refoundation_runtime_state_map.py'") == 2
+    assert workflow.count("'tests/test_refoundation_wave2_zero_loss_runtime_digest.py'") == 2
+    assert "            tests/test_refoundation_runtime_state_map.py \\\n" in workflow
+    assert "            tests/test_refoundation_wave2_zero_loss_runtime_digest.py \\\n" in workflow
