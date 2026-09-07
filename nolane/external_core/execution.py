@@ -88,7 +88,10 @@ class _VerifiedContextCognitiveStateEncoder:
     def __init__(self, *, base: CognitiveStateEncoder, context: Any) -> None:
         self._base = base
         self._context = context
-        self.version = base.version
+
+    @property
+    def version(self):
+        return self._base.version
 
     def cognitive_state_for(self, capsule: Any) -> CognitiveState | None:
         verifier = getattr(self._context, "verify_context_capsule", None)
@@ -154,7 +157,7 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
     def resolve_cognitive_state(self, cognitive_state_digest: str) -> CognitiveState:
         """Resolve one persisted R2.4 cognition identity from canonical context authority.
 
-        CognitiveState is deliberately not stored a second time by execution.  The
+        CognitiveState is deliberately not stored a second time by execution. The
         resolver reconstructs it from the persisted context compilation receipt and
         semantic delta so restore/replay has one provenance source of truth.
         """
