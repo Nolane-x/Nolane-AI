@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from cogcoder.organization.runtime import OrganizationRuntime
 from nolane.external_core.execution import (
     OrganizationExecutionControlPlane as GenericOrganizationExecutionControlPlane,
@@ -129,3 +131,12 @@ def test_native_execution_legacy_context_never_fabricates_cognitive_provenance()
     assert cognitive_state is None
     assert capsule.context_compilation_receipt_id is None
     assert capsule.semantic_delta_digest is None
+
+
+def test_neural_ci_tracks_and_compiles_private_execution_base():
+    workflow = Path(".github/workflows/neural-r24-runtime-activation.yml").read_text(
+        encoding="utf-8"
+    )
+
+    assert workflow.count("'nolane/external_core/_execution_base.py'") == 2
+    assert "            nolane/external_core/_execution_base.py \\\n" in workflow
