@@ -112,6 +112,23 @@ def _restore(runtime, state):
     )
 
 
+def _downgrade_first_decision_to_v1(state):
+    forged = dict(state["decisions"][0])
+    forged.pop("request_provenance_version", None)
+    forged.pop("request", None)
+    payload = {
+        key: value
+        for key, value in forged.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    forged_digest = canonical_digest(payload)
+    forged["digest"] = forged_digest
+    forged["receipt_id"] = "decision-" + forged_digest[:24]
+    state["decisions"][0] = forged
+    state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+    return forged
+
+
 def test_persisted_execution_decision_cognitive_identity_survives_restore():
     runtime, persisted, cognitive_state, _ = _authority_with_persisted_decision()
 
@@ -128,13 +145,15 @@ def test_modern_decision_persists_canonical_inference_request_provenance():
         persisted.get_session("execution-00000001").decision_receipt_ids[0]
     )
 
+    execution_state = persisted.to_state()
+    assert execution_state["request_provenance_version"] == 2
     state = decision.to_state()
     assert state["request_provenance_version"] == 2
     assert state["request"] == request.to_state()
     assert decision.request == request
     assert persisted.get_inference_request(decision.receipt_id) == request
 
-    restored = _restore(runtime, persisted.to_state())
+    restored = _restore(runtime, execution_state)
     restored_decision = restored.get_decision(decision.receipt_id)
     assert restored_decision.request == request
     assert restored.get_inference_request(decision.receipt_id) == request
@@ -148,6 +167,34 @@ def test_restore_rejects_request_provenance_downgrade_without_request_payload():
 
     with pytest.raises(ValueError, match="inference request"):
         _restore(runtime, state)
+
+
+def test_restore_rejects_self_consistent_decision_request_provenance_downgrade():
+    runtime, persisted, _, _ = _authority_with_persisted_decision()
+    state = persisted.to_state()
+    # This outer authority marker is intentionally injected while RED. Current
+    # restore ignores it, proving that a self-consistent v2 -> v1 receipt rewrite
+    # is accepted unless execution state itself owns the provenance epoch.
+    state["request_provenance_version"] = 2
+    _downgrade_first_decision_to_v1(state)
+
+    with pytest.raises(ValueError, match="request provenance.*downgrade"):
+        _restore(runtime, state)
+
+
+def test_historical_execution_state_without_request_provenance_marker_restores_v1_decision():
+    runtime, persisted, _, _ = _authority_with_persisted_decision()
+    state = persisted.to_state()
+    state.pop("request_provenance_version", None)
+    forged = _downgrade_first_decision_to_v1(state)
+
+    restored = _restore(runtime, state)
+    decision = restored.get_decision(forged["receipt_id"])
+
+    assert decision.request_provenance_version == 1
+    assert decision.request is None
+    with pytest.raises(KeyError, match="no persisted inference request"):
+        restored.get_inference_request(decision.receipt_id)
 
 
 def test_restore_rejects_self_consistent_request_rebound_to_different_task():
