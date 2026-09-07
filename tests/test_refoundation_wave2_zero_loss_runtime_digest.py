@@ -65,18 +65,27 @@ F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST = (
     "ba30a8faee0547d83e8d317c0d50c11b953fac241ffcc0d1181531b3659eacc6"
 )
 
+# Neural R2.4 persists the scheduler-checkpoint -> Memory/Context continuity
+# anchor used by provenance-verified wake/resume.  This exact fingerprint was
+# independently observed on CPython 3.11.16 and 3.13.15 after the R2.4
+# fast-forward integration; the F v1.3 fingerprint above remains historical.
+NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST = (
+    "1dadbad06aac44d8fbaefd127b81cc0fa0fc3f96279111b333ae33864d2678af"
+)
 
-def test_runtime_state_fingerprint_tracks_e_acting_on_unified_b_cutover() -> None:
+
+def test_runtime_state_fingerprint_tracks_neural_r24_wake_continuity_cutover() -> None:
     first = CanonicalOrganization.first_generation()
     second = CanonicalOrganization.first_generation()
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert first.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert second.state_digest == F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
+    assert first.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
+    assert second.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST != F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
     assert F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST != E_ACTING_UNIFIED_B_RUNTIME_STATE_DIGEST
