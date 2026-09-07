@@ -203,6 +203,33 @@ def test_execution_attestation_rejects_self_consistent_decision_with_wrong_cogni
         )
 
 
+def test_decision_cognitive_digest_resolves_from_persisted_context_after_restore():
+    runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
+    capsule, cognitive_state = _assert_verified_cognitive_state(runtime, native)
+    request = native.encoder.build_request(**_request_kwargs(runtime, native, capsule))
+    decision = AgentDecisionReceipt.create(
+        backend_id="audit-backend",
+        request=request,
+        action=ExecutionAction.wait(reason="resolve persisted cognition"),
+    )
+
+    assert decision.cognitive_state_digest is not None
+    assert native.resolve_cognitive_state(decision.cognitive_state_digest) == cognitive_state
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+    assert (
+        restored.execution.resolve_cognitive_state(decision.cognitive_state_digest)
+        == cognitive_state
+    )
+
+
+def test_cognitive_state_resolver_fails_closed_for_unknown_digest():
+    _, native = _native_execution(GenericOrganizationExecutionControlPlane)
+
+    with pytest.raises(KeyError, match="unknown cognitive state digest"):
+        native.resolve_cognitive_state("f" * 64)
+
+
 def test_native_execution_legacy_context_never_fabricates_cognitive_provenance():
     runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
     native.context = runtime.context
