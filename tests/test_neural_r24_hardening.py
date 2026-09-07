@@ -6,6 +6,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.context import ContextCapsule
 from nolane.external_core.execution_types import ExecutionCounters
 from nolane.neural.core_contract import (
+    AdaptationBoundary,
     CognitiveState,
     EvidenceRef,
     ExpertRoute,
@@ -68,6 +69,52 @@ def test_from_state_requires_explicit_authority_in_serialized_provenance():
 
     with pytest.raises(NeuralInvariantError, match="missing fields"):
         CognitiveState.from_state(state)
+
+
+def test_neural_authority_aliases_cannot_mint_authoritative_evidence():
+    for source_core in ("neural", "neural.router", "neural-core", "nolane.neural"):
+        with pytest.raises(NeuralInvariantError, match="cannot mint"):
+            EvidenceRef.create(
+                source_core=source_core,
+                receipt_id="self-issued",
+                digest="c" * 64,
+                authority="verification",
+            )
+
+
+def test_non_explicit_identity_fields_do_not_stringify_none_into_valid_state():
+    with pytest.raises(NeuralInvariantError, match="source_core"):
+        EvidenceRef.create(
+            source_core=None,
+            receipt_id="r1",
+            digest="d" * 64,
+            authority="observation",
+        )
+    with pytest.raises(NeuralInvariantError, match="receipt_id"):
+        EvidenceRef.create(
+            source_core="memory",
+            receipt_id=None,
+            digest="d" * 64,
+            authority="observation",
+        )
+
+
+def test_adaptation_boundary_is_case_insensitive_for_protected_authority_domains():
+    evidence = (_evidence(receipt_id="r1"),)
+    with pytest.raises(NeuralInvariantError, match="protected authority"):
+        AdaptationBoundary.create(
+            policy_revision="adapt-v1",
+            allowed_parameters=["Truth.status"],
+            evidence=evidence,
+        )
+
+    boundary = AdaptationBoundary.create(
+        policy_revision="adapt-v1",
+        allowed_parameters=["router.temperature"],
+        evidence=evidence,
+    )
+    with pytest.raises(NeuralInvariantError, match="authority boundary"):
+        boundary.validate_update({"VERIFICATION.status": "verified"})
 
 
 def test_expert_router_is_input_order_independent_and_has_canonical_tie_break():
