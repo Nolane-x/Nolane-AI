@@ -7,6 +7,7 @@ import pytest
 from cogcoder.organization.context_intelligence import ContextBudget
 from cogcoder.organization.execution import OrganizationExecutionControlPlane
 from cogcoder.organization.runtime import OrganizationRuntime
+from cogcoder.organization.types import EventKind
 
 
 TASK_ID = "T-NEURAL-R24-RUNTIME-ACTIVATION"
@@ -31,6 +32,18 @@ def _compiled_context():
         ),
     )
     return runtime, result
+
+
+def _emit_post_checkpoint_evidence(runtime: OrganizationRuntime, *, evidence_id: str):
+    identity = runtime.registry.get(AGENT_ID)
+    return runtime.ledger.append(
+        EventKind.TEST_PASSED,
+        source_agent_id=AGENT_ID,
+        target_agent_id=AGENT_ID,
+        region=identity.region,
+        payload={"task_id": identity.current_task},
+        evidence_refs=(evidence_id,),
+    )
 
 
 def test_modern_context_provenance_verifier_resolves_canonical_receipt_and_delta():
@@ -193,3 +206,65 @@ def test_execution_bridge_prefers_verified_modern_compiler_when_both_surfaces_ex
     assert events == ["modern-compile", "verify"]
     assert capsule.context_compilation_receipt_id is not None
     assert capsule.semantic_delta_digest is not None
+
+
+def test_checkpoint_then_wake_replays_from_persisted_continuity_with_verified_provenance():
+    runtime = OrganizationRuntime.first_generation()
+    scheduler_checkpoint = runtime.checkpoint_agent(AGENT_ID)
+    assert scheduler_checkpoint is not None
+    post_checkpoint = _emit_post_checkpoint_evidence(runtime, evidence_id="EV-WAKE-CONTINUITY")
+
+    capsule = runtime.wake_agent(AGENT_ID, reason="resume verified neural context")
+    verified = runtime.memory_context.verify_context_capsule(capsule)
+
+    assert verified is not None
+    assert verified.receipt.continuity_checkpoint_id is not None
+    continuity = runtime.memory_context.context_intelligence.checkpoint(
+        verified.receipt.continuity_checkpoint_id
+    )
+    assert continuity.scheduler_checkpoint_event_id == scheduler_checkpoint
+    assert verified.delta.checkpoint_id == continuity.checkpoint_id
+    assert capsule.since_event_id == scheduler_checkpoint
+    assert verified.receipt.replayed_full_history is False
+    assert post_checkpoint.event_id in tuple(event.event_id for event in capsule.event_delta)
+
+
+def test_checkpoint_wake_continuity_survives_runtime_restore():
+    runtime = OrganizationRuntime.first_generation()
+    scheduler_checkpoint = runtime.checkpoint_agent(AGENT_ID)
+    assert scheduler_checkpoint is not None
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+    post_checkpoint = _emit_post_checkpoint_evidence(restored, evidence_id="EV-WAKE-RESTORE")
+
+    capsule = restored.wake_agent(AGENT_ID, reason="resume after runtime restore")
+    verified = restored.memory_context.verify_context_capsule(capsule)
+
+    assert verified is not None
+    assert verified.receipt.continuity_checkpoint_id is not None
+    continuity = restored.memory_context.context_intelligence.checkpoint(
+        verified.receipt.continuity_checkpoint_id
+    )
+    assert continuity.scheduler_checkpoint_event_id == scheduler_checkpoint
+    assert capsule.since_event_id == scheduler_checkpoint
+    assert verified.receipt.replayed_full_history is False
+    assert post_checkpoint.event_id in tuple(event.event_id for event in capsule.event_delta)
+
+
+def test_pre_activation_checkpoint_without_continuity_index_falls_back_to_verified_full_replay():
+    runtime = OrganizationRuntime.first_generation()
+    assert runtime.checkpoint_agent(AGENT_ID) is not None
+    state = runtime.to_state()
+    state.pop("wake_continuity", None)
+
+    restored = OrganizationRuntime.from_state(state)
+    _emit_post_checkpoint_evidence(restored, evidence_id="EV-WAKE-LEGACY-STATE")
+
+    capsule = restored.wake_agent(AGENT_ID, reason="resume legacy checkpoint safely")
+    verified = restored.memory_context.verify_context_capsule(capsule)
+
+    assert verified is not None
+    assert verified.receipt.continuity_checkpoint_id is None
+    assert verified.delta.checkpoint_id is None
+    assert capsule.since_event_id is None
+    assert verified.receipt.replayed_full_history is True
