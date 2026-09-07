@@ -12,6 +12,7 @@ from nolane.external_core._execution_base import (
     ExecutionTerminalReceipt,
     OrganizationExecutionControlPlane as _BaseOrganizationExecutionControlPlane,
 )
+from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.memory.context_intelligence import ContextCompilationReceipt
 from nolane.neural.core_contract import CognitiveState, EvidenceRef
 from nolane.neural.inference_bridge import CognitiveStateEncoder
@@ -147,6 +148,8 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
 
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
+        if "acting_executor" not in state:
+            raise ValueError("execution state is missing transactional acting authority")
         if all(
             getattr(decision, "request_provenance_version", 1) >= 2
             for decision in self._decisions.values()
@@ -178,6 +181,12 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             coding=coding,
             state=state,
         )
+        canonical_acting = TransactionalExternalCoreExecutor.from_state(
+            executor=restored.executor,
+            state=state.get("acting_executor", {}),
+        )
+        if canonical_acting.to_state() != restored.acting_executor.to_state():
+            raise ValueError("restored transactional acting authority mismatch")
         if request_provenance_version >= 2 and any(
             getattr(decision, "request_provenance_version", 1) < 2
             for decision in restored._decisions.values()
