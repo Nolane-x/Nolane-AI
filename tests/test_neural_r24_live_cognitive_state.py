@@ -185,6 +185,10 @@ def test_execution_attestation_rejects_self_consistent_decision_with_wrong_cogni
 
     forged_state = decision.to_state()
     forged_state["cognitive_state_digest"] = "f" * 64
+    forged_request = dict(forged_state["request"])
+    forged_request["cognitive_state_digest"] = "f" * 64
+    forged_state["request"] = forged_request
+    forged_state["request_digest"] = canonical_digest(forged_request)
     forged_payload = {
         key: value
         for key, value in forged_state.items()
