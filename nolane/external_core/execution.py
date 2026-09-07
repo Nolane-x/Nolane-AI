@@ -128,6 +128,22 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         capsule = super()._compile_context_capsule(agent_id, task_id=task_id)
         return capsule, self.encoder.cognitive_state_for(capsule)
 
+    @staticmethod
+    def _attest_decision_receipt(receipt: Any, *, request: Any, backend: Any):
+        canonical = _BaseOrganizationExecutionControlPlane._attest_decision_receipt(
+            receipt,
+            request=request,
+            backend=backend,
+        )
+        if (
+            getattr(canonical, "cognitive_state_digest", None)
+            != getattr(request, "cognitive_state_digest", None)
+        ):
+            raise ValueError(
+                "decision receipt authority mismatch: cognitive_state_digest"
+            )
+        return canonical
+
 
 __all__ = (
     "ExecutionState",
