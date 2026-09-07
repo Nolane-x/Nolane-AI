@@ -1,6 +1,6 @@
-"""Historical compatibility bridge for native execution-control authority."""
+"""Historical compatibility bridge for native neural execution authority."""
 
-from nolane.external_core.execution import (
+from nolane.external_core.execution_neural import (
     ExecutionSession,
     ExecutionState,
     ExecutionStepReceipt,
@@ -10,7 +10,7 @@ from nolane.external_core.execution import (
 
 
 class OrganizationExecutionControlPlane(_NativeOrganizationExecutionControlPlane):
-    """Historical import path for the native provenance-aware execution authority."""
+    """Historical import path for the native R2.4 cognition-aware execution authority."""
 
 
 __all__ = (
