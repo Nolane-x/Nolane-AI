@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from nolane.external_core._execution_base import (
     COMPONENT_ID as _BASE_COMPONENT_ID,
@@ -144,6 +144,46 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             encoder=wrapped_encoder,
             **kwargs,
         )
+
+    def to_state(self) -> dict[str, Any]:
+        state = super().to_state()
+        if all(
+            getattr(decision, "request_provenance_version", 1) >= 2
+            for decision in self._decisions.values()
+        ):
+            state["request_provenance_version"] = 2
+        return state
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        registry: Any,
+        tasks: Any,
+        context: Any,
+        artifacts: Any,
+        external_cores: Any,
+        coding: Any,
+        state: Mapping[str, Any],
+    ) -> "OrganizationExecutionControlPlane":
+        request_provenance_version = int(state.get("request_provenance_version", 1))
+        if request_provenance_version not in {1, 2}:
+            raise ValueError("unsupported execution request provenance version")
+        restored = super().from_state(
+            registry=registry,
+            tasks=tasks,
+            context=context,
+            artifacts=artifacts,
+            external_cores=external_cores,
+            coding=coding,
+            state=state,
+        )
+        if request_provenance_version >= 2 and any(
+            getattr(decision, "request_provenance_version", 1) < 2
+            for decision in restored._decisions.values()
+        ):
+            raise ValueError("execution request provenance downgrade detected")
+        return restored
 
     def _compile_context_for_inference(
         self,
