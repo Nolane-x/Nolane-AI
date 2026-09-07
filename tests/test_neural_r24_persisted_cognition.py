@@ -112,8 +112,14 @@ def _restore(runtime, state):
     )
 
 
-def _downgrade_first_decision_to_v1(state):
-    forged = dict(state["decisions"][0])
+def _downgrade_decision_to_v1(state, receipt_id):
+    decision_index = next(
+        index
+        for index, row in enumerate(state["decisions"])
+        if row["receipt_id"] == receipt_id
+    )
+    forged = dict(state["decisions"][decision_index])
+    original_receipt_id = forged["receipt_id"]
     forged.pop("request_provenance_version", None)
     forged.pop("request", None)
     payload = {
@@ -124,9 +130,67 @@ def _downgrade_first_decision_to_v1(state):
     forged_digest = canonical_digest(payload)
     forged["digest"] = forged_digest
     forged["receipt_id"] = "decision-" + forged_digest[:24]
-    state["decisions"][0] = forged
-    state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+    state["decisions"][decision_index] = forged
+    for session in state["sessions"]:
+        session["decision_receipt_ids"] = [
+            forged["receipt_id"] if row == original_receipt_id else row
+            for row in session["decision_receipt_ids"]
+        ]
     return forged
+
+
+def _downgrade_first_decision_to_v1(state):
+    return _downgrade_decision_to_v1(state, state["decisions"][0]["receipt_id"])
+
+
+def _mixed_v1_v2_authority():
+    runtime, persisted, _, request = _authority_with_persisted_decision()
+    historical_state = persisted.to_state()
+    historical_state.pop("request_provenance_version", None)
+    historical_state.pop("request_provenance_decision_ids", None)
+    legacy_state = _downgrade_first_decision_to_v1(historical_state)
+    legacy_decision = AgentDecisionReceipt.from_state(legacy_state)
+    legacy_session = ExecutionSession.from_state(historical_state["sessions"][0])
+
+    modern_decision = AgentDecisionReceipt.create(
+        backend_id="persisted-cognition-backend-modern",
+        request=request,
+        action=ExecutionAction.wait(reason="persist modern cognition"),
+    )
+    modern_session = ExecutionSession(
+        session_id="execution-00000002",
+        agent_id=AGENT_ID,
+        task_id=TASK_ID,
+        action_schema=ACTION_SCHEMA,
+        budget=ExecutionBudget(
+            max_steps=4,
+            max_tool_calls=4,
+            max_external_core_calls=4,
+            max_compute_units=16,
+        ),
+        counters=ExecutionCounters(
+            steps=1,
+            compute_units=modern_decision.compute_units,
+        ),
+        step_index=1,
+        state=ExecutionState.RUNNING,
+        backend_id=modern_decision.backend_id,
+        checkpoint_digest=modern_decision.checkpoint_digest,
+        workspace_base_revision="persisted-cognition-modern",
+        decision_receipt_ids=(modern_decision.receipt_id,),
+    )
+    mixed = OrganizationExecutionControlPlane(
+        registry=runtime.registry,
+        tasks=runtime.tasks,
+        context=runtime.memory_context,
+        artifacts=runtime.artifacts,
+        external_cores=runtime.external_cores,
+        coding=runtime.coding,
+        sessions=(legacy_session, modern_session),
+        decisions=(legacy_decision, modern_decision),
+        session_counter=2,
+    )
+    return runtime, mixed, modern_decision
 
 
 def test_persisted_execution_decision_cognitive_identity_survives_restore():
@@ -147,6 +211,7 @@ def test_modern_decision_persists_canonical_inference_request_provenance():
 
     execution_state = persisted.to_state()
     assert execution_state["request_provenance_version"] == 2
+    assert execution_state["request_provenance_decision_ids"] == [decision.receipt_id]
     state = decision.to_state()
     assert state["request_provenance_version"] == 2
     assert state["request"] == request.to_state()
@@ -157,6 +222,26 @@ def test_modern_decision_persists_canonical_inference_request_provenance():
     restored_decision = restored.get_decision(decision.receipt_id)
     assert restored_decision.request == request
     assert restored.get_inference_request(decision.receipt_id) == request
+
+
+def test_mixed_historical_and_modern_state_anchors_modern_request_provenance():
+    runtime, mixed, modern_decision = _mixed_v1_v2_authority()
+
+    state = mixed.to_state()
+
+    assert state["request_provenance_version"] == 2
+    assert state["request_provenance_decision_ids"] == [modern_decision.receipt_id]
+    restored = _restore(runtime, state)
+    assert restored.get_inference_request(modern_decision.receipt_id) == modern_decision.request
+
+
+def test_mixed_state_rejects_self_consistent_downgrade_of_anchored_modern_decision():
+    runtime, mixed, modern_decision = _mixed_v1_v2_authority()
+    state = mixed.to_state()
+    _downgrade_decision_to_v1(state, modern_decision.receipt_id)
+
+    with pytest.raises(ValueError, match="request provenance.*binding|request provenance.*downgrade"):
+        _restore(runtime, state)
 
 
 def test_restore_rejects_request_provenance_downgrade_without_request_payload():
@@ -172,10 +257,9 @@ def test_restore_rejects_request_provenance_downgrade_without_request_payload():
 def test_restore_rejects_self_consistent_decision_request_provenance_downgrade():
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
-    state["request_provenance_version"] = 2
     _downgrade_first_decision_to_v1(state)
 
-    with pytest.raises(ValueError, match="request provenance.*downgrade"):
+    with pytest.raises(ValueError, match="request provenance.*binding|request provenance.*downgrade"):
         _restore(runtime, state)
 
 
@@ -183,6 +267,7 @@ def test_historical_execution_state_without_request_provenance_marker_restores_v
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
     state.pop("request_provenance_version", None)
+    state.pop("request_provenance_decision_ids", None)
     forged = _downgrade_first_decision_to_v1(state)
 
     restored = _restore(runtime, state)
@@ -198,6 +283,7 @@ def test_restore_rejects_self_consistent_request_rebound_to_different_task():
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
     forged = dict(state["decisions"][0])
+    original_receipt_id = forged["receipt_id"]
     forged["request"] = dict(forged["request"])
     forged["request"]["task_id"] = TASK_ID + "-rebound"
     forged["request_digest"] = canonical_digest(forged["request"])
@@ -211,6 +297,10 @@ def test_restore_rejects_self_consistent_request_rebound_to_different_task():
     forged["receipt_id"] = "decision-" + forged_digest[:24]
     state["decisions"][0] = forged
     state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+    state["request_provenance_decision_ids"] = [
+        forged["receipt_id"] if row == original_receipt_id else row
+        for row in state["request_provenance_decision_ids"]
+    ]
 
     with pytest.raises(ValueError, match="inference request.*task.*session"):
         _restore(runtime, state)
@@ -220,6 +310,7 @@ def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest()
     runtime, persisted, _, _ = _authority_with_persisted_decision()
     state = persisted.to_state()
     forged = dict(state["decisions"][0])
+    original_receipt_id = forged["receipt_id"]
     forged["cognitive_state_digest"] = "f" * 64
     if "request" in forged:
         forged["request"] = dict(forged["request"])
@@ -235,6 +326,10 @@ def test_restore_rejects_self_consistent_decision_with_orphan_cognitive_digest()
     forged["receipt_id"] = "decision-" + forged_digest[:24]
     state["decisions"][0] = forged
     state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+    state["request_provenance_decision_ids"] = [
+        forged["receipt_id"] if row == original_receipt_id else row
+        for row in state["request_provenance_decision_ids"]
+    ]
 
     with pytest.raises(ValueError, match="persisted execution decision.*cognitive state"):
         _restore(runtime, state)
