@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any, Mapping
 
 from nolane.external_core._execution_base import (
@@ -20,6 +21,7 @@ from nolane.neural.inference_bridge import CognitiveStateEncoder
 
 COMPONENT_ID = _BASE_COMPONENT_ID
 COMPONENT_VERSION = _BASE_COMPONENT_VERSION
+CONTEXT_PROVENANCE_ENCODER_VERSION = "organization-context-receipt-v2"
 
 
 def _cognitive_state_from_context_provenance(
@@ -94,7 +96,7 @@ class _VerifiedContextCognitiveStateEncoder:
     def version(self):
         return self._base.version
 
-    def cognitive_state_for(self, capsule: Any) -> CognitiveState | None:
+    def _verified_context(self, capsule: Any):
         verifier = getattr(self._context, "verify_context_capsule", None)
         if not callable(verifier):
             return None
@@ -103,18 +105,36 @@ class _VerifiedContextCognitiveStateEncoder:
             return None
         if getattr(verified, "capsule", None) != capsule:
             raise ValueError("verified execution context capsule does not match inference capsule")
+        return verified
+
+    def cognitive_state_for(self, capsule: Any) -> CognitiveState | None:
+        verified = self._verified_context(capsule)
+        if verified is None:
+            return None
         return _cognitive_state_from_verified_context(verified)
 
     def build_request(self, *, cognitive_state: CognitiveState | None = None, **kwargs: Any):
         capsule = kwargs.get("capsule")
         if capsule is None:
             raise TypeError("provenance-aware execution encoder requires a context capsule")
-        canonical_state = self.cognitive_state_for(capsule)
+        verified = self._verified_context(capsule)
+        canonical_state = (
+            None if verified is None else _cognitive_state_from_verified_context(verified)
+        )
         if cognitive_state is None:
             cognitive_state = canonical_state
         elif canonical_state is not None and cognitive_state != canonical_state:
             raise ValueError("explicit cognitive state does not match canonical context provenance")
-        return self._base.build_request(cognitive_state=cognitive_state, **kwargs)
+        request = self._base.build_request(cognitive_state=cognitive_state, **kwargs)
+        if verified is None or canonical_state is None:
+            return request
+        return replace(
+            request,
+            context_digest=canonical_state.bind_context_digest(
+                verified.receipt.capsule_digest
+            ),
+            encoder_version=CONTEXT_PROVENANCE_ENCODER_VERSION,
+        )
 
 
 class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
@@ -146,6 +166,17 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             **kwargs,
         )
 
+    @staticmethod
+    def _decision_has_context_provenance(decision: Any) -> bool:
+        if getattr(decision, "request_provenance_version", 1) < 2:
+            return False
+        request = getattr(decision, "request", None)
+        return (
+            request is not None
+            and request.encoder_version == CONTEXT_PROVENANCE_ENCODER_VERSION
+            and request.cognitive_state_digest is not None
+        )
+
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
         if "acting_executor" not in state:
@@ -157,6 +188,14 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         ]
         state["request_provenance_version"] = 2
         state["request_provenance_decision_ids"] = modern_decision_ids
+        context_decision_ids = [
+            receipt_id
+            for receipt_id in sorted(self._decisions)
+            if self._decision_has_context_provenance(self._decisions[receipt_id])
+        ]
+        if context_decision_ids:
+            state["context_provenance_version"] = 2
+            state["context_provenance_decision_ids"] = context_decision_ids
         return state
 
     @classmethod
@@ -192,6 +231,27 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                 raise ValueError("legacy execution request provenance state contains modern binding")
             provenance_decision_ids = ()
 
+        context_provenance_version = int(state.get("context_provenance_version", 1))
+        if context_provenance_version not in {1, 2}:
+            raise ValueError("unsupported execution context provenance version")
+        raw_context_decision_ids = state.get("context_provenance_decision_ids")
+        if context_provenance_version >= 2:
+            if not isinstance(raw_context_decision_ids, (list, tuple)):
+                raise ValueError("execution context provenance binding is missing")
+            context_decision_ids = tuple(
+                str(receipt_id).strip() for receipt_id in raw_context_decision_ids
+            )
+            if (
+                not context_decision_ids
+                or any(not receipt_id for receipt_id in context_decision_ids)
+                or context_decision_ids != tuple(sorted(set(context_decision_ids)))
+            ):
+                raise ValueError("execution context provenance binding is non-canonical")
+        else:
+            if raw_context_decision_ids is not None:
+                raise ValueError("legacy execution context provenance state contains modern binding")
+            context_decision_ids = ()
+
         restored = super().from_state(
             registry=registry,
             tasks=tasks,
@@ -221,6 +281,17 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                 raise ValueError("execution request provenance binding mismatch")
         elif actual_modern_decision_ids:
             raise ValueError("execution request provenance downgrade detected")
+
+        actual_context_decision_ids = tuple(
+            receipt_id
+            for receipt_id in sorted(restored._decisions)
+            if cls._decision_has_context_provenance(restored._decisions[receipt_id])
+        )
+        if context_provenance_version >= 2:
+            if context_decision_ids != actual_context_decision_ids:
+                raise ValueError("execution context provenance binding mismatch")
+        elif actual_context_decision_ids:
+            raise ValueError("execution context provenance downgrade detected")
         return restored
 
     def _compile_context_for_inference(
@@ -298,6 +369,7 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         for session in self._sessions.values():
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
+                request = None
                 if getattr(decision, "request_provenance_version", 1) >= 2:
                     request = self.get_inference_request(receipt_id)
                     if request.task_id != session.task_id:
@@ -306,6 +378,14 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                         )
                 digest = getattr(decision, "cognitive_state_digest", None)
                 if digest is None:
+                    if (
+                        request is not None
+                        and request.encoder_version
+                        == CONTEXT_PROVENANCE_ENCODER_VERSION
+                    ):
+                        raise ValueError(
+                            "persisted inference request context provenance requires cognitive state"
+                        )
                     continue
                 try:
                     cognitive_state = self.resolve_cognitive_state(digest)
@@ -321,6 +401,47 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                     raise ValueError(
                         "persisted execution decision cognitive state task binding mismatch"
                     )
+                if (
+                    request is not None
+                    and request.encoder_version == CONTEXT_PROVENANCE_ENCODER_VERSION
+                ):
+                    if request.cognitive_state_digest != cognitive_state.digest:
+                        raise ValueError(
+                            "persisted inference request context provenance cognitive binding mismatch"
+                        )
+                    compiler = getattr(self.context, "context_intelligence", None)
+                    receipt_lookup = getattr(compiler, "receipt", None)
+                    if not callable(receipt_lookup):
+                        raise ValueError(
+                            "persisted inference request context provenance authority is unavailable"
+                        )
+                    receipt_id = str(
+                        cognitive_state.payload["context_compilation_receipt_id"]
+                    )
+                    try:
+                        receipt = receipt_lookup(receipt_id)
+                    except KeyError as exc:
+                        raise ValueError(
+                            "persisted inference request context provenance receipt is unavailable"
+                        ) from exc
+                    if (
+                        receipt.digest
+                        != cognitive_state.payload["context_compilation_receipt_digest"]
+                    ):
+                        raise ValueError(
+                            "persisted inference request context provenance receipt digest mismatch"
+                        )
+                    if receipt.agent_id != request.agent_id or receipt.task_id != request.task_id:
+                        raise ValueError(
+                            "persisted inference request context provenance receipt binding mismatch"
+                        )
+                    expected_context_digest = cognitive_state.bind_context_digest(
+                        receipt.capsule_digest
+                    )
+                    if request.context_digest != expected_context_digest:
+                        raise ValueError(
+                            "persisted inference request context provenance digest mismatch"
+                        )
 
     @staticmethod
     def _attest_decision_receipt(receipt: Any, *, request: Any, backend: Any):
