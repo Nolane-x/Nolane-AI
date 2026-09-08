@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Mapping
 
 from nolane.external_core._execution_base import (
     COMPONENT_ID as _BASE_COMPONENT_ID,
@@ -12,6 +12,7 @@ from nolane.external_core._execution_base import (
     ExecutionTerminalReceipt,
     OrganizationExecutionControlPlane as _BaseOrganizationExecutionControlPlane,
 )
+from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.memory.context_intelligence import ContextCompilationReceipt
 from nolane.neural.core_contract import CognitiveState, EvidenceRef
 from nolane.neural.inference_bridge import CognitiveStateEncoder
@@ -88,7 +89,10 @@ class _VerifiedContextCognitiveStateEncoder:
     def __init__(self, *, base: CognitiveStateEncoder, context: Any) -> None:
         self._base = base
         self._context = context
-        self.version = base.version
+
+    @property
+    def version(self):
+        return self._base.version
 
     def cognitive_state_for(self, capsule: Any) -> CognitiveState | None:
         verifier = getattr(self._context, "verify_context_capsule", None)
@@ -142,6 +146,83 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             **kwargs,
         )
 
+    def to_state(self) -> dict[str, Any]:
+        state = super().to_state()
+        if "acting_executor" not in state:
+            raise ValueError("execution state is missing transactional acting authority")
+        modern_decision_ids = [
+            receipt_id
+            for receipt_id in sorted(self._decisions)
+            if getattr(self._decisions[receipt_id], "request_provenance_version", 1) >= 2
+        ]
+        state["request_provenance_version"] = 2
+        state["request_provenance_decision_ids"] = modern_decision_ids
+        return state
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        registry: Any,
+        tasks: Any,
+        context: Any,
+        artifacts: Any,
+        external_cores: Any,
+        coding: Any,
+        state: Mapping[str, Any],
+    ) -> "OrganizationExecutionControlPlane":
+        request_provenance_version = int(state.get("request_provenance_version", 1))
+        if request_provenance_version not in {1, 2}:
+            raise ValueError("unsupported execution request provenance version")
+
+        raw_provenance_decision_ids = state.get("request_provenance_decision_ids")
+        if request_provenance_version >= 2:
+            if not isinstance(raw_provenance_decision_ids, (list, tuple)):
+                raise ValueError("execution request provenance binding is missing")
+            provenance_decision_ids = tuple(
+                str(receipt_id).strip() for receipt_id in raw_provenance_decision_ids
+            )
+            if (
+                any(not receipt_id for receipt_id in provenance_decision_ids)
+                or provenance_decision_ids != tuple(sorted(set(provenance_decision_ids)))
+            ):
+                raise ValueError("execution request provenance binding is non-canonical")
+        else:
+            if raw_provenance_decision_ids is not None:
+                raise ValueError("legacy execution request provenance state contains modern binding")
+            provenance_decision_ids = ()
+
+        restored = super().from_state(
+            registry=registry,
+            tasks=tasks,
+            context=context,
+            artifacts=artifacts,
+            external_cores=external_cores,
+            coding=coding,
+            state=state,
+        )
+        canonical_acting = TransactionalExternalCoreExecutor.from_state(
+            executor=restored.executor,
+            state=state.get("acting_executor", {}),
+        )
+        if canonical_acting.to_state() != restored.acting_executor.to_state():
+            raise ValueError("restored transactional acting authority mismatch")
+
+        actual_modern_decision_ids = tuple(
+            receipt_id
+            for receipt_id in sorted(restored._decisions)
+            if getattr(
+                restored._decisions[receipt_id], "request_provenance_version", 1
+            )
+            >= 2
+        )
+        if request_provenance_version >= 2:
+            if provenance_decision_ids != actual_modern_decision_ids:
+                raise ValueError("execution request provenance binding mismatch")
+        elif actual_modern_decision_ids:
+            raise ValueError("execution request provenance downgrade detected")
+        return restored
+
     def _compile_context_for_inference(
         self,
         agent_id: str,
@@ -154,7 +235,7 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
     def resolve_cognitive_state(self, cognitive_state_digest: str) -> CognitiveState:
         """Resolve one persisted R2.4 cognition identity from canonical context authority.
 
-        CognitiveState is deliberately not stored a second time by execution.  The
+        CognitiveState is deliberately not stored a second time by execution. The
         resolver reconstructs it from the persisted context compilation receipt and
         semantic delta so restore/replay has one provenance source of truth.
         """
@@ -197,11 +278,32 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             raise ValueError("cognitive state digest does not resolve uniquely")
         return matches[0]
 
+    def get_inference_request(self, decision_receipt_id: str):
+        """Return the canonical request persisted by one modern decision receipt."""
+
+        decision = self.get_decision(decision_receipt_id)
+        if getattr(decision, "request_provenance_version", 1) < 2:
+            raise KeyError(
+                f"decision has no persisted inference request: {decision_receipt_id}"
+            )
+        request = getattr(decision, "request", None)
+        if request is None:
+            raise ValueError("modern decision is missing persisted inference request")
+        if request.digest != decision.request_digest:
+            raise ValueError("persisted inference request digest mismatch")
+        return request
+
     def _validate_state(self) -> None:
         super()._validate_state()
         for session in self._sessions.values():
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
+                if getattr(decision, "request_provenance_version", 1) >= 2:
+                    request = self.get_inference_request(receipt_id)
+                    if request.task_id != session.task_id:
+                        raise ValueError(
+                            "persisted inference request task binding mismatch with execution session"
+                        )
                 digest = getattr(decision, "cognitive_state_digest", None)
                 if digest is None:
                     continue

@@ -329,6 +329,8 @@ class AgentDecisionReceipt:
     compute_units: int
     digest: str
     cognitive_state_digest: str | None = None
+    request_provenance_version: int = 1
+    request: InferenceRequest | None = None
 
     def __post_init__(self) -> None:
         object.__setattr__(
@@ -336,6 +338,39 @@ class AgentDecisionReceipt:
             'cognitive_state_digest',
             _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
         )
+        version = int(self.request_provenance_version)
+        if version not in {1, 2}:
+            raise ValueError('unsupported inference request provenance version')
+        object.__setattr__(self, 'request_provenance_version', version)
+        if version == 1:
+            if self.request is not None:
+                raise ValueError('legacy decision cannot carry persisted inference request')
+            return
+        if self.request is None:
+            raise ValueError('modern decision requires persisted inference request')
+        request = self.request
+        if request.digest != self.request_digest:
+            raise ValueError('persisted inference request digest mismatch')
+        expected = {
+            'agent_id': self.agent_id,
+            'neural_version': self.neural_version,
+            'checkpoint_digest': self.checkpoint_digest,
+            'encoder_version': self.encoder_version,
+            'context_digest': self.context_digest,
+            'action_schema_digest': self.action_schema_digest,
+            'step_index': self.step_index,
+            'cognitive_state_digest': self.cognitive_state_digest,
+        }
+        mismatches = [
+            field
+            for field, expected_value in expected.items()
+            if getattr(request, field) != expected_value
+        ]
+        if mismatches:
+            raise ValueError(
+                'persisted inference request decision binding mismatch: '
+                + ', '.join(mismatches)
+            )
 
     def payload(self) -> dict[str, Any]:
         payload = {
@@ -353,6 +388,10 @@ class AgentDecisionReceipt:
         }
         if self.cognitive_state_digest is not None:
             payload['cognitive_state_digest'] = self.cognitive_state_digest
+        if self.request_provenance_version >= 2:
+            assert self.request is not None
+            payload['request_provenance_version'] = self.request_provenance_version
+            payload['request'] = self.request.to_state()
         return payload
 
     @classmethod
@@ -380,6 +419,8 @@ class AgentDecisionReceipt:
             'step_index': request.step_index,
             'action': action.to_state(),
             'compute_units': int(compute_units),
+            'request_provenance_version': 2,
+            'request': request.to_state(),
         }
         if request.cognitive_state_digest is not None:
             payload['cognitive_state_digest'] = request.cognitive_state_digest
@@ -399,6 +440,8 @@ class AgentDecisionReceipt:
             compute_units=int(compute_units),
             digest=digest,
             cognitive_state_digest=request.cognitive_state_digest,
+            request_provenance_version=2,
+            request=request,
         )
 
     def to_state(self) -> dict[str, Any]:
@@ -406,6 +449,9 @@ class AgentDecisionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'AgentDecisionReceipt':
+        version = int(state.get('request_provenance_version', 1))
+        raw_request = state.get('request')
+        request = None if raw_request is None else InferenceRequest.from_state(raw_request)
         row = cls(
             receipt_id=str(state['receipt_id']),
             backend_id=str(state['backend_id']),
@@ -425,6 +471,8 @@ class AgentDecisionReceipt:
                 if state.get('cognitive_state_digest') is None
                 else str(state['cognitive_state_digest'])
             ),
+            request_provenance_version=version,
+            request=request,
         )
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != 'decision-' + expected[:24]:

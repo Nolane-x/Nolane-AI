@@ -43,18 +43,48 @@ def _workspace(tmp_path: Path) -> RepositoryWorkspace:
 
 
 def _forge_receipt(receipt: AgentDecisionReceipt, field: str) -> AgentDecisionReceipt:
+    assert receipt.request is not None
+    request = receipt.request
     replacements: dict[str, object] = {
-        "request_digest": "0" * 64,
+        "request_digest": request.digest,
         "agent_id": "agent-substituted",
         "backend_id": "backend-substituted",
         "neural_version": "neural-substituted",
         "checkpoint_digest": "checkpoint-substituted",
         "encoder_version": "encoder-substituted",
         "context_digest": "1" * 64,
-        "action_schema_digest": "2" * 64,
+        "action_schema_digest": request.action_schema_digest,
         "step_index": receipt.step_index + 1,
     }
-    forged = replace(receipt, **{field: replacements[field]}, receipt_id="", digest="")
+
+    if field == "request_digest":
+        request = replace(request, task_id=request.task_id + "-substituted")
+        replacements[field] = request.digest
+    elif field in {
+        "agent_id",
+        "neural_version",
+        "checkpoint_digest",
+        "encoder_version",
+        "context_digest",
+        "step_index",
+    }:
+        request = replace(request, **{field: replacements[field]})
+    elif field == "action_schema_digest":
+        request = replace(
+            request,
+            action_schema=("substituted.action",),
+            action_schema_digest=canonical_digest(["substituted.action"]),
+        )
+        replacements[field] = request.action_schema_digest
+
+    overrides = {
+        "request": request,
+        "request_digest": request.digest,
+        field: replacements[field],
+        "receipt_id": "",
+        "digest": "",
+    }
+    forged = replace(receipt, **overrides)
     digest = canonical_digest(forged.payload())
     forged = replace(forged, receipt_id="decision-" + digest[:24], digest=digest)
     # Prove the hostile object is internally canonical. The rejection under test

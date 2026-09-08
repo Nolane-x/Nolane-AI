@@ -185,6 +185,10 @@ def test_execution_attestation_rejects_self_consistent_decision_with_wrong_cogni
 
     forged_state = decision.to_state()
     forged_state["cognitive_state_digest"] = "f" * 64
+    forged_request = dict(forged_state["request"])
+    forged_request["cognitive_state_digest"] = "f" * 64
+    forged_state["request"] = forged_request
+    forged_state["request_digest"] = canonical_digest(forged_request)
     forged_payload = {
         key: value
         for key, value in forged_state.items()
@@ -195,7 +199,7 @@ def test_execution_attestation_rejects_self_consistent_decision_with_wrong_cogni
     forged_state["receipt_id"] = "decision-" + forged_digest[:24]
     forged = AgentDecisionReceipt.from_state(forged_state)
 
-    with pytest.raises(ValueError, match="cognitive_state_digest"):
+    with pytest.raises(ValueError, match="request_digest|cognitive_state_digest"):
         native._attest_decision_receipt(
             forged,
             request=request,

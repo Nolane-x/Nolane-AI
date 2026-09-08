@@ -65,10 +65,16 @@ def test_wave5aa_canonical_module_owns_execution_control_semantics() -> None:
     import nolane.external_core.execution as canonical
 
     assert canonical.COMPONENT_ID == "external.execution.control"
-    assert canonical.COMPONENT_VERSION == "0.0.12"
+    assert canonical.COMPONENT_VERSION == "0.0.13"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution"
-    for name in _PUBLIC_SYMBOLS:
-        assert getattr(canonical, name).__module__ == "nolane.external_core.execution"
+    assert canonical.OrganizationExecutionControlPlane.__module__ == "nolane.external_core.execution"
+    for name in (
+        "ExecutionState",
+        "ExecutionSession",
+        "ExecutionStepReceipt",
+        "ExecutionTerminalReceipt",
+    ):
+        assert getattr(canonical, name).__module__ == "nolane.external_core._execution_base"
 
 
 def test_wave5aa_historical_execution_objects_bridge_exact_canonical_identity() -> None:
@@ -82,13 +88,24 @@ def test_wave5aa_historical_execution_objects_bridge_exact_canonical_identity() 
 def test_wave5aa_canonical_execution_control_imports_only_canonical_authorities() -> None:
     root = Path(__file__).resolve().parents[1]
     canonical_path = root / "nolane" / "external_core" / "execution.py"
+    base_path = root / "nolane" / "external_core" / "_execution_base.py"
     legacy_path = root / "cogcoder" / "organization" / "execution.py"
     canonical_source = canonical_path.read_text(encoding="utf-8")
+    base_source = base_path.read_text(encoding="utf-8")
     legacy_source = legacy_path.read_text(encoding="utf-8")
-    imports = _imported_modules(canonical_source)
+    canonical_imports = _imported_modules(canonical_source)
+    base_imports = _imported_modules(base_source)
 
-    assert not any(module.startswith("cogcoder.organization") for module in imports)
-    expected = {
+    assert not any(module.startswith("cogcoder.organization") for module in canonical_imports)
+    assert not any(module.startswith("cogcoder.organization") for module in base_imports)
+    assert "nolane.external_core._execution_base" in canonical_imports
+    assert {
+        "nolane.external_core.acting_runtime",
+        "nolane.memory.context_intelligence",
+        "nolane.neural.core_contract",
+        "nolane.neural.inference_bridge",
+    } <= canonical_imports
+    expected_base = {
         "nolane.core.canonical_digest",
         "nolane.external_core.artifacts",
         "nolane.external_core.execution_executor",
@@ -100,7 +117,7 @@ def test_wave5aa_canonical_execution_control_imports_only_canonical_authorities(
         "nolane.organization.tasks",
         "nolane.schemas.identity",
     }
-    assert expected <= imports
+    assert expected_base <= base_imports
     assert "nolane.external_core.execution" in legacy_source
 
 
@@ -203,8 +220,8 @@ def test_wave5aa_authority_version_facade_inventory_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.execution"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.12"
-    assert str(component_version("external.execution.control")) == "0.0.12"
+    assert row.component_version == "0.0.13"
+    assert str(component_version("external.execution.control")) == "0.0.13"
     assert all(
         binding.component_id != "external.execution.control"
         for binding in build_active_facade_bindings()

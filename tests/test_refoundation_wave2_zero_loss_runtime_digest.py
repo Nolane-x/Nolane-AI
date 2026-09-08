@@ -73,18 +73,38 @@ NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST = (
     "1dadbad06aac44d8fbaefd127b81cc0fa0fc3f96279111b333ae33864d2678af"
 )
 
+# Neural R2.4 request provenance adds a persisted execution-state authority
+# marker so a self-consistent decision receipt cannot silently downgrade its
+# embedded canonical InferenceRequest from provenance v2 to legacy v1.  The
+# prior wake-continuity fingerprint remains historical provenance.
+NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
+    "fa998270df05e6fd2c9186027eb21889f2858dab4765a4b12d7aad3452b2a5d3"
+)
 
-def test_runtime_state_fingerprint_tracks_neural_r24_wake_continuity_cutover() -> None:
+# Neural R2.4 mixed-state provenance strengthens that execution envelope with
+# a canonical per-decision anchor for every modern request-provenance receipt.
+# This permits legacy v1 and modern v2 decisions to coexist without allowing a
+# modern receipt to be self-consistently downgraded inside the mixed snapshot.
+# The exact digest was measured by the intentional dependent-regression RED run
+# on CPython 3.13.15 at implementation head e86da4fcf7736f8b479969511eff8ab35207b11b.
+NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
+    "71dae36c6ed6c2c91650c37567528fdb6e31595fb529c894cb6dcfd81378549d"
+)
+
+
+def test_runtime_state_fingerprint_tracks_neural_r24_mixed_request_provenance_cutover() -> None:
     first = CanonicalOrganization.first_generation()
     second = CanonicalOrganization.first_generation()
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert first.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
-    assert second.state_digest == NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert first.state_digest == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert second.state_digest == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST != F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST
     assert F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST
     assert MEMORY_LEARNING_V011_AUTHORITY_RUNTIME_STATE_DIGEST != MEMORY_LEARNING_V007_REPLAY_RUNTIME_STATE_DIGEST

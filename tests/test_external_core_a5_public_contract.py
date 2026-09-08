@@ -21,10 +21,10 @@ A5_GOVERNING_LAW = (
 )
 
 
-def test_current_integration_owner_contract_projects_v1_hardening_revision_eight() -> None:
+def test_current_integration_owner_contract_preserves_v008_surface_at_revision_nine() -> None:
     assert integration.COMPONENT_ID == "external.integration"
     assert integration.COMPONENT_VERSION == "0.0.8"
-    assert component_revision_map()["external.integration"] == 8
+    assert component_revision_map()["external.integration"] == 9
 
 
 def test_a5_canonical_root_reexports_exact_current_admission_surfaces() -> None:
