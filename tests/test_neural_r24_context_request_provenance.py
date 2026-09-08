@@ -20,6 +20,7 @@ from nolane.external_core.execution_types import (
 TASK_ID = "T-NEURAL-R24-CONTEXT-REQUEST-PROVENANCE"
 AGENT_ID = "coding.backend.01"
 ACTION_SCHEMA = ("repository.read",)
+CONTEXT_PROVENANCE_ENCODER_VERSION = "organization-context-receipt-v2"
 
 
 def _persisted_authority():
@@ -138,8 +139,9 @@ def _downgrade_context_provenance(state):
     forged = dict(state["decisions"][0])
     original_receipt_id = forged["receipt_id"]
     forged_request = dict(forged["request"])
-    forged_request.pop("context_provenance_version", None)
+    forged_request["encoder_version"] = "organization-context-digest-v1"
     forged["request"] = forged_request
+    forged["encoder_version"] = forged_request["encoder_version"]
     forged["request_digest"] = canonical_digest(forged_request)
     payload = {
         key: value
@@ -151,14 +153,17 @@ def _downgrade_context_provenance(state):
     forged["receipt_id"] = "decision-" + forged_digest[:24]
     state["decisions"][0] = forged
     state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
-    state["request_provenance_decision_ids"] = [forged["receipt_id"]]
+    state["request_provenance_decision_ids"] = [
+        forged["receipt_id"] if row == original_receipt_id else row
+        for row in state["request_provenance_decision_ids"]
+    ]
     state["context_provenance_decision_ids"] = [forged["receipt_id"]]
 
 
 def test_modern_request_binds_context_digest_to_canonical_receipt_capsule_digest():
     _, persisted, verified, cognitive_state, request, decision = _persisted_authority()
 
-    assert getattr(request, "context_provenance_version", 1) == 2
+    assert request.encoder_version == CONTEXT_PROVENANCE_ENCODER_VERSION
     assert request.context_digest == cognitive_state.bind_context_digest(
         verified.receipt.capsule_digest
     )
