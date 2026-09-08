@@ -167,4 +167,6 @@ def test_restore_keeps_true_historical_terminal_v1_readable(tmp_path: Path) -> N
     restored = OrganizationRuntime.from_state(state)
     restored_session = restored.execution.get_session(session_id)
     restored_terminal = restored.execution.get_terminal_receipt(restored_session.terminal_receipt_id)
-    assert restored_terminal.execution_proof_version == 1
+    restored_terminal_state = restored_terminal.to_state()
+    assert "execution_proof_version" not in restored_terminal_state
+    assert "workspace_epoch_id" not in restored_terminal_state
