@@ -20,7 +20,7 @@ from nolane.neural.inference_bridge import CognitiveStateEncoder
 
 
 COMPONENT_ID = _BASE_COMPONENT_ID
-COMPONENT_VERSION = _BASE_COMPONENT_VERSION
+COMPONENT_VERSION = "0.0.14"
 CONTEXT_PROVENANCE_ENCODER_VERSION = "organization-context-receipt-v2"
 
 
