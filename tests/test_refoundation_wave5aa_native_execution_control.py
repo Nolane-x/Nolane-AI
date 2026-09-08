@@ -65,6 +65,8 @@ def test_wave5aa_canonical_module_owns_execution_control_semantics() -> None:
     import nolane.external_core.execution as canonical
 
     assert canonical.COMPONENT_ID == "external.execution.control"
+    # Public execution receipt/schema protocol advances independently from the
+    # canonical implementation revision tracked by refoundation metadata.
     assert canonical.COMPONENT_VERSION == "0.0.15"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.execution"
     assert canonical.OrganizationExecutionControlPlane.__module__ == "nolane.external_core.execution"
@@ -220,8 +222,8 @@ def test_wave5aa_authority_version_facade_inventory_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.execution"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.15"
-    assert str(component_version("external.execution.control")) == "0.0.15"
+    assert row.component_version == "0.0.16"
+    assert str(component_version("external.execution.control")) == "0.0.16"
     assert all(
         binding.component_id != "external.execution.control"
         for binding in build_active_facade_bindings()

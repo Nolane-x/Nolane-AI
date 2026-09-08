@@ -91,6 +91,8 @@ def _strip_terminal_proof(terminal: dict, session: dict) -> None:
         "current_workspace_digest",
         "external_core_registry_digest",
         "workspace_epoch_id",
+        "terminal_evidence_artifact_id",
+        "terminal_evidence_digest",
     ):
         terminal.pop(field, None)
     payload = {
@@ -170,3 +172,5 @@ def test_restore_keeps_true_historical_terminal_v1_readable(tmp_path: Path) -> N
     restored_terminal_state = restored_terminal.to_state()
     assert "execution_proof_version" not in restored_terminal_state
     assert "workspace_epoch_id" not in restored_terminal_state
+    assert "terminal_evidence_artifact_id" not in restored_terminal_state
+    assert "terminal_evidence_digest" not in restored_terminal_state
