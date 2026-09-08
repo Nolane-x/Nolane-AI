@@ -148,6 +148,8 @@ def _mixed_v1_v2_authority():
     historical_state = persisted.to_state()
     historical_state.pop("request_provenance_version", None)
     historical_state.pop("request_provenance_decision_ids", None)
+    historical_state.pop("context_provenance_version", None)
+    historical_state.pop("context_provenance_decision_ids", None)
     legacy_state = _downgrade_first_decision_to_v1(historical_state)
     legacy_decision = AgentDecisionReceipt.from_state(legacy_state)
     legacy_session = ExecutionSession.from_state(historical_state["sessions"][0])
@@ -268,6 +270,8 @@ def test_historical_execution_state_without_request_provenance_marker_restores_v
     state = persisted.to_state()
     state.pop("request_provenance_version", None)
     state.pop("request_provenance_decision_ids", None)
+    state.pop("context_provenance_version", None)
+    state.pop("context_provenance_decision_ids", None)
     forged = _downgrade_first_decision_to_v1(state)
 
     restored = _restore(runtime, state)
