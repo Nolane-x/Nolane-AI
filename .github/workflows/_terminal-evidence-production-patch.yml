@@ -1,0 +1,33 @@
+name: Terminal Evidence Production Patch
+
+on:
+  push:
+    branches:
+      - neural-r24-terminal-evidence-proof-gpt56sol
+    paths:
+      - 'scripts/_apply_terminal_evidence_patch.py'
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: github.event.head_commit.message == 'chore: stage terminal evidence production patch'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neural-r24-terminal-evidence-proof-gpt56sol
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - name: Apply deterministic production patch
+        run: python scripts/_apply_terminal_evidence_patch.py
+      - name: Commit production patch
+        run: |
+          git config user.name 'Nolane-x'
+          git config user.email 'casioreview20@gmail.com'
+          git add nolane/external_core/execution.py nolane/metadata/component_versions.py
+          git diff --cached --check
+          git commit -m 'feat(neural): bind terminal evidence to proof v2'
+          git push origin HEAD:neural-r24-terminal-evidence-proof-gpt56sol
