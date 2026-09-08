@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
-from nolane.core.canonical_digest import canonical_digest
+from nolane.core.canonical_digest import canonical_digest, canonical_json
 from nolane.external_core._execution_base import (
     COMPONENT_ID as _BASE_COMPONENT_ID,
     COMPONENT_VERSION as _BASE_COMPONENT_VERSION,
@@ -23,7 +23,7 @@ from nolane.neural.inference_bridge import CognitiveStateEncoder
 
 
 COMPONENT_ID = _BASE_COMPONENT_ID
-COMPONENT_VERSION = "0.0.14"
+COMPONENT_VERSION = "0.0.15"
 CONTEXT_PROVENANCE_ENCODER_VERSION = "organization-context-receipt-v2"
 
 
@@ -36,18 +36,25 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
     current_workspace_digest: str | None = None
     external_core_registry_digest: str | None = None
     workspace_epoch_id: str | None = None
+    terminal_evidence_artifact_id: str | None = None
+    terminal_evidence_digest: str | None = None
 
     def __post_init__(self) -> None:
         version = int(self.execution_proof_version)
         if version not in {1, 2}:
             raise ValueError("unsupported execution terminal proof version")
         object.__setattr__(self, "execution_proof_version", version)
-        values = {
+        session_values = {
             "initial_workspace_digest": self.initial_workspace_digest,
             "current_workspace_digest": self.current_workspace_digest,
             "external_core_registry_digest": self.external_core_registry_digest,
             "workspace_epoch_id": self.workspace_epoch_id,
         }
+        evidence_values = {
+            "terminal_evidence_artifact_id": self.terminal_evidence_artifact_id,
+            "terminal_evidence_digest": self.terminal_evidence_digest,
+        }
+        values = {**session_values, **evidence_values}
         normalized = {
             key: None if value is None else str(value).strip()
             for key, value in values.items()
@@ -58,8 +65,10 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
             for key in normalized:
                 object.__setattr__(self, key, None)
             return
-        if any(not value for value in normalized.values()):
+        if any(not normalized[key] for key in session_values):
             raise ValueError("execution terminal proof v2 requires complete session proof")
+        if any(not normalized[key] for key in evidence_values):
+            raise ValueError("execution terminal evidence proof v2 requires complete binding")
         for key, value in normalized.items():
             object.__setattr__(self, key, value)
 
@@ -73,6 +82,8 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
                     "current_workspace_digest": self.current_workspace_digest,
                     "external_core_registry_digest": self.external_core_registry_digest,
                     "workspace_epoch_id": self.workspace_epoch_id,
+                    "terminal_evidence_artifact_id": self.terminal_evidence_artifact_id,
+                    "terminal_evidence_digest": self.terminal_evidence_digest,
                 }
             )
         return payload
@@ -113,6 +124,14 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
                 None if state.get("workspace_epoch_id") is None
                 else str(state["workspace_epoch_id"])
             ),
+            terminal_evidence_artifact_id=(
+                None if state.get("terminal_evidence_artifact_id") is None
+                else str(state["terminal_evidence_artifact_id"])
+            ),
+            terminal_evidence_digest=(
+                None if state.get("terminal_evidence_digest") is None
+                else str(state["terminal_evidence_digest"])
+            ),
         )
         expected = canonical_digest(row.payload())
         if row.digest != expected or row.receipt_id != "terminal-" + expected[:24]:
@@ -124,6 +143,9 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
         cls,
         legacy: _BaseExecutionTerminalReceipt,
         session: ExecutionSession,
+        *,
+        terminal_evidence_artifact_id: str,
+        terminal_evidence_digest: str,
     ) -> "ExecutionTerminalReceipt":
         if session.execution_proof_version < 2:
             return cls.from_state(legacy.to_state())
@@ -149,6 +171,8 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
             current_workspace_digest=session.current_workspace_digest,
             external_core_registry_digest=session.external_core_registry_digest,
             workspace_epoch_id=session.workspace_epoch_id,
+            terminal_evidence_artifact_id=terminal_evidence_artifact_id,
+            terminal_evidence_digest=terminal_evidence_digest,
         )
         digest = canonical_digest(candidate.payload())
         return replace(candidate, receipt_id="terminal-" + digest[:24], digest=digest)
@@ -307,6 +331,80 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             and request.cognitive_state_digest is not None
         )
 
+    @staticmethod
+    def _terminal_evidence_summary(
+        terminal: _BaseExecutionTerminalReceipt,
+    ) -> dict[str, Any]:
+        return {
+            "session_id": terminal.session_id,
+            "agent_id": terminal.agent_id,
+            "task_id": terminal.task_id,
+            "state": terminal.state.value,
+            "reason": terminal.termination_reason,
+            "counters": {
+                "steps": terminal.steps,
+                "tool_calls": terminal.tool_calls,
+                "external_core_calls": terminal.external_core_calls,
+                "compute_units": terminal.compute_units,
+            },
+            "decision_receipt_ids": list(terminal.decision_receipt_ids),
+            "step_receipt_ids": list(terminal.step_receipt_ids),
+            "core_receipt_ids": list(terminal.core_receipt_ids),
+        }
+
+    def _attest_terminal_evidence(
+        self,
+        terminal: _BaseExecutionTerminalReceipt,
+        artifact_id: str,
+        *,
+        expected_digest: str | None = None,
+    ):
+        try:
+            evidence = self.artifacts.get(artifact_id)
+        except KeyError as exc:
+            raise ValueError("execution terminal evidence artifact is unavailable") from exc
+
+        try:
+            metadata = evidence.metadata
+        except Exception as exc:
+            raise ValueError("execution terminal evidence metadata is invalid") from exc
+        artifact_payload = {
+            "kind": evidence.kind,
+            "producer_agent_id": evidence.producer_agent_id,
+            "content": evidence.content,
+            "evidence_refs": sorted({str(x) for x in evidence.evidence_refs}),
+            "metadata": metadata,
+        }
+        canonical_artifact_digest = canonical_digest(artifact_payload)
+        if (
+            evidence.digest != canonical_artifact_digest
+            or evidence.artifact_id != "artifact-" + canonical_artifact_digest[:24]
+            or evidence.metadata_json != canonical_json(metadata)
+        ):
+            raise ValueError("execution terminal evidence artifact digest/id mismatch")
+        if expected_digest is not None and evidence.digest != str(expected_digest):
+            raise ValueError("execution terminal evidence digest binding mismatch")
+        if evidence.kind != "execution-terminal-evidence":
+            raise ValueError("execution terminal evidence kind mismatch")
+        if evidence.producer_agent_id != terminal.agent_id:
+            raise ValueError("execution terminal evidence producer binding mismatch")
+        if evidence.content != canonical_json(self._terminal_evidence_summary(terminal)):
+            raise ValueError("execution terminal evidence semantic binding mismatch")
+        if metadata != {"task_id": terminal.task_id, "state": terminal.state.value}:
+            raise ValueError("execution terminal evidence metadata binding mismatch")
+        expected_refs = tuple(
+            sorted(
+                {
+                    str(output_id)
+                    for output_id in terminal.output_artifact_ids
+                    if str(output_id) != evidence.artifact_id
+                }
+            )
+        )
+        if evidence.evidence_refs != expected_refs:
+            raise ValueError("execution terminal evidence history binding mismatch")
+        return evidence
+
     def _terminal(
         self,
         session: ExecutionSession,
@@ -323,7 +421,20 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
         )
         if session.execution_proof_version < 2:
             return legacy
-        terminal = ExecutionTerminalReceipt.bind_session_proof(legacy, session)
+        evidence_ids = tuple(
+            artifact_id
+            for artifact_id in legacy.output_artifact_ids
+            if artifact_id not in session.output_artifact_ids
+        )
+        if len(evidence_ids) != 1:
+            raise ValueError("execution terminal evidence identity is not unique")
+        evidence = self._attest_terminal_evidence(legacy, evidence_ids[0])
+        terminal = ExecutionTerminalReceipt.bind_session_proof(
+            legacy,
+            session,
+            terminal_evidence_artifact_id=evidence.artifact_id,
+            terminal_evidence_digest=evidence.digest,
+        )
         self._terminals.pop(legacy.receipt_id, None)
         existing = self._terminals.get(terminal.receipt_id)
         if existing is not None and existing != terminal:
@@ -572,6 +683,25 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                             "execution terminal proof binding mismatch: "
                             + ", ".join(mismatches)
                         )
+                    evidence_artifact_id = str(
+                        getattr(terminal, "terminal_evidence_artifact_id", "") or ""
+                    ).strip()
+                    evidence_digest = str(
+                        getattr(terminal, "terminal_evidence_digest", "") or ""
+                    ).strip()
+                    if not evidence_artifact_id or not evidence_digest:
+                        raise ValueError(
+                            "execution terminal evidence proof v2 requires complete binding"
+                        )
+                    if evidence_artifact_id not in terminal.output_artifact_ids:
+                        raise ValueError(
+                            "execution terminal evidence output binding mismatch"
+                        )
+                    self._attest_terminal_evidence(
+                        terminal,
+                        evidence_artifact_id,
+                        expected_digest=evidence_digest,
+                    )
                 elif terminal_proof_version >= 2:
                     raise ValueError(
                         "legacy execution session references modern terminal proof"
