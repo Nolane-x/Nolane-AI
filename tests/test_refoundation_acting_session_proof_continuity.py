@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from nolane.core.canonical_digest import canonical_digest, canonical_json
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
 from nolane.external_core.execution import (
     ExecutionSession,
@@ -131,11 +132,45 @@ class _ContextMustNotRun:
 
 class _Artifacts:
     def __init__(self) -> None:
-        self.counter = 0
+        self._records: dict[str, SimpleNamespace] = {}
 
-    def put(self, **_: object):
-        self.counter += 1
-        return SimpleNamespace(artifact_id=f"artifact-{self.counter}")
+    def put(
+        self,
+        *,
+        kind: str,
+        producer_agent_id: str,
+        content: str,
+        evidence_refs: tuple[str, ...] = (),
+        metadata: dict[str, object] | None = None,
+    ):
+        refs = tuple(sorted({str(value) for value in evidence_refs}))
+        normalized_metadata = dict(metadata or {})
+        payload = {
+            "kind": str(kind),
+            "producer_agent_id": str(producer_agent_id),
+            "content": str(content),
+            "evidence_refs": list(refs),
+            "metadata": normalized_metadata,
+        }
+        digest = canonical_digest(payload)
+        record = SimpleNamespace(
+            artifact_id="artifact-" + digest[:24],
+            kind=str(kind),
+            producer_agent_id=str(producer_agent_id),
+            content=str(content),
+            evidence_refs=refs,
+            metadata=normalized_metadata,
+            metadata_json=canonical_json(normalized_metadata),
+            digest=digest,
+        )
+        self._records[record.artifact_id] = record
+        return record
+
+    def get(self, artifact_id: str):
+        try:
+            return self._records[str(artifact_id)]
+        except KeyError as exc:
+            raise KeyError(artifact_id) from exc
 
 
 class _RawExecutor:
