@@ -114,10 +114,12 @@ def test_neural_execution_specialization_inherits_generic_cognition_gate():
     )
 
 
-def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
+def test_live_encoder_binds_cognitive_state_digest_to_canonical_receipt_capsule_digest():
     runtime, native = _native_execution(GenericOrganizationExecutionControlPlane)
     capsule, cognitive_state = _assert_verified_cognitive_state(runtime, native)
     kwargs = _request_kwargs(runtime, native, capsule)
+    verified = runtime.memory_context.verify_context_capsule(capsule)
+    assert verified is not None
 
     plain_request = CognitiveStateEncoder(
         version=native.encoder.version
@@ -125,7 +127,7 @@ def test_live_encoder_binds_cognitive_state_digest_to_verified_context_digest():
     live_request = native.encoder.build_request(**kwargs)
 
     assert live_request.context_digest == cognitive_state.bind_context_digest(
-        plain_request.context_digest
+        verified.receipt.capsule_digest
     )
     assert live_request.context_digest != plain_request.context_digest
 
