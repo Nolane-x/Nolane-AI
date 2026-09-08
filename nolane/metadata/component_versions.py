@@ -52,7 +52,7 @@ _COMPONENT_REVISIONS.update(
         "external.invokable_cores": 3,
         "external.execution.workspace": 4,
         "external.execution.executor": 3,
-        "external.execution.control": 15,
+        "external.execution.control": 16,
         "external.coding.claims": 2,
         "external.coding.patches": 2,
         "external.coding.control": 1,
