@@ -122,29 +122,49 @@ def _recanonicalize_decision_after_request_change(state):
     forged["receipt_id"] = "decision-" + forged_digest[:24]
     state["decisions"][0] = forged
     state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
-    if "request_provenance_decision_ids" in state:
-        state["request_provenance_decision_ids"] = [
-            forged["receipt_id"] if row == original_receipt_id else row
-            for row in state["request_provenance_decision_ids"]
-        ]
-    if "context_provenance_decision_ids" in state:
-        state["context_provenance_decision_ids"] = [
-            forged["receipt_id"] if row == original_receipt_id else row
-            for row in state["context_provenance_decision_ids"]
-        ]
+    for anchor_name in (
+        "request_provenance_decision_ids",
+        "context_provenance_decision_ids",
+    ):
+        if anchor_name in state:
+            state[anchor_name] = [
+                forged["receipt_id"] if row == original_receipt_id else row
+                for row in state[anchor_name]
+            ]
     return forged
 
 
-def test_modern_request_binds_exact_canonical_context_receipt_and_capsule_digest():
-    _, _, verified, cognitive_state, request, _ = _persisted_authority()
+def _downgrade_context_provenance(state):
+    forged = dict(state["decisions"][0])
+    original_receipt_id = forged["receipt_id"]
+    forged_request = dict(forged["request"])
+    forged_request.pop("context_provenance_version", None)
+    forged["request"] = forged_request
+    forged["request_digest"] = canonical_digest(forged_request)
+    payload = {
+        key: value
+        for key, value in forged.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    forged_digest = canonical_digest(payload)
+    forged["digest"] = forged_digest
+    forged["receipt_id"] = "decision-" + forged_digest[:24]
+    state["decisions"][0] = forged
+    state["sessions"][0]["decision_receipt_ids"] = [forged["receipt_id"]]
+    state["request_provenance_decision_ids"] = [forged["receipt_id"]]
+    state["context_provenance_decision_ids"] = [forged["receipt_id"]]
+
+
+def test_modern_request_binds_context_digest_to_canonical_receipt_capsule_digest():
+    _, persisted, verified, cognitive_state, request, decision = _persisted_authority()
 
     assert getattr(request, "context_provenance_version", 1) == 2
-    assert request.context_compilation_receipt_id == verified.receipt.receipt_id
-    assert request.context_compilation_receipt_digest == verified.receipt.digest
-    assert request.context_capsule_digest == verified.receipt.capsule_digest
     assert request.context_digest == cognitive_state.bind_context_digest(
         verified.receipt.capsule_digest
     )
+    state = persisted.to_state()
+    assert state["context_provenance_version"] == 2
+    assert state["context_provenance_decision_ids"] == [decision.receipt_id]
 
 
 def test_restore_rejects_self_consistent_forged_context_digest_detached_from_receipt():
@@ -153,4 +173,13 @@ def test_restore_rejects_self_consistent_forged_context_digest_detached_from_rec
     _recanonicalize_decision_after_request_change(state)
 
     with pytest.raises(ValueError, match="context.*provenance|context.*receipt"):
+        _restore(runtime, state)
+
+
+def test_restore_rejects_self_consistent_context_provenance_downgrade():
+    runtime, persisted, _, _, _, _ = _persisted_authority()
+    state = persisted.to_state()
+    _downgrade_context_provenance(state)
+
+    with pytest.raises(ValueError, match="context provenance.*binding|context provenance.*downgrade"):
         _restore(runtime, state)
