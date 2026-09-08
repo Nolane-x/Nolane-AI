@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from typing import Any, Mapping
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core._execution_base import (
     COMPONENT_ID as _BASE_COMPONENT_ID,
     COMPONENT_VERSION as _BASE_COMPONENT_VERSION,
@@ -10,10 +11,12 @@ from nolane.external_core._execution_base import (
     ExecutionSession,
     ExecutionState,
     ExecutionStepReceipt,
-    ExecutionTerminalReceipt,
+    ExecutionTerminalReceipt as _BaseExecutionTerminalReceipt,
     OrganizationExecutionControlPlane as _BaseOrganizationExecutionControlPlane,
 )
 from nolane.external_core.acting_runtime import TransactionalExternalCoreExecutor
+from nolane.external_core.execution_executor import ExternalCoreExecutor
+from nolane.external_core.execution_types import AgentDecisionReceipt
 from nolane.memory.context_intelligence import ContextCompilationReceipt
 from nolane.neural.core_contract import CognitiveState, EvidenceRef
 from nolane.neural.inference_bridge import CognitiveStateEncoder
@@ -22,6 +25,133 @@ from nolane.neural.inference_bridge import CognitiveStateEncoder
 COMPONENT_ID = _BASE_COMPONENT_ID
 COMPONENT_VERSION = "0.0.14"
 CONTEXT_PROVENANCE_ENCODER_VERSION = "organization-context-receipt-v2"
+
+
+@dataclass(frozen=True, slots=True)
+class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
+    """Historical terminal receipt plus optional proof-v2 session authority."""
+
+    execution_proof_version: int = 1
+    initial_workspace_digest: str | None = None
+    current_workspace_digest: str | None = None
+    external_core_registry_digest: str | None = None
+    workspace_epoch_id: str | None = None
+
+    def __post_init__(self) -> None:
+        version = int(self.execution_proof_version)
+        if version not in {1, 2}:
+            raise ValueError("unsupported execution terminal proof version")
+        object.__setattr__(self, "execution_proof_version", version)
+        values = {
+            "initial_workspace_digest": self.initial_workspace_digest,
+            "current_workspace_digest": self.current_workspace_digest,
+            "external_core_registry_digest": self.external_core_registry_digest,
+            "workspace_epoch_id": self.workspace_epoch_id,
+        }
+        normalized = {
+            key: None if value is None else str(value).strip()
+            for key, value in values.items()
+        }
+        if version == 1:
+            if any(normalized.values()):
+                raise ValueError("legacy execution terminal cannot carry modern proof")
+            for key in normalized:
+                object.__setattr__(self, key, None)
+            return
+        if any(not value for value in normalized.values()):
+            raise ValueError("execution terminal proof v2 requires complete session proof")
+        for key, value in normalized.items():
+            object.__setattr__(self, key, value)
+
+    def payload(self) -> dict[str, Any]:
+        payload = super().payload()
+        if self.execution_proof_version >= 2:
+            payload.update(
+                {
+                    "execution_proof_version": self.execution_proof_version,
+                    "initial_workspace_digest": self.initial_workspace_digest,
+                    "current_workspace_digest": self.current_workspace_digest,
+                    "external_core_registry_digest": self.external_core_registry_digest,
+                    "workspace_epoch_id": self.workspace_epoch_id,
+                }
+            )
+        return payload
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "ExecutionTerminalReceipt":
+        row = cls(
+            receipt_id=str(state["receipt_id"]),
+            session_id=str(state["session_id"]),
+            agent_id=str(state["agent_id"]),
+            task_id=str(state["task_id"]),
+            state=ExecutionState(str(state["state"])),
+            termination_reason=str(state["termination_reason"]),
+            steps=int(state["steps"]),
+            tool_calls=int(state["tool_calls"]),
+            external_core_calls=int(state["external_core_calls"]),
+            compute_units=int(state["compute_units"]),
+            wall_clock_ms=int(state["wall_clock_ms"]),
+            decision_receipt_ids=tuple(str(x) for x in state.get("decision_receipt_ids", ())),
+            step_receipt_ids=tuple(str(x) for x in state.get("step_receipt_ids", ())),
+            core_receipt_ids=tuple(str(x) for x in state.get("core_receipt_ids", ())),
+            output_artifact_ids=tuple(str(x) for x in state.get("output_artifact_ids", ())),
+            digest=str(state["digest"]),
+            execution_proof_version=int(state.get("execution_proof_version", 1)),
+            initial_workspace_digest=(
+                None if state.get("initial_workspace_digest") is None
+                else str(state["initial_workspace_digest"])
+            ),
+            current_workspace_digest=(
+                None if state.get("current_workspace_digest") is None
+                else str(state["current_workspace_digest"])
+            ),
+            external_core_registry_digest=(
+                None if state.get("external_core_registry_digest") is None
+                else str(state["external_core_registry_digest"])
+            ),
+            workspace_epoch_id=(
+                None if state.get("workspace_epoch_id") is None
+                else str(state["workspace_epoch_id"])
+            ),
+        )
+        expected = canonical_digest(row.payload())
+        if row.digest != expected or row.receipt_id != "terminal-" + expected[:24]:
+            raise ValueError("execution terminal receipt digest/id mismatch")
+        return row
+
+    @classmethod
+    def bind_session_proof(
+        cls,
+        legacy: _BaseExecutionTerminalReceipt,
+        session: ExecutionSession,
+    ) -> "ExecutionTerminalReceipt":
+        if session.execution_proof_version < 2:
+            return cls.from_state(legacy.to_state())
+        candidate = cls(
+            receipt_id="",
+            session_id=legacy.session_id,
+            agent_id=legacy.agent_id,
+            task_id=legacy.task_id,
+            state=legacy.state,
+            termination_reason=legacy.termination_reason,
+            steps=legacy.steps,
+            tool_calls=legacy.tool_calls,
+            external_core_calls=legacy.external_core_calls,
+            compute_units=legacy.compute_units,
+            wall_clock_ms=legacy.wall_clock_ms,
+            decision_receipt_ids=legacy.decision_receipt_ids,
+            step_receipt_ids=legacy.step_receipt_ids,
+            core_receipt_ids=legacy.core_receipt_ids,
+            output_artifact_ids=legacy.output_artifact_ids,
+            digest="",
+            execution_proof_version=2,
+            initial_workspace_digest=session.initial_workspace_digest,
+            current_workspace_digest=session.current_workspace_digest,
+            external_core_registry_digest=session.external_core_registry_digest,
+            workspace_epoch_id=session.workspace_epoch_id,
+        )
+        digest = canonical_digest(candidate.payload())
+        return replace(candidate, receipt_id="terminal-" + digest[:24], digest=digest)
 
 
 def _cognitive_state_from_context_provenance(
@@ -177,6 +307,35 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
             and request.cognitive_state_digest is not None
         )
 
+    def _terminal(
+        self,
+        session: ExecutionSession,
+        state: ExecutionState,
+        reason: str,
+        *,
+        complete_task: bool = False,
+    ) -> _BaseExecutionTerminalReceipt:
+        legacy = super()._terminal(
+            session,
+            state,
+            reason,
+            complete_task=complete_task,
+        )
+        if session.execution_proof_version < 2:
+            return legacy
+        terminal = ExecutionTerminalReceipt.bind_session_proof(legacy, session)
+        self._terminals.pop(legacy.receipt_id, None)
+        existing = self._terminals.get(terminal.receipt_id)
+        if existing is not None and existing != terminal:
+            raise ValueError("execution terminal receipt id collision")
+        self._terminals[terminal.receipt_id] = terminal
+        updated = self._sessions[session.session_id]
+        self._sessions[session.session_id] = replace(
+            updated,
+            terminal_receipt_id=terminal.receipt_id,
+        )
+        return terminal
+
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
         if "acting_executor" not in state:
@@ -252,14 +411,36 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
                 raise ValueError("legacy execution context provenance state contains modern binding")
             context_decision_ids = ()
 
-        restored = super().from_state(
+        encoder = CognitiveStateEncoder(
+            version=str(state.get("encoder_version", "organization-context-digest-v1"))
+        )
+        executor = ExternalCoreExecutor.from_state(
+            registry=registry,
+            external_cores=external_cores,
+            artifacts=artifacts,
+            coding_patches=getattr(coding, "patches", None),
+            code_claims=getattr(coding, "claims", None),
+            state=state.get("executor", {}),
+        )
+        acting_executor = TransactionalExternalCoreExecutor.from_state(
+            executor=executor,
+            state=state.get("acting_executor", {}),
+        )
+        restored = cls(
             registry=registry,
             tasks=tasks,
             context=context,
             artifacts=artifacts,
             external_cores=external_cores,
             coding=coding,
-            state=state,
+            encoder=encoder,
+            executor=executor,
+            acting_executor=acting_executor,
+            sessions=tuple(ExecutionSession.from_state(x) for x in state.get("sessions", ())),
+            decisions=tuple(AgentDecisionReceipt.from_state(x) for x in state.get("decisions", ())),
+            steps=tuple(ExecutionStepReceipt.from_state(x) for x in state.get("steps", ())),
+            terminals=tuple(ExecutionTerminalReceipt.from_state(x) for x in state.get("terminals", ())),
+            session_counter=int(state.get("session_counter", 0)),
         )
         canonical_acting = TransactionalExternalCoreExecutor.from_state(
             executor=restored.executor,
@@ -367,6 +548,35 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
     def _validate_state(self) -> None:
         super()._validate_state()
         for session in self._sessions.values():
+            if session.terminal_receipt_id is not None:
+                terminal = self._terminals[session.terminal_receipt_id]
+                terminal_proof_version = int(
+                    getattr(terminal, "execution_proof_version", 1)
+                )
+                if session.execution_proof_version >= 2:
+                    if terminal_proof_version < 2:
+                        raise ValueError("execution terminal proof downgrade detected")
+                    expected_terminal_proof = {
+                        "initial_workspace_digest": session.initial_workspace_digest,
+                        "current_workspace_digest": session.current_workspace_digest,
+                        "external_core_registry_digest": session.external_core_registry_digest,
+                        "workspace_epoch_id": session.workspace_epoch_id,
+                    }
+                    mismatches = [
+                        field
+                        for field, expected_value in expected_terminal_proof.items()
+                        if getattr(terminal, field, None) != expected_value
+                    ]
+                    if mismatches:
+                        raise ValueError(
+                            "execution terminal proof binding mismatch: "
+                            + ", ".join(mismatches)
+                        )
+                elif terminal_proof_version >= 2:
+                    raise ValueError(
+                        "legacy execution session references modern terminal proof"
+                    )
+
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
                 request = None
