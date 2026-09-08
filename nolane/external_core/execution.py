@@ -64,7 +64,7 @@ class ExecutionTerminalReceipt(_BaseExecutionTerminalReceipt):
             object.__setattr__(self, key, value)
 
     def payload(self) -> dict[str, Any]:
-        payload = super().payload()
+        payload = _BaseExecutionTerminalReceipt.payload(self)
         if self.execution_proof_version >= 2:
             payload.update(
                 {
