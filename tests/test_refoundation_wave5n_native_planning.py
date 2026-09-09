@@ -340,8 +340,8 @@ def test_wave5n_planning_and_tasks_component_versions_reflect_authority_migratio
     assert str(component_version("external.planning")) == "0.0.1"
 
     assert tasks.status is ImplementationStatus.CANONICAL_NATIVE
-    assert tasks.component_version == "0.0.2"
-    assert str(component_version("organization.tasks")) == "0.0.2"
+    assert tasks.component_version == "0.0.3"
+    assert str(component_version("organization.tasks")) == "0.0.3"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.planning" not in facade_ids
