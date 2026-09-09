@@ -160,6 +160,93 @@ def test_live_completion_rejects_canonical_artifact_owned_by_another_task(
         workspace.close()
 
 
+def test_live_completion_accepts_canonical_same_task_supplemental_output(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-execution-result-projection"
+    runtime.tasks.add_task(task_id, title="execution result projection", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+    supplemental = runtime.artifacts.put(
+        kind="result-projection-supplemental-output",
+        producer_agent_id=identity.agent_id,
+        content="canonical same-task supplemental output\n",
+        metadata={"task_id": task_id},
+    )
+    backend = DeterministicFixtureBackend(
+        actions=(
+            ExecutionAction.complete(
+                reason="complete with same-task supplemental output",
+                output_artifact_ids=(supplemental.artifact_id,),
+            ),
+        ),
+        backend_id="result-projection-backend-v1",
+        checkpoint_digest="result-projection-checkpoint-v1",
+    )
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+    try:
+        terminal = runtime.execution.step(session.session_id)
+        assert isinstance(terminal, ExecutionTerminalReceipt)
+        assert supplemental.artifact_id in terminal.output_artifact_ids
+        assert runtime.tasks.get(task_id).completed_by == identity.agent_id
+
+        restored = OrganizationRuntime.from_state(runtime.to_state())
+        restored_terminal = restored.execution.get_terminal_receipt(terminal.receipt_id)
+        assert supplemental.artifact_id in restored_terminal.output_artifact_ids
+        assert restored.tasks.get(task_id).completed_by == identity.agent_id
+    finally:
+        workspace.close()
+
+
+def test_live_completion_accepts_core_grounded_output_without_task_metadata(
+    tmp_path: Path,
+) -> None:
+    runtime, session, step, _core, _unrelated, workspace = _runtime_with_tool_step(tmp_path)
+    try:
+        grounded_id = step.output_artifact_ids[0]
+        grounded = runtime.artifacts.get(grounded_id)
+        assert str(grounded.metadata.get("task_id", "")).strip() != session.task_id
+
+        completion_backend = DeterministicFixtureBackend(
+            actions=(
+                ExecutionAction.fail(reason="unused fixture action"),
+                ExecutionAction.complete(
+                    reason="complete with core-grounded output",
+                    output_artifact_ids=(grounded_id,),
+                ),
+            ),
+            backend_id="result-projection-backend-v1",
+            checkpoint_digest="result-projection-checkpoint-v1",
+        )
+        runtime.execution.bind_backend(session.agent_id, completion_backend)
+        terminal = runtime.execution.step(session.session_id)
+
+        assert isinstance(terminal, ExecutionTerminalReceipt)
+        assert grounded_id in terminal.output_artifact_ids
+        assert runtime.tasks.get(session.task_id).completed_by == session.agent_id
+
+        restored = OrganizationRuntime.from_state(runtime.to_state())
+        restored_terminal = restored.execution.get_terminal_receipt(terminal.receipt_id)
+        assert grounded_id in restored_terminal.output_artifact_ids
+        assert restored.tasks.get(session.task_id).completed_by == session.agent_id
+    finally:
+        workspace.close()
+
+
 def test_restore_rejects_canonical_step_output_projection_that_disagrees_with_core_receipt(
     tmp_path: Path,
 ) -> None:
