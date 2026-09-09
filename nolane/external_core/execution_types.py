@@ -244,6 +244,9 @@ class InferenceRequest:
     counters: ExecutionCounters
     step_index: int
     cognitive_state_digest: str | None = None
+    execution_lineage_version: int = 1
+    execution_session_id: str | None = None
+    workspace_epoch_id: str | None = None
 
     def __post_init__(self) -> None:
         for value, label in (
@@ -267,6 +270,30 @@ class InferenceRequest:
             'cognitive_state_digest',
             _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
         )
+        lineage_version = int(self.execution_lineage_version)
+        if lineage_version not in {1, 2}:
+            raise ValueError('unsupported inference execution lineage version')
+        object.__setattr__(self, 'execution_lineage_version', lineage_version)
+        session_id = (
+            None
+            if self.execution_session_id is None
+            else str(self.execution_session_id).strip()
+        )
+        epoch_id = (
+            None
+            if self.workspace_epoch_id is None
+            else str(self.workspace_epoch_id).strip()
+        )
+        if lineage_version == 1:
+            if session_id or epoch_id:
+                raise ValueError('legacy inference request cannot carry execution lineage')
+            object.__setattr__(self, 'execution_session_id', None)
+            object.__setattr__(self, 'workspace_epoch_id', None)
+        else:
+            if not session_id or not epoch_id:
+                raise ValueError('modern inference request requires execution session and workspace epoch')
+            object.__setattr__(self, 'execution_session_id', session_id)
+            object.__setattr__(self, 'workspace_epoch_id', epoch_id)
 
     def payload(self) -> dict[str, Any]:
         payload = {
@@ -283,6 +310,10 @@ class InferenceRequest:
         }
         if self.cognitive_state_digest is not None:
             payload['cognitive_state_digest'] = self.cognitive_state_digest
+        if self.execution_lineage_version >= 2:
+            payload['execution_lineage_version'] = self.execution_lineage_version
+            payload['execution_session_id'] = self.execution_session_id
+            payload['workspace_epoch_id'] = self.workspace_epoch_id
         return payload
 
     @property
@@ -309,6 +340,17 @@ class InferenceRequest:
                 None
                 if state.get('cognitive_state_digest') is None
                 else str(state['cognitive_state_digest'])
+            ),
+            execution_lineage_version=int(state.get('execution_lineage_version', 1)),
+            execution_session_id=(
+                None
+                if state.get('execution_session_id') is None
+                else str(state['execution_session_id'])
+            ),
+            workspace_epoch_id=(
+                None
+                if state.get('workspace_epoch_id') is None
+                else str(state['workspace_epoch_id'])
             ),
         )
 
