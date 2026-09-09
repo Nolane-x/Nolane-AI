@@ -237,6 +237,12 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         ):
             raise ValueError("completion output execution authority binding mismatch")
 
+        task = self.tasks.get(session.task_id)
+        if task.completed_by is not None:
+            raise ValueError(
+                "task completion authority already claimed during inference"
+            )
+
         output_ids = tuple(str(x) for x in canonical.action.output_artifact_ids)
         known = {artifact.artifact_id for artifact in self.artifacts.records()}
         if any(artifact_id not in known for artifact_id in output_ids):
