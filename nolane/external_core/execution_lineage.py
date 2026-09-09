@@ -7,6 +7,7 @@ from nolane.external_core.execution import (
     ExecutionSession,
     OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
 )
+from nolane.external_core.execution_types import ExecutionActionKind
 
 
 _RESTORE_EXECUTION_LINEAGE: ContextVar[tuple[str, ...] | None] = ContextVar(
@@ -32,6 +33,13 @@ def _lineage_ids(
     ):
         raise ValueError("execution lineage session binding is non-canonical")
     return rows
+
+
+def _extend_unique(target: list[str], values: object) -> None:
+    for value in values:
+        artifact_id = str(value)
+        if artifact_id not in target:
+            target.append(artifact_id)
 
 
 class _ExecutionLineageEncoder:
@@ -71,7 +79,7 @@ class _ExecutionLineageEncoder:
 
 
 class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
-    """Runtime execution authority that binds decisions to session/epoch lineage."""
+    """Runtime execution authority that binds decisions and results to session lineage."""
 
     def __init__(
         self,
@@ -192,6 +200,26 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                     "modern execution lineage requires proof-v2 workspace epoch authority"
                 )
 
+            projected_output_artifact_ids: list[str] = []
+            if lineaged:
+                for step_receipt_id in session.step_receipt_ids:
+                    step = self._steps[step_receipt_id]
+                    if step.core_receipt_id is None:
+                        continue
+                    try:
+                        core = self.executor.get_receipt(step.core_receipt_id)
+                    except Exception as exc:
+                        raise ValueError(
+                            "execution result projection references unavailable core receipt"
+                        ) from exc
+                    core_outputs = tuple(
+                        str(artifact_id)
+                        for artifact_id in getattr(core, "output_artifact_ids", ())
+                    )
+                    if step.output_artifact_ids != core_outputs:
+                        raise ValueError("execution step output binding mismatch")
+                    _extend_unique(projected_output_artifact_ids, core_outputs)
+
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
                 request = None
@@ -211,6 +239,11 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                         raise ValueError(
                             "persisted inference request workspace epoch binding mismatch"
                         )
+                    if decision.action.kind is ExecutionActionKind.COMPLETE:
+                        _extend_unique(
+                            projected_output_artifact_ids,
+                            decision.action.output_artifact_ids,
+                        )
                 elif (
                     request is not None
                     and request.execution_lineage_version >= 2
@@ -218,6 +251,21 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                     raise ValueError(
                         "modern decision lineage belongs to legacy execution session"
                     )
+
+            if not lineaged:
+                continue
+            if session.terminal_receipt_id is not None:
+                terminal = self._terminals[session.terminal_receipt_id]
+                evidence_artifact_id = str(
+                    getattr(terminal, "terminal_evidence_artifact_id", "") or ""
+                ).strip()
+                if not evidence_artifact_id:
+                    raise ValueError(
+                        "modern execution result projection lacks terminal evidence authority"
+                    )
+                _extend_unique(projected_output_artifact_ids, (evidence_artifact_id,))
+            if tuple(projected_output_artifact_ids) != session.output_artifact_ids:
+                raise ValueError("execution session output projection mismatch")
 
 
 __all__ = ("OrganizationExecutionControlPlane",)
