@@ -151,6 +151,60 @@ def test_live_task_completion_projection_cannot_be_rebound_after_completion() ->
     assert runtime.tasks.get(task_id) == completed
 
 
+def test_execution_start_rejects_already_completed_task_before_workspace_epoch(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-start-completed-authority"
+    runtime.tasks.add_task(task_id, title="completed start authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    output = runtime.artifacts.put(
+        kind="task-start-completed-output",
+        producer_agent_id=identity.agent_id,
+        content="already completed before execution start\n",
+        metadata={"task_id": task_id},
+    )
+    runtime.tasks.complete(
+        task_id,
+        identity.agent_id,
+        output_artifact_ids=(output.artifact_id,),
+    )
+    backend = DeterministicFixtureBackend(
+        actions=(
+            ExecutionAction.complete(
+                reason="must never run",
+                output_artifact_ids=(output.artifact_id,),
+            ),
+        ),
+        backend_id="task-start-completed-backend-v1",
+        checkpoint_digest="task-start-completed-checkpoint-v1",
+    )
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+
+    try:
+        with pytest.raises(ValueError, match="task.*completed|completed.*task"):
+            runtime.execution.start(
+                agent_id=identity.agent_id,
+                task_id=task_id,
+                workspace=workspace,
+                action_schema=("filesystem.read_text",),
+                budget=ExecutionBudget(
+                    max_steps=8,
+                    max_tool_calls=8,
+                    max_external_core_calls=8,
+                    max_compute_units=8,
+                ),
+            )
+        assert runtime.execution.sessions() == ()
+        assert workspace.active_execution_epoch_id is None
+        assert workspace.active_execution_epoch_owner is None
+    finally:
+        workspace.close()
+
+
 def test_live_execution_rejects_task_completed_outside_terminal_authority(
     tmp_path: Path,
 ) -> None:
