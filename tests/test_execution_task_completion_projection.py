@@ -111,3 +111,41 @@ def test_restore_rejects_task_completion_projection_not_bound_to_execution_termi
             OrganizationRuntime.from_state(state)
     finally:
         workspace.close()
+
+
+def test_live_task_completion_projection_cannot_be_rebound_after_completion() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-live-completion-projection-rebind"
+    runtime.tasks.add_task(task_id, title="live completion projection", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    authoritative = runtime.artifacts.put(
+        kind="task-live-authoritative-output",
+        producer_agent_id=identity.agent_id,
+        content="first authoritative task completion\n",
+        metadata={"task_id": task_id},
+    )
+    replacement = runtime.artifacts.put(
+        kind="task-live-replacement-output",
+        producer_agent_id=identity.agent_id,
+        content="later same-agent output must not replace terminal task projection\n",
+        metadata={"task_id": task_id},
+    )
+
+    completed = runtime.tasks.complete(
+        task_id,
+        identity.agent_id,
+        output_artifact_ids=(authoritative.artifact_id,),
+    )
+    assert completed.completed_by == identity.agent_id
+    assert completed.output_artifact_ids == (authoritative.artifact_id,)
+
+    with pytest.raises(ValueError, match="already completed"):
+        runtime.tasks.complete(
+            task_id,
+            identity.agent_id,
+            output_artifact_ids=(replacement.artifact_id,),
+        )
+
+    assert runtime.tasks.get(task_id) == completed
