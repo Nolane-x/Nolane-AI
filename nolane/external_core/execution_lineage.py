@@ -1,0 +1,223 @@
+from __future__ import annotations
+
+from contextvars import ContextVar
+from typing import Any, Mapping
+
+from nolane.external_core.execution import (
+    ExecutionSession,
+    OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
+)
+
+
+_RESTORE_EXECUTION_LINEAGE: ContextVar[tuple[str, ...] | None] = ContextVar(
+    "nolane-restore-execution-lineage",
+    default=None,
+)
+
+
+def _lineage_ids(
+    raw: object,
+    *,
+    require_nonempty: bool = False,
+    require_sorted: bool = False,
+) -> tuple[str, ...]:
+    if not isinstance(raw, (list, tuple)):
+        raise ValueError("execution lineage session binding is missing")
+    rows = tuple(str(session_id).strip() for session_id in raw)
+    if (
+        (require_nonempty and not rows)
+        or any(not session_id for session_id in rows)
+        or len(set(rows)) != len(rows)
+        or (require_sorted and rows != tuple(sorted(rows)))
+    ):
+        raise ValueError("execution lineage session binding is non-canonical")
+    return rows
+
+
+class _ExecutionLineageEncoder:
+    """Inject one active execution lineage into otherwise canonical requests."""
+
+    def __init__(self, base: Any) -> None:
+        self._base = base
+        self._active: ContextVar[tuple[str, str] | None] = ContextVar(
+            f"nolane-active-execution-lineage-{id(self)}",
+            default=None,
+        )
+
+    @property
+    def version(self):
+        return self._base.version
+
+    def bind(self, session_id: str, workspace_epoch_id: str):
+        normalized_session = str(session_id).strip()
+        normalized_epoch = str(workspace_epoch_id).strip()
+        if not normalized_session or not normalized_epoch:
+            raise ValueError(
+                "execution lineage binding requires session and workspace epoch"
+            )
+        return self._active.set((normalized_session, normalized_epoch))
+
+    def reset(self, token: Any) -> None:
+        self._active.reset(token)
+
+    def build_request(self, **kwargs: Any):
+        lineage = self._active.get()
+        if lineage is not None:
+            execution_session_id, workspace_epoch_id = lineage
+            kwargs["execution_lineage_version"] = 2
+            kwargs["execution_session_id"] = execution_session_id
+            kwargs["workspace_epoch_id"] = workspace_epoch_id
+        return self._base.build_request(**kwargs)
+
+
+class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
+    """Runtime execution authority that binds decisions to session/epoch lineage."""
+
+    def __init__(
+        self,
+        *args: Any,
+        execution_lineage_session_ids: tuple[str, ...] = (),
+        **kwargs: Any,
+    ) -> None:
+        supplied = _lineage_ids(tuple(execution_lineage_session_ids))
+        restoring = _RESTORE_EXECUTION_LINEAGE.get()
+        if restoring is not None:
+            if supplied and supplied != restoring:
+                raise ValueError("execution lineage restore authority mismatch")
+            supplied = restoring
+        self._execution_lineage_session_ids = set(supplied)
+        super().__init__(*args, **kwargs)
+
+        base_encoder = getattr(self.encoder, "_base", None)
+        if base_encoder is None:
+            raise TypeError("execution encoder does not expose canonical base authority")
+        if not isinstance(base_encoder, _ExecutionLineageEncoder):
+            self.encoder._base = _ExecutionLineageEncoder(base_encoder)
+
+    def start(self, **kwargs: Any) -> ExecutionSession:
+        session = super().start(**kwargs)
+        self._execution_lineage_session_ids.add(session.session_id)
+        return session
+
+    def step(self, session_id: str):
+        session = self.get_session(session_id)
+        if session.session_id not in self._execution_lineage_session_ids:
+            raise RuntimeError(
+                "legacy execution session lacks decision lineage; "
+                "forward execution requires lineage-v2 authority"
+            )
+        if session.execution_proof_version < 2 or not session.workspace_epoch_id:
+            raise RuntimeError(
+                "execution lineage-v2 requires proof-v2 workspace epoch authority"
+            )
+        binding_encoder = getattr(self.encoder, "_base", None)
+        if not isinstance(binding_encoder, _ExecutionLineageEncoder):
+            raise RuntimeError("execution lineage encoder authority is unavailable")
+        token = binding_encoder.bind(
+            session.session_id,
+            session.workspace_epoch_id,
+        )
+        try:
+            return super().step(session_id)
+        finally:
+            binding_encoder.reset(token)
+
+    def to_state(self) -> dict[str, Any]:
+        state = super().to_state()
+        if self._execution_lineage_session_ids:
+            state["execution_lineage_version"] = 2
+            state["execution_lineage_session_ids"] = sorted(
+                self._execution_lineage_session_ids
+            )
+        return state
+
+    @classmethod
+    def from_state(
+        cls,
+        *,
+        registry: Any,
+        tasks: Any,
+        context: Any,
+        artifacts: Any,
+        external_cores: Any,
+        coding: Any,
+        state: Mapping[str, Any],
+    ) -> "OrganizationExecutionControlPlane":
+        version = int(state.get("execution_lineage_version", 1))
+        if version not in {1, 2}:
+            raise ValueError("unsupported execution lineage version")
+        raw_ids = state.get("execution_lineage_session_ids")
+        if version >= 2:
+            lineage_session_ids = _lineage_ids(
+                raw_ids,
+                require_nonempty=True,
+                require_sorted=True,
+            )
+        else:
+            if raw_ids is not None:
+                raise ValueError(
+                    "legacy execution lineage state contains modern binding"
+                )
+            lineage_session_ids = ()
+
+        token = _RESTORE_EXECUTION_LINEAGE.set(lineage_session_ids)
+        try:
+            restored = super().from_state(
+                registry=registry,
+                tasks=tasks,
+                context=context,
+                artifacts=artifacts,
+                external_cores=external_cores,
+                coding=coding,
+                state=state,
+            )
+        finally:
+            _RESTORE_EXECUTION_LINEAGE.reset(token)
+        if not isinstance(restored, cls):
+            raise TypeError("execution lineage restore returned wrong authority type")
+        return restored
+
+    def _validate_state(self) -> None:
+        super()._validate_state()
+        unknown = self._execution_lineage_session_ids - set(self._sessions)
+        if unknown:
+            raise ValueError("execution lineage references unknown execution session")
+
+        for session in self._sessions.values():
+            lineaged = session.session_id in self._execution_lineage_session_ids
+            if lineaged and (
+                session.execution_proof_version < 2 or not session.workspace_epoch_id
+            ):
+                raise ValueError(
+                    "modern execution lineage requires proof-v2 workspace epoch authority"
+                )
+
+            for receipt_id in session.decision_receipt_ids:
+                decision = self._decisions[receipt_id]
+                request = None
+                if getattr(decision, "request_provenance_version", 1) >= 2:
+                    request = self.get_inference_request(receipt_id)
+
+                if lineaged:
+                    if request is None or request.execution_lineage_version < 2:
+                        raise ValueError(
+                            "execution lineage downgrade detected for persisted inference request"
+                        )
+                    if request.execution_session_id != session.session_id:
+                        raise ValueError(
+                            "persisted inference request execution session binding mismatch"
+                        )
+                    if request.workspace_epoch_id != session.workspace_epoch_id:
+                        raise ValueError(
+                            "persisted inference request workspace epoch binding mismatch"
+                        )
+                elif (
+                    request is not None
+                    and request.execution_lineage_version >= 2
+                ):
+                    raise ValueError(
+                        "modern decision lineage belongs to legacy execution session"
+                    )
+
+
+__all__ = ("OrganizationExecutionControlPlane",)
