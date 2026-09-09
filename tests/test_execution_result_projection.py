@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import subprocess
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
-from nolane.external_core.execution import ExecutionStepReceipt
+from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.execution import ExecutionStepReceipt, ExecutionTerminalReceipt
 from nolane.external_core.execution_types import (
     ExecutionAction,
     ExecutionBudget,
@@ -141,6 +143,55 @@ def test_restore_rejects_canonical_session_output_projection_not_grounded_in_ste
         session_state["output_artifact_ids"] = [unrelated.artifact_id]
         execution_state["sessions"] = [session_state]
 
+        with pytest.raises(ValueError, match="output.*(binding|projection)|result.*projection"):
+            OrganizationRuntime.from_state(state)
+    finally:
+        workspace.close()
+
+
+def test_restore_rejects_canonical_terminal_output_history_rebound_to_unrelated_artifact(
+    tmp_path: Path,
+) -> None:
+    runtime, session, step, _core, unrelated, workspace = _runtime_with_tool_step(tmp_path)
+    try:
+        terminal = runtime.execution.step(session.session_id)
+        assert isinstance(terminal, ExecutionTerminalReceipt)
+        assert terminal.execution_proof_version == 2
+        assert terminal.terminal_evidence_artifact_id is not None
+        assert terminal.terminal_evidence_digest is not None
+        original_evidence = runtime.artifacts.get(terminal.terminal_evidence_artifact_id)
+        poisoned_evidence = runtime.artifacts.put(
+            kind=original_evidence.kind,
+            producer_agent_id=original_evidence.producer_agent_id,
+            content=original_evidence.content,
+            evidence_refs=(unrelated.artifact_id,),
+            metadata=original_evidence.metadata,
+        )
+        poisoned_outputs = (unrelated.artifact_id, poisoned_evidence.artifact_id)
+        candidate = replace(
+            terminal,
+            receipt_id="",
+            digest="",
+            output_artifact_ids=poisoned_outputs,
+            terminal_evidence_artifact_id=poisoned_evidence.artifact_id,
+            terminal_evidence_digest=poisoned_evidence.digest,
+        )
+        poisoned_digest = canonical_digest(candidate.payload())
+        poisoned_terminal = replace(
+            candidate,
+            receipt_id="terminal-" + poisoned_digest[:24],
+            digest=poisoned_digest,
+        )
+
+        state = runtime.to_state()
+        execution_state = state["execution"]
+        session_state = _execution_session_state(execution_state, session.session_id)
+        session_state["output_artifact_ids"] = list(poisoned_outputs)
+        session_state["terminal_receipt_id"] = poisoned_terminal.receipt_id
+        execution_state["sessions"] = [session_state]
+        execution_state["terminals"] = [poisoned_terminal.to_state()]
+
+        assert step.output_artifact_ids[0] != unrelated.artifact_id
         with pytest.raises(ValueError, match="output.*(binding|projection)|result.*projection"):
             OrganizationRuntime.from_state(state)
     finally:
