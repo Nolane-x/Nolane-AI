@@ -118,6 +118,12 @@ def _strip_session_proof(session: dict) -> None:
         session.pop(field, None)
 
 
+def _strip_execution_lineage(state: dict) -> None:
+    execution = state["execution"]
+    execution.pop("execution_lineage_version", None)
+    execution.pop("execution_lineage_session_ids", None)
+
+
 def test_modern_terminal_persists_exact_execution_proof_v2(tmp_path: Path) -> None:
     state, _ = _terminal_runtime_state(tmp_path)
     session, terminal = _execution_rows(state)
@@ -165,6 +171,7 @@ def test_restore_keeps_true_historical_terminal_v1_readable(tmp_path: Path) -> N
     session, terminal = _execution_rows(state)
     _strip_terminal_proof(terminal, session)
     _strip_session_proof(session)
+    _strip_execution_lineage(state)
 
     restored = OrganizationRuntime.from_state(state)
     restored_session = restored.execution.get_session(session_id)
