@@ -225,9 +225,17 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             or request.workspace_epoch_id != session.workspace_epoch_id
         ):
             raise ValueError("completion output execution authority binding mismatch")
+
+        output_ids = tuple(str(x) for x in canonical.action.output_artifact_ids)
+        known = {artifact.artifact_id for artifact in self.artifacts.records()}
+        if any(artifact_id not in known for artifact_id in output_ids):
+            # Keep the canonical execution contract: missing declared outputs are
+            # converted into a FAILED terminal by the base step path.
+            return canonical
+
         self._attest_completion_output_authority(
             session,
-            canonical.action.output_artifact_ids,
+            output_ids,
             grounded_output_artifact_ids=session.output_artifact_ids,
         )
         return canonical
