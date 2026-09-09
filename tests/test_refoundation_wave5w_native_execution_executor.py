@@ -150,8 +150,8 @@ def test_wave5w_executor_authority_version_facade_and_debt_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.execution_executor"
     assert row.legacy_sources == ("cogcoder/organization/execution_tools.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.3"
-    assert str(component_version("external.execution.executor")) == "0.0.3"
+    assert row.component_version == "0.0.4"
+    assert str(component_version("external.execution.executor")) == "0.0.4"
     assert all(
         binding.component_id != "external.execution.executor"
         for binding in build_active_facade_bindings()
