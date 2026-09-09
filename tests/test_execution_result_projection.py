@@ -8,12 +8,12 @@ import pytest
 from cogcoder.organization.runtime import OrganizationRuntime
 from nolane.external_core.execution import ExecutionStepReceipt
 from nolane.external_core.execution_types import (
-    DeterministicFixtureBackend,
     ExecutionAction,
     ExecutionBudget,
     ToolAction,
 )
 from nolane.external_core.execution_workspace import RepositoryWorkspace
+from nolane.neural.inference_bridge import DeterministicFixtureBackend
 
 
 def _git(repo: Path, *args: str) -> str:
