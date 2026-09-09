@@ -98,11 +98,14 @@ def _runtime_with_two_sessions(tmp_path: Path):
     return runtime, backend, session_a, session_b, workspace_a, workspace_b
 
 
-def test_modern_execution_session_declares_decision_lineage_v2(tmp_path: Path) -> None:
-    runtime, _backend, session_a, _session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
+def test_modern_execution_snapshot_declares_decision_lineage_v2(tmp_path: Path) -> None:
+    runtime, _backend, session_a, session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
     try:
-        assert session_a.execution_lineage_version == 2
-        assert session_a.to_state()["execution_lineage_version"] == 2
+        execution_state = runtime.to_state()["execution"]
+        assert execution_state["execution_lineage_version"] == 2
+        assert execution_state["execution_lineage_session_ids"] == sorted(
+            [session_a.session_id, session_b.session_id]
+        )
     finally:
         workspace_a.close()
         workspace_b.close()
@@ -180,6 +183,7 @@ def test_restore_rejects_canonical_decision_transplant_between_execution_session
         execution_state["decisions"] = [decision_b]
         execution_state["steps"] = [transplanted_step.to_state()]
         execution_state["request_provenance_decision_ids"] = [decision_b_id]
+        execution_state["execution_lineage_session_ids"] = [session_a.session_id]
         if "context_provenance_decision_ids" in execution_state:
             execution_state["context_provenance_decision_ids"] = [decision_b_id]
 
@@ -190,17 +194,14 @@ def test_restore_rejects_canonical_decision_transplant_between_execution_session
         workspace_b.close()
 
 
-def test_restore_rejects_modern_decision_lineage_session_downgrade(tmp_path: Path) -> None:
+def test_restore_rejects_modern_decision_lineage_snapshot_downgrade(tmp_path: Path) -> None:
     runtime, _backend, session_a, _session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
     try:
         runtime.execution.step(session_a.session_id)
         state = runtime.to_state()
-        for row in state["execution"]["sessions"]:
-            if row["session_id"] == session_a.session_id:
-                row["execution_lineage_version"] = 1
-                break
-        else:
-            raise AssertionError("fixture session missing from execution snapshot")
+        execution_state = state["execution"]
+        execution_state.pop("execution_lineage_version", None)
+        execution_state.pop("execution_lineage_session_ids", None)
 
         with pytest.raises(ValueError, match="lineage.*downgrade|modern.*lineage"):
             OrganizationRuntime.from_state(state)
