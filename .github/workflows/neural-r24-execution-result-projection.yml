@@ -9,6 +9,7 @@ on:
       - "nolane/external_core/**"
       - "cogcoder/organization/**"
       - "tests/test_execution_result_projection.py"
+      - "tests/test_execution_task_completion_projection.py"
       - ".github/workflows/neural-r24-execution-result-projection.yml"
 
 permissions:
@@ -34,4 +35,7 @@ jobs:
       - name: Compile execution result projection surface
         run: python -m compileall -q nolane/external_core cogcoder/organization
       - name: Run execution result projection contract
-        run: python -m pytest -q tests/test_execution_result_projection.py
+        run: >-
+          python -m pytest -q
+          tests/test_execution_result_projection.py
+          tests/test_execution_task_completion_projection.py
