@@ -68,9 +68,12 @@ def _workspace(tmp_path: Path, name: str) -> RepositoryWorkspace:
 def _runtime_with_two_sessions(tmp_path: Path):
     runtime = OrganizationRuntime.first_generation()
     identity = runtime.registry.identities()[0]
-    task_id = "task-decision-lineage"
-    runtime.tasks.add_task(task_id, title="decision lineage", plan_node_id="P1")
-    runtime.tasks.lease(task_id, identity.agent_id)
+    task_a = "task-decision-lineage-a"
+    task_b = "task-decision-lineage-b"
+    runtime.tasks.add_task(task_a, title="decision lineage A", plan_node_id="P1")
+    runtime.tasks.add_task(task_b, title="decision lineage B", plan_node_id="P2")
+    runtime.tasks.lease(task_a, identity.agent_id)
+    runtime.tasks.lease(task_b, identity.agent_id)
     backend = _RecordingBackend()
     runtime.execution.bind_backend(identity.agent_id, backend)
     budget = ExecutionBudget(
@@ -83,14 +86,14 @@ def _runtime_with_two_sessions(tmp_path: Path):
     workspace_b = _workspace(tmp_path, "b")
     session_a = runtime.execution.start(
         agent_id=identity.agent_id,
-        task_id=task_id,
+        task_id=task_a,
         workspace=workspace_a,
         action_schema=("filesystem.read_text",),
         budget=budget,
     )
     session_b = runtime.execution.start(
         agent_id=identity.agent_id,
-        task_id=task_id,
+        task_id=task_b,
         workspace=workspace_b,
         action_schema=("filesystem.read_text",),
         budget=budget,
