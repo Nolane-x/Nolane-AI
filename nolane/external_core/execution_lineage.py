@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextvars import ContextVar
 from typing import Any, Mapping
 
+from nolane.core.canonical_digest import canonical_digest, canonical_json
 from nolane.external_core.execution import (
     ExecutionSession,
     OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
@@ -130,6 +131,90 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         finally:
             binding_encoder.reset(token)
 
+    def _core_output_projection(self, session: ExecutionSession) -> tuple[str, ...]:
+        projected: list[str] = []
+        for step_receipt_id in session.step_receipt_ids:
+            step = self._steps[step_receipt_id]
+            if step.core_receipt_id is None:
+                continue
+            try:
+                core = self.executor.get_receipt(step.core_receipt_id)
+            except Exception as exc:
+                raise ValueError(
+                    "execution result projection references unavailable core receipt"
+                ) from exc
+            core_outputs = tuple(
+                str(artifact_id)
+                for artifact_id in getattr(core, "output_artifact_ids", ())
+            )
+            if step.output_artifact_ids != core_outputs:
+                raise ValueError("execution step output binding mismatch")
+            _extend_unique(projected, core_outputs)
+        return tuple(projected)
+
+    def _attest_completion_output_authority(
+        self,
+        session: ExecutionSession,
+        output_artifact_ids: object,
+        *,
+        grounded_output_artifact_ids: object,
+    ) -> None:
+        grounded = {str(artifact_id) for artifact_id in grounded_output_artifact_ids}
+        for raw_artifact_id in output_artifact_ids:
+            artifact_id = str(raw_artifact_id)
+            if artifact_id in grounded:
+                continue
+            try:
+                artifact = self.artifacts.get(artifact_id)
+            except KeyError as exc:
+                raise ValueError(
+                    "completion output authority references unavailable artifact"
+                ) from exc
+            try:
+                metadata = artifact.metadata
+            except Exception as exc:
+                raise ValueError("completion output provenance metadata is invalid") from exc
+            artifact_payload = {
+                "kind": artifact.kind,
+                "producer_agent_id": artifact.producer_agent_id,
+                "content": artifact.content,
+                "evidence_refs": sorted({str(x) for x in artifact.evidence_refs}),
+                "metadata": metadata,
+            }
+            artifact_digest = canonical_digest(artifact_payload)
+            if (
+                artifact.digest != artifact_digest
+                or artifact.artifact_id != "artifact-" + artifact_digest[:24]
+                or artifact.metadata_json != canonical_json(metadata)
+            ):
+                raise ValueError("completion output artifact digest/id authority mismatch")
+            if artifact.producer_agent_id != session.agent_id:
+                raise ValueError("completion output producer authority binding mismatch")
+            if str(metadata.get("task_id", "")).strip() != session.task_id:
+                raise ValueError("completion output task provenance binding mismatch")
+
+    def _terminal(
+        self,
+        session: ExecutionSession,
+        state: Any,
+        reason: str,
+        *,
+        complete_task: bool = False,
+    ):
+        if complete_task and session.session_id in self._execution_lineage_session_ids:
+            grounded = self._core_output_projection(session)
+            self._attest_completion_output_authority(
+                session,
+                session.output_artifact_ids,
+                grounded_output_artifact_ids=grounded,
+            )
+        return super()._terminal(
+            session,
+            state,
+            reason,
+            complete_task=complete_task,
+        )
+
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
         if self._execution_lineage_session_ids:
@@ -202,23 +287,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
 
             projected_output_artifact_ids: list[str] = []
             if lineaged:
-                for step_receipt_id in session.step_receipt_ids:
-                    step = self._steps[step_receipt_id]
-                    if step.core_receipt_id is None:
-                        continue
-                    try:
-                        core = self.executor.get_receipt(step.core_receipt_id)
-                    except Exception as exc:
-                        raise ValueError(
-                            "execution result projection references unavailable core receipt"
-                        ) from exc
-                    core_outputs = tuple(
-                        str(artifact_id)
-                        for artifact_id in getattr(core, "output_artifact_ids", ())
-                    )
-                    if step.output_artifact_ids != core_outputs:
-                        raise ValueError("execution step output binding mismatch")
-                    _extend_unique(projected_output_artifact_ids, core_outputs)
+                _extend_unique(
+                    projected_output_artifact_ids,
+                    self._core_output_projection(session),
+                )
 
             for receipt_id in session.decision_receipt_ids:
                 decision = self._decisions[receipt_id]
@@ -240,6 +312,11 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                             "persisted inference request workspace epoch binding mismatch"
                         )
                     if decision.action.kind is ExecutionActionKind.COMPLETE:
+                        self._attest_completion_output_authority(
+                            session,
+                            decision.action.output_artifact_ids,
+                            grounded_output_artifact_ids=projected_output_artifact_ids,
+                        )
                         _extend_unique(
                             projected_output_artifact_ids,
                             decision.action.output_artifact_ids,
