@@ -12,6 +12,7 @@ from nolane.external_core.execution_types import (
     ExecutionAction,
     ExecutionBudget,
     InferenceRequest,
+    ToolAction,
 )
 from nolane.external_core.execution_workspace import RepositoryWorkspace
 
@@ -28,7 +29,13 @@ class _RecordingBackend:
         return AgentDecisionReceipt.create(
             backend_id=self.backend_id,
             request=request,
-            action=ExecutionAction.wait(reason="lineage fixture"),
+            action=ExecutionAction.tool(
+                ToolAction.from_arguments(
+                    "filesystem",
+                    "read_text",
+                    {"path": "README.md"},
+                )
+            ),
         )
 
 
@@ -77,14 +84,14 @@ def _runtime_with_two_sessions(tmp_path: Path):
         agent_id=identity.agent_id,
         task_id=task_id,
         workspace=workspace_a,
-        action_schema=("wait",),
+        action_schema=("filesystem.read_text",),
         budget=budget,
     )
     session_b = runtime.execution.start(
         agent_id=identity.agent_id,
         task_id=task_id,
         workspace=workspace_b,
-        action_schema=("wait",),
+        action_schema=("filesystem.read_text",),
         budget=budget,
     )
     return runtime, backend, session_a, session_b, workspace_a, workspace_b
