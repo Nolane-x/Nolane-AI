@@ -8,7 +8,7 @@ from nolane.external_core.execution import (
     ExecutionSession,
     OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
 )
-from nolane.external_core.execution_types import ExecutionActionKind
+from nolane.external_core.execution_types import ExecutionActionKind, ExecutionState
 
 
 _RESTORE_EXECUTION_LINEAGE: ContextVar[tuple[str, ...] | None] = ContextVar(
@@ -301,6 +301,7 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         if unknown:
             raise ValueError("execution lineage references unknown execution session")
 
+        known_artifact_ids = {artifact.artifact_id for artifact in self.artifacts.records()}
         for session in self._sessions.values():
             lineaged = session.session_id in self._execution_lineage_session_ids
             if lineaged and (
@@ -337,15 +338,43 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                             "persisted inference request workspace epoch binding mismatch"
                         )
                     if decision.action.kind is ExecutionActionKind.COMPLETE:
-                        self._attest_completion_output_authority(
-                            session,
-                            decision.action.output_artifact_ids,
-                            grounded_output_artifact_ids=projected_output_artifact_ids,
+                        completion_outputs = tuple(
+                            str(artifact_id)
+                            for artifact_id in decision.action.output_artifact_ids
                         )
-                        _extend_unique(
-                            projected_output_artifact_ids,
-                            decision.action.output_artifact_ids,
+                        missing_outputs = tuple(
+                            artifact_id
+                            for artifact_id in completion_outputs
+                            if artifact_id not in known_artifact_ids
                         )
+                        if missing_outputs:
+                            if session.terminal_receipt_id is None:
+                                raise ValueError(
+                                    "missing completion output lacks failed terminal authority"
+                                )
+                            terminal = self._terminals[session.terminal_receipt_id]
+                            if (
+                                terminal.state is not ExecutionState.FAILED
+                                or terminal.termination_reason
+                                != "completion references unknown output artifacts"
+                                or any(
+                                    artifact_id in session.output_artifact_ids
+                                    for artifact_id in missing_outputs
+                                )
+                            ):
+                                raise ValueError(
+                                    "missing completion output failed-terminal binding mismatch"
+                                )
+                        else:
+                            self._attest_completion_output_authority(
+                                session,
+                                completion_outputs,
+                                grounded_output_artifact_ids=projected_output_artifact_ids,
+                            )
+                            _extend_unique(
+                                projected_output_artifact_ids,
+                                completion_outputs,
+                            )
                 elif (
                     request is not None
                     and request.execution_lineage_version >= 2
