@@ -396,6 +396,12 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                         "modern execution result projection lacks terminal evidence authority"
                     )
                 _extend_unique(projected_output_artifact_ids, (evidence_artifact_id,))
+                if terminal.state is ExecutionState.COMPLETED:
+                    task = self.tasks.get(session.task_id)
+                    if task.completed_by != session.agent_id:
+                        raise ValueError("task completion authority binding mismatch")
+                    if task.output_artifact_ids != terminal.output_artifact_ids:
+                        raise ValueError("task completion output projection binding mismatch")
             if tuple(projected_output_artifact_ids) != session.output_artifact_ids:
                 raise ValueError("execution session output projection mismatch")
 
