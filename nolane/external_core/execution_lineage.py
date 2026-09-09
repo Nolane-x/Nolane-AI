@@ -162,8 +162,6 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         grounded = {str(artifact_id) for artifact_id in grounded_output_artifact_ids}
         for raw_artifact_id in output_artifact_ids:
             artifact_id = str(raw_artifact_id)
-            if artifact_id in grounded:
-                continue
             try:
                 artifact = self.artifacts.get(artifact_id)
             except KeyError as exc:
@@ -186,34 +184,53 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 artifact.digest != artifact_digest
                 or artifact.artifact_id != "artifact-" + artifact_digest[:24]
                 or artifact.metadata_json != canonical_json(metadata)
+                or tuple(artifact.evidence_refs) != tuple(artifact_payload["evidence_refs"])
             ):
                 raise ValueError("completion output artifact digest/id authority mismatch")
+            if artifact_id in grounded:
+                continue
             if artifact.producer_agent_id != session.agent_id:
                 raise ValueError("completion output producer authority binding mismatch")
             if str(metadata.get("task_id", "")).strip() != session.task_id:
                 raise ValueError("completion output task provenance binding mismatch")
 
-    def _terminal(
+    def _attest_decision_receipt(
         self,
-        session: ExecutionSession,
-        state: Any,
-        reason: str,
+        receipt: Any,
         *,
-        complete_task: bool = False,
-    ):
-        if complete_task and session.session_id in self._execution_lineage_session_ids:
-            grounded = self._core_output_projection(session)
-            self._attest_completion_output_authority(
-                session,
-                session.output_artifact_ids,
-                grounded_output_artifact_ids=grounded,
-            )
-        return super()._terminal(
-            session,
-            state,
-            reason,
-            complete_task=complete_task,
+        request: Any,
+        backend: Any,
+    ) -> Any:
+        canonical = super()._attest_decision_receipt(
+            receipt,
+            request=request,
+            backend=backend,
         )
+        if canonical.action.kind is not ExecutionActionKind.COMPLETE:
+            return canonical
+
+        session_id = str(getattr(request, "execution_session_id", "") or "").strip()
+        if not session_id:
+            raise ValueError(
+                "completion output authority requires execution session lineage"
+            )
+        session = self.get_session(session_id)
+        if session.session_id not in self._execution_lineage_session_ids:
+            raise ValueError(
+                "completion output authority requires lineage-v2 execution session"
+            )
+        if (
+            request.agent_id != session.agent_id
+            or request.task_id != session.task_id
+            or request.workspace_epoch_id != session.workspace_epoch_id
+        ):
+            raise ValueError("completion output execution authority binding mismatch")
+        self._attest_completion_output_authority(
+            session,
+            canonical.action.output_artifact_ids,
+            grounded_output_artifact_ids=session.output_artifact_ids,
+        )
+        return canonical
 
     def to_state(self) -> dict[str, Any]:
         state = super().to_state()
