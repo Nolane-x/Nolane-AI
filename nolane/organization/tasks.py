@@ -175,6 +175,8 @@ class TaskGraph:
         output_artifact_ids: tuple[str, ...] = (),
     ) -> TaskRecord:
         old = self.get(task_id)
+        if old.completed_by is not None:
+            raise ValueError(f"task {task_id} is already completed")
         if old.aborted_by is not None:
             raise ValueError(f"task {task_id} is aborted")
         if old.leased_to != str(agent_id):

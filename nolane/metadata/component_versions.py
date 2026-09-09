@@ -15,7 +15,7 @@ _COMPONENT_REVISIONS.update(
         "organization.identity": 1,
         "organization.authority": 1,
         "organization.events": 2,
-        "organization.tasks": 2,
+        "organization.tasks": 3,
         "organization.lifecycle": 1,
         "organization.coordination.leases": 1,
         "organization.coordination.delivery": 1,
