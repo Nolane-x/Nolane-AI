@@ -75,6 +75,9 @@ class CognitiveStateEncoder:
         step_index: int,
         checkpoint_digest: str,
         cognitive_state: CognitiveState | None = None,
+        execution_lineage_version: int = 1,
+        execution_session_id: str | None = None,
+        workspace_epoch_id: str | None = None,
     ) -> InferenceRequest:
         if capsule.agent_id != identity.agent_id:
             raise ValueError('context capsule identity mismatch')
@@ -102,6 +105,9 @@ class CognitiveStateEncoder:
             counters=counters,
             step_index=int(step_index),
             cognitive_state_digest=cognitive_state_digest,
+            execution_lineage_version=int(execution_lineage_version),
+            execution_session_id=execution_session_id,
+            workspace_epoch_id=workspace_epoch_id,
         )
 
 

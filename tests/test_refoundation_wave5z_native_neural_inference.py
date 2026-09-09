@@ -134,8 +134,8 @@ def test_wave5z_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.neural.inference_bridge"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
-    assert str(component_version("neural.inference_bridge")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("neural.inference_bridge")) == "0.0.3"
     assert all(
         binding.component_id != "neural.inference_bridge"
         for binding in build_active_facade_bindings()
