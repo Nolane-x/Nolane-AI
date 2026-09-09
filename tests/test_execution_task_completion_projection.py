@@ -149,3 +149,72 @@ def test_live_task_completion_projection_cannot_be_rebound_after_completion() ->
         )
 
     assert runtime.tasks.get(task_id) == completed
+
+
+def test_live_execution_rejects_task_completed_outside_terminal_authority(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-live-completion-authority-conflict"
+    runtime.tasks.add_task(task_id, title="live completion authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    claimed = runtime.artifacts.put(
+        kind="task-live-execution-output",
+        producer_agent_id=identity.agent_id,
+        content="execution-owned output\n",
+        metadata={"task_id": task_id},
+    )
+    conflicting = runtime.artifacts.put(
+        kind="task-live-external-completion-output",
+        producer_agent_id=identity.agent_id,
+        content="same task but outside terminal authority\n",
+        metadata={"task_id": task_id},
+    )
+    backend = DeterministicFixtureBackend(
+        actions=(
+            ExecutionAction.complete(
+                reason="execution attempts canonical completion",
+                output_artifact_ids=(claimed.artifact_id,),
+            ),
+        ),
+        backend_id="task-live-conflict-backend-v1",
+        checkpoint_digest="task-live-conflict-checkpoint-v1",
+    )
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+
+    try:
+        runtime.tasks.complete(
+            task_id,
+            identity.agent_id,
+            output_artifact_ids=(conflicting.artifact_id,),
+        )
+        session_before = runtime.execution.get_session(session.session_id)
+        task_before = runtime.tasks.get(task_id)
+
+        with pytest.raises(
+            ValueError,
+            match="task.*completion.*authority|completion.*task.*authority",
+        ):
+            runtime.execution.step(session.session_id)
+
+        assert runtime.execution.get_session(session.session_id) == session_before
+        assert runtime.tasks.get(task_id) == task_before
+        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+        assert runtime.execution.get_session(session.session_id).decision_receipt_ids == ()
+    finally:
+        workspace.close()
