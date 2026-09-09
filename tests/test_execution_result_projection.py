@@ -287,6 +287,13 @@ def test_live_completion_unknown_output_preserves_failed_terminal_contract(
         assert "unknown output artifacts" in terminal.termination_reason
         assert missing_artifact_id not in terminal.output_artifact_ids
         assert runtime.tasks.get(task_id).completed_by is None
+
+        restored = OrganizationRuntime.from_state(runtime.to_state())
+        restored_terminal = restored.execution.get_terminal_receipt(terminal.receipt_id)
+        assert restored_terminal.state.value == "failed"
+        assert restored_terminal.termination_reason == terminal.termination_reason
+        assert missing_artifact_id not in restored_terminal.output_artifact_ids
+        assert restored.tasks.get(task_id).completed_by is None
     finally:
         workspace.close()
 
