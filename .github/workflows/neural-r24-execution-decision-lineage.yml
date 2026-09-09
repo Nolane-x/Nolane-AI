@@ -1,0 +1,36 @@
+name: Neural R2.4 Execution Decision Lineage
+
+on:
+  push:
+    branches:
+      - neural-r24-execution-decision-lineage-gpt56sol
+  pull_request:
+    paths:
+      - "nolane/external_core/**"
+      - "nolane/neural/**"
+      - "cogcoder/organization/**"
+      - "tests/test_execution_decision_lineage.py"
+      - ".github/workflows/neural-r24-execution-decision-lineage.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  lineage-contract:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test runner
+        run: python -m pip install --disable-pip-version-check pytest
+      - name: Compile execution lineage surface
+        run: python -m compileall -q nolane/external_core nolane/neural cogcoder/organization
+      - name: Run execution decision lineage contract
+        run: python -m pytest -q tests/test_execution_decision_lineage.py
