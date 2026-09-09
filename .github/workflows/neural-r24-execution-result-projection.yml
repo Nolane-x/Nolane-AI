@@ -10,6 +10,7 @@ on:
       - "cogcoder/organization/**"
       - "tests/test_execution_result_projection.py"
       - "tests/test_execution_task_completion_projection.py"
+      - "tests/test_execution_post_inference_task_authority.py"
       - ".github/workflows/neural-r24-execution-result-projection.yml"
 
 permissions:
@@ -39,3 +40,4 @@ jobs:
           python -m pytest -q
           tests/test_execution_result_projection.py
           tests/test_execution_task_completion_projection.py
+          tests/test_execution_post_inference_task_authority.py
