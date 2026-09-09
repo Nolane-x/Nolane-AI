@@ -105,6 +105,11 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             self.encoder._base = _ExecutionLineageEncoder(base_encoder)
 
     def start(self, **kwargs: Any) -> ExecutionSession:
+        task_id = str(kwargs.get("task_id", "")).strip()
+        if task_id:
+            task = self.tasks.get(task_id)
+            if task.completed_by is not None:
+                raise ValueError(f"task {task_id} is already completed")
         session = super().start(**kwargs)
         self._execution_lineage_session_ids.add(session.session_id)
         return session
