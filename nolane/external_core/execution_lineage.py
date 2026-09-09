@@ -110,11 +110,6 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             task = self.tasks.get(task_id)
             if task.completed_by is not None:
                 raise ValueError(f"task {task_id} is already completed")
-            if any(
-                session.task_id == task_id and session.terminal_receipt_id is None
-                for session in self._sessions.values()
-            ):
-                raise ValueError(f"task {task_id} already has an active execution")
         session = super().start(**kwargs)
         self._execution_lineage_session_ids.add(session.session_id)
         return session
