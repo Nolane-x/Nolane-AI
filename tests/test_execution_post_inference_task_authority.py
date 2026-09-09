@@ -1,0 +1,122 @@
+from __future__ import annotations
+
+import subprocess
+from pathlib import Path
+
+import pytest
+
+from cogcoder.organization.runtime import OrganizationRuntime
+from nolane.external_core.execution_types import (
+    AgentDecisionReceipt,
+    ExecutionAction,
+    ExecutionBudget,
+    InferenceRequest,
+    ToolAction,
+)
+from nolane.external_core.execution_workspace import RepositoryWorkspace
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.strip()
+
+
+def _workspace(tmp_path: Path) -> RepositoryWorkspace:
+    source = tmp_path / "source"
+    source.mkdir()
+    _git(source, "init")
+    _git(source, "config", "user.email", "post-inference-authority@example.invalid")
+    _git(source, "config", "user.name", "Post Inference Authority")
+    (source / "README.md").write_text("post inference authority base\n", encoding="utf-8")
+    _git(source, "add", ".")
+    _git(source, "commit", "-m", "base")
+    return RepositoryWorkspace.create(
+        source_repo=source,
+        revision="HEAD",
+        workspace_root=tmp_path / "workspace",
+    )
+
+
+def test_tool_action_revalidates_task_completion_authority_after_inference_before_dispatch(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-post-inference-stale-tool-authority"
+    runtime.tasks.add_task(task_id, title="stale tool authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    authoritative = runtime.artifacts.put(
+        kind="post-inference-authoritative-completion",
+        producer_agent_id=identity.agent_id,
+        content="completion claimed while inference is running\n",
+        metadata={"task_id": task_id},
+    )
+
+    class _CompletionStealingToolBackend:
+        backend_id = "post-inference-stale-tool-backend-v1"
+        checkpoint_digest = "post-inference-stale-tool-checkpoint-v1"
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            runtime.tasks.complete(
+                task_id,
+                identity.agent_id,
+                output_artifact_ids=(authoritative.artifact_id,),
+            )
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.tool(
+                    ToolAction.from_arguments(
+                        "filesystem",
+                        "read_text",
+                        {"path": "README.md"},
+                    )
+                ),
+            )
+
+    runtime.execution.bind_backend(identity.agent_id, _CompletionStealingToolBackend())
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+
+    try:
+        session_before = runtime.execution.get_session(session.session_id)
+        execution_before = runtime.execution.to_state()
+        workspace_digest_before = workspace.digest
+
+        with pytest.raises(
+            ValueError,
+            match="task.*completion.*authority|completion.*task.*authority|task.*completed",
+        ):
+            runtime.execution.step(session.session_id)
+
+        task = runtime.tasks.get(task_id)
+        assert task.completed_by == identity.agent_id
+        assert task.output_artifact_ids == (authoritative.artifact_id,)
+
+        assert runtime.execution.get_session(session.session_id) == session_before
+        assert runtime.execution.to_state() == execution_before
+        assert runtime.execution.get_session(session.session_id).decision_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).step_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+        assert runtime.execution.terminal_receipts() == ()
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
