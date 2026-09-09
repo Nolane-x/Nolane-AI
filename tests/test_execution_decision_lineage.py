@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
+from nolane.external_core.execution import ExecutionStepReceipt
 from nolane.external_core.execution_types import (
     AgentDecisionReceipt,
     ExecutionAction,
@@ -94,6 +95,7 @@ def test_modern_inference_request_is_bound_to_execution_session_and_epoch(tmp_pa
     try:
         runtime.execution.step(session_a.session_id)
         request = backend.requests[-1]
+        assert request.execution_lineage_version == 2
         assert request.execution_session_id == session_a.session_id
         assert request.workspace_epoch_id == session_a.workspace_epoch_id
     finally:
@@ -101,27 +103,42 @@ def test_modern_inference_request_is_bound_to_execution_session_and_epoch(tmp_pa
         workspace_b.close()
 
 
-def test_restore_rejects_decision_transplanted_between_execution_sessions(tmp_path: Path) -> None:
+def test_restore_rejects_canonical_decision_transplant_between_execution_sessions(tmp_path: Path) -> None:
     runtime, _backend, session_a, session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
     try:
-        runtime.execution.step(session_a.session_id)
+        step_a = runtime.execution.step(session_a.session_id)
         runtime.execution.step(session_b.session_id)
         state = runtime.to_state()
 
         execution_state = state["execution"]
         sessions = {row["session_id"]: row for row in execution_state["sessions"]}
         decisions = {row["receipt_id"]: row for row in execution_state["decisions"]}
-        session_a_state = sessions[session_a.session_id]
+        session_a_state = dict(sessions[session_a.session_id])
         session_b_state = sessions[session_b.session_id]
-        decision_a_id = session_a_state["decision_receipt_ids"][0]
         decision_b_id = session_b_state["decision_receipt_ids"][0]
-
-        decision_a = decisions[decision_a_id]
         decision_b = decisions[decision_b_id]
-        decision_a["request"] = dict(decision_a["request"])
-        decision_a["request"]["execution_session_id"] = session_b.session_id
-        decision_a["request"]["workspace_epoch_id"] = session_b.workspace_epoch_id
-        decision_a["request_digest"] = decision_b["request_digest"]
+
+        assert isinstance(step_a, ExecutionStepReceipt)
+        transplanted_step = ExecutionStepReceipt.create(
+            session_id=session_a.session_id,
+            step_index=step_a.step_index,
+            decision_receipt_id=decision_b_id,
+            core_receipt_id=step_a.core_receipt_id,
+            before_workspace_digest=step_a.before_workspace_digest,
+            after_workspace_digest=step_a.after_workspace_digest,
+            state_after=step_a.state_after,
+            output_artifact_ids=step_a.output_artifact_ids,
+            core_contract_digest=step_a.core_contract_digest,
+            workspace_epoch_id=step_a.workspace_epoch_id,
+        )
+        session_a_state["decision_receipt_ids"] = [decision_b_id]
+        session_a_state["step_receipt_ids"] = [transplanted_step.receipt_id]
+        execution_state["sessions"] = [session_a_state]
+        execution_state["decisions"] = [decision_b]
+        execution_state["steps"] = [transplanted_step.to_state()]
+        execution_state["request_provenance_decision_ids"] = [decision_b_id]
+        if "context_provenance_decision_ids" in execution_state:
+            execution_state["context_provenance_decision_ids"] = [decision_b_id]
 
         with pytest.raises(ValueError, match="execution session|workspace epoch|lineage"):
             OrganizationRuntime.from_state(state)
