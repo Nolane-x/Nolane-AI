@@ -247,6 +247,50 @@ def test_live_completion_accepts_core_grounded_output_without_task_metadata(
         workspace.close()
 
 
+def test_live_completion_unknown_output_preserves_failed_terminal_contract(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-execution-result-projection"
+    runtime.tasks.add_task(task_id, title="execution result projection", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+    missing_artifact_id = "artifact-does-not-exist"
+    backend = DeterministicFixtureBackend(
+        actions=(
+            ExecutionAction.complete(
+                reason="claim unknown output",
+                output_artifact_ids=(missing_artifact_id,),
+            ),
+        ),
+        backend_id="result-projection-backend-v1",
+        checkpoint_digest="result-projection-checkpoint-v1",
+    )
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+    try:
+        terminal = runtime.execution.step(session.session_id)
+        assert isinstance(terminal, ExecutionTerminalReceipt)
+        assert terminal.state.value == "failed"
+        assert "unknown output artifacts" in terminal.termination_reason
+        assert missing_artifact_id not in terminal.output_artifact_ids
+        assert runtime.tasks.get(task_id).completed_by is None
+    finally:
+        workspace.close()
+
+
 def test_restore_rejects_canonical_step_output_projection_that_disagrees_with_core_receipt(
     tmp_path: Path,
 ) -> None:
