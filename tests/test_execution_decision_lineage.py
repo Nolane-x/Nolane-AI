@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
+from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.execution import ExecutionStepReceipt
 from nolane.external_core.execution_types import (
     AgentDecisionReceipt,
@@ -97,6 +98,16 @@ def _runtime_with_two_sessions(tmp_path: Path):
     return runtime, backend, session_a, session_b, workspace_a, workspace_b
 
 
+def test_modern_execution_session_declares_decision_lineage_v2(tmp_path: Path) -> None:
+    runtime, _backend, session_a, _session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
+    try:
+        assert session_a.execution_lineage_version == 2
+        assert session_a.to_state()["execution_lineage_version"] == 2
+    finally:
+        workspace_a.close()
+        workspace_b.close()
+
+
 def test_modern_inference_request_is_bound_to_execution_session_and_epoch(tmp_path: Path) -> None:
     runtime, backend, session_a, _session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
     try:
@@ -108,6 +119,31 @@ def test_modern_inference_request_is_bound_to_execution_session_and_epoch(tmp_pa
     finally:
         workspace_a.close()
         workspace_b.close()
+
+
+def test_legacy_inference_request_round_trip_omits_modern_lineage_fields() -> None:
+    state = {
+        "agent_id": "agent-legacy",
+        "neural_version": "legacy-neural",
+        "task_id": "task-legacy",
+        "context_digest": "context-legacy",
+        "encoder_version": "encoder-legacy",
+        "checkpoint_digest": "checkpoint-legacy",
+        "action_schema": ["filesystem.read_text"],
+        "action_schema_digest": canonical_digest(["filesystem.read_text"]),
+        "counters": {
+            "steps": 0,
+            "tool_calls": 0,
+            "external_core_calls": 0,
+            "compute_units": 0,
+        },
+        "step_index": 0,
+    }
+    request = InferenceRequest.from_state(state)
+    assert request.execution_lineage_version == 1
+    assert request.execution_session_id is None
+    assert request.workspace_epoch_id is None
+    assert request.to_state() == state
 
 
 def test_restore_rejects_canonical_decision_transplant_between_execution_sessions(tmp_path: Path) -> None:
@@ -148,6 +184,25 @@ def test_restore_rejects_canonical_decision_transplant_between_execution_session
             execution_state["context_provenance_decision_ids"] = [decision_b_id]
 
         with pytest.raises(ValueError, match="execution session|workspace epoch|lineage"):
+            OrganizationRuntime.from_state(state)
+    finally:
+        workspace_a.close()
+        workspace_b.close()
+
+
+def test_restore_rejects_modern_decision_lineage_session_downgrade(tmp_path: Path) -> None:
+    runtime, _backend, session_a, _session_b, workspace_a, workspace_b = _runtime_with_two_sessions(tmp_path)
+    try:
+        runtime.execution.step(session_a.session_id)
+        state = runtime.to_state()
+        for row in state["execution"]["sessions"]:
+            if row["session_id"] == session_a.session_id:
+                row["execution_lineage_version"] = 1
+                break
+        else:
+            raise AssertionError("fixture session missing from execution snapshot")
+
+        with pytest.raises(ValueError, match="lineage.*downgrade|modern.*lineage"):
             OrganizationRuntime.from_state(state)
     finally:
         workspace_a.close()
