@@ -98,6 +98,56 @@ def _execution_session_state(execution_state: dict, session_id: str) -> dict:
     return dict(rows[0])
 
 
+def test_live_completion_rejects_canonical_artifact_owned_by_another_task(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-execution-result-projection"
+    runtime.tasks.add_task(task_id, title="execution result projection", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+    foreign = runtime.artifacts.put(
+        kind="result-projection-foreign-task-output",
+        producer_agent_id=identity.agent_id,
+        content="canonical output owned by another task\n",
+        metadata={"task_id": "task-foreign-output-owner"},
+    )
+    backend = DeterministicFixtureBackend(
+        actions=(
+            ExecutionAction.complete(
+                reason="claim foreign output",
+                output_artifact_ids=(foreign.artifact_id,),
+            ),
+        ),
+        backend_id="result-projection-backend-v1",
+        checkpoint_digest="result-projection-checkpoint-v1",
+    )
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+    try:
+        with pytest.raises(
+            ValueError,
+            match="completion output.*(authority|provenance|binding)",
+        ):
+            runtime.execution.step(session.session_id)
+        assert runtime.tasks.get(task_id).completed_by is None
+        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+    finally:
+        workspace.close()
+
+
 def test_restore_rejects_canonical_step_output_projection_that_disagrees_with_core_receipt(
     tmp_path: Path,
 ) -> None:
