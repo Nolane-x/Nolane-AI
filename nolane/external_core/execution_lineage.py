@@ -205,6 +205,31 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             if str(metadata.get("task_id", "")).strip() != session.task_id:
                 raise ValueError("completion output task provenance binding mismatch")
 
+    def _attest_post_inference_task_authority(self, request: Any) -> None:
+        if int(getattr(request, "execution_lineage_version", 1)) < 2:
+            return
+        session_id = str(getattr(request, "execution_session_id", "") or "").strip()
+        if not session_id:
+            raise ValueError(
+                "post-inference task authority requires execution session lineage"
+            )
+        session = self.get_session(session_id)
+        if session.session_id not in self._execution_lineage_session_ids:
+            raise ValueError(
+                "post-inference task authority requires lineage-v2 execution session"
+            )
+        if (
+            request.agent_id != session.agent_id
+            or request.task_id != session.task_id
+            or request.workspace_epoch_id != session.workspace_epoch_id
+        ):
+            raise ValueError("post-inference task execution authority binding mismatch")
+        task = self.tasks.get(session.task_id)
+        if task.completed_by is not None:
+            raise ValueError(
+                "task completion authority already claimed during inference"
+            )
+
     def _attest_decision_receipt(
         self,
         receipt: Any,
@@ -217,6 +242,7 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             request=request,
             backend=backend,
         )
+        self._attest_post_inference_task_authority(request)
         if canonical.action.kind is not ExecutionActionKind.COMPLETE:
             return canonical
 
