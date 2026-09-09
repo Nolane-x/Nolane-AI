@@ -120,6 +120,11 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise RuntimeError(
                 "execution lineage-v2 requires proof-v2 workspace epoch authority"
             )
+        task = self.tasks.get(session.task_id)
+        if session.terminal_receipt_id is None and task.completed_by is not None:
+            raise ValueError(
+                "task completion authority already claimed outside execution terminal"
+            )
         binding_encoder = getattr(self.encoder, "_base", None)
         if not isinstance(binding_encoder, _ExecutionLineageEncoder):
             raise RuntimeError("execution lineage encoder authority is unavailable")
