@@ -229,6 +229,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise ValueError(
                 "task completion authority already claimed during inference"
             )
+        if task.aborted_by is not None:
+            raise ValueError("task abort authority already claimed during inference")
+        if task.leased_to != session.agent_id:
+            raise PermissionError("task lease authority changed during inference")
 
     def _attest_decision_receipt(
         self,
