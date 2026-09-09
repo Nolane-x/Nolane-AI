@@ -142,8 +142,20 @@ def test_live_completion_rejects_canonical_artifact_owned_by_another_task(
             match="completion output.*(authority|provenance|binding)",
         ):
             runtime.execution.step(session.session_id)
+
+        rejected = runtime.execution.get_session(session.session_id)
         assert runtime.tasks.get(task_id).completed_by is None
-        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+        assert rejected.terminal_receipt_id is None
+        assert rejected.output_artifact_ids == ()
+        assert rejected.decision_receipt_ids == ()
+        assert rejected.counters.steps == 0
+        assert rejected.step_index == 0
+
+        restored = OrganizationRuntime.from_state(runtime.to_state())
+        restored_session = restored.execution.get_session(session.session_id)
+        assert restored_session.output_artifact_ids == ()
+        assert restored_session.decision_receipt_ids == ()
+        assert restored.tasks.get(task_id).completed_by is None
     finally:
         workspace.close()
 
