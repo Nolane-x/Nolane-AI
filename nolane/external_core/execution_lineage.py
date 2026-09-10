@@ -112,6 +112,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-execution-authority-revision-{id(self)}",
             default=None,
         )
+        self._active_task_lease_authority_revision: ContextVar[int | None] = ContextVar(
+            f"nolane-active-task-lease-authority-revision-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -168,19 +172,29 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 self.registry.execution_authority_revision(session.agent_id)
             )
             try:
-                identity_status_token = self._active_identity_status.set(
-                    self.registry.get(session.agent_id).status
+                task_lease_authority_revision_token = (
+                    self._active_task_lease_authority_revision.set(
+                        self.tasks.lease_authority_revision(session.task_id)
+                    )
                 )
                 try:
-                    frontier_token = self._active_context_frontier.set(
-                        self._authoritative_context_frontier()
+                    identity_status_token = self._active_identity_status.set(
+                        self.registry.get(session.agent_id).status
                     )
                     try:
-                        return super().step(session_id)
+                        frontier_token = self._active_context_frontier.set(
+                            self._authoritative_context_frontier()
+                        )
+                        try:
+                            return super().step(session_id)
+                        finally:
+                            self._active_context_frontier.reset(frontier_token)
                     finally:
-                        self._active_context_frontier.reset(frontier_token)
+                        self._active_identity_status.reset(identity_status_token)
                 finally:
-                    self._active_identity_status.reset(identity_status_token)
+                    self._active_task_lease_authority_revision.reset(
+                        task_lease_authority_revision_token
+                    )
             finally:
                 self._active_execution_authority_revision.reset(authority_revision_token)
         finally:
@@ -308,6 +322,18 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         if backend.backend_id != session.backend_id:
             raise RuntimeError("backend identity authority changed during inference")
         task = self.tasks.get(session.task_id)
+        expected_lease_authority_revision = (
+            self._active_task_lease_authority_revision.get()
+        )
+        if expected_lease_authority_revision is None:
+            raise RuntimeError(
+                "post-inference task lease authority requires captured revocation revision"
+            )
+        if (
+            self.tasks.lease_authority_revision(session.task_id)
+            != expected_lease_authority_revision
+        ):
+            raise PermissionError("task lease authority was revoked during inference")
         if task.completed_by is not None:
             raise ValueError(
                 "task completion authority already claimed during inference"

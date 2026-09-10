@@ -8,12 +8,16 @@ on:
     paths:
       - "nolane/external_core/**"
       - "nolane/organization/identity.py"
+      - "nolane/organization/tasks.py"
+      - "nolane/organization/coordination_leases.py"
       - "cogcoder/organization/**"
       - "tests/test_execution_result_projection.py"
       - "tests/test_execution_task_completion_projection.py"
       - "tests/test_execution_post_inference_task_authority.py"
       - "tests/test_execution_post_inference_lifecycle_authority.py"
+      - "tests/test_execution_transient_task_lease_authority.py"
       - "tests/test_execution_authority_revision.py"
+      - "tests/test_task_lease_authority_revision.py"
       - "tests/test_execution_post_inference_neural_version_authority.py"
       - "tests/test_execution_post_inference_backend_checkpoint_authority.py"
       - "tests/test_execution_post_inference_context_frontier_authority.py"
@@ -48,7 +52,9 @@ jobs:
           tests/test_execution_task_completion_projection.py
           tests/test_execution_post_inference_task_authority.py
           tests/test_execution_post_inference_lifecycle_authority.py
+          tests/test_execution_transient_task_lease_authority.py
           tests/test_execution_authority_revision.py
+          tests/test_task_lease_authority_revision.py
           tests/test_execution_post_inference_neural_version_authority.py
           tests/test_execution_post_inference_backend_checkpoint_authority.py
           tests/test_execution_post_inference_context_frontier_authority.py
