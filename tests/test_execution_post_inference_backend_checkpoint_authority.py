@@ -114,3 +114,79 @@ def test_completion_revalidates_live_backend_checkpoint_after_inference_before_p
         assert workspace.active_execution_epoch_owner == session.session_id
     finally:
         workspace.close()
+
+
+def test_completion_revalidates_live_backend_identity_after_inference_before_persisting_decision(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-post-inference-backend-identity-authority"
+    runtime.tasks.add_task(task_id, title="backend identity authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    class _IdentityChangingCompletionBackend:
+        def __init__(self) -> None:
+            self.backend_id = "post-inference-backend-identity-v1"
+            self.initial_backend_id = self.backend_id
+            self.replacement_backend_id = "post-inference-backend-identity-v2"
+            self.checkpoint_digest = "post-inference-backend-identity-checkpoint-v1"
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            assert request.checkpoint_digest == self.checkpoint_digest
+            self.backend_id = self.replacement_backend_id
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.complete(
+                    reason="stale completion after live backend identity changed during inference",
+                ),
+            )
+
+    backend = _IdentityChangingCompletionBackend()
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+
+    try:
+        session_before = runtime.execution.get_session(session.session_id)
+        execution_before = runtime.execution.to_state()
+        workspace_digest_before = workspace.digest
+        assert session.backend_id == backend.initial_backend_id
+
+        with pytest.raises(
+            RuntimeError,
+            match="backend.*identity|backend.*id|execution.*authority",
+        ):
+            runtime.execution.step(session.session_id)
+
+        assert backend.backend_id == backend.replacement_backend_id
+
+        task = runtime.tasks.get(task_id)
+        assert task.completed_by is None
+        assert task.aborted_by is None
+        assert task.leased_to == identity.agent_id
+
+        assert runtime.execution.get_session(session.session_id) == session_before
+        assert runtime.execution.to_state() == execution_before
+        assert runtime.execution.get_session(session.session_id).decision_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).step_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+        assert runtime.execution.terminal_receipts() == ()
+
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
