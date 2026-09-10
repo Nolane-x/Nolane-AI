@@ -104,6 +104,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-authoritative-context-frontier-{id(self)}",
             default=None,
         )
+        self._active_identity_status: ContextVar[AgentStatus | None] = ContextVar(
+            f"nolane-active-identity-status-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -156,13 +160,19 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            frontier_token = self._active_context_frontier.set(
-                self._authoritative_context_frontier()
+            identity_status_token = self._active_identity_status.set(
+                self.registry.get(session.agent_id).status
             )
             try:
-                return super().step(session_id)
+                frontier_token = self._active_context_frontier.set(
+                    self._authoritative_context_frontier()
+                )
+                try:
+                    return super().step(session_id)
+                finally:
+                    self._active_context_frontier.reset(frontier_token)
             finally:
-                self._active_context_frontier.reset(frontier_token)
+                self._active_identity_status.reset(identity_status_token)
         finally:
             binding_encoder.reset(token)
 
@@ -262,6 +272,14 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         identity = self.registry.get(session.agent_id)
         if identity.status is AgentStatus.PAUSED:
             raise PermissionError("agent pause authority changed during inference")
+        if identity.status is AgentStatus.SLEEPING:
+            expected_identity_status = self._active_identity_status.get()
+            if expected_identity_status is None:
+                raise RuntimeError(
+                    "post-inference lifecycle authority requires captured identity status"
+                )
+            if expected_identity_status is not AgentStatus.SLEEPING:
+                raise PermissionError("agent sleep authority changed during inference")
         if identity.neural_version != request.neural_version:
             raise ValueError("neural version authority changed during inference")
         backend = self._backends.get(session.agent_id)
