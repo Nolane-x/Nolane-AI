@@ -233,6 +233,13 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise ValueError("task abort authority already claimed during inference")
         if task.leased_to != session.agent_id:
             raise PermissionError("task lease authority changed during inference")
+        workspace = self._workspaces.get(session.session_id)
+        if workspace is None:
+            raise RuntimeError(
+                "post-inference workspace authority requires attached execution workspace"
+            )
+        if workspace.digest != session.current_workspace_digest:
+            raise RuntimeError("workspace digest changed during inference")
 
     def _attest_decision_receipt(
         self,
