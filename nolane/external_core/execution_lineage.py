@@ -230,6 +230,9 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise PermissionError("agent pause authority changed during inference")
         if identity.neural_version != request.neural_version:
             raise ValueError("neural version authority changed during inference")
+        backend = self._backends.get(session.agent_id)
+        if backend is None or backend.checkpoint_digest != session.checkpoint_digest:
+            raise RuntimeError("backend checkpoint authority changed during inference")
         task = self.tasks.get(session.task_id)
         if task.completed_by is not None:
             raise ValueError(
