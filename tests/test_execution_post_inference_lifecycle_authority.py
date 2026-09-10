@@ -46,6 +46,9 @@ def test_completion_revalidates_sleep_authority_after_inference_before_persistin
 ) -> None:
     runtime = OrganizationRuntime.first_generation()
     identity = runtime.registry.identities()[0]
+    runtime.registry.set_status(identity.agent_id, AgentStatus.ACTIVE)
+    assert runtime.registry.get(identity.agent_id).status is AgentStatus.ACTIVE
+
     task_id = "task-post-inference-identity-sleep-authority"
     runtime.tasks.add_task(task_id, title="identity sleep authority", plan_node_id="P1")
     runtime.tasks.lease(task_id, identity.agent_id)
@@ -61,6 +64,7 @@ def test_completion_revalidates_sleep_authority_after_inference_before_persistin
             # must transition through WAKING before returning the agent to ACTIVE.
             # The TaskGraph lease deliberately remains intact to isolate lifecycle
             # authority drift from lease authority drift.
+            assert runtime.registry.get(identity.agent_id).status is AgentStatus.ACTIVE
             runtime.registry.set_status(identity.agent_id, AgentStatus.SLEEPING)
             return AgentDecisionReceipt.create(
                 backend_id=self.backend_id,
