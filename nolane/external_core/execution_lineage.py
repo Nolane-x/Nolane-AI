@@ -98,6 +98,7 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 raise ValueError("execution lineage restore authority mismatch")
             supplied = restoring
         self._execution_lineage_session_ids = set(supplied)
+        self._workspace_attachment_authority_revisions: dict[str, int] = {}
         self._active_context_frontier: ContextVar[
             tuple[tuple[str, str], ...] | None
         ] = ContextVar(
@@ -124,6 +125,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-workspace-execution-epoch-generation-{id(self)}",
             default=None,
         )
+        self._active_workspace_attachment_authority_revision: ContextVar[int | None] = ContextVar(
+            f"nolane-active-workspace-attachment-authority-revision-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -140,7 +145,26 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 raise ValueError(f"task {task_id} is already completed")
         session = super().start(**kwargs)
         self._execution_lineage_session_ids.add(session.session_id)
+        self._workspace_attachment_authority_revisions[session.session_id] = 1
         return session
+
+    def attach_workspace(self, session_id: str, workspace: Any) -> None:
+        session = self.get_session(session_id)
+        previous_workspace = self._workspaces.get(session.session_id)
+        super().attach_workspace(session.session_id, workspace)
+        if previous_workspace is workspace:
+            self._workspace_attachment_authority_revisions.setdefault(
+                session.session_id,
+                1,
+            )
+            return
+        self._workspace_attachment_authority_revisions[session.session_id] = (
+            self._workspace_attachment_authority_revisions.get(session.session_id, 0) + 1
+        )
+
+    def workspace_attachment_authority_revision(self, session_id: str) -> int:
+        session = self.get_session(session_id)
+        return self._workspace_attachment_authority_revisions.get(session.session_id, 0)
 
     def _authoritative_context_frontier(self) -> tuple[tuple[str, str], ...] | None:
         intelligence = getattr(self.context, "context_intelligence", None)
@@ -173,6 +197,13 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise RuntimeError(
                 "execution lineage-v2 requires attached execution workspace"
             )
+        attachment_revision = self.workspace_attachment_authority_revision(
+            session.session_id
+        )
+        if attachment_revision <= 0:
+            raise RuntimeError(
+                "execution lineage-v2 requires workspace attachment authority"
+            )
         binding_encoder = getattr(self.encoder, "_base", None)
         if not isinstance(binding_encoder, _ExecutionLineageEncoder):
             raise RuntimeError("execution lineage encoder authority is unavailable")
@@ -181,54 +212,64 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            workspace_generation_token = (
-                self._active_workspace_execution_epoch_generation.set(
-                    workspace.execution_epoch_generation
+            workspace_attachment_token = (
+                self._active_workspace_attachment_authority_revision.set(
+                    attachment_revision
                 )
             )
             try:
-                authority_revision_token = self._active_execution_authority_revision.set(
-                    self.registry.execution_authority_revision(session.agent_id)
+                workspace_generation_token = (
+                    self._active_workspace_execution_epoch_generation.set(
+                        workspace.execution_epoch_generation
+                    )
                 )
                 try:
-                    neural_version_authority_revision_token = (
-                        self._active_neural_version_authority_revision.set(
-                            self.registry.neural_version_authority_revision(session.agent_id)
-                        )
+                    authority_revision_token = self._active_execution_authority_revision.set(
+                        self.registry.execution_authority_revision(session.agent_id)
                     )
                     try:
-                        task_lease_authority_revision_token = (
-                            self._active_task_lease_authority_revision.set(
-                                self.tasks.lease_authority_revision(session.task_id)
+                        neural_version_authority_revision_token = (
+                            self._active_neural_version_authority_revision.set(
+                                self.registry.neural_version_authority_revision(session.agent_id)
                             )
                         )
                         try:
-                            identity_status_token = self._active_identity_status.set(
-                                self.registry.get(session.agent_id).status
+                            task_lease_authority_revision_token = (
+                                self._active_task_lease_authority_revision.set(
+                                    self.tasks.lease_authority_revision(session.task_id)
+                                )
                             )
                             try:
-                                frontier_token = self._active_context_frontier.set(
-                                    self._authoritative_context_frontier()
+                                identity_status_token = self._active_identity_status.set(
+                                    self.registry.get(session.agent_id).status
                                 )
                                 try:
-                                    return super().step(session_id)
+                                    frontier_token = self._active_context_frontier.set(
+                                        self._authoritative_context_frontier()
+                                    )
+                                    try:
+                                        return super().step(session_id)
+                                    finally:
+                                        self._active_context_frontier.reset(frontier_token)
                                 finally:
-                                    self._active_context_frontier.reset(frontier_token)
+                                    self._active_identity_status.reset(identity_status_token)
                             finally:
-                                self._active_identity_status.reset(identity_status_token)
+                                self._active_task_lease_authority_revision.reset(
+                                    task_lease_authority_revision_token
+                                )
                         finally:
-                            self._active_task_lease_authority_revision.reset(
-                                task_lease_authority_revision_token
+                            self._active_neural_version_authority_revision.reset(
+                                neural_version_authority_revision_token
                             )
                     finally:
-                        self._active_neural_version_authority_revision.reset(
-                            neural_version_authority_revision_token
-                        )
+                        self._active_execution_authority_revision.reset(authority_revision_token)
                 finally:
-                    self._active_execution_authority_revision.reset(authority_revision_token)
+                    self._active_workspace_execution_epoch_generation.reset(
+                        workspace_generation_token
+                    )
             finally:
-                self._active_workspace_execution_epoch_generation.reset(
-                    workspace_generation_token
+                self._active_workspace_attachment_authority_revision.reset(
+                    workspace_attachment_token
                 )
         finally:
             binding_encoder.reset(token)
@@ -405,6 +446,20 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         if workspace.execution_epoch_generation != expected_workspace_generation:
             raise PermissionError(
                 "workspace execution epoch authority was revoked during inference"
+            )
+        expected_attachment_revision = (
+            self._active_workspace_attachment_authority_revision.get()
+        )
+        if expected_attachment_revision is None:
+            raise RuntimeError(
+                "post-inference workspace authority requires captured attachment revision"
+            )
+        if (
+            self.workspace_attachment_authority_revision(session.session_id)
+            != expected_attachment_revision
+        ):
+            raise PermissionError(
+                "workspace attachment authority was rebound during inference"
             )
 
     def _attest_decision_receipt(
