@@ -7,6 +7,7 @@ on:
   pull_request:
     paths:
       - "nolane/external_core/**"
+      - "nolane/organization/identity.py"
       - "cogcoder/organization/**"
       - "tests/test_execution_result_projection.py"
       - "tests/test_execution_task_completion_projection.py"
