@@ -10,7 +10,7 @@ from .events import EventLedger
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.tasks"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.tasks"
 PLAN_REVISION_AUTHORITY = "external.planning"
 
@@ -69,6 +69,7 @@ class TaskGraph:
         self.registry = registry
         self.authority = authority
         self._tasks: dict[str, TaskRecord] = {}
+        self._lease_authority_revisions: dict[str, int] = {}
         self._plan_nodes: list[str] = []
         self._plan_version = 0
         self._plan_revision_authority: str | None = PLAN_REVISION_AUTHORITY
@@ -126,6 +127,7 @@ class TaskGraph:
             raise ValueError("task title and plan node must be non-empty")
         row = TaskRecord(task_id=task_id, title=str(title), plan_node_id=str(plan_node_id))
         self._tasks[task_id] = row
+        self._lease_authority_revisions[task_id] = 0
         return row
 
     def get(self, task_id: str) -> TaskRecord:
@@ -136,6 +138,11 @@ class TaskGraph:
 
     def tasks(self) -> tuple[TaskRecord, ...]:
         return tuple(self._tasks.values())
+
+    def lease_authority_revision(self, task_id: str) -> int:
+        normalized = str(task_id)
+        self.get(normalized)
+        return self._lease_authority_revisions.get(normalized, 0)
 
     def lease(self, task_id: str, agent_id: str) -> TaskRecord:
         old = self.get(task_id)
@@ -163,6 +170,9 @@ class TaskGraph:
             raise PermissionError(f"agent {agent_id} does not own task lease {task_id}")
         row = replace(old, leased_to=None)
         self._tasks[row.task_id] = row
+        self._lease_authority_revisions[row.task_id] = (
+            self._lease_authority_revisions.get(row.task_id, 0) + 1
+        )
         if self.registry is not None:
             self.registry.bind_task(str(agent_id), None)
         return row
@@ -327,6 +337,7 @@ class TaskGraph:
             row.task_id: row
             for row in (TaskRecord.from_state(value) for value in state.get("tasks", ()))
         }
+        graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
         graph._plan_nodes = [str(value) for value in state.get("plan_nodes", ())]
         marker = state.get("plan_revision_authority")
         if marker is not None and str(marker) != PLAN_REVISION_AUTHORITY:
