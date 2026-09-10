@@ -5,6 +5,7 @@ from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest, canonical_json
 from nolane.external_core.execution import (
+    CONTEXT_PROVENANCE_ENCODER_VERSION,
     ExecutionSession,
     ExecutionState,
     OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
@@ -97,6 +98,12 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 raise ValueError("execution lineage restore authority mismatch")
             supplied = restoring
         self._execution_lineage_session_ids = set(supplied)
+        self._active_context_frontier: ContextVar[
+            tuple[tuple[str, str], ...] | None
+        ] = ContextVar(
+            f"nolane-active-authoritative-context-frontier-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -114,6 +121,16 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         session = super().start(**kwargs)
         self._execution_lineage_session_ids.add(session.session_id)
         return session
+
+    def _authoritative_context_frontier(self) -> tuple[tuple[str, str], ...] | None:
+        intelligence = getattr(self.context, "context_intelligence", None)
+        frontier = getattr(intelligence, "_frontier", None)
+        if not callable(frontier):
+            return None
+        rows = tuple((str(name), str(value)) for name, value in frontier())
+        if not rows or any(not name or not value for name, value in rows):
+            raise RuntimeError("authoritative context frontier is non-canonical")
+        return rows
 
     def step(self, session_id: str):
         session = self.get_session(session_id)
@@ -139,7 +156,13 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            return super().step(session_id)
+            frontier_token = self._active_context_frontier.set(
+                self._authoritative_context_frontier()
+            )
+            try:
+                return super().step(session_id)
+            finally:
+                self._active_context_frontier.reset(frontier_token)
         finally:
             binding_encoder.reset(token)
 
@@ -225,6 +248,17 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             or request.workspace_epoch_id != session.workspace_epoch_id
         ):
             raise ValueError("post-inference task execution authority binding mismatch")
+        if request.encoder_version == CONTEXT_PROVENANCE_ENCODER_VERSION:
+            expected_frontier = self._active_context_frontier.get()
+            current_frontier = self._authoritative_context_frontier()
+            if expected_frontier is None or current_frontier is None:
+                raise RuntimeError(
+                    "post-inference context authority requires captured authoritative frontier"
+                )
+            if current_frontier != expected_frontier:
+                raise RuntimeError(
+                    "authoritative context frontier changed during inference"
+                )
         identity = self.registry.get(session.agent_id)
         if identity.status is AgentStatus.PAUSED:
             raise PermissionError("agent pause authority changed during inference")
