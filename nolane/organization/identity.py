@@ -9,6 +9,10 @@ COMPONENT_ID = "organization.identity"
 COMPONENT_VERSION = "0.0.1"
 MIGRATED_FROM = "cogcoder.organization.registry"
 
+_EXECUTION_AUTHORITY_REVOKING_STATUSES = frozenset(
+    (AgentStatus.SLEEPING, AgentStatus.PAUSED)
+)
+
 
 class AgentRegistry:
     """Canonical permanent-agent registry.
@@ -21,6 +25,7 @@ class AgentRegistry:
     def __init__(self, identities: Iterable[AgentIdentity] = ()) -> None:
         self._rows: dict[str, AgentIdentity] = {}
         self._accepted_versions: dict[str, list[str]] = {}
+        self._execution_authority_revisions: dict[str, int] = {}
         for identity in identities:
             self.register(identity)
 
@@ -29,6 +34,7 @@ class AgentRegistry:
             raise ValueError(f"duplicate agent id: {identity.agent_id}")
         self._rows[identity.agent_id] = identity
         self._accepted_versions[identity.agent_id] = [identity.neural_version]
+        self._execution_authority_revisions[identity.agent_id] = 0
 
     def get(self, agent_id: str) -> AgentIdentity:
         try:
@@ -41,9 +47,20 @@ class AgentRegistry:
 
     def set_status(self, agent_id: str, status: AgentStatus) -> AgentIdentity:
         old = self.get(agent_id)
-        row = replace(old, status=AgentStatus(status))
+        next_status = AgentStatus(status)
+        row = replace(old, status=next_status)
+        if (
+            old.status != next_status
+            and next_status in _EXECUTION_AUTHORITY_REVOKING_STATUSES
+        ):
+            self._execution_authority_revisions[row.agent_id] += 1
         self._rows[row.agent_id] = row
         return row
+
+    def execution_authority_revision(self, agent_id: str) -> int:
+        agent_key = str(agent_id)
+        self.get(agent_key)
+        return self._execution_authority_revisions[agent_key]
 
     def bind_task(self, agent_id: str, task_id: str | None) -> AgentIdentity:
         old = self.get(agent_id)
