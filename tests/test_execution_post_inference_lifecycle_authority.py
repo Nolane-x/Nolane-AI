@@ -193,3 +193,57 @@ def test_completion_rejects_transient_sleep_revoke_restore_during_inference(
         assert workspace.active_execution_epoch_owner == session.session_id
     finally:
         workspace.close()
+
+
+def test_idempotent_active_status_reassertion_does_not_revoke_execution_authority(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    runtime.registry.set_status(identity.agent_id, AgentStatus.ACTIVE)
+    assert runtime.registry.get(identity.agent_id).status is AgentStatus.ACTIVE
+
+    task_id = "task-post-inference-idempotent-active-authority"
+    runtime.tasks.add_task(task_id, title="idempotent active authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    workspace = _workspace(tmp_path)
+
+    class _IdempotentActiveCompletionBackend:
+        backend_id = "post-inference-idempotent-active-backend-v1"
+        checkpoint_digest = "post-inference-idempotent-active-checkpoint-v1"
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            # AgentRegistry replaces the identity row even when status is unchanged.
+            # Execution authority must therefore follow semantic lifecycle
+            # transitions rather than object identity or generic row mutation.
+            runtime.registry.set_status(identity.agent_id, AgentStatus.ACTIVE)
+            assert runtime.registry.get(identity.agent_id).status is AgentStatus.ACTIVE
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.complete(reason="idempotent active reassertion"),
+            )
+
+    runtime.execution.bind_backend(identity.agent_id, _IdempotentActiveCompletionBackend())
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+
+    try:
+        runtime.execution.step(session.session_id)
+        task = runtime.tasks.get(task_id)
+        assert task.completed_by == identity.agent_id
+        assert task.aborted_by is None
+        assert runtime.registry.get(identity.agent_id).status is AgentStatus.ACTIVE
+    finally:
+        workspace.close()
