@@ -112,6 +112,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-execution-authority-revision-{id(self)}",
             default=None,
         )
+        self._active_neural_version_authority_revision: ContextVar[int | None] = ContextVar(
+            f"nolane-active-neural-version-authority-revision-{id(self)}",
+            default=None,
+        )
         self._active_task_lease_authority_revision: ContextVar[int | None] = ContextVar(
             f"nolane-active-task-lease-authority-revision-{id(self)}",
             default=None,
@@ -172,28 +176,38 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 self.registry.execution_authority_revision(session.agent_id)
             )
             try:
-                task_lease_authority_revision_token = (
-                    self._active_task_lease_authority_revision.set(
-                        self.tasks.lease_authority_revision(session.task_id)
+                neural_version_authority_revision_token = (
+                    self._active_neural_version_authority_revision.set(
+                        self.registry.neural_version_authority_revision(session.agent_id)
                     )
                 )
                 try:
-                    identity_status_token = self._active_identity_status.set(
-                        self.registry.get(session.agent_id).status
+                    task_lease_authority_revision_token = (
+                        self._active_task_lease_authority_revision.set(
+                            self.tasks.lease_authority_revision(session.task_id)
+                        )
                     )
                     try:
-                        frontier_token = self._active_context_frontier.set(
-                            self._authoritative_context_frontier()
+                        identity_status_token = self._active_identity_status.set(
+                            self.registry.get(session.agent_id).status
                         )
                         try:
-                            return super().step(session_id)
+                            frontier_token = self._active_context_frontier.set(
+                                self._authoritative_context_frontier()
+                            )
+                            try:
+                                return super().step(session_id)
+                            finally:
+                                self._active_context_frontier.reset(frontier_token)
                         finally:
-                            self._active_context_frontier.reset(frontier_token)
+                            self._active_identity_status.reset(identity_status_token)
                     finally:
-                        self._active_identity_status.reset(identity_status_token)
+                        self._active_task_lease_authority_revision.reset(
+                            task_lease_authority_revision_token
+                        )
                 finally:
-                    self._active_task_lease_authority_revision.reset(
-                        task_lease_authority_revision_token
+                    self._active_neural_version_authority_revision.reset(
+                        neural_version_authority_revision_token
                     )
             finally:
                 self._active_execution_authority_revision.reset(authority_revision_token)
@@ -316,6 +330,18 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise PermissionError("agent execution authority was revoked during inference")
         if identity.neural_version != request.neural_version:
             raise ValueError("neural version authority changed during inference")
+        expected_neural_version_authority_revision = (
+            self._active_neural_version_authority_revision.get()
+        )
+        if expected_neural_version_authority_revision is None:
+            raise RuntimeError(
+                "post-inference neural version authority requires captured revision"
+            )
+        if (
+            self.registry.neural_version_authority_revision(session.agent_id)
+            != expected_neural_version_authority_revision
+        ):
+            raise PermissionError("neural version authority changed during inference")
         backend = self._backends.get(session.agent_id)
         if backend is None or backend.checkpoint_digest != session.checkpoint_digest:
             raise RuntimeError("backend checkpoint authority changed during inference")
