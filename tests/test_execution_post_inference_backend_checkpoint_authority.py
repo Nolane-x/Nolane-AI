@@ -190,3 +190,93 @@ def test_completion_revalidates_live_backend_identity_after_inference_before_per
         assert workspace.active_execution_epoch_owner == session.session_id
     finally:
         workspace.close()
+
+
+def test_completion_rejects_transient_backend_rebind_to_distinct_equivalent_backend(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-post-inference-transient-backend-binding-authority"
+    runtime.tasks.add_task(task_id, title="transient backend binding authority", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    backend_id = "post-inference-backend-binding-v1"
+    checkpoint_digest = "post-inference-backend-binding-checkpoint-v1"
+
+    class _EquivalentReplacementBackend:
+        def __init__(self) -> None:
+            self.backend_id = backend_id
+            self.checkpoint_digest = checkpoint_digest
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            raise AssertionError("replacement backend must not execute the stale request")
+
+    replacement_backend = _EquivalentReplacementBackend()
+
+    class _RebindingCompletionBackend:
+        def __init__(self) -> None:
+            self.backend_id = backend_id
+            self.checkpoint_digest = checkpoint_digest
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            assert request.checkpoint_digest == self.checkpoint_digest
+            runtime.execution.bind_backend(identity.agent_id, replacement_backend)
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.complete(
+                    reason="stale completion after backend binding authority changed during inference",
+                ),
+            )
+
+    original_backend = _RebindingCompletionBackend()
+    runtime.execution.bind_backend(identity.agent_id, original_backend)
+    workspace = _workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+
+    try:
+        session_before = runtime.execution.get_session(session.session_id)
+        execution_before = runtime.execution.to_state()
+        workspace_digest_before = workspace.digest
+        assert session.backend_id == backend_id
+        assert session.checkpoint_digest == checkpoint_digest
+
+        with pytest.raises(
+            PermissionError,
+            match="backend.*binding|backend.*authority|inference.*backend|rebound.*inference",
+        ):
+            runtime.execution.step(session.session_id)
+
+        # The canonical external rebind remains visible for retry/recovery, while
+        # the stale decision itself must leave no persisted execution effects.
+        assert runtime.execution._backends[identity.agent_id] is replacement_backend
+
+        task = runtime.tasks.get(task_id)
+        assert task.completed_by is None
+        assert task.aborted_by is None
+        assert task.leased_to == identity.agent_id
+
+        assert runtime.execution.get_session(session.session_id) == session_before
+        assert runtime.execution.to_state() == execution_before
+        assert runtime.execution.get_session(session.session_id).decision_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).step_receipt_ids == ()
+        assert runtime.execution.get_session(session.session_id).terminal_receipt_id is None
+        assert runtime.execution.terminal_receipts() == ()
+
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
