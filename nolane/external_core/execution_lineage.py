@@ -233,6 +233,8 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         backend = self._backends.get(session.agent_id)
         if backend is None or backend.checkpoint_digest != session.checkpoint_digest:
             raise RuntimeError("backend checkpoint authority changed during inference")
+        if backend.backend_id != session.backend_id:
+            raise RuntimeError("backend identity authority changed during inference")
         task = self.tasks.get(session.task_id)
         if task.completed_by is not None:
             raise ValueError(
