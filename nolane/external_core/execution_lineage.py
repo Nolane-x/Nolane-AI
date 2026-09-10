@@ -99,6 +99,7 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             supplied = restoring
         self._execution_lineage_session_ids = set(supplied)
         self._workspace_attachment_authority_revisions: dict[str, int] = {}
+        self._backend_binding_authority_revisions: dict[str, int] = {}
         self._active_context_frontier: ContextVar[
             tuple[tuple[str, str], ...] | None
         ] = ContextVar(
@@ -129,6 +130,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-workspace-attachment-authority-revision-{id(self)}",
             default=None,
         )
+        self._active_backend_binding_authority_revision: ContextVar[int | None] = ContextVar(
+            f"nolane-active-backend-binding-authority-revision-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -136,6 +141,24 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise TypeError("execution encoder does not expose canonical base authority")
         if not isinstance(base_encoder, _ExecutionLineageEncoder):
             self.encoder._base = _ExecutionLineageEncoder(base_encoder)
+
+    def bind_backend(self, agent_id: str, backend: Any) -> None:
+        identity = self.registry.get(agent_id)
+        previous_backend = self._backends.get(identity.agent_id)
+        super().bind_backend(identity.agent_id, backend)
+        if previous_backend is backend:
+            self._backend_binding_authority_revisions.setdefault(
+                identity.agent_id,
+                1,
+            )
+            return
+        self._backend_binding_authority_revisions[identity.agent_id] = (
+            self._backend_binding_authority_revisions.get(identity.agent_id, 0) + 1
+        )
+
+    def backend_binding_authority_revision(self, agent_id: str) -> int:
+        identity = self.registry.get(agent_id)
+        return self._backend_binding_authority_revisions.get(identity.agent_id, 0)
 
     def start(self, **kwargs: Any) -> ExecutionSession:
         task_id = str(kwargs.get("task_id", "")).strip()
@@ -192,6 +215,13 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise ValueError(
                 "task completion authority already claimed outside execution terminal"
             )
+        backend_binding_revision = self.backend_binding_authority_revision(
+            session.agent_id
+        )
+        if backend_binding_revision <= 0:
+            raise RuntimeError(
+                "execution lineage-v2 requires backend binding authority"
+            )
         workspace = self._workspaces.get(session.session_id)
         if workspace is None:
             raise RuntimeError(
@@ -212,64 +242,72 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            workspace_attachment_token = (
-                self._active_workspace_attachment_authority_revision.set(
-                    attachment_revision
-                )
+            backend_binding_token = self._active_backend_binding_authority_revision.set(
+                backend_binding_revision
             )
             try:
-                workspace_generation_token = (
-                    self._active_workspace_execution_epoch_generation.set(
-                        workspace.execution_epoch_generation
+                workspace_attachment_token = (
+                    self._active_workspace_attachment_authority_revision.set(
+                        attachment_revision
                     )
                 )
                 try:
-                    authority_revision_token = self._active_execution_authority_revision.set(
-                        self.registry.execution_authority_revision(session.agent_id)
+                    workspace_generation_token = (
+                        self._active_workspace_execution_epoch_generation.set(
+                            workspace.execution_epoch_generation
+                        )
                     )
                     try:
-                        neural_version_authority_revision_token = (
-                            self._active_neural_version_authority_revision.set(
-                                self.registry.neural_version_authority_revision(session.agent_id)
-                            )
+                        authority_revision_token = self._active_execution_authority_revision.set(
+                            self.registry.execution_authority_revision(session.agent_id)
                         )
                         try:
-                            task_lease_authority_revision_token = (
-                                self._active_task_lease_authority_revision.set(
-                                    self.tasks.lease_authority_revision(session.task_id)
+                            neural_version_authority_revision_token = (
+                                self._active_neural_version_authority_revision.set(
+                                    self.registry.neural_version_authority_revision(session.agent_id)
                                 )
                             )
                             try:
-                                identity_status_token = self._active_identity_status.set(
-                                    self.registry.get(session.agent_id).status
+                                task_lease_authority_revision_token = (
+                                    self._active_task_lease_authority_revision.set(
+                                        self.tasks.lease_authority_revision(session.task_id)
+                                    )
                                 )
                                 try:
-                                    frontier_token = self._active_context_frontier.set(
-                                        self._authoritative_context_frontier()
+                                    identity_status_token = self._active_identity_status.set(
+                                        self.registry.get(session.agent_id).status
                                     )
                                     try:
-                                        return super().step(session_id)
+                                        frontier_token = self._active_context_frontier.set(
+                                            self._authoritative_context_frontier()
+                                        )
+                                        try:
+                                            return super().step(session_id)
+                                        finally:
+                                            self._active_context_frontier.reset(frontier_token)
                                     finally:
-                                        self._active_context_frontier.reset(frontier_token)
+                                        self._active_identity_status.reset(identity_status_token)
                                 finally:
-                                    self._active_identity_status.reset(identity_status_token)
+                                    self._active_task_lease_authority_revision.reset(
+                                        task_lease_authority_revision_token
+                                    )
                             finally:
-                                self._active_task_lease_authority_revision.reset(
-                                    task_lease_authority_revision_token
+                                self._active_neural_version_authority_revision.reset(
+                                    neural_version_authority_revision_token
                                 )
                         finally:
-                            self._active_neural_version_authority_revision.reset(
-                                neural_version_authority_revision_token
-                            )
+                            self._active_execution_authority_revision.reset(authority_revision_token)
                     finally:
-                        self._active_execution_authority_revision.reset(authority_revision_token)
+                        self._active_workspace_execution_epoch_generation.reset(
+                            workspace_generation_token
+                        )
                 finally:
-                    self._active_workspace_execution_epoch_generation.reset(
-                        workspace_generation_token
+                    self._active_workspace_attachment_authority_revision.reset(
+                        workspace_attachment_token
                     )
             finally:
-                self._active_workspace_attachment_authority_revision.reset(
-                    workspace_attachment_token
+                self._active_backend_binding_authority_revision.reset(
+                    backend_binding_token
                 )
         finally:
             binding_encoder.reset(token)
@@ -407,6 +445,18 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise RuntimeError("backend checkpoint authority changed during inference")
         if backend.backend_id != session.backend_id:
             raise RuntimeError("backend identity authority changed during inference")
+        expected_backend_binding_revision = (
+            self._active_backend_binding_authority_revision.get()
+        )
+        if expected_backend_binding_revision is None:
+            raise RuntimeError(
+                "post-inference backend authority requires captured binding revision"
+            )
+        if (
+            self.backend_binding_authority_revision(session.agent_id)
+            != expected_backend_binding_revision
+        ):
+            raise PermissionError("backend binding authority was rebound during inference")
         task = self.tasks.get(session.task_id)
         expected_lease_authority_revision = (
             self._active_task_lease_authority_revision.get()
