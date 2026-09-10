@@ -120,6 +120,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-task-lease-authority-revision-{id(self)}",
             default=None,
         )
+        self._active_workspace_execution_epoch_generation: ContextVar[int | None] = ContextVar(
+            f"nolane-active-workspace-execution-epoch-generation-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -164,6 +168,11 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             raise ValueError(
                 "task completion authority already claimed outside execution terminal"
             )
+        workspace = self._workspaces.get(session.session_id)
+        if workspace is None:
+            raise RuntimeError(
+                "execution lineage-v2 requires attached execution workspace"
+            )
         binding_encoder = getattr(self.encoder, "_base", None)
         if not isinstance(binding_encoder, _ExecutionLineageEncoder):
             raise RuntimeError("execution lineage encoder authority is unavailable")
@@ -172,45 +181,55 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            authority_revision_token = self._active_execution_authority_revision.set(
-                self.registry.execution_authority_revision(session.agent_id)
+            workspace_generation_token = (
+                self._active_workspace_execution_epoch_generation.set(
+                    workspace.execution_epoch_generation
+                )
             )
             try:
-                neural_version_authority_revision_token = (
-                    self._active_neural_version_authority_revision.set(
-                        self.registry.neural_version_authority_revision(session.agent_id)
-                    )
+                authority_revision_token = self._active_execution_authority_revision.set(
+                    self.registry.execution_authority_revision(session.agent_id)
                 )
                 try:
-                    task_lease_authority_revision_token = (
-                        self._active_task_lease_authority_revision.set(
-                            self.tasks.lease_authority_revision(session.task_id)
+                    neural_version_authority_revision_token = (
+                        self._active_neural_version_authority_revision.set(
+                            self.registry.neural_version_authority_revision(session.agent_id)
                         )
                     )
                     try:
-                        identity_status_token = self._active_identity_status.set(
-                            self.registry.get(session.agent_id).status
+                        task_lease_authority_revision_token = (
+                            self._active_task_lease_authority_revision.set(
+                                self.tasks.lease_authority_revision(session.task_id)
+                            )
                         )
                         try:
-                            frontier_token = self._active_context_frontier.set(
-                                self._authoritative_context_frontier()
+                            identity_status_token = self._active_identity_status.set(
+                                self.registry.get(session.agent_id).status
                             )
                             try:
-                                return super().step(session_id)
+                                frontier_token = self._active_context_frontier.set(
+                                    self._authoritative_context_frontier()
+                                )
+                                try:
+                                    return super().step(session_id)
+                                finally:
+                                    self._active_context_frontier.reset(frontier_token)
                             finally:
-                                self._active_context_frontier.reset(frontier_token)
+                                self._active_identity_status.reset(identity_status_token)
                         finally:
-                            self._active_identity_status.reset(identity_status_token)
+                            self._active_task_lease_authority_revision.reset(
+                                task_lease_authority_revision_token
+                            )
                     finally:
-                        self._active_task_lease_authority_revision.reset(
-                            task_lease_authority_revision_token
+                        self._active_neural_version_authority_revision.reset(
+                            neural_version_authority_revision_token
                         )
                 finally:
-                    self._active_neural_version_authority_revision.reset(
-                        neural_version_authority_revision_token
-                    )
+                    self._active_execution_authority_revision.reset(authority_revision_token)
             finally:
-                self._active_execution_authority_revision.reset(authority_revision_token)
+                self._active_workspace_execution_epoch_generation.reset(
+                    workspace_generation_token
+                )
         finally:
             binding_encoder.reset(token)
 
@@ -376,6 +395,17 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         if workspace.digest != session.current_workspace_digest:
             raise RuntimeError("workspace digest changed during inference")
         self._validate_session_execution_proof(session, workspace)
+        expected_workspace_generation = (
+            self._active_workspace_execution_epoch_generation.get()
+        )
+        if expected_workspace_generation is None:
+            raise RuntimeError(
+                "post-inference workspace authority requires captured execution epoch generation"
+            )
+        if workspace.execution_epoch_generation != expected_workspace_generation:
+            raise PermissionError(
+                "workspace execution epoch authority was revoked during inference"
+            )
 
     def _attest_decision_receipt(
         self,
