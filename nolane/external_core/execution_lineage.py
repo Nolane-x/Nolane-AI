@@ -10,6 +10,7 @@ from nolane.external_core.execution import (
     OrganizationExecutionControlPlane as _CanonicalExecutionControlPlane,
 )
 from nolane.external_core.execution_types import ExecutionActionKind
+from nolane.schemas.identity import AgentStatus
 
 
 _RESTORE_EXECUTION_LINEAGE: ContextVar[tuple[str, ...] | None] = ContextVar(
@@ -224,6 +225,9 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             or request.workspace_epoch_id != session.workspace_epoch_id
         ):
             raise ValueError("post-inference task execution authority binding mismatch")
+        identity = self.registry.get(session.agent_id)
+        if identity.status is AgentStatus.PAUSED:
+            raise PermissionError("agent pause authority changed during inference")
         task = self.tasks.get(session.task_id)
         if task.completed_by is not None:
             raise ValueError(
