@@ -240,6 +240,7 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             )
         if workspace.digest != session.current_workspace_digest:
             raise RuntimeError("workspace digest changed during inference")
+        self._validate_session_execution_proof(session, workspace)
 
     def _attest_decision_receipt(
         self,
