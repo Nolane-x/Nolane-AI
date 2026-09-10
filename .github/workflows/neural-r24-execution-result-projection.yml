@@ -17,6 +17,7 @@ on:
       - "tests/test_execution_post_inference_lifecycle_authority.py"
       - "tests/test_execution_transient_task_lease_authority.py"
       - "tests/test_execution_transient_workspace_epoch_authority.py"
+      - "tests/test_execution_transient_workspace_attachment_authority.py"
       - "tests/test_workspace_execution_epoch_generation.py"
       - "tests/test_execution_authority_revision.py"
       - "tests/test_task_lease_authority_revision.py"
@@ -56,6 +57,7 @@ jobs:
           tests/test_execution_post_inference_lifecycle_authority.py
           tests/test_execution_transient_task_lease_authority.py
           tests/test_execution_transient_workspace_epoch_authority.py
+          tests/test_execution_transient_workspace_attachment_authority.py
           tests/test_workspace_execution_epoch_generation.py
           tests/test_execution_authority_revision.py
           tests/test_task_lease_authority_revision.py
