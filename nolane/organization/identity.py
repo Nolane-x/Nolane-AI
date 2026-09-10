@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping
 from nolane.schemas.identity import AgentIdentity, AgentStatus
 
 COMPONENT_ID = "organization.identity"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.registry"
 
 _EXECUTION_AUTHORITY_REVOKING_STATUSES = frozenset(
@@ -26,6 +26,7 @@ class AgentRegistry:
         self._rows: dict[str, AgentIdentity] = {}
         self._accepted_versions: dict[str, list[str]] = {}
         self._execution_authority_revisions: dict[str, int] = {}
+        self._neural_version_authority_revisions: dict[str, int] = {}
         for identity in identities:
             self.register(identity)
 
@@ -35,6 +36,7 @@ class AgentRegistry:
         self._rows[identity.agent_id] = identity
         self._accepted_versions[identity.agent_id] = [identity.neural_version]
         self._execution_authority_revisions[identity.agent_id] = 0
+        self._neural_version_authority_revisions[identity.agent_id] = 0
 
     def get(self, agent_id: str) -> AgentIdentity:
         try:
@@ -61,6 +63,11 @@ class AgentRegistry:
         agent_key = str(agent_id)
         self.get(agent_key)
         return self._execution_authority_revisions[agent_key]
+
+    def neural_version_authority_revision(self, agent_id: str) -> int:
+        agent_key = str(agent_id)
+        self.get(agent_key)
+        return self._neural_version_authority_revisions[agent_key]
 
     def bind_task(self, agent_id: str, task_id: str | None) -> AgentIdentity:
         old = self.get(agent_id)
@@ -89,6 +96,8 @@ class AgentRegistry:
             raise ValueError("accepted neural version must be non-empty")
         old = self.get(agent_id)
         row = replace(old, neural_version=version)
+        if old.neural_version != version:
+            self._neural_version_authority_revisions[row.agent_id] += 1
         self._rows[row.agent_id] = row
         history = self._accepted_versions.setdefault(row.agent_id, [])
         if version not in history:
