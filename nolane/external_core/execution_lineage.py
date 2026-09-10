@@ -262,6 +262,8 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
         identity = self.registry.get(session.agent_id)
         if identity.status is AgentStatus.PAUSED:
             raise PermissionError("agent pause authority changed during inference")
+        if identity.status is AgentStatus.SLEEPING:
+            raise PermissionError("agent sleep authority changed during inference")
         if identity.neural_version != request.neural_version:
             raise ValueError("neural version authority changed during inference")
         backend = self._backends.get(session.agent_id)
