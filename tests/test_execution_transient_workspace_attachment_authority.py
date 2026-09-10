@@ -60,6 +60,8 @@ def test_completion_rejects_transient_workspace_attachment_rebind_even_when_proo
     source = _source_repo(tmp_path)
     original_workspace = _workspace(source, tmp_path / "workspace-original")
     replacement_workspace = _workspace(source, tmp_path / "workspace-replacement")
+    assert replacement_workspace is not original_workspace
+    assert replacement_workspace.root != original_workspace.root
     assert replacement_workspace.digest == original_workspace.digest
     assert replacement_workspace.execution_epoch_generation == 0
 
