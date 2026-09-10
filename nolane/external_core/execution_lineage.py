@@ -108,6 +108,10 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             f"nolane-active-identity-status-{id(self)}",
             default=None,
         )
+        self._active_execution_authority_revision: ContextVar[int | None] = ContextVar(
+            f"nolane-active-execution-authority-revision-{id(self)}",
+            default=None,
+        )
         super().__init__(*args, **kwargs)
 
         base_encoder = getattr(self.encoder, "_base", None)
@@ -160,19 +164,25 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
             session.workspace_epoch_id,
         )
         try:
-            identity_status_token = self._active_identity_status.set(
-                self.registry.get(session.agent_id).status
+            authority_revision_token = self._active_execution_authority_revision.set(
+                self.registry.execution_authority_revision(session.agent_id)
             )
             try:
-                frontier_token = self._active_context_frontier.set(
-                    self._authoritative_context_frontier()
+                identity_status_token = self._active_identity_status.set(
+                    self.registry.get(session.agent_id).status
                 )
                 try:
-                    return super().step(session_id)
+                    frontier_token = self._active_context_frontier.set(
+                        self._authoritative_context_frontier()
+                    )
+                    try:
+                        return super().step(session_id)
+                    finally:
+                        self._active_context_frontier.reset(frontier_token)
                 finally:
-                    self._active_context_frontier.reset(frontier_token)
+                    self._active_identity_status.reset(identity_status_token)
             finally:
-                self._active_identity_status.reset(identity_status_token)
+                self._active_execution_authority_revision.reset(authority_revision_token)
         finally:
             binding_encoder.reset(token)
 
@@ -280,6 +290,16 @@ class OrganizationExecutionControlPlane(_CanonicalExecutionControlPlane):
                 )
             if expected_identity_status is not AgentStatus.SLEEPING:
                 raise PermissionError("agent sleep authority changed during inference")
+        expected_authority_revision = self._active_execution_authority_revision.get()
+        if expected_authority_revision is None:
+            raise RuntimeError(
+                "post-inference lifecycle authority requires captured revocation revision"
+            )
+        if (
+            self.registry.execution_authority_revision(session.agent_id)
+            != expected_authority_revision
+        ):
+            raise PermissionError("agent execution authority was revoked during inference")
         if identity.neural_version != request.neural_version:
             raise ValueError("neural version authority changed during inference")
         backend = self._backends.get(session.agent_id)
