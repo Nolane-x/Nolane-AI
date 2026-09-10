@@ -12,7 +12,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.execution.workspace"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.execution_workspace"
 
 __all__ = [
@@ -111,6 +111,11 @@ class RepositoryWorkspace:
     def active_execution_epoch_owner(self) -> str | None:
         self._ensure_open()
         return self._active_execution_epoch_owner
+
+    @property
+    def execution_epoch_generation(self) -> int:
+        self._ensure_open()
+        return self._execution_epoch_generation
 
     def claim_execution_epoch(
         self,

@@ -50,7 +50,7 @@ _COMPONENT_REVISIONS.update(
         "external.integration": 10,
         "external.context": 1,
         "external.invokable_cores": 3,
-        "external.execution.workspace": 4,
+        "external.execution.workspace": 5,
         "external.execution.executor": 4,
         "external.execution.control": 17,
         "external.coding.claims": 2,
