@@ -15,14 +15,30 @@ class MemoryAwareContextCompiler:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.base_context, name)
 
+    def authoritative_artifacts(
+        self,
+        agent_id: str,
+        *,
+        task_id: str | None = None,
+    ) -> tuple[tuple[str, Any], ...]:
+        artifacts = tuple(
+            self.base_context.authoritative_artifacts(agent_id, task_id=task_id)
+        )
+        identity = self.registry.get(agent_id)
+        if (
+            identity.region == 'memory-context-knowledge'
+            and not any(name == 'memory-intelligence-state' for name, _ in artifacts)
+        ):
+            artifacts = artifacts + (
+                ('memory-intelligence-state', self.memory_context.digest),
+            )
+        return artifacts
+
     def compile(self, agent_id: str, *, task_id: str | None = None, since_event_id: str | None = None):
         capsule = self.base_context.compile(agent_id, task_id=task_id, since_event_id=since_event_id)
-        identity = self.registry.get(agent_id)
-        if identity.region != 'memory-context-knowledge':
+        artifacts = self.authoritative_artifacts(agent_id, task_id=capsule.task_id)
+        if artifacts == tuple(capsule.authoritative_artifacts):
             return capsule
-        artifacts = tuple(capsule.authoritative_artifacts)
-        if not any(name == 'memory-intelligence-state' for name, _ in artifacts):
-            artifacts = artifacts + (('memory-intelligence-state', self.memory_context.digest),)
         return replace(capsule, authoritative_artifacts=artifacts)
 
 
