@@ -100,6 +100,32 @@ def test_context_receipt_uses_exact_full_capsule_authority_snapshot(monkeypatch)
     assert verified.receipt.authoritative_frontier == capsule_frontier
 
 
+
+def test_context_verifier_rejects_redigested_receipt_missing_nonlegacy_authority():
+    runtime = OrganizationRuntime.first_generation()
+    runtime.tasks.add_task(
+        'T-CONTEXT-SCOPED-TAMPER', title='Reject incomplete scoped provenance', plan_node_id='P-CONTEXT-SCOPED-TAMPER',
+    )
+    runtime.tasks.lease('T-CONTEXT-SCOPED-TAMPER', 'coding.backend.01')
+    result = runtime.memory_context.compile_context(
+        'coding.backend.01',
+        task_id='T-CONTEXT-SCOPED-TAMPER',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    assert 'integration-state' in {name for name, _ in result.receipt.authoritative_frontier}
+    tampered_frontier = tuple(
+        (name, value) for name, value in result.receipt.authoritative_frontier
+        if name != 'integration-state'
+    )
+    tampered = replace(result.receipt, authoritative_frontier=tampered_frontier)
+    tampered = replace(tampered, digest=canonical_digest(tampered.payload()))
+    runtime.memory_context.context_intelligence._receipts[tampered.receipt_id] = tampered
+
+    with pytest.raises(ValueError, match='authority provenance'):
+        runtime.memory_context.verify_context_capsule(result.capsule)
+
+
 def test_context_verifier_rejects_redigested_receipt_with_conflicting_capsule_frontier():
     runtime = OrganizationRuntime.first_generation()
     runtime.tasks.add_task(

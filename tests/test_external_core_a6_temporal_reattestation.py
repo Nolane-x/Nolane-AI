@@ -67,7 +67,7 @@ def test_a6_temporal_contract_survives_dependency_revision_without_rewriting_a5_
     assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.8"
     assert admission_bundle.COMPONENT_ID == "external.integration"
     assert admission_bundle.COMPONENT_VERSION == "0.0.8"
-    assert component_revision_map()["external.integration"] == 11
+    assert component_revision_map()["external.integration"] == 12
 
     assert admission_bundle.ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v4"
     assert admission_bundle.HISTORICAL_ADMISSION_AUDIT_PROTOCOL == "external-integration-admission-audit-v3"
