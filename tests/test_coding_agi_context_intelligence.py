@@ -94,11 +94,11 @@ def test_context_receipt_uses_exact_full_capsule_authority_snapshot(monkeypatch)
     assert {'master-plan', 'requirements', 'architecture-graph', 'integration-state', 'coding-state'} <= authority_names
     assert result.capsule.plan_version == int(dict(result.capsule.authoritative_artifacts)['master-plan'])
     assert result.receipt.authoritative_frontier == capsule_frontier
+    assert type(result.receipt).from_state(result.receipt.to_state()) == result.receipt
 
     verified = runtime.memory_context.verify_context_capsule(result.capsule)
     assert verified is not None
     assert verified.receipt.authoritative_frontier == capsule_frontier
-
 
 
 def test_context_verifier_rejects_redigested_receipt_missing_nonlegacy_authority():
