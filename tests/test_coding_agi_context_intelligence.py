@@ -1,6 +1,11 @@
+from dataclasses import replace
+
+import pytest
+
 from cogcoder.organization.context_intelligence import ContextBudget, ContextDeltaKind
 from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import EventKind, MemoryScope
+from nolane.core.canonical_digest import canonical_digest
 
 
 def test_context_capsule_exposes_semantic_delta_and_bounded_overload_metrics():
@@ -89,8 +94,33 @@ def test_context_receipt_uses_exact_capsule_authority_snapshot(monkeypatch):
         for name, value in result.capsule.authoritative_artifacts
         if name in {'master-plan', 'requirements', 'architecture-graph'}
     )
+    assert result.capsule.plan_version == int(dict(result.capsule.authoritative_artifacts)['master-plan'])
     assert result.receipt.authoritative_frontier == capsule_frontier
 
     verified = runtime.memory_context.verify_context_capsule(result.capsule)
     assert verified is not None
     assert verified.receipt.authoritative_frontier == capsule_frontier
+
+
+def test_context_verifier_rejects_redigested_receipt_with_conflicting_capsule_frontier():
+    runtime = OrganizationRuntime.first_generation()
+    runtime.tasks.add_task(
+        'T-CONTEXT-TAMPER', title='Reject split-brain provenance', plan_node_id='P-CONTEXT-TAMPER',
+    )
+    runtime.tasks.lease('T-CONTEXT-TAMPER', 'coding.backend.01')
+    result = runtime.memory_context.compile_context(
+        'coding.backend.01',
+        task_id='T-CONTEXT-TAMPER',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    tampered_frontier = tuple(
+        (name, str(int(value) + 1) if name == 'master-plan' else value)
+        for name, value in result.receipt.authoritative_frontier
+    )
+    tampered = replace(result.receipt, authoritative_frontier=tampered_frontier)
+    tampered = replace(tampered, digest=canonical_digest(tampered.payload()))
+    runtime.memory_context.context_intelligence._receipts[tampered.receipt_id] = tampered
+
+    with pytest.raises(ValueError, match='authority provenance'):
+        runtime.memory_context.verify_context_capsule(result.capsule)
