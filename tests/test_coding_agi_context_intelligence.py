@@ -56,7 +56,7 @@ def test_plan_change_and_central_intervention_become_typed_semantic_delta_items(
     assert result.receipt.stale_context_warnings
 
 
-def test_context_receipt_uses_exact_capsule_authority_snapshot(monkeypatch):
+def test_context_receipt_uses_exact_full_capsule_authority_snapshot(monkeypatch):
     runtime = OrganizationRuntime.first_generation()
     runtime.tasks.add_task(
         'T-CONTEXT-ATOMIC', title='Compile one atomic authority snapshot', plan_node_id='P-CONTEXT-ATOMIC',
@@ -89,11 +89,9 @@ def test_context_receipt_uses_exact_capsule_authority_snapshot(monkeypatch):
         budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
     )
 
-    capsule_frontier = tuple(
-        (name, str(value))
-        for name, value in result.capsule.authoritative_artifacts
-        if name in {'master-plan', 'requirements', 'architecture-graph'}
-    )
+    capsule_frontier = tuple((str(name), str(value)) for name, value in result.capsule.authoritative_artifacts)
+    authority_names = {name for name, _ in capsule_frontier}
+    assert {'master-plan', 'requirements', 'architecture-graph', 'integration-state', 'coding-state'} <= authority_names
     assert result.capsule.plan_version == int(dict(result.capsule.authoritative_artifacts)['master-plan'])
     assert result.receipt.authoritative_frontier == capsule_frontier
 
