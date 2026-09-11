@@ -215,11 +215,12 @@ def test_integration_authority_change_during_inference_rejects_before_persistenc
         workspace.close()
 
 
-def test_public_memory_context_authority_snapshot_matches_actual_memory_capsule_without_side_effects() -> None:
+def test_public_memory_context_authority_snapshot_matches_actual_compiled_memory_capsule_without_side_effects() -> None:
     runtime = OrganizationRuntime.first_generation()
     identity = runtime.registry.get("memory.chief")
 
-    capsule = runtime.context.compile(identity.agent_id)
+    compiled = runtime.memory_context.compile_context(identity.agent_id)
+    capsule = compiled.capsule
     state_before = runtime.memory_context.to_state()
     snapshot = runtime.memory_context.authoritative_artifacts(
         identity.agent_id,
