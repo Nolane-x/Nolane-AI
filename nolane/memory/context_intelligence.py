@@ -45,7 +45,6 @@ _EVIDENCE_EVENT_KINDS = {
     EventKind.TEST_PASSED,
     EventKind.VERIFICATION_REJECTED,
 }
-_RECEIPT_FRONTIER_NAMES = ('master-plan', 'requirements', 'architecture-graph')
 
 
 @dataclass(frozen=True, slots=True)
@@ -359,11 +358,7 @@ class ContextIntelligenceCompiler:
 
     @staticmethod
     def _receipt_frontier_from_capsule(capsule: ContextCapsule) -> tuple[tuple[str, str], ...]:
-        return tuple(
-            (str(name), str(value))
-            for name, value in capsule.authoritative_artifacts
-            if str(name) in _RECEIPT_FRONTIER_NAMES
-        )
+        return tuple((str(name), str(value)) for name, value in capsule.authoritative_artifacts)
 
     def _skill_frontier(self, agent_id: str, region: str) -> str:
         skill_ids = tuple(row.skill_id for row in self.evolution.skills_for(agent_id, region=region))

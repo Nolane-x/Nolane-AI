@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from nolane.memory.skills import SkillEvolutionEngine
 
 COMPONENT_ID = "external.context"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.context + cogcoder.organization.types"
 
 
@@ -26,7 +26,7 @@ class ContextCapsule:
     since_event_id: str | None
     memories: tuple[MemoryEntry, ...]
     event_delta: tuple[CognitiveEvent, ...]
-    authoritative_artifacts: tuple[tuple[str, int], ...] = ()
+    authoritative_artifacts: tuple[tuple[str, int | str], ...] = ()
     tools: tuple[str, ...] = ()
     external_cores: tuple[str, ...] = ()
     applicable_skill_ids: tuple[str, ...] = ()
