@@ -52,10 +52,6 @@ def authoritative_artifacts_for(
 
     snapshot = getattr(context, "authoritative_artifacts", None)
     if not callable(snapshot):
-        intelligence = getattr(context, "context_intelligence", None)
-        base_context = getattr(intelligence, "_base_context", None)
-        snapshot = getattr(base_context, "authoritative_artifacts", None)
-    if not callable(snapshot):
         raise RuntimeError("context authority artifact snapshot is unavailable")
 
     rows = tuple(snapshot(agent_id, task_id=task_id))
