@@ -48,7 +48,7 @@ _COMPONENT_REVISIONS.update(
         "external.planning": 1,
         "external.architecture": 1,
         "external.integration": 10,
-        "external.context": 2,
+        "external.context": 3,
         "external.invokable_cores": 3,
         "external.execution.workspace": 5,
         "external.execution.executor": 4,
