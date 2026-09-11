@@ -155,7 +155,7 @@ def test_integration_authority_change_during_inference_rejects_before_persistenc
                     task_refs=(task_id,),
                     plan_refs=(),
                     requirement_refs=(),
-                    architecture_version_expected=runtime.architecture.state.version,
+                    architecture_version_expected=runtime.architecture.graph.version,
                     changed_component_refs=(),
                     changed_interface_refs=(),
                 ),
