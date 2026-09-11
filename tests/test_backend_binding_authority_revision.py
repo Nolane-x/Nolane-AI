@@ -11,6 +11,7 @@ from nolane.external_core.execution_types import (
     ExecutionAction,
     ExecutionBudget,
     InferenceRequest,
+    ToolAction,
 )
 from nolane.external_core.execution_workspace import RepositoryWorkspace
 
@@ -105,7 +106,7 @@ def test_same_session_reentrant_step_rejects_stale_outer_frontier_before_persist
     runtime.tasks.add_task(task_id, title="same-session execution frontier", plan_node_id="P1")
     runtime.tasks.lease(task_id, identity.agent_id)
 
-    class _ReentrantWaitingBackend:
+    class _ReentrantBackend:
         backend_id = "same-session-execution-frontier-backend-v1"
         checkpoint_digest = "same-session-execution-frontier-checkpoint-v1"
 
@@ -134,10 +135,16 @@ def test_same_session_reentrant_step_rejects_stale_outer_frontier_before_persist
             return AgentDecisionReceipt.create(
                 backend_id=self.backend_id,
                 request=request,
-                action=ExecutionAction.wait(reason="inner frontier wins"),
+                action=ExecutionAction.tool(
+                    ToolAction.from_arguments(
+                        "filesystem",
+                        "read_text",
+                        {"path": "README.md"},
+                    )
+                ),
             )
 
-    backend = _ReentrantWaitingBackend()
+    backend = _ReentrantBackend()
     runtime.execution.bind_backend(identity.agent_id, backend)
     workspace = _execution_frontier_workspace(tmp_path)
     session = runtime.execution.start(
@@ -170,6 +177,7 @@ def test_same_session_reentrant_step_rejects_stale_outer_frontier_before_persist
         assert runtime.execution.to_state() == backend.inner_state
         assert current.step_index == 1
         assert current.counters.steps == 1
+        assert current.counters.tool_calls == 1
         assert len(current.decision_receipt_ids) == 1
         assert len(current.step_receipt_ids) == 1
         assert current.terminal_receipt_id is None
