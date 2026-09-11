@@ -213,6 +213,9 @@ class MemoryContextControlPlane:
             raise ValueError('context capsule task provenance mismatch')
         if delta.checkpoint_id != receipt.continuity_checkpoint_id:
             raise ValueError('context capsule continuity provenance mismatch')
+        expected_frontier = self.context_intelligence._receipt_frontier_from_capsule(capsule)
+        if receipt.authoritative_frontier != expected_frontier:
+            raise ValueError('context capsule authority provenance mismatch')
         if receipt.selected_units != capsule.context_budget_units:
             raise ValueError('context capsule budget provenance mismatch')
         if receipt.overload_ratio != capsule.context_overload_ratio:
