@@ -199,15 +199,15 @@ def test_wave5y_context_primitives_preserve_validation_and_fail_closed_digests()
 
 
 def test_wave5y_context_component_has_native_version_authority_and_no_facade() -> None:
-    assert str(component_version("external.context")) == "0.0.2"
-    assert str(next_component_version("external.context")) == "0.0.3"
+    assert str(component_version("external.context")) == "0.0.3"
+    assert str(next_component_version("external.context")) == "0.0.4"
 
     ledger = build_component_implementation_ledger()
     row = ledger["external.context"]
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.memory.context"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
+    assert row.component_version == "0.0.3"
     expected_sources = {
         "cogcoder/organization/context.py",
         "cogcoder/organization/context_intelligence.py",

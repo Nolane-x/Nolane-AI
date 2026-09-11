@@ -120,8 +120,8 @@ def test_wave5p_integration_component_version_and_authority_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.integration"
     assert row.legacy_sources == ("cogcoder/organization/integration.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.10"
-    assert str(component_version("external.integration")) == "0.0.10"
+    assert row.component_version == "0.0.11"
+    assert str(component_version("external.integration")) == "0.0.11"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.integration" not in facade_ids

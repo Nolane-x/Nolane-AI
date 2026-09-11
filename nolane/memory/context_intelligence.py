@@ -45,6 +45,7 @@ _EVIDENCE_EVENT_KINDS = {
     EventKind.TEST_PASSED,
     EventKind.VERIFICATION_REJECTED,
 }
+_RECEIPT_FRONTIER_NAMES = ('master-plan', 'requirements', 'architecture-graph')
 
 
 @dataclass(frozen=True, slots=True)
@@ -354,6 +355,14 @@ class ContextIntelligenceCompiler:
             ('master-plan', str(self._planning_version())),
             ('requirements', str(self._requirements_version())),
             ('architecture-graph', str(self._architecture_version())),
+        )
+
+    @staticmethod
+    def _receipt_frontier_from_capsule(capsule: ContextCapsule) -> tuple[tuple[str, str], ...]:
+        return tuple(
+            (str(name), str(value))
+            for name, value in capsule.authoritative_artifacts
+            if str(name) in _RECEIPT_FRONTIER_NAMES
         )
 
     def _skill_frontier(self, agent_id: str, region: str) -> str:
@@ -687,13 +696,14 @@ class ContextIntelligenceCompiler:
             if self._base_context is not None
             else self._fallback_capsule(agent_id=identity.agent_id, task_id=effective_task, since_event_id=since_event_id)
         )
+        compilation_frontier = self._receipt_frontier_from_capsule(base)
 
         self._receipt_counter += 1
         receipt_id = f'context-compilation-{self._receipt_counter:08d}'
         provisional_capsule = replace(
             base,
             task_id=effective_task,
-            plan_version=self._planning_version(),
+            plan_version=base.plan_version,
             since_event_id=since_event_id,
             memories=tuple(selected_memories),
             event_delta=selected_events,
@@ -720,7 +730,7 @@ class ContextIntelligenceCompiler:
             'selected_event_count': len(selected_events),
             'dropped_event_count': len(dropped_events),
             'dropped_object_ids': list(dropped_ids),
-            'authoritative_frontier': [[name, value] for name, value in self._frontier()],
+            'authoritative_frontier': [[name, value] for name, value in compilation_frontier],
             'stale_context_warnings': list(warnings),
             'replayed_full_history': checkpoint is None,
             'compiler_version': self.COMPILER_VERSION,
@@ -741,7 +751,7 @@ class ContextIntelligenceCompiler:
             selected_event_count=len(selected_events),
             dropped_event_count=len(dropped_events),
             dropped_object_ids=dropped_ids,
-            authoritative_frontier=self._frontier(),
+            authoritative_frontier=compilation_frontier,
             stale_context_warnings=tuple(warnings),
             replayed_full_history=checkpoint is None,
             compiler_version=self.COMPILER_VERSION,

@@ -78,9 +78,9 @@ def _binding(component_id: str, kind: str, suffix: str) -> RevalidationEvidenceB
     return RevalidationEvidenceBinding.create(component_id=component_id, evidence_kind=kind, evidence=record)
 
 
-def test_integration_surface_v008_projects_canonical_dependency_revision_v010() -> None:
+def test_integration_surface_v008_projects_canonical_dependency_revision_v011() -> None:
     assert INTEGRATION_COMPONENT_VERSION == "0.0.8"
-    assert str(component_version("external.integration")) == "0.0.10"
+    assert str(component_version("external.integration")) == "0.0.11"
 
 
 def test_revalidation_plan_is_exactly_scoped_to_impact_closure() -> None:

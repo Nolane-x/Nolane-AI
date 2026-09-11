@@ -49,12 +49,12 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.requirements": 1,
     "external.planning": 1,
     "external.architecture": 1,
-    "external.integration": 10,
-    "external.context": 2,
+    "external.integration": 11,
+    "external.context": 3,
     "external.invokable_cores": 3,
     "external.execution.workspace": 5,
     "external.execution.executor": 4,
-    "external.execution.control": 17,
+    "external.execution.control": 18,
     "external.coding.claims": 2,
     "external.coding.patches": 2,
     "external.coding.control": 1,
@@ -99,22 +99,22 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.experimentation")) == "0.0.3"
     assert str(component_version("external.assurance")) == "0.0.1"
     assert str(next_component_version("external.assurance")) == "0.0.2"
-    assert str(component_version("external.context")) == "0.0.2"
-    assert str(next_component_version("external.context")) == "0.0.3"
+    assert str(component_version("external.context")) == "0.0.3"
+    assert str(next_component_version("external.context")) == "0.0.4"
     assert str(component_version("external.architecture")) == "0.0.1"
     assert str(next_component_version("external.architecture")) == "0.0.2"
     assert str(component_version("external.evidence")) == "0.0.2"
     assert str(next_component_version("external.evidence")) == "0.0.3"
-    assert str(component_version("external.integration")) == "0.0.10"
-    assert str(next_component_version("external.integration")) == "0.0.11"
+    assert str(component_version("external.integration")) == "0.0.11"
+    assert str(next_component_version("external.integration")) == "0.0.12"
     assert str(component_version("external.invokable_cores")) == "0.0.3"
     assert str(next_component_version("external.invokable_cores")) == "0.0.4"
     assert str(component_version("external.execution.workspace")) == "0.0.5"
     assert str(next_component_version("external.execution.workspace")) == "0.0.6"
     assert str(component_version("external.execution.executor")) == "0.0.4"
     assert str(next_component_version("external.execution.executor")) == "0.0.5"
-    assert str(component_version("external.execution.control")) == "0.0.17"
-    assert str(next_component_version("external.execution.control")) == "0.0.18"
+    assert str(component_version("external.execution.control")) == "0.0.18"
+    assert str(next_component_version("external.execution.control")) == "0.0.19"
     assert str(component_version("external.coding.claims")) == "0.0.2"
     assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.2"
