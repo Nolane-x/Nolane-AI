@@ -15,6 +15,21 @@ class MemoryAwareContextCompiler:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.base_context, name)
 
+    def _with_memory_authority(
+        self,
+        agent_id: str,
+        artifacts: tuple[tuple[str, Any], ...],
+    ) -> tuple[tuple[str, Any], ...]:
+        identity = self.registry.get(agent_id)
+        if (
+            identity.region == 'memory-context-knowledge'
+            and not any(name == 'memory-intelligence-state' for name, _ in artifacts)
+        ):
+            return artifacts + (
+                ('memory-intelligence-state', self.memory_context.digest),
+            )
+        return artifacts
+
     def authoritative_artifacts(
         self,
         agent_id: str,
@@ -24,19 +39,14 @@ class MemoryAwareContextCompiler:
         artifacts = tuple(
             self.base_context.authoritative_artifacts(agent_id, task_id=task_id)
         )
-        identity = self.registry.get(agent_id)
-        if (
-            identity.region == 'memory-context-knowledge'
-            and not any(name == 'memory-intelligence-state' for name, _ in artifacts)
-        ):
-            artifacts = artifacts + (
-                ('memory-intelligence-state', self.memory_context.digest),
-            )
-        return artifacts
+        return self._with_memory_authority(agent_id, artifacts)
 
     def compile(self, agent_id: str, *, task_id: str | None = None, since_event_id: str | None = None):
         capsule = self.base_context.compile(agent_id, task_id=task_id, since_event_id=since_event_id)
-        artifacts = self.authoritative_artifacts(agent_id, task_id=capsule.task_id)
+        artifacts = self._with_memory_authority(
+            agent_id,
+            tuple(capsule.authoritative_artifacts),
+        )
         if artifacts == tuple(capsule.authoritative_artifacts):
             return capsule
         return replace(capsule, authoritative_artifacts=artifacts)
