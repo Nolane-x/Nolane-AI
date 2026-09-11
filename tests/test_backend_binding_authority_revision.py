@@ -1,9 +1,18 @@
 from __future__ import annotations
 
+import subprocess
+from pathlib import Path
+
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
-from nolane.external_core.execution_types import AgentDecisionReceipt, InferenceRequest
+from nolane.external_core.execution_types import (
+    AgentDecisionReceipt,
+    ExecutionAction,
+    ExecutionBudget,
+    InferenceRequest,
+)
+from nolane.external_core.execution_workspace import RepositoryWorkspace
 
 
 class _Backend:
@@ -60,3 +69,117 @@ def test_backend_binding_authority_revision_is_not_advanced_by_failed_bind() -> 
 
     assert runtime.execution.backend_binding_authority_revision(identity.agent_id) == revision
     assert runtime.execution._backends[identity.agent_id] is backend
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-C", str(repo), *args],
+        check=True,
+        text=True,
+        capture_output=True,
+    ).stdout.strip()
+
+
+def _execution_frontier_workspace(tmp_path: Path) -> RepositoryWorkspace:
+    source = tmp_path / "source"
+    source.mkdir()
+    _git(source, "init")
+    _git(source, "config", "user.email", "execution-frontier@example.invalid")
+    _git(source, "config", "user.name", "Execution Frontier Authority")
+    (source / "README.md").write_text("same-session frontier base\n", encoding="utf-8")
+    _git(source, "add", ".")
+    _git(source, "commit", "-m", "base")
+    return RepositoryWorkspace.create(
+        source_repo=source,
+        revision="HEAD",
+        workspace_root=tmp_path / "workspace",
+    )
+
+
+def test_same_session_reentrant_step_rejects_stale_outer_frontier_before_persistence(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    task_id = "task-same-session-execution-frontier"
+    runtime.tasks.add_task(task_id, title="same-session execution frontier", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    class _ReentrantWaitingBackend:
+        backend_id = "same-session-execution-frontier-backend-v1"
+        checkpoint_digest = "same-session-execution-frontier-checkpoint-v1"
+
+        def __init__(self) -> None:
+            self.session_id = ""
+            self.depth = 0
+            self.inner_state: dict[str, object] | None = None
+            self.inner_session = None
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            if self.depth == 0:
+                assert self.session_id
+                self.depth = 1
+                try:
+                    runtime.execution.step(self.session_id)
+                    self.inner_session = runtime.execution.get_session(self.session_id)
+                    self.inner_state = runtime.execution.to_state()
+                finally:
+                    self.depth = 0
+                return AgentDecisionReceipt.create(
+                    backend_id=self.backend_id,
+                    request=request,
+                    action=ExecutionAction.wait(reason="stale outer frontier"),
+                )
+
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.wait(reason="inner frontier wins"),
+            )
+
+    backend = _ReentrantWaitingBackend()
+    runtime.execution.bind_backend(identity.agent_id, backend)
+    workspace = _execution_frontier_workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=8,
+            max_tool_calls=8,
+            max_external_core_calls=8,
+            max_compute_units=8,
+        ),
+    )
+    backend.session_id = session.session_id
+
+    try:
+        workspace_digest_before = workspace.digest
+
+        with pytest.raises(
+            PermissionError,
+            match="execution.*frontier|session.*frontier|frontier.*authority",
+        ):
+            runtime.execution.step(session.session_id)
+
+        assert backend.inner_session is not None
+        assert backend.inner_state is not None
+        current = runtime.execution.get_session(session.session_id)
+        assert current == backend.inner_session
+        assert runtime.execution.to_state() == backend.inner_state
+        assert current.step_index == 1
+        assert current.counters.steps == 1
+        assert len(current.decision_receipt_ids) == 1
+        assert len(current.step_receipt_ids) == 1
+        assert current.terminal_receipt_id is None
+
+        task = runtime.tasks.get(task_id)
+        assert task.leased_to == identity.agent_id
+        assert task.completed_by is None
+        assert task.aborted_by is None
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
