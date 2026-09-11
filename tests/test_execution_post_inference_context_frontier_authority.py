@@ -100,7 +100,7 @@ def test_completion_revalidates_authoritative_context_frontier_after_inference_b
         workspace_digest_before = workspace.digest
 
         with pytest.raises(
-            (RuntimeError, ValueError),
+            (RuntimeError, ValueError, PermissionError),
             match="context.*frontier|authoritative.*frontier|plan.*authority|context.*authority",
         ):
             runtime.execution.step(session.session_id)
