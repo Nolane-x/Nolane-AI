@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import replace
 from typing import Any
 
+from nolane.core.canonical_digest import canonical_digest
+
 
 class MemoryAwareContextCompiler:
     """Add Memory/Context private control-plane state without changing base context semantics."""
@@ -15,6 +17,31 @@ class MemoryAwareContextCompiler:
     def __getattr__(self, name: str) -> Any:
         return getattr(self.base_context, name)
 
+    def _memory_authority_digest(self) -> str:
+        """Digest semantic Memory/Context authority, excluding read/compile journals.
+
+        Context compilation records retrieval selections, semantic deltas, and receipts.
+        Those records are evidence *of* reading authority, not authority mutations. Binding
+        them into the request authority would make every context compilation invalidate
+        its own request as soon as its receipt is persisted.
+        """
+
+        state = self.memory_context.to_state()
+        intelligence = dict(state.get('context_intelligence', {}))
+        authority_state = {
+            'profiles': state.get('profiles', {}),
+            'lifecycle': state.get('lifecycle', {}),
+            'relations': state.get('relations', {}),
+            'context_intelligence': {
+                'compiler_version': intelligence.get('compiler_version'),
+                'checkpoints': intelligence.get('checkpoints', []),
+                'checkpoint_counter': int(intelligence.get('checkpoint_counter', 0)),
+            },
+            'repairs': state.get('repairs', []),
+            'repair_counter': int(state.get('repair_counter', 0)),
+        }
+        return canonical_digest(authority_state)
+
     def _with_memory_authority(
         self,
         agent_id: str,
@@ -26,7 +53,7 @@ class MemoryAwareContextCompiler:
             and not any(name == 'memory-intelligence-state' for name, _ in artifacts)
         ):
             return artifacts + (
-                ('memory-intelligence-state', self.memory_context.digest),
+                ('memory-intelligence-state', self._memory_authority_digest()),
             )
         return artifacts
 
