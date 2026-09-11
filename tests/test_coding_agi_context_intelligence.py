@@ -49,3 +49,48 @@ def test_plan_change_and_central_intervention_become_typed_semantic_delta_items(
     assert ContextDeltaKind.PLAN_CHANGED in kinds
     assert ContextDeltaKind.CENTRAL_INTERVENTION in kinds
     assert result.receipt.stale_context_warnings
+
+
+def test_context_receipt_uses_exact_capsule_authority_snapshot(monkeypatch):
+    runtime = OrganizationRuntime.first_generation()
+    runtime.tasks.add_task(
+        'T-CONTEXT-ATOMIC', title='Compile one atomic authority snapshot', plan_node_id='P-CONTEXT-ATOMIC',
+    )
+    runtime.tasks.lease('T-CONTEXT-ATOMIC', 'coding.backend.01')
+
+    compiler = runtime.memory_context.context_intelligence
+    base_context = compiler._base_context
+    assert base_context is not None
+    original_compile = base_context.compile
+
+    def compile_then_advance_plan(*args, **kwargs):
+        capsule = original_compile(*args, **kwargs)
+        gap = runtime.report_plan_gap(
+            source_agent_id='coding.backend.01',
+            task_id='T-CONTEXT-ATOMIC',
+            reason='advance planning after capsule authority snapshot',
+            suggested_nodes=('P-CONTEXT-AFTER-SNAPSHOT',),
+            evidence_ids=('EV-CONTEXT-ATOMIC',),
+        )
+        runtime.tasks.apply_plan_amendment(
+            'planning.chief', gap.event_id, added_nodes=('P-CONTEXT-AFTER-SNAPSHOT',),
+        )
+        return capsule
+
+    monkeypatch.setattr(base_context, 'compile', compile_then_advance_plan)
+    result = runtime.memory_context.compile_context(
+        'coding.backend.01',
+        task_id='T-CONTEXT-ATOMIC',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    capsule_frontier = tuple(
+        (name, str(value))
+        for name, value in result.capsule.authoritative_artifacts
+        if name in {'master-plan', 'requirements', 'architecture-graph'}
+    )
+    assert result.receipt.authoritative_frontier == capsule_frontier
+
+    verified = runtime.memory_context.verify_context_capsule(result.capsule)
+    assert verified is not None
+    assert verified.receipt.authoritative_frontier == capsule_frontier
