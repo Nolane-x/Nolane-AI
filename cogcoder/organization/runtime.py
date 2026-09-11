@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Mapping
 
-from nolane.external_core.execution_frontier_authority import OrganizationExecutionControlPlane
+from nolane.external_core.execution_self_model_authority import OrganizationExecutionControlPlane
 from nolane.memory.runtime_binding import (
     bind_runtime_learning_authorities,
     restore_runtime_learning_overlay,
