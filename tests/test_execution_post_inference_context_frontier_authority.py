@@ -219,14 +219,22 @@ def test_public_memory_context_authority_snapshot_matches_actual_compiled_memory
     runtime = OrganizationRuntime.first_generation()
     identity = runtime.registry.get("memory.chief")
 
+    authority_before = dict(
+        runtime.memory_context.authoritative_artifacts(identity.agent_id)
+    )["memory-intelligence-state"]
+    full_digest_before = runtime.memory_context.digest
+
     compiled = runtime.memory_context.compile_context(identity.agent_id)
     capsule = compiled.capsule
-    state_before = runtime.memory_context.to_state()
+
+    assert runtime.memory_context.digest != full_digest_before
+
+    state_before_snapshot = runtime.memory_context.to_state()
     snapshot = runtime.memory_context.authoritative_artifacts(
         identity.agent_id,
         task_id=capsule.task_id,
     )
 
     assert snapshot == tuple(capsule.authoritative_artifacts)
-    assert dict(snapshot)["memory-intelligence-state"] == runtime.memory_context.digest
-    assert runtime.memory_context.to_state() == state_before
+    assert dict(snapshot)["memory-intelligence-state"] == authority_before
+    assert runtime.memory_context.to_state() == state_before_snapshot
