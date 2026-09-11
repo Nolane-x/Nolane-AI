@@ -213,3 +213,19 @@ def test_integration_authority_change_during_inference_rejects_before_persistenc
         assert workspace.active_execution_epoch_owner == session.session_id
     finally:
         workspace.close()
+
+
+def test_public_memory_context_authority_snapshot_matches_actual_memory_capsule_without_side_effects() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.get("memory.chief")
+
+    capsule = runtime.context.compile(identity.agent_id)
+    state_before = runtime.memory_context.to_state()
+    snapshot = runtime.memory_context.authoritative_artifacts(
+        identity.agent_id,
+        task_id=capsule.task_id,
+    )
+
+    assert snapshot == tuple(capsule.authoritative_artifacts)
+    assert dict(snapshot)["memory-intelligence-state"] == runtime.memory_context.digest
+    assert runtime.memory_context.to_state() == state_before
