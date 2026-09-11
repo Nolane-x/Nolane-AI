@@ -42,6 +42,31 @@ class ContextCapsule:
 _ADMIN_EVENT_KINDS = {EventKind.AGENT_CHECKPOINTED, EventKind.AGENT_SLEEP, EventKind.AGENT_WAKE}
 
 
+def authoritative_artifacts_for(
+    context: Any,
+    agent_id: str,
+    *,
+    task_id: str | None = None,
+) -> tuple[tuple[str, Any], ...]:
+    """Read the canonical live authority snapshot without recompiling context."""
+
+    snapshot = getattr(context, "authoritative_artifacts", None)
+    if not callable(snapshot):
+        intelligence = getattr(context, "context_intelligence", None)
+        base_context = getattr(intelligence, "_base_context", None)
+        snapshot = getattr(base_context, "authoritative_artifacts", None)
+    if not callable(snapshot):
+        raise RuntimeError("context authority artifact snapshot is unavailable")
+
+    rows = tuple(snapshot(agent_id, task_id=task_id))
+    if not rows:
+        raise RuntimeError("context authority artifact snapshot is empty")
+    names = tuple(str(name).strip() for name, _ in rows)
+    if any(not name for name in names) or len(set(names)) != len(names):
+        raise RuntimeError("context authority artifact snapshot is non-canonical")
+    return rows
+
+
 class ContextCompiler:
     def __init__(
         self,
@@ -100,25 +125,16 @@ class ContextCompiler:
                 return True
         return False
 
-    def compile(self, agent_id: str, *, task_id: str | None = None, since_event_id: str | None = None) -> ContextCapsule:
+    def authoritative_artifacts(
+        self,
+        agent_id: str,
+        *,
+        task_id: str | None = None,
+    ) -> tuple[tuple[str, Any], ...]:
+        """Return the canonical live authority artifacts for one request scope."""
+
         identity = self.registry.get(agent_id)
         effective_task = task_id if task_id is not None else identity.current_task
-        memories = self.memory.retrieve(
-            agent_id=identity.agent_id,
-            region=identity.region,
-            task_id=effective_task,
-            limit=self.max_memories,
-        )
-        events = [
-            row for row in self.ledger.events_since(since_event_id)
-            if self._event_relevant(row, agent_id=identity.agent_id, region=identity.region, task_id=effective_task)
-        ]
-        if len(events) > self.max_events:
-            events = events[-self.max_events:]
-        skill_ids: tuple[str, ...] = ()
-        if self.evolution is not None:
-            skill_ids = tuple(row.skill_id for row in self.evolution.skills_for(identity.agent_id, region=identity.region))
-
         planning_version = 0 if self.planning is None else int(self.planning.graph.version)
         plan_version = max(int(self.tasks.plan_version), planning_version)
         artifacts: list[tuple[str, Any]] = [('master-plan', plan_version)]
@@ -150,6 +166,29 @@ class ContextCompiler:
                 artifacts.append(('reliability-state', self.operations.reliability.digest))
         if self.research is not None and identity.region == 'research-external':
             artifacts.append(('research-state', self.research.digest))
+        return tuple(artifacts)
+
+    def compile(self, agent_id: str, *, task_id: str | None = None, since_event_id: str | None = None) -> ContextCapsule:
+        identity = self.registry.get(agent_id)
+        effective_task = task_id if task_id is not None else identity.current_task
+        memories = self.memory.retrieve(
+            agent_id=identity.agent_id,
+            region=identity.region,
+            task_id=effective_task,
+            limit=self.max_memories,
+        )
+        events = [
+            row for row in self.ledger.events_since(since_event_id)
+            if self._event_relevant(row, agent_id=identity.agent_id, region=identity.region, task_id=effective_task)
+        ]
+        if len(events) > self.max_events:
+            events = events[-self.max_events:]
+        skill_ids: tuple[str, ...] = ()
+        if self.evolution is not None:
+            skill_ids = tuple(row.skill_id for row in self.evolution.skills_for(identity.agent_id, region=identity.region))
+
+        artifacts = self.authoritative_artifacts(identity.agent_id, task_id=effective_task)
+        plan_version = int(dict(artifacts)['master-plan'])
 
         return ContextCapsule(
             agent_id=identity.agent_id,
@@ -158,7 +197,7 @@ class ContextCompiler:
             since_event_id=since_event_id,
             memories=tuple(memories),
             event_delta=tuple(events),
-            authoritative_artifacts=tuple(artifacts),
+            authoritative_artifacts=artifacts,
             tools=identity.tool_permissions,
             external_cores=identity.external_core_bindings,
             applicable_skill_ids=skill_ids,
@@ -174,6 +213,7 @@ class ContextCompiler:
 __all__ = (
     "ContextCapsule",
     "ContextCompiler",
+    "authoritative_artifacts_for",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
     "MIGRATED_FROM",
