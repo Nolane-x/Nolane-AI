@@ -27,6 +27,7 @@ class AgentRegistry:
         self._accepted_versions: dict[str, list[str]] = {}
         self._execution_authority_revisions: dict[str, int] = {}
         self._neural_version_authority_revisions: dict[str, int] = {}
+        self._self_model_authority_revisions: dict[str, int] = {}
         for identity in identities:
             self.register(identity)
 
@@ -37,6 +38,7 @@ class AgentRegistry:
         self._accepted_versions[identity.agent_id] = [identity.neural_version]
         self._execution_authority_revisions[identity.agent_id] = 0
         self._neural_version_authority_revisions[identity.agent_id] = 0
+        self._self_model_authority_revisions[identity.agent_id] = 0
 
     def get(self, agent_id: str) -> AgentIdentity:
         try:
@@ -69,6 +71,11 @@ class AgentRegistry:
         self.get(agent_key)
         return self._neural_version_authority_revisions[agent_key]
 
+    def self_model_authority_revision(self, agent_id: str) -> int:
+        agent_key = str(agent_id)
+        self.get(agent_key)
+        return self._self_model_authority_revisions[agent_key]
+
     def bind_task(self, agent_id: str, task_id: str | None) -> AgentIdentity:
         old = self.get(agent_id)
         row = replace(old, current_task=None if task_id is None else str(task_id))
@@ -87,6 +94,8 @@ class AgentRegistry:
             raise ValueError("self-model version must be non-empty")
         old = self.get(agent_id)
         row = replace(old, self_model_version=version)
+        if old.self_model_version != version:
+            self._self_model_authority_revisions[row.agent_id] += 1
         self._rows[row.agent_id] = row
         return row
 
