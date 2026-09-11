@@ -191,3 +191,138 @@ def test_same_session_reentrant_step_rejects_stale_outer_frontier_before_persist
         assert workspace.active_execution_epoch_owner == session.session_id
     finally:
         workspace.close()
+
+
+def test_self_model_change_during_inference_rejects_decision_before_persistence(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    original_version = identity.self_model_version
+    changed_version = original_version + "-during-inference"
+    task_id = "task-same-request-self-model-direct"
+    runtime.tasks.add_task(task_id, title="same-request self-model direct", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    class _SelfModelMutatingBackend:
+        backend_id = "same-request-self-model-direct-backend-v1"
+        checkpoint_digest = "same-request-self-model-direct-checkpoint-v1"
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            runtime.registry.set_self_model_version(identity.agent_id, changed_version)
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.wait(reason="stale self-model decision"),
+            )
+
+    runtime.execution.bind_backend(identity.agent_id, _SelfModelMutatingBackend())
+    workspace = _execution_frontier_workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=4,
+            max_tool_calls=4,
+            max_external_core_calls=4,
+            max_compute_units=4,
+        ),
+    )
+
+    try:
+        execution_state_before = runtime.execution.to_state()
+        workspace_digest_before = workspace.digest
+
+        with pytest.raises(
+            PermissionError,
+            match="self-model.*authority|authority.*self-model",
+        ):
+            runtime.execution.step(session.session_id)
+
+        assert runtime.registry.get(identity.agent_id).self_model_version == changed_version
+        assert runtime.execution.to_state() == execution_state_before
+        current = runtime.execution.get_session(session.session_id)
+        assert current.step_index == 0
+        assert current.counters.steps == 0
+        assert current.decision_receipt_ids == ()
+        assert current.step_receipt_ids == ()
+        assert current.terminal_receipt_id is None
+        task = runtime.tasks.get(task_id)
+        assert task.leased_to == identity.agent_id
+        assert task.completed_by is None
+        assert task.aborted_by is None
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
+
+
+def test_self_model_aba_change_during_inference_rejects_decision_before_persistence(
+    tmp_path: Path,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    original_version = identity.self_model_version
+    transient_version = original_version + "-transient"
+    task_id = "task-same-request-self-model-aba"
+    runtime.tasks.add_task(task_id, title="same-request self-model aba", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+
+    class _SelfModelABABackend:
+        backend_id = "same-request-self-model-aba-backend-v1"
+        checkpoint_digest = "same-request-self-model-aba-checkpoint-v1"
+
+        def decide(self, request: InferenceRequest) -> AgentDecisionReceipt:
+            runtime.registry.set_self_model_version(identity.agent_id, transient_version)
+            runtime.registry.set_self_model_version(identity.agent_id, original_version)
+            return AgentDecisionReceipt.create(
+                backend_id=self.backend_id,
+                request=request,
+                action=ExecutionAction.wait(reason="aba stale self-model decision"),
+            )
+
+    runtime.execution.bind_backend(identity.agent_id, _SelfModelABABackend())
+    workspace = _execution_frontier_workspace(tmp_path)
+    session = runtime.execution.start(
+        agent_id=identity.agent_id,
+        task_id=task_id,
+        workspace=workspace,
+        action_schema=("filesystem.read_text",),
+        budget=ExecutionBudget(
+            max_steps=4,
+            max_tool_calls=4,
+            max_external_core_calls=4,
+            max_compute_units=4,
+        ),
+    )
+
+    try:
+        execution_state_before = runtime.execution.to_state()
+        workspace_digest_before = workspace.digest
+
+        with pytest.raises(
+            PermissionError,
+            match="self-model.*authority|authority.*self-model",
+        ):
+            runtime.execution.step(session.session_id)
+
+        assert runtime.registry.get(identity.agent_id).self_model_version == original_version
+        assert runtime.execution.to_state() == execution_state_before
+        current = runtime.execution.get_session(session.session_id)
+        assert current.step_index == 0
+        assert current.counters.steps == 0
+        assert current.decision_receipt_ids == ()
+        assert current.step_receipt_ids == ()
+        assert current.terminal_receipt_id is None
+        task = runtime.tasks.get(task_id)
+        assert task.leased_to == identity.agent_id
+        assert task.completed_by is None
+        assert task.aborted_by is None
+        assert workspace.digest == workspace_digest_before
+        assert workspace.active_execution_epoch_id == session.workspace_epoch_id
+        assert workspace.active_execution_epoch_owner == session.session_id
+    finally:
+        workspace.close()
