@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 COMPONENT_ID = "external.context"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.memory_context"
 
 from nolane.core.canonical_digest import canonical_digest
@@ -130,6 +130,7 @@ class MemoryContextControlPlane:
             planning=planning,
             architecture=architecture,
         )
+        self._base_context: Any = None
         self._repairs = {row.repair_id: row for row in repairs}
         self._repair_counter = int(repair_counter)
 
@@ -138,7 +139,21 @@ class MemoryContextControlPlane:
         return canonical_digest(self.to_state())
 
     def bind_base_context(self, base_context: Any) -> None:
+        self._base_context = base_context
         self.context_intelligence.bind_base_context(base_context)
+
+    def authoritative_artifacts(
+        self,
+        agent_id: str,
+        *,
+        task_id: str | None = None,
+    ) -> tuple[tuple[str, Any], ...]:
+        if self._base_context is None:
+            raise RuntimeError('memory context base authority compiler is not bound')
+        snapshot = getattr(self._base_context, 'authoritative_artifacts', None)
+        if not callable(snapshot):
+            raise RuntimeError('memory context base authority snapshot is unavailable')
+        return tuple(snapshot(agent_id, task_id=task_id))
 
     def capture_continuity(
         self,

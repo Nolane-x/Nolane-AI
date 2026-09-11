@@ -38,7 +38,10 @@ def test_memory_intelligence_private_state_is_only_exposed_to_memory_region():
     memory_capsule = runtime.context.compile('memory.chief')
     coding_capsule = runtime.context.compile('coding.backend.01')
     research_capsule = runtime.context.compile('research.chief')
-    assert ('memory-intelligence-state', runtime.memory_context.digest) in memory_capsule.authoritative_artifacts
+    memory_authority = dict(
+        runtime.memory_context.authoritative_artifacts('memory.chief')
+    )['memory-intelligence-state']
+    assert ('memory-intelligence-state', memory_authority) in memory_capsule.authoritative_artifacts
     assert all(name != 'memory-intelligence-state' for name, _ in coding_capsule.authoritative_artifacts)
     assert all(name != 'memory-intelligence-state' for name, _ in research_capsule.authoritative_artifacts)
 
