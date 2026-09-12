@@ -9,7 +9,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.requirements import RequirementsControlPlane
 
 COMPONENT_ID = "external.planning"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.planning"
 
 if not hasattr(EventKind, "PLAN_ROLLED_BACK"):
@@ -118,15 +118,21 @@ class PlanRevision:
         version = state["version"]
         if type(version) is not int or version <= 0:
             raise ValueError("plan revision version must be a positive integer")
+        parent_version = state.get("parent_version")
+        if parent_version is not None and (type(parent_version) is not int or parent_version <= 0):
+            raise ValueError("plan revision parent version must be a positive integer")
+        source_revision = state.get("source_revision")
+        if source_revision is not None and (type(source_revision) is not int or source_revision <= 0):
+            raise ValueError("plan revision source revision must be a positive integer")
         return cls(
             version,
-            None if state.get("parent_version") is None else int(state["parent_version"]),
+            parent_version,
             str(state["actor_agent_id"]),
             str(state["reason"]),
             tuple(str(x) for x in state.get("evidence_refs", ())),
             str(state["graph_digest"]),
             tuple(str(x) for x in state.get("changed_node_ids", ())),
-            None if state.get("source_revision") is None else int(state["source_revision"]),
+            source_revision,
         )
 
 

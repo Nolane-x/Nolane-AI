@@ -129,7 +129,7 @@ def test_wave5n_canonical_planning_owns_complete_public_implementation() -> None
     )
     assert all(getattr(canonical, name).__module__ == "nolane.external_core.planning" for name in names)
     assert canonical.COMPONENT_ID == "external.planning"
-    assert canonical.COMPONENT_VERSION == "0.0.2"
+    assert canonical.COMPONENT_VERSION == "0.0.3"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.planning"
 
 
@@ -336,8 +336,8 @@ def test_wave5n_planning_and_tasks_component_versions_reflect_authority_migratio
     assert planning.canonical_module == "nolane.external_core.planning"
     assert planning.legacy_sources == ("cogcoder/organization/planning.py",)
     assert planning.canonical_write_authority
-    assert planning.component_version == "0.0.2"
-    assert str(component_version("external.planning")) == "0.0.2"
+    assert planning.component_version == "0.0.3"
+    assert str(component_version("external.planning")) == "0.0.3"
 
     assert tasks.status is ImplementationStatus.CANONICAL_NATIVE
     assert tasks.component_version == "0.0.5"
