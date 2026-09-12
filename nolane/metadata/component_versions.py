@@ -44,7 +44,7 @@ _COMPONENT_REVISIONS.update(
         "external.memory.retrieval": 4,
         "external.knowledge": 2,
         "external.epistemic": 1,
-        "external.requirements": 1,
+        "external.requirements": 2,
         "external.planning": 5,
         "external.architecture": 1,
         "external.integration": 13,

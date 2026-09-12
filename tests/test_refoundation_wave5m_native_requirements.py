@@ -89,7 +89,7 @@ def test_wave5m_canonical_requirements_owns_public_implementation() -> None:
     )
     assert all(symbol.__module__ == "nolane.external_core.requirements" for symbol in public)
     assert canonical.COMPONENT_ID == "external.requirements"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.requirements"
 
 
@@ -400,8 +400,8 @@ def test_wave5m_requirements_component_stays_native_after_later_cutovers() -> No
     assert row.canonical_module == "nolane.external_core.requirements"
     assert row.legacy_sources == ("cogcoder/organization/requirements.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.requirements")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.requirements")) == "0.0.2"
 
     # The Wave 5M receipt owns only the Requirements cutover. Later waves may
     # legitimately remove neighboring facades without invalidating this proof.
