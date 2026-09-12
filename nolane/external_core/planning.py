@@ -9,7 +9,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.requirements import RequirementsControlPlane
 
 COMPONENT_ID = "external.planning"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.planning"
 
 if not hasattr(EventKind, "PLAN_ROLLED_BACK"):
