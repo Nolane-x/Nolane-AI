@@ -6,7 +6,7 @@ from math import ceil
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
-from nolane.external_core.context import ContextCapsule
+from nolane.external_core.context import ContextCapsule, skill_frontier_digest
 from nolane.memory.fabric import MemoryFabric, MemoryStatus
 from nolane.memory.lifecycle import MemoryLifecycleLedger
 from nolane.memory.retrieval import MemoryRetrievalBudget, MemoryRetrievalEngine
@@ -529,7 +529,10 @@ class ContextIntelligenceCompiler:
             since_event_id=since_event_id,
             memories=(),
             event_delta=(),
-            authoritative_artifacts=tuple((name, int(value)) for name, value in self._frontier()),
+            authoritative_artifacts=(
+                *tuple((name, int(value)) for name, value in self._frontier()),
+                ('skill-frontier', skill_frontier_digest(skills)),
+            ),
             tools=identity.tool_permissions,
             external_cores=identity.external_core_bindings,
             applicable_skill_ids=skills,
