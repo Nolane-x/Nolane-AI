@@ -81,28 +81,37 @@ NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
     "fa998270df05e6fd2c9186027eb21889f2858dab4765a4b12d7aad3452b2a5d3"
 )
 
-# Neural R2.4 mixed-state provenance strengthens that execution envelope with
-# a canonical per-decision anchor for every modern request-provenance receipt.
-# This permits legacy v1 and modern v2 decisions to coexist without allowing a
-# modern receipt to be self-consistently downgraded inside the mixed snapshot.
-# The exact digest was measured by the intentional dependent-regression RED run
-# on CPython 3.13.15 at implementation head e86da4fcf7736f8b479969511eff8ab35207b11b.
+# Neural R2.5 identity-authority persistence advances the canonical runtime
+# fingerprint by persisting AgentRegistry's execution, neural-version and
+# self-model authority generations. The nominal first-generation identities are
+# unchanged; the zero-valued clocks are now explicit recoverable state instead
+# of process-local state that vanished across runtime restore. This exact digest
+# was observed on both supported Python runtimes by the dependent Refoundation
+# regression run for PR #382.
+NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST = (
+    "ee6abf2c3fb3a96621a0f8064543217089c9eedbe6c6f93915a9434d51c19de3"
+)
+
+# Historical Neural R2.4 mixed-state provenance fingerprint. It remains a
+# lineage witness for the runtime state immediately before R2.5 identity
+# authority generations became persistent.
 NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
     "71dae36c6ed6c2c91650c37567528fdb6e31595fb529c894cb6dcfd81378549d"
 )
 
 
-def test_runtime_state_fingerprint_tracks_neural_r24_mixed_request_provenance_cutover() -> None:
+def test_runtime_state_fingerprint_tracks_neural_r25_identity_authority_persistence_cutover() -> None:
     first = CanonicalOrganization.first_generation()
     second = CanonicalOrganization.first_generation()
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert first.state_digest == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
-    assert second.state_digest == NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert first.state_digest == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert second.state_digest == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST != NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST != F_V13_PATCH_PROVENANCE_RUNTIME_STATE_DIGEST

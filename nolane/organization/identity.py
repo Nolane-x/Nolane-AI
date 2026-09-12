@@ -6,12 +6,21 @@ from typing import Any, Iterable, Mapping
 from nolane.schemas.identity import AgentIdentity, AgentStatus
 
 COMPONENT_ID = "organization.identity"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.registry"
 
 _EXECUTION_AUTHORITY_REVOKING_STATUSES = frozenset(
     (AgentStatus.SLEEPING, AgentStatus.PAUSED)
 )
+_AUTHORITY_REVISION_FIELDS = frozenset(("execution", "neural_version", "self_model"))
+
+
+def _authority_revision_value(value: Any, *, field: str, agent_id: str) -> int:
+    if type(value) is not int or value < 0:
+        raise ValueError(
+            f"identity authority revision {field} for {agent_id} must be a non-negative integer"
+        )
+    return value
 
 
 class AgentRegistry:
@@ -121,6 +130,14 @@ class AgentRegistry:
         return {
             "identities": [row.to_state() for row in self.identities()],
             "accepted_versions": {key: list(value) for key, value in sorted(self._accepted_versions.items())},
+            "authority_revisions": {
+                agent_id: {
+                    "execution": self._execution_authority_revisions[agent_id],
+                    "neural_version": self._neural_version_authority_revisions[agent_id],
+                    "self_model": self._self_model_authority_revisions[agent_id],
+                }
+                for agent_id in sorted(self._rows)
+            },
         }
 
     @classmethod
@@ -135,6 +152,65 @@ class AgentRegistry:
                 if current not in history:
                     history.append(current)
                 registry._accepted_versions[str(agent_id)] = history
+
+        # Absence is the explicit compatibility contract for pre-authority-clock
+        # snapshots. Once the field is present it is canonical state and must be
+        # complete, exact and type-safe before any restored clock is admitted.
+        if "authority_revisions" not in state:
+            return registry
+
+        revisions = state["authority_revisions"]
+        if not isinstance(revisions, Mapping):
+            raise ValueError("identity authority revisions state must be a mapping")
+        if any(type(agent_id) is not str for agent_id in revisions):
+            raise ValueError("identity authority revision agent ids must be strings")
+
+        expected_agent_ids = set(registry._rows)
+        actual_agent_ids = set(revisions)
+        if actual_agent_ids != expected_agent_ids:
+            missing = sorted(expected_agent_ids - actual_agent_ids)
+            unknown = sorted(actual_agent_ids - expected_agent_ids)
+            raise ValueError(
+                "identity authority revision agent set mismatch: "
+                f"missing={missing}, unknown={unknown}"
+            )
+
+        parsed: dict[str, tuple[int, int, int]] = {}
+        for agent_id in sorted(expected_agent_ids):
+            row = revisions[agent_id]
+            if not isinstance(row, Mapping):
+                raise ValueError("identity authority revision row must be a mapping")
+            if any(type(field) is not str for field in row):
+                raise ValueError("identity authority revision field names must be strings")
+            actual_fields = set(row)
+            if actual_fields != _AUTHORITY_REVISION_FIELDS:
+                missing = sorted(_AUTHORITY_REVISION_FIELDS - actual_fields)
+                unknown = sorted(actual_fields - _AUTHORITY_REVISION_FIELDS)
+                raise ValueError(
+                    f"identity authority revision fields for {agent_id} mismatch: "
+                    f"missing={missing}, unknown={unknown}"
+                )
+            parsed[agent_id] = (
+                _authority_revision_value(row["execution"], field="execution", agent_id=agent_id),
+                _authority_revision_value(
+                    row["neural_version"], field="neural_version", agent_id=agent_id
+                ),
+                _authority_revision_value(
+                    row["self_model"], field="self_model", agent_id=agent_id
+                ),
+            )
+
+        # Commit only after the complete snapshot validates, so no malformed
+        # later row can leave a partially restored authority generation.
+        registry._execution_authority_revisions = {
+            agent_id: values[0] for agent_id, values in parsed.items()
+        }
+        registry._neural_version_authority_revisions = {
+            agent_id: values[1] for agent_id, values in parsed.items()
+        }
+        registry._self_model_authority_revisions = {
+            agent_id: values[2] for agent_id, values in parsed.items()
+        }
         return registry
 
 
