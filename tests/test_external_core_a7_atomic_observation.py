@@ -192,7 +192,7 @@ def test_a7_atomic_contract_survives_dependency_revision() -> None:
     assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.8"
     assert admission_bundle.COMPONENT_ID == "external.integration"
     assert admission_bundle.COMPONENT_VERSION == "0.0.8"
-    assert component_revision_map()["external.integration"] == 12
+    assert component_revision_map()["external.integration"] == 13
 
     report = admission_bundle.run_canonical_admission_audit(observed_epoch=11)
     assert report.protocol == "external-integration-admission-audit-v3"
