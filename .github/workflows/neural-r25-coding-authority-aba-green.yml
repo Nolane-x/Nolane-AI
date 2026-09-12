@@ -1,0 +1,93 @@
+name: Neural R2.5 Coding Authority ABA Green
+
+on:
+  push:
+    branches:
+      - neural-r25-coding-authority-aba
+    paths:
+      - ".github/workflows/neural-r25-coding-authority-aba-green.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neural-r25-coding-authority-aba
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Apply exact minimal ABA-safe coding authority patch
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding='utf-8')
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f'{path}: expected exactly one match, found {count}')
+              p.write_text(text.replace(old, new, 1), encoding='utf-8')
+
+          coding = 'nolane/external_core/coding.py'
+          ui = 'nolane/external_core/ui_coding.py'
+
+          replace_once(
+              coding,
+              "        readiness: tuple[CodingReadinessReceipt, ...] = (),\n        readiness_counter: int = 0,\n    ) -> None:\n",
+              "        readiness: tuple[CodingReadinessReceipt, ...] = (),\n        readiness_counter: int = 0,\n        assignment_authority_revision: int = 0,\n    ) -> None:\n",
+          )
+          replace_once(
+              coding,
+              "        self._readiness: list[CodingReadinessReceipt] = list(readiness)\n        self._readiness_counter = int(readiness_counter)\n\n    @property\n    def digest(self) -> str:\n",
+              "        self._readiness: list[CodingReadinessReceipt] = list(readiness)\n        self._readiness_counter = int(readiness_counter)\n        assignment_revision = int(assignment_authority_revision)\n        if assignment_revision < 0:\n            raise ValueError('coding assignment authority revision must be non-negative')\n        self._assignment_authority_revision = assignment_revision\n\n    @property\n    def assignment_authority_revision(self) -> int:\n        return self._assignment_authority_revision\n\n    @property\n    def digest(self) -> str:\n",
+          )
+          replace_once(
+              coding,
+              "        receipt = self.profiles.route(\n            request,\n            override_agent_id=override_agent_id,\n            override_actor_id=override_actor_id,\n        )\n        self._requests[request.work_id] = request\n        self._assignments[request.work_id] = receipt\n",
+              "        receipt = self.profiles.route(\n            request,\n            override_agent_id=override_agent_id,\n            override_actor_id=override_actor_id,\n        )\n        if existing_assignment != receipt:\n            self._assignment_authority_revision += 1\n        self._requests[request.work_id] = request\n        self._assignments[request.work_id] = receipt\n",
+          )
+          replace_once(
+              coding,
+              "    def to_state(self) -> dict[str, Any]:\n        return {\n            'profiles': self.profiles.to_state(),\n            'requests': [row.to_state() for row in self.requests()],\n            'assignments': [row.to_state() for row in self.assignments()],\n            'claims': self.claims.to_state(),\n            'patches': self.patches.to_state(),\n            'readiness': [row.to_state() for row in self._readiness],\n            'readiness_counter': self._readiness_counter,\n        }\n",
+              "    def to_state(self) -> dict[str, Any]:\n        state = {\n            'profiles': self.profiles.to_state(),\n            'requests': [row.to_state() for row in self.requests()],\n            'assignments': [row.to_state() for row in self.assignments()],\n            'claims': self.claims.to_state(),\n            'patches': self.patches.to_state(),\n            'readiness': [row.to_state() for row in self._readiness],\n            'readiness_counter': self._readiness_counter,\n        }\n        if self._assignment_authority_revision:\n            state['assignment_authority_revision'] = self._assignment_authority_revision\n        return state\n",
+          )
+          replace_once(
+              coding,
+              "            readiness=readiness,\n            readiness_counter=counter,\n        )\n",
+              "            readiness=readiness,\n            readiness_counter=counter,\n            assignment_authority_revision=int(state.get('assignment_authority_revision', 0)),\n        )\n",
+          )
+          replace_once(
+              ui,
+              "            requests=base._requests, assignments=base._assignments,\n            readiness=tuple(base._readiness), readiness_counter=base._readiness_counter,\n            external_grants=grants, external_requests=requests, external_assignments=assignments,\n",
+              "            requests=base._requests, assignments=base._assignments,\n            readiness=tuple(base._readiness), readiness_counter=base._readiness_counter,\n            assignment_authority_revision=base.assignment_authority_revision,\n            external_grants=grants, external_requests=requests, external_assignments=assignments,\n",
+          )
+          PY
+      - name: Compile patched coding surfaces
+        run: python -m compileall -q nolane/external_core cogcoder/organization
+      - name: Run focused ABA and prior context authority regressions
+        run: |
+          python -m pytest -q \
+            tests/test_execution_post_inference_coding_authority_aba.py \
+            tests/test_execution_post_inference_context_frontier_authority.py
+      - name: Run broader coding and runtime restore regression discovery
+        run: |
+          python -m pytest -q \
+            tests/test_coding_agi_execution_runtime.py \
+            tests/test_coding_agi_context_intelligence.py
+      - name: Check diff hygiene
+        run: git diff --check
+      - name: Remove staging workflow before commit
+        run: rm .github/workflows/neural-r25-coding-authority-aba-green.yml
+      - name: Commit and push only after GREEN
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add nolane/external_core/coding.py nolane/external_core/ui_coding.py .github/workflows/neural-r25-coding-authority-aba-green.yml
+          git commit -m "fix(coding): make assignment authority ABA-safe"
+          git push origin HEAD:neural-r25-coding-authority-aba
