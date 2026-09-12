@@ -488,6 +488,11 @@ class CodingControlPlane:
                 raise ValueError('non-canonical coding readiness id') from exc
         if counter < max_counter:
             raise ValueError('coding readiness counter is behind history')
+        assignment_revision = state.get('assignment_authority_revision', 0)
+        if type(assignment_revision) is not int or assignment_revision < 0:
+            raise ValueError(
+                'coding assignment authority revision must be a non-negative integer'
+            )
         return cls(
             registry=registry,
             ledger=ledger,
@@ -503,7 +508,7 @@ class CodingControlPlane:
             assignments=assignments,
             readiness=readiness,
             readiness_counter=counter,
-            assignment_authority_revision=int(state.get('assignment_authority_revision', 0)),
+            assignment_authority_revision=assignment_revision,
         )
 
 
