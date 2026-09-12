@@ -9,7 +9,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.requirements import RequirementsControlPlane
 
 COMPONENT_ID = "external.planning"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.planning"
 
 if not hasattr(EventKind, "PLAN_ROLLED_BACK"):
@@ -647,6 +647,48 @@ class PlanningControlPlane:
         state: Mapping[str, Any],
     ) -> "PlanningControlPlane":
         graph = MasterPlanGraph.from_state(requirements, state.get("graph", {}))
+        rollback_events: dict[int, tuple[Any, int, int]] = {}
+        for event in ledger.events_since(None):
+            if (
+                event.kind is not EventKind.PLAN_AMENDED
+                or event.target_agent_id != "planning.chief"
+                or event.region != "planning-program"
+            ):
+                continue
+            payload = event.payload
+            if payload.get("plan_action") != "rollback":
+                continue
+            old_version = payload.get("old_version")
+            new_version = payload.get("new_version")
+            source_revision = payload.get("source_revision")
+            if any(
+                type(value) is not int or value <= 0
+                for value in (old_version, new_version, source_revision)
+            ):
+                raise ValueError("plan rollback provenance mismatch")
+            if new_version in rollback_events:
+                raise ValueError("plan rollback provenance mismatch")
+            rollback_events[new_version] = (event, old_version, source_revision)
+
+        expected_versions: set[int] = set()
+        for revision in graph.revisions():
+            if revision.source_revision is None:
+                continue
+            expected_versions.add(revision.version)
+            matched = rollback_events.get(revision.version)
+            if matched is None:
+                raise ValueError("plan rollback provenance mismatch")
+            event, old_version, source_revision = matched
+            if (
+                old_version != revision.parent_version
+                or source_revision != revision.source_revision
+                or event.source_agent_id != revision.actor_agent_id
+                or event.evidence_refs != revision.evidence_refs
+            ):
+                raise ValueError("plan rollback provenance mismatch")
+        if set(rollback_events) != expected_versions:
+            raise ValueError("plan rollback provenance mismatch")
+
         return cls(
             registry=registry,
             authority=authority,

@@ -60,8 +60,8 @@ def test_wave5x_canonical_tree_has_no_reverse_authority_for_event_context_schema
 
 
 def test_wave5x_event_component_revision_records_schema_authority_hardening() -> None:
-    assert str(component_version("organization.events")) == "0.0.2"
-    assert str(next_component_version("organization.events")) == "0.0.3"
+    assert str(component_version("organization.events")) == "0.0.3"
+    assert str(next_component_version("organization.events")) == "0.0.4"
 
 
 def test_wave5x_prerequisite_contract_remains_monotonic_after_later_cutovers() -> None:
