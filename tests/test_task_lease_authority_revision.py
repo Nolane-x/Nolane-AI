@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from cogcoder.organization.runtime import OrganizationRuntime
 
 
@@ -47,7 +49,9 @@ def test_task_lease_authority_revision_survives_full_runtime_restore() -> None:
     assert runtime.tasks.get(task_id).leased_to is None
     assert runtime.tasks.lease_authority_revision(task_id) == 2
 
-    restored = OrganizationRuntime.from_state(runtime.to_state())
+    state = runtime.to_state()
+    assert state["tasks"]["lease_authority_revisions"][task_id] == 2
+    restored = OrganizationRuntime.from_state(state)
 
     assert restored.tasks.get(task_id).leased_to is None
     assert restored.tasks.lease_authority_revision(task_id) == 2
@@ -58,6 +62,67 @@ def test_task_lease_authority_revision_survives_full_runtime_restore() -> None:
     assert restored.tasks.lease_authority_revision(task_id) == 2
     restored.tasks.release_lease(task_id, identity.agent_id)
     assert restored.tasks.lease_authority_revision(task_id) == 3
+
+
+def test_task_lease_authority_revision_legacy_snapshot_defaults_to_zero() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = next(
+        row for row in runtime.registry.identities() if row.agent_id != "nolane.central"
+    )
+    task_id = "task-lease-authority-legacy"
+    runtime.tasks.add_task(task_id, title="lease authority legacy", plan_node_id="P1")
+    runtime.tasks.lease(task_id, identity.agent_id)
+    runtime.tasks.release_lease(task_id, identity.agent_id)
+    assert runtime.tasks.lease_authority_revision(task_id) == 1
+
+    state = runtime.to_state()
+    state["tasks"].pop("lease_authority_revisions")
+    restored = OrganizationRuntime.from_state(state)
+
+    assert restored.tasks.lease_authority_revision(task_id) == 0
+
+
+@pytest.mark.parametrize(
+    "case",
+    (
+        "non_mapping",
+        "non_string_key",
+        "missing_task",
+        "unknown_task",
+        "bool_revision",
+        "string_revision",
+        "float_revision",
+        "negative_revision",
+    ),
+)
+def test_task_lease_authority_revision_present_state_fails_closed(case: str) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    task_id = "task-lease-authority-malformed"
+    runtime.tasks.add_task(task_id, title="lease authority malformed", plan_node_id="P1")
+    state = runtime.to_state()
+    revisions = state["tasks"]["lease_authority_revisions"]
+
+    if case == "non_mapping":
+        state["tasks"]["lease_authority_revisions"] = []
+    elif case == "non_string_key":
+        revisions[1] = revisions.pop(task_id)
+    elif case == "missing_task":
+        revisions.pop(task_id)
+    elif case == "unknown_task":
+        revisions["unknown-task"] = 0
+    elif case == "bool_revision":
+        revisions[task_id] = True
+    elif case == "string_revision":
+        revisions[task_id] = "1"
+    elif case == "float_revision":
+        revisions[task_id] = 1.0
+    elif case == "negative_revision":
+        revisions[task_id] = -1
+    else:  # pragma: no cover - parameter list is intentionally closed.
+        raise AssertionError(case)
+
+    with pytest.raises(ValueError):
+        OrganizationRuntime.from_state(state)
 
 
 def test_task_lease_authority_revision_ignores_heartbeat_and_same_holder_grant() -> None:
