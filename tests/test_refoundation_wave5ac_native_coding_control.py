@@ -37,7 +37,7 @@ def test_wave5ac_canonical_module_owns_coding_control_semantics() -> None:
     import nolane.external_core.coding as canonical
 
     assert canonical.COMPONENT_ID == "external.coding.control"
-    assert canonical.COMPONENT_VERSION == "0.0.2"
+    assert canonical.COMPONENT_VERSION == "0.0.3"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.coding"
     for name in _PUBLIC_SYMBOLS:
         assert getattr(canonical, name).__module__ == "nolane.external_core.coding"
@@ -108,8 +108,8 @@ def test_wave5ac_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.coding"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
-    assert str(component_version("external.coding.control")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("external.coding.control")) == "0.0.3"
     assert all(
         binding.component_id != "external.coding.control"
         for binding in build_active_facade_bindings()
