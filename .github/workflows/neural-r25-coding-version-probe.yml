@@ -1,0 +1,29 @@
+name: Neural R2.5 Coding ABA Version Probe
+
+on:
+  push:
+    branches:
+      - neural-r25-coding-authority-aba
+    paths:
+      - ".github/workflows/neural-r25-coding-version-probe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  version-discipline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neural-r25-coding-authority-aba
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Refresh exact main base
+        run: git fetch origin main:refs/remotes/origin/main
+      - name: Report semantic ownership findings
+        run: python -m nolane.metadata.version_discipline_cli --base origin/main --head HEAD --json
+      - name: Enforce semantic ownership discipline
+        run: python -m nolane.metadata.version_discipline_cli --base origin/main --head HEAD --check
