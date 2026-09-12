@@ -16,7 +16,7 @@ from nolane.organization.tasks import TaskGraph
 
 
 COMPONENT_ID = "external.coding.control"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.coding"
 
 
