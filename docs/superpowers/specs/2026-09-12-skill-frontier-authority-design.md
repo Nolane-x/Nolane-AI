@@ -110,6 +110,16 @@ Because fallback support touches the shared `nolane.memory.context_intelligence`
 
 This exception is deliberate: repository version discipline is the executable source of truth for transitive helper ownership, as demonstrated by #374/#376.
 
+## Verified implementation evidence
+
+The decisive experiment rejected H1 and selected H2. The test-only RED reproduced the stale-decision gap on both Python 3.11 and 3.13: a governed PERSONAL skill was quarantined from inside `backend.decide(...)`, and the pre-fix runtime failed to raise `PermissionError`. The canonical GREEN then made that same scenario fail closed before execution/session/task/workspace persistence.
+
+Focused contracts additionally prove that capsule authority and receipt provenance expose the exact same `skill-frontier`, canonical compilation reads `skills_for(...)` once for the request snapshot, receipt serialization round-trips exactly, fallback context provenance preserves the same frontier, and evidence-only changes do not alter the frontier while applicability remains unchanged.
+
+Executable repository ownership analysis resolved the final revision closure to exactly three owners: `external.context` revision `4 -> 5`, `external.execution.control` revision `19 -> 20`, and `external.integration` revision `12 -> 13`. The independent public execution protocol and integration semantic-surface versions remain unchanged. After these exact +1 advances and projection updates, `version_discipline_cli` reports clean ownership.
+
+This evidence closes design selection, RED/GREEN causality, fallback equivalence, no-overbinding, and version ownership. Exact-head acceptance, guarded merge, and post-merge push verification remain the integration gates.
+
 ## Acceptance
 
 The change is acceptable only if all of the following hold:
