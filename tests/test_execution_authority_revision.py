@@ -78,3 +78,40 @@ def test_neural_version_authority_revision_tracks_only_true_version_switches() -
 
     # Neural version changes are independent from lifecycle revocation state.
     assert runtime.registry.execution_authority_revision(agent_id) == 0
+
+
+def test_identity_authority_revisions_survive_runtime_snapshot_restore() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = runtime.registry.identities()[0]
+    agent_id = identity.agent_id
+
+    # Cross and then restore each reversible authority boundary so final-value
+    # equality cannot stand in for the historical monotonic witness.
+    runtime.registry.set_status(agent_id, AgentStatus.ACTIVE)
+    runtime.registry.set_status(agent_id, AgentStatus.SLEEPING)
+    runtime.registry.set_status(agent_id, AgentStatus.ACTIVE)
+
+    initial_neural_version = runtime.registry.get(agent_id).neural_version
+    alternate_neural_version = initial_neural_version + ".restore-revision"
+    runtime.registry.accept_neural_version(agent_id, alternate_neural_version)
+    runtime.registry.accept_neural_version(agent_id, initial_neural_version)
+
+    initial_self_model_version = runtime.registry.get(agent_id).self_model_version
+    alternate_self_model_version = initial_self_model_version + ".restore-revision"
+    runtime.registry.set_self_model_version(agent_id, alternate_self_model_version)
+    runtime.registry.set_self_model_version(agent_id, initial_self_model_version)
+
+    expected = (
+        runtime.registry.execution_authority_revision(agent_id),
+        runtime.registry.neural_version_authority_revision(agent_id),
+        runtime.registry.self_model_authority_revision(agent_id),
+    )
+    assert expected == (1, 2, 2)
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+
+    assert (
+        restored.registry.execution_authority_revision(agent_id),
+        restored.registry.neural_version_authority_revision(agent_id),
+        restored.registry.self_model_authority_revision(agent_id),
+    ) == expected
