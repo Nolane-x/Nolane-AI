@@ -31,6 +31,35 @@ def test_task_lease_authority_revision_tracks_only_real_lease_revocation() -> No
     assert runtime.tasks.lease_authority_revision(task_id) == 2
 
 
+def test_task_lease_authority_revision_survives_full_runtime_restore() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    identity = next(
+        row for row in runtime.registry.identities() if row.agent_id != "nolane.central"
+    )
+    task_id = "task-lease-authority-restore"
+    runtime.tasks.add_task(task_id, title="lease authority restore", plan_node_id="P1")
+
+    runtime.tasks.lease(task_id, identity.agent_id)
+    runtime.tasks.release_lease(task_id, identity.agent_id)
+    runtime.tasks.lease(task_id, identity.agent_id)
+    runtime.tasks.release_lease(task_id, identity.agent_id)
+
+    assert runtime.tasks.get(task_id).leased_to is None
+    assert runtime.tasks.lease_authority_revision(task_id) == 2
+
+    restored = OrganizationRuntime.from_state(runtime.to_state())
+
+    assert restored.tasks.get(task_id).leased_to is None
+    assert restored.tasks.lease_authority_revision(task_id) == 2
+
+    # A post-restore revocation must continue from the historical generation,
+    # never restart a competing authority timeline at zero.
+    restored.tasks.lease(task_id, identity.agent_id)
+    assert restored.tasks.lease_authority_revision(task_id) == 2
+    restored.tasks.release_lease(task_id, identity.agent_id)
+    assert restored.tasks.lease_authority_revision(task_id) == 3
+
+
 def test_task_lease_authority_revision_ignores_heartbeat_and_same_holder_grant() -> None:
     runtime = OrganizationRuntime.first_generation()
     identity = next(
