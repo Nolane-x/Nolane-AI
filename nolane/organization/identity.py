@@ -6,7 +6,7 @@ from typing import Any, Iterable, Mapping
 from nolane.schemas.identity import AgentIdentity, AgentStatus
 
 COMPONENT_ID = "organization.identity"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.registry"
 
 _EXECUTION_AUTHORITY_REVOKING_STATUSES = frozenset(
