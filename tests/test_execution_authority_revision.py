@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
 from cogcoder.organization.runtime import OrganizationRuntime
+from nolane.organization.identity import AgentRegistry
 from nolane.schemas.identity import AgentStatus
 
 
@@ -80,13 +83,9 @@ def test_neural_version_authority_revision_tracks_only_true_version_switches() -
     assert runtime.registry.execution_authority_revision(agent_id) == 0
 
 
-def test_identity_authority_revisions_survive_runtime_snapshot_restore() -> None:
-    runtime = OrganizationRuntime.first_generation()
-    identity = runtime.registry.identities()[0]
-    agent_id = identity.agent_id
+def _advance_all_identity_authority_revisions(runtime: OrganizationRuntime) -> str:
+    agent_id = runtime.registry.identities()[0].agent_id
 
-    # Cross and then restore each reversible authority boundary so final-value
-    # equality cannot stand in for the historical monotonic witness.
     runtime.registry.set_status(agent_id, AgentStatus.ACTIVE)
     runtime.registry.set_status(agent_id, AgentStatus.SLEEPING)
     runtime.registry.set_status(agent_id, AgentStatus.ACTIVE)
@@ -100,18 +99,91 @@ def test_identity_authority_revisions_survive_runtime_snapshot_restore() -> None
     alternate_self_model_version = initial_self_model_version + ".restore-revision"
     runtime.registry.set_self_model_version(agent_id, alternate_self_model_version)
     runtime.registry.set_self_model_version(agent_id, initial_self_model_version)
+    return agent_id
 
-    expected = (
-        runtime.registry.execution_authority_revision(agent_id),
-        runtime.registry.neural_version_authority_revision(agent_id),
-        runtime.registry.self_model_authority_revision(agent_id),
+
+def _authority_revision_tuple(registry: AgentRegistry, agent_id: str) -> tuple[int, int, int]:
+    return (
+        registry.execution_authority_revision(agent_id),
+        registry.neural_version_authority_revision(agent_id),
+        registry.self_model_authority_revision(agent_id),
     )
+
+
+def test_identity_authority_revisions_survive_runtime_snapshot_restore() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    agent_id = _advance_all_identity_authority_revisions(runtime)
+
+    expected = _authority_revision_tuple(runtime.registry, agent_id)
     assert expected == (1, 2, 2)
 
     restored = OrganizationRuntime.from_state(runtime.to_state())
 
-    assert (
-        restored.registry.execution_authority_revision(agent_id),
-        restored.registry.neural_version_authority_revision(agent_id),
-        restored.registry.self_model_authority_revision(agent_id),
-    ) == expected
+    assert _authority_revision_tuple(restored.registry, agent_id) == expected
+
+
+def test_legacy_registry_snapshot_without_authority_revisions_defaults_to_zero() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    agent_id = _advance_all_identity_authority_revisions(runtime)
+    state = runtime.registry.to_state()
+    state.pop("authority_revisions")
+
+    restored = AgentRegistry.from_state(state)
+
+    assert _authority_revision_tuple(restored, agent_id) == (0, 0, 0)
+
+
+@pytest.mark.parametrize(
+    "malformation",
+    (
+        "top_level_non_mapping",
+        "missing_agent",
+        "unknown_agent",
+        "row_non_mapping",
+        "row_missing_field",
+        "row_extra_field",
+        "boolean_revision",
+        "negative_revision",
+        "string_revision",
+        "float_revision",
+    ),
+)
+def test_present_authority_revision_snapshot_rejects_noncanonical_state(
+    malformation: str,
+) -> None:
+    runtime = OrganizationRuntime.first_generation()
+    agent_id = _advance_all_identity_authority_revisions(runtime)
+    state = runtime.registry.to_state()
+    revisions = state["authority_revisions"]
+    assert isinstance(revisions, dict)
+    assert isinstance(revisions[agent_id], dict)
+
+    if malformation == "top_level_non_mapping":
+        state["authority_revisions"] = []
+    elif malformation == "missing_agent":
+        revisions.pop(agent_id)
+    elif malformation == "unknown_agent":
+        revisions["unknown.agent"] = {
+            "execution": 0,
+            "neural_version": 0,
+            "self_model": 0,
+        }
+    elif malformation == "row_non_mapping":
+        revisions[agent_id] = []
+    elif malformation == "row_missing_field":
+        revisions[agent_id].pop("self_model")
+    elif malformation == "row_extra_field":
+        revisions[agent_id]["unexpected"] = 0
+    elif malformation == "boolean_revision":
+        revisions[agent_id]["execution"] = True
+    elif malformation == "negative_revision":
+        revisions[agent_id]["execution"] = -1
+    elif malformation == "string_revision":
+        revisions[agent_id]["execution"] = "1"
+    elif malformation == "float_revision":
+        revisions[agent_id]["execution"] = 1.0
+    else:  # pragma: no cover - the parameter set above is exhaustive.
+        raise AssertionError(f"unknown malformation fixture: {malformation}")
+
+    with pytest.raises(ValueError):
+        AgentRegistry.from_state(state)
