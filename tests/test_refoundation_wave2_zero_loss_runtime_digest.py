@@ -92,6 +92,16 @@ NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST = (
     "ee6abf2c3fb3a96621a0f8064543217089c9eedbe6c6f93915a9434d51c19de3"
 )
 
+# Neural R2.5 task-lease authority persistence advances the canonical runtime
+# fingerprint again by making each TaskGraph lease generation explicit durable
+# state. The first-generation task set is empty, but the empty authority map is
+# still a canonical recovery boundary rather than an omitted process-local
+# clock. This exact digest was independently observed on CPython 3.11.16 and
+# 3.13.15 by the dependent Refoundation RED run for PR #384.
+NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST = (
+    "00ebd04df7ec2a41dae3957d8152454ffbfdb247c636896f725c8f4981f56ede"
+)
+
 # Historical Neural R2.4 mixed-state provenance fingerprint. It remains a
 # lineage witness for the runtime state immediately before R2.5 identity
 # authority generations became persistent.
@@ -100,17 +110,18 @@ NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST = (
 )
 
 
-def test_runtime_state_fingerprint_tracks_neural_r25_identity_authority_persistence_cutover() -> None:
+def test_runtime_state_fingerprint_tracks_neural_r25_task_lease_authority_persistence_cutover() -> None:
     first = CanonicalOrganization.first_generation()
     second = CanonicalOrganization.first_generation()
     first_state = first.to_state()
     second_state = second.to_state()
 
-    assert canonical_digest(first_state) == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert first.state_digest == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert canonical_digest(second_state) == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
-    assert second.state_digest == NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(first_state) == NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert first.state_digest == NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert canonical_digest(second_state) == NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST
+    assert second.state_digest == NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST
     assert first_state == second_state
+    assert NEURAL_R25_TASK_LEASE_AUTHORITY_RUNTIME_STATE_DIGEST != NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST
     assert NEURAL_R25_IDENTITY_AUTHORITY_RUNTIME_STATE_DIGEST != NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_MIXED_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST
     assert NEURAL_R24_REQUEST_PROVENANCE_RUNTIME_STATE_DIGEST != NEURAL_R24_WAKE_CONTINUITY_RUNTIME_STATE_DIGEST
