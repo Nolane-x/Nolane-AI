@@ -203,9 +203,15 @@ class ArchitectureRevision:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureRevision":
+        version = state["version"]
+        if type(version) is not int or version <= 0:
+            raise ValueError("architecture revision version must be a positive exact int")
+        parent_version = state.get("parent_version")
+        if parent_version is not None and (type(parent_version) is not int or parent_version <= 0):
+            raise ValueError("architecture parent version must be a positive exact int or None")
         return cls(
-            int(state["version"]),
-            None if state.get("parent_version") is None else int(state["parent_version"]),
+            version,
+            parent_version,
             str(state["actor_agent_id"]),
             str(state["reason"]),
             tuple(str(x) for x in state.get("evidence_refs", ())),
@@ -357,6 +363,9 @@ class ArchitectureGraph:
         for index, revision in enumerate(graph._revisions, 1):
             if revision.version != index:
                 raise ValueError("non-canonical architecture revision sequence")
+            expected_parent = None if index == 1 else index - 1
+            if revision.parent_version != expected_parent:
+                raise ValueError("architecture parent lineage is not canonical")
         if graph._revisions and graph._revisions[-1].graph_digest != graph.digest:
             raise ValueError("architecture graph digest mismatch")
         return graph
@@ -440,11 +449,64 @@ class ArchitectureControlPlane:
         ledger: Any,
         state: Mapping[str, Any],
     ) -> "ArchitectureControlPlane":
+        graph = ArchitectureGraph.from_state(state.get("graph", {}))
+        if hasattr(ledger, "events_since"):
+            events = ledger.events_since(None)
+        else:
+            events = tuple(getattr(ledger, "events", ()))
+
+        change_events: dict[int, tuple[str, object, tuple[str, ...], tuple[str, ...]]] = {}
+        for event in events:
+            if isinstance(event, Mapping):
+                target_agent_id = event.get("target_agent_id")
+                region = event.get("region")
+                payload = event.get("payload", {})
+                source_agent_id = event.get("source_agent_id")
+                evidence_refs = tuple(event.get("evidence_refs", ()))
+                object_refs = tuple(event.get("object_refs", ()))
+            else:
+                target_agent_id = event.target_agent_id
+                region = event.region
+                payload = event.payload
+                source_agent_id = event.source_agent_id
+                evidence_refs = tuple(event.evidence_refs)
+                object_refs = tuple(event.object_refs)
+            if target_agent_id != "architecture.chief" or region != "architecture-system":
+                continue
+            if not isinstance(payload, Mapping) or payload.get("architecture_action") != "changed":
+                continue
+            version = payload.get("version")
+            if type(version) is not int or version <= 0 or version in change_events:
+                raise ValueError("architecture change provenance mismatch")
+            change_events[version] = (
+                str(source_agent_id),
+                payload.get("reason"),
+                evidence_refs,
+                object_refs,
+            )
+
+        expected_versions: set[int] = set()
+        for revision in graph._revisions:
+            expected_versions.add(revision.version)
+            matched = change_events.get(revision.version)
+            if matched is None:
+                raise ValueError("architecture change provenance mismatch")
+            source_agent_id, reason, evidence_refs, object_refs = matched
+            if (
+                source_agent_id != revision.actor_agent_id
+                or reason != revision.reason
+                or evidence_refs != revision.evidence_refs
+                or object_refs != revision.changed_refs
+            ):
+                raise ValueError("architecture change provenance mismatch")
+        if set(change_events) != expected_versions:
+            raise ValueError("architecture change provenance mismatch")
+
         return cls(
             registry=registry,
             authority=authority,
             ledger=ledger,
-            graph=ArchitectureGraph.from_state(state.get("graph", {})),
+            graph=graph,
         )
 
 
