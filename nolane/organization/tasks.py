@@ -318,6 +318,10 @@ class TaskGraph:
     def to_state(self) -> dict[str, Any]:
         return {
             "tasks": [row.to_state() for row in self.tasks()],
+            "lease_authority_revisions": {
+                task_id: self._lease_authority_revisions.get(task_id, 0)
+                for task_id in sorted(self._tasks)
+            },
             "plan_nodes": list(self._plan_nodes),
             "plan_version": self.plan_version,
             "plan_revision_authority": PLAN_REVISION_AUTHORITY,
@@ -337,7 +341,13 @@ class TaskGraph:
             row.task_id: row
             for row in (TaskRecord.from_state(value) for value in state.get("tasks", ()))
         }
-        graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
+        if "lease_authority_revisions" in state:
+            graph._lease_authority_revisions = {
+                str(task_id): int(revision)
+                for task_id, revision in state["lease_authority_revisions"].items()
+            }
+        else:
+            graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
         graph._plan_nodes = [str(value) for value in state.get("plan_nodes", ())]
         marker = state.get("plan_revision_authority")
         if marker is not None and str(marker) != PLAN_REVISION_AUTHORITY:
