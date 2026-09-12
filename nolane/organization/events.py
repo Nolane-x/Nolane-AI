@@ -8,7 +8,7 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 COMPONENT_ID = "organization.events"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.events + cogcoder.organization.types"
 
 
@@ -257,6 +257,25 @@ class EventLedger:
         for row in ledger._events:
             if row.sequence != expected or row.event_id != f"evt-{expected:08d}":
                 raise ValueError("event ledger sequence is not canonical")
+            envelope = {
+                "event_id": row.event_id,
+                "sequence": row.sequence,
+                "kind": row.kind.value,
+                "source_agent_id": row.source_agent_id,
+                "target_agent_id": row.target_agent_id,
+                "region": row.region,
+                "payload_json": row.payload_json,
+                "scope": row.scope,
+                "causal_parent_ids": list(row.causal_parent_ids),
+                "object_refs": list(row.object_refs),
+                "evidence_refs": list(row.evidence_refs),
+                "priority": row.priority,
+                "requires_ack": row.requires_ack,
+                "status": row.status,
+                "created_at_logical": row.created_at_logical,
+            }
+            if row.digest != canonical_digest(envelope):
+                raise ValueError("event digest mismatch")
             expected += 1
         for agent_id, rows in state.get("subscriptions", {}).items():
             ledger._subscriptions[str(agent_id)] = [
