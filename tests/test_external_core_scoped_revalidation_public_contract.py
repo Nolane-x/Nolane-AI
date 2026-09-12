@@ -17,7 +17,7 @@ def test_scoped_revalidation_preserves_its_two_semantic_owner_boundaries() -> No
     assert str(component_version("external.integration")) == "0.0.13"
 
     # Sentinel neighbors: later integration evolution must not manufacture dependency bumps.
-    assert str(component_version("external.planning")) == "0.0.3"
+    assert str(component_version("external.planning")) == "0.0.4"
     assert str(component_version("external.assurance")) == "0.0.1"
     assert str(component_version("external.verification")) == "0.0.1"
 
