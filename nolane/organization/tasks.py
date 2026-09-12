@@ -342,10 +342,31 @@ class TaskGraph:
             for row in (TaskRecord.from_state(value) for value in state.get("tasks", ()))
         }
         if "lease_authority_revisions" in state:
-            graph._lease_authority_revisions = {
-                str(task_id): int(revision)
-                for task_id, revision in state["lease_authority_revisions"].items()
-            }
+            revisions = state["lease_authority_revisions"]
+            if not isinstance(revisions, Mapping):
+                raise ValueError("task lease authority revisions state must be a mapping")
+            if any(type(task_id) is not str for task_id in revisions):
+                raise ValueError("task lease authority revision task ids must be strings")
+
+            expected_task_ids = set(graph._tasks)
+            actual_task_ids = set(revisions)
+            if actual_task_ids != expected_task_ids:
+                missing = sorted(expected_task_ids - actual_task_ids)
+                unknown = sorted(actual_task_ids - expected_task_ids)
+                raise ValueError(
+                    "task lease authority revision task set mismatch: "
+                    f"missing={missing}, unknown={unknown}"
+                )
+
+            parsed: dict[str, int] = {}
+            for task_id in sorted(expected_task_ids):
+                revision = revisions[task_id]
+                if type(revision) is not int or revision < 0:
+                    raise ValueError(
+                        f"task lease authority revision for {task_id} must be a non-negative integer"
+                    )
+                parsed[task_id] = revision
+            graph._lease_authority_revisions = parsed
         else:
             graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
         graph._plan_nodes = [str(value) for value in state.get("plan_nodes", ())]
