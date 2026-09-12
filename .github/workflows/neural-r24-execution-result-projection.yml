@@ -28,6 +28,7 @@ on:
       - "tests/test_execution_post_inference_neural_version_authority.py"
       - "tests/test_execution_post_inference_backend_checkpoint_authority.py"
       - "tests/test_execution_post_inference_context_frontier_authority.py"
+      - "tests/test_execution_post_inference_coding_authority_aba.py"
       - ".github/workflows/neural-r24-execution-result-projection.yml"
 
 permissions:
@@ -72,3 +73,4 @@ jobs:
           tests/test_execution_post_inference_neural_version_authority.py
           tests/test_execution_post_inference_backend_checkpoint_authority.py
           tests/test_execution_post_inference_context_frontier_authority.py
+          tests/test_execution_post_inference_coding_authority_aba.py
