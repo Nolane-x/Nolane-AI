@@ -109,6 +109,7 @@ class CodingControlPlane:
         assignments: Mapping[str, CodingAssignmentReceipt] | None = None,
         readiness: tuple[CodingReadinessReceipt, ...] = (),
         readiness_counter: int = 0,
+        assignment_authority_revision: int = 0,
     ) -> None:
         self.registry = registry
         self.ledger = ledger
@@ -124,6 +125,14 @@ class CodingControlPlane:
         self._assignments = dict(assignments or {})
         self._readiness: list[CodingReadinessReceipt] = list(readiness)
         self._readiness_counter = int(readiness_counter)
+        assignment_revision = int(assignment_authority_revision)
+        if assignment_revision < 0:
+            raise ValueError('coding assignment authority revision must be non-negative')
+        self._assignment_authority_revision = assignment_revision
+
+    @property
+    def assignment_authority_revision(self) -> int:
+        return self._assignment_authority_revision
 
     @property
     def digest(self) -> str:
@@ -160,6 +169,8 @@ class CodingControlPlane:
             override_agent_id=override_agent_id,
             override_actor_id=override_actor_id,
         )
+        if existing_assignment != receipt:
+            self._assignment_authority_revision += 1
         self._requests[request.work_id] = request
         self._assignments[request.work_id] = receipt
         selected = self.registry.get(receipt.selected_agent_id)
@@ -417,7 +428,7 @@ class CodingControlPlane:
         return skill
 
     def to_state(self) -> dict[str, Any]:
-        return {
+        state = {
             'profiles': self.profiles.to_state(),
             'requests': [row.to_state() for row in self.requests()],
             'assignments': [row.to_state() for row in self.assignments()],
@@ -426,6 +437,9 @@ class CodingControlPlane:
             'readiness': [row.to_state() for row in self._readiness],
             'readiness_counter': self._readiness_counter,
         }
+        if self._assignment_authority_revision:
+            state['assignment_authority_revision'] = self._assignment_authority_revision
+        return state
 
     @classmethod
     def from_state(
@@ -489,6 +503,7 @@ class CodingControlPlane:
             assignments=assignments,
             readiness=readiness,
             readiness_counter=counter,
+            assignment_authority_revision=int(state.get('assignment_authority_revision', 0)),
         )
 
 

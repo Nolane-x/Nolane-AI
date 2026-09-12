@@ -334,6 +334,7 @@ class UICodingControlPlane(CodingControlPlane):
             profiles=base.profiles, claims=base.claims, patches=base.patches,
             requests=base._requests, assignments=base._assignments,
             readiness=tuple(base._readiness), readiness_counter=base._readiness_counter,
+            assignment_authority_revision=base.assignment_authority_revision,
             external_grants=grants, external_requests=requests, external_assignments=assignments,
             external_grant_counter=counter,
         )
