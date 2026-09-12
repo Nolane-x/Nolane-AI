@@ -32,3 +32,25 @@ def test_restore_requires_root_revision_without_parent() -> None:
     state["planning"]["graph"]["revisions"][0]["parent_version"] = 1
     with pytest.raises(ValueError, match="non-canonical plan parent lineage"):
         OrganizationRuntime.from_state(state)
+
+
+@pytest.mark.parametrize("parent", (None, 2, 3))
+def test_restore_requires_immediate_parent_for_later_revision(parent: int | None) -> None:
+    state = _state()
+    state["planning"]["graph"]["revisions"][1]["parent_version"] = parent
+    with pytest.raises(ValueError, match="non-canonical plan parent lineage"):
+        OrganizationRuntime.from_state(state)
+
+
+def test_restore_requires_each_revision_digest_to_match_its_snapshot() -> None:
+    state = _state()
+    state["planning"]["graph"]["revisions"][0]["graph_digest"] = "noncanonical-digest"
+    with pytest.raises(ValueError, match="plan revision digest mismatch"):
+        OrganizationRuntime.from_state(state)
+
+
+def test_restore_requires_each_historical_snapshot_to_match_its_revision_digest() -> None:
+    state = _state()
+    state["planning"]["graph"]["snapshots"]["1"]["nodes"][0]["title"] = "Alternate historical plan"
+    with pytest.raises(ValueError, match="plan revision digest mismatch"):
+        OrganizationRuntime.from_state(state)
