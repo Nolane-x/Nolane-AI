@@ -9,7 +9,7 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "external.requirements"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.requirements"
 
 
@@ -139,9 +139,15 @@ class RequirementRevision:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "RequirementRevision":
+        version = state["version"]
+        if type(version) is not int or version <= 0:
+            raise ValueError("requirement revision version must be a positive exact int")
+        parent_version = state.get("parent_version")
+        if parent_version is not None and (type(parent_version) is not int or parent_version <= 0):
+            raise ValueError("requirement parent version must be a positive exact int or None")
         return cls(
-            int(state["version"]),
-            None if state.get("parent_version") is None else int(state["parent_version"]),
+            version,
+            parent_version,
             str(state["actor_agent_id"]),
             str(state["reason"]),
             tuple(str(x) for x in state.get("evidence_refs", ())),
@@ -258,6 +264,9 @@ class RequirementGraph:
         for index, revision in enumerate(graph._revisions, 1):
             if revision.version != index:
                 raise ValueError("non-canonical requirement revision sequence")
+            expected_parent = None if index == 1 else index - 1
+            if revision.parent_version != expected_parent:
+                raise ValueError("requirement parent lineage is not canonical")
         if graph._revisions and graph._revisions[-1].graph_digest != graph.digest:
             raise ValueError("requirement graph digest mismatch")
         return graph
@@ -400,11 +409,64 @@ class RequirementsControlPlane:
         ledger: Any,
         state: Mapping[str, Any],
     ) -> "RequirementsControlPlane":
+        graph = RequirementGraph.from_state(state.get("graph", {}))
+        if hasattr(ledger, "events_since"):
+            events = ledger.events_since(None)
+        else:
+            events = tuple(getattr(ledger, "events", ()))
+
+        change_events: dict[int, tuple[str, object, tuple[str, ...], tuple[str, ...]]] = {}
+        for event in events:
+            if isinstance(event, Mapping):
+                target_agent_id = event.get("target_agent_id")
+                region = event.get("region")
+                payload = event.get("payload", {})
+                source_agent_id = event.get("source_agent_id")
+                evidence_refs = tuple(event.get("evidence_refs", ()))
+                object_refs = tuple(event.get("object_refs", ()))
+            else:
+                target_agent_id = event.target_agent_id
+                region = event.region
+                payload = event.payload
+                source_agent_id = event.source_agent_id
+                evidence_refs = tuple(event.evidence_refs)
+                object_refs = tuple(event.object_refs)
+            if target_agent_id != "requirements.chief" or region != "requirements-product":
+                continue
+            if not isinstance(payload, Mapping) or payload.get("requirements_action") != "changed":
+                continue
+            version = payload.get("version")
+            if type(version) is not int or version <= 0 or version in change_events:
+                raise ValueError("requirement change provenance mismatch")
+            change_events[version] = (
+                str(source_agent_id),
+                payload.get("reason"),
+                evidence_refs,
+                object_refs,
+            )
+
+        expected_versions: set[int] = set()
+        for revision in graph.revisions():
+            expected_versions.add(revision.version)
+            matched = change_events.get(revision.version)
+            if matched is None:
+                raise ValueError("requirement change provenance mismatch")
+            source_agent_id, reason, evidence_refs, object_refs = matched
+            if (
+                source_agent_id != revision.actor_agent_id
+                or reason != revision.reason
+                or evidence_refs != revision.evidence_refs
+                or object_refs != revision.changed_requirement_ids
+            ):
+                raise ValueError("requirement change provenance mismatch")
+        if set(change_events) != expected_versions:
+            raise ValueError("requirement change provenance mismatch")
+
         return cls(
             registry=registry,
             authority=authority,
             ledger=ledger,
-            graph=RequirementGraph.from_state(state.get("graph", {})),
+            graph=graph,
         )
 
 
