@@ -50,6 +50,7 @@ jobs:
               'tests/test_refoundation_wave5y_native_context.py': [
                   ('component_version("external.context")) == "0.0.4"', 'component_version("external.context")) == "0.0.5"'),
                   ('next_component_version("external.context")) == "0.0.5"', 'next_component_version("external.context")) == "0.0.6"'),
+                  ('row.component_version == "0.0.4"', 'row.component_version == "0.0.5"'),
               ],
           }
           for name, rows in replacements.items():
