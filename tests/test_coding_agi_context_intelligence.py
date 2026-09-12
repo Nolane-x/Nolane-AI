@@ -6,6 +6,48 @@ from cogcoder.organization.context_intelligence import ContextBudget, ContextDel
 from cogcoder.organization.runtime import OrganizationRuntime
 from cogcoder.organization.types import EventKind, MemoryScope
 from nolane.core.canonical_digest import canonical_digest
+from nolane.external_core.evidence import EvidenceRecord
+from nolane.memory.skills import SkillScope
+
+
+def _promoted_personal_skill(runtime: OrganizationRuntime, owner_agent_id: str):
+    owner = runtime.registry.get(owner_agent_id)
+    skill = runtime.evolution.propose(
+        owner_agent_id=owner.agent_id,
+        region=owner.region,
+        name='context-receipt-skill-frontier',
+        body='context provenance must bind the exact applicable skill set',
+    )
+    evidence = EvidenceRecord(
+        'context-skill-frontier-independent-verification',
+        'memory.context-compiler.01',
+        True,
+        false_accepts=0,
+        regressions=0,
+    )
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='skill',
+        subject_id=skill.skill_id,
+        operation_class='skill.verify',
+        producer_agent_id=skill.owner_agent_id,
+        evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
+    runtime.evolution.verify(skill.skill_id, evidence, authority_lease_id=lease.lease_id)
+    runtime.learning_substrate.record_skill_validation(
+        skill.skill_id,
+        regression_evidence_ids=('context-skill-regression-a', 'context-skill-regression-b'),
+        causal_ablation_evidence_ids=('context-skill-causal-ablation',),
+        regression_evidence_families={
+            'context-skill-regression-a': 'context-skill-family-a',
+            'context-skill-regression-b': 'context-skill-family-b',
+        },
+        causal_ablation_evidence_families={
+            'context-skill-causal-ablation': 'context-skill-causal-family',
+        },
+    )
+    return runtime.individual_evolution.promote_skill(skill.skill_id, SkillScope.PERSONAL)
 
 
 def test_context_capsule_exposes_semantic_delta_and_bounded_overload_metrics():
@@ -99,6 +141,93 @@ def test_context_receipt_uses_exact_full_capsule_authority_snapshot(monkeypatch)
     verified = runtime.memory_context.verify_context_capsule(result.capsule)
     assert verified is not None
     assert verified.receipt.authoritative_frontier == capsule_frontier
+
+
+def test_context_receipt_binds_exact_applicable_skill_frontier_and_round_trips():
+    runtime = OrganizationRuntime.first_generation()
+    skill = _promoted_personal_skill(runtime, 'memory.chief')
+    result = runtime.memory_context.compile_context(
+        'memory.chief',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    assert result.capsule.applicable_skill_ids == (skill.skill_id,)
+    expected = canonical_digest({'skill_ids': list(result.capsule.applicable_skill_ids)})
+    assert dict(result.capsule.authoritative_artifacts)['skill-frontier'] == expected
+    assert dict(result.receipt.authoritative_frontier)['skill-frontier'] == expected
+    assert type(result.receipt).from_state(result.receipt.to_state()) == result.receipt
+
+
+def test_context_compilation_reads_applicable_skill_frontier_once(monkeypatch):
+    runtime = OrganizationRuntime.first_generation()
+    skill = _promoted_personal_skill(runtime, 'memory.chief')
+    original = runtime.evolution.skills_for
+    calls = 0
+
+    def counted_skills_for(agent_id: str, *, region: str):
+        nonlocal calls
+        calls += 1
+        return original(agent_id, region=region)
+
+    monkeypatch.setattr(runtime.evolution, 'skills_for', counted_skills_for)
+    result = runtime.memory_context.compile_context(
+        'memory.chief',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    assert calls == 1
+    assert result.capsule.applicable_skill_ids == (skill.skill_id,)
+    expected = canonical_digest({'skill_ids': [skill.skill_id]})
+    assert dict(result.capsule.authoritative_artifacts)['skill-frontier'] == expected
+    assert dict(result.receipt.authoritative_frontier)['skill-frontier'] == expected
+
+
+def test_fallback_context_preserves_exact_skill_frontier_provenance(monkeypatch):
+    runtime = OrganizationRuntime.first_generation()
+    skill = _promoted_personal_skill(runtime, 'memory.chief')
+    compiler = runtime.memory_context.context_intelligence
+    monkeypatch.setattr(compiler, '_base_context', None)
+
+    result = runtime.memory_context.compile_context(
+        'memory.chief',
+        budget=ContextBudget(max_memories=8, max_events=8, max_estimated_units=2048),
+    )
+
+    assert result.capsule.applicable_skill_ids == (skill.skill_id,)
+    expected = canonical_digest({'skill_ids': [skill.skill_id]})
+    assert dict(result.capsule.authoritative_artifacts)['skill-frontier'] == expected
+    assert dict(result.receipt.authoritative_frontier)['skill-frontier'] == expected
+
+
+def test_skill_frontier_ignores_evidence_changes_when_applicability_is_unchanged():
+    runtime = OrganizationRuntime.first_generation()
+    skill = _promoted_personal_skill(runtime, 'memory.chief')
+    before = dict(runtime.context.authoritative_artifacts('memory.chief'))['skill-frontier']
+
+    evidence = EvidenceRecord(
+        'context-skill-frontier-second-verification',
+        'memory.knowledge-graph.01',
+        True,
+        false_accepts=0,
+        regressions=0,
+    )
+    authority = runtime.learning_substrate.learning_authority
+    lease = authority.issue(
+        subject_kind='skill',
+        subject_id=skill.skill_id,
+        operation_class='skill.verify',
+        producer_agent_id=skill.owner_agent_id,
+        evidence=evidence,
+        subject_digest=runtime.evolution.verification_subject_digest(skill.skill_id),
+    )
+    runtime.evolution.verify(skill.skill_id, evidence, authority_lease_id=lease.lease_id)
+
+    after = dict(runtime.context.authoritative_artifacts('memory.chief'))['skill-frontier']
+    assert before == after
+    assert tuple(
+        row.skill_id
+        for row in runtime.evolution.skills_for('memory.chief', region='memory-context-knowledge')
+    ) == (skill.skill_id,)
 
 
 def test_context_verifier_rejects_redigested_receipt_missing_nonlegacy_authority():

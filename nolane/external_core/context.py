@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
+from nolane.core.canonical_digest import canonical_digest
 from nolane.memory.fabric import MemoryEntry, MemoryFabric
 from nolane.organization.events import CognitiveEvent, EventKind, EventLedger
 from nolane.organization.identity import AgentRegistry
@@ -12,7 +13,7 @@ if TYPE_CHECKING:
     from nolane.memory.skills import SkillEvolutionEngine
 
 COMPONENT_ID = "external.context"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.context + cogcoder.organization.types"
 
 
@@ -40,6 +41,12 @@ class ContextCapsule:
 
 
 _ADMIN_EVENT_KINDS = {EventKind.AGENT_CHECKPOINTED, EventKind.AGENT_SLEEP, EventKind.AGENT_WAKE}
+
+
+def skill_frontier_digest(skill_ids: tuple[str, ...]) -> str:
+    """Digest the exact ordered skill IDs that are applicable to one request."""
+
+    return canonical_digest({'skill_ids': list(skill_ids)})
 
 
 def authoritative_artifacts_for(
@@ -121,16 +128,23 @@ class ContextCompiler:
                 return True
         return False
 
-    def authoritative_artifacts(
+    def _request_authority_snapshot(
         self,
         agent_id: str,
         *,
         task_id: str | None = None,
-    ) -> tuple[tuple[str, Any], ...]:
-        """Return the canonical live authority artifacts for one request scope."""
+    ) -> tuple[tuple[tuple[str, Any], ...], tuple[str, ...]]:
+        """Capture request authority and applicable skills from one skill snapshot."""
 
         identity = self.registry.get(agent_id)
         effective_task = task_id if task_id is not None else identity.current_task
+        skill_ids: tuple[str, ...] = ()
+        if self.evolution is not None:
+            skill_ids = tuple(
+                row.skill_id
+                for row in self.evolution.skills_for(identity.agent_id, region=identity.region)
+            )
+
         planning_version = 0 if self.planning is None else int(self.planning.graph.version)
         plan_version = max(int(self.tasks.plan_version), planning_version)
         artifacts: list[tuple[str, Any]] = [('master-plan', plan_version)]
@@ -162,7 +176,20 @@ class ContextCompiler:
                 artifacts.append(('reliability-state', self.operations.reliability.digest))
         if self.research is not None and identity.region == 'research-external':
             artifacts.append(('research-state', self.research.digest))
-        return tuple(artifacts)
+        if self.evolution is not None:
+            artifacts.append(('skill-frontier', skill_frontier_digest(skill_ids)))
+        return tuple(artifacts), skill_ids
+
+    def authoritative_artifacts(
+        self,
+        agent_id: str,
+        *,
+        task_id: str | None = None,
+    ) -> tuple[tuple[str, Any], ...]:
+        """Return the canonical live authority artifacts for one request scope."""
+
+        artifacts, _ = self._request_authority_snapshot(agent_id, task_id=task_id)
+        return artifacts
 
     def compile(self, agent_id: str, *, task_id: str | None = None, since_event_id: str | None = None) -> ContextCapsule:
         identity = self.registry.get(agent_id)
@@ -179,11 +206,11 @@ class ContextCompiler:
         ]
         if len(events) > self.max_events:
             events = events[-self.max_events:]
-        skill_ids: tuple[str, ...] = ()
-        if self.evolution is not None:
-            skill_ids = tuple(row.skill_id for row in self.evolution.skills_for(identity.agent_id, region=identity.region))
 
-        artifacts = self.authoritative_artifacts(identity.agent_id, task_id=effective_task)
+        artifacts, skill_ids = self._request_authority_snapshot(
+            identity.agent_id,
+            task_id=effective_task,
+        )
         plan_version = int(dict(artifacts)['master-plan'])
 
         return ContextCapsule(
@@ -210,6 +237,7 @@ __all__ = (
     "ContextCapsule",
     "ContextCompiler",
     "authoritative_artifacts_for",
+    "skill_frontier_digest",
     "COMPONENT_ID",
     "COMPONENT_VERSION",
     "MIGRATED_FROM",
