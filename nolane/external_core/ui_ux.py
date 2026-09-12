@@ -13,7 +13,7 @@ from ._ui_ux_native import *
 from ._ui_ux_native import UIControlPlane, UIQualityEvidence, UIQualityKind, UIReadinessReceipt
 
 COMPONENT_ID = "external.ui_ux"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.ui"
 
 # The accepted implementation executes inside the canonical package. Preserve

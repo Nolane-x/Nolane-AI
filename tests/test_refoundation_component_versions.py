@@ -57,9 +57,9 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.execution.control": 20,
     "external.coding.claims": 2,
     "external.coding.patches": 2,
-    "external.coding.control": 1,
+    "external.coding.control": 2,
     "external.debugging": 1,
-    "external.ui_ux": 1,
+    "external.ui_ux": 2,
     "evaluation.regimes": 1,
     "evaluation.evidence": 1,
     "evaluation.stress": 1,
@@ -119,12 +119,12 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.2"
     assert str(next_component_version("external.coding.patches")) == "0.0.3"
-    assert str(component_version("external.coding.control")) == "0.0.1"
-    assert str(next_component_version("external.coding.control")) == "0.0.2"
+    assert str(component_version("external.coding.control")) == "0.0.2"
+    assert str(next_component_version("external.coding.control")) == "0.0.3"
     assert str(component_version("external.debugging")) == "0.0.1"
     assert str(next_component_version("external.debugging")) == "0.0.2"
-    assert str(component_version("external.ui_ux")) == "0.0.1"
-    assert str(next_component_version("external.ui_ux")) == "0.0.2"
+    assert str(component_version("external.ui_ux")) == "0.0.2"
+    assert str(next_component_version("external.ui_ux")) == "0.0.3"
     assert str(component_version("evaluation.regimes")) == "0.0.1"
     assert str(next_component_version("evaluation.regimes")) == "0.0.2"
     assert str(component_version("evaluation.evidence")) == "0.0.1"
