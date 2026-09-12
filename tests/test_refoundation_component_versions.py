@@ -17,7 +17,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "organization.identity": 5,
     "organization.authority": 1,
     "organization.events": 2,
-    "organization.tasks": 4,
+    "organization.tasks": 5,
     "organization.lifecycle": 1,
     "organization.coordination.leases": 1,
     "organization.coordination.delivery": 1,
@@ -143,8 +143,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("evaluation.campaign")) == "0.0.2"
     assert str(component_version("neural.inference_bridge")) == "0.0.3"
     assert str(next_component_version("neural.inference_bridge")) == "0.0.4"
-    assert str(component_version("organization.tasks")) == "0.0.4"
-    assert str(next_component_version("organization.tasks")) == "0.0.5"
+    assert str(component_version("organization.tasks")) == "0.0.5"
+    assert str(next_component_version("organization.tasks")) == "0.0.6"
 
 
 def test_unknown_component_revision_fails_closed() -> None:

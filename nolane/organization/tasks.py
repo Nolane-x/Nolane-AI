@@ -10,7 +10,7 @@ from .events import EventLedger
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.tasks"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.tasks"
 PLAN_REVISION_AUTHORITY = "external.planning"
 
@@ -318,6 +318,10 @@ class TaskGraph:
     def to_state(self) -> dict[str, Any]:
         return {
             "tasks": [row.to_state() for row in self.tasks()],
+            "lease_authority_revisions": {
+                task_id: self._lease_authority_revisions.get(task_id, 0)
+                for task_id in sorted(self._tasks)
+            },
             "plan_nodes": list(self._plan_nodes),
             "plan_version": self.plan_version,
             "plan_revision_authority": PLAN_REVISION_AUTHORITY,
@@ -337,7 +341,34 @@ class TaskGraph:
             row.task_id: row
             for row in (TaskRecord.from_state(value) for value in state.get("tasks", ()))
         }
-        graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
+        if "lease_authority_revisions" in state:
+            revisions = state["lease_authority_revisions"]
+            if not isinstance(revisions, Mapping):
+                raise ValueError("task lease authority revisions state must be a mapping")
+            if any(type(task_id) is not str for task_id in revisions):
+                raise ValueError("task lease authority revision task ids must be strings")
+
+            expected_task_ids = set(graph._tasks)
+            actual_task_ids = set(revisions)
+            if actual_task_ids != expected_task_ids:
+                missing = sorted(expected_task_ids - actual_task_ids)
+                unknown = sorted(actual_task_ids - expected_task_ids)
+                raise ValueError(
+                    "task lease authority revision task set mismatch: "
+                    f"missing={missing}, unknown={unknown}"
+                )
+
+            parsed: dict[str, int] = {}
+            for task_id in sorted(expected_task_ids):
+                revision = revisions[task_id]
+                if type(revision) is not int or revision < 0:
+                    raise ValueError(
+                        f"task lease authority revision for {task_id} must be a non-negative integer"
+                    )
+                parsed[task_id] = revision
+            graph._lease_authority_revisions = parsed
+        else:
+            graph._lease_authority_revisions = {task_id: 0 for task_id in graph._tasks}
         graph._plan_nodes = [str(value) for value in state.get("plan_nodes", ())]
         marker = state.get("plan_revision_authority")
         if marker is not None and str(marker) != PLAN_REVISION_AUTHORITY:
