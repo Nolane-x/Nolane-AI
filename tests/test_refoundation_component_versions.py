@@ -14,7 +14,7 @@ from cogcoder.refoundation.manifests import build_component_manifests
 ACCEPTED_COMPONENT_REVISIONS = {
     "schemas.identity": 1,
     "core.canonical_digest": 1,
-    "organization.identity": 4,
+    "organization.identity": 5,
     "organization.authority": 1,
     "organization.events": 2,
     "organization.tasks": 4,
