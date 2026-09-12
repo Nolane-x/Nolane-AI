@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Permanent Neural R2.7 restore-authority regression gate.
+
 from copy import deepcopy
 from typing import Any
 
