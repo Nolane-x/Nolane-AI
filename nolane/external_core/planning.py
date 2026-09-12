@@ -115,8 +115,11 @@ class PlanRevision:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "PlanRevision":
+        version = state["version"]
+        if type(version) is not int or version <= 0:
+            raise ValueError("plan revision version must be a positive integer")
         return cls(
-            int(state["version"]),
+            version,
             None if state.get("parent_version") is None else int(state["parent_version"]),
             str(state["actor_agent_id"]),
             str(state["reason"]),
