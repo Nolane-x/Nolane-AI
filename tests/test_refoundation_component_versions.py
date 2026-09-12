@@ -47,7 +47,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.knowledge": 2,
     "external.epistemic": 1,
     "external.requirements": 1,
-    "external.planning": 3,
+    "external.planning": 4,
     "external.architecture": 1,
     "external.integration": 13,
     "external.context": 5,

@@ -9,7 +9,7 @@ from nolane.core.canonical_digest import canonical_digest
 from nolane.external_core.requirements import RequirementsControlPlane
 
 COMPONENT_ID = "external.planning"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.planning"
 
 if not hasattr(EventKind, "PLAN_ROLLED_BACK"):
@@ -388,6 +388,17 @@ class MasterPlanGraph:
         for index, rev in enumerate(graph._revisions, 1):
             if rev.version != index or index not in graph._snapshots:
                 raise ValueError("non-canonical plan revision sequence")
+            expected_parent = None if index == 1 else index - 1
+            if rev.parent_version != expected_parent:
+                raise ValueError("non-canonical plan parent lineage")
+            snapshot = graph._snapshots[index]
+            if rev.graph_digest != canonical_digest({"version": index, **snapshot}):
+                raise ValueError("plan revision digest mismatch")
+            if rev.source_revision is not None:
+                if rev.source_revision >= index or rev.source_revision not in graph._snapshots:
+                    raise ValueError("plan rollback source revision must reference an earlier snapshot")
+                if snapshot != graph._snapshots[rev.source_revision]:
+                    raise ValueError("plan rollback snapshot mismatch")
         if graph._revisions and graph._revisions[-1].graph_digest != graph.digest:
             raise ValueError("plan graph digest mismatch")
         return graph
