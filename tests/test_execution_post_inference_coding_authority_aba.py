@@ -14,6 +14,7 @@ from nolane.external_core.execution_types import (
     InferenceRequest,
 )
 from nolane.external_core.execution_workspace import RepositoryWorkspace
+from nolane.external_core.ui_coding import UICodingControlPlane
 
 
 def _git(repo: Path, *args: str) -> str:
@@ -56,6 +57,73 @@ def _work_request(runtime: OrganizationRuntime, task_id: str) -> CodingWorkReque
         requester_agent_id="coding.chief",
         evidence_refs=("coding-authority-aba-evidence",),
     )
+
+
+def test_coding_assignment_authority_revision_is_monotonic_idempotent_and_persistent() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    assert isinstance(runtime.coding, UICodingControlPlane)
+    assert runtime.coding.assignment_authority_revision == 0
+
+    task_id = "task-coding-authority-revision-semantics"
+    runtime.tasks.add_task(
+        task_id,
+        title="coding authority revision semantics",
+        plan_node_id="P1",
+    )
+    work = _work_request(runtime, task_id)
+
+    assignment_a = runtime.coding.request_work(
+        work,
+        override_agent_id="coding.chief",
+        override_actor_id="nolane.central",
+    )
+    assert runtime.coding.assignment_authority_revision == 1
+    digest_a = runtime.coding.digest
+
+    same_assignment_a = runtime.coding.request_work(
+        work,
+        override_agent_id="coding.chief",
+        override_actor_id="nolane.central",
+    )
+    assert same_assignment_a == assignment_a
+    assert runtime.coding.assignment_authority_revision == 1
+    assert runtime.coding.digest == digest_a
+
+    assignment_b = runtime.coding.request_work(
+        work,
+        override_agent_id="coding.backend.01",
+        override_actor_id="nolane.central",
+    )
+    assert assignment_b.selected_agent_id == "coding.backend.01"
+    assert runtime.coding.assignment_authority_revision == 2
+    assert runtime.coding.digest != digest_a
+
+    assignment_a_again = runtime.coding.request_work(
+        work,
+        override_agent_id="coding.chief",
+        override_actor_id="nolane.central",
+    )
+    assert assignment_a_again == assignment_a
+    assert runtime.coding.assignment_authority_revision == 3
+    assert runtime.coding.digest != digest_a
+
+    state = runtime.to_state()
+    assert state["coding"]["assignment_authority_revision"] == 3
+    restored = OrganizationRuntime.from_state(state)
+    assert isinstance(restored.coding, UICodingControlPlane)
+    assert restored.coding.assignment_authority_revision == 3
+    assert restored.coding.to_state() == runtime.coding.to_state()
+    assert restored.coding.digest == runtime.coding.digest
+
+    legacy_state = runtime.to_state()
+    legacy_state["coding"].pop("assignment_authority_revision")
+    legacy_restored = OrganizationRuntime.from_state(legacy_state)
+    assert legacy_restored.coding.assignment_authority_revision == 0
+
+    invalid_state = runtime.to_state()
+    invalid_state["coding"]["assignment_authority_revision"] = -1
+    with pytest.raises(ValueError, match="assignment authority revision.*non-negative"):
+        OrganizationRuntime.from_state(invalid_state)
 
 
 def test_coding_assignment_aba_during_inference_rejects_before_persistence(
