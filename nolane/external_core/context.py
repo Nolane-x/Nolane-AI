@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from nolane.memory.skills import SkillEvolutionEngine
 
 COMPONENT_ID = "external.context"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.context + cogcoder.organization.types"
 
 
