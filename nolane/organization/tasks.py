@@ -10,7 +10,7 @@ from .events import EventLedger
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.tasks"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.tasks"
 PLAN_REVISION_AUTHORITY = "external.planning"
 
