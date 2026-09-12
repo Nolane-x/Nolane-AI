@@ -121,6 +121,14 @@ class AgentRegistry:
         return {
             "identities": [row.to_state() for row in self.identities()],
             "accepted_versions": {key: list(value) for key, value in sorted(self._accepted_versions.items())},
+            "authority_revisions": {
+                agent_id: {
+                    "execution": self._execution_authority_revisions[agent_id],
+                    "neural_version": self._neural_version_authority_revisions[agent_id],
+                    "self_model": self._self_model_authority_revisions[agent_id],
+                }
+                for agent_id in sorted(self._rows)
+            },
         }
 
     @classmethod
@@ -135,6 +143,17 @@ class AgentRegistry:
                 if current not in history:
                     history.append(current)
                 registry._accepted_versions[str(agent_id)] = history
+
+        revisions = state.get("authority_revisions", {})
+        if isinstance(revisions, Mapping):
+            for agent_id, row in revisions.items():
+                agent_key = str(agent_id)
+                registry.get(agent_key)
+                if not isinstance(row, Mapping):
+                    raise ValueError("identity authority revision row must be a mapping")
+                registry._execution_authority_revisions[agent_key] = int(row.get("execution", 0))
+                registry._neural_version_authority_revisions[agent_key] = int(row.get("neural_version", 0))
+                registry._self_model_authority_revisions[agent_key] = int(row.get("self_model", 0))
         return registry
 
 
