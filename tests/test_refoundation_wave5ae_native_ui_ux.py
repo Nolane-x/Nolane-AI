@@ -62,7 +62,7 @@ def test_wave5ae_canonical_modules_own_entire_ui_ux_slice() -> None:
     import nolane.external_core.ui_ux as canonical
 
     assert canonical.COMPONENT_ID == "external.ui_ux"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.ui"
     for name in _MAIN_SYMBOLS:
         assert getattr(canonical, name).__module__ == "nolane.external_core.ui_ux"
@@ -115,8 +115,8 @@ def test_wave5ae_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.ui_ux"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("external.ui_ux")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("external.ui_ux")) == "0.0.2"
     assert all(binding.component_id != "external.ui_ux" for binding in build_active_facade_bindings())
 
     root = Path(__file__).resolve().parents[1]
