@@ -114,13 +114,16 @@ class ChangeCandidate:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ChangeCandidate":
+        architecture_version_expected = state["architecture_version_expected"]
+        if type(architecture_version_expected) is not int or architecture_version_expected < 0:
+            raise ValueError("integration candidate architecture version must be a non-negative exact int")
         return cls(
             str(state["candidate_id"]),
             str(state["producer_agent_id"]),
             tuple(str(x) for x in state.get("task_refs", ())),
             tuple(str(x) for x in state.get("plan_refs", ())),
             tuple(str(x) for x in state.get("requirement_refs", ())),
-            int(state["architecture_version_expected"]),
+            architecture_version_expected,
             tuple(str(x) for x in state.get("changed_component_refs", ())),
             tuple(str(x) for x in state.get("changed_interface_refs", ())),
             tuple(str(x) for x in state.get("dependency_candidate_ids", ())),
@@ -154,13 +157,16 @@ class IntegrationReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "IntegrationReceipt":
+        architecture_version = state["architecture_version"]
+        if type(architecture_version) is not int or architecture_version < 0:
+            raise ValueError("integration receipt architecture version must be a non-negative exact int")
         return cls(
             str(state["receipt_id"]),
             str(state["candidate_id"]),
             str(state["actor_agent_id"]),
             ChangeCandidateStatus(str(state["status"])),
             tuple(str(x) for x in state.get("evidence_refs", ())),
-            int(state["architecture_version"]),
+            architecture_version,
             str(state["digest"]),
         )
 
@@ -251,12 +257,18 @@ class IntegrationGraph:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "IntegrationGraph":
         graph = cls()
-        graph._candidates = {
-            x.candidate_id: x
-            for x in (ChangeCandidate.from_state(v) for v in state.get("candidates", ()))
-        }
+        candidates = tuple(ChangeCandidate.from_state(v) for v in state.get("candidates", ()))
+        candidate_ids: set[str] = set()
+        for candidate in candidates:
+            if candidate.candidate_id in candidate_ids:
+                raise ValueError(f"duplicate integration candidate: {candidate.candidate_id}")
+            candidate_ids.add(candidate.candidate_id)
+        graph._candidates = {candidate.candidate_id: candidate for candidate in candidates}
         graph._validate(graph._candidates)
-        graph._version = int(state.get("version", 0))
+        version = state.get("version", 0)
+        if type(version) is not int or version < 0:
+            raise ValueError("integration graph version must be a non-negative exact int")
+        graph._version = version
         if graph._version < len(graph._candidates):
             raise ValueError("non-canonical integration graph version")
         return graph
@@ -371,6 +383,55 @@ class IntegrationControlPlane:
     ) -> "IntegrationControlPlane":
         graph = IntegrationGraph.from_state(state.get("graph", {}))
         receipts = tuple(IntegrationReceipt.from_state(x) for x in state.get("receipts", ()))
+
+        receipt_ids: set[str] = set()
+        for receipt in receipts:
+            if receipt.receipt_id in receipt_ids:
+                raise ValueError(f"duplicate integration receipt: {receipt.receipt_id}")
+            receipt_ids.add(receipt.receipt_id)
+
+        receipt_counter = state.get("receipt_counter", len(receipts))
+        if type(receipt_counter) is not int or receipt_counter < 0:
+            raise ValueError("integration receipt counter must be a non-negative exact int")
+        if receipt_counter != len(receipts):
+            raise ValueError("non-canonical integration receipt counter")
+
+        expected_receipt_ids = {
+            f"integration-{index:08d}" for index in range(1, receipt_counter + 1)
+        }
+        if receipt_ids != expected_receipt_ids:
+            raise ValueError("integration receipt id sequence is not canonical")
+
+        for receipt in receipts:
+            if receipt.status is not ChangeCandidateStatus.INTEGRATED:
+                raise ValueError("integration receipt status must be integrated")
+            if not receipt.evidence_refs or any(not ref.strip() for ref in receipt.evidence_refs):
+                raise ValueError("integration receipt evidence must be non-empty")
+            try:
+                registry.get(receipt.actor_agent_id)
+            except KeyError as exc:
+                raise ValueError("integration receipt actor is unknown") from exc
+            try:
+                graph.get(receipt.candidate_id)
+            except KeyError as exc:
+                raise ValueError("integration receipt candidate is unknown") from exc
+            if receipt.architecture_version > architecture.graph.version:
+                raise ValueError("integration receipt architecture version exceeds current architecture")
+
+            receipt_index = int(receipt.receipt_id.removeprefix("integration-"))
+            expected_digest = canonical_digest(
+                {
+                    "receipt_index": receipt_index,
+                    "candidate_id": receipt.candidate_id,
+                    "actor_agent_id": receipt.actor_agent_id,
+                    "status": receipt.status.value,
+                    "evidence_refs": list(receipt.evidence_refs),
+                    "architecture_version": receipt.architecture_version,
+                }
+            )
+            if receipt.digest != expected_digest:
+                raise ValueError("integration receipt digest mismatch")
+
         plane = cls(
             registry=registry,
             authority=authority,
@@ -378,9 +439,7 @@ class IntegrationControlPlane:
             graph=graph,
             receipts=receipts,
         )
-        plane._receipt_counter = int(state.get("receipt_counter", len(receipts)))
-        if plane._receipt_counter < len(receipts):
-            raise ValueError("non-canonical integration receipt counter")
+        plane._receipt_counter = receipt_counter
         return plane
 
 
