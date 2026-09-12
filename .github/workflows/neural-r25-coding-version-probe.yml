@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 # Verification-only trigger: keep checkout pinned to the live branch so the
-# semantic ownership discipline is exercised against the current R2.5 head.
+# semantic ownership discipline is exercised after exact revision closure.
 jobs:
   version-discipline:
     runs-on: ubuntu-latest
