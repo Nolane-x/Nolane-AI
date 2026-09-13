@@ -90,6 +90,7 @@ class OverrideReceipt:
     reason: str
     evidence_ids: tuple[str, ...]
     overrode_block: bool
+    block_frontier_ids: tuple[str, ...]
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -99,6 +100,7 @@ class OverrideReceipt:
             "reason": self.reason,
             "evidence_ids": list(self.evidence_ids),
             "overrode_block": self.overrode_block,
+            "block_frontier_ids": list(self.block_frontier_ids),
         }
 
 
@@ -149,14 +151,19 @@ class AuthorityGraph:
             raise ValueError("Central override requires an explicit reason")
         if not evidence_ids:
             raise ValueError("Central override requires explicit evidence ids")
+        artifact = str(artifact_id)
+        block_frontier_ids = tuple(
+            block.block_id for block in self._blocks.get(artifact, ())
+        )
         self._override_counter += 1
         row = OverrideReceipt(
             override_id=f"override-{self._override_counter:08d}",
-            artifact_id=str(artifact_id),
+            artifact_id=artifact,
             actor_agent_id="nolane.central",
             reason=str(reason),
             evidence_ids=tuple(str(value) for value in evidence_ids),
-            overrode_block=bool(self._blocks.get(str(artifact_id))),
+            overrode_block=bool(block_frontier_ids),
+            block_frontier_ids=block_frontier_ids,
         )
         self._overrides[row.override_id] = row
         return row
@@ -167,11 +174,15 @@ class AuthorityGraph:
         blocked = bool(self._blocks.get(artifact))
         if override_id is not None:
             receipt = self._overrides.get(str(override_id))
+            current_frontier = tuple(
+                block.block_id for block in self._blocks.get(artifact, ())
+            )
             return bool(
                 receipt
                 and receipt.actor_agent_id == actor.agent_id
                 and receipt.artifact_id == artifact
                 and actor.agent_id == "nolane.central"
+                and receipt.block_frontier_ids == current_frontier
             )
         if blocked:
             return False
@@ -278,6 +289,8 @@ class AuthorityGraph:
             override_key = _exact_string(
                 outer_override_id, "authority override identity"
             )
+            if type(raw_row) is dict and "block_frontier_ids" not in raw_row:
+                raise ValueError("authority override temporal frontier is required")
             row = _canonical_state_record(
                 raw_row,
                 (
@@ -287,6 +300,7 @@ class AuthorityGraph:
                     "reason",
                     "evidence_ids",
                     "overrode_block",
+                    "block_frontier_ids",
                 ),
                 "authority override",
             )
@@ -321,8 +335,34 @@ class AuthorityGraph:
             overrode_block = row["overrode_block"]
             if type(overrode_block) is not bool:
                 raise ValueError("authority override overrode_block must be an exact boolean")
-            if overrode_block and not blocks.get(artifact_id):
-                raise ValueError("authority override block claim has no canonical block")
+
+            frontier_state = _canonical_state_list(
+                row["block_frontier_ids"], "authority override temporal frontier"
+            )
+            frontier_ids = tuple(
+                _exact_string(value, "authority override temporal frontier identity")
+                for value in frontier_state
+            )
+            for frontier_id in frontier_ids:
+                _sequence_number(
+                    frontier_id,
+                    "block-",
+                    "authority override temporal frontier identity",
+                )
+            if len(set(frontier_ids)) != len(frontier_ids):
+                raise ValueError("authority override temporal frontier contains duplicates")
+            artifact_block_ids = tuple(
+                block.block_id for block in blocks.get(artifact_id, ())
+            )
+            if frontier_ids != artifact_block_ids[: len(frontier_ids)]:
+                raise ValueError(
+                    "authority override temporal frontier is not a canonical historical prefix"
+                )
+            if overrode_block != bool(frontier_ids):
+                raise ValueError(
+                    "authority override block claim does not match its temporal frontier"
+                )
+
             overrides[override_id] = OverrideReceipt(
                 override_id=override_id,
                 artifact_id=artifact_id,
@@ -330,6 +370,7 @@ class AuthorityGraph:
                 reason=reason,
                 evidence_ids=evidence_ids,
                 overrode_block=overrode_block,
+                block_frontier_ids=frontier_ids,
             )
 
         override_counter = _non_negative_int(
