@@ -1,64 +1,64 @@
 # Neural R2.17.1 Temporal Override Authority Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
+> **Execution status:** implemented on the R2.17.1 branch; this plan records the accepted TDD path and the adversarial review amendment discovered before merge.
 
-**Goal:** Bind Central override receipts to the exact block frontier that existed when they were issued so later same-artifact blocks make old receipts stale.
+**Goal:** Bind Central override receipts to the exact block frontier that existed when they were issued so later same-artifact blocks make old receipts stale, including across serialization and restore.
 
-**Architecture:** Add an immutable ordered `block_frontier_ids` witness to `OverrideReceipt`. `central_override()` captures the current artifact block IDs; restore verifies the witness against canonical historical block lineage; `can_write()` requires exact equality with the current frontier. Keep the authority top-level state keys unchanged.
+**Architecture:** `OverrideReceipt` stores both the ordered same-artifact `block_frontier_ids` and the existing global `block_counter_at_issue`. `central_override()` captures both. Restore reconstructs the exact historical same-artifact frontier from global block sequence order and requires the serialized frontier to match it exactly. `can_write()` requires the receipt frontier to equal the current frontier. Top-level authority state keys remain unchanged.
 
-**Tech Stack:** Python 3.11/3.13, dataclasses, pytest, GitHub Actions, canonical component-version framework.
+**Security boundary:** canonical structural temporal consistency, not cryptographic authenticity. A coordinated full-state rewrite into another mutually consistent reachable history requires a separate trusted provenance/signature design.
 
-**Spec:** `docs/superpowers/specs/2026-09-13-neural-r2171-temporal-override-authority-design.md`
+**Base:** `main@2799fdc4d873eff0a644560e4c58a93f747ebd23`
 
-## Global Constraints
+## Task 1 — Original temporal authority RED
 
-- Base: `main@2799fdc4d873eff0a644560e4c58a93f747ebd23`.
-- Do not modify historical R2.18 cross-domain-transfer assets.
-- No wall-clock expiry, mutable revocation list, or new authority grant.
-- Keep top-level authority state keys unchanged.
-- Public authority version target: `0.0.2`.
-- Implementation revision target: `3` (`0.0.3`).
-- Capture hosted RED before production behavior changes.
-- Merge only after exact-head matrix and predecessor-baseline comparison.
+- Added live contracts proving validity at issuance, same-artifact staleness, fresh reauthorization, and unrelated-artifact independence.
+- Added serialized frontier, round-trip, missing/unknown/wrong-artifact/duplicate/reordered witness, stale-history, and version contracts.
+- Hosted original test-only RED: run `34757171784`, Python 3.11 and 3.13 each `4 failed / 881 passed`.
 
----
+## Task 2 — Initial temporal frontier implementation
 
-### Task 1: Temporal authority RED
+- Added immutable `block_frontier_ids` to `OverrideReceipt`.
+- Captured target-artifact block frontier in `central_override()`.
+- Required exact current-frontier equality in `can_write()`.
+- Added fail-closed restore validation for the frontier.
+- Advanced public authority version to `0.0.2` and canonical implementation revision to `3` (`0.0.3`).
 
-**Files:** Create `tests/test_refoundation_temporal_override_authority.py`.
+## Task 3 — Adversarial review amendment
 
-- [ ] Add live tests proving an override is valid at issuance, becomes stale after a new block on the same artifact, a fresh override restores Central authority, and an unrelated artifact block does not stale it.
-- [ ] Add state tests requiring the receipt and serialized override row to expose the exact ordered frontier and preserve it on round-trip.
-- [ ] Add restore mutations for missing witness, unknown block ID, wrong-artifact block ID, duplicate ID, and reordered/non-prefix frontier.
-- [ ] Add a stale-history round-trip test: restore preserves the old receipt as history but authorization rejects it after a later block.
-- [ ] Commit tests only and capture exact hosted RED on Python 3.11 and 3.13.
+Self-review found that accepting any canonical historical prefix during restore was too weak. A stale receipt could be serialized with its frontier changed forward to the current full frontier, reviving authority after restore.
 
-### Task 2: Minimal authority implementation
+TDD hardening sequence:
 
-**Files:** Modify `nolane/organization/authority.py`.
+- Test-only exploit head `b98af9e4a3693bde56aac5a43863327ec675c152`.
+- Hosted run `34757618900`: Python 3.11 and 3.13 each `1 failed / 899 passed`; sole failure was the forward-binding exploit not being rejected.
+- Strengthened test-only head `b58e67b0e3287ffc56571757fa4dda66717a70ef` added direct issuance-counter and missing-witness contracts.
+- Hosted run `34757853438`: Python 3.11 and 3.13 each `3 failed / 899 passed`, exactly the three intended temporal-witness failures.
 
-- [ ] Add `block_frontier_ids: tuple[str, ...]` to `OverrideReceipt` and serialize it as an ordered list.
-- [ ] Capture the current artifact block IDs in `central_override()`.
-- [ ] Require receipt frontier == current artifact frontier in `can_write()`.
-- [ ] Require `block_frontier_ids` during restore; validate canonical IDs, existence, same artifact, uniqueness, and canonical historical order.
-- [ ] Permit a valid historical prefix shorter than the current ledger so stale receipts remain auditable; runtime authorization must still reject them.
-- [ ] Run the new temporal tests plus R2.17 restore-integrity tests to GREEN on both Python versions.
-- [ ] Commit the minimal production change.
+Minimal repair:
 
-### Task 3: Version boundary
+- Add `block_counter_at_issue: int` to `OverrideReceipt` and serialized override rows.
+- Pin the existing global block counter when issuing an override.
+- Reject missing, non-canonical, or future issue counters on restore.
+- Reconstruct the exact historical same-artifact frontier as canonical blocks whose global block sequence number is `<= block_counter_at_issue`.
+- Require serialized `block_frontier_ids` to equal that reconstructed frontier exactly.
+- Keep public `0.0.2` / implementation `0.0.3`; this is an intra-milestone correction, not another semantic release.
 
-**Files:** Modify `nolane/metadata/component_versions.py`, `tests/test_refoundation_component_versions.py`, and temporal tests as needed.
+Production repair head: `45ef79773d3d8d81b8ee01611224bfe6f15e865b`.
 
-- [ ] Add tests requiring public authority version `0.0.2`, implementation revision `0.0.3`, and next revision `0.0.4`.
-- [ ] Observe version RED before changing production versions.
-- [ ] Set `nolane.organization.authority.COMPONENT_VERSION = "0.0.2"` and `organization.authority` revision to `3`.
-- [ ] Run the canonical runtime fingerprint contract. Because first-generation authority state contains no override rows, the expected outcome is no fingerprint change; if it changes, inspect the actual serialized delta before touching any frozen digest.
-- [ ] Run component-version, External Core version-discipline, projection, coherence, and A10 gates to GREEN.
+## Task 4 — Production GREEN and acceptance
 
-### Task 4: Exact-head acceptance
+Refoundation Epoch 0 run `34758069271` on synthetic merge `f662f96f6f4adaf3aaa0478f744adc9c7b96d310` is GREEN on both supported runtimes:
 
-- [ ] Run final hosted gates: Refoundation Epoch 0, External Core, Memory Learning Substrate, E Acting Transactional Runtime, R1.9, R2.0i, surfaced R2.63/R2.64/R2.64.1 gates, and R2.67.1 Replacement Evidence.
-- [ ] Compare any red workflows to predecessor baseline. The four known frozen reds may remain only if unchanged: R2.62 Complementary Causal Program, R2.65 Full Repository Release Bundle, R2.66 Full Repository Release Bundle, R2.67.1 Full Repository Release Bundle.
-- [ ] Review final changed-file set and PR threads/comments.
-- [ ] Verify base/head/synthetic merge have not drifted, then merge with expected head SHA.
-- [ ] Verify `main`, versions, and push-triggered post-merge checks on the returned merge commit.
+- Python 3.11: `902 passed` Refoundation, `308 passed` Truth/Knowledge, `814 passed` organization/campaign/execution; Neural R2.3 metadata PASS.
+- Python 3.13: `902 passed` Refoundation, `308 passed` Truth/Knowledge, `814 passed` organization/campaign/execution; Neural R2.3 metadata PASS.
+
+Acceptance checklist:
+
+- Verify final docs-only head reruns the exact-head matrix cleanly.
+- Require External Core, Memory Learning Substrate, E Acting Transactional Runtime, R1.9, R2.0i, R2.63/R2.64/R2.64.1, and R2.67.1 Replacement Evidence GREEN.
+- Permit only the four accepted predecessor frozen reds if unchanged: R2.62 Complementary Causal Program, R2.65 Full Repository Release Bundle, R2.66 Full Repository Release Bundle, R2.67.1 Full Repository Release Bundle.
+- Review final changed-file set, code/test patches, reviews and unresolved threads.
+- Recheck base/head/synthetic merge immediately before merge.
+- Merge with `expected_head_sha`.
+- Verify the returned merge commit is `main`, confirm public `0.0.2` and canonical implementation revision `3`, and inspect post-merge push checks before declaring completion.
