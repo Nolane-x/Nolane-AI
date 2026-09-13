@@ -209,14 +209,20 @@ class CognitiveState:
                 raise NeuralInvariantError(
                     f"cognitive provenance entry {index} has unknown fields: " + ", ".join(str(x) for x in unknown)
                 )
-            provenance.append(
-                EvidenceRef.create(
+            try:
+                evidence_ref = EvidenceRef.create(
                     source_core=row["source_core"],
                     receipt_id=row["receipt_id"],
                     digest=row["digest"],
                     authority=row["authority"],
                 )
-            )
+            except NeuralInvariantError as exc:
+                if "must be an exact string" in str(exc):
+                    raise NeuralInvariantError(
+                        "cognitive state serialized representation is non-canonical; possible state laundering"
+                    ) from exc
+                raise
+            provenance.append(evidence_ref)
         rebuilt = cls.create(payload=state["payload"], provenance=provenance)
         claimed_digest = _digest(state["digest"], "cognitive state digest")
         if rebuilt.digest != claimed_digest:
