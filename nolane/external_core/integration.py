@@ -506,6 +506,8 @@ class IntegrationControlPlane:
         self.registry.get(actor_agent_id)
         self.authority.require_write(actor_agent_id, "integration-state")
         authority_owner = self.authority.owner_of("integration-state")
+        if authority_owner != "integration.chief":
+            raise ValueError("integration authority provenance current owner does not match canonical owner")
         active_block_ids = tuple(
             row.block_id for row in self.authority.blocks_for("integration-state")
         )
@@ -677,6 +679,8 @@ class IntegrationControlPlane:
             raise ValueError(
                 "integration authority provenance must bind every restored receipt exactly once"
             )
+        if receipts and authority.owner_of("integration-state") != "integration.chief":
+            raise ValueError("integration authority provenance current owner does not match canonical owner")
 
         receipt_candidate_ids: set[str] = set()
         for receipt in receipts:
@@ -694,6 +698,8 @@ class IntegrationControlPlane:
                 raise ValueError("integration authority provenance artifact mismatch")
             if provenance.actor_agent_id != receipt.actor_agent_id:
                 raise ValueError("integration authority provenance actor mismatch")
+            if provenance.owner_agent_id != "integration.chief":
+                raise ValueError("integration authority provenance owner does not match canonical owner")
             if provenance.active_block_ids:
                 raise ValueError("integration authority provenance cannot record an active block")
             if provenance.authorization_mode == "owner":
