@@ -15,6 +15,10 @@ from nolane.metadata.version_discipline import (
 )
 
 
+_CANONICAL_SOURCE_ROOT = "nolane"
+_EXPLICIT_LEGACY_SOURCE_ROOT = "cogcoder"
+
+
 def _git(repo_root: Path, *args: str) -> str:
     try:
         completed = subprocess.run(
@@ -38,11 +42,23 @@ def _module_name(path: str) -> str:
     return value
 
 
-def _tree_sources(repo_root: Path, ref: str) -> dict[str, str]:
-    names = _git(repo_root, "ls-tree", "-r", "--name-only", ref, "--", "nolane")
+def _tree_sources(
+    repo_root: Path,
+    ref: str,
+    *,
+    explicit_legacy_paths: tuple[str, ...] = (),
+) -> dict[str, str]:
+    names = _git(repo_root, "ls-tree", "-r", "--name-only", ref, "--", _CANONICAL_SOURCE_ROOT)
     result: dict[str, str] = {}
     for path in sorted(line.strip() for line in names.splitlines() if line.strip().endswith(".py")):
         result[_module_name(path)] = _git(repo_root, "show", f"{ref}:{path}")
+    for path in explicit_legacy_paths:
+        try:
+            source = _source_at(repo_root, ref, path)
+        except ValueError:
+            continue
+        if _declares_component_id(source):
+            result[_module_name(path)] = source
     return result
 
 
@@ -57,6 +73,14 @@ def _assignment_value(tree: ast.Module, name: str) -> ast.expr | None:
         if isinstance(node, ast.AnnAssign) and isinstance(node.target, ast.Name) and node.target.id == name:
             return node.value
     return None
+
+
+def _declares_component_id(source: str) -> bool:
+    try:
+        tree = ast.parse(source)
+    except SyntaxError as exc:
+        raise ValueError("ownership discovery cannot parse explicit legacy semantic source") from exc
+    return _assignment_value(tree, "COMPONENT_ID") is not None
 
 
 def _is_docstring_expr(node: ast.stmt) -> bool:
@@ -295,12 +319,27 @@ def check_git_revision_discipline(
         base_revisions = _revision_map(root, base_ref)
         head_revisions = _revision_map(root, head_ref)
         canonical_ids = set(base_revisions) | set(head_revisions)
-        base_sources = _tree_sources(root, base_ref)
-        head_sources = _tree_sources(root, head_ref)
-        changed_paths = _git(root, "diff", "--name-only", base_ref, head_ref, "--", "nolane")
+        changed_paths_output = _git(
+            root,
+            "diff",
+            "--name-only",
+            base_ref,
+            head_ref,
+            "--",
+            _CANONICAL_SOURCE_ROOT,
+            _EXPLICIT_LEGACY_SOURCE_ROOT,
+        )
+        changed_paths = tuple(sorted(line.strip() for line in changed_paths_output.splitlines() if line.strip()))
+        explicit_legacy_paths = tuple(
+            path
+            for path in changed_paths
+            if path.startswith(f"{_EXPLICIT_LEGACY_SOURCE_ROOT}/") and path.endswith(".py")
+        )
+        base_sources = _tree_sources(root, base_ref, explicit_legacy_paths=explicit_legacy_paths)
+        head_sources = _tree_sources(root, head_ref, explicit_legacy_paths=explicit_legacy_paths)
         candidate_modules = {
             _module_name(path)
-            for path in (line.strip() for line in changed_paths.splitlines())
+            for path in changed_paths
             if path.endswith(".py")
         }
         changed_modules = {
