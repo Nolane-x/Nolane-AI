@@ -15,6 +15,9 @@ from nolane.metadata.version_discipline import (
 )
 
 
+_OWNERSHIP_SOURCE_ROOTS = ("nolane", "cogcoder")
+
+
 def _git(repo_root: Path, *args: str) -> str:
     try:
         completed = subprocess.run(
@@ -39,7 +42,7 @@ def _module_name(path: str) -> str:
 
 
 def _tree_sources(repo_root: Path, ref: str) -> dict[str, str]:
-    names = _git(repo_root, "ls-tree", "-r", "--name-only", ref, "--", "nolane")
+    names = _git(repo_root, "ls-tree", "-r", "--name-only", ref, "--", *_OWNERSHIP_SOURCE_ROOTS)
     result: dict[str, str] = {}
     for path in sorted(line.strip() for line in names.splitlines() if line.strip().endswith(".py")):
         result[_module_name(path)] = _git(repo_root, "show", f"{ref}:{path}")
@@ -297,7 +300,7 @@ def check_git_revision_discipline(
         canonical_ids = set(base_revisions) | set(head_revisions)
         base_sources = _tree_sources(root, base_ref)
         head_sources = _tree_sources(root, head_ref)
-        changed_paths = _git(root, "diff", "--name-only", base_ref, head_ref, "--", "nolane")
+        changed_paths = _git(root, "diff", "--name-only", base_ref, head_ref, "--", *_OWNERSHIP_SOURCE_ROOTS)
         candidate_modules = {
             _module_name(path)
             for path in (line.strip() for line in changed_paths.splitlines())

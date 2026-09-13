@@ -7,6 +7,9 @@ from typing import Any, Mapping
 from .types import canonical_digest
 
 
+COMPONENT_ID = 'external.architecture'
+
+
 def _record(state: object, keys: tuple[str, ...], label: str) -> dict[str, Any]:
     if type(state) is not dict or set(state) != set(keys):
         raise ValueError(f'{label} must use canonical serialized state')
