@@ -8,7 +8,7 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 COMPONENT_ID = "organization.events"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.events + cogcoder.organization.types"
 
 
