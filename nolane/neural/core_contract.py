@@ -271,8 +271,8 @@ class ExpertRoute:
         confidence: float,
         evidence: Iterable[EvidenceRef],
     ) -> "ExpertRoute":
-        expert = _nonempty(expert_id, "expert_id")
-        path = _nonempty(path_id, "path_id")
+        expert = _exact_nonempty_string(expert_id, "expert_id")
+        path = _exact_nonempty_string(path_id, "path_id")
         score = _confidence(confidence)
         ordered = _evidence_rows(evidence, "expert route evidence")
         digest = canonical_digest(
@@ -369,7 +369,7 @@ class Candidate:
     ) -> "Candidate":
         if not isinstance(route, ExpertRoute):
             raise NeuralInvariantError("candidate route must be an ExpertRoute")
-        cid = _nonempty(candidate_id, "candidate_id")
+        cid = _exact_nonempty_string(candidate_id, "candidate_id")
         confidence_value = _confidence(confidence)
         utility_value = _confidence(utility, "utility")
         ordered = _evidence_rows(evidence, "candidate evidence")
