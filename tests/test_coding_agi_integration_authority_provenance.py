@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from copy import deepcopy
+
+import pytest
+
 from cogcoder.organization.architecture import ArchitectureComponent, ComponentKind
 from cogcoder.organization.compatibility import CompatibilityAssessment, CompatibilityClass
 from cogcoder.organization.integration import ChangeCandidate
@@ -63,3 +67,10 @@ def test_live_integration_receipt_persists_exact_actor_authority_provenance() ->
         "active_block_ids": [],
     }
     assert provenance == {**expected, "digest": canonical_digest(expected)}
+
+
+def test_restore_rejects_legacy_receipt_without_authority_provenance() -> None:
+    state = _runtime_with_integrated_candidate().to_state()
+
+    with pytest.raises(ValueError, match="authority provenance|required"):
+        OrganizationRuntime.from_state(deepcopy(state))
