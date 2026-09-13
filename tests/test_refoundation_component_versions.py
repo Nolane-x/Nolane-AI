@@ -15,7 +15,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "schemas.identity": 1,
     "core.canonical_digest": 1,
     "organization.identity": 5,
-    "organization.authority": 1,
+    "organization.authority": 2,
     "organization.events": 4,
     "organization.tasks": 5,
     "organization.lifecycle": 1,
@@ -95,6 +95,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     for component_id, revision in ACCEPTED_COMPONENT_REVISIONS.items():
         assert str(component_version(component_id)) == f"0.0.{revision}"
 
+    assert str(component_version("organization.authority")) == "0.0.2"
+    assert str(next_component_version("organization.authority")) == "0.0.3"
     assert str(component_version("organization.events")) == "0.0.4"
     assert str(next_component_version("organization.events")) == "0.0.5"
     assert str(component_version("external.experimentation")) == "0.0.2"
