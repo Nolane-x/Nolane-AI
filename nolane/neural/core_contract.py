@@ -210,6 +210,10 @@ class CognitiveState:
         claimed_digest = _digest(state["digest"], "cognitive state digest")
         if rebuilt.digest != claimed_digest:
             raise NeuralInvariantError("cognitive state digest/provenance mismatch; possible state laundering")
+        if dict(state) != rebuilt.to_state():
+            raise NeuralInvariantError(
+                "cognitive state serialized representation is non-canonical; possible state laundering"
+            )
         return rebuilt
 
 

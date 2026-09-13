@@ -79,6 +79,57 @@ def test_from_state_rejects_unknown_top_level_fields():
         CognitiveState.from_state(state)
 
 
+def test_from_state_rejects_noncanonical_provenance_text_normalization():
+    state = CognitiveState.create(
+        payload={"goal": "x"},
+        provenance=[_evidence(receipt_id="r1")],
+    ).to_state()
+    state["provenance"][0]["source_core"] = " MEMORY "
+    state["provenance"][0]["authority"] = " Observation "
+
+    with pytest.raises(NeuralInvariantError, match="non-canonical"):
+        CognitiveState.from_state(state)
+
+
+def test_from_state_rejects_noncanonical_provenance_order():
+    state = CognitiveState.create(
+        payload={"goal": "x"},
+        provenance=[
+            _evidence(receipt_id="r2", digest_char="b"),
+            _evidence(receipt_id="r1", digest_char="a"),
+        ],
+    ).to_state()
+    state["provenance"] = list(reversed(state["provenance"]))
+
+    with pytest.raises(NeuralInvariantError, match="non-canonical"):
+        CognitiveState.from_state(state)
+
+
+def test_from_state_rejects_noncanonical_provenance_collection_type():
+    state = CognitiveState.create(
+        payload={"goal": "x"},
+        provenance=[_evidence(receipt_id="r1")],
+    ).to_state()
+    state["provenance"] = tuple(state["provenance"])
+
+    with pytest.raises(NeuralInvariantError, match="non-canonical"):
+        CognitiveState.from_state(state)
+
+
+def test_from_state_rejects_non_string_evidence_identity_that_normalizes_to_same_text():
+    evidence = EvidenceRef.create(
+        source_core="123",
+        receipt_id="r1",
+        digest="a" * 64,
+        authority="observation",
+    )
+    state = CognitiveState.create(payload={"goal": "x"}, provenance=[evidence]).to_state()
+    state["provenance"][0]["source_core"] = 123
+
+    with pytest.raises(NeuralInvariantError, match="non-canonical"):
+        CognitiveState.from_state(state)
+
+
 def test_evidence_digest_must_already_be_canonical_lowercase_hex():
     with pytest.raises(NeuralInvariantError, match="lowercase"):
         EvidenceRef.create(
