@@ -249,10 +249,11 @@ class IntegrationGraph:
         return tuple(self._candidates[k] for k in sorted(self._candidates))
 
     def get(self, candidate_id: str) -> ChangeCandidate:
+        candidate_key = _exact_string(candidate_id, "integration candidate identity")
         try:
-            return self._candidates[str(candidate_id)]
+            return self._candidates[candidate_key]
         except KeyError as exc:
-            raise KeyError(f"unknown integration candidate: {candidate_id}") from exc
+            raise KeyError(f"unknown integration candidate: {candidate_key}") from exc
 
     @staticmethod
     def _validate(rows: Mapping[str, ChangeCandidate]) -> None:
@@ -399,10 +400,16 @@ class IntegrationControlPlane:
     ) -> IntegrationReceipt:
         self.registry.get(actor_agent_id)
         self.authority.require_write(actor_agent_id, "integration-state")
-        evidence = tuple(str(x) for x in evidence_refs if str(x).strip())
-        if not evidence:
-            raise ValueError("integration acceptance requires evidence")
-        candidate = self.graph.get(candidate_id)
+        candidate_key = _exact_string(candidate_id, "integration candidate identity")
+        if type(evidence_refs) is not tuple:
+            raise ValueError("integration evidence refs must be a canonical tuple")
+        evidence = tuple(
+            _exact_string(value, "integration evidence reference")
+            for value in evidence_refs
+        )
+        if not evidence or any(not ref.strip() for ref in evidence):
+            raise ValueError("integration acceptance requires non-empty evidence refs")
+        candidate = self.graph.get(candidate_key)
         if candidate.status not in {
             ChangeCandidateStatus.PROPOSED,
             ChangeCandidateStatus.READY,
@@ -433,7 +440,7 @@ class IntegrationControlPlane:
         self._receipt_counter += 1
         payload = {
             "receipt_index": self._receipt_counter,
-            "candidate_id": candidate_id,
+            "candidate_id": candidate_key,
             "actor_agent_id": actor_agent_id,
             "status": ChangeCandidateStatus.INTEGRATED.value,
             "evidence_refs": list(evidence),
@@ -442,7 +449,7 @@ class IntegrationControlPlane:
         digest = canonical_digest(payload)
         receipt = IntegrationReceipt(
             f"integration-{self._receipt_counter:08d}",
-            candidate_id,
+            candidate_key,
             actor_agent_id,
             ChangeCandidateStatus.INTEGRATED,
             evidence,
