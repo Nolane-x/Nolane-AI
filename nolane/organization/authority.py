@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from bisect import bisect_left
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.authority"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.authority"
 
 
@@ -66,19 +67,52 @@ def _validate_sequence_counter(numbers: list[int], counter: int, label: str) -> 
             raise ValueError(f"{label} counter does not match canonical authority lineage")
 
 
+def _validate_temporal_causal_order(
+    blocks_by_number: dict[int, "AuthorityBlock"],
+    overrides_by_number: dict[int, "OverrideReceipt"],
+    block_counter: int,
+    override_counter: int,
+) -> None:
+    blocks = [blocks_by_number[number] for number in range(1, block_counter + 1)]
+    overrides = [
+        overrides_by_number[number] for number in range(1, override_counter + 1)
+    ]
+    block_override_counters = [block.override_counter_at_record for block in blocks]
+    override_block_counters = [
+        override.block_counter_at_issue for override in overrides
+    ]
+
+    if block_override_counters != sorted(block_override_counters):
+        raise ValueError("authority temporal causal order is inconsistent")
+    if override_block_counters != sorted(override_block_counters):
+        raise ValueError("authority temporal causal order is inconsistent")
+
+    for block_number, block in enumerate(blocks, start=1):
+        expected_override_count = bisect_left(override_block_counters, block_number)
+        if block.override_counter_at_record != expected_override_count:
+            raise ValueError("authority temporal causal order is inconsistent")
+
+    for override_number, override in enumerate(overrides, start=1):
+        expected_block_count = bisect_left(block_override_counters, override_number)
+        if override.block_counter_at_issue != expected_block_count:
+            raise ValueError("authority temporal causal order is inconsistent")
+
+
 @dataclass(frozen=True, slots=True)
 class AuthorityBlock:
     block_id: str
     artifact_id: str
     blocker_agent_id: str
     reason: str
+    override_counter_at_record: int
 
-    def to_state(self) -> dict[str, str]:
+    def to_state(self) -> dict[str, Any]:
         return {
             "block_id": self.block_id,
             "artifact_id": self.artifact_id,
             "blocker_agent_id": self.blocker_agent_id,
             "reason": self.reason,
+            "override_counter_at_record": self.override_counter_at_record,
         }
 
 
@@ -90,6 +124,8 @@ class OverrideReceipt:
     reason: str
     evidence_ids: tuple[str, ...]
     overrode_block: bool
+    block_counter_at_issue: int
+    block_frontier_ids: tuple[str, ...]
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -99,6 +135,8 @@ class OverrideReceipt:
             "reason": self.reason,
             "evidence_ids": list(self.evidence_ids),
             "overrode_block": self.overrode_block,
+            "block_counter_at_issue": self.block_counter_at_issue,
+            "block_frontier_ids": list(self.block_frontier_ids),
         }
 
 
@@ -136,6 +174,7 @@ class AuthorityGraph:
             artifact_id=str(artifact_id),
             blocker_agent_id=str(blocker_agent_id),
             reason=str(reason),
+            override_counter_at_record=self._override_counter,
         )
         self._blocks.setdefault(row.artifact_id, []).append(row)
         return row
@@ -149,14 +188,20 @@ class AuthorityGraph:
             raise ValueError("Central override requires an explicit reason")
         if not evidence_ids:
             raise ValueError("Central override requires explicit evidence ids")
+        artifact = str(artifact_id)
+        block_frontier_ids = tuple(
+            block.block_id for block in self._blocks.get(artifact, ())
+        )
         self._override_counter += 1
         row = OverrideReceipt(
             override_id=f"override-{self._override_counter:08d}",
-            artifact_id=str(artifact_id),
+            artifact_id=artifact,
             actor_agent_id="nolane.central",
             reason=str(reason),
             evidence_ids=tuple(str(value) for value in evidence_ids),
-            overrode_block=bool(self._blocks.get(str(artifact_id))),
+            overrode_block=bool(block_frontier_ids),
+            block_counter_at_issue=self._block_counter,
+            block_frontier_ids=block_frontier_ids,
         )
         self._overrides[row.override_id] = row
         return row
@@ -167,11 +212,15 @@ class AuthorityGraph:
         blocked = bool(self._blocks.get(artifact))
         if override_id is not None:
             receipt = self._overrides.get(str(override_id))
+            current_frontier = tuple(
+                block.block_id for block in self._blocks.get(artifact, ())
+            )
             return bool(
                 receipt
                 and receipt.actor_agent_id == actor.agent_id
                 and receipt.artifact_id == artifact
                 and actor.agent_id == "nolane.central"
+                and receipt.block_frontier_ids == current_frontier
             )
         if blocked:
             return False
@@ -208,6 +257,12 @@ class AuthorityGraph:
             ("owners", "blocks", "overrides", "block_counter", "override_counter"),
             "authority graph",
         )
+        block_counter = _non_negative_int(
+            serialized["block_counter"], "authority block counter"
+        )
+        override_counter = _non_negative_int(
+            serialized["override_counter"], "authority override counter"
+        )
 
         owners_state = _canonical_state_record(serialized["owners"], (), "authority owners") if not serialized["owners"] else serialized["owners"]
         if type(owners_state) is not dict:
@@ -226,6 +281,7 @@ class AuthorityGraph:
         if type(blocks_state) is not dict:
             raise ValueError("authority blocks must use canonical serialized state")
         blocks: dict[str, list[AuthorityBlock]] = {}
+        blocks_by_number: dict[int, AuthorityBlock] = {}
         block_numbers: list[int] = []
         for artifact_id, raw_rows in blocks_state.items():
             artifact = _exact_string(artifact_id, "authority block artifact identity")
@@ -234,13 +290,20 @@ class AuthorityGraph:
             for raw_row in rows:
                 row = _canonical_state_record(
                     raw_row,
-                    ("block_id", "artifact_id", "blocker_agent_id", "reason"),
+                    (
+                        "block_id",
+                        "artifact_id",
+                        "blocker_agent_id",
+                        "reason",
+                        "override_counter_at_record",
+                    ),
                     "authority block",
                 )
                 block_id = _exact_string(row["block_id"], "authority block identity")
-                block_numbers.append(
-                    _sequence_number(block_id, "block-", "authority block identity")
+                block_number = _sequence_number(
+                    block_id, "block-", "authority block identity"
                 )
+                block_numbers.append(block_number)
                 row_artifact = _exact_string(
                     row["artifact_id"], "authority block artifact identity"
                 )
@@ -254,30 +317,41 @@ class AuthorityGraph:
                 except KeyError as exc:
                     raise ValueError("authority blocker agent identity is unknown") from exc
                 reason = _non_empty_string(row["reason"], "authority block reason")
-                parsed_rows.append(
-                    AuthorityBlock(
-                        block_id=block_id,
-                        artifact_id=row_artifact,
-                        blocker_agent_id=blocker,
-                        reason=reason,
-                    )
+                override_counter_at_record = _non_negative_int(
+                    row["override_counter_at_record"],
+                    "authority block temporal override counter",
                 )
+                if override_counter_at_record > override_counter:
+                    raise ValueError(
+                        "authority block temporal override counter exceeds canonical override lineage"
+                    )
+                parsed = AuthorityBlock(
+                    block_id=block_id,
+                    artifact_id=row_artifact,
+                    blocker_agent_id=blocker,
+                    reason=reason,
+                    override_counter_at_record=override_counter_at_record,
+                )
+                parsed_rows.append(parsed)
+                blocks_by_number[block_number] = parsed
             blocks[artifact] = parsed_rows
 
-        block_counter = _non_negative_int(
-            serialized["block_counter"], "authority block counter"
-        )
         _validate_sequence_counter(block_numbers, block_counter, "authority block")
 
         overrides_state = serialized["overrides"]
         if type(overrides_state) is not dict:
             raise ValueError("authority overrides must use canonical serialized state")
         overrides: dict[str, OverrideReceipt] = {}
+        overrides_by_number: dict[int, OverrideReceipt] = {}
         override_numbers: list[int] = []
         for outer_override_id, raw_row in overrides_state.items():
             override_key = _exact_string(
                 outer_override_id, "authority override identity"
             )
+            if type(raw_row) is dict and "block_frontier_ids" not in raw_row:
+                raise ValueError("authority override temporal frontier is required")
+            if type(raw_row) is dict and "block_counter_at_issue" not in raw_row:
+                raise ValueError("authority override temporal block counter is required")
             row = _canonical_state_record(
                 raw_row,
                 (
@@ -287,15 +361,18 @@ class AuthorityGraph:
                     "reason",
                     "evidence_ids",
                     "overrode_block",
+                    "block_counter_at_issue",
+                    "block_frontier_ids",
                 ),
                 "authority override",
             )
             override_id = _exact_string(row["override_id"], "authority override identity")
             if override_id != override_key:
                 raise ValueError("authority override identity does not match its ledger key")
-            override_numbers.append(
-                _sequence_number(override_id, "override-", "authority override identity")
+            override_number = _sequence_number(
+                override_id, "override-", "authority override identity"
             )
+            override_numbers.append(override_number)
             artifact_id = _exact_string(
                 row["artifact_id"], "authority override artifact identity"
             )
@@ -321,21 +398,71 @@ class AuthorityGraph:
             overrode_block = row["overrode_block"]
             if type(overrode_block) is not bool:
                 raise ValueError("authority override overrode_block must be an exact boolean")
-            if overrode_block and not blocks.get(artifact_id):
-                raise ValueError("authority override block claim has no canonical block")
-            overrides[override_id] = OverrideReceipt(
+
+            block_counter_at_issue = _non_negative_int(
+                row["block_counter_at_issue"],
+                "authority override temporal block counter",
+            )
+            if block_counter_at_issue > block_counter:
+                raise ValueError(
+                    "authority override temporal block counter exceeds canonical block lineage"
+                )
+
+            frontier_state = _canonical_state_list(
+                row["block_frontier_ids"], "authority override temporal frontier"
+            )
+            frontier_ids = tuple(
+                _exact_string(value, "authority override temporal frontier identity")
+                for value in frontier_state
+            )
+            for frontier_id in frontier_ids:
+                _sequence_number(
+                    frontier_id,
+                    "block-",
+                    "authority override temporal frontier identity",
+                )
+            if len(set(frontier_ids)) != len(frontier_ids):
+                raise ValueError("authority override temporal frontier contains duplicates")
+
+            historical_frontier = tuple(
+                block.block_id
+                for block in blocks.get(artifact_id, ())
+                if _sequence_number(
+                    block.block_id,
+                    "block-",
+                    "authority block identity",
+                )
+                <= block_counter_at_issue
+            )
+            if frontier_ids != historical_frontier:
+                raise ValueError(
+                    "authority override temporal frontier does not match its issuance counter"
+                )
+            if overrode_block != bool(frontier_ids):
+                raise ValueError(
+                    "authority override block claim does not match its temporal frontier"
+                )
+
+            parsed = OverrideReceipt(
                 override_id=override_id,
                 artifact_id=artifact_id,
                 actor_agent_id=actor_agent_id,
                 reason=reason,
                 evidence_ids=evidence_ids,
                 overrode_block=overrode_block,
+                block_counter_at_issue=block_counter_at_issue,
+                block_frontier_ids=frontier_ids,
             )
+            overrides[override_id] = parsed
+            overrides_by_number[override_number] = parsed
 
-        override_counter = _non_negative_int(
-            serialized["override_counter"], "authority override counter"
-        )
         _validate_sequence_counter(override_numbers, override_counter, "authority override")
+        _validate_temporal_causal_order(
+            blocks_by_number,
+            overrides_by_number,
+            block_counter,
+            override_counter,
+        )
 
         graph = cls(registry)
         graph._owners = owners
