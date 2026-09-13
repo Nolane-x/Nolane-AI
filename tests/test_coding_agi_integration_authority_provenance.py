@@ -73,6 +73,16 @@ def _provenance_row(state: dict[str, object]) -> dict[str, object]:
     return row
 
 
+def _receipt_row(state: dict[str, object]) -> dict[str, object]:
+    integration = state["integration"]
+    assert isinstance(integration, dict)
+    rows = integration["receipts"]
+    assert isinstance(rows, list) and len(rows) == 1
+    row = rows[0]
+    assert isinstance(row, dict)
+    return row
+
+
 def _rehash_provenance(row: dict[str, object]) -> None:
     row["digest"] = canonical_digest(
         {
@@ -82,6 +92,19 @@ def _rehash_provenance(row: dict[str, object]) -> None:
             "authorization_mode": row["authorization_mode"],
             "owner_agent_id": row["owner_agent_id"],
             "active_block_ids": row["active_block_ids"],
+        }
+    )
+
+
+def _rehash_receipt(row: dict[str, object]) -> None:
+    row["digest"] = canonical_digest(
+        {
+            "receipt_index": int(str(row["receipt_id"]).removeprefix("integration-")),
+            "candidate_id": row["candidate_id"],
+            "actor_agent_id": row["actor_agent_id"],
+            "status": row["status"],
+            "evidence_refs": row["evidence_refs"],
+            "architecture_version": row["architecture_version"],
         }
     )
 
@@ -210,4 +233,30 @@ def test_restore_rejects_rehashed_provenance_with_active_block() -> None:
     _rehash_provenance(row)
 
     with pytest.raises(ValueError, match="authority provenance.*block"):
+        OrganizationRuntime.from_state(state)
+
+
+def test_restore_rejects_coordinated_receipt_and_provenance_actor_forgery() -> None:
+    state = _integration_state()
+    receipt = _receipt_row(state)
+    provenance = _provenance_row(state)
+    receipt["actor_agent_id"] = "coding.backend.01"
+    _rehash_receipt(receipt)
+    provenance["actor_agent_id"] = "coding.backend.01"
+    provenance["owner_agent_id"] = "coding.backend.01"
+    _rehash_provenance(provenance)
+
+    with pytest.raises(ValueError, match="authority provenance.*owner|canonical.*owner"):
+        OrganizationRuntime.from_state(state)
+
+
+def test_restore_rejects_restored_authority_owner_drift() -> None:
+    state = _integration_state()
+    authority = state["authority"]
+    assert isinstance(authority, dict)
+    owners = authority["owners"]
+    assert isinstance(owners, dict)
+    owners["integration-state"] = "coding.backend.01"
+
+    with pytest.raises(ValueError, match="authority provenance.*owner|current.*owner"):
         OrganizationRuntime.from_state(state)
