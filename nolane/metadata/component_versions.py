@@ -13,7 +13,7 @@ _COMPONENT_REVISIONS.update(
         "core.canonical_digest": 1,
         "schemas.identity": 1,
         "organization.identity": 5,
-        "organization.authority": 1,
+        "organization.authority": 2,
         "organization.events": 4,
         "organization.tasks": 5,
         "organization.lifecycle": 1,
