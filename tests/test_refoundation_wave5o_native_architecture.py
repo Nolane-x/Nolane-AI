@@ -147,8 +147,8 @@ def test_wave5o_architecture_component_version_and_authority_cutover() -> None:
     assert row.canonical_module == "nolane.external_core.architecture"
     assert row.legacy_sources == ("cogcoder/organization/architecture.py",)
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.4"
-    assert str(component_version("external.architecture")) == "0.0.4"
+    assert row.component_version == "0.0.5"
+    assert str(component_version("external.architecture")) == "0.0.5"
 
     facade_ids = {binding.component_id for binding in build_active_facade_bindings()}
     assert "external.architecture" not in facade_ids
