@@ -67,3 +67,26 @@ def test_restore_rejects_forward_bound_stale_override_frontier() -> None:
 
     with pytest.raises(ValueError, match="frontier"):
         AuthorityGraph.from_state(registry, forged)
+
+
+def test_restore_rejects_coordinated_forward_binding_of_frontier_and_issue_counter() -> None:
+    registry, graph, first, stale, second = _stale_override_state()
+    honest = graph.to_state()
+
+    restored = AuthorityGraph.from_state(registry, deepcopy(honest))
+    assert restored.to_state() == honest
+    assert not restored.can_write(
+        "nolane.central",
+        "artifact-r2171-forward",
+        override_id=stale.override_id,
+    )
+
+    forged = deepcopy(honest)
+    forged["overrides"][stale.override_id]["block_counter_at_issue"] = 2
+    forged["overrides"][stale.override_id]["block_frontier_ids"] = [
+        first.block_id,
+        second.block_id,
+    ]
+
+    with pytest.raises(ValueError, match="causal|order|temporal"):
+        AuthorityGraph.from_state(registry, forged)
