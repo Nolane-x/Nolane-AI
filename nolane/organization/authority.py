@@ -6,7 +6,7 @@ from typing import Any, Mapping
 from .identity import AgentRegistry
 
 COMPONENT_ID = "organization.authority"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.authority"
 
 
