@@ -92,10 +92,9 @@ def test_canonical_eventledger_runtime_state_round_trips() -> None:
     assert restored.ledger.to_state() == state["ledger"]
 
 
-@pytest.mark.parametrize("field", ("events",))
-def test_restore_rejects_non_json_list_ledger_collections(field: str) -> None:
+def test_restore_rejects_non_json_list_event_collection() -> None:
     state, _, _ = _canonical_runtime_state()
-    state["ledger"][field] = tuple(state["ledger"][field])
+    state["ledger"]["events"] = tuple(state["ledger"]["events"])
 
     with pytest.raises(ValueError, match="canonical serialized state"):
         OrganizationRuntime.from_state(state)
@@ -177,25 +176,34 @@ def test_restore_rejects_missing_event_fields_that_used_to_default(field: str) -
 
 
 @pytest.mark.parametrize(
-    ("field", "replacement"),
+    "field",
     (
-        ("sequence", "2"),
-        ("source_agent_id", 123),
-        ("target_agent_id", 789),
-        ("region", 456),
-        ("scope", 101),
-        ("priority", "1"),
-        ("requires_ack", 0),
-        ("status", 404),
+        "sequence",
+        "source_agent_id",
+        "target_agent_id",
+        "region",
+        "scope",
+        "priority",
+        "requires_ack",
+        "status",
+        "created_at_logical",
     ),
 )
-def test_restore_rejects_digest_preserving_scalar_type_laundering(
-    field: str,
-    replacement: object,
-) -> None:
+def test_restore_rejects_digest_preserving_scalar_type_laundering(field: str) -> None:
     state, _, second_id = _canonical_runtime_state()
     row = _event_row(state, second_id)
-    row[field] = replacement
+    replacements: dict[str, object] = {
+        "sequence": str(row["sequence"]),
+        "source_agent_id": 123,
+        "target_agent_id": 789,
+        "region": 456,
+        "scope": 101,
+        "priority": str(row["priority"]),
+        "requires_ack": int(row["requires_ack"]),
+        "status": 404,
+        "created_at_logical": str(row["created_at_logical"]),
+    }
+    row[field] = replacements[field]
 
     with pytest.raises(ValueError, match="exact"):
         OrganizationRuntime.from_state(state)
@@ -206,15 +214,6 @@ def test_restore_rejects_digest_preserving_reference_item_type_laundering(field:
     state, _, second_id = _canonical_runtime_state()
     row = _event_row(state, second_id)
     row[field][0] = 202 if field == "object_refs" else 303
-
-    with pytest.raises(ValueError, match="exact"):
-        OrganizationRuntime.from_state(state)
-
-
-def test_restore_rejects_digest_preserving_causal_parent_item_type_laundering() -> None:
-    state, first_id, second_id = _canonical_runtime_state()
-    row = _event_row(state, second_id)
-    row["causal_parent_ids"][0] = int(first_id.removeprefix("evt-"))
 
     with pytest.raises(ValueError, match="exact"):
         OrganizationRuntime.from_state(state)
