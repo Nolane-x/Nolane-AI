@@ -46,7 +46,7 @@ _COMPONENT_REVISIONS.update(
         "external.epistemic": 1,
         "external.requirements": 2,
         "external.planning": 5,
-        "external.architecture": 5,
+        "external.architecture": 6,
         "external.integration": 15,
         "external.context": 5,
         "external.invokable_cores": 3,
