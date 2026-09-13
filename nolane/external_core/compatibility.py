@@ -12,6 +12,34 @@ SEMANTIC_SURFACE_VERSION = "0.0.8"
 MIGRATED_FROM = "cogcoder.organization.compatibility"
 
 
+def _canonical_state_record(
+    state: object,
+    expected_keys: tuple[str, ...],
+    label: str,
+) -> Mapping[str, Any]:
+    if type(state) is not dict or set(state) != set(expected_keys):
+        raise ValueError(f"{label} must use canonical serialized state")
+    return state
+
+
+def _canonical_state_list(value: object, label: str) -> list[Any]:
+    if type(value) is not list:
+        raise ValueError(f"{label} must use canonical serialized state")
+    return value
+
+
+def _exact_string(value: object, label: str) -> str:
+    if type(value) is not str:
+        raise ValueError(f"{label} must be an exact string")
+    return value
+
+
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be an exact bool")
+    return value
+
+
 class CompatibilityClass(str, Enum):
     COMPATIBLE = "compatible"
     BACKWARD_COMPATIBLE_ONLY = "backward_compatible_only"
@@ -41,13 +69,34 @@ class CompatibilityAssessment:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "CompatibilityAssessment":
+        state = _canonical_state_record(
+            state,
+            (
+                "assessment_id",
+                "compatibility",
+                "integration_safe",
+                "reason",
+                "evidence_refs",
+                "digest",
+            ),
+            "compatibility assessment",
+        )
+        evidence_refs = tuple(
+            _exact_string(value, "compatibility evidence reference")
+            for value in _canonical_state_list(
+                state["evidence_refs"],
+                "compatibility evidence references",
+            )
+        )
         return cls(
-            str(state["assessment_id"]),
-            CompatibilityClass(str(state["compatibility"])),
-            bool(state["integration_safe"]),
-            str(state["reason"]),
-            tuple(str(x) for x in state.get("evidence_refs", ())),
-            str(state["digest"]),
+            _exact_string(state["assessment_id"], "compatibility assessment identity"),
+            CompatibilityClass(
+                _exact_string(state["compatibility"], "compatibility classification")
+            ),
+            _exact_bool(state["integration_safe"], "compatibility integration_safe"),
+            _exact_string(state["reason"], "compatibility reason"),
+            evidence_refs,
+            _exact_string(state["digest"], "compatibility digest"),
         )
 
 
