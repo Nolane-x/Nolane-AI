@@ -64,6 +64,35 @@ COMPONENT_VERSION = "0.0.8"
 MIGRATED_FROM = "cogcoder.organization.integration"
 
 
+def _canonical_state_record(
+    state: object,
+    expected_keys: tuple[str, ...],
+    label: str,
+) -> Mapping[str, Any]:
+    if type(state) is not dict or set(state) != set(expected_keys):
+        raise ValueError(f"{label} must use canonical serialized state")
+    return state
+
+
+def _canonical_state_list(value: object, label: str) -> list[Any]:
+    if type(value) is not list:
+        raise ValueError(f"{label} must use canonical serialized state")
+    return value
+
+
+def _exact_string(value: object, label: str) -> str:
+    if type(value) is not str:
+        raise ValueError(f"{label} must be an exact string")
+    return value
+
+
+def _canonical_string_list(value: object, label: str) -> tuple[str, ...]:
+    return tuple(
+        _exact_string(item, label)
+        for item in _canonical_state_list(value, label)
+    )
+
+
 class ChangeCandidateStatus(str, Enum):
     PROPOSED = "proposed"
     READY = "ready"
@@ -114,23 +143,46 @@ class ChangeCandidate:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ChangeCandidate":
+        state = _canonical_state_record(
+            state,
+            (
+                "candidate_id",
+                "producer_agent_id",
+                "task_refs",
+                "plan_refs",
+                "requirement_refs",
+                "architecture_version_expected",
+                "changed_component_refs",
+                "changed_interface_refs",
+                "dependency_candidate_ids",
+                "conflicts_with",
+                "compatibility_assessments",
+                "verification_evidence_refs",
+                "status",
+            ),
+            "integration candidate",
+        )
         architecture_version_expected = state["architecture_version_expected"]
         if type(architecture_version_expected) is not int or architecture_version_expected < 0:
             raise ValueError("integration candidate architecture version must be a non-negative exact int")
+        compatibility_rows = _canonical_state_list(
+            state["compatibility_assessments"],
+            "integration candidate compatibility assessments",
+        )
         return cls(
-            str(state["candidate_id"]),
-            str(state["producer_agent_id"]),
-            tuple(str(x) for x in state.get("task_refs", ())),
-            tuple(str(x) for x in state.get("plan_refs", ())),
-            tuple(str(x) for x in state.get("requirement_refs", ())),
+            _exact_string(state["candidate_id"], "integration candidate identity"),
+            _exact_string(state["producer_agent_id"], "integration candidate producer identity"),
+            _canonical_string_list(state["task_refs"], "integration candidate task reference"),
+            _canonical_string_list(state["plan_refs"], "integration candidate plan reference"),
+            _canonical_string_list(state["requirement_refs"], "integration candidate requirement reference"),
             architecture_version_expected,
-            tuple(str(x) for x in state.get("changed_component_refs", ())),
-            tuple(str(x) for x in state.get("changed_interface_refs", ())),
-            tuple(str(x) for x in state.get("dependency_candidate_ids", ())),
-            tuple(str(x) for x in state.get("conflicts_with", ())),
-            tuple(CompatibilityAssessment.from_state(x) for x in state.get("compatibility_assessments", ())),
-            tuple(str(x) for x in state.get("verification_evidence_refs", ())),
-            ChangeCandidateStatus(str(state.get("status", ChangeCandidateStatus.PROPOSED.value))),
+            _canonical_string_list(state["changed_component_refs"], "integration candidate component reference"),
+            _canonical_string_list(state["changed_interface_refs"], "integration candidate interface reference"),
+            _canonical_string_list(state["dependency_candidate_ids"], "integration candidate dependency identity"),
+            _canonical_string_list(state["conflicts_with"], "integration candidate conflict identity"),
+            tuple(CompatibilityAssessment.from_state(row) for row in compatibility_rows),
+            _canonical_string_list(state["verification_evidence_refs"], "integration candidate verification evidence reference"),
+            ChangeCandidateStatus(_exact_string(state["status"], "integration candidate status")),
         )
 
 
@@ -157,17 +209,30 @@ class IntegrationReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "IntegrationReceipt":
+        state = _canonical_state_record(
+            state,
+            (
+                "receipt_id",
+                "candidate_id",
+                "actor_agent_id",
+                "status",
+                "evidence_refs",
+                "architecture_version",
+                "digest",
+            ),
+            "integration receipt",
+        )
         architecture_version = state["architecture_version"]
         if type(architecture_version) is not int or architecture_version < 0:
             raise ValueError("integration receipt architecture version must be a non-negative exact int")
         return cls(
-            str(state["receipt_id"]),
-            str(state["candidate_id"]),
-            str(state["actor_agent_id"]),
-            ChangeCandidateStatus(str(state["status"])),
-            tuple(str(x) for x in state.get("evidence_refs", ())),
+            _exact_string(state["receipt_id"], "integration receipt identity"),
+            _exact_string(state["candidate_id"], "integration receipt candidate identity"),
+            _exact_string(state["actor_agent_id"], "integration receipt actor identity"),
+            ChangeCandidateStatus(_exact_string(state["status"], "integration receipt status")),
+            _canonical_string_list(state["evidence_refs"], "integration receipt evidence reference"),
             architecture_version,
-            str(state["digest"]),
+            _exact_string(state["digest"], "integration receipt digest"),
         )
 
 
@@ -256,16 +321,28 @@ class IntegrationGraph:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "IntegrationGraph":
+        state = _canonical_state_record(
+            state,
+            ("version", "candidates"),
+            "integration graph",
+        )
+        serialized_candidates = _canonical_state_list(
+            state["candidates"],
+            "integration graph candidates",
+        )
         graph = cls()
-        candidates = tuple(ChangeCandidate.from_state(v) for v in state.get("candidates", ()))
+        candidates = tuple(ChangeCandidate.from_state(value) for value in serialized_candidates)
         candidate_ids: set[str] = set()
         for candidate in candidates:
             if candidate.candidate_id in candidate_ids:
                 raise ValueError(f"duplicate integration candidate: {candidate.candidate_id}")
             candidate_ids.add(candidate.candidate_id)
+        candidate_order = [candidate.candidate_id for candidate in candidates]
+        if candidate_order != sorted(candidate_order):
+            raise ValueError("integration candidate order is not canonical")
         graph._candidates = {candidate.candidate_id: candidate for candidate in candidates}
         graph._validate(graph._candidates)
-        version = state.get("version", 0)
+        version = state["version"]
         if type(version) is not int or version < 0:
             raise ValueError("integration graph version must be a non-negative exact int")
         graph._version = version
@@ -381,8 +458,17 @@ class IntegrationControlPlane:
         architecture: Any,
         state: Mapping[str, Any],
     ) -> "IntegrationControlPlane":
-        graph = IntegrationGraph.from_state(state.get("graph", {}))
-        receipts = tuple(IntegrationReceipt.from_state(x) for x in state.get("receipts", ()))
+        state = _canonical_state_record(
+            state,
+            ("graph", "receipt_counter", "receipts"),
+            "integration control plane",
+        )
+        graph = IntegrationGraph.from_state(state["graph"])
+        serialized_receipts = _canonical_state_list(
+            state["receipts"],
+            "integration receipts",
+        )
+        receipts = tuple(IntegrationReceipt.from_state(value) for value in serialized_receipts)
 
         receipt_ids: set[str] = set()
         for receipt in receipts:
@@ -390,7 +476,7 @@ class IntegrationControlPlane:
                 raise ValueError(f"duplicate integration receipt: {receipt.receipt_id}")
             receipt_ids.add(receipt.receipt_id)
 
-        receipt_counter = state.get("receipt_counter", len(receipts))
+        receipt_counter = state["receipt_counter"]
         if type(receipt_counter) is not int or receipt_counter < 0:
             raise ValueError("integration receipt counter must be a non-negative exact int")
         if receipt_counter != len(receipts):
@@ -401,6 +487,9 @@ class IntegrationControlPlane:
         }
         if receipt_ids != expected_receipt_ids:
             raise ValueError("integration receipt id sequence is not canonical")
+        receipt_order = [receipt.receipt_id for receipt in receipts]
+        if receipt_order != sorted(receipt_order):
+            raise ValueError("integration receipt order is not canonical")
 
         for receipt in receipts:
             if receipt.status is not ChangeCandidateStatus.INTEGRATED:
