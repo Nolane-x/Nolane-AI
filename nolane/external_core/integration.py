@@ -375,6 +375,14 @@ class IntegrationControlPlane:
     ) -> ChangeCandidate:
         self.registry.get(actor_agent_id)
         self.authority.require_write(actor_agent_id, "integration-state")
+        if candidate.status is not ChangeCandidateStatus.PROPOSED:
+            raise ValueError("new integration candidate status must be proposed")
+        if replace:
+            existing = self.graph.get(candidate.candidate_id)
+            if existing.status is not ChangeCandidateStatus.PROPOSED:
+                raise ValueError(
+                    f"integration candidate cannot replace {existing.status.value} state"
+                )
         self.registry.get(candidate.producer_agent_id)
         for ref in candidate.changed_component_refs:
             self.architecture.graph.get_component(ref)
@@ -395,6 +403,11 @@ class IntegrationControlPlane:
         if not evidence:
             raise ValueError("integration acceptance requires evidence")
         candidate = self.graph.get(candidate_id)
+        if candidate.status not in {
+            ChangeCandidateStatus.PROPOSED,
+            ChangeCandidateStatus.READY,
+        }:
+            raise ValueError("integration candidate status transition is not permitted")
         if candidate.architecture_version_expected != self.architecture.graph.version:
             raise PermissionError("architecture version is stale for integration candidate")
         if not candidate.compatibility_assessments or any(
@@ -491,6 +504,7 @@ class IntegrationControlPlane:
         if receipt_order != sorted(receipt_order):
             raise ValueError("integration receipt order is not canonical")
 
+        receipt_candidate_ids: set[str] = set()
         for receipt in receipts:
             if receipt.status is not ChangeCandidateStatus.INTEGRATED:
                 raise ValueError("integration receipt status must be integrated")
@@ -501,9 +515,18 @@ class IntegrationControlPlane:
             except KeyError as exc:
                 raise ValueError("integration receipt actor is unknown") from exc
             try:
-                graph.get(receipt.candidate_id)
+                candidate = graph.get(receipt.candidate_id)
             except KeyError as exc:
                 raise ValueError("integration receipt candidate is unknown") from exc
+            if candidate.status is not ChangeCandidateStatus.INTEGRATED:
+                raise ValueError("integration receipt candidate must be integrated")
+            if receipt.candidate_id in receipt_candidate_ids:
+                raise ValueError("integration candidate has multiple receipts")
+            receipt_candidate_ids.add(receipt.candidate_id)
+            if receipt.architecture_version != candidate.architecture_version_expected:
+                raise ValueError(
+                    "integration receipt architecture version must match candidate architecture version"
+                )
             if receipt.architecture_version > architecture.graph.version:
                 raise ValueError("integration receipt architecture version exceeds current architecture")
 
@@ -520,6 +543,13 @@ class IntegrationControlPlane:
             )
             if receipt.digest != expected_digest:
                 raise ValueError("integration receipt digest mismatch")
+
+        for candidate in graph.candidates():
+            if (
+                candidate.status is ChangeCandidateStatus.INTEGRATED
+                and candidate.candidate_id not in receipt_candidate_ids
+            ):
+                raise ValueError("integrated candidate requires exactly one integration receipt")
 
         plane = cls(
             registry=registry,
