@@ -86,6 +86,12 @@ def _exact_string(value: object, label: str) -> str:
     return value
 
 
+def _optional_exact_string(value: object, label: str) -> str | None:
+    if value is None:
+        return None
+    return _exact_string(value, label)
+
+
 def _canonical_string_list(value: object, label: str) -> tuple[str, ...]:
     return tuple(
         _exact_string(item, label)
@@ -236,6 +242,101 @@ class IntegrationReceipt:
         )
 
 
+@dataclass(frozen=True, slots=True)
+class _IntegrationAuthorityProvenance:
+    receipt_id: str
+    artifact_id: str
+    actor_agent_id: str
+    authorization_mode: str
+    owner_agent_id: str | None
+    active_block_ids: tuple[str, ...]
+    digest: str
+
+    @classmethod
+    def create(
+        cls,
+        *,
+        receipt_id: str,
+        actor_agent_id: str,
+        owner_agent_id: str | None,
+        active_block_ids: tuple[str, ...],
+    ) -> "_IntegrationAuthorityProvenance":
+        authorization_mode = "central" if actor_agent_id == "nolane.central" else "owner"
+        payload = {
+            "receipt_id": receipt_id,
+            "artifact_id": "integration-state",
+            "actor_agent_id": actor_agent_id,
+            "authorization_mode": authorization_mode,
+            "owner_agent_id": owner_agent_id,
+            "active_block_ids": list(active_block_ids),
+        }
+        return cls(
+            receipt_id=receipt_id,
+            artifact_id="integration-state",
+            actor_agent_id=actor_agent_id,
+            authorization_mode=authorization_mode,
+            owner_agent_id=owner_agent_id,
+            active_block_ids=active_block_ids,
+            digest=canonical_digest(payload),
+        )
+
+    def to_state(self) -> dict[str, Any]:
+        return {
+            "receipt_id": self.receipt_id,
+            "artifact_id": self.artifact_id,
+            "actor_agent_id": self.actor_agent_id,
+            "authorization_mode": self.authorization_mode,
+            "owner_agent_id": self.owner_agent_id,
+            "active_block_ids": list(self.active_block_ids),
+            "digest": self.digest,
+        }
+
+    @classmethod
+    def from_state(cls, state: Mapping[str, Any]) -> "_IntegrationAuthorityProvenance":
+        state = _canonical_state_record(
+            state,
+            (
+                "receipt_id",
+                "artifact_id",
+                "actor_agent_id",
+                "authorization_mode",
+                "owner_agent_id",
+                "active_block_ids",
+                "digest",
+            ),
+            "integration authority provenance",
+        )
+        receipt_id = _exact_string(state["receipt_id"], "integration authority provenance receipt identity")
+        artifact_id = _exact_string(state["artifact_id"], "integration authority provenance artifact identity")
+        actor_agent_id = _exact_string(state["actor_agent_id"], "integration authority provenance actor identity")
+        authorization_mode = _exact_string(state["authorization_mode"], "integration authority provenance authorization mode")
+        owner_agent_id = _optional_exact_string(state["owner_agent_id"], "integration authority provenance owner identity")
+        active_block_ids = _canonical_string_list(
+            state["active_block_ids"],
+            "integration authority provenance active block identity",
+        )
+        digest = _exact_string(state["digest"], "integration authority provenance digest")
+        payload = {
+            "receipt_id": receipt_id,
+            "artifact_id": artifact_id,
+            "actor_agent_id": actor_agent_id,
+            "authorization_mode": authorization_mode,
+            "owner_agent_id": owner_agent_id,
+            "active_block_ids": list(active_block_ids),
+        }
+        if digest != canonical_digest(payload):
+            raise ValueError("integration authority provenance digest mismatch")
+        return cls(
+            receipt_id=receipt_id,
+            artifact_id=artifact_id,
+            actor_agent_id=actor_agent_id,
+            authorization_mode=authorization_mode,
+            owner_agent_id=owner_agent_id,
+            active_block_ids=active_block_ids,
+            digest=digest,
+        )
+
+
 class IntegrationGraph:
     def __init__(self) -> None:
         self._candidates: dict[str, ChangeCandidate] = {}
@@ -361,10 +462,14 @@ class IntegrationControlPlane:
         architecture: Any,
         graph: IntegrationGraph | None = None,
         receipts: tuple[IntegrationReceipt, ...] = (),
+        authority_provenance: tuple[_IntegrationAuthorityProvenance, ...] = (),
     ) -> None:
         self.registry, self.authority, self.architecture = registry, authority, architecture
         self.graph = graph or IntegrationGraph()
         self._receipts: dict[str, IntegrationReceipt] = {x.receipt_id: x for x in receipts}
+        self._authority_provenance: dict[str, _IntegrationAuthorityProvenance] = {
+            row.receipt_id: row for row in authority_provenance
+        }
         self._receipt_counter = len(self._receipts)
 
     def add_candidate(
@@ -400,6 +505,12 @@ class IntegrationControlPlane:
     ) -> IntegrationReceipt:
         self.registry.get(actor_agent_id)
         self.authority.require_write(actor_agent_id, "integration-state")
+        authority_owner = self.authority.owner_of("integration-state")
+        if authority_owner != "integration.chief":
+            raise ValueError("integration authority provenance current owner does not match canonical owner")
+        active_block_ids = tuple(
+            row.block_id for row in self.authority.blocks_for("integration-state")
+        )
         candidate_key = _exact_string(candidate_id, "integration candidate identity")
         if type(evidence_refs) is not tuple:
             raise ValueError("integration evidence refs must be a canonical tuple")
@@ -457,6 +568,13 @@ class IntegrationControlPlane:
             digest,
         )
         self._receipts[receipt.receipt_id] = receipt
+        provenance = _IntegrationAuthorityProvenance.create(
+            receipt_id=receipt.receipt_id,
+            actor_agent_id=actor_agent_id,
+            owner_agent_id=authority_owner,
+            active_block_ids=active_block_ids,
+        )
+        self._authority_provenance[receipt.receipt_id] = provenance
         return receipt
 
     def receipts(self) -> tuple[IntegrationReceipt, ...]:
@@ -467,6 +585,10 @@ class IntegrationControlPlane:
             "graph": self.graph.to_state(),
             "receipt_counter": self._receipt_counter,
             "receipts": [x.to_state() for x in self.receipts()],
+            "authority_provenance": [
+                self._authority_provenance[key].to_state()
+                for key in sorted(self._authority_provenance)
+            ],
         }
 
     @classmethod
@@ -478,17 +600,49 @@ class IntegrationControlPlane:
         architecture: Any,
         state: Mapping[str, Any],
     ) -> "IntegrationControlPlane":
-        state = _canonical_state_record(
-            state,
-            ("graph", "receipt_counter", "receipts"),
-            "integration control plane",
-        )
+        if type(state) is not dict:
+            raise ValueError("integration control plane must use canonical serialized state")
+        if "authority_provenance" not in state:
+            legacy_state = _canonical_state_record(
+                state,
+                ("graph", "receipt_counter", "receipts"),
+                "integration control plane",
+            )
+            legacy_receipts = _canonical_state_list(
+                legacy_state["receipts"],
+                "integration receipts",
+            )
+            if legacy_receipts:
+                raise ValueError(
+                    "integration authority provenance is required for restored receipts"
+                )
+            state = {
+                "graph": legacy_state["graph"],
+                "receipt_counter": legacy_state["receipt_counter"],
+                "receipts": legacy_receipts,
+                "authority_provenance": [],
+            }
+        else:
+            state = _canonical_state_record(
+                state,
+                ("graph", "receipt_counter", "receipts", "authority_provenance"),
+                "integration control plane",
+            )
+
         graph = IntegrationGraph.from_state(state["graph"])
         serialized_receipts = _canonical_state_list(
             state["receipts"],
             "integration receipts",
         )
         receipts = tuple(IntegrationReceipt.from_state(value) for value in serialized_receipts)
+        serialized_provenance = _canonical_state_list(
+            state["authority_provenance"],
+            "integration authority provenance",
+        )
+        authority_provenance = tuple(
+            _IntegrationAuthorityProvenance.from_state(value)
+            for value in serialized_provenance
+        )
 
         receipt_ids: set[str] = set()
         for receipt in receipts:
@@ -511,6 +665,23 @@ class IntegrationControlPlane:
         if receipt_order != sorted(receipt_order):
             raise ValueError("integration receipt order is not canonical")
 
+        provenance_by_receipt: dict[str, _IntegrationAuthorityProvenance] = {}
+        for row in authority_provenance:
+            if row.receipt_id in provenance_by_receipt:
+                raise ValueError(
+                    f"duplicate integration authority provenance receipt: {row.receipt_id}"
+                )
+            provenance_by_receipt[row.receipt_id] = row
+        provenance_order = [row.receipt_id for row in authority_provenance]
+        if provenance_order != sorted(provenance_order):
+            raise ValueError("integration authority provenance order is not canonical")
+        if set(provenance_by_receipt) != receipt_ids:
+            raise ValueError(
+                "integration authority provenance must bind every restored receipt exactly once"
+            )
+        if receipts and authority.owner_of("integration-state") != "integration.chief":
+            raise ValueError("integration authority provenance current owner does not match canonical owner")
+
         receipt_candidate_ids: set[str] = set()
         for receipt in receipts:
             if receipt.status is not ChangeCandidateStatus.INTEGRATED:
@@ -521,6 +692,25 @@ class IntegrationControlPlane:
                 registry.get(receipt.actor_agent_id)
             except KeyError as exc:
                 raise ValueError("integration receipt actor is unknown") from exc
+
+            provenance = provenance_by_receipt[receipt.receipt_id]
+            if provenance.artifact_id != "integration-state":
+                raise ValueError("integration authority provenance artifact mismatch")
+            if provenance.actor_agent_id != receipt.actor_agent_id:
+                raise ValueError("integration authority provenance actor mismatch")
+            if provenance.owner_agent_id != "integration.chief":
+                raise ValueError("integration authority provenance owner does not match canonical owner")
+            if provenance.active_block_ids:
+                raise ValueError("integration authority provenance cannot record an active block")
+            if provenance.authorization_mode == "owner":
+                if provenance.owner_agent_id != provenance.actor_agent_id:
+                    raise ValueError("integration authority provenance owner mismatch")
+            elif provenance.authorization_mode == "central":
+                if provenance.actor_agent_id != "nolane.central":
+                    raise ValueError("integration authority provenance central actor mismatch")
+            else:
+                raise ValueError("integration authority provenance authorization mode is invalid")
+
             try:
                 candidate = graph.get(receipt.candidate_id)
             except KeyError as exc:
@@ -564,6 +754,7 @@ class IntegrationControlPlane:
             architecture=architecture,
             graph=graph,
             receipts=receipts,
+            authority_provenance=authority_provenance,
         )
         plane._receipt_counter = receipt_counter
         return plane
