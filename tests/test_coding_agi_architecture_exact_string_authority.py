@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Permanent Neural R2.9 exact-string Architecture authority gate.
+# Permanent Neural R2.9 exact-string Architecture authority gate; this file also triggers the canonical suite.
 
 from copy import deepcopy
 import json
