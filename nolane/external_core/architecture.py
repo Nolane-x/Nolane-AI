@@ -12,6 +12,18 @@ COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.architecture"
 
 
+def _exact_non_empty_string(value: object, label: str) -> str:
+    if type(value) is not str or not value.strip():
+        raise ValueError(f"{label} must be an exact non-empty string")
+    return value
+
+
+def _exact_string_sequence(value: object, label: str) -> tuple[str, ...]:
+    if type(value) not in (list, tuple):
+        raise ValueError(f"{label} must be a sequence of exact non-empty strings")
+    return tuple(_exact_non_empty_string(item, label) for item in value)
+
+
 class ComponentKind(str, Enum):
     SERVICE = "service"
     MODULE = "module"
@@ -70,8 +82,12 @@ class ArchitectureComponent:
     status: ComponentStatus = ComponentStatus.ACTIVE
 
     def __post_init__(self) -> None:
-        if not all(str(x).strip() for x in (self.component_id, self.title, self.owner_region, self.trust_zone)):
-            raise ValueError("component identity/title/owner/trust-zone must be non-empty")
+        _exact_non_empty_string(self.component_id, "architecture component identity")
+        _exact_non_empty_string(self.title, "architecture component title")
+        _exact_non_empty_string(self.owner_region, "architecture component owner region")
+        _exact_non_empty_string(self.trust_zone, "architecture component trust zone")
+        _exact_string_sequence(self.requirement_refs, "architecture component requirement reference")
+        _exact_string_sequence(self.plan_refs, "architecture component plan reference")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -88,14 +104,19 @@ class ArchitectureComponent:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureComponent":
         return cls(
-            str(state["component_id"]),
-            str(state["title"]),
-            ComponentKind(str(state["kind"])),
-            str(state["owner_region"]),
-            str(state["trust_zone"]),
-            tuple(str(x) for x in state.get("requirement_refs", ())),
-            tuple(str(x) for x in state.get("plan_refs", ())),
-            ComponentStatus(str(state.get("status", ComponentStatus.ACTIVE.value))),
+            _exact_non_empty_string(state["component_id"], "architecture component identity"),
+            _exact_non_empty_string(state["title"], "architecture component title"),
+            ComponentKind(_exact_non_empty_string(state["kind"], "architecture component kind")),
+            _exact_non_empty_string(state["owner_region"], "architecture component owner region"),
+            _exact_non_empty_string(state["trust_zone"], "architecture component trust zone"),
+            _exact_string_sequence(state.get("requirement_refs", ()), "architecture component requirement reference"),
+            _exact_string_sequence(state.get("plan_refs", ()), "architecture component plan reference"),
+            ComponentStatus(
+                _exact_non_empty_string(
+                    state.get("status", ComponentStatus.ACTIVE.value),
+                    "architecture component status",
+                )
+            ),
         )
 
 
@@ -112,16 +133,13 @@ class InterfaceContract:
     trust_classification: str = "internal"
 
     def __post_init__(self) -> None:
-        if not all(
-            str(x).strip()
-            for x in (
-                self.interface_id,
-                self.producer_component_id,
-                self.semantic_version,
-                self.signature_digest,
-            )
-        ):
-            raise ValueError("interface identity/producer/version/signature must be non-empty")
+        _exact_non_empty_string(self.interface_id, "architecture interface identity")
+        _exact_non_empty_string(self.producer_component_id, "architecture interface producer")
+        _exact_non_empty_string(self.semantic_version, "architecture interface semantic version")
+        _exact_non_empty_string(self.signature_digest, "architecture interface signature digest")
+        _exact_string_sequence(self.consumer_scope, "architecture interface consumer scope")
+        _exact_non_empty_string(self.compatibility_policy, "architecture interface compatibility policy")
+        _exact_non_empty_string(self.trust_classification, "architecture interface trust classification")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -139,15 +157,21 @@ class InterfaceContract:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "InterfaceContract":
         return cls(
-            str(state["interface_id"]),
-            str(state["producer_component_id"]),
-            InterfaceClass(str(state["interface_class"])),
-            str(state["semantic_version"]),
-            str(state["signature_digest"]),
-            InterfaceStability(str(state["stability"])),
-            tuple(str(x) for x in state.get("consumer_scope", ())),
-            str(state.get("compatibility_policy", "backward")),
-            str(state.get("trust_classification", "internal")),
+            _exact_non_empty_string(state["interface_id"], "architecture interface identity"),
+            _exact_non_empty_string(state["producer_component_id"], "architecture interface producer"),
+            InterfaceClass(_exact_non_empty_string(state["interface_class"], "architecture interface class")),
+            _exact_non_empty_string(state["semantic_version"], "architecture interface semantic version"),
+            _exact_non_empty_string(state["signature_digest"], "architecture interface signature digest"),
+            InterfaceStability(_exact_non_empty_string(state["stability"], "architecture interface stability")),
+            _exact_string_sequence(state.get("consumer_scope", ()), "architecture interface consumer scope"),
+            _exact_non_empty_string(
+                state.get("compatibility_policy", "backward"),
+                "architecture interface compatibility policy",
+            ),
+            _exact_non_empty_string(
+                state.get("trust_classification", "internal"),
+                "architecture interface trust classification",
+            ),
         )
 
 
@@ -159,8 +183,9 @@ class ArchitectureEdge:
     kind: EdgeKind
 
     def __post_init__(self) -> None:
-        if not all(str(x).strip() for x in (self.edge_id, self.source_component_id, self.target_component_id)):
-            raise ValueError("architecture edge identity/endpoints must be non-empty")
+        _exact_non_empty_string(self.edge_id, "architecture edge identity")
+        _exact_non_empty_string(self.source_component_id, "architecture edge source")
+        _exact_non_empty_string(self.target_component_id, "architecture edge target")
 
     def to_state(self) -> dict[str, str]:
         return {
@@ -173,10 +198,10 @@ class ArchitectureEdge:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureEdge":
         return cls(
-            str(state["edge_id"]),
-            str(state["source_component_id"]),
-            str(state["target_component_id"]),
-            EdgeKind(str(state["kind"])),
+            _exact_non_empty_string(state["edge_id"], "architecture edge identity"),
+            _exact_non_empty_string(state["source_component_id"], "architecture edge source"),
+            _exact_non_empty_string(state["target_component_id"], "architecture edge target"),
+            EdgeKind(_exact_non_empty_string(state["kind"], "architecture edge kind")),
         )
 
 
@@ -189,6 +214,13 @@ class ArchitectureRevision:
     evidence_refs: tuple[str, ...]
     changed_refs: tuple[str, ...]
     graph_digest: str
+
+    def __post_init__(self) -> None:
+        _exact_non_empty_string(self.actor_agent_id, "architecture revision actor")
+        _exact_non_empty_string(self.reason, "architecture revision reason")
+        _exact_string_sequence(self.evidence_refs, "architecture revision evidence reference")
+        _exact_string_sequence(self.changed_refs, "architecture revision changed reference")
+        _exact_non_empty_string(self.graph_digest, "architecture revision graph digest")
 
     def to_state(self) -> dict[str, Any]:
         return {
@@ -212,11 +244,11 @@ class ArchitectureRevision:
         return cls(
             version,
             parent_version,
-            str(state["actor_agent_id"]),
-            str(state["reason"]),
-            tuple(str(x) for x in state.get("evidence_refs", ())),
-            tuple(str(x) for x in state.get("changed_refs", ())),
-            str(state["graph_digest"]),
+            _exact_non_empty_string(state["actor_agent_id"], "architecture revision actor"),
+            _exact_non_empty_string(state["reason"], "architecture revision reason"),
+            _exact_string_sequence(state.get("evidence_refs", ()), "architecture revision evidence reference"),
+            _exact_string_sequence(state.get("changed_refs", ()), "architecture revision changed reference"),
+            _exact_non_empty_string(state["graph_digest"], "architecture revision graph digest"),
         )
 
 
@@ -312,9 +344,13 @@ class ArchitectureGraph:
         upsert_interfaces: tuple[InterfaceContract, ...] = (),
         upsert_edges: tuple[ArchitectureEdge, ...] = (),
     ) -> ArchitectureRevision:
-        reason = str(reason).strip()
-        evidence = tuple(str(x).strip() for x in evidence_refs if str(x).strip())
-        if not reason or not evidence or (not upsert_components and not upsert_interfaces and not upsert_edges):
+        actor = _exact_non_empty_string(actor_agent_id, "architecture revision actor")
+        reason_value = _exact_non_empty_string(reason, "architecture revision reason").strip()
+        evidence = tuple(
+            value.strip()
+            for value in _exact_string_sequence(evidence_refs, "architecture revision evidence reference")
+        )
+        if not evidence or (not upsert_components and not upsert_interfaces and not upsert_edges):
             raise ValueError("architecture revision requires reason, evidence and mutation")
         components, interfaces, edges = dict(self._components), dict(self._interfaces), dict(self._edges)
         changed: list[str] = []
@@ -333,8 +369,8 @@ class ArchitectureGraph:
         revision = ArchitectureRevision(
             next_version,
             self.version or None,
-            str(actor_agent_id),
-            reason,
+            actor,
+            reason_value,
             evidence,
             tuple(sorted(set(changed))),
             digest,
@@ -494,7 +530,7 @@ class ArchitectureControlPlane:
             if type(version) is not int or version <= 0 or version in change_events:
                 raise ValueError("architecture change provenance mismatch")
             change_events[version] = (
-                str(source_agent_id),
+                _exact_non_empty_string(source_agent_id, "architecture provenance source actor"),
                 payload.get("reason"),
                 evidence_refs,
                 object_refs,
