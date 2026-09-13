@@ -7,6 +7,7 @@ from nolane.external_core.context import ContextCapsule
 from nolane.external_core.execution_types import ExecutionCounters
 from nolane.neural.core_contract import (
     AdaptationBoundary,
+    Candidate,
     CognitiveState,
     EvidenceRef,
     ExpertRoute,
@@ -206,6 +207,25 @@ def test_live_evidence_digest_rejects_stringifiable_non_string_digest():
             digest=int("1" * 64),
             authority="observation",
         )
+
+
+def test_live_expert_route_expert_id_rejects_stringifiable_non_string_identity():
+    evidence = (_evidence(receipt_id="r1"),)
+    with pytest.raises(NeuralInvariantError, match="expert_id.*exact string"):
+        ExpertRoute.create(expert_id=123, path_id="path-1", confidence=0.8, evidence=evidence)
+
+
+def test_live_expert_route_path_id_rejects_stringifiable_non_string_identity():
+    evidence = (_evidence(receipt_id="r1"),)
+    with pytest.raises(NeuralInvariantError, match="path_id.*exact string"):
+        ExpertRoute.create(expert_id="expert-a", path_id=123, confidence=0.8, evidence=evidence)
+
+
+def test_live_candidate_id_rejects_stringifiable_non_string_identity():
+    evidence = (_evidence(receipt_id="r1"),)
+    route = ExpertRoute.create(expert_id="expert-a", path_id="path-1", confidence=0.8, evidence=evidence)
+    with pytest.raises(NeuralInvariantError, match="candidate_id.*exact string"):
+        Candidate.create(candidate_id=123, route=route, confidence=0.8, utility=0.7, evidence=evidence)
 
 
 def test_adaptation_boundary_is_case_insensitive_for_protected_authority_domains():
