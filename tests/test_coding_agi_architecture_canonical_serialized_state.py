@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Permanent Neural R2.10 canonical serialized-state Architecture gate; this file also triggers the canonical suite.
+# Permanent Neural R2.10 canonical serialized-state Architecture authority gate; this file also witnesses owner changes through the canonical suite.
 
 from copy import deepcopy
 from typing import Any
