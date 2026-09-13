@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+# Permanent Neural R2.8 architecture identity-collision restore-authority gate.
+
 from copy import deepcopy
 from typing import Any
 
