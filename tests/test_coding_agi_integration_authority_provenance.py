@@ -53,24 +53,28 @@ def _runtime_with_integrated_candidate() -> OrganizationRuntime:
     return runtime
 
 
-def test_live_integration_receipt_persists_exact_actor_authority_provenance() -> None:
+def test_live_integration_state_persists_exact_actor_authority_provenance() -> None:
     runtime = _runtime_with_integrated_candidate()
     state = runtime.integration.to_state()
-    receipt = state["receipts"][0]
+    rows = state["authority_provenance"]
+    assert isinstance(rows, list) and len(rows) == 1
 
-    provenance = receipt["authority_provenance"]
     expected = {
+        "receipt_id": "integration-00000001",
         "artifact_id": "integration-state",
         "actor_agent_id": "integration.chief",
         "authorization_mode": "owner",
         "owner_agent_id": "integration.chief",
         "active_block_ids": [],
     }
-    assert provenance == {**expected, "digest": canonical_digest(expected)}
+    assert rows[0] == {**expected, "digest": canonical_digest(expected)}
 
 
 def test_restore_rejects_legacy_receipt_without_authority_provenance() -> None:
     state = _runtime_with_integrated_candidate().to_state()
+    integration = state["integration"]
+    assert isinstance(integration, dict)
+    integration.pop("authority_provenance", None)
 
-    with pytest.raises(ValueError, match="authority provenance|required"):
+    with pytest.raises(ValueError, match="authority provenance|required|canonical"):
         OrganizationRuntime.from_state(deepcopy(state))
