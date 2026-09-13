@@ -90,6 +90,7 @@ class OverrideReceipt:
     reason: str
     evidence_ids: tuple[str, ...]
     overrode_block: bool
+    block_counter_at_issue: int
     block_frontier_ids: tuple[str, ...]
 
     def to_state(self) -> dict[str, Any]:
@@ -100,6 +101,7 @@ class OverrideReceipt:
             "reason": self.reason,
             "evidence_ids": list(self.evidence_ids),
             "overrode_block": self.overrode_block,
+            "block_counter_at_issue": self.block_counter_at_issue,
             "block_frontier_ids": list(self.block_frontier_ids),
         }
 
@@ -163,6 +165,7 @@ class AuthorityGraph:
             reason=str(reason),
             evidence_ids=tuple(str(value) for value in evidence_ids),
             overrode_block=bool(block_frontier_ids),
+            block_counter_at_issue=self._block_counter,
             block_frontier_ids=block_frontier_ids,
         )
         self._overrides[row.override_id] = row
@@ -291,6 +294,8 @@ class AuthorityGraph:
             )
             if type(raw_row) is dict and "block_frontier_ids" not in raw_row:
                 raise ValueError("authority override temporal frontier is required")
+            if type(raw_row) is dict and "block_counter_at_issue" not in raw_row:
+                raise ValueError("authority override temporal block counter is required")
             row = _canonical_state_record(
                 raw_row,
                 (
@@ -300,6 +305,7 @@ class AuthorityGraph:
                     "reason",
                     "evidence_ids",
                     "overrode_block",
+                    "block_counter_at_issue",
                     "block_frontier_ids",
                 ),
                 "authority override",
@@ -336,6 +342,15 @@ class AuthorityGraph:
             if type(overrode_block) is not bool:
                 raise ValueError("authority override overrode_block must be an exact boolean")
 
+            block_counter_at_issue = _non_negative_int(
+                row["block_counter_at_issue"],
+                "authority override temporal block counter",
+            )
+            if block_counter_at_issue > block_counter:
+                raise ValueError(
+                    "authority override temporal block counter exceeds canonical block lineage"
+                )
+
             frontier_state = _canonical_state_list(
                 row["block_frontier_ids"], "authority override temporal frontier"
             )
@@ -351,12 +366,20 @@ class AuthorityGraph:
                 )
             if len(set(frontier_ids)) != len(frontier_ids):
                 raise ValueError("authority override temporal frontier contains duplicates")
-            artifact_block_ids = tuple(
-                block.block_id for block in blocks.get(artifact_id, ())
+
+            historical_frontier = tuple(
+                block.block_id
+                for block in blocks.get(artifact_id, ())
+                if _sequence_number(
+                    block.block_id,
+                    "block-",
+                    "authority block identity",
+                )
+                <= block_counter_at_issue
             )
-            if frontier_ids != artifact_block_ids[: len(frontier_ids)]:
+            if frontier_ids != historical_frontier:
                 raise ValueError(
-                    "authority override temporal frontier is not a canonical historical prefix"
+                    "authority override temporal frontier does not match its issuance counter"
                 )
             if overrode_block != bool(frontier_ids):
                 raise ValueError(
@@ -370,6 +393,7 @@ class AuthorityGraph:
                 reason=reason,
                 evidence_ids=evidence_ids,
                 overrode_block=overrode_block,
+                block_counter_at_issue=block_counter_at_issue,
                 block_frontier_ids=frontier_ids,
             )
 
