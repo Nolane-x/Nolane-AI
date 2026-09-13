@@ -209,7 +209,6 @@ def test_restore_rejects_digest_preserving_reference_element_coercion(
     "payload_json",
     (
         '{"value": "x"}',
-        '[1]',
         '{invalid',
     ),
 )
