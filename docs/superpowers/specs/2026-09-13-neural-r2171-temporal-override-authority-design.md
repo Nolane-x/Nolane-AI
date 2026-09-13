@@ -8,7 +8,7 @@ R2.17.1 closes that ABA-style temporal gap without changing ownership semantics 
 
 ## Goal
 
-Bind every canonical `OverrideReceipt` to the exact ordered block frontier that existed for its artifact when the override was issued, and preserve enough canonical issuance-order information to reconstruct that historical frontier during restore.
+Bind every canonical `OverrideReceipt` to the exact ordered block frontier that existed for its artifact when the override was issued, and preserve enough reciprocal canonical ordering information to prove that restored block/override history is reachable through the live append-only APIs.
 
 An override is valid only while the artifact's current canonical block frontier exactly matches the receipt's captured frontier.
 
@@ -31,11 +31,17 @@ block_counter_at_issue: int
 block_frontier_ids: tuple[str, ...]
 ```
 
-`block_counter_at_issue` records the existing global append-only block counter at issuance. `block_frontier_ids` records the ordered block IDs for the target artifact at that same point. Both are serialized inside each override row; the top-level authority state shape remains unchanged.
+`AuthorityBlock` gains the reciprocal immutable witness:
 
-`central_override()` captures the current global block counter and the target artifact's current block IDs before creating the receipt.
+```python
+override_counter_at_record: int
+```
 
-No independent temporal epoch counter is introduced: R2.17.1 reuses the canonical global block sequence already maintained by `AuthorityGraph`.
+`block_counter_at_issue` records the global block count immediately before an override is appended. `override_counter_at_record` records the global override count immediately before a block is appended. `block_frontier_ids` records the ordered block IDs for the override's target artifact at issuance. These witnesses are serialized inside their existing row ledgers; the top-level authority state shape remains unchanged.
+
+`central_override()` captures the current global block counter and target-artifact frontier. `record_block()` captures the current global override counter.
+
+No third temporal epoch is introduced: R2.17.1 uses the two append-only sequence counters already maintained by `AuthorityGraph` as reciprocal causal witnesses.
 
 ## Authority invariant
 
@@ -57,9 +63,9 @@ Consequences:
 
 ## Restore invariants
 
-Restore must require exact canonical override rows containing both temporal fields.
+Restore requires exact canonical block and override rows containing the temporal witnesses.
 
-For every restored override:
+For each restored override:
 
 - `block_counter_at_issue` is an exact non-negative integer and cannot exceed the restored global block counter;
 - every frontier entry is an exact canonical `block-########` string;
@@ -68,40 +74,48 @@ For every restored override:
 - stored `block_frontier_ids` must equal that reconstructed frontier exactly and in order;
 - `overrode_block` must equal `bool(block_frontier_ids)`.
 
-This exact reconstruction matters. A weaker "any historical prefix" rule is insufficient: an attacker could otherwise forward-bind a stale override to a later frontier in serialized state and revive it after restore.
+For each restored block:
+
+- `override_counter_at_record` is an exact non-negative integer and cannot exceed the restored global override counter.
+
+After row-local validation, restore validates the two append-only histories reciprocally. Let `B_i.o` be block `i`'s `override_counter_at_record`, and `O_j.b` be override `j`'s `block_counter_at_issue`. Both sequences must be nondecreasing. For every block and override, the recorded cross-counter must equal the number of opposite-kind events that the reciprocal sequence proves occurred earlier. Equivalently, the two ledgers must encode one common reachable interleaving of block and override append operations.
+
+This reciprocal check matters. A one-sided issuance counter rejects simple frontier rewriting but still permits coordinated forward binding by changing both an override's frontier and its `block_counter_at_issue`. In a true history `B1 -> O1 -> B2`, `B2.override_counter_at_record == 1` witnesses that `O1` already existed before `B2`; therefore rewriting `O1.block_counter_at_issue` from `1` to `2` makes the two ledgers causally inconsistent and restore rejects it.
 
 A historically valid stale receipt may still be restored as audit history. Authorization remains fail-closed because its stored frontier no longer equals the current full same-artifact frontier.
 
 Legacy compatibility is intentionally fail-closed:
 
-- snapshots with no override rows remain accepted with the unchanged top-level shape;
-- override-bearing snapshots missing either temporal witness field are rejected rather than guessed or implicitly migrated.
+- snapshots with no block or override rows remain accepted with the unchanged top-level shape;
+- override-bearing snapshots missing their temporal witnesses are rejected rather than guessed or implicitly migrated;
+- block-bearing snapshots for this release must carry the reciprocal block witness.
 
 ## Security boundary
 
-The guarantee is structural, not cryptographic. Given canonical block history, R2.17.1 prevents omission, prefix substitution, cross-artifact substitution, duplicate/reordered frontier rows, counter rollback/forward binding, and stale-receipt resurrection that violate reachable `AuthorityGraph` history.
+The guarantee is structural reachability, not cryptographic authenticity. R2.17.1 rejects malformed, one-sided, and reciprocally inconsistent temporal histories, including stale-receipt resurrection through coordinated override-only rewriting.
 
-It does not prove origin authenticity against a party that can rewrite the complete snapshot into another mutually consistent reachable history. That stronger property would require a trusted external signature, digest anchor, or equivalent provenance mechanism and is outside this milestone.
+It cannot distinguish an honest reachable history from a completely rewritten alternative history if an attacker can consistently alter every mutually constraining row. That stronger origin-authenticity property requires an external trusted signature, MAC, append-only ledger, or equivalent provenance anchor and is outside this milestone.
 
 ## Public and implementation versions
 
-This changes the public immutable `OverrideReceipt` shape and serialized override-row semantics.
+This changes the public immutable authority row shapes and serialized temporal semantics.
 
 - `nolane.organization.authority.COMPONENT_VERSION`: `0.0.1 -> 0.0.2`.
 - canonical implementation revision for `organization.authority`: `2 -> 3` (`0.0.3`).
 
-The audit hardening that added `block_counter_at_issue` is part of the same R2.17.1 semantic boundary and does not consume another revision.
+The reciprocal causal-witness hardening is part of the same unmerged R2.17.1 semantic boundary and does not consume another revision.
 
-The top-level authority state keys remain unchanged. First-generation runtime state has no override receipts, so no runtime-fingerprint cutover is expected; acceptance must verify this rather than assume it.
+The top-level authority state keys remain unchanged. First-generation runtime state contains no block or override rows, so the accepted first-generation runtime fingerprint remains `90fbbb26ca1519d957c4507291bd503f7d0b1fbf8d1929924e83d9f3c6050ed3`; acceptance verifies it through the Refoundation fingerprint contract.
 
 ## TDD evidence model
 
-R2.17.1 has two RED layers:
+R2.17.1 uses layered RED evidence:
 
-1. the original temporal-authority RED proving same-artifact staleness, fresh reauthorization, unrelated-artifact independence, serialization/round-trip, malformed frontier rejection, and the declared version boundary;
-2. an adversarial review RED proving that `block_frontier_ids` alone was insufficient because a stale receipt could be forward-bound to the current frontier during restore.
+1. temporal-authority RED for stale/fresh same-artifact authorization, unrelated-artifact independence, serialization/round-trip, malformed restore rows, and declared version boundaries;
+2. simple forward-binding RED proving `block_frontier_ids` alone could be moved to the current frontier;
+3. coordinated forward-binding RED proving `block_counter_at_issue` plus the frontier was still one-sided and could be jointly forged.
 
-The second RED adds direct contracts for `block_counter_at_issue`, missing issuance witness rejection, and forward-bound stale-override rejection before the production repair.
+The third RED is the decisive causal-order contract: honest stale state must remain restorable and unauthorized, while jointly advancing both override witnesses without reciprocal block history must be rejected.
 
 ## Acceptance boundary
 
