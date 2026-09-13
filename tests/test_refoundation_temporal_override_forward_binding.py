@@ -9,7 +9,7 @@ from nolane.organization.authority import AuthorityGraph
 from nolane.organization.identity import AgentRegistry
 
 
-def test_restore_rejects_forward_bound_stale_override_frontier() -> None:
+def _stale_override_state():
     registry = AgentRegistry(build_first_generation_blueprint())
     graph = AuthorityGraph(registry)
     graph.claim_owner("artifact-r2171-forward", "coding.chief")
@@ -28,6 +28,30 @@ def test_restore_rejects_forward_bound_stale_override_frontier() -> None:
         "verification.chief",
         reason="later independent block",
     )
+    return registry, graph, first, stale, second
+
+
+def test_override_pins_global_block_counter_at_issue() -> None:
+    _, graph, first, stale, _ = _stale_override_state()
+
+    assert stale.block_frontier_ids == (first.block_id,)
+    assert stale.block_counter_at_issue == 1
+    assert graph.to_state()["overrides"][stale.override_id][
+        "block_counter_at_issue"
+    ] == 1
+
+
+def test_restore_rejects_override_missing_issue_counter() -> None:
+    registry, graph, _, stale, _ = _stale_override_state()
+    state = deepcopy(graph.to_state())
+    state["overrides"][stale.override_id].pop("block_counter_at_issue", None)
+
+    with pytest.raises(ValueError, match="counter"):
+        AuthorityGraph.from_state(registry, state)
+
+
+def test_restore_rejects_forward_bound_stale_override_frontier() -> None:
+    registry, graph, first, stale, second = _stale_override_state()
 
     assert not graph.can_write(
         "nolane.central",
