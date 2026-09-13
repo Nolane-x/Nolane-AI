@@ -349,15 +349,30 @@ class ArchitectureGraph:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureGraph":
         graph = cls()
-        graph._components = {
-            x.component_id: x for x in (ArchitectureComponent.from_state(v) for v in state.get("components", ()))
-        }
-        graph._interfaces = {
-            x.interface_id: x for x in (InterfaceContract.from_state(v) for v in state.get("interfaces", ()))
-        }
-        graph._edges = {
-            x.edge_id: x for x in (ArchitectureEdge.from_state(v) for v in state.get("edges", ()))
-        }
+        components = tuple(ArchitectureComponent.from_state(v) for v in state.get("components", ()))
+        component_ids: set[str] = set()
+        for component in components:
+            if component.component_id in component_ids:
+                raise ValueError(f"duplicate architecture component: {component.component_id}")
+            component_ids.add(component.component_id)
+
+        interfaces = tuple(InterfaceContract.from_state(v) for v in state.get("interfaces", ()))
+        interface_ids: set[str] = set()
+        for interface in interfaces:
+            if interface.interface_id in interface_ids:
+                raise ValueError(f"duplicate architecture interface: {interface.interface_id}")
+            interface_ids.add(interface.interface_id)
+
+        edges = tuple(ArchitectureEdge.from_state(v) for v in state.get("edges", ()))
+        edge_ids: set[str] = set()
+        for edge in edges:
+            if edge.edge_id in edge_ids:
+                raise ValueError(f"duplicate architecture edge: {edge.edge_id}")
+            edge_ids.add(edge.edge_id)
+
+        graph._components = {component.component_id: component for component in components}
+        graph._interfaces = {interface.interface_id: interface for interface in interfaces}
+        graph._edges = {edge.edge_id: edge for edge in edges}
         graph._validate(graph._components, graph._interfaces, graph._edges)
         graph._revisions = [ArchitectureRevision.from_state(v) for v in state.get("revisions", ())]
         for index, revision in enumerate(graph._revisions, 1):
