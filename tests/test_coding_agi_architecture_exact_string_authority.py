@@ -233,7 +233,7 @@ def test_restore_rejects_revision_evidence_string_coercion_even_when_event_coerc
     state["architecture"]["graph"]["revisions"][0]["evidence_refs"][0] = 7
     _architecture_change_event(state)["evidence_refs"][0] = 7
 
-    with pytest.raises(ValueError, match="exact non-empty string"):
+    with pytest.raises(ValueError, match="must be an exact string"):
         OrganizationRuntime.from_state(state)
 
 
@@ -246,7 +246,7 @@ def test_restore_rejects_revision_changed_ref_string_coercion_even_when_event_co
     revision["changed_refs"][revision_index] = 123
     event["object_refs"][event_index] = 123
 
-    with pytest.raises(ValueError, match="exact non-empty string"):
+    with pytest.raises(ValueError, match="must be an exact string"):
         OrganizationRuntime.from_state(state)
 
 

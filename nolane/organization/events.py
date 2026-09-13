@@ -8,8 +8,65 @@ from typing import Any, Mapping
 from nolane.core.canonical_digest import canonical_digest, canonical_json
 
 COMPONENT_ID = "organization.events"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.events + cogcoder.organization.types"
+
+
+def _canonical_state_record(
+    state: object,
+    expected_keys: tuple[str, ...],
+    label: str,
+) -> Mapping[str, Any]:
+    if type(state) is not dict or set(state) != set(expected_keys):
+        raise ValueError(f"{label} must use canonical serialized state")
+    return state
+
+
+def _canonical_state_list(value: object, label: str) -> list[Any]:
+    if type(value) is not list:
+        raise ValueError(f"{label} must use canonical serialized state")
+    return value
+
+
+def _exact_string(value: object, label: str) -> str:
+    if type(value) is not str:
+        raise ValueError(f"{label} must be an exact string")
+    return value
+
+
+def _exact_nullable_string(value: object, label: str) -> str | None:
+    if value is None:
+        return None
+    return _exact_string(value, label)
+
+
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
+
+
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be an exact bool")
+    return value
+
+
+def _canonical_string_list(value: object, label: str) -> tuple[str, ...]:
+    return tuple(
+        _exact_string(item, label)
+        for item in _canonical_state_list(value, label)
+    )
+
+
+def _canonical_event_payload_json(value: object) -> str:
+    payload_json = _exact_string(value, "event payload_json")
+    payload = json.loads(payload_json)
+    if not isinstance(payload, dict):
+        raise ValueError("event payload must decode to an object")
+    if canonical_json(payload) != payload_json:
+        raise ValueError("canonical event payload mismatch")
+    return payload_json
 
 
 class EventKind(str, Enum):
@@ -109,23 +166,45 @@ class CognitiveEvent:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "CognitiveEvent":
+        state = _canonical_state_record(
+            state,
+            (
+                "event_id",
+                "sequence",
+                "kind",
+                "source_agent_id",
+                "target_agent_id",
+                "region",
+                "payload_json",
+                "digest",
+                "scope",
+                "causal_parent_ids",
+                "object_refs",
+                "evidence_refs",
+                "priority",
+                "requires_ack",
+                "status",
+                "created_at_logical",
+            ),
+            "cognitive event",
+        )
         return cls(
-            event_id=str(state["event_id"]),
-            sequence=int(state["sequence"]),
-            kind=EventKind(str(state["kind"])),
-            source_agent_id=str(state["source_agent_id"]),
-            target_agent_id=None if state.get("target_agent_id") is None else str(state["target_agent_id"]),
-            region=None if state.get("region") is None else str(state["region"]),
-            payload_json=str(state["payload_json"]),
-            digest=str(state["digest"]),
-            scope=str(state.get("scope", "organization")),
-            causal_parent_ids=tuple(str(row) for row in state.get("causal_parent_ids", ())),
-            object_refs=tuple(str(row) for row in state.get("object_refs", ())),
-            evidence_refs=tuple(str(row) for row in state.get("evidence_refs", ())),
-            priority=int(state.get("priority", 0)),
-            requires_ack=bool(state.get("requires_ack", False)),
-            status=str(state.get("status", "emitted")),
-            created_at_logical=int(state.get("created_at_logical", state.get("sequence", 0))),
+            event_id=_exact_string(state["event_id"], "event identity"),
+            sequence=_exact_int(state["sequence"], "event sequence"),
+            kind=EventKind(_exact_string(state["kind"], "event kind")),
+            source_agent_id=_exact_string(state["source_agent_id"], "event source agent identity"),
+            target_agent_id=_exact_nullable_string(state["target_agent_id"], "event target agent identity"),
+            region=_exact_nullable_string(state["region"], "event region"),
+            payload_json=_canonical_event_payload_json(state["payload_json"]),
+            digest=_exact_string(state["digest"], "event digest"),
+            scope=_exact_string(state["scope"], "event scope"),
+            causal_parent_ids=_canonical_string_list(state["causal_parent_ids"], "event causal parent identity"),
+            object_refs=_canonical_string_list(state["object_refs"], "event object reference"),
+            evidence_refs=_canonical_string_list(state["evidence_refs"], "event evidence reference"),
+            priority=_exact_int(state["priority"], "event priority"),
+            requires_ack=_exact_bool(state["requires_ack"], "event requires_ack"),
+            status=_exact_string(state["status"], "event status"),
+            created_at_logical=_exact_int(state["created_at_logical"], "event logical time"),
         )
 
 
@@ -251,12 +330,24 @@ class EventLedger:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EventLedger":
+        state = _canonical_state_record(
+            state,
+            ("events", "subscriptions"),
+            "event ledger",
+        )
+        event_rows = _canonical_state_list(state["events"], "event ledger events")
         ledger = cls()
-        ledger._events = [CognitiveEvent.from_state(row) for row in state.get("events", ())]
+        ledger._events = [CognitiveEvent.from_state(row) for row in event_rows]
         expected = 1
+        seen_event_ids: set[str] = set()
         for row in ledger._events:
             if row.sequence != expected or row.event_id != f"evt-{expected:08d}":
                 raise ValueError("event ledger sequence is not canonical")
+            if row.created_at_logical != row.sequence:
+                raise ValueError("event logical time must equal canonical event sequence")
+            for parent_id in row.causal_parent_ids:
+                if parent_id not in seen_event_ids:
+                    raise ValueError("event causal parent must reference a prior event")
             envelope = {
                 "event_id": row.event_id,
                 "sequence": row.sequence,
@@ -276,12 +367,30 @@ class EventLedger:
             }
             if row.digest != canonical_digest(envelope):
                 raise ValueError("event digest mismatch")
+            seen_event_ids.add(row.event_id)
             expected += 1
-        for agent_id, rows in state.get("subscriptions", {}).items():
-            ledger._subscriptions[str(agent_id)] = [
-                _Subscription(EventKind(str(row["kind"])), None if row.get("region") is None else str(row["region"]))
-                for row in rows
-            ]
+
+        subscriptions = state["subscriptions"]
+        if type(subscriptions) is not dict:
+            raise ValueError("event ledger subscriptions must use canonical serialized state")
+        for agent_id, rows in subscriptions.items():
+            exact_agent_id = _exact_string(agent_id, "subscription agent identity")
+            serialized_rows = _canonical_state_list(rows, "subscription rows")
+            bucket: list[_Subscription] = []
+            for serialized_row in serialized_rows:
+                serialized_row = _canonical_state_record(
+                    serialized_row,
+                    ("kind", "region"),
+                    "subscription",
+                )
+                row = _Subscription(
+                    EventKind(_exact_string(serialized_row["kind"], "subscription kind")),
+                    _exact_nullable_string(serialized_row["region"], "subscription region"),
+                )
+                if row in bucket:
+                    raise ValueError("duplicate subscription row in canonical event ledger state")
+                bucket.append(row)
+            ledger._subscriptions[exact_agent_id] = bucket
         return ledger
 
 
