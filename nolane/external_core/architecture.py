@@ -24,6 +24,29 @@ def _exact_string_sequence(value: object, label: str) -> tuple[str, ...]:
     return tuple(_exact_non_empty_string(item, label) for item in value)
 
 
+def _canonical_state_record(
+    state: object,
+    expected_keys: tuple[str, ...],
+    label: str,
+) -> Mapping[str, Any]:
+    if not isinstance(state, Mapping) or set(state) != set(expected_keys):
+        raise ValueError(f"{label} must use canonical serialized state")
+    return state
+
+
+def _canonical_state_list(value: object, label: str) -> list[Any]:
+    if type(value) is not list:
+        raise ValueError(f"{label} must use canonical serialized state")
+    return value
+
+
+def _canonical_string_list(value: object, label: str) -> tuple[str, ...]:
+    return tuple(
+        _exact_non_empty_string(item, label)
+        for item in _canonical_state_list(value, label)
+    )
+
+
 class ComponentKind(str, Enum):
     SERVICE = "service"
     MODULE = "module"
@@ -103,17 +126,37 @@ class ArchitectureComponent:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureComponent":
+        state = _canonical_state_record(
+            state,
+            (
+                "component_id",
+                "title",
+                "kind",
+                "owner_region",
+                "trust_zone",
+                "requirement_refs",
+                "plan_refs",
+                "status",
+            ),
+            "architecture component",
+        )
         return cls(
             _exact_non_empty_string(state["component_id"], "architecture component identity"),
             _exact_non_empty_string(state["title"], "architecture component title"),
             ComponentKind(_exact_non_empty_string(state["kind"], "architecture component kind")),
             _exact_non_empty_string(state["owner_region"], "architecture component owner region"),
             _exact_non_empty_string(state["trust_zone"], "architecture component trust zone"),
-            _exact_string_sequence(state.get("requirement_refs", ()), "architecture component requirement reference"),
-            _exact_string_sequence(state.get("plan_refs", ()), "architecture component plan reference"),
+            _canonical_string_list(
+                state["requirement_refs"],
+                "architecture component requirement reference",
+            ),
+            _canonical_string_list(
+                state["plan_refs"],
+                "architecture component plan reference",
+            ),
             ComponentStatus(
                 _exact_non_empty_string(
-                    state.get("status", ComponentStatus.ACTIVE.value),
+                    state["status"],
                     "architecture component status",
                 )
             ),
@@ -156,6 +199,21 @@ class InterfaceContract:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "InterfaceContract":
+        state = _canonical_state_record(
+            state,
+            (
+                "interface_id",
+                "producer_component_id",
+                "interface_class",
+                "semantic_version",
+                "signature_digest",
+                "stability",
+                "consumer_scope",
+                "compatibility_policy",
+                "trust_classification",
+            ),
+            "architecture interface",
+        )
         return cls(
             _exact_non_empty_string(state["interface_id"], "architecture interface identity"),
             _exact_non_empty_string(state["producer_component_id"], "architecture interface producer"),
@@ -163,13 +221,16 @@ class InterfaceContract:
             _exact_non_empty_string(state["semantic_version"], "architecture interface semantic version"),
             _exact_non_empty_string(state["signature_digest"], "architecture interface signature digest"),
             InterfaceStability(_exact_non_empty_string(state["stability"], "architecture interface stability")),
-            _exact_string_sequence(state.get("consumer_scope", ()), "architecture interface consumer scope"),
+            _canonical_string_list(
+                state["consumer_scope"],
+                "architecture interface consumer scope",
+            ),
             _exact_non_empty_string(
-                state.get("compatibility_policy", "backward"),
+                state["compatibility_policy"],
                 "architecture interface compatibility policy",
             ),
             _exact_non_empty_string(
-                state.get("trust_classification", "internal"),
+                state["trust_classification"],
                 "architecture interface trust classification",
             ),
         )
@@ -197,6 +258,11 @@ class ArchitectureEdge:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureEdge":
+        state = _canonical_state_record(
+            state,
+            ("edge_id", "source_component_id", "target_component_id", "kind"),
+            "architecture edge",
+        )
         return cls(
             _exact_non_empty_string(state["edge_id"], "architecture edge identity"),
             _exact_non_empty_string(state["source_component_id"], "architecture edge source"),
@@ -235,10 +301,23 @@ class ArchitectureRevision:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureRevision":
+        state = _canonical_state_record(
+            state,
+            (
+                "version",
+                "parent_version",
+                "actor_agent_id",
+                "reason",
+                "evidence_refs",
+                "changed_refs",
+                "graph_digest",
+            ),
+            "architecture revision",
+        )
         version = state["version"]
         if type(version) is not int or version <= 0:
             raise ValueError("architecture revision version must be a positive exact int")
-        parent_version = state.get("parent_version")
+        parent_version = state["parent_version"]
         if parent_version is not None and (type(parent_version) is not int or parent_version <= 0):
             raise ValueError("architecture parent version must be a positive exact int or None")
         return cls(
@@ -246,8 +325,14 @@ class ArchitectureRevision:
             parent_version,
             _exact_non_empty_string(state["actor_agent_id"], "architecture revision actor"),
             _exact_non_empty_string(state["reason"], "architecture revision reason"),
-            _exact_string_sequence(state.get("evidence_refs", ()), "architecture revision evidence reference"),
-            _exact_string_sequence(state.get("changed_refs", ()), "architecture revision changed reference"),
+            _canonical_string_list(
+                state["evidence_refs"],
+                "architecture revision evidence reference",
+            ),
+            _canonical_string_list(
+                state["changed_refs"],
+                "architecture revision changed reference",
+            ),
             _exact_non_empty_string(state["graph_digest"], "architecture revision graph digest"),
         )
 
@@ -384,33 +469,64 @@ class ArchitectureGraph:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "ArchitectureGraph":
+        state = _canonical_state_record(
+            state,
+            ("components", "interfaces", "edges", "revisions"),
+            "architecture graph",
+        )
         graph = cls()
-        components = tuple(ArchitectureComponent.from_state(v) for v in state.get("components", ()))
+        component_rows = _canonical_state_list(
+            state["components"],
+            "architecture graph components",
+        )
+        interface_rows = _canonical_state_list(
+            state["interfaces"],
+            "architecture graph interfaces",
+        )
+        edge_rows = _canonical_state_list(
+            state["edges"],
+            "architecture graph edges",
+        )
+        revision_rows = _canonical_state_list(
+            state["revisions"],
+            "architecture graph revisions",
+        )
+
+        components = tuple(ArchitectureComponent.from_state(v) for v in component_rows)
         component_ids: set[str] = set()
         for component in components:
             if component.component_id in component_ids:
                 raise ValueError(f"duplicate architecture component: {component.component_id}")
             component_ids.add(component.component_id)
+        component_order = [component.component_id for component in components]
+        if component_order != sorted(component_order):
+            raise ValueError("architecture components must use canonical serialized state order")
 
-        interfaces = tuple(InterfaceContract.from_state(v) for v in state.get("interfaces", ()))
+        interfaces = tuple(InterfaceContract.from_state(v) for v in interface_rows)
         interface_ids: set[str] = set()
         for interface in interfaces:
             if interface.interface_id in interface_ids:
                 raise ValueError(f"duplicate architecture interface: {interface.interface_id}")
             interface_ids.add(interface.interface_id)
+        interface_order = [interface.interface_id for interface in interfaces]
+        if interface_order != sorted(interface_order):
+            raise ValueError("architecture interfaces must use canonical serialized state order")
 
-        edges = tuple(ArchitectureEdge.from_state(v) for v in state.get("edges", ()))
+        edges = tuple(ArchitectureEdge.from_state(v) for v in edge_rows)
         edge_ids: set[str] = set()
         for edge in edges:
             if edge.edge_id in edge_ids:
                 raise ValueError(f"duplicate architecture edge: {edge.edge_id}")
             edge_ids.add(edge.edge_id)
+        edge_order = [edge.edge_id for edge in edges]
+        if edge_order != sorted(edge_order):
+            raise ValueError("architecture edges must use canonical serialized state order")
 
         graph._components = {component.component_id: component for component in components}
         graph._interfaces = {interface.interface_id: interface for interface in interfaces}
         graph._edges = {edge.edge_id: edge for edge in edges}
         graph._validate(graph._components, graph._interfaces, graph._edges)
-        graph._revisions = [ArchitectureRevision.from_state(v) for v in state.get("revisions", ())]
+        graph._revisions = [ArchitectureRevision.from_state(v) for v in revision_rows]
         for index, revision in enumerate(graph._revisions, 1):
             if revision.version != index:
                 raise ValueError("non-canonical architecture revision sequence")
@@ -500,7 +616,12 @@ class ArchitectureControlPlane:
         ledger: Any,
         state: Mapping[str, Any],
     ) -> "ArchitectureControlPlane":
-        graph = ArchitectureGraph.from_state(state.get("graph", {}))
+        state = _canonical_state_record(
+            state,
+            ("graph",),
+            "architecture control plane",
+        )
+        graph = ArchitectureGraph.from_state(state["graph"])
         if hasattr(ledger, "events_since"):
             events = ledger.events_since(None)
         else:
