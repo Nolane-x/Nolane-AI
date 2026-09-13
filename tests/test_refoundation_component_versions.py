@@ -48,7 +48,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.epistemic": 1,
     "external.requirements": 2,
     "external.planning": 5,
-    "external.architecture": 2,
+    "external.architecture": 3,
     "external.integration": 14,
     "external.context": 5,
     "external.invokable_cores": 3,
@@ -101,8 +101,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.assurance")) == "0.0.2"
     assert str(component_version("external.context")) == "0.0.5"
     assert str(next_component_version("external.context")) == "0.0.6"
-    assert str(component_version("external.architecture")) == "0.0.2"
-    assert str(next_component_version("external.architecture")) == "0.0.3"
+    assert str(component_version("external.architecture")) == "0.0.3"
+    assert str(next_component_version("external.architecture")) == "0.0.4"
     assert str(component_version("external.evidence")) == "0.0.2"
     assert str(next_component_version("external.evidence")) == "0.0.3"
     assert str(component_version("external.integration")) == "0.0.14"
