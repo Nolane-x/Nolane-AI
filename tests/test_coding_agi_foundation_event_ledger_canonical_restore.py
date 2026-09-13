@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-# Permanent Neural R2.11 canonical EventLedger restore + causal authority gate.
+# Permanent Neural R2.11 EventLedger restore gate; witnesses owner-file GREEN.
 
 from copy import deepcopy
 from typing import Any
