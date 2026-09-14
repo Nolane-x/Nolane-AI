@@ -160,6 +160,18 @@ def test_restore_rejects_core_authority_without_step_projection() -> None:
         _plane(sessions=(poisoned,))
 
 
+def test_restore_rejects_compute_counter_below_decision_history_authority() -> None:
+    decision = _decision()
+    poisoned = _session(
+        counters=ExecutionCounters(steps=1, compute_units=0),
+        step_index=1,
+        decision_receipt_ids=(decision.receipt_id,),
+    )
+
+    with pytest.raises(ValueError, match="compute counter does not match decision history"):
+        _plane(sessions=(poisoned,), decisions=(decision,))
+
+
 @pytest.mark.parametrize("authority_kind", ("session", "decision", "step", "terminal"))
 def test_restore_rejects_duplicate_serialized_authority_ids_before_dict_collapse(
     authority_kind: str,
