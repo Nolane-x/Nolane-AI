@@ -170,7 +170,10 @@ class CognitiveState:
         """Bind R2.4 cognition/provenance identity to a pre-existing context capsule digest."""
         return canonical_digest(
             {
-                "capsule_digest": _digest(capsule_digest, "capsule digest"),
+                "capsule_digest": _digest(
+                    _exact_nonempty_string(capsule_digest, "capsule digest"),
+                    "capsule digest",
+                ),
                 "cognitive_state_digest": self.digest,
                 "neural_core_revision": NEURAL_CORE_REVISION,
             }
