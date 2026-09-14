@@ -659,6 +659,14 @@ class OrganizationExecutionControlPlane(_BaseOrganizationExecutionControlPlane):
     def _validate_state(self) -> None:
         super()._validate_state()
         for session in self._sessions.values():
+            expected_compute_units = sum(
+                self._decisions[receipt_id].compute_units
+                for receipt_id in session.decision_receipt_ids
+            )
+            if session.counters.compute_units != expected_compute_units:
+                raise ValueError(
+                    "execution session compute counter does not match decision history"
+                )
             if session.terminal_receipt_id is not None:
                 terminal = self._terminals[session.terminal_receipt_id]
                 terminal_proof_version = int(

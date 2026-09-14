@@ -44,6 +44,7 @@ class _Decision:
     checkpoint_digest: str = "checkpoint-v1"
     action_schema_digest: str = _ACTION_SCHEMA_DIGEST
     step_index: int = 0
+    compute_units: int = 1
     action: ExecutionAction = ExecutionAction.tool(_TOOL_ACTION)
 
 
