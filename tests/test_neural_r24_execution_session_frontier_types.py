@@ -4,6 +4,7 @@ from nolane.external_core.execution import ExecutionSession, ExecutionState
 from nolane.external_core.execution_types import ExecutionBudget, ExecutionCounters
 
 
+# Distinct serialized scalar forms that must never alias integer execution authority.
 _NON_INTEGER_FRONTIER_ALIASES = (False, 0.0, '0')
 
 
