@@ -56,7 +56,7 @@ def _confidence(value: float, field: str = "confidence") -> float:
 
 
 def _digest(value: object, field: str = "digest") -> str:
-    text = _nonempty(value, field)
+    text = _exact_nonempty_string(value, field)
     if text != text.lower():
         raise NeuralInvariantError(f"{field} must be a 64-character lowercase SHA-256 digest")
     if len(text) != 64 or any(char not in "0123456789abcdef" for char in text):
@@ -226,7 +226,14 @@ class CognitiveState:
                 raise
             provenance.append(evidence_ref)
         rebuilt = cls.create(payload=state["payload"], provenance=provenance)
-        claimed_digest = _digest(state["digest"], "cognitive state digest")
+        try:
+            claimed_digest = _digest(state["digest"], "cognitive state digest")
+        except NeuralInvariantError as exc:
+            if "must be an exact string" in str(exc):
+                raise NeuralInvariantError(
+                    "cognitive state serialized representation is non-canonical; possible state laundering"
+                ) from exc
+            raise
         if rebuilt.digest != claimed_digest:
             raise NeuralInvariantError("cognitive state digest/provenance mismatch; possible state laundering")
         if dict(state) != rebuilt.to_state():
