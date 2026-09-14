@@ -387,32 +387,44 @@ class AgentDecisionReceipt:
         if version == 1:
             if self.request is not None:
                 raise ValueError('legacy decision cannot carry persisted inference request')
-            return
-        if self.request is None:
-            raise ValueError('modern decision requires persisted inference request')
-        request = self.request
-        if request.digest != self.request_digest:
-            raise ValueError('persisted inference request digest mismatch')
-        expected = {
-            'agent_id': self.agent_id,
-            'neural_version': self.neural_version,
-            'checkpoint_digest': self.checkpoint_digest,
-            'encoder_version': self.encoder_version,
-            'context_digest': self.context_digest,
-            'action_schema_digest': self.action_schema_digest,
-            'step_index': self.step_index,
-            'cognitive_state_digest': self.cognitive_state_digest,
-        }
-        mismatches = [
-            field
-            for field, expected_value in expected.items()
-            if getattr(request, field) != expected_value
-        ]
-        if mismatches:
-            raise ValueError(
-                'persisted inference request decision binding mismatch: '
-                + ', '.join(mismatches)
-            )
+        else:
+            if self.request is None:
+                raise ValueError('modern decision requires persisted inference request')
+            request = self.request
+            if request.digest != self.request_digest:
+                raise ValueError('persisted inference request digest mismatch')
+            expected = {
+                'agent_id': self.agent_id,
+                'neural_version': self.neural_version,
+                'checkpoint_digest': self.checkpoint_digest,
+                'encoder_version': self.encoder_version,
+                'context_digest': self.context_digest,
+                'action_schema_digest': self.action_schema_digest,
+                'step_index': self.step_index,
+                'cognitive_state_digest': self.cognitive_state_digest,
+            }
+            mismatches = [
+                field
+                for field, expected_value in expected.items()
+                if getattr(request, field) != expected_value
+            ]
+            if mismatches:
+                raise ValueError(
+                    'persisted inference request decision binding mismatch: '
+                    + ', '.join(mismatches)
+                )
+        if (
+            isinstance(self.compute_units, bool)
+            or type(self.compute_units) is not int
+            or self.compute_units <= 0
+        ):
+            raise ValueError('decision receipt direct construction must be canonical')
+        expected_digest = canonical_digest(self.payload())
+        if (
+            self.digest != expected_digest
+            or self.receipt_id != 'decision-' + expected_digest[:24]
+        ):
+            raise ValueError('decision receipt direct construction must be canonical')
 
     def payload(self) -> dict[str, Any]:
         payload = {
