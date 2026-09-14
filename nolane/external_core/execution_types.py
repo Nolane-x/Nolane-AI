@@ -459,7 +459,7 @@ class AgentDecisionReceipt:
     ) -> 'AgentDecisionReceipt':
         if not str(backend_id).strip():
             raise ValueError('backend id must be explicit')
-        if int(compute_units) <= 0:
+        if type(compute_units) is not int or compute_units <= 0:
             raise ValueError('decision compute units must be positive')
         payload = {
             'backend_id': str(backend_id),
@@ -472,7 +472,7 @@ class AgentDecisionReceipt:
             'action_schema_digest': request.action_schema_digest,
             'step_index': request.step_index,
             'action': action.to_state(),
-            'compute_units': int(compute_units),
+            'compute_units': compute_units,
             'request_provenance_version': 2,
             'request': request.to_state(),
         }
@@ -491,7 +491,7 @@ class AgentDecisionReceipt:
             action_schema_digest=request.action_schema_digest,
             step_index=request.step_index,
             action=action,
-            compute_units=int(compute_units),
+            compute_units=compute_units,
             digest=digest,
             cognitive_state_digest=request.cognitive_state_digest,
             request_provenance_version=2,
