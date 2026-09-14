@@ -180,7 +180,7 @@ class ExecutionBudget:
 
     def __post_init__(self) -> None:
         for value in (self.max_steps, self.max_tool_calls, self.max_external_core_calls, self.max_compute_units):
-            if isinstance(value, bool) or int(value) <= 0:
+            if type(value) is not int or value <= 0:
                 raise ValueError('execution budgets must be positive integers')
 
     def to_state(self) -> dict[str, int]:
