@@ -96,3 +96,25 @@ def test_direct_decision_receipt_constructor_rejects_zero_compute_authority():
             request_provenance_version=canonical.request_provenance_version,
             request=canonical.request,
         )
+
+
+def test_canonical_legacy_decision_receipt_remains_restorable():
+    modern = _decision()
+    legacy_state = modern.to_state()
+    legacy_state.pop("request_provenance_version")
+    legacy_state.pop("request")
+    payload = {
+        key: value
+        for key, value in legacy_state.items()
+        if key not in {"receipt_id", "digest"}
+    }
+    digest = canonical_digest(payload)
+    legacy_state["digest"] = digest
+    legacy_state["receipt_id"] = "decision-" + digest[:24]
+
+    restored = AgentDecisionReceipt.from_state(legacy_state)
+
+    assert restored.request_provenance_version == 1
+    assert restored.request is None
+    assert restored.digest == digest
+    assert restored.receipt_id == legacy_state["receipt_id"]
