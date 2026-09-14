@@ -67,6 +67,8 @@ class ExecutionSession:
     wall_clock_ms: int = 0
 
     def __post_init__(self) -> None:
+        if type(self.step_index) is not int or self.step_index < 0:
+            raise ValueError('execution session step index must be a non-negative integer')
         workspace_version = int(self.workspace_provenance_version)
         if workspace_version not in {1, 2}:
             raise ValueError('unsupported workspace provenance version')
@@ -146,7 +148,7 @@ class ExecutionSession:
             action_schema=tuple(str(x) for x in state.get('action_schema', ())),
             budget=ExecutionBudget.from_state(state['budget']),
             counters=ExecutionCounters.from_state(state.get('counters', {})),
-            step_index=int(state['step_index']),
+            step_index=state['step_index'],  # type: ignore[arg-type]
             state=ExecutionState(str(state['state'])),
             backend_id=str(state['backend_id']),
             checkpoint_digest=str(state['checkpoint_digest']),
