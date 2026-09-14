@@ -4,6 +4,9 @@ from nolane.external_core.execution import ExecutionSession, ExecutionState
 from nolane.external_core.execution_types import ExecutionBudget, ExecutionCounters
 
 
+_NON_INTEGER_FRONTIER_ALIASES = (False, 0.0, '0')
+
+
 def _session(*, step_index: object = 0) -> ExecutionSession:
     return ExecutionSession(
         session_id='execution-00000001',
@@ -25,7 +28,7 @@ def _session(*, step_index: object = 0) -> ExecutionSession:
     )
 
 
-@pytest.mark.parametrize('step_index', (False, 0.0, '0'))
+@pytest.mark.parametrize('step_index', _NON_INTEGER_FRONTIER_ALIASES)
 def test_direct_execution_session_rejects_non_integer_frontier_alias(step_index: object) -> None:
     with pytest.raises(
         ValueError,
@@ -34,7 +37,7 @@ def test_direct_execution_session_rejects_non_integer_frontier_alias(step_index:
         _session(step_index=step_index)
 
 
-@pytest.mark.parametrize('step_index', (False, 0.0, '0'))
+@pytest.mark.parametrize('step_index', _NON_INTEGER_FRONTIER_ALIASES)
 def test_execution_session_restore_rejects_non_integer_frontier_alias(step_index: object) -> None:
     state = _session().to_state()
     state['step_index'] = step_index
