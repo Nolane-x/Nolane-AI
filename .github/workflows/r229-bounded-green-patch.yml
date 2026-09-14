@@ -1,0 +1,50 @@
+name: R2.29 Bounded GREEN Patch
+
+on:
+  push:
+    branches:
+      - neural-r229-exact-integer-execution-session-frontier
+    paths:
+      - '.github/workflows/r229-bounded-green-patch.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-bounded-green:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neural-r229-exact-integer-execution-session-frontier
+      - name: Apply exact-integer session frontier invariant
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('nolane/external_core/_execution_base.py')
+          text = path.read_text(encoding='utf-8')
+
+          old_constructor = """    def __post_init__(self) -> None:\n        workspace_version = int(self.workspace_provenance_version)\n"""
+          new_constructor = """    def __post_init__(self) -> None:\n        if type(self.step_index) is not int or self.step_index < 0:\n            raise ValueError('execution session step index must be a non-negative integer')\n        workspace_version = int(self.workspace_provenance_version)\n"""
+          if text.count(old_constructor) != 1:
+              raise SystemExit('unexpected ExecutionSession.__post_init__ shape')
+          text = text.replace(old_constructor, new_constructor, 1)
+
+          old_restore = "            step_index=int(state['step_index']),\n"
+          new_restore = "            step_index=state['step_index'],  # type: ignore[arg-type]\n"
+          if text.count(old_restore) != 1:
+              raise SystemExit('unexpected ExecutionSession.from_state step_index shape')
+          text = text.replace(old_restore, new_restore, 1)
+
+          path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit bounded GREEN and remove one-shot carrier
+        run: |
+          git config user.name 'Nolane R2.29 bounded patch'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/r229-bounded-green-patch.yml
+          git add nolane/external_core/_execution_base.py
+          git diff --cached --check
+          git commit -m 'Neural R2.29 GREEN: require exact integer session frontier'
+          git push origin HEAD:neural-r229-exact-integer-execution-session-frontier
