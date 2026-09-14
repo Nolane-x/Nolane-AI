@@ -47,6 +47,8 @@ def _exact_nonempty_string(value: object, field: str) -> str:
 
 
 def _confidence(value: float, field: str = "confidence") -> float:
+    if type(value) not in (int, float):
+        raise NeuralInvariantError(f"{field} must be an exact numeric value")
     score = float(value)
     if not math.isfinite(score) or not 0.0 <= score <= 1.0:
         raise NeuralInvariantError(f"{field} must be a finite normalized value in [0, 1]")

@@ -8,6 +8,7 @@ from nolane.neural.core_contract import (
     ConfidenceAssessment,
     EvidenceRef,
     ExpertRoute,
+    ExpertRouter,
     NeuralInvariantError,
     NEURAL_CORE_REVISION,
 )
@@ -63,6 +64,55 @@ def test_confidence_is_normalized_and_abstention_is_explicit():
     assert accepted.reason is None
     assert abstained.abstain is True
     assert abstained.reason == "below-confidence-threshold"
+
+
+def test_confidence_rejects_stringified_numeric_scalar():
+    with pytest.raises(NeuralInvariantError, match="confidence.*numeric"):
+        ConfidenceAssessment.create("0.81")
+
+
+def test_confidence_rejects_boolean_scalar():
+    with pytest.raises(NeuralInvariantError, match="confidence.*numeric"):
+        ConfidenceAssessment.create(True)
+
+
+def test_abstention_threshold_rejects_stringified_numeric_scalar():
+    with pytest.raises(NeuralInvariantError, match="abstention threshold.*numeric"):
+        ConfidenceAssessment.create(0.81, abstain_below="0.6")
+
+
+def test_candidate_utility_rejects_stringified_numeric_scalar():
+    evidence = (_evidence(),)
+    route = ExpertRoute.create(expert_id="expert-a", path_id="path-1", confidence=0.8, evidence=evidence)
+    with pytest.raises(NeuralInvariantError, match="utility.*numeric"):
+        Candidate.create(candidate_id="a", route=route, confidence=0.8, utility="0.7", evidence=evidence)
+
+
+def test_candidate_ranker_thresholds_reject_stringified_numeric_scalars():
+    evidence = (_evidence(),)
+    route = ExpertRoute.create(expert_id="expert-a", path_id="path-1", confidence=0.8, evidence=evidence)
+    candidate = Candidate.create(candidate_id="a", route=route, confidence=0.8, utility=0.7, evidence=evidence)
+    with pytest.raises(NeuralInvariantError, match="minimum confidence.*numeric"):
+        CandidateRanker.select([candidate], min_confidence="0.5", min_margin=0.1)
+    with pytest.raises(NeuralInvariantError, match="minimum confidence margin.*numeric"):
+        CandidateRanker.select([candidate], min_confidence=0.5, min_margin="0.1")
+
+
+def test_expert_router_thresholds_reject_stringified_numeric_scalars():
+    evidence = (_evidence(),)
+    route = ExpertRoute.create(expert_id="expert-a", path_id="path-1", confidence=0.8, evidence=evidence)
+    with pytest.raises(NeuralInvariantError, match="minimum route confidence.*numeric"):
+        ExpertRouter.select([route], min_confidence="0.5", min_margin=0.1)
+    with pytest.raises(NeuralInvariantError, match="minimum route confidence margin.*numeric"):
+        ExpertRouter.select([route], min_confidence=0.5, min_margin="0.1")
+
+
+def test_integer_numeric_scalars_remain_valid_and_canonicalize_to_float():
+    assessment = ConfidenceAssessment.create(1, abstain_below=0)
+    assert assessment.value == 1.0
+    assert assessment.threshold == 0.0
+    assert type(assessment.value) is float
+    assert type(assessment.threshold) is float
 
 
 def test_candidate_ranking_is_deterministic_with_canonical_tie_break():
