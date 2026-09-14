@@ -36,6 +36,12 @@ def test_cognitive_state_is_canonical_deterministic_and_provenance_bound():
     assert left.provenance == (p,)
 
 
+def test_context_digest_binding_rejects_stringifiable_non_string_digest():
+    state = CognitiveState.create(payload={"task": "x"}, provenance=[_evidence()])
+    with pytest.raises(NeuralInvariantError, match="capsule digest.*exact string"):
+        state.bind_context_digest(int("1" * 64))
+
+
 def test_missing_or_empty_provenance_cannot_be_laundered_into_valid_state():
     with pytest.raises(NeuralInvariantError, match="provenance"):
         CognitiveState.create(payload={"task": "x"}, provenance=[])
