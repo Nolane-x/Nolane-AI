@@ -47,6 +47,17 @@ def _decision() -> AgentDecisionReceipt:
     )
 
 
+@pytest.mark.parametrize("compute_units", (1.5, "2", True))
+def test_decision_receipt_factory_rejects_non_integer_compute_authority(compute_units):
+    with pytest.raises(ValueError, match="decision compute units must be positive"):
+        AgentDecisionReceipt.create(
+            backend_id="neural-test-backend",
+            request=_request(),
+            action=ExecutionAction.wait(reason="hold"),
+            compute_units=compute_units,
+        )
+
+
 def test_direct_decision_receipt_constructor_rejects_forged_digest_identity():
     canonical = _decision()
 
