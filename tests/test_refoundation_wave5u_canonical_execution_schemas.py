@@ -145,7 +145,7 @@ def test_wave5u_execution_action_budget_counters_and_receipt_round_trip() -> Non
 
     corrupted = receipt.to_state()
     corrupted["digest"] = "0" * 64
-    with pytest.raises(ValueError, match="decision receipt digest/id mismatch"):
+    with pytest.raises(ValueError, match="decision receipt direct construction"):
         AgentDecisionReceipt.from_state(corrupted)
 
 
