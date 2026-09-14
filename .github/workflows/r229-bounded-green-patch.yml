@@ -31,11 +31,20 @@ jobs:
               raise SystemExit('unexpected ExecutionSession.__post_init__ shape')
           text = text.replace(old_constructor, new_constructor, 1)
 
+          session_restore_marker = """    @classmethod\n    def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionSession':\n        return cls(\n"""
+          start = text.find(session_restore_marker)
+          if start < 0:
+              raise SystemExit('ExecutionSession.from_state marker not found')
+          end = text.find('\n\n\n@dataclass', start)
+          if end < 0:
+              raise SystemExit('ExecutionSession.from_state boundary not found')
+          block = text[start:end]
           old_restore = "            step_index=int(state['step_index']),\n"
           new_restore = "            step_index=state['step_index'],  # type: ignore[arg-type]\n"
-          if text.count(old_restore) != 1:
+          if block.count(old_restore) != 1:
               raise SystemExit('unexpected ExecutionSession.from_state step_index shape')
-          text = text.replace(old_restore, new_restore, 1)
+          block = block.replace(old_restore, new_restore, 1)
+          text = text[:start] + block + text[end:]
 
           path.write_text(text, encoding='utf-8')
           PY
