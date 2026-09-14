@@ -232,6 +232,59 @@ def test_direct_cognitive_state_constructor_rejects_forged_digest():
         )
 
 
+def test_direct_expert_route_constructor_rejects_forged_ranking_authority():
+    canonical = ExpertRoute.create(
+        expert_id="expert-a",
+        path_id="path-1",
+        confidence=0.8,
+        evidence=[_evidence(receipt_id="r1")],
+    )
+    with pytest.raises(NeuralInvariantError, match="expert route direct construction"):
+        ExpertRoute(
+            expert_id=canonical.expert_id,
+            path_id=canonical.path_id,
+            confidence=1.5,
+            evidence=canonical.evidence,
+            digest=canonical.digest,
+        )
+
+
+def test_direct_candidate_constructor_rejects_forged_ranking_authority():
+    evidence = (_evidence(receipt_id="r1"),)
+    route = ExpertRoute.create(expert_id="expert-a", path_id="path-1", confidence=0.8, evidence=evidence)
+    canonical = Candidate.create(
+        candidate_id="candidate-a",
+        route=route,
+        confidence=0.8,
+        utility=0.7,
+        evidence=evidence,
+    )
+    with pytest.raises(NeuralInvariantError, match="candidate direct construction"):
+        Candidate(
+            candidate_id=canonical.candidate_id,
+            route=canonical.route,
+            confidence=1.5,
+            utility=1.5,
+            evidence=canonical.evidence,
+            digest=canonical.digest,
+        )
+
+
+def test_direct_adaptation_boundary_constructor_cannot_mint_unevidenced_update_authority():
+    canonical = AdaptationBoundary.create(
+        policy_revision="adapt-v1",
+        allowed_parameters=["router.temperature"],
+        evidence=[_evidence(receipt_id="r1")],
+    )
+    with pytest.raises(NeuralInvariantError, match="adaptation boundary direct construction"):
+        AdaptationBoundary(
+            policy_revision=canonical.policy_revision,
+            allowed_parameters=canonical.allowed_parameters,
+            evidence=(),
+            digest=canonical.digest,
+        )
+
+
 def test_live_expert_route_expert_id_rejects_stringifiable_non_string_identity():
     evidence = (_evidence(receipt_id="r1"),)
     with pytest.raises(NeuralInvariantError, match="expert_id.*exact string"):
