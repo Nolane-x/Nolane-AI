@@ -92,6 +92,34 @@ def test_candidate_selection_abstains_on_low_confidence_or_ambiguous_margin():
     assert ambiguous.reason == "insufficient-confidence-margin"
 
 
+def test_adaptation_policy_revision_rejects_stringifiable_non_string_identity():
+    with pytest.raises(NeuralInvariantError, match="policy_revision.*exact string"):
+        AdaptationBoundary.create(
+            policy_revision=123,
+            allowed_parameters=["router.temperature"],
+            evidence=[_evidence()],
+        )
+
+
+def test_adaptation_allowed_parameter_rejects_stringifiable_non_string_identity():
+    with pytest.raises(NeuralInvariantError, match="adaptation parameter.*exact string"):
+        AdaptationBoundary.create(
+            policy_revision="adapt-v1",
+            allowed_parameters=[123],
+            evidence=[_evidence()],
+        )
+
+
+def test_adaptation_update_key_rejects_stringifiable_non_string_identity():
+    boundary = AdaptationBoundary.create(
+        policy_revision="adapt-v1",
+        allowed_parameters=["123"],
+        evidence=[_evidence()],
+    )
+    with pytest.raises(NeuralInvariantError, match="adaptation parameter.*exact string"):
+        boundary.validate_update({123: 0.5})
+
+
 def test_adaptation_boundary_is_explicit_immutable_and_scope_limited():
     boundary = AdaptationBoundary.create(
         policy_revision="adapt-v1",
