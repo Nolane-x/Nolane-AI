@@ -1,0 +1,90 @@
+name: R2.29 Version Closure
+
+on:
+  push:
+    branches:
+      - neural-r229-exact-integer-execution-session-frontier
+    paths:
+      - '.github/workflows/r229-version-closure.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  apply-version-closure:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: neural-r229-exact-integer-execution-session-frontier
+      - name: Apply exact version-discipline closure
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          replacements = {
+              'nolane/metadata/component_versions.py': [
+                  ('"external.integration": 21,', '"external.integration": 22,'),
+                  ('"external.execution.control": 23,', '"external.execution.control": 24,'),
+              ],
+              'tests/test_refoundation_component_versions.py': [
+                  ('"external.integration": 21,', '"external.integration": 22,'),
+                  ('"external.execution.control": 23,', '"external.execution.control": 24,'),
+                  ('component_version("external.integration")) == "0.0.21"', 'component_version("external.integration")) == "0.0.22"'),
+                  ('next_component_version("external.integration")) == "0.0.22"', 'next_component_version("external.integration")) == "0.0.23"'),
+                  ('component_version("external.execution.control")) == "0.0.23"', 'component_version("external.execution.control")) == "0.0.24"'),
+                  ('next_component_version("external.execution.control")) == "0.0.24"', 'next_component_version("external.execution.control")) == "0.0.25"'),
+              ],
+              'tests/test_refoundation_wave5p_native_integration.py': [
+                  ('row.component_version == "0.0.21"', 'row.component_version == "0.0.22"'),
+                  ('component_version("external.integration")) == "0.0.21"', 'component_version("external.integration")) == "0.0.22"'),
+              ],
+              'tests/test_refoundation_wave5aa_native_execution_control.py': [
+                  ('row.component_version == "0.0.23"', 'row.component_version == "0.0.24"'),
+                  ('component_version("external.execution.control")) == "0.0.23"', 'component_version("external.execution.control")) == "0.0.24"'),
+              ],
+              'tests/test_external_core_a5_public_contract.py': [
+                  ('revision_twenty_one', 'revision_twenty_two'),
+                  ('component_revision_map()["external.integration"] == 21', 'component_revision_map()["external.integration"] == 22'),
+              ],
+              'tests/test_external_core_a6_temporal_reattestation.py': [
+                  ('component_revision_map()["external.integration"] == 21', 'component_revision_map()["external.integration"] == 22'),
+              ],
+              'tests/test_external_core_a7_atomic_observation.py': [
+                  ('component_revision_map()["external.integration"] == 21', 'component_revision_map()["external.integration"] == 22'),
+              ],
+              'tests/test_external_core_integration_revalidation.py': [
+                  ('revision_v021', 'revision_v022'),
+                  ('component_version("external.integration")) == "0.0.21"', 'component_version("external.integration")) == "0.0.22"'),
+              ],
+              'tests/test_external_core_scoped_revalidation_public_contract.py': [
+                  ('component_version("external.integration")) == "0.0.21"', 'component_version("external.integration")) == "0.0.22"'),
+              ],
+          }
+
+          for filename, pairs in replacements.items():
+              path = Path(filename)
+              text = path.read_text(encoding='utf-8')
+              for old, new in pairs:
+                  count = text.count(old)
+                  if count != 1:
+                      raise SystemExit(f'{filename}: expected exactly one {old!r}, found {count}')
+                  text = text.replace(old, new, 1)
+              path.write_text(text, encoding='utf-8')
+          PY
+      - name: Commit exact closure and remove one-shot carrier
+        run: |
+          git config user.name 'Nolane R2.29 version closure'
+          git config user.email 'actions@users.noreply.github.com'
+          git rm .github/workflows/r229-version-closure.yml
+          git add nolane/metadata/component_versions.py tests/test_refoundation_component_versions.py \
+            tests/test_refoundation_wave5p_native_integration.py \
+            tests/test_refoundation_wave5aa_native_execution_control.py \
+            tests/test_external_core_a5_public_contract.py \
+            tests/test_external_core_a6_temporal_reattestation.py \
+            tests/test_external_core_a7_atomic_observation.py \
+            tests/test_external_core_integration_revalidation.py \
+            tests/test_external_core_scoped_revalidation_public_contract.py
+          git diff --cached --check
+          git commit -m 'Neural R2.29: close exact component version discipline'
+          git push origin HEAD:neural-r229-exact-integer-execution-session-frontier
