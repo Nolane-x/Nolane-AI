@@ -209,6 +209,29 @@ def test_live_evidence_digest_rejects_stringifiable_non_string_digest():
         )
 
 
+def test_direct_evidence_constructor_enforces_neural_authority_boundary():
+    with pytest.raises(NeuralInvariantError, match="cannot mint"):
+        EvidenceRef(
+            source_core="neural",
+            receipt_id="self-issued",
+            digest="c" * 64,
+            authority="verification",
+        )
+
+
+def test_direct_cognitive_state_constructor_rejects_forged_digest():
+    canonical = CognitiveState.create(
+        payload={"goal": "x"},
+        provenance=[_evidence(receipt_id="r1")],
+    )
+    with pytest.raises(NeuralInvariantError, match="digest/provenance"):
+        CognitiveState(
+            _payload_json=canonical._payload_json,
+            provenance=canonical.provenance,
+            digest="0" * 64,
+        )
+
+
 def test_live_expert_route_expert_id_rejects_stringifiable_non_string_identity():
     evidence = (_evidence(receipt_id="r1"),)
     with pytest.raises(NeuralInvariantError, match="expert_id.*exact string"):

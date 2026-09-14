@@ -94,6 +94,23 @@ class EvidenceRef:
     digest: str
     authority: str
 
+    def __post_init__(self) -> None:
+        source = _exact_nonempty_string(self.source_core, "source_core").lower()
+        receipt = _exact_nonempty_string(self.receipt_id, "receipt_id")
+        digest_text = _digest(self.digest)
+        authority_name = _exact_nonempty_string(self.authority, "authority").lower()
+        if (
+            self.source_core != source
+            or self.receipt_id != receipt
+            or self.digest != digest_text
+            or self.authority != authority_name
+        ):
+            raise NeuralInvariantError("evidence reference direct construction must be canonical")
+        if _is_neural_source(source) and authority_name in _AUTHORITATIVE_DOMAINS:
+            raise NeuralInvariantError(
+                f"Neural Core cannot mint {authority_name} authority; it may only reference externally issued evidence"
+            )
+
     @classmethod
     def create(
         cls,
@@ -134,6 +151,39 @@ class CognitiveState:
     _payload_json: str
     provenance: tuple[EvidenceRef, ...]
     digest: str
+
+    def __post_init__(self) -> None:
+        payload_json = _exact_nonempty_string(self._payload_json, "cognitive payload json")
+        try:
+            payload = json.loads(payload_json)
+        except (TypeError, ValueError) as exc:
+            raise NeuralInvariantError("cognitive payload json must be valid canonical JSON") from exc
+        if not isinstance(payload, Mapping) or not payload:
+            raise NeuralInvariantError("cognitive payload must be a non-empty mapping")
+        canonical_payload_json = canonical_json(dict(payload))
+        if self._payload_json != canonical_payload_json:
+            raise NeuralInvariantError(
+                "cognitive state serialized representation is non-canonical; possible state laundering"
+            )
+        if type(self.provenance) is not tuple:
+            raise NeuralInvariantError(
+                "cognitive state serialized representation is non-canonical; possible state laundering"
+            )
+        ordered = _evidence_rows(self.provenance, "cognitive provenance")
+        if self.provenance != ordered:
+            raise NeuralInvariantError(
+                "cognitive state serialized representation is non-canonical; possible state laundering"
+            )
+        claimed_digest = _digest(self.digest, "cognitive state digest")
+        expected_digest = canonical_digest(
+            {
+                "payload": payload,
+                "provenance": [row.to_state() for row in ordered],
+                "revision": NEURAL_CORE_REVISION,
+            }
+        )
+        if self.digest != claimed_digest or claimed_digest != expected_digest:
+            raise NeuralInvariantError("cognitive state digest/provenance mismatch; possible state laundering")
 
     @classmethod
     def create(
