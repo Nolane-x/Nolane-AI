@@ -191,6 +191,8 @@ class TransactionalExternalCoreExecutor:
         ]
         if getattr(receipt, "authorized", None) is not True:
             mismatches.append("authorized")
+        if type(getattr(receipt, "success", None)) is not bool:
+            mismatches.append("success")
         if not str(getattr(receipt, "receipt_id", "")).strip():
             mismatches.append("receipt_id")
         if mismatches:
