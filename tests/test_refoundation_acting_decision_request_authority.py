@@ -77,20 +77,27 @@ def _forge_receipt(receipt: AgentDecisionReceipt, field: str) -> AgentDecisionRe
         )
         replacements[field] = request.action_schema_digest
 
-    overrides = {
-        "request": request,
-        "request_digest": request.digest,
-        field: replacements[field],
-        "receipt_id": "",
-        "digest": "",
+    # Build the hostile receipt state atomically. R2.26 intentionally rejects
+    # any transient direct-constructor object whose digest/id are not already
+    # canonical, so the older two-stage dataclasses.replace() fixture would now
+    # be rejected before it could reach the control-plane authority check.
+    state = receipt.to_state()
+    state["request"] = request.to_state()
+    state["request_digest"] = request.digest
+    state[field] = replacements[field]
+    payload = {
+        key: value
+        for key, value in state.items()
+        if key not in {"receipt_id", "digest"}
     }
-    forged = replace(receipt, **overrides)
-    digest = canonical_digest(forged.payload())
-    forged = replace(forged, receipt_id="decision-" + digest[:24], digest=digest)
+    digest = canonical_digest(payload)
+    state["receipt_id"] = "decision-" + digest[:24]
+    state["digest"] = digest
+    forged = AgentDecisionReceipt.from_state(state)
     # Prove the hostile object is internally canonical. The rejection under test
     # must therefore come from current-request authority re-attestation, not from
     # receipt self-integrity validation.
-    assert AgentDecisionReceipt.from_state(forged.to_state()) == forged
+    assert forged.to_state() == state
     return forged
 
 
