@@ -76,7 +76,7 @@ def _is_neural_source(source: str) -> bool:
 
 
 def _canonical_parameter(value: object) -> str:
-    return _nonempty(value, "adaptation parameter").lower()
+    return _exact_nonempty_string(value, "adaptation parameter").lower()
 
 
 def _is_protected_parameter(name: str) -> bool:
@@ -471,7 +471,7 @@ class AdaptationBoundary:
         allowed_parameters: Iterable[str],
         evidence: Iterable[EvidenceRef],
     ) -> "AdaptationBoundary":
-        revision = _nonempty(policy_revision, "policy_revision")
+        revision = _exact_nonempty_string(policy_revision, "policy_revision")
         allowed = frozenset(_canonical_parameter(row) for row in allowed_parameters)
         if not allowed:
             raise NeuralInvariantError("adaptation authority boundary must name at least one allowed parameter")
