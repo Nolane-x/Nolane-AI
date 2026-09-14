@@ -49,12 +49,12 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.requirements": 2,
     "external.planning": 5,
     "external.architecture": 6,
-    "external.integration": 21,
+    "external.integration": 22,
     "external.context": 5,
     "external.invokable_cores": 3,
     "external.execution.workspace": 5,
     "external.execution.executor": 7,
-    "external.execution.control": 23,
+    "external.execution.control": 24,
     "external.coding.claims": 2,
     "external.coding.patches": 2,
     "external.coding.control": 3,
@@ -109,16 +109,16 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("external.architecture")) == "0.0.7"
     assert str(component_version("external.evidence")) == "0.0.2"
     assert str(next_component_version("external.evidence")) == "0.0.3"
-    assert str(component_version("external.integration")) == "0.0.21"
-    assert str(next_component_version("external.integration")) == "0.0.22"
+    assert str(component_version("external.integration")) == "0.0.22"
+    assert str(next_component_version("external.integration")) == "0.0.23"
     assert str(component_version("external.invokable_cores")) == "0.0.3"
     assert str(next_component_version("external.invokable_cores")) == "0.0.4"
     assert str(component_version("external.execution.workspace")) == "0.0.5"
     assert str(next_component_version("external.execution.workspace")) == "0.0.6"
     assert str(component_version("external.execution.executor")) == "0.0.7"
     assert str(next_component_version("external.execution.executor")) == "0.0.8"
-    assert str(component_version("external.execution.control")) == "0.0.23"
-    assert str(next_component_version("external.execution.control")) == "0.0.24"
+    assert str(component_version("external.execution.control")) == "0.0.24"
+    assert str(next_component_version("external.execution.control")) == "0.0.25"
     assert str(component_version("external.coding.claims")) == "0.0.2"
     assert str(next_component_version("external.coding.claims")) == "0.0.3"
     assert str(component_version("external.coding.patches")) == "0.0.2"
