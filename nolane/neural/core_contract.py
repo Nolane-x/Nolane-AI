@@ -321,6 +321,36 @@ class ExpertRoute:
     evidence: tuple[EvidenceRef, ...]
     digest: str
 
+    def __post_init__(self) -> None:
+        try:
+            expert = _exact_nonempty_string(self.expert_id, "expert_id")
+            path = _exact_nonempty_string(self.path_id, "path_id")
+            score = _confidence(self.confidence)
+            if type(self.evidence) is not tuple:
+                raise NeuralInvariantError("expert route evidence must be a canonical tuple")
+            ordered = _evidence_rows(self.evidence, "expert route evidence")
+            digest_text = _digest(self.digest, "expert route digest")
+            expected_digest = canonical_digest(
+                {
+                    "expert_id": expert,
+                    "path_id": path,
+                    "confidence": score,
+                    "evidence": [row.to_state() for row in ordered],
+                }
+            )
+        except NeuralInvariantError as exc:
+            raise NeuralInvariantError("expert route direct construction must be canonical") from exc
+        if (
+            self.expert_id != expert
+            or self.path_id != path
+            or type(self.confidence) is not float
+            or self.confidence != score
+            or self.evidence != ordered
+            or self.digest != digest_text
+            or digest_text != expected_digest
+        ):
+            raise NeuralInvariantError("expert route direct construction must be canonical")
+
     @classmethod
     def create(
         cls,
@@ -415,6 +445,40 @@ class Candidate:
     utility: float
     evidence: tuple[EvidenceRef, ...]
     digest: str
+
+    def __post_init__(self) -> None:
+        try:
+            if not isinstance(self.route, ExpertRoute):
+                raise NeuralInvariantError("candidate route must be an ExpertRoute")
+            cid = _exact_nonempty_string(self.candidate_id, "candidate_id")
+            confidence_value = _confidence(self.confidence)
+            utility_value = _confidence(self.utility, "utility")
+            if type(self.evidence) is not tuple:
+                raise NeuralInvariantError("candidate evidence must be a canonical tuple")
+            ordered = _evidence_rows(self.evidence, "candidate evidence")
+            digest_text = _digest(self.digest, "candidate digest")
+            expected_digest = canonical_digest(
+                {
+                    "candidate_id": cid,
+                    "route_digest": self.route.digest,
+                    "confidence": confidence_value,
+                    "utility": utility_value,
+                    "evidence": [row.to_state() for row in ordered],
+                }
+            )
+        except NeuralInvariantError as exc:
+            raise NeuralInvariantError("candidate direct construction must be canonical") from exc
+        if (
+            self.candidate_id != cid
+            or type(self.confidence) is not float
+            or self.confidence != confidence_value
+            or type(self.utility) is not float
+            or self.utility != utility_value
+            or self.evidence != ordered
+            or self.digest != digest_text
+            or digest_text != expected_digest
+        ):
+            raise NeuralInvariantError("candidate direct construction must be canonical")
 
     @classmethod
     def create(
@@ -521,6 +585,38 @@ class AdaptationBoundary:
     allowed_parameters: frozenset[str]
     evidence: tuple[EvidenceRef, ...]
     digest: str
+
+    def __post_init__(self) -> None:
+        try:
+            revision = _exact_nonempty_string(self.policy_revision, "policy_revision")
+            if type(self.allowed_parameters) is not frozenset:
+                raise NeuralInvariantError("adaptation parameters must be a canonical frozenset")
+            allowed = frozenset(_canonical_parameter(row) for row in self.allowed_parameters)
+            if not allowed:
+                raise NeuralInvariantError("adaptation authority boundary must name at least one allowed parameter")
+            if any(_is_protected_parameter(name) for name in allowed):
+                raise NeuralInvariantError("adaptation authority boundary cannot include protected authority domains")
+            if type(self.evidence) is not tuple:
+                raise NeuralInvariantError("adaptation boundary evidence must be a canonical tuple")
+            ordered = _evidence_rows(self.evidence, "adaptation boundary evidence")
+            digest_text = _digest(self.digest, "adaptation boundary digest")
+            expected_digest = canonical_digest(
+                {
+                    "policy_revision": revision,
+                    "allowed_parameters": sorted(allowed),
+                    "evidence": [row.to_state() for row in ordered],
+                }
+            )
+        except NeuralInvariantError as exc:
+            raise NeuralInvariantError("adaptation boundary direct construction must be canonical") from exc
+        if (
+            self.policy_revision != revision
+            or self.allowed_parameters != allowed
+            or self.evidence != ordered
+            or self.digest != digest_text
+            or digest_text != expected_digest
+        ):
+            raise NeuralInvariantError("adaptation boundary direct construction must be canonical")
 
     @classmethod
     def create(
