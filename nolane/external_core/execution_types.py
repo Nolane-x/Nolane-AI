@@ -210,7 +210,7 @@ class ExecutionCounters:
 
     def __post_init__(self) -> None:
         for value in (self.steps, self.tool_calls, self.external_core_calls, self.compute_units):
-            if isinstance(value, bool) or int(value) < 0:
+            if type(value) is not int or value < 0:
                 raise ValueError('execution counters must be non-negative integers')
 
     def to_state(self) -> dict[str, int]:
