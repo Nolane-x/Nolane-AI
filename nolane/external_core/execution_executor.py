@@ -99,6 +99,9 @@ class CoreInvocationReceipt:
         has_epoch_proof = 'workspace_epoch_id' in state
         if has_core_proof != has_epoch_proof:
             raise ValueError('core invocation receipt has incomplete execution proof')
+        for field in ('authorized', 'success', 'external_core'):
+            if type(state[field]) is not bool:
+                raise ValueError(f'core invocation receipt {field} must be exact bool')
         proof_version = 2 if has_core_proof else 1
         row = cls(
             receipt_id=str(state['receipt_id']),
@@ -106,9 +109,9 @@ class CoreInvocationReceipt:
             task_id=str(state['task_id']),
             tool_id=str(state['tool_id']),
             operation=str(state['operation']),
-            authorized=bool(state['authorized']),
-            success=bool(state['success']),
-            external_core=bool(state['external_core']),
+            authorized=state['authorized'],
+            success=state['success'],
+            external_core=state['external_core'],
             failure_kind=None if state.get('failure_kind') is None else str(state['failure_kind']),
             before_workspace_digest=str(state['before_workspace_digest']),
             after_workspace_digest=str(state['after_workspace_digest']),
