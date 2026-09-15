@@ -40,9 +40,11 @@ class FailureExercise:
     def to_state(self): return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state):
+        if type(state['recovered']) is not bool:
+            raise ValueError('failure exercise boolean state mismatch: recovered')
         row = cls(str(state['exercise_id']), str(state['producer_agent_id']), FailureScenarioKind(str(state['scenario'])),
                   str(state['workload_digest']), str(state['environment_digest']), tuple(str(x) for x in state.get('injection_artifact_refs', ())),
-                  tuple(str(x) for x in state.get('recovery_strategies', ())), bool(state['recovered']), int(state.get('data_loss_count', 0)),
+                  tuple(str(x) for x in state.get('recovery_strategies', ())), state['recovered'], int(state.get('data_loss_count', 0)),
                   int(state.get('duplicate_side_effect_count', 0)), tuple(str(x) for x in state.get('evidence_refs', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('failure exercise digest mismatch')
         return row
@@ -59,7 +61,9 @@ class ReliabilityMatrixReceipt:
     def to_state(self): return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state):
-        row = cls(str(state['receipt_id']), tuple(str(x) for x in state.get('exercise_ids', ())), bool(state['ready']), tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
+        if type(state['ready']) is not bool:
+            raise ValueError('reliability matrix boolean state mismatch: ready')
+        row = cls(str(state['receipt_id']), tuple(str(x) for x in state.get('exercise_ids', ())), state['ready'], tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('reliability matrix digest mismatch')
         return row
 
@@ -91,10 +95,12 @@ class PerformanceMeasurement:
     def to_state(self): return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state):
+        if type(state['lower_is_better']) is not bool:
+            raise ValueError('performance measurement boolean state mismatch: lower_is_better')
         row = cls(str(state['measurement_id']), str(state['producer_agent_id']), str(state['baseline_workload_digest']),
                   str(state['candidate_workload_digest']), str(state['baseline_environment_digest']), str(state['candidate_environment_digest']),
                   str(state['metric_name']), str(state['unit']), float(state['baseline_value']), float(state['candidate_value']),
-                  bool(state['lower_is_better']), int(state['baseline_samples']), int(state['candidate_samples']),
+                  state['lower_is_better'], int(state['baseline_samples']), int(state['candidate_samples']),
                   tuple(str(x) for x in state.get('evidence_refs', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('performance measurement digest mismatch')
         return row
@@ -112,7 +118,10 @@ class PerformanceClaimReceipt:
     def to_state(self): return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state):
-        row = cls(str(state['receipt_id']), str(state['measurement_id']), bool(state['valid']), bool(state['improved']), tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
+        for field in ('valid', 'improved'):
+            if type(state[field]) is not bool:
+                raise ValueError(f'performance claim boolean state mismatch: {field}')
+        row = cls(str(state['receipt_id']), str(state['measurement_id']), state['valid'], state['improved'], tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('performance claim digest mismatch')
         return row
 
