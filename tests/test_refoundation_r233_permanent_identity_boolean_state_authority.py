@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import pytest
 
-from nolane.metadata.manifests import AgentManifest, build_bootstrap_agent_manifests
+from nolane.metadata.manifests import build_bootstrap_agent_manifests
+from nolane.organization.identity import AgentRegistry
 from nolane.schemas.identity import AgentIdentity
 
 
@@ -31,16 +32,12 @@ def test_agent_identity_restore_rejects_non_boolean_permanent_capability_alias(
 
 
 @pytest.mark.parametrize("field", ("direct_work_capable", "learning_capable"))
-@pytest.mark.parametrize("alias", (pytest.param("false", id="string-false"), pytest.param(1, id="integer-one")))
-def test_agent_manifest_restore_rejects_non_boolean_permanent_capability_alias(
-    field: str,
-    alias: object,
-) -> None:
+def test_registry_restore_cannot_canonicalize_non_boolean_identity_authority(field: str) -> None:
     state = _central_identity_state()
-    state[field] = alias
+    state[field] = "false"
 
     with pytest.raises(
         ValueError,
-        match=rf"agent manifest {field} must be exact bool",
+        match=rf"permanent identity {field} must be exact bool",
     ):
-        AgentManifest.from_identity_state(state)
+        AgentRegistry.from_state({"identities": [state]})
