@@ -9,7 +9,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "external.verification"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.verification"
 
 
