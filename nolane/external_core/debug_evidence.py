@@ -109,10 +109,16 @@ class ReproductionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ReproductionReceipt':
+        deterministic = state['deterministic']
+        if type(deterministic) is not bool:
+            raise ValueError('reproduction deterministic must be an exact boolean')
+        minimized = state['minimized']
+        if type(minimized) is not bool:
+            raise ValueError('reproduction minimized must be an exact boolean')
         return cls(
             receipt_id=str(state['receipt_id']), sequence=int(state['sequence']), case_id=str(state['case_id']),
-            reproducer_agent_id=str(state['reproducer_agent_id']), deterministic=bool(state['deterministic']),
-            minimized=bool(state['minimized']), environment_digest=str(state['environment_digest']),
+            reproducer_agent_id=str(state['reproducer_agent_id']), deterministic=deterministic,
+            minimized=minimized, environment_digest=str(state['environment_digest']),
             failure_fingerprint=str(state['failure_fingerprint']),
             artifact_refs=tuple(str(x) for x in state.get('artifact_refs', ())),
             evidence_refs=tuple(str(x) for x in state.get('evidence_refs', ())),
