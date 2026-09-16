@@ -20,16 +20,16 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_wave5_artifacts_and_verification_are_native_and_independently_versioned() -> None:
     ledger = build_component_implementation_ledger()
     expected = {
-        "external.artifacts": "nolane.external_core.artifacts",
-        "external.verification": "nolane.external_core.verification",
+        "external.artifacts": ("nolane.external_core.artifacts", "0.0.1"),
+        "external.verification": ("nolane.external_core.verification", "0.0.2"),
     }
-    for component_id, module in expected.items():
+    for component_id, (module, expected_version) in expected.items():
         row = ledger[component_id]
         assert row.status is ImplementationStatus.CANONICAL_NATIVE
         assert row.canonical_module == module
         assert row.canonical_write_authority is True
-        assert row.component_version == "0.0.1"
-        assert str(component_version(component_id)) == "0.0.1"
+        assert row.component_version == expected_version
+        assert str(component_version(component_id)) == expected_version
 
 
 def test_wave5_native_pair_is_removed_from_compatibility_facades() -> None:
