@@ -59,15 +59,21 @@ class PromotionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "PromotionReceipt":
+        accepted = state["accepted"]
+        if type(accepted) is not bool:
+            raise ValueError("promotion accepted must be an exact boolean")
+        promoted = state.get("promoted", False)
+        if type(promoted) is not bool:
+            raise ValueError("promotion promoted must be an exact boolean")
         return cls(
             receipt_id=str(state["receipt_id"]),
             agent_id=str(state["agent_id"]),
             candidate_version=str(state["candidate_version"]),
             physical_parameters=int(state["physical_parameters"]),
-            accepted=bool(state["accepted"]),
+            accepted=accepted,
             reason=str(state["reason"]),
             evidence_ids=tuple(str(value) for value in state.get("evidence_ids", ())),
-            promoted=bool(state.get("promoted", False)),
+            promoted=promoted,
             previous_version=None if state.get("previous_version") is None else str(state["previous_version"]),
         )
 
