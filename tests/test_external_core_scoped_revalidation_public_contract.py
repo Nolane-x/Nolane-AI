@@ -9,11 +9,11 @@ from nolane.metadata.component_versions import component_version
 
 def test_scoped_revalidation_preserves_its_two_semantic_owner_boundaries() -> None:
     assert evidence.COMPONENT_ID == "external.evidence"
-    assert evidence.COMPONENT_VERSION == "0.0.2"
+    assert evidence.COMPONENT_VERSION == "0.0.3"
     assert integration.COMPONENT_ID == "external.integration"
     assert integration.COMPONENT_VERSION == "0.0.8"
     assert compatibility.SEMANTIC_SURFACE_VERSION == "0.0.8"
-    assert str(component_version("external.evidence")) == "0.0.2"
+    assert str(component_version("external.evidence")) == "0.0.3"
     assert str(component_version("external.integration")) == "0.0.23"
 
     # Sentinel neighbors: later integration evolution must not manufacture dependency bumps.
@@ -67,6 +67,8 @@ def test_legacy_v1_revalidation_public_contract_remains_available() -> None:
 
 def test_current_external_core_authority_documents_scoped_evidence_without_global_version() -> None:
     text = Path("CURRENT/EXTERNAL_CORE.md").read_text(encoding="utf-8")
+    # The CURRENT document retains the historical v0.0.2 introduction point for
+    # scoped-evidence-v2; the live external.evidence software revision is asserted above.
     assert "external.evidence" in text and "0.0.2" in text
     assert "external.integration" in text and "0.0.4" in text
     assert "scoped-evidence-v2" in text
