@@ -34,7 +34,7 @@ _COMPONENT_REVISIONS.update(
         "external.reasoning_invention": 5,
         "external.transfer_meta": 2,
         "external.experimentation": 2,
-        "external.verification": 1,
+        "external.verification": 2,
         "external.evidence": 2,
         "external.experience": 3,
         "external.self_model": 3,

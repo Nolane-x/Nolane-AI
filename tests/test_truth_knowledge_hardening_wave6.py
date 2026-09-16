@@ -62,9 +62,9 @@ def test_registry_validates_parent_and_helper_authority_bidirectionally_without_
 
     assert str(component_version("external.knowledge")) == "0.0.2"
     assert str(component_version("external.evidence")) == "0.0.2"
+    assert str(component_version("external.verification")) == "0.0.2"
     for component_id in (
         "external.epistemic",
-        "external.verification",
         "external.assurance",
     ):
         assert str(component_version(component_id)) == "0.0.1"
