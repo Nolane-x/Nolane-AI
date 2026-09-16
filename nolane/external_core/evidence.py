@@ -39,10 +39,12 @@ class EvidenceRecord:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "EvidenceRecord":
+        if type(state["passed"]) is not bool:
+            raise ValueError("evidence passed must be an exact boolean")
         return cls(
             str(state["evidence_id"]),
             str(state["verifier_agent_id"]),
-            bool(state["passed"]),
+            state["passed"],
             int(state.get("false_accepts", 0)),
             int(state.get("regressions", 0)),
             str(state.get("notes", "")),
