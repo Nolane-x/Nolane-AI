@@ -284,7 +284,7 @@ class CodingControlPlane:
             EventKind.EVIDENCE_ADDED,
             source_agent_id=str(producer_agent_id),
             target_agent_id='coding.chief',
-            region=self.registry.get(patch.producer_agent_id).region,
+            region=self.registry.get(producer_agent_id).region,
             object_refs=(row.patch_id, row.patch_artifact_id),
             evidence_refs=row.compile_evidence_refs + row.test_evidence_refs + row.static_evidence_refs,
             payload={
