@@ -45,10 +45,13 @@ class PatchVerificationEvidence:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'PatchVerificationEvidence':
+        raw_passed = state['passed']
+        if type(raw_passed) is not bool:
+            raise ValueError('patch verification passed must be an exact boolean')
         return cls(
             evidence_id=str(state['evidence_id']),
             verifier_agent_id=str(state['verifier_agent_id']),
-            passed=bool(state['passed']),
+            passed=raw_passed,
             false_accepts=int(state.get('false_accepts', 0)),
             regressions=int(state.get('regressions', 0)),
         )
@@ -77,11 +80,14 @@ class CodingReadinessReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'CodingReadinessReceipt':
+        raw_ready = state['ready']
+        if type(raw_ready) is not bool:
+            raise ValueError('coding readiness ready must be an exact boolean')
         verification = PatchVerificationEvidence.from_state(state['verification'])
         row = cls(
             receipt_id=str(state['receipt_id']),
             patch_id=str(state['patch_id']),
-            ready=bool(state['ready']),
+            ready=raw_ready,
             reasons=tuple(str(x) for x in state.get('reasons', ())),
             verification=verification,
             digest=str(state['digest']),
