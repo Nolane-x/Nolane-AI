@@ -30,7 +30,7 @@ from ._debugging_native import *
 from ._debugging_native import DebugControlPlane, DebugPatchHandoff, DebugResolutionReceipt
 
 COMPONENT_ID = "external.debugging"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.debugging"
 
 # The accepted implementation executes inside the canonical package. Preserve
