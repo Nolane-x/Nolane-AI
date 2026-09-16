@@ -19,7 +19,7 @@ def test_scoped_revalidation_preserves_its_two_semantic_owner_boundaries() -> No
     # Sentinel neighbors: later integration evolution must not manufacture dependency bumps.
     assert str(component_version("external.planning")) == "0.0.5"
     assert str(component_version("external.assurance")) == "0.0.1"
-    assert str(component_version("external.verification")) == "0.0.1"
+    assert str(component_version("external.verification")) == "0.0.2"
 
 
 def test_package_root_exports_only_safe_scoped_revalidation_surfaces() -> None:
