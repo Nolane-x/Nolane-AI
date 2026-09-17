@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from nolane.memory import _learning_substrate_impl as _impl
+from nolane.memory.adaptive_policy import MemoryAnchorHealthReceipt
 from nolane.memory.experience import ExperienceLedger
 from nolane.memory.fabric import MemoryFabric
 from nolane.memory.learning_authority import LearningEvidenceAuthority
@@ -48,6 +49,27 @@ class LearningSubstrate(_impl.LearningSubstrate):
         # The shared engine remains locally compatible when used without this
         # substrate, but cannot bypass regression/causal governance once bound.
         self.skills._bind_governed_skill_promoter(self)
+
+    def record_anchor_health(
+        self,
+        memory_id: str,
+        *,
+        actor_agent_id: str,
+        healthy: bool,
+        evidence_ref: str,
+        observed_version_scope: str | None,
+        reason: str,
+    ) -> MemoryAnchorHealthReceipt:
+        if type(healthy) is not bool:
+            raise ValueError("anchor health healthy must be an exact bool")
+        return super().record_anchor_health(
+            memory_id,
+            actor_agent_id=actor_agent_id,
+            healthy=healthy,
+            evidence_ref=evidence_ref,
+            observed_version_scope=observed_version_scope,
+            reason=reason,
+        )
 
 
 def __getattr__(name: str) -> Any:
