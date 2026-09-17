@@ -26,7 +26,7 @@ _COMPONENT_REVISIONS.update(
         "external.assurance": 1,
         "external.individual_evolution": 4,
         "external.operations": 3,
-        "external.research": 1,
+        "external.research": 2,
         "external.cognitive_library": 2,
         "external.causal": 2,
         "external.capability_acquisition": 2,
