@@ -46,7 +46,7 @@ def _imports(path: Path) -> set[str]:
 def test_wave5ap_canonical_operations_cluster_owns_public_authority() -> None:
     control = importlib.import_module("nolane.external_core.operations")
     assert control.COMPONENT_ID == "external.operations"
-    assert control.COMPONENT_VERSION == "0.0.2"
+    assert control.COMPONENT_VERSION == "0.0.3"
     assert control.MIGRATED_FROM == "cogcoder.organization.operations"
     for suffix, names in _MODULE_OBJECTS.items():
         path = _root() / "nolane" / "external_core" / f"{suffix}.py"
@@ -86,7 +86,7 @@ def test_wave5ap_operations_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.operations"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
+    assert row.component_version == "0.0.3"
     for source in (
         "cogcoder/organization/operations.py",
         "cogcoder/organization/operations_profiles.py",
@@ -95,7 +95,7 @@ def test_wave5ap_operations_authority_version_facade_and_debt_cutover() -> None:
         "cogcoder/organization/reliability_operations.py",
     ):
         assert source in row.legacy_sources
-    assert str(component_version("external.operations")) == "0.0.2"
+    assert str(component_version("external.operations")) == "0.0.3"
     assert all(binding.component_id != "external.operations" for binding in build_active_facade_bindings())
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
