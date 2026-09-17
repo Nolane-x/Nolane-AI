@@ -7,6 +7,9 @@ from .versioning import ComponentVersion
 # Each component owns its own patch-level revision counter. Epoch 0 bootstraps
 # every component at 0.0.0; accepted native extractions advance only the
 # components whose implementation authority or accepted local semantics moved.
+# Helper/orchestration surfaces do not synthesize canonical ownership: a local
+# semantic hardening advances a component revision only when ownership discovery
+# can prove that the changed source belongs to that canonical component.
 _COMPONENT_REVISIONS: dict[str, int] = {component_id: 0 for component_id, *_ in COMPONENT_SPECS}
 _COMPONENT_REVISIONS.update(
     {
