@@ -29,6 +29,12 @@ def _require_weight(value: float, *, label: str) -> float:
     return normalized
 
 
+def _require_exact_bool(value: object, *, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be an exact bool")
+    return value
+
+
 def _require_content_address(
     state: Mapping[str, Any],
     *,
@@ -360,6 +366,7 @@ class MemoryAnchorHealthReceipt:
     def __post_init__(self) -> None:
         if int(self.sequence) <= 0:
             raise ValueError("anchor health sequence must be positive")
+        _require_exact_bool(self.healthy, label="anchor health healthy")
         for label, value in (
             ("memory_id", self.memory_id),
             ("actor_agent_id", self.actor_agent_id),
@@ -380,7 +387,7 @@ class MemoryAnchorHealthReceipt:
             "sequence": int(self.sequence),
             "memory_id": self.memory_id,
             "actor_agent_id": self.actor_agent_id,
-            "healthy": bool(self.healthy),
+            "healthy": self.healthy,
             "evidence_ref": self.evidence_ref,
             "observed_version_scope": self.observed_version_scope,
             "reason": self.reason,
@@ -397,7 +404,7 @@ class MemoryAnchorHealthReceipt:
             sequence=int(state["sequence"]),
             memory_id=str(state["memory_id"]),
             actor_agent_id=str(state["actor_agent_id"]),
-            healthy=bool(state["healthy"]),
+            healthy=_require_exact_bool(state["healthy"], label="anchor health healthy"),
             evidence_ref=str(state["evidence_ref"]),
             observed_version_scope=None if state.get("observed_version_scope") is None else str(state["observed_version_scope"]),
             reason=str(state["reason"]),
