@@ -28,7 +28,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.assurance": 1,
     "external.individual_evolution": 4,
     "external.operations": 3,
-    "external.research": 1,
+    "external.research": 2,
     "external.cognitive_library": 2,
     "external.capability_acquisition": 2,
     "external.candidate_synthesis": 4,

@@ -57,7 +57,7 @@ def _imports(path: Path) -> set[str]:
 def test_wave5aq_canonical_research_cluster_owns_public_authority() -> None:
     control = importlib.import_module("nolane.external_core.research")
     assert control.COMPONENT_ID == "external.research"
-    assert control.COMPONENT_VERSION == "0.0.1"
+    assert control.COMPONENT_VERSION == "0.0.2"
     assert control.MIGRATED_FROM == "cogcoder.organization.research"
     for suffix, names in _MODULE_OBJECTS.items():
         path = _root() / "nolane" / "external_core" / f"{suffix}.py"
@@ -95,14 +95,14 @@ def test_wave5aq_research_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.research"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
+    assert row.component_version == "0.0.2"
     for source in (
         "cogcoder/organization/research.py",
         "cogcoder/organization/research_profiles.py",
         "cogcoder/organization/research_provenance.py",
     ):
         assert source in row.legacy_sources
-    assert str(component_version("external.research")) == "0.0.1"
+    assert str(component_version("external.research")) == "0.0.2"
     assert all(binding.component_id != "external.research" for binding in build_active_facade_bindings())
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
     ids = {record["component_id"] for record in state["components"]}
