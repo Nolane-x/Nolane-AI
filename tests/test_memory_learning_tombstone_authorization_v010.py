@@ -174,6 +174,6 @@ def test_plain_archival_without_tombstone_remains_restorable() -> None:
 
 
 def test_tombstone_authorization_advances_lifecycle_component_revision() -> None:
-    assert LIFECYCLE_COMPONENT_VERSION == "0.0.7"
-    assert str(component_version("external.memory.lifecycle")) == "0.0.7"
+    assert LIFECYCLE_COMPONENT_VERSION == "0.0.6"
+    assert str(component_version("external.memory.lifecycle")) == "0.0.6"
     assert str(component_version("external.memory.retrieval")) == "0.0.4"
