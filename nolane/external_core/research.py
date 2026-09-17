@@ -80,6 +80,9 @@ class ResearchSynthesis:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ResearchSynthesis':
+        raw_shareable = state['shareable']
+        if type(raw_shareable) is not bool:
+            raise ValueError('research synthesis shareable must be an exact boolean')
         row = cls(
             synthesis_id=str(state['synthesis_id']),
             producer_agent_id=str(state['producer_agent_id']),
@@ -93,7 +96,7 @@ class ResearchSynthesis:
             limitations=tuple(str(x) for x in state.get('limitations', ())),
             evidence_refs=tuple(str(x) for x in state.get('evidence_refs', ())),
             reasons=tuple(str(x) for x in state.get('reasons', ())),
-            shareable=bool(state['shareable']),
+            shareable=raw_shareable,
             artifact_id=str(state['artifact_id']),
             created_epoch=int(state['created_epoch']),
             digest=str(state['digest']),
@@ -141,6 +144,9 @@ class ResearchHandoff:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ResearchHandoff':
         assurance_value = state.get('assurance_disposition')
+        raw_authorizing = state['authorizing']
+        if type(raw_authorizing) is not bool:
+            raise ValueError('research handoff authorizing must be an exact boolean')
         row = cls(
             handoff_id=str(state['handoff_id']),
             synthesis_id=str(state['synthesis_id']),
@@ -148,7 +154,7 @@ class ResearchHandoff:
             target_agent_id=str(state['target_agent_id']),
             target_region=str(state['target_region']),
             purpose=str(state['purpose']),
-            authorizing=bool(state['authorizing']),
+            authorizing=raw_authorizing,
             assurance_subject_id=None if state.get('assurance_subject_id') is None else str(state['assurance_subject_id']),
             assurance_disposition=None if assurance_value is None else AssuranceDisposition(str(assurance_value)),
             disposition=ResearchHandoffDisposition(str(state['disposition'])),
