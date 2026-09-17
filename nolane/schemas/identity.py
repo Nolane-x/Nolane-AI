@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 
 COMPONENT_ID = "schemas.identity"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.types"
 
 PHYSICAL_PARAMETER_CEILING = 100_000_000
