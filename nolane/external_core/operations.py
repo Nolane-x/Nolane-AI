@@ -158,5 +158,5 @@ class OperationsControlPlane:
 
 
 COMPONENT_ID = "external.operations"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.operations"

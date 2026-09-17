@@ -27,7 +27,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.artifacts": 1,
     "external.assurance": 1,
     "external.individual_evolution": 4,
-    "external.operations": 2,
+    "external.operations": 3,
     "external.research": 1,
     "external.cognitive_library": 2,
     "external.capability_acquisition": 2,
@@ -99,6 +99,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("organization.authority")) == "0.0.4"
     assert str(component_version("organization.events")) == "0.0.4"
     assert str(next_component_version("organization.events")) == "0.0.5"
+    assert str(component_version("external.operations")) == "0.0.3"
+    assert str(next_component_version("external.operations")) == "0.0.4"
     assert str(component_version("external.experimentation")) == "0.0.2"
     assert str(next_component_version("external.experimentation")) == "0.0.3"
     assert str(component_version("external.assurance")) == "0.0.1"
