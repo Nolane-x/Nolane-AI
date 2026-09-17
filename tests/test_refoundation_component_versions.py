@@ -12,7 +12,7 @@ from cogcoder.refoundation.manifests import build_component_manifests
 # migration wave. Keep the exact accepted local revision for every component
 # that has moved beyond Epoch-0 bootstrap. Components absent here remain 0.
 ACCEPTED_COMPONENT_REVISIONS = {
-    "schemas.identity": 1,
+    "schemas.identity": 2,
     "core.canonical_digest": 1,
     "organization.identity": 5,
     "organization.authority": 3,
