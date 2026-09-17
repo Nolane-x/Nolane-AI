@@ -635,7 +635,7 @@ def _legacy_artifact_integrity_is_current(artifact: Any) -> bool:
 
 
 COMPONENT_ID = "external.research"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 RESEARCH_PROTOCOL_VERSION = "2"
 MIGRATED_FROM = "cogcoder.organization.research"
 
