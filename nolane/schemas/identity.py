@@ -6,7 +6,7 @@ from typing import Any, Mapping
 
 
 COMPONENT_ID = "schemas.identity"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.types"
 
 PHYSICAL_PARAMETER_CEILING = 100_000_000
@@ -142,6 +142,10 @@ class AgentIdentity:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> "AgentIdentity":
+        for field in ("direct_work_capable", "learning_capable"):
+            if type(state[field]) is not bool:
+                raise ValueError(f"permanent identity {field} must be exact bool")
+
         return cls(
             agent_id=str(state["agent_id"]),
             name=str(state["name"]),
@@ -151,8 +155,8 @@ class AgentIdentity:
             neural_version=str(state["neural_version"]),
             parameter_accounting=ParameterAccounting.from_state(state["parameter_accounting"]),
             region_chief_id=None if state.get("region_chief_id") is None else str(state["region_chief_id"]),
-            direct_work_capable=bool(state["direct_work_capable"]),
-            learning_capable=bool(state["learning_capable"]),
+            direct_work_capable=state["direct_work_capable"],
+            learning_capable=state["learning_capable"],
             cognitive_capabilities=tuple(str(row) for row in state["cognitive_capabilities"]),
             memory_namespace=str(state["memory_namespace"]),
             skill_namespace=str(state["skill_namespace"]),

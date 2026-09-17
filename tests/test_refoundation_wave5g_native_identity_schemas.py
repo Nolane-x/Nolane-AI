@@ -175,16 +175,16 @@ def test_wave5g_schemas_identity_is_canonical_native_and_versioned() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.schemas.identity"
     assert row.canonical_write_authority is True
-    assert row.component_version == "0.0.1"
+    assert row.component_version == "0.0.2"
     assert row.legacy_sources == ("cogcoder/organization/types.py",)
-    assert str(component_version("schemas.identity")) == "0.0.1"
+    assert str(component_version("schemas.identity")) == "0.0.2"
 
 
 def test_wave5g_canonical_identity_module_owns_all_five_primitives() -> None:
     canonical = importlib.import_module("nolane.schemas.identity")
 
     assert canonical.COMPONENT_ID == "schemas.identity"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.types"
     assert canonical.PHYSICAL_PARAMETER_CEILING == 100_000_000
     for name in ("AgentRank", "AgentStatus", "ParameterAccounting", "AgentIdentity"):
