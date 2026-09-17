@@ -66,7 +66,10 @@ class MigrationReadinessReceipt:
     def to_state(self) -> dict[str, Any]: return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'MigrationReadinessReceipt':
-        row = cls(str(state['receipt_id']), str(state['migration_id']), bool(state['ready']), tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
+        raw_ready = state['ready']
+        if type(raw_ready) is not bool:
+            raise ValueError('migration readiness ready must be an exact boolean')
+        row = cls(str(state['receipt_id']), str(state['migration_id']), raw_ready, tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('migration readiness digest mismatch')
         return row
 
