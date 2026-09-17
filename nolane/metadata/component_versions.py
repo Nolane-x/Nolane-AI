@@ -40,7 +40,7 @@ _COMPONENT_REVISIONS.update(
         "external.self_model": 3,
         "external.skills": 5,
         "external.memory.fabric": 2,
-        "external.memory.lifecycle": 6,
+        "external.memory.lifecycle": 7,
         "external.memory.retrieval": 4,
         "external.knowledge": 2,
         "external.epistemic": 1,
