@@ -36,13 +36,19 @@ class MigrationPlan:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'MigrationPlan':
+        raw_online = state.get('online', False)
+        if type(raw_online) is not bool:
+            raise ValueError('migration online must be an exact boolean')
+        raw_idempotent = state.get('idempotent', False)
+        if type(raw_idempotent) is not bool:
+            raise ValueError('migration idempotent must be an exact boolean')
         payload = {
             'migration_id': str(state['migration_id']), 'producer_agent_id': str(state['producer_agent_id']),
             'from_schema_version': str(state['from_schema_version']), 'to_schema_version': str(state['to_schema_version']),
             'forward_artifact_id': str(state['forward_artifact_id']), 'rollback_artifact_id': str(state.get('rollback_artifact_id', '')),
             'compatibility_evidence_refs': [str(x) for x in state.get('compatibility_evidence_refs', ())],
             'validation_evidence_refs': [str(x) for x in state.get('validation_evidence_refs', ())],
-            'online': bool(state.get('online', False)), 'idempotent': bool(state.get('idempotent', False)),
+            'online': raw_online, 'idempotent': raw_idempotent,
         }
         row = cls(
             payload['migration_id'], payload['producer_agent_id'], payload['from_schema_version'], payload['to_schema_version'],
@@ -66,7 +72,10 @@ class MigrationReadinessReceipt:
     def to_state(self) -> dict[str, Any]: return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'MigrationReadinessReceipt':
-        row = cls(str(state['receipt_id']), str(state['migration_id']), bool(state['ready']), tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
+        raw_ready = state['ready']
+        if type(raw_ready) is not bool:
+            raise ValueError('migration readiness ready must be an exact boolean')
+        row = cls(str(state['receipt_id']), str(state['migration_id']), raw_ready, tuple(str(x) for x in state.get('reasons', ())), str(state['digest']))
         if canonical_digest(row.payload()) != row.digest: raise ValueError('migration readiness digest mismatch')
         return row
 
@@ -113,10 +122,13 @@ class ConsistencyExercise:
     def to_state(self) -> dict[str, Any]: return {**self.payload(), 'digest': self.digest}
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ConsistencyExercise':
+        raw_consistent = state['consistent']
+        if type(raw_consistent) is not bool:
+            raise ValueError('consistency exercise consistent must be an exact boolean')
         row = cls(
             str(state['exercise_id']), str(state['producer_agent_id']), str(state['source_version']), str(state['cache_version']),
             tuple(str(x) for x in state.get('operation_sequence', ())), str(state['observed_result']), str(state['expected_result']),
-            tuple(str(x) for x in state.get('evidence_refs', ())), bool(state['consistent']), str(state['digest']),
+            tuple(str(x) for x in state.get('evidence_refs', ())), raw_consistent, str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest: raise ValueError('consistency exercise digest mismatch')
         return row
