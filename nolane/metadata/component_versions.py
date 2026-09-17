@@ -11,7 +11,7 @@ _COMPONENT_REVISIONS: dict[str, int] = {component_id: 0 for component_id, *_ in 
 _COMPONENT_REVISIONS.update(
     {
         "core.canonical_digest": 1,
-        "schemas.identity": 1,
+        "schemas.identity": 2,
         "organization.identity": 5,
         "organization.authority": 3,
         "organization.events": 4,
