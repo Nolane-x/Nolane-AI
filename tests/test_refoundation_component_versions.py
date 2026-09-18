@@ -34,7 +34,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.candidate_synthesis": 4,
     "external.transfer_meta": 2,
     "external.causal": 2,
-    "external.experimentation": 2,
+    "external.experimentation": 3,
     "external.reasoning_invention": 5,
     "external.verification": 2,
     "external.evidence": 3,
@@ -101,8 +101,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("organization.events")) == "0.0.5"
     assert str(component_version("external.operations")) == "0.0.3"
     assert str(next_component_version("external.operations")) == "0.0.4"
-    assert str(component_version("external.experimentation")) == "0.0.2"
-    assert str(next_component_version("external.experimentation")) == "0.0.3"
+    assert str(component_version("external.experimentation")) == "0.0.3"
+    assert str(next_component_version("external.experimentation")) == "0.0.4"
     assert str(component_version("external.assurance")) == "0.0.1"
     assert str(next_component_version("external.assurance")) == "0.0.2"
     assert str(component_version("external.verification")) == "0.0.2"

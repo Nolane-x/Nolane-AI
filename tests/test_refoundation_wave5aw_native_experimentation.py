@@ -46,7 +46,7 @@ def _hypothesis(native, probes, fn, *, display_name: str):
 def test_wave5aw_native_experimentation_public_boundary_and_no_reverse_imports() -> None:
     native = _native()
     assert native.COMPONENT_ID == "external.experimentation"
-    assert native.COMPONENT_VERSION == "0.0.2"
+    assert native.COMPONENT_VERSION == "0.0.3"
     assert native.MIGRATED_FROM == "cogcoder R2.60 active-probe lineage"
     for name in (
         "ExperimentProbe",
@@ -301,8 +301,8 @@ def test_wave5aw_authority_version_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.external_core.experimentation"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
-    assert str(component_version("external.experimentation")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("external.experimentation")) == "0.0.3"
     assert "cogcoder/r260_active_repository_probes.py" in row.legacy_sources
 
     debt = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))

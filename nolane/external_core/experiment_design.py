@@ -11,7 +11,7 @@ from .experimentation import ExperimentProbe, ShadowExperimentReceipt
 
 
 COMPONENT_ID = "external.experimentation"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 SCHEMA_VERSION = "experiment-design-v1"
 DESIGN_LINEAGE = (
     "post-Epoch-0 experiment-design extension over accepted R2.60 shadow experimentation; "
