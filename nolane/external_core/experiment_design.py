@@ -89,6 +89,12 @@ def _positive_int(value: object, name: str) -> int:
     return value
 
 
+def _exact_bool(value: object, name: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{name} must be an exact bool")
+    return value
+
+
 def _version_space_id(hypothesis_ids: Sequence[object]) -> str:
     rows = _normalized_ids(hypothesis_ids, "version-space hypothesis ids", minimum=1)
     raw = _canonical_json({"hypothesis_ids": list(rows)}).encode("utf-8")
@@ -324,7 +330,8 @@ class ExperimentDesignExecutionReceipt:
         )
         actual_cost = _positive_finite(self.actual_cost, "actual experiment cost")
         object.__setattr__(self, "actual_cost", actual_cost)
-        if bool(self.promoted):
+        promoted = _exact_bool(self.promoted, "promoted")
+        if promoted:
             raise ValueError("experiment-design execution receipts cannot self-promote")
         object.__setattr__(self, "promoted", False)
         object.__setattr__(self, "receipt_id", _identity("experiment-design-execution", self._semantic_state()))
@@ -373,7 +380,7 @@ class ExperimentDesignExecutionReceipt:
             selection_oracle_calls=state["selection_oracle_calls"],
             verification_oracle_calls=state["verification_oracle_calls"],
             actual_cost=state["actual_cost"],
-            promoted=bool(state.get("promoted", False)),
+            promoted=_exact_bool(state.get("promoted", False), "promoted"),
         )
         if str(state.get("receipt_id")) != row.receipt_id:
             raise ValueError("execution receipt id does not match canonical content")
