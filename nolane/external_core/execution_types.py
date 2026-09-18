@@ -259,6 +259,8 @@ class InferenceRequest:
         ):
             if not str(value).strip():
                 raise ValueError(f'{label} must be explicit')
+        if type(self.step_index) is not int:
+            raise ValueError('step index must be an exact integer')
         if self.step_index < 0:
             raise ValueError('step index must be non-negative')
         if not self.action_schema:
@@ -270,7 +272,9 @@ class InferenceRequest:
             'cognitive_state_digest',
             _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
         )
-        lineage_version = int(self.execution_lineage_version)
+        if type(self.execution_lineage_version) is not int:
+            raise ValueError('execution lineage version must be an exact integer')
+        lineage_version = self.execution_lineage_version
         if lineage_version not in {1, 2}:
             raise ValueError('unsupported inference execution lineage version')
         object.__setattr__(self, 'execution_lineage_version', lineage_version)
@@ -335,13 +339,13 @@ class InferenceRequest:
             action_schema=tuple(str(x) for x in state.get('action_schema', ())),
             action_schema_digest=str(state['action_schema_digest']),
             counters=ExecutionCounters.from_state(state.get('counters', {})),
-            step_index=int(state['step_index']),
+            step_index=state['step_index'],
             cognitive_state_digest=(
                 None
                 if state.get('cognitive_state_digest') is None
                 else str(state['cognitive_state_digest'])
             ),
-            execution_lineage_version=int(state.get('execution_lineage_version', 1)),
+            execution_lineage_version=state.get('execution_lineage_version', 1),
             execution_session_id=(
                 None
                 if state.get('execution_session_id') is None
