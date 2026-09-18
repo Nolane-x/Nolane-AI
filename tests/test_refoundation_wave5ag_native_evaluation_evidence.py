@@ -93,7 +93,7 @@ def test_wave5ag_canonical_module_owns_evaluation_evidence_authority() -> None:
     import nolane.evaluation.evidence as canonical
 
     assert canonical.COMPONENT_ID == "evaluation.evidence"
-    assert canonical.COMPONENT_VERSION == "0.0.2"
+    assert canonical.COMPONENT_VERSION == "0.0.3"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.evaluation_evidence"
     for name in _PUBLIC_SYMBOLS:
         assert getattr(canonical, name).__module__ == "nolane.evaluation.evidence"
@@ -182,8 +182,8 @@ def test_wave5ag_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.evaluation.evidence"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.2"
-    assert str(component_version("evaluation.evidence")) == "0.0.2"
+    assert row.component_version == "0.0.3"
+    assert str(component_version("evaluation.evidence")) == "0.0.3"
     assert all(binding.component_id != "evaluation.evidence" for binding in build_active_facade_bindings())
 
     root = Path(__file__).resolve().parents[1]
