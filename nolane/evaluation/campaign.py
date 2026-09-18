@@ -10,7 +10,7 @@ from nolane.evaluation.regimes import EvaluationMode
 from nolane.core.canonical_digest import canonical_digest
 
 COMPONENT_ID = "evaluation.campaign"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.campaign"
 
 
@@ -29,6 +29,12 @@ class CampaignStatus(str, Enum):
 _TERMINAL = {CampaignStatus.COMPLETE, CampaignStatus.INVALID, CampaignStatus.QUARANTINED, CampaignStatus.ABORTED}
 
 
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class EvaluationCampaign:
     campaign_id: str
@@ -40,6 +46,9 @@ class EvaluationCampaign:
     status: CampaignStatus
     freeze_digest: str | None = None
     status_reason: str | None = None
+
+    def __post_init__(self) -> None:
+        _exact_int(self.freshness_epoch, "freshness_epoch")
 
     def base_payload(self) -> dict[str, Any]:
         return {
@@ -60,7 +69,8 @@ class EvaluationCampaign:
             campaign_id=str(state['campaign_id']), benchmark_id=str(state['benchmark_id']),
             task_ids=tuple(str(x) for x in state.get('task_ids', ())),
             modes=tuple(EvaluationMode(str(x)) for x in state.get('modes', ())),
-            freshness_epoch=int(state['freshness_epoch']), runner_protocol_version=str(state['runner_protocol_version']),
+            freshness_epoch=_exact_int(state['freshness_epoch'], "freshness_epoch"),
+            runner_protocol_version=str(state['runner_protocol_version']),
             status=CampaignStatus(str(state['status'])),
             freeze_digest=None if state.get('freeze_digest') is None else str(state['freeze_digest']),
             status_reason=None if state.get('status_reason') is None else str(state['status_reason']),
@@ -142,7 +152,8 @@ class EvaluationCampaignControlPlane:
         modes = tuple(EvaluationMode(x) for x in kwargs['modes'])
         row = EvaluationCampaign(
             campaign_id=str(kwargs['campaign_id']), benchmark_id=str(kwargs['benchmark_id']),
-            task_ids=task_ids, modes=modes, freshness_epoch=int(kwargs['freshness_epoch']),
+            task_ids=task_ids, modes=modes,
+            freshness_epoch=_exact_int(kwargs['freshness_epoch'], "freshness_epoch"),
             runner_protocol_version=str(kwargs['runner_protocol_version']), status=CampaignStatus.DRAFT,
         )
         self._validate_campaign(row)
