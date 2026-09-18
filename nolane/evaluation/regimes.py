@@ -8,8 +8,14 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "evaluation.regimes"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evaluation_regimes"
+
+
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be exact bool")
+    return value
 
 
 class BenchmarkDomain(str, Enum):
@@ -62,6 +68,8 @@ class BenchmarkRegime:
     regime_digest: str
 
     def __post_init__(self) -> None:
+        _exact_bool(self.fresh, "benchmark regime fresh")
+        _exact_bool(self.heldout, "benchmark regime heldout")
         for value, label in (
             (self.regime_id, 'regime_id'), (self.benchmark_id, 'benchmark_id'),
             (self.task_set_digest, 'task_set_digest'),
@@ -151,7 +159,8 @@ class BenchmarkRegime:
             active_agent_budget=int(state['active_agent_budget']), freshness_epoch=int(state['freshness_epoch']),
             evaluator_protocol_version=str(state['evaluator_protocol_version']),
             provenance_class=EvidenceProvenanceClass(str(state['provenance_class'])),
-            fresh=bool(state['fresh']), heldout=bool(state['heldout']),
+            fresh=_exact_bool(state['fresh'], "benchmark regime fresh"),
+            heldout=_exact_bool(state['heldout'], "benchmark regime heldout"),
             budget_digest=str(state['budget_digest']), regime_digest=str(state['regime_digest']),
         )
 
@@ -167,6 +176,8 @@ class BenchmarkRegimeRegistry:
     def register(self, **kwargs: Any) -> BenchmarkRegime:
         domain = BenchmarkDomain(kwargs['domain'])
         provenance = EvidenceProvenanceClass(kwargs['provenance_class'])
+        fresh = _exact_bool(kwargs['fresh'], "benchmark regime fresh")
+        heldout = _exact_bool(kwargs['heldout'], "benchmark regime heldout")
         budget_payload = {
             'compute_budget_units': int(kwargs['compute_budget_units']),
             'tool_call_budget': int(kwargs['tool_call_budget']),
@@ -186,8 +197,8 @@ class BenchmarkRegimeRegistry:
             'freshness_epoch': int(kwargs['freshness_epoch']),
             'evaluator_protocol_version': str(kwargs['evaluator_protocol_version']),
             'provenance_class': provenance.value,
-            'fresh': bool(kwargs['fresh']),
-            'heldout': bool(kwargs['heldout']),
+            'fresh': fresh,
+            'heldout': heldout,
         }
         row = BenchmarkRegime(
             regime_id=regime_payload['regime_id'], benchmark_id=regime_payload['benchmark_id'],
