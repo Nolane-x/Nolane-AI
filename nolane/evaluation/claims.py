@@ -11,6 +11,12 @@ from nolane.organization.identity import AgentRegistry
 from nolane.core.canonical_digest import canonical_digest
 
 
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be an exact bool")
+    return value
+
+
 class ClaimClass(str, Enum):
     INTERNAL_ENGINEERING_PROGRESS = 'internal_engineering_progress'
     DECLARED_BENCHMARK_IMPROVEMENT = 'declared_benchmark_improvement'
@@ -42,6 +48,9 @@ class ClaimAssessment:
     override_effective: bool
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.override_effective, "override_effective")
+
     def payload(self) -> dict[str, Any]:
         return {
             'claim_id': self.claim_id, 'claim_class': self.claim_class.value,
@@ -65,7 +74,7 @@ class ClaimAssessment:
             reproduction_receipt_id=None if state.get('reproduction_receipt_id') is None else str(state['reproduction_receipt_id']),
             reasons=tuple(str(x) for x in state.get('reasons', ())),
             limitations=tuple(str(x) for x in state.get('limitations', ())),
-            override_effective=bool(state.get('override_effective', False)), digest=str(state['digest']),
+            override_effective=_exact_bool(state.get('override_effective', False), "override_effective"), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('claim assessment digest mismatch')
@@ -79,10 +88,14 @@ class OrganizationReadinessReport:
     gates: Mapping[str, bool]
     digest: str
 
+    def __post_init__(self) -> None:
+        for key, value in self.gates.items():
+            _exact_bool(value, f"readiness gate {key}")
+
     def payload(self) -> dict[str, Any]:
         return {
             'report_id': self.report_id, 'claim_assessment_ids': list(self.claim_assessment_ids),
-            'gates': dict(sorted((str(k), bool(v)) for k, v in self.gates.items())),
+            'gates': dict(sorted((str(k), v) for k, v in self.gates.items())),
         }
 
     def to_state(self) -> dict[str, Any]:
@@ -93,7 +106,7 @@ class OrganizationReadinessReport:
         row = cls(
             report_id=str(state['report_id']),
             claim_assessment_ids=tuple(str(x) for x in state.get('claim_assessment_ids', ())),
-            gates={str(k): bool(v) for k, v in state.get('gates', {}).items()}, digest=str(state['digest']),
+            gates={str(k): _exact_bool(v, f"readiness gate {k}") for k, v in state.get('gates', {}).items()}, digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('organization readiness report digest mismatch')
@@ -317,5 +330,5 @@ class ClaimBoundaryEngine:
 
 
 COMPONENT_ID = "evaluation.claims"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evaluation_claims"
