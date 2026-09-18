@@ -8,8 +8,14 @@ from nolane.core.canonical_digest import canonical_digest
 
 
 COMPONENT_ID = "evaluation.regimes"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.evaluation_regimes"
+
+
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
 
 
 def _exact_bool(value: object, label: str) -> bool:
@@ -70,6 +76,12 @@ class BenchmarkRegime:
     def __post_init__(self) -> None:
         _exact_bool(self.fresh, "benchmark regime fresh")
         _exact_bool(self.heldout, "benchmark regime heldout")
+        _exact_int(self.compute_budget_units, "compute_budget_units")
+        _exact_int(self.tool_call_budget, "tool_call_budget")
+        _exact_int(self.external_core_budget, "external_core_budget")
+        _exact_int(self.wall_clock_budget_ms, "wall_clock_budget_ms")
+        _exact_int(self.active_agent_budget, "active_agent_budget")
+        _exact_int(self.freshness_epoch, "freshness_epoch")
         for value, label in (
             (self.regime_id, 'regime_id'), (self.benchmark_id, 'benchmark_id'),
             (self.task_set_digest, 'task_set_digest'),
@@ -84,7 +96,7 @@ class BenchmarkRegime:
             (self.external_core_budget, 'external-core budget'), (self.wall_clock_budget_ms, 'wall-clock budget'),
             (self.active_agent_budget, 'active-agent budget'),
         ):
-            if int(value) <= 0:
+            if value <= 0:
                 raise ValueError(f'{label} must be positive')
         if self.freshness_epoch < 0:
             raise ValueError('freshness epoch must be non-negative')
@@ -154,9 +166,12 @@ class BenchmarkRegime:
             domain=BenchmarkDomain(str(state['domain'])), task_set_digest=str(state['task_set_digest']),
             repository_revision_digest=str(state['repository_revision_digest']),
             tool_envelope_digest=str(state['tool_envelope_digest']),
-            compute_budget_units=int(state['compute_budget_units']), tool_call_budget=int(state['tool_call_budget']),
-            external_core_budget=int(state['external_core_budget']), wall_clock_budget_ms=int(state['wall_clock_budget_ms']),
-            active_agent_budget=int(state['active_agent_budget']), freshness_epoch=int(state['freshness_epoch']),
+            compute_budget_units=_exact_int(state['compute_budget_units'], "compute_budget_units"),
+            tool_call_budget=_exact_int(state['tool_call_budget'], "tool_call_budget"),
+            external_core_budget=_exact_int(state['external_core_budget'], "external_core_budget"),
+            wall_clock_budget_ms=_exact_int(state['wall_clock_budget_ms'], "wall_clock_budget_ms"),
+            active_agent_budget=_exact_int(state['active_agent_budget'], "active_agent_budget"),
+            freshness_epoch=_exact_int(state['freshness_epoch'], "freshness_epoch"),
             evaluator_protocol_version=str(state['evaluator_protocol_version']),
             provenance_class=EvidenceProvenanceClass(str(state['provenance_class'])),
             fresh=_exact_bool(state['fresh'], "benchmark regime fresh"),
@@ -179,11 +194,11 @@ class BenchmarkRegimeRegistry:
         fresh = _exact_bool(kwargs['fresh'], "benchmark regime fresh")
         heldout = _exact_bool(kwargs['heldout'], "benchmark regime heldout")
         budget_payload = {
-            'compute_budget_units': int(kwargs['compute_budget_units']),
-            'tool_call_budget': int(kwargs['tool_call_budget']),
-            'external_core_budget': int(kwargs['external_core_budget']),
-            'wall_clock_budget_ms': int(kwargs['wall_clock_budget_ms']),
-            'active_agent_budget': int(kwargs['active_agent_budget']),
+            'compute_budget_units': _exact_int(kwargs['compute_budget_units'], "compute_budget_units"),
+            'tool_call_budget': _exact_int(kwargs['tool_call_budget'], "tool_call_budget"),
+            'external_core_budget': _exact_int(kwargs['external_core_budget'], "external_core_budget"),
+            'wall_clock_budget_ms': _exact_int(kwargs['wall_clock_budget_ms'], "wall_clock_budget_ms"),
+            'active_agent_budget': _exact_int(kwargs['active_agent_budget'], "active_agent_budget"),
         }
         budget_digest = canonical_digest(budget_payload)
         regime_payload = {
@@ -194,7 +209,7 @@ class BenchmarkRegimeRegistry:
             'repository_revision_digest': str(kwargs['repository_revision_digest']),
             'tool_envelope_digest': str(kwargs['tool_envelope_digest']),
             'budget_digest': budget_digest,
-            'freshness_epoch': int(kwargs['freshness_epoch']),
+            'freshness_epoch': _exact_int(kwargs['freshness_epoch'], "freshness_epoch"),
             'evaluator_protocol_version': str(kwargs['evaluator_protocol_version']),
             'provenance_class': provenance.value,
             'fresh': fresh,
