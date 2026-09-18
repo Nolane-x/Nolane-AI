@@ -69,7 +69,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.release": 2,
         "evaluation.scaling": 1,
         "evaluation.campaign": 5,
-        "neural.inference_bridge": 7,
+        "neural.inference_bridge": 8,
     }
 )
 
