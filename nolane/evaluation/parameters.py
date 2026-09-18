@@ -10,6 +10,12 @@ from nolane.organization.identity import AgentRegistry
 from nolane.core.canonical_digest import canonical_digest
 
 
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class ParameterFootprintReport:
     report_id: str
@@ -24,6 +30,16 @@ class ParameterFootprintReport:
     latency_ms: int
     energy_joules: float | None
     digest: str
+
+    def __post_init__(self) -> None:
+        _exact_int(self.active_ephemeral_count, "active_ephemeral_count")
+        _exact_int(self.shared_physical_parameters, "shared_physical_parameters")
+        _exact_int(self.local_physical_parameters, "local_physical_parameters")
+        _exact_int(self.unique_stored_physical_parameters, "unique_stored_physical_parameters")
+        _exact_int(self.active_inference_physical_parameters, "active_inference_physical_parameters")
+        _exact_int(self.logical_deployed_parameter_footprint, "logical_deployed_parameter_footprint")
+        _exact_int(self.compute_units, "compute_units")
+        _exact_int(self.latency_ms, "latency_ms")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -44,13 +60,14 @@ class ParameterFootprintReport:
     def from_state(cls, state: Mapping[str, Any]) -> 'ParameterFootprintReport':
         row = cls(
             report_id=str(state['report_id']), active_agent_ids=tuple(str(x) for x in state.get('active_agent_ids', ())),
-            active_ephemeral_count=int(state['active_ephemeral_count']),
-            shared_physical_parameters=int(state['shared_physical_parameters']),
-            local_physical_parameters=int(state['local_physical_parameters']),
-            unique_stored_physical_parameters=int(state['unique_stored_physical_parameters']),
-            active_inference_physical_parameters=int(state['active_inference_physical_parameters']),
-            logical_deployed_parameter_footprint=int(state['logical_deployed_parameter_footprint']),
-            compute_units=int(state['compute_units']), latency_ms=int(state['latency_ms']),
+            active_ephemeral_count=_exact_int(state['active_ephemeral_count'], "active_ephemeral_count"),
+            shared_physical_parameters=_exact_int(state['shared_physical_parameters'], "shared_physical_parameters"),
+            local_physical_parameters=_exact_int(state['local_physical_parameters'], "local_physical_parameters"),
+            unique_stored_physical_parameters=_exact_int(state['unique_stored_physical_parameters'], "unique_stored_physical_parameters"),
+            active_inference_physical_parameters=_exact_int(state['active_inference_physical_parameters'], "active_inference_physical_parameters"),
+            logical_deployed_parameter_footprint=_exact_int(state['logical_deployed_parameter_footprint'], "logical_deployed_parameter_footprint"),
+            compute_units=_exact_int(state['compute_units'], "compute_units"),
+            latency_ms=_exact_int(state['latency_ms'], "latency_ms"),
             energy_joules=None if state.get('energy_joules') is None else float(state['energy_joules']), digest=str(state['digest']),
         )
         row._validate()
@@ -232,12 +249,15 @@ class ParameterScalingAuthority:
         local = sum(x.parameter_accounting.local_physical_parameters for x in identities)
         logical = sum(x.parameter_accounting.total_physical_parameters for x in identities)
         payload0 = {
-            'active_agent_ids': list(ids), 'active_ephemeral_count': int(active_ephemeral_count),
+            'active_agent_ids': list(ids),
+            'active_ephemeral_count': _exact_int(active_ephemeral_count, "active_ephemeral_count"),
             'shared_physical_parameters': shared, 'local_physical_parameters': local,
             'unique_stored_physical_parameters': shared + local,
             'active_inference_physical_parameters': shared + local,
-            'logical_deployed_parameter_footprint': logical, 'compute_units': int(compute_units),
-            'latency_ms': int(latency_ms), 'energy_joules': None if energy_joules is None else float(energy_joules),
+            'logical_deployed_parameter_footprint': logical,
+            'compute_units': _exact_int(compute_units, "compute_units"),
+            'latency_ms': _exact_int(latency_ms, "latency_ms"),
+            'energy_joules': None if energy_joules is None else float(energy_joules),
         }
         report_id = 'parameter-footprint-' + canonical_digest(payload0)[:24]
         payload = {'report_id': report_id, **payload0}
@@ -386,5 +406,5 @@ class ParameterScalingAuthority:
 
 
 COMPONENT_ID = "evaluation.parameters"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evaluation_parameters"
