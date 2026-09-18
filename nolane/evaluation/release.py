@@ -40,10 +40,6 @@ class EvaluationReleaseReceipt:
     evaluation_digest: str
     digest: str
 
-    def __post_init__(self) -> None:
-        _exact_bool(self.passed, 'reproduction passed')
-        _exact_bool(self.independent, 'reproduction independent')
-
     def payload(self) -> dict[str, Any]:
         return {
             'release_id': self.release_id, 'release_version': self.release_version,
@@ -100,6 +96,10 @@ class ReproductionReceipt:
     passed: bool
     independent: bool
     digest: str
+
+    def __post_init__(self) -> None:
+        _exact_bool(self.passed, 'reproduction passed')
+        _exact_bool(self.independent, 'reproduction independent')
 
     def payload(self) -> dict[str, Any]:
         return {
