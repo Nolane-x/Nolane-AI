@@ -36,7 +36,7 @@ _COMPONENT_REVISIONS.update(
         "external.candidate_synthesis": 4,
         "external.reasoning_invention": 5,
         "external.transfer_meta": 2,
-        "external.experimentation": 2,
+        "external.experimentation": 3,
         "external.verification": 2,
         "external.evidence": 3,
         "external.experience": 3,
