@@ -239,5 +239,11 @@ def test_campaign_boolean_authority_preserves_canonical_bool_round_trips() -> No
     run_state = _canonical_run_state()
     reproduction_state = _canonical_reproduction_state()
 
-    assert CampaignRunReceipt.from_state(run_state).to_state() == run_state
-    assert CampaignReproductionReceipt.from_state(reproduction_state).to_state() == reproduction_state
+    restored_run = CampaignRunReceipt.from_state(run_state)
+    restored_reproduction = CampaignReproductionReceipt.from_state(reproduction_state)
+
+    assert restored_run.to_state() == run_state
+    assert type(restored_run.passed) is bool
+    assert restored_reproduction.to_state() == reproduction_state
+    assert type(restored_reproduction.reproduced) is bool
+    assert type(restored_reproduction.independent) is bool
