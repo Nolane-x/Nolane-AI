@@ -62,7 +62,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "external.ui_ux": 2,
     "evaluation.regimes": 3,
     "evaluation.evidence": 4,
-    "evaluation.stress": 2,
+    "evaluation.stress": 3,
     "evaluation.claims": 2,
     "evaluation.parameters": 4,
     "evaluation.release": 2,
@@ -137,8 +137,8 @@ def test_component_version_lookup_is_local_not_global() -> None:
     assert str(next_component_version("evaluation.regimes")) == "0.0.4"
     assert str(component_version("evaluation.evidence")) == "0.0.4"
     assert str(next_component_version("evaluation.evidence")) == "0.0.5"
-    assert str(component_version("evaluation.stress")) == "0.0.2"
-    assert str(next_component_version("evaluation.stress")) == "0.0.3"
+    assert str(component_version("evaluation.stress")) == "0.0.3"
+    assert str(next_component_version("evaluation.stress")) == "0.0.4"
     assert str(component_version("evaluation.claims")) == "0.0.2"
     assert str(next_component_version("evaluation.claims")) == "0.0.3"
     assert str(component_version("evaluation.parameters")) == "0.0.4"

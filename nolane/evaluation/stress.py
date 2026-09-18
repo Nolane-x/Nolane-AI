@@ -10,13 +10,19 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "evaluation.stress"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.evaluation_stress"
 
 
 def _exact_bool(value: object, label: str) -> bool:
     if type(value) is not bool:
         raise ValueError(f"{label} must be exact bool")
+    return value
+
+
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be exact int")
     return value
 
 
@@ -62,7 +68,12 @@ class LongHorizonStressObservation:
     digest: str
 
     def __post_init__(self) -> None:
+        _exact_int(self.contamination_count, "contamination_count")
+        _exact_int(self.stale_context_count, "stale_context_count")
+        _exact_int(self.false_accepts, "false_accepts")
+        _exact_int(self.regressions, "regressions")
         _exact_bool(self.recovered, "stress observation recovered")
+        _exact_int(self.elapsed_logical_epochs, "elapsed_logical_epochs")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -100,12 +111,12 @@ class LongHorizonStressObservation:
             event_anchor=str(state["event_anchor"]),
             plan_revision_before=str(state["plan_revision_before"]),
             plan_revision_after=str(state["plan_revision_after"]),
-            contamination_count=int(state["contamination_count"]),
-            stale_context_count=int(state["stale_context_count"]),
-            false_accepts=int(state["false_accepts"]),
-            regressions=int(state["regressions"]),
+            contamination_count=_exact_int(state["contamination_count"], "contamination_count"),
+            stale_context_count=_exact_int(state["stale_context_count"], "stale_context_count"),
+            false_accepts=_exact_int(state["false_accepts"], "false_accepts"),
+            regressions=_exact_int(state["regressions"], "regressions"),
             recovered=_exact_bool(state["recovered"], "stress observation recovered"),
-            elapsed_logical_epochs=int(state["elapsed_logical_epochs"]),
+            elapsed_logical_epochs=_exact_int(state["elapsed_logical_epochs"], "elapsed_logical_epochs"),
             evidence=EvidenceRecord.from_state(state["evidence"]),
             subject_agent_id=None if state.get("subject_agent_id") is None else str(state["subject_agent_id"]),
             digest=str(state["digest"]),
@@ -228,12 +239,12 @@ class LongHorizonStressLedger:
             event_anchor=str(kwargs["event_anchor"]),
             plan_revision_before=str(kwargs["plan_revision_before"]),
             plan_revision_after=str(kwargs["plan_revision_after"]),
-            contamination_count=int(kwargs["contamination_count"]),
-            stale_context_count=int(kwargs["stale_context_count"]),
-            false_accepts=int(kwargs["false_accepts"]),
-            regressions=int(kwargs["regressions"]),
+            contamination_count=_exact_int(kwargs["contamination_count"], "contamination_count"),
+            stale_context_count=_exact_int(kwargs["stale_context_count"], "stale_context_count"),
+            false_accepts=_exact_int(kwargs["false_accepts"], "false_accepts"),
+            regressions=_exact_int(kwargs["regressions"], "regressions"),
             recovered=_exact_bool(kwargs["recovered"], "stress observation recovered"),
-            elapsed_logical_epochs=int(kwargs["elapsed_logical_epochs"]),
+            elapsed_logical_epochs=_exact_int(kwargs["elapsed_logical_epochs"], "elapsed_logical_epochs"),
             evidence=kwargs["evidence"],
             subject_agent_id=None if kwargs.get("subject_agent_id") is None else str(kwargs["subject_agent_id"]),
             digest="",
