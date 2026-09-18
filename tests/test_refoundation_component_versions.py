@@ -67,7 +67,7 @@ ACCEPTED_COMPONENT_REVISIONS = {
     "evaluation.parameters": 1,
     "evaluation.release": 2,
     "evaluation.scaling": 1,
-    "evaluation.campaign": 2,
+    "evaluation.campaign": 3,
     "neural.inference_bridge": 7,
 }
 ACCEPTED_REVISION_ONE_COMPONENTS = {
