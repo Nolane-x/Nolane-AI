@@ -12,6 +12,12 @@ from nolane.organization.identity import AgentRegistry
 from nolane.core.canonical_digest import canonical_digest
 
 
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f'{label} must be exact bool')
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class EvaluationReleaseReceipt:
     release_id: str
@@ -91,6 +97,10 @@ class ReproductionReceipt:
     independent: bool
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.passed, 'reproduction passed')
+        _exact_bool(self.independent, 'reproduction independent')
+
     def payload(self) -> dict[str, Any]:
         return {
             'reproduction_id': self.reproduction_id, 'release_id': self.release_id,
@@ -111,8 +121,9 @@ class ReproductionReceipt:
             evaluator_id=str(state['evaluator_id']), release_digest=str(state['release_digest']),
             artifact_digest=str(state['artifact_digest']), evaluator_protocol_version=str(state['evaluator_protocol_version']),
             reproduction_command_digest=str(state['reproduction_command_digest']),
-            environment_toolchain_digest=str(state['environment_toolchain_digest']), passed=bool(state['passed']),
-            independent=bool(state['independent']), digest=str(state['digest']),
+            environment_toolchain_digest=str(state['environment_toolchain_digest']),
+            passed=_exact_bool(state['passed'], 'reproduction passed'),
+            independent=_exact_bool(state['independent'], 'reproduction independent'), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('evaluation reproduction receipt digest mismatch')
@@ -269,13 +280,14 @@ class EvaluationReleaseLedger:
         release = self.get_release(str(kwargs['release_id']))
         evaluator_id = str(kwargs['evaluator_id'])
         independent = evaluator_id not in self._organization_ids()
+        passed = _exact_bool(kwargs['passed'], 'reproduction passed')
         payload0 = {
             'release_id': release.release_id, 'evaluator_id': evaluator_id,
             'release_digest': str(kwargs['release_digest']), 'artifact_digest': str(kwargs['artifact_digest']),
             'evaluator_protocol_version': str(kwargs['evaluator_protocol_version']),
             'reproduction_command_digest': str(kwargs['reproduction_command_digest']),
             'environment_toolchain_digest': str(kwargs['environment_toolchain_digest']),
-            'passed': bool(kwargs['passed']), 'independent': independent,
+            'passed': passed, 'independent': independent,
         }
         reproduction_id = 'eval-reproduction-' + canonical_digest(payload0)[:24]
         payload = {'reproduction_id': reproduction_id, **payload0}
@@ -331,5 +343,5 @@ class EvaluationReleaseLedger:
 
 
 COMPONENT_ID = "evaluation.release"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evaluation_release"
