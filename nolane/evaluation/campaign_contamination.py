@@ -8,6 +8,12 @@ from nolane.evaluation.campaign_tasks import CampaignPartition, CampaignTaskRegi
 from nolane.core.canonical_digest import canonical_digest
 
 
+def _exact_bool(value: object, name: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{name} must be an exact bool")
+    return value
+
+
 class ContaminationKind(str, Enum):
     HELDOUT_TASK_REF = 'heldout_task_ref'
     HELDOUT_OBJECTIVE_REF = 'heldout_objective_ref'
@@ -26,6 +32,9 @@ class ContaminationFinding:
     kinds: tuple[ContaminationKind, ...]
     quarantined: bool
     digest: str
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "quarantined", _exact_bool(self.quarantined, "quarantined"))
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -47,7 +56,7 @@ class ContaminationFinding:
             distillation_refs=tuple(str(x) for x in state.get('distillation_refs', ())),
             personal_skill_refs=tuple(str(x) for x in state.get('personal_skill_refs', ())),
             kinds=tuple(ContaminationKind(str(x)) for x in state.get('kinds', ())),
-            quarantined=bool(state['quarantined']), digest=str(state['digest']),
+            quarantined=_exact_bool(state['quarantined'], "quarantined"), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('campaign contamination finding digest mismatch')
