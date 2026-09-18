@@ -63,7 +63,7 @@ _COMPONENT_REVISIONS.update(
         "external.ui_ux": 2,
         "evaluation.regimes": 2,
         "evaluation.evidence": 1,
-        "evaluation.stress": 1,
+        "evaluation.stress": 2,
         "evaluation.claims": 1,
         "evaluation.parameters": 1,
         "evaluation.release": 2,
