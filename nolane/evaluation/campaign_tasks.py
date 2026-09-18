@@ -15,6 +15,12 @@ class CampaignPartition(str, Enum):
     HELDOUT = 'heldout'
 
 
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class CampaignTaskManifest:
     task_id: str
@@ -34,6 +40,13 @@ class CampaignTaskManifest:
     evaluator_protocol_version: str
     contamination_tags: tuple[str, ...]
     digest: str
+
+    def __post_init__(self) -> None:
+        _exact_int(self.compute_budget_units, "compute_budget_units")
+        _exact_int(self.tool_call_budget, "tool_call_budget")
+        _exact_int(self.external_core_budget, "external_core_budget")
+        _exact_int(self.wall_clock_budget_ms, "wall_clock_budget_ms")
+        _exact_int(self.active_agent_budget, "active_agent_budget")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -76,9 +89,12 @@ class CampaignTaskManifest:
             objective_digest=str(state['objective_digest']), acceptance_command_digest=str(state['acceptance_command_digest']),
             difficulty=str(state['difficulty']), allowed_tools=tuple(str(x) for x in state.get('allowed_tools', ())),
             allowed_cores=tuple(str(x) for x in state.get('allowed_cores', ())),
-            compute_budget_units=int(state['compute_budget_units']), tool_call_budget=int(state['tool_call_budget']),
-            external_core_budget=int(state['external_core_budget']), wall_clock_budget_ms=int(state['wall_clock_budget_ms']),
-            active_agent_budget=int(state['active_agent_budget']), evaluator_protocol_version=str(state['evaluator_protocol_version']),
+            compute_budget_units=_exact_int(state['compute_budget_units'], "compute_budget_units"),
+            tool_call_budget=_exact_int(state['tool_call_budget'], "tool_call_budget"),
+            external_core_budget=_exact_int(state['external_core_budget'], "external_core_budget"),
+            wall_clock_budget_ms=_exact_int(state['wall_clock_budget_ms'], "wall_clock_budget_ms"),
+            active_agent_budget=_exact_int(state['active_agent_budget'], "active_agent_budget"),
+            evaluator_protocol_version=str(state['evaluator_protocol_version']),
             contamination_tags=tuple(str(x) for x in state.get('contamination_tags', ())), digest=str(state['digest']),
         )
         _validate_task(row)
@@ -103,7 +119,7 @@ def _validate_task(row: CampaignTaskManifest) -> None:
         row.compute_budget_units, row.tool_call_budget, row.external_core_budget,
         row.wall_clock_budget_ms, row.active_agent_budget,
     ):
-        if int(value) <= 0:
+        if value <= 0:
             raise ValueError('campaign task budgets must be positive')
 
 
@@ -146,9 +162,12 @@ class CampaignTaskRegistry:
             objective_digest=canonical_digest(objective), acceptance_command_digest=str(kwargs['acceptance_command_digest']),
             difficulty=str(kwargs['difficulty']), allowed_tools=tuple(str(x) for x in kwargs['allowed_tools']),
             allowed_cores=tuple(str(x) for x in kwargs['allowed_cores']),
-            compute_budget_units=int(kwargs['compute_budget_units']), tool_call_budget=int(kwargs['tool_call_budget']),
-            external_core_budget=int(kwargs['external_core_budget']), wall_clock_budget_ms=int(kwargs['wall_clock_budget_ms']),
-            active_agent_budget=int(kwargs['active_agent_budget']), evaluator_protocol_version=str(kwargs['evaluator_protocol_version']),
+            compute_budget_units=_exact_int(kwargs['compute_budget_units'], "compute_budget_units"),
+            tool_call_budget=_exact_int(kwargs['tool_call_budget'], "tool_call_budget"),
+            external_core_budget=_exact_int(kwargs['external_core_budget'], "external_core_budget"),
+            wall_clock_budget_ms=_exact_int(kwargs['wall_clock_budget_ms'], "wall_clock_budget_ms"),
+            active_agent_budget=_exact_int(kwargs['active_agent_budget'], "active_agent_budget"),
+            evaluator_protocol_version=str(kwargs['evaluator_protocol_version']),
             contamination_tags=tuple(str(x) for x in kwargs.get('contamination_tags', ())), digest='',
         )
         _validate_task(row0)
