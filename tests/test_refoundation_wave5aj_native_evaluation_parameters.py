@@ -37,7 +37,7 @@ def test_wave5aj_canonical_module_owns_evaluation_parameters_authority() -> None
     import nolane.evaluation.parameters as canonical
 
     assert canonical.COMPONENT_ID == "evaluation.parameters"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.evaluation_parameters"
     for name in _PUBLIC_SYMBOLS:
         assert getattr(canonical, name).__module__ == "nolane.evaluation.parameters"
@@ -109,8 +109,8 @@ def test_wave5aj_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.evaluation.parameters"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("evaluation.parameters")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("evaluation.parameters")) == "0.0.2"
     assert all(binding.component_id != "evaluation.parameters" for binding in build_active_facade_bindings())
 
     root = Path(__file__).resolve().parents[1]
