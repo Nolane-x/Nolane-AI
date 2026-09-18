@@ -15,6 +15,12 @@ def _exact_bool(value: object, name: str) -> bool:
     return value
 
 
+def _exact_int(value: object, label: str) -> int:
+    if type(value) is not int:
+        raise ValueError(f"{label} must be an exact int")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class CampaignRunSpec:
     run_id: str
@@ -72,6 +78,13 @@ class CampaignRunReceipt:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "passed", _exact_bool(self.passed, "passed"))
+        _exact_int(self.false_accepts, "false_accepts")
+        _exact_int(self.regressions, "regressions")
+        _exact_int(self.compute_units, "compute_units")
+        _exact_int(self.tool_calls, "tool_calls")
+        _exact_int(self.external_core_calls, "external_core_calls")
+        _exact_int(self.wall_clock_ms, "wall_clock_ms")
+        _exact_int(self.active_agents, "active_agents")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -90,11 +103,14 @@ class CampaignRunReceipt:
     def from_state(cls, state: Mapping[str, Any]) -> 'CampaignRunReceipt':
         row = cls(
             run_id=str(state['run_id']), spec_digest=str(state['spec_digest']), passed=_exact_bool(state['passed'], "passed"),
-            false_accepts=int(state['false_accepts']), regressions=int(state['regressions']),
-            compute_units=int(state['compute_units']), tool_calls=int(state['tool_calls']),
-            external_core_calls=int(state['external_core_calls']), wall_clock_ms=int(state['wall_clock_ms']),
+            false_accepts=_exact_int(state['false_accepts'], "false_accepts"),
+            regressions=_exact_int(state['regressions'], "regressions"),
+            compute_units=_exact_int(state['compute_units'], "compute_units"),
+            tool_calls=_exact_int(state['tool_calls'], "tool_calls"),
+            external_core_calls=_exact_int(state['external_core_calls'], "external_core_calls"),
+            wall_clock_ms=_exact_int(state['wall_clock_ms'], "wall_clock_ms"),
             energy_joules=None if state.get('energy_joules') is None else float(state['energy_joules']),
-            active_agents=int(state['active_agents']),
+            active_agents=_exact_int(state['active_agents'], "active_agents"),
             output_artifact_ids=tuple(str(x) for x in state.get('output_artifact_ids', ())),
             termination_reason=str(state['termination_reason']), digest=str(state['digest']),
         )
@@ -214,9 +230,14 @@ class CampaignRunLedger:
         spec = self.get_spec(run_id)
         row0 = CampaignRunReceipt(
             run_id=spec.run_id, spec_digest=spec.digest, passed=_exact_bool(passed, "passed"),
-            false_accepts=int(false_accepts), regressions=int(regressions), compute_units=int(compute_units),
-            tool_calls=int(tool_calls), external_core_calls=int(external_core_calls), wall_clock_ms=int(wall_clock_ms),
-            energy_joules=None if energy_joules is None else float(energy_joules), active_agents=int(active_agents),
+            false_accepts=_exact_int(false_accepts, "false_accepts"),
+            regressions=_exact_int(regressions, "regressions"),
+            compute_units=_exact_int(compute_units, "compute_units"),
+            tool_calls=_exact_int(tool_calls, "tool_calls"),
+            external_core_calls=_exact_int(external_core_calls, "external_core_calls"),
+            wall_clock_ms=_exact_int(wall_clock_ms, "wall_clock_ms"),
+            energy_joules=None if energy_joules is None else float(energy_joules),
+            active_agents=_exact_int(active_agents, "active_agents"),
             output_artifact_ids=tuple(str(x) for x in output_artifact_ids),
             termination_reason=str(termination_reason), digest='',
         )
