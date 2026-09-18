@@ -10,7 +10,7 @@ from nolane.evaluation.regimes import EvaluationMode
 from nolane.core.canonical_digest import canonical_digest
 
 COMPONENT_ID = "evaluation.campaign"
-COMPONENT_VERSION = "0.0.4"
+COMPONENT_VERSION = "0.0.5"
 MIGRATED_FROM = "cogcoder.organization.campaign"
 
 
