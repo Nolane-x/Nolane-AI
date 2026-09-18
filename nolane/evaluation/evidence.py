@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any, Mapping
 
 from nolane.core.canonical_digest import canonical_digest
@@ -14,7 +15,7 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "evaluation.evidence"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.evaluation_evidence"
 
 
@@ -28,6 +29,15 @@ def _exact_int(value: object, label: str) -> int:
     if type(value) is not int:
         raise ValueError(f"{label} must be an exact int")
     return value
+
+
+def _finite_numeric(value: object, label: str) -> float:
+    if type(value) not in (int, float):
+        raise ValueError(f"{label} must be an exact numeric value")
+    normalized = float(value)
+    if not isfinite(normalized):
+        raise ValueError(f"{label} must be finite")
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -55,6 +65,9 @@ class EvaluationObservation:
     digest: str
 
     def __post_init__(self) -> None:
+        object.__setattr__(self, "score", _finite_numeric(self.score, "score"))
+        if self.energy_joules is not None:
+            object.__setattr__(self, "energy_joules", _finite_numeric(self.energy_joules, "energy_joules"))
         _exact_int(self.task_count, "task_count")
         _exact_int(self.pass_count, "pass_count")
         _exact_int(self.false_accepts, "false_accepts")
@@ -88,7 +101,7 @@ class EvaluationObservation:
         row = cls(
             observation_id=str(state['observation_id']), regime_id=str(state['regime_id']),
             regime_digest=str(state['regime_digest']), mode=EvaluationMode(str(state['mode'])),
-            producer_revision=str(state['producer_revision']), score=float(state['score']),
+            producer_revision=str(state['producer_revision']), score=_finite_numeric(state['score'], "score"),
             task_count=_exact_int(state['task_count'], "task_count"),
             pass_count=_exact_int(state['pass_count'], "pass_count"),
             false_accepts=_exact_int(state['false_accepts'], "false_accepts"),
@@ -97,7 +110,7 @@ class EvaluationObservation:
             tool_calls=_exact_int(state['tool_calls'], "tool_calls"),
             external_core_calls=_exact_int(state['external_core_calls'], "external_core_calls"),
             wall_clock_ms=_exact_int(state['wall_clock_ms'], "wall_clock_ms"),
-            energy_joules=None if state.get('energy_joules') is None else float(state['energy_joules']),
+            energy_joules=None if state.get('energy_joules') is None else _finite_numeric(state['energy_joules'], "energy_joules"),
             active_agents=_exact_int(state['active_agents'], "active_agents"),
             evidence_artifact_ids=tuple(str(x) for x in state.get('evidence_artifact_ids', ())),
             evidence=EvidenceRecord.from_state(state['evidence']),
@@ -142,6 +155,7 @@ class MatchedBudgetComparison:
     def __post_init__(self) -> None:
         _exact_bool(self.comparable, "comparable")
         _exact_bool(self.improved, "improved")
+        object.__setattr__(self, "score_delta", _finite_numeric(self.score_delta, "score_delta"))
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -164,7 +178,8 @@ class MatchedBudgetComparison:
             baseline_observation_id=str(state['baseline_observation_id']),
             baseline_mode=EvaluationMode(str(state['baseline_mode'])),
             comparable=_exact_bool(state['comparable'], "comparable"),
-            improved=_exact_bool(state['improved'], "improved"), score_delta=float(state['score_delta']),
+            improved=_exact_bool(state['improved'], "improved"),
+            score_delta=_finite_numeric(state['score_delta'], "score_delta"),
             reason=str(state['reason']), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
@@ -209,6 +224,7 @@ class AblationAssessment:
 
     def __post_init__(self) -> None:
         _exact_bool(self.comparable, "comparable")
+        object.__setattr__(self, "score_delta", _finite_numeric(self.score_delta, "score_delta"))
         _exact_int(self.false_accept_delta, "false_accept_delta")
         _exact_int(self.regression_delta, "regression_delta")
         _exact_int(self.compute_delta, "compute_delta")
@@ -232,7 +248,7 @@ class AblationAssessment:
             ablation_observation_id=str(state['ablation_observation_id']),
             ablation_mode=EvaluationMode(str(state['ablation_mode'])),
             comparable=_exact_bool(state['comparable'], "comparable"),
-            score_delta=float(state['score_delta']),
+            score_delta=_finite_numeric(state['score_delta'], "score_delta"),
             false_accept_delta=_exact_int(state['false_accept_delta'], "false_accept_delta"),
             regression_delta=_exact_int(state['regression_delta'], "regression_delta"),
             compute_delta=_exact_int(state['compute_delta'], "compute_delta"),
@@ -308,7 +324,8 @@ class EvaluationEvidenceLedger:
         regime = self.regimes.get(str(kwargs['regime_id']))
         row0 = EvaluationObservation(
             observation_id=str(kwargs['observation_id']), regime_id=regime.regime_id, regime_digest=regime.regime_digest,
-            mode=EvaluationMode(kwargs['mode']), producer_revision=str(kwargs['producer_revision']), score=float(kwargs['score']),
+            mode=EvaluationMode(kwargs['mode']), producer_revision=str(kwargs['producer_revision']),
+            score=_finite_numeric(kwargs['score'], "score"),
             task_count=_exact_int(kwargs['task_count'], "task_count"),
             pass_count=_exact_int(kwargs['pass_count'], "pass_count"),
             false_accepts=_exact_int(kwargs['false_accepts'], "false_accepts"),
@@ -317,7 +334,7 @@ class EvaluationEvidenceLedger:
             tool_calls=_exact_int(kwargs['tool_calls'], "tool_calls"),
             external_core_calls=_exact_int(kwargs['external_core_calls'], "external_core_calls"),
             wall_clock_ms=_exact_int(kwargs['wall_clock_ms'], "wall_clock_ms"),
-            energy_joules=None if kwargs.get('energy_joules') is None else float(kwargs['energy_joules']),
+            energy_joules=None if kwargs.get('energy_joules') is None else _finite_numeric(kwargs['energy_joules'], "energy_joules"),
             active_agents=_exact_int(kwargs['active_agents'], "active_agents"),
             evidence_artifact_ids=tuple(str(x) for x in kwargs['evidence_artifact_ids']),
             evidence=kwargs['evidence'], external_evaluator_id=None if kwargs.get('external_evaluator_id') is None else str(kwargs['external_evaluator_id']),
