@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum
+from math import isfinite
 from typing import Any, Mapping
 
 from nolane.evaluation.evidence import EvaluationEvidenceLedger
@@ -14,6 +15,15 @@ def _exact_int(value: object, label: str) -> int:
     if type(value) is not int:
         raise ValueError(f"{label} must be an exact int")
     return value
+
+
+def _finite_numeric(value: object, label: str) -> float:
+    if type(value) not in (int, float):
+        raise ValueError(f"{label} must be an exact numeric value")
+    normalized = float(value)
+    if not isfinite(normalized):
+        raise ValueError(f"{label} must be finite")
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -124,6 +134,8 @@ class ScalingProposal:
         _exact_int(self.candidate_physical_parameters, "candidate_physical_parameters")
         _exact_int(self.storage_delta_bytes, "storage_delta_bytes")
         _exact_int(self.latency_delta_ms, "latency_delta_ms")
+        object.__setattr__(self, "compute_cost_ratio", _finite_numeric(self.compute_cost_ratio, "compute_cost_ratio"))
+        object.__setattr__(self, "energy_delta_joules", _finite_numeric(self.energy_delta_joules, "energy_delta_joules"))
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -148,10 +160,10 @@ class ScalingProposal:
             current_physical_parameters=_exact_int(state['current_physical_parameters'], "current_physical_parameters"),
             candidate_physical_parameters=_exact_int(state['candidate_physical_parameters'], "candidate_physical_parameters"),
             baseline_observation_id=str(state['baseline_observation_id']), candidate_observation_id=str(state['candidate_observation_id']),
-            compute_cost_ratio=float(state['compute_cost_ratio']),
+            compute_cost_ratio=_finite_numeric(state['compute_cost_ratio'], "compute_cost_ratio"),
             storage_delta_bytes=_exact_int(state['storage_delta_bytes'], "storage_delta_bytes"),
             latency_delta_ms=_exact_int(state['latency_delta_ms'], "latency_delta_ms"),
-            energy_delta_joules=float(state['energy_delta_joules']),
+            energy_delta_joules=_finite_numeric(state['energy_delta_joules'], "energy_delta_joules"),
             economic_capacity_digest=str(state['economic_capacity_digest']),
             verifier_ids=tuple(str(x) for x in state.get('verifier_ids', ())),
             external_evaluator_id=str(state['external_evaluator_id']), evidence_ids=tuple(str(x) for x in state.get('evidence_ids', ())),
@@ -308,10 +320,10 @@ class ParameterScalingAuthority:
             current_physical_parameters=identity.parameter_accounting.total_physical_parameters,
             candidate_physical_parameters=_exact_int(kwargs['candidate_physical_parameters'], "candidate_physical_parameters"),
             baseline_observation_id=str(kwargs['baseline_observation_id']), candidate_observation_id=str(kwargs['candidate_observation_id']),
-            compute_cost_ratio=float(kwargs['compute_cost_ratio']),
+            compute_cost_ratio=_finite_numeric(kwargs['compute_cost_ratio'], "compute_cost_ratio"),
             storage_delta_bytes=_exact_int(kwargs['storage_delta_bytes'], "storage_delta_bytes"),
             latency_delta_ms=_exact_int(kwargs['latency_delta_ms'], "latency_delta_ms"),
-            energy_delta_joules=float(kwargs['energy_delta_joules']),
+            energy_delta_joules=_finite_numeric(kwargs['energy_delta_joules'], "energy_delta_joules"),
             economic_capacity_digest=str(kwargs['economic_capacity_digest']),
             verifier_ids=tuple(sorted({str(x) for x in kwargs['verifier_ids']})),
             external_evaluator_id=str(kwargs['external_evaluator_id']),
@@ -416,5 +428,5 @@ class ParameterScalingAuthority:
 
 
 COMPONENT_ID = "evaluation.parameters"
-COMPONENT_VERSION = "0.0.3"
+COMPONENT_VERSION = "0.0.4"
 MIGRATED_FROM = "cogcoder.organization.evaluation_parameters"
