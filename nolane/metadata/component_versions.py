@@ -64,7 +64,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.regimes": 2,
         "evaluation.evidence": 1,
         "evaluation.stress": 2,
-        "evaluation.claims": 1,
+        "evaluation.claims": 2,
         "evaluation.parameters": 1,
         "evaluation.release": 2,
         "evaluation.scaling": 1,
