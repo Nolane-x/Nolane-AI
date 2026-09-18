@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import isfinite
 from typing import Any, Mapping
 
 from nolane.evaluation.campaign import CampaignStatus, EvaluationCampaignControlPlane
@@ -19,6 +20,15 @@ def _exact_int(value: object, label: str) -> int:
     if type(value) is not int:
         raise ValueError(f"{label} must be an exact int")
     return value
+
+
+def _finite_numeric(value: object, label: str) -> float:
+    if type(value) not in (int, float):
+        raise ValueError(f"{label} must be an exact numeric value")
+    normalized = float(value)
+    if not isfinite(normalized):
+        raise ValueError(f"{label} must be finite")
+    return normalized
 
 
 @dataclass(frozen=True, slots=True)
@@ -78,6 +88,8 @@ class CampaignRunReceipt:
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "passed", _exact_bool(self.passed, "passed"))
+        if self.energy_joules is not None:
+            object.__setattr__(self, "energy_joules", _finite_numeric(self.energy_joules, "energy_joules"))
         _exact_int(self.false_accepts, "false_accepts")
         _exact_int(self.regressions, "regressions")
         _exact_int(self.compute_units, "compute_units")
@@ -109,7 +121,7 @@ class CampaignRunReceipt:
             tool_calls=_exact_int(state['tool_calls'], "tool_calls"),
             external_core_calls=_exact_int(state['external_core_calls'], "external_core_calls"),
             wall_clock_ms=_exact_int(state['wall_clock_ms'], "wall_clock_ms"),
-            energy_joules=None if state.get('energy_joules') is None else float(state['energy_joules']),
+            energy_joules=None if state.get('energy_joules') is None else _finite_numeric(state['energy_joules'], "energy_joules"),
             active_agents=_exact_int(state['active_agents'], "active_agents"),
             output_artifact_ids=tuple(str(x) for x in state.get('output_artifact_ids', ())),
             termination_reason=str(state['termination_reason']), digest=str(state['digest']),
@@ -236,7 +248,7 @@ class CampaignRunLedger:
             tool_calls=_exact_int(tool_calls, "tool_calls"),
             external_core_calls=_exact_int(external_core_calls, "external_core_calls"),
             wall_clock_ms=_exact_int(wall_clock_ms, "wall_clock_ms"),
-            energy_joules=None if energy_joules is None else float(energy_joules),
+            energy_joules=None if energy_joules is None else _finite_numeric(energy_joules, "energy_joules"),
             active_agents=_exact_int(active_agents, "active_agents"),
             output_artifact_ids=tuple(str(x) for x in output_artifact_ids),
             termination_reason=str(termination_reason), digest='',
