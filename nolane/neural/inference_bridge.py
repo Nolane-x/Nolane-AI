@@ -86,6 +86,10 @@ class CognitiveStateEncoder:
         schema = tuple(str(x) for x in action_schema if str(x).strip())
         if not schema:
             raise ValueError('action schema must be non-empty')
+        if type(step_index) is not int:
+            raise ValueError('step index must be an exact integer')
+        if type(execution_lineage_version) is not int:
+            raise ValueError('execution lineage version must be an exact integer')
         context_digest = canonical_digest(self.capsule_payload(capsule))
         cognitive_state_digest = None
         if cognitive_state is not None:
@@ -103,9 +107,9 @@ class CognitiveStateEncoder:
             action_schema=schema,
             action_schema_digest=canonical_digest(list(schema)),
             counters=counters,
-            step_index=int(step_index),
+            step_index=step_index,
             cognitive_state_digest=cognitive_state_digest,
-            execution_lineage_version=int(execution_lineage_version),
+            execution_lineage_version=execution_lineage_version,
             execution_session_id=execution_session_id,
             workspace_epoch_id=workspace_epoch_id,
         )
