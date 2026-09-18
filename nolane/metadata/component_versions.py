@@ -61,7 +61,7 @@ _COMPONENT_REVISIONS.update(
         "external.coding.control": 4,
         "external.debugging": 2,
         "external.ui_ux": 2,
-        "evaluation.regimes": 2,
+        "evaluation.regimes": 3,
         "evaluation.evidence": 2,
         "evaluation.stress": 2,
         "evaluation.claims": 2,
