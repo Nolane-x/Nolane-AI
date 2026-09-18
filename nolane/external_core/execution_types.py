@@ -384,7 +384,11 @@ class AgentDecisionReceipt:
             'cognitive_state_digest',
             _optional_digest(self.cognitive_state_digest, 'cognitive state digest'),
         )
-        version = int(self.request_provenance_version)
+        if type(self.step_index) is not int:
+            raise ValueError('decision step index must be an exact integer')
+        if type(self.request_provenance_version) is not int:
+            raise ValueError('request provenance version must be an exact integer')
+        version = self.request_provenance_version
         if version not in {1, 2}:
             raise ValueError('unsupported inference request provenance version')
         object.__setattr__(self, 'request_provenance_version', version)
@@ -507,7 +511,7 @@ class AgentDecisionReceipt:
 
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'AgentDecisionReceipt':
-        version = int(state.get('request_provenance_version', 1))
+        version = state.get('request_provenance_version', 1)
         raw_request = state.get('request')
         request = None if raw_request is None else InferenceRequest.from_state(raw_request)
         row = cls(
@@ -520,9 +524,9 @@ class AgentDecisionReceipt:
             encoder_version=str(state['encoder_version']),
             context_digest=str(state['context_digest']),
             action_schema_digest=str(state['action_schema_digest']),
-            step_index=int(state['step_index']),
+            step_index=state['step_index'],
             action=ExecutionAction.from_state(state['action']),
-            compute_units=int(state['compute_units']),
+            compute_units=state['compute_units'],
             digest=str(state['digest']),
             cognitive_state_digest=(
                 None
