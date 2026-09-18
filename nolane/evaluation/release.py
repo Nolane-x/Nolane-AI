@@ -40,6 +40,10 @@ class EvaluationReleaseReceipt:
     evaluation_digest: str
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.passed, 'reproduction passed')
+        _exact_bool(self.independent, 'reproduction independent')
+
     def payload(self) -> dict[str, Any]:
         return {
             'release_id': self.release_id, 'release_version': self.release_version,
@@ -119,7 +123,7 @@ class ReproductionReceipt:
             reproduction_command_digest=str(state['reproduction_command_digest']),
             environment_toolchain_digest=str(state['environment_toolchain_digest']),
             passed=_exact_bool(state['passed'], 'reproduction passed'),
-            independent=bool(state['independent']), digest=str(state['digest']),
+            independent=_exact_bool(state['independent'], 'reproduction independent'), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
             raise ValueError('evaluation reproduction receipt digest mismatch')
