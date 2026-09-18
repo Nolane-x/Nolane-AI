@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
-
 import pytest
 
 from cogcoder.organization.runtime import OrganizationRuntime
@@ -70,29 +68,30 @@ def test_stress_observation_constructor_rejects_non_exact_integer_authority(
     alias: object,
 ) -> None:
     canonical = _canonical_observation()
-    mutated = replace(canonical, **{field: alias})
+    constructor_kwargs: dict[str, object] = {
+        "observation_id": canonical.observation_id,
+        "scenario": canonical.scenario,
+        "regime_digest": canonical.regime_digest,
+        "initial_state_digest": canonical.initial_state_digest,
+        "final_state_digest": canonical.final_state_digest,
+        "checkpoint_anchor": canonical.checkpoint_anchor,
+        "event_anchor": canonical.event_anchor,
+        "plan_revision_before": canonical.plan_revision_before,
+        "plan_revision_after": canonical.plan_revision_after,
+        "contamination_count": canonical.contamination_count,
+        "stale_context_count": canonical.stale_context_count,
+        "false_accepts": canonical.false_accepts,
+        "regressions": canonical.regressions,
+        "recovered": canonical.recovered,
+        "elapsed_logical_epochs": canonical.elapsed_logical_epochs,
+        "evidence": canonical.evidence,
+        "subject_agent_id": canonical.subject_agent_id,
+        "digest": canonical.digest,
+    }
+    constructor_kwargs[field] = alias
 
     with pytest.raises(ValueError, match=rf"{field}.*exact int"):
-        LongHorizonStressObservation(
-            observation_id=mutated.observation_id,
-            scenario=mutated.scenario,
-            regime_digest=mutated.regime_digest,
-            initial_state_digest=mutated.initial_state_digest,
-            final_state_digest=mutated.final_state_digest,
-            checkpoint_anchor=mutated.checkpoint_anchor,
-            event_anchor=mutated.event_anchor,
-            plan_revision_before=mutated.plan_revision_before,
-            plan_revision_after=mutated.plan_revision_after,
-            contamination_count=mutated.contamination_count,
-            stale_context_count=mutated.stale_context_count,
-            false_accepts=mutated.false_accepts,
-            regressions=mutated.regressions,
-            recovered=mutated.recovered,
-            elapsed_logical_epochs=mutated.elapsed_logical_epochs,
-            evidence=mutated.evidence,
-            subject_agent_id=mutated.subject_agent_id,
-            digest=mutated.digest,
-        )
+        LongHorizonStressObservation(**constructor_kwargs)
 
 
 @pytest.mark.parametrize("field", _INTEGER_FIELDS)
