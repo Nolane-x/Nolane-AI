@@ -119,6 +119,12 @@ class ScalingProposal:
     evidence_ids: tuple[str, ...]
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_int(self.current_physical_parameters, "current_physical_parameters")
+        _exact_int(self.candidate_physical_parameters, "candidate_physical_parameters")
+        _exact_int(self.storage_delta_bytes, "storage_delta_bytes")
+        _exact_int(self.latency_delta_ms, "latency_delta_ms")
+
     def payload(self) -> dict[str, Any]:
         return {
             'proposal_id': self.proposal_id, 'agent_id': self.agent_id,
@@ -139,11 +145,13 @@ class ScalingProposal:
     def from_state(cls, state: Mapping[str, Any]) -> 'ScalingProposal':
         row = cls(
             proposal_id=str(state['proposal_id']), agent_id=str(state['agent_id']),
-            current_physical_parameters=int(state['current_physical_parameters']),
-            candidate_physical_parameters=int(state['candidate_physical_parameters']),
+            current_physical_parameters=_exact_int(state['current_physical_parameters'], "current_physical_parameters"),
+            candidate_physical_parameters=_exact_int(state['candidate_physical_parameters'], "candidate_physical_parameters"),
             baseline_observation_id=str(state['baseline_observation_id']), candidate_observation_id=str(state['candidate_observation_id']),
-            compute_cost_ratio=float(state['compute_cost_ratio']), storage_delta_bytes=int(state['storage_delta_bytes']),
-            latency_delta_ms=int(state['latency_delta_ms']), energy_delta_joules=float(state['energy_delta_joules']),
+            compute_cost_ratio=float(state['compute_cost_ratio']),
+            storage_delta_bytes=_exact_int(state['storage_delta_bytes'], "storage_delta_bytes"),
+            latency_delta_ms=_exact_int(state['latency_delta_ms'], "latency_delta_ms"),
+            energy_delta_joules=float(state['energy_delta_joules']),
             economic_capacity_digest=str(state['economic_capacity_digest']),
             verifier_ids=tuple(str(x) for x in state.get('verifier_ids', ())),
             external_evaluator_id=str(state['external_evaluator_id']), evidence_ids=tuple(str(x) for x in state.get('evidence_ids', ())),
@@ -298,10 +306,12 @@ class ParameterScalingAuthority:
         row0 = ScalingProposal(
             proposal_id=str(kwargs['proposal_id']), agent_id=identity.agent_id,
             current_physical_parameters=identity.parameter_accounting.total_physical_parameters,
-            candidate_physical_parameters=int(kwargs['candidate_physical_parameters']),
+            candidate_physical_parameters=_exact_int(kwargs['candidate_physical_parameters'], "candidate_physical_parameters"),
             baseline_observation_id=str(kwargs['baseline_observation_id']), candidate_observation_id=str(kwargs['candidate_observation_id']),
-            compute_cost_ratio=float(kwargs['compute_cost_ratio']), storage_delta_bytes=int(kwargs['storage_delta_bytes']),
-            latency_delta_ms=int(kwargs['latency_delta_ms']), energy_delta_joules=float(kwargs['energy_delta_joules']),
+            compute_cost_ratio=float(kwargs['compute_cost_ratio']),
+            storage_delta_bytes=_exact_int(kwargs['storage_delta_bytes'], "storage_delta_bytes"),
+            latency_delta_ms=_exact_int(kwargs['latency_delta_ms'], "latency_delta_ms"),
+            energy_delta_joules=float(kwargs['energy_delta_joules']),
             economic_capacity_digest=str(kwargs['economic_capacity_digest']),
             verifier_ids=tuple(sorted({str(x) for x in kwargs['verifier_ids']})),
             external_evaluator_id=str(kwargs['external_evaluator_id']),
@@ -406,5 +416,5 @@ class ParameterScalingAuthority:
 
 
 COMPONENT_ID = "evaluation.parameters"
-COMPONENT_VERSION = "0.0.2"
+COMPONENT_VERSION = "0.0.3"
 MIGRATED_FROM = "cogcoder.organization.evaluation_parameters"
