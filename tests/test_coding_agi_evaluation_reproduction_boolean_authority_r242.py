@@ -86,3 +86,56 @@ def test_runtime_restore_rejects_truthy_false_reproduction_alias() -> None:
     state["evaluation_scaling"]["releases"]["reproductions"][0]["passed"] = "false"
     with pytest.raises(ValueError, match="reproduction passed.*exact bool"):
         OrganizationRuntime.from_state(state)
+
+
+@pytest.mark.parametrize(
+    ("field", "alias"),
+    [
+        ("passed", "false"),
+        ("passed", 1),
+        ("independent", "false"),
+        ("independent", 1),
+    ],
+)
+def test_reproduction_receipt_constructor_rejects_non_boolean_authority(
+    field: str, alias: object
+) -> None:
+    from nolane.evaluation.release import ReproductionReceipt
+
+    runtime = OrganizationRuntime.first_generation()
+    control, artifact, release = _release_fixture(runtime)
+    receipt = _record_reproduction(control, artifact, release, passed=True)
+    values = receipt.to_state()
+    values[field] = alias
+
+    with pytest.raises(ValueError, match=f"reproduction {field}.*exact bool"):
+        ReproductionReceipt(**values)
+
+
+@pytest.mark.parametrize("alias", ["false", "true", 0, 1])
+def test_reproduction_receipt_restore_rejects_non_boolean_independent_aliases(
+    alias: object,
+) -> None:
+    from nolane.evaluation.release import ReproductionReceipt
+
+    runtime = OrganizationRuntime.first_generation()
+    control, artifact, release = _release_fixture(runtime)
+    receipt = _record_reproduction(control, artifact, release, passed=True)
+    state = receipt.to_state()
+    state["independent"] = alias
+
+    with pytest.raises(ValueError, match="reproduction independent.*exact bool"):
+        ReproductionReceipt.from_state(state)
+
+
+def test_runtime_restore_rejects_truthy_false_reproduction_independent_alias() -> None:
+    runtime = OrganizationRuntime.first_generation()
+    control, artifact, release = _release_fixture(runtime)
+    receipt = _record_reproduction(control, artifact, release, passed=True)
+    assert control.releases.is_reproduction_valid(receipt.reproduction_id)
+
+    state = copy.deepcopy(runtime.to_state())
+    state["evaluation_scaling"]["releases"]["reproductions"][0]["independent"] = "false"
+
+    with pytest.raises(ValueError, match="reproduction independent.*exact bool"):
+        OrganizationRuntime.from_state(state)
