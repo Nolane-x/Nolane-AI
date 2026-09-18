@@ -14,6 +14,12 @@ COMPONENT_VERSION = "0.0.1"
 MIGRATED_FROM = "cogcoder.organization.evaluation_stress"
 
 
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be exact bool")
+    return value
+
+
 class StressScenarioKind(str, Enum):
     SLEEP_WAKE_CONTINUITY = "sleep_wake_continuity"
     PLAN_DRIFT = "plan_drift"
@@ -55,6 +61,9 @@ class LongHorizonStressObservation:
     subject_agent_id: str | None
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.recovered, "stress observation recovered")
+
     def payload(self) -> dict[str, Any]:
         return {
             "observation_id": self.observation_id,
@@ -95,7 +104,7 @@ class LongHorizonStressObservation:
             stale_context_count=int(state["stale_context_count"]),
             false_accepts=int(state["false_accepts"]),
             regressions=int(state["regressions"]),
-            recovered=bool(state["recovered"]),
+            recovered=_exact_bool(state["recovered"], "stress observation recovered"),
             elapsed_logical_epochs=int(state["elapsed_logical_epochs"]),
             evidence=EvidenceRecord.from_state(state["evidence"]),
             subject_agent_id=None if state.get("subject_agent_id") is None else str(state["subject_agent_id"]),
@@ -139,6 +148,9 @@ class StressSuiteAssessment:
     reasons: tuple[str, ...]
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.passed, "stress suite passed")
+
     def payload(self) -> dict[str, Any]:
         return {
             "assessment_id": self.assessment_id,
@@ -159,7 +171,7 @@ class StressSuiteAssessment:
             observation_ids=tuple(str(x) for x in state.get("observation_ids", ())),
             covered_scenarios=tuple(StressScenarioKind(str(x)) for x in state.get("covered_scenarios", ())),
             missing_scenarios=tuple(StressScenarioKind(str(x)) for x in state.get("missing_scenarios", ())),
-            passed=bool(state["passed"]),
+            passed=_exact_bool(state["passed"], "stress suite passed"),
             reasons=tuple(str(x) for x in state.get("reasons", ())),
             digest=str(state["digest"]),
         )
@@ -220,7 +232,7 @@ class LongHorizonStressLedger:
             stale_context_count=int(kwargs["stale_context_count"]),
             false_accepts=int(kwargs["false_accepts"]),
             regressions=int(kwargs["regressions"]),
-            recovered=bool(kwargs["recovered"]),
+            recovered=_exact_bool(kwargs["recovered"], "stress observation recovered"),
             elapsed_logical_epochs=int(kwargs["elapsed_logical_epochs"]),
             evidence=kwargs["evidence"],
             subject_agent_id=None if kwargs.get("subject_agent_id") is None else str(kwargs["subject_agent_id"]),
