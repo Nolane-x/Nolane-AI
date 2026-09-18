@@ -9,6 +9,12 @@ from nolane.organization.identity import AgentRegistry
 from nolane.core.canonical_digest import canonical_digest
 
 
+def _exact_bool(value: object, name: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{name} must be an exact bool")
+    return value
+
+
 @dataclass(frozen=True, slots=True)
 class CampaignReproductionPackage:
     package_id: str
@@ -65,6 +71,10 @@ class CampaignReproductionReceipt:
     artifact_bundle_digest: str
     digest: str
 
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "reproduced", _exact_bool(self.reproduced, "reproduced"))
+        object.__setattr__(self, "independent", _exact_bool(self.independent, "independent"))
+
     def payload(self) -> dict[str, Any]:
         return {
             'reproduction_id': self.reproduction_id, 'package_id': self.package_id,
@@ -79,8 +89,8 @@ class CampaignReproductionReceipt:
     def from_state(cls, state: Mapping[str, Any]) -> 'CampaignReproductionReceipt':
         row = cls(
             reproduction_id=str(state['reproduction_id']), package_id=str(state['package_id']),
-            evaluator_id=str(state['evaluator_id']), reproduced=bool(state['reproduced']),
-            independent=bool(state['independent']), artifact_bundle_digest=str(state['artifact_bundle_digest']),
+            evaluator_id=str(state['evaluator_id']), reproduced=_exact_bool(state['reproduced'], "reproduced"),
+            independent=_exact_bool(state['independent'], "independent"), artifact_bundle_digest=str(state['artifact_bundle_digest']),
             digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
@@ -199,7 +209,7 @@ class CampaignReproductionLedger:
             raise PermissionError('independent reproduction requires evaluator outside permanent organization identities')
         row0 = CampaignReproductionReceipt(
             reproduction_id=str(reproduction_id), package_id=package.package_id, evaluator_id=evaluator_id,
-            reproduced=bool(reproduced), independent=True, artifact_bundle_digest=str(artifact_bundle_digest), digest='',
+            reproduced=_exact_bool(reproduced, "reproduced"), independent=True, artifact_bundle_digest=str(artifact_bundle_digest), digest='',
         )
         row = CampaignReproductionReceipt(
             reproduction_id=row0.reproduction_id, package_id=row0.package_id, evaluator_id=row0.evaluator_id,

@@ -70,7 +70,7 @@ def test_wave5am_canonical_campaign_cluster_owns_all_public_authority() -> None:
     root = _root()
     canonical = importlib.import_module("nolane.evaluation.campaign")
     assert canonical.COMPONENT_ID == "evaluation.campaign"
-    assert canonical.COMPONENT_VERSION == "0.0.1"
+    assert canonical.COMPONENT_VERSION == "0.0.2"
     assert canonical.MIGRATED_FROM == "cogcoder.organization.campaign"
 
     for suffix, names in _MODULE_OBJECTS.items():
@@ -126,8 +126,8 @@ def test_wave5am_campaign_authority_version_facade_and_debt_cutover() -> None:
     assert row.status is ImplementationStatus.CANONICAL_NATIVE
     assert row.canonical_module == "nolane.evaluation.campaign"
     assert row.canonical_write_authority
-    assert row.component_version == "0.0.1"
-    assert str(component_version("evaluation.campaign")) == "0.0.1"
+    assert row.component_version == "0.0.2"
+    assert str(component_version("evaluation.campaign")) == "0.0.2"
     assert all(binding.component_id != "evaluation.campaign" for binding in build_active_facade_bindings())
 
     state = json.loads((_root() / "CURRENT" / "NATIVE_DEBT.json").read_text(encoding="utf-8"))
