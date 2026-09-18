@@ -14,8 +14,14 @@ from nolane.organization.identity import AgentRegistry
 
 
 COMPONENT_ID = "evaluation.evidence"
-COMPONENT_VERSION = "0.0.1"
+COMPONENT_VERSION = "0.0.2"
 MIGRATED_FROM = "cogcoder.organization.evaluation_evidence"
+
+
+def _exact_bool(value: object, label: str) -> bool:
+    if type(value) is not bool:
+        raise ValueError(f"{label} must be an exact bool")
+    return value
 
 
 @dataclass(frozen=True, slots=True)
@@ -112,6 +118,10 @@ class MatchedBudgetComparison:
     reason: str
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.comparable, "comparable")
+        _exact_bool(self.improved, "improved")
+
     def payload(self) -> dict[str, Any]:
         return {
             'comparison_id': self.comparison_id,
@@ -131,8 +141,9 @@ class MatchedBudgetComparison:
             comparison_id=str(state['comparison_id']),
             organization_observation_id=str(state['organization_observation_id']),
             baseline_observation_id=str(state['baseline_observation_id']),
-            baseline_mode=EvaluationMode(str(state['baseline_mode'])), comparable=bool(state['comparable']),
-            improved=bool(state['improved']), score_delta=float(state['score_delta']),
+            baseline_mode=EvaluationMode(str(state['baseline_mode'])),
+            comparable=_exact_bool(state['comparable'], "comparable"),
+            improved=_exact_bool(state['improved'], "improved"), score_delta=float(state['score_delta']),
             reason=str(state['reason']), digest=str(state['digest']),
         )
         if canonical_digest(row.payload()) != row.digest:
@@ -147,6 +158,9 @@ class OrganizationSuperiorityAssessment:
     supported: bool
     reason: str
     digest: str
+
+    def __post_init__(self) -> None:
+        _exact_bool(self.supported, "supported")
 
     def payload(self) -> dict[str, Any]:
         return {
@@ -172,6 +186,9 @@ class AblationAssessment:
     reason: str
     digest: str
 
+    def __post_init__(self) -> None:
+        _exact_bool(self.comparable, "comparable")
+
     def payload(self) -> dict[str, Any]:
         return {
             'assessment_id': self.assessment_id, 'full_observation_id': self.full_observation_id,
@@ -189,7 +206,8 @@ class AblationAssessment:
         row = cls(
             assessment_id=str(state['assessment_id']), full_observation_id=str(state['full_observation_id']),
             ablation_observation_id=str(state['ablation_observation_id']),
-            ablation_mode=EvaluationMode(str(state['ablation_mode'])), comparable=bool(state['comparable']),
+            ablation_mode=EvaluationMode(str(state['ablation_mode'])),
+            comparable=_exact_bool(state['comparable'], "comparable"),
             score_delta=float(state['score_delta']), false_accept_delta=int(state['false_accept_delta']),
             regression_delta=int(state['regression_delta']), compute_delta=int(state['compute_delta']),
             reason=str(state['reason']), digest=str(state['digest']),
