@@ -154,6 +154,7 @@ class PublicTeacherStep:
     previous_action: int
     previous_feedback: tuple[float, float, float]
     target_action: int
+    target_actions: tuple[int, ...]
 
 
 @dataclass(frozen=True)
@@ -165,12 +166,12 @@ class PublicTeacherEpisode:
     solved: bool
 
 
-def _public_exploration_action(
+def _public_exploration_actions(
     task,
     *,
     action_memory: PublicActionMemory,
     post_gate_explored: set[int],
-) -> int | None:
+) -> list[int]:
     observation = task.observe()
     descriptions = tuple(str(value) for value in task.action_descriptions)
     non_submit = [
@@ -194,9 +195,7 @@ def _public_exploration_action(
                 index for index in non_submit
                 if index not in post_gate_explored
             ]
-            if candidates:
-                return min(candidates, key=lambda index: descriptions[index])
-            return None
+            return candidates
 
         target_repeats = 3 if charge < 2 else 4
         candidates = [
@@ -204,11 +203,9 @@ def _public_exploration_action(
             if contextual[index] < target_repeats
         ]
         if candidates:
-            return min(
-                candidates,
-                key=lambda index: (contextual[index], descriptions[index]),
-            )
-        return None
+            minimum = min(contextual[index] for index in candidates)
+            return [index for index in candidates if contextual[index] == minimum]
+        return []
 
     repeats = 1 if task.family == "regime_switch" else 2
     candidates = [
@@ -216,11 +213,31 @@ def _public_exploration_action(
         if contextual[index] < repeats
     ]
     if candidates:
-        return min(
-            candidates,
-            key=lambda index: (contextual[index], descriptions[index]),
-        )
-    return None
+        minimum = min(contextual[index] for index in candidates)
+        return [index for index in candidates if contextual[index] == minimum]
+    return []
+
+
+def _shortest_oracle_target_set(task, *, oracle_plan) -> tuple[int, ...]:
+    best = oracle_plan(copy.deepcopy(task))
+    if not best:
+        return ()
+    best_length = len(best)
+    targets: list[int] = []
+    for action in range(len(task.action_descriptions)):
+        branch = copy.deepcopy(task)
+        result = branch.step(action)
+        if result.done:
+            if result.solved and best_length == 1:
+                targets.append(action)
+            continue
+        try:
+            remainder = oracle_plan(copy.deepcopy(branch))
+        except RuntimeError:
+            continue
+        if 1 + len(remainder) == best_length:
+            targets.append(action)
+    return tuple(targets or (int(best[0]),))
 
 
 def collect_public_teacher_episode(
@@ -248,21 +265,34 @@ def collect_public_teacher_episode(
             break
         observation = task.observe()
         descriptions = tuple(str(value) for value in task.action_descriptions)
-        proposal = _public_exploration_action(
+        proposals = _public_exploration_actions(
             task,
             action_memory=action_memory,
             post_gate_explored=post_gate_explored,
         )
-        target = int(plan[0])
-        if proposal is not None and task.budget_remaining > len(plan) + 1:
-            branch = copy.deepcopy(task)
-            branch.step(int(proposal))
-            try:
-                oracle_plan(copy.deepcopy(branch))
-            except RuntimeError:
-                proposal = None
-            if proposal is not None:
-                target = int(proposal)
+        oracle_targets = _shortest_oracle_target_set(task, oracle_plan=oracle_plan)
+        target_actions = oracle_targets
+        target = int(oracle_targets[0])
+        if proposals and task.budget_remaining > len(plan) + 1:
+            safe_proposals: list[int] = []
+            for proposal in proposals:
+                branch = copy.deepcopy(task)
+                result = branch.step(int(proposal))
+                if result.done:
+                    if result.solved:
+                        safe_proposals.append(int(proposal))
+                    continue
+                try:
+                    oracle_plan(copy.deepcopy(branch))
+                except RuntimeError:
+                    continue
+                safe_proposals.append(int(proposal))
+            if safe_proposals:
+                target_actions = tuple(sorted(set(safe_proposals)))
+                target = min(
+                    target_actions,
+                    key=lambda index: descriptions[index],
+                )
 
         memory_features = action_memory.features(
             observation,
@@ -277,6 +307,7 @@ def collect_public_teacher_episode(
                 previous_action=previous_action,
                 previous_feedback=previous_feedback,
                 target_action=target,
+                target_actions=tuple(target_actions),
             )
         )
 
@@ -354,6 +385,10 @@ def tensorize_public_step(
             dtype=torch.float32,
         ),
         "target_action": torch.tensor([row.target_action], dtype=torch.long),
+        "target_mask": torch.tensor(
+            [[index in set(row.target_actions) for index in range(max_actions)]],
+            dtype=torch.bool,
+        ),
     }
 
 
