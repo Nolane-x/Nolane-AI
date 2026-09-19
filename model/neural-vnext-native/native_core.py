@@ -10,6 +10,7 @@ from torch import Tensor, nn
 
 GLOBAL_FEATURE_DIM = 29
 ACTION_FEATURE_DIM = 25
+TARGET_VISIBLE_FEATURE_INDEX = 12
 REGIME_LABELS = ("amber", "violet", "cobalt", "ivory", "sable", "mint", "coral", "silver")
 
 
@@ -311,8 +312,11 @@ class NativeRecurrentPolicy(nn.Module):
             dtype=goal_logits.dtype,
         ) / 4.0
         goal_expectation = (goal_probability * goal_values[None, None, :]).sum(dim=-1)
+        target_visible = global_features[:, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1]
+        hidden_target_gate = 1.0 - target_visible.clamp(0.0, 1.0)
         policy_hidden = self.goal_policy_norm(
-            next_hidden + self.goal_belief_projection(goal_expectation)
+            next_hidden
+            + hidden_target_gate * self.goal_belief_projection(goal_expectation)
         )
         expanded = policy_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
         logits = self.score(torch.cat((action_tokens, expanded), dim=-1)).squeeze(-1)
