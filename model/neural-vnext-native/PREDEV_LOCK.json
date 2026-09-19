@@ -10,11 +10,20 @@
       "causal_prerequisites"
     ],
     "training_split": "train",
-    "training_indices": [0, 127],
+    "training_indices": [
+      0,
+      127
+    ],
     "development_split": "dev",
-    "development_indices": [0, 31],
+    "development_indices": [
+      0,
+      31
+    ],
     "fresh_split": "fresh",
-    "fresh_indices": [0, 39],
+    "fresh_indices": [
+      0,
+      39
+    ],
     "fresh_episodes_expected": 160
   },
   "fresh_isolation": {
@@ -33,15 +42,43 @@
   },
   "training": {
     "seed": 20260919,
-    "expert_epochs": 2,
-    "dagger_epochs": 2,
-    "dagger_teacher_mix": [0.5, 0.25],
+    "development_candidates": [
+      {
+        "name": "expert4",
+        "expert_epochs": 4,
+        "dagger_teacher_mix": []
+      },
+      {
+        "name": "guarded_dagger",
+        "expert_epochs": 3,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ]
+      },
+      {
+        "name": "broad_dagger",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ]
+      }
+    ],
+    "selection_rule": [
+      "maximize development solved episodes",
+      "then maximize worst-family solved episodes",
+      "then minimize development action steps",
+      "then lexical candidate name"
+    ],
     "optimizer": "AdamW",
     "learning_rate": 0.0007,
     "weight_decay": 0.0001,
-    "max_grad_norm": 1.0,
+    "max_grad_norm": 1,
     "teacher": "public-exploration-first then FIGG-18 oracle supervision",
-    "fresh_split_forbidden": true
+    "fresh_split_forbidden": true,
+    "model_initialization_seed_bound_before_construction": true
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
 }
