@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native2-dev-001-universal-residual",
+  "git_head": "a12d645e760687a09b41501dc02c47973a8ac01d",
+  "workflow_run_id": 35431649748,
+  "job_id": 105867222553,
+  "artifact": {
+    "id": 10580639275,
+    "name": "neural-vnext-native2-dev",
+    "digest": "sha256:b44629eee9993712e67e757f50a150dabd39562ffdcd354214da81a2cb37520b",
+    "size_bytes": 1444908
+  },
+  "parent": {
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "dev_solved": 104,
+    "families": {
+      "causal_prerequisites": 26,
+      "conditional_regimes": 30,
+      "implicit_goal_regimes": 24,
+      "regime_switch": 24
+    }
+  },
+  "selected_candidate": "balanced_residual",
+  "candidate": {
+    "parent_parameters": 334099,
+    "successor_parameters": 53889,
+    "physical_parameters": 387988,
+    "checkpoint_sha256": "cb2fb1e3f420cb399a4fabe580c8d6669916c452a07be603721fb749c648469c",
+    "state_dict_sha256": "fff3ef5e238975ac0069bf702b74f1b35e080a59a91e58ad92b084bfbe2ab966"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 115,
+    "solve_rate": 0.8984375,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 32, "steps": 475},
+      "conditional_regimes": {"episodes": 32, "solved": 32, "steps": 286},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 22, "steps": 446},
+      "regime_switch": {"episodes": 32, "solved": 29, "steps": 473}
+    }
+  },
+  "diagnosis": "The universal residual materially improves every visible-target family but unnecessarily perturbs the accepted hidden-goal specialist, reducing implicit_goal_regimes from 24/32 to 22/32.",
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Reject v1 for freeze despite overall gain. Gate successor residual strictly to public target_visible=1 so implicit-goal inference remains bitwise on the accepted parent path."
+}
