@@ -40,7 +40,7 @@ def sha256_file(path: str | Path) -> str:
 
 def load_lock(path: str | Path) -> dict[str, Any]:
     payload = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1:
+    if not isinstance(payload, dict) or payload.get("schema_version") not in {1, 2}:
         raise ValueError("unsupported successor PREDEV lock")
     if payload.get("candidate") != "Neural-vNext-Native-R2-TransitionTrace":
         raise ValueError("unexpected successor candidate identity")
@@ -87,6 +87,7 @@ def train_episode(
     teacher_mix: float,
     max_grad_norm: float,
     residual_l2_weight: float,
+    training_scope: str,
 ) -> EpisodeTrainResult:
     if getattr(task, "split", None) != "train":
         raise ValueError("successor training is train-split only")
@@ -128,7 +129,12 @@ def train_episode(
         parent_hidden = output["next_parent_hidden"]
         target_tensor = torch.tensor([target], dtype=torch.long)
         policy_loss = F.cross_entropy(output["action_logits"], target_tensor)
-        valid_residual = output["residual_logits"][0][valid]
+        residual_key = (
+            "hidden_target_residual_logits"
+            if training_scope == "hidden_target"
+            else "residual_logits"
+        )
+        valid_residual = output[residual_key][0][valid]
         residual_penalty = (
             valid_residual.square().mean()
             if int(valid_residual.numel()) > 0
@@ -178,12 +184,12 @@ def train_episode(
             residual_mse=0.0,
         )
 
-    optimizer.zero_grad(set_to_none=True)
+    model.zero_grad(set_to_none=True)
     loss = torch.stack(losses).mean()
     loss.backward()
     trainable = [
         parameter
-        for parameter in model.successor_parameters()
+        for parameter in model.parameters_for_scope(training_scope)
         if parameter.grad is not None
     ]
     if not trainable:
@@ -217,6 +223,7 @@ def train_successor_policy(
     weight_decay: float,
     max_grad_norm: float,
     residual_l2_weight: float,
+    training_scope: str = "general",
 ) -> dict[str, Any]:
     if expert_epochs < 0:
         raise ValueError("expert_epochs must be non-negative")
@@ -225,9 +232,10 @@ def train_successor_policy(
 
     torch.manual_seed(int(seed))
     rng = random.Random(int(seed))
-    parameters = model.successor_parameters()
+    model.set_training_scope(training_scope)
+    parameters = model.parameters_for_scope(training_scope)
     if not parameters:
-        raise ValueError("no successor-owned trainable parameters")
+        raise ValueError("no successor-owned trainable parameters for scope")
     optimizer = torch.optim.AdamW(
         parameters,
         lr=float(learning_rate),
@@ -263,6 +271,7 @@ def train_successor_policy(
                 teacher_mix=teacher_mix,
                 max_grad_norm=max_grad_norm,
                 residual_l2_weight=residual_l2_weight,
+                training_scope=training_scope,
             )
             total_loss += result.loss * max(1, result.labelled_steps)
             total_labelled += result.labelled_steps
@@ -291,7 +300,9 @@ def train_successor_policy(
             (int(train_indices[1]) - int(train_indices[0]) + 1)
             * len(tuple(families))
         ),
-        "successor_trainable_parameters": model.successor_parameter_count(),
+        "training_scope": training_scope,
+        "scope_trainable_parameters": sum(parameter.numel() for parameter in parameters),
+        "successor_total_parameters": model.successor_parameter_count(),
         "parent_frozen_parameters": parameter_count(model.parent),
         "stages": stages,
     }
