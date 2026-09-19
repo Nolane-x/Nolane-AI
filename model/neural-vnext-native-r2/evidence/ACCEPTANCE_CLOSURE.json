@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-R2-TransitionTrace",
+  "accepted_candidate": "hidden_trace_broad",
+  "parameters": 536085,
+  "successor_parameters": 201986,
+  "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+  "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+  "development": {
+    "solved": 116,
+    "episodes": 128,
+    "solve_rate": 0.90625
+  },
+  "fresh": {
+    "candidate_solved": 141,
+    "parent_solved": 128,
+    "episodes": 160,
+    "candidate_solve_rate": 0.88125,
+    "parent_solve_rate": 0.8,
+    "accepted": true
+  },
+  "fresh_workflow_run_id": 35445318413,
+  "fresh_workflow_job_id": 105903134631,
+  "fresh_artifact_id": 10584793357,
+  "fresh_artifact_digest": "sha256:d75fec97d28f02a7fd6c6e9c68da5b369038f26fc0db854d34f14992688dedc8",
+  "evidence_chain": [
+    "../PRE_FRESH_LOCK.json",
+    "FRESH_COURT_001.json",
+    "../ACCEPTED_AUTHORITY.json"
+  ],
+  "frozen_source_mutated_after_fresh": false,
+  "post_fresh_training_performed": false,
+  "post_fresh_tuning_performed": false,
+  "fresh_block_reused": false,
+  "source_training_cross_host_reproducibility_claimed": false,
+  "closure_rule": "Future neural successor work must start from a new candidate authority and use a new untouched fresh block; fresh:40..79 is permanently consumed for promotion."
+}
