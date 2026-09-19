@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from collections import Counter
-from typing import Iterable
-
 import torch
 
 from .core import PublicR18RecursiveCore, encode_public_actions, encode_public_text
+from .data import PublicActionMemory
 
 R18_FAMILIES = (
     "conditional_regimes",
@@ -22,18 +20,32 @@ def run_public_episode(
     """Closed-loop neural-only evaluation. No oracle is accepted by this API."""
     model.eval()
     memory = model.initial_memory(1)
+    public_action_memory = PublicActionMemory(max_actions=model.max_actions)
     previous_action = -1
     previous_feedback = (0.0, 0.0, 0.0)
     actions_taken: list[int] = []
 
     with torch.no_grad():
         while not task.done:
+            before = task.observe()
             descriptions = tuple(str(value) for value in task.action_descriptions)
             action_tokens, action_mask = encode_public_actions(
                 descriptions,
                 max_actions=model.max_actions,
                 max_bytes=model.action_bytes,
             )
+            public_memory_rows = public_action_memory.features(
+                before,
+                action_count=len(descriptions),
+            )
+            action_memory = torch.zeros(
+                model.max_actions,
+                model.action_memory_dim,
+                dtype=torch.float32,
+            )
+            for index, values in enumerate(public_memory_rows):
+                action_memory[index] = torch.tensor(values, dtype=torch.float32)
+
             output = model(
                 observation_tokens=encode_public_text(
                     task.render_observation(),
@@ -41,15 +53,27 @@ def run_public_episode(
                 ).unsqueeze(0),
                 action_tokens=action_tokens.unsqueeze(0),
                 action_mask=action_mask.unsqueeze(0),
+                action_memory=action_memory.unsqueeze(0),
                 memory=memory,
                 previous_action=torch.tensor([previous_action], dtype=torch.long),
-                previous_feedback=torch.tensor([previous_feedback], dtype=torch.float32),
+                previous_feedback=torch.tensor(
+                    [previous_feedback],
+                    dtype=torch.float32,
+                ),
             )
             memory = output["next_memory"]
             action = int(output["action_logits"].argmax(dim=-1).item())
             if action >= len(descriptions):
                 raise RuntimeError("neural policy selected a padded action")
             result = task.step(action)
+            public_action_memory.update(
+                action=action,
+                before=before,
+                after=result.observation,
+                progress_delta=float(result.progress_delta),
+                information_gain=float(result.information_gain),
+                failed=bool(result.failed),
+            )
             actions_taken.append(action)
             previous_action = action
             previous_feedback = (
