@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-005-hidden-only-hard-bypass",
+  "git_head": "3c0b36a7bffc3c37a9a4d2900271d071fcd8c70f",
+  "workflow_run_id": 35423745121,
+  "artifact": {
+    "id": 10579061849,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:3162e622d9f1f811b35387deb6d4a46eb21af0b555ca934e27aa5943ef926fa4",
+    "size_bytes": 1113210
+  },
+  "selected_candidate": "guarded_dagger",
+  "selected_rank": [94, 3, -2210],
+  "candidate": {
+    "parameters": 299282,
+    "checkpoint_sha256": "9b3a24e15caac12f0551f8e8240ec1848177cf02aea86ec78de8ec2bef6b0a47",
+    "state_dict_sha256": "d7a1f65cc4edb93c48dbf7aa7b2c2019de58616195750284829968509c88179b"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 94,
+    "solve_rate": 0.734375,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 30, "steps": 496},
+      "conditional_regimes": {"episodes": 32, "solved": 32, "steps": 284},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 3, "steps": 952},
+      "regime_switch": {"episodes": 32, "solved": 29, "steps": 478}
+    }
+  },
+  "contracts": {
+    "count": 7,
+    "passed": 7,
+    "visible_target_goal_transform_hard_bypass": true,
+    "non_train_goal_supervision_rejected": true
+  },
+  "diagnosis": "Hard bypass removed visible-target leakage, but exact hidden-goal classification still underperformed. The current 3x5 head receives too little unique implicit-goal training data and compresses a multimodal categorical belief into three scalar expectations before policy scoring.",
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Reject for freeze. Preserve parity-v3 public memory and upgrade hidden-goal belief representation/training data on dev only."
+}
