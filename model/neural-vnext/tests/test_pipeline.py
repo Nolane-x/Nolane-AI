@@ -16,10 +16,13 @@ for root in (VNEXT_ROOT, R23_ROOT):
 
 from nvnext.pipeline import (  # noqa: E402
     CACHE_FORMAT,
+    R23_ONE_WEIGHT_FORMAT,
     load_frozen_candidate,
+    load_locked_r23_reasoner,
     load_verified_training_cache,
     run_training_epoch,
     save_frozen_candidate,
+    sha256_file,
 )
 from nvnext.training import make_vnext_optimizer  # noqa: E402
 from r23.ultra_core import ScaledRecursiveDistilledReasoner  # noqa: E402
@@ -138,3 +141,34 @@ def test_frozen_candidate_round_trip_binds_tensor_and_bundle_digests(tmp_path: P
     assert sum(parameter.numel() for parameter in restored.parameters()) == reasoner_parameters
     for name, value in model.state_dict().items():
         assert torch.equal(value.cpu(), restored.state_dict()[name].cpu())
+
+
+def test_locked_r23_reasoner_loader_avoids_historical_runtime_dependencies(tmp_path: Path) -> None:
+    torch.manual_seed(41)
+    source = ScaledRecursiveDistilledReasoner(latent_dim=192, n_heads=6, ff_mult=2)
+    bundle = tmp_path / "r23-one-weight.pt"
+    torch.save(
+        {
+            "format": R23_ONE_WEIGHT_FORMAT,
+            "physical_parameters": 79_858_099,
+            "r23_ultra_delta": {
+                "architecture": source.architecture(),
+                "state_dict": source.state_dict(),
+            },
+        },
+        bundle,
+    )
+    reasoner, metadata = load_locked_r23_reasoner(
+        bundle,
+        reasoner_factory=ScaledRecursiveDistilledReasoner,
+        expected_sha256=sha256_file(bundle),
+        expected_physical_parameters=79_858_099,
+    )
+
+    assert metadata["one_weight_sha256"] == sha256_file(bundle)
+    assert metadata["physical_parameters"] == 79_858_099
+    assert metadata["reasoner_parameters"] == sum(
+        parameter.numel() for parameter in source.parameters()
+    )
+    for name, value in source.state_dict().items():
+        assert torch.equal(value.cpu(), reasoner.state_dict()[name].cpu())
