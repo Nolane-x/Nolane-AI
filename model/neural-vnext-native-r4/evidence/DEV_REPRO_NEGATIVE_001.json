@@ -1,0 +1,104 @@
+{
+  "schema_version": 1,
+  "status": "R4_DEV_NON_BITWISE_REPRODUCIBLE",
+  "candidate": "Neural-vNext-Native-R4-LatentGoalBelief",
+  "source_head": "d18f7fbb71d860e81c33a6c22c2751765fb45f3f",
+  "fresh_opened": false,
+  "behavioral_dev_metrics_reproduced": true,
+  "cross_run_bitwise_reproducible": false,
+  "canonical_selection_rule": "first completed successful dev run at locked source head",
+  "canonical_workflow_run_id": 35451337745,
+  "canonical_workflow_job_id": 105918906059,
+  "canonical_artifact": {
+    "id": 10586044507,
+    "name": "neural-vnext-native-r4-dev",
+    "digest": "sha256:c255d0b238e11ce6b7d4015ee121bee30e101798ddd6a935113108776111851e",
+    "size_bytes": 3258572,
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "manifest_sha256": "899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1",
+    "dev_result_sha256": "c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1"
+  },
+  "comparison_attempt": {
+    "workflow_run_id": 35451322719,
+    "workflow_job_id": 105918868237,
+    "artifact_id": 10587201366,
+    "artifact_digest": "sha256:aa2e0efd921898455ad620e86ba3a299ac1617d0b0b5535bafd912c9136ca6b9",
+    "checkpoint_sha256": "f9ea6d7a2953a12fca69390f6593b2932bfe921e6c3e6f66e6d847c8f9b8be16",
+    "state_dict_sha256": "f20de064f01472ce1f9ce59ecfb76ba94fc8e8fadffd3c9f406f63ca34a37f85"
+  },
+  "reproduced_behavior": {
+    "selected_candidate": "latent_goal_guarded",
+    "parent_development": {
+      "indices": [
+        160,
+        191
+      ],
+      "episodes": 128,
+      "solved": 114,
+      "solve_rate": 0.890625,
+      "steps": 1711,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 466
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 288
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 22,
+          "steps": 443
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 28,
+          "steps": 514
+        }
+      }
+    },
+    "candidate_development": {
+      "indices": [
+        160,
+        191
+      ],
+      "episodes": 128,
+      "solved": 117,
+      "solve_rate": 0.9140625,
+      "steps": 1658,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 466
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 288
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 25,
+          "steps": 390
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 28,
+          "steps": 514
+        }
+      }
+    },
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": 3,
+      "regime_switch": 0
+    }
+  },
+  "claim_boundary": "R4 source training reproduced candidate identity and exact dev behavior but not exact checkpoint/state bytes across two workflow executions. Fresh authority therefore binds the first completed successful frozen artifact and must not claim bitwise source-training reproducibility."
+}
