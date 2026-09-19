@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "status": "ARCHIVED_ACCEPTED_CHECKPOINT",
+  "source_workflow_run_id": 35451337745,
+  "source_artifact_id": 10586044507,
+  "source_artifact_digest": "sha256:c255d0b238e11ce6b7d4015ee121bee30e101798ddd6a935113108776111851e",
+  "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+  "manifest_sha256": "899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1",
+  "dev_result_sha256": "c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1",
+  "fresh_acceptance_workflow_run_id": 35451949227,
+  "claim": "Repository-archived immutable materialization of the canonical R4 artifact accepted by the one-shot fresh:120..159 court."
+}

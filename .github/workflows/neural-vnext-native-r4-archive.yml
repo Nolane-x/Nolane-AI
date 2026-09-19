@@ -1,0 +1,81 @@
+name: Neural vNext Native R4 Archive Accepted Checkpoint
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r4-latent-goal-belief
+    paths:
+      - '.github/workflows/neural-vnext-native-r4-archive.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  archive-accepted-checkpoint:
+    if: ${{ github.event.before == 'fc6b77a3edf79214ec34541a9d9efe37cf0a0b12' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_ARMING_PARENT_HEAD: 'fc6b77a3edf79214ec34541a9d9efe37cf0a0b12'
+      CANONICAL_DEV_RUN_ID: '35451337745'
+      CHECKPOINT_SHA256: '167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244'
+      MANIFEST_SHA256: '899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1'
+      DEV_RESULT_SHA256: 'c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1'
+      CHECKPOINT_SIZE: '3539102'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse replayed archive authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$GITHUB_REF_NAME" = "codex/neural-native-r4-latent-goal-belief"
+
+      - name: Download exact canonical accepted artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r4-dev
+          path: frozen-r4-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35451337745
+
+      - name: Verify and materialize accepted checkpoint
+        run: |
+          test "$(stat -c %s frozen-r4-artifact/r4.pt)" = "$CHECKPOINT_SIZE"
+          test "$(sha256sum frozen-r4-artifact/r4.pt | awk '{print $1}')" = "$CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r4-artifact/r4.manifest.json | awk '{print $1}')" = "$MANIFEST_SHA256"
+          test "$(sha256sum frozen-r4-artifact/r4.dev.json | awk '{print $1}')" = "$DEV_RESULT_SHA256"
+          mkdir -p model/neural-vnext-native-r4/accepted
+          cp frozen-r4-artifact/r4.pt model/neural-vnext-native-r4/accepted/r4.pt
+          cp frozen-r4-artifact/r4.manifest.json model/neural-vnext-native-r4/accepted/r4.manifest.json
+          cp frozen-r4-artifact/r4.dev.json model/neural-vnext-native-r4/accepted/r4.dev.json
+          cat > model/neural-vnext-native-r4/accepted/ARCHIVE_AUTHORITY.json <<'JSON'
+          {
+            "schema_version": 1,
+            "status": "ARCHIVED_ACCEPTED_CHECKPOINT",
+            "source_workflow_run_id": 35451337745,
+            "source_artifact_id": 10586044507,
+            "source_artifact_digest": "sha256:c255d0b238e11ce6b7d4015ee121bee30e101798ddd6a935113108776111851e",
+            "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+            "manifest_sha256": "899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1",
+            "dev_result_sha256": "c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1",
+            "fresh_acceptance_workflow_run_id": 35451949227,
+            "claim": "Repository-archived immutable materialization of the canonical R4 artifact accepted by the one-shot fresh:120..159 court."
+          }
+          JSON
+
+      - name: Commit immutable accepted materialization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f \
+            model/neural-vnext-native-r4/accepted/r4.pt \
+            model/neural-vnext-native-r4/accepted/r4.manifest.json \
+            model/neural-vnext-native-r4/accepted/r4.dev.json \
+            model/neural-vnext-native-r4/accepted/ARCHIVE_AUTHORITY.json
+          git diff --cached --quiet && { echo "accepted archive already present"; exit 1; }
+          git commit -m "model(neural-r4): archive accepted frozen checkpoint"
+          git push origin "HEAD:$GITHUB_REF_NAME"

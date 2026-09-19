@@ -1,0 +1,132 @@
+name: Neural vNext Native R4 Fresh Court
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r4-latent-goal-belief
+    paths:
+      - '.github/workflows/neural-vnext-native-r4-fresh.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: neural-vnext-native-r4-fresh-court-120-159
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    if: ${{ github.event.before == '37c4b8a203234428af0859f6aa9584277e5b41a5' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_ARMING_PARENT_HEAD: '37c4b8a203234428af0859f6aa9584277e5b41a5'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'b703a41fbf0998749c76e197ebaa640b369171e1'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '9c3ed0125a1528cf7544c8fef884113554442e89'
+      CANONICAL_DEV_RUN_ID: '35451337745'
+      CANONICAL_DEV_ARTIFACT_ID: '10586044507'
+      CANONICAL_CHECKPOINT_SHA256: '167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244'
+      CANONICAL_STATE_SHA256: '97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9'
+      CANONICAL_MANIFEST_SHA256: '899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1'
+      CANONICAL_DEV_SHA256: 'c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Refuse unbound or replayed fresh authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
+          test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
+          test "$(git hash-object model/neural-vnext-native-r4/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r4/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and verify frozen R4 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native-r4/*.py \
+            model/neural-vnext-native-r4/scripts/*.py \
+            model/neural-vnext-native-r4/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r4/tests
+
+      - name: Download exact canonical frozen R4 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r4-dev
+          path: frozen-r4-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35451337745
+
+      - name: Verify exact frozen R4 artifact before fresh
+        run: |
+          test "$(sha256sum frozen-r4-artifact/r4.pt | awk '{print $1}')" = "$CANONICAL_CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r4-artifact/r4.manifest.json | awk '{print $1}')" = "$CANONICAL_MANIFEST_SHA256"
+          test "$(sha256sum frozen-r4-artifact/r4.dev.json | awk '{print $1}')" = "$CANONICAL_DEV_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path("model/neural-vnext-native-r4/PRE_FRESH_LOCK.json").read_text())
+          manifest = json.loads(Path("frozen-r4-artifact/r4.manifest.json").read_text())
+          assert lock["candidate_authority"]["workflow_run_id"] == int("35451337745")
+          assert lock["candidate_authority"]["artifact_id"] == int("10586044507")
+          assert manifest["checkpoint_sha256"] == lock["frozen_candidate"]["checkpoint_sha256"]
+          assert manifest["state_dict_sha256"] == lock["frozen_candidate"]["state_dict_sha256"]
+          assert manifest["selected_candidate"] == "latent_goal_guarded"
+          assert manifest["dev_evaluation"] == lock["frozen_candidate"]["development"]
+          assert manifest["parent_development"] == lock["frozen_candidate"]["parent_development"]
+          assert manifest["fresh_opened"] is False
+          PY
+          mkdir -p fresh-output
+          cp frozen-r4-artifact/r4.pt fresh-output/r4.pt
+          cp frozen-r4-artifact/r4.manifest.json fresh-output/frozen-r4.manifest.json
+
+      - name: Open frozen fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          set +e
+          python model/neural-vnext-native-r4/scripts/evaluate_fresh.py \
+            --checkpoint fresh-output/r4.pt \
+            --result fresh-output/r4.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r4-fresh-court-120-159
+          path: |
+            fresh-output/frozen-r4.manifest.json
+            fresh-output/r4.fresh.json
+          if-no-files-found: error
+
+      - name: Enforce preregistered fresh verdict
+        if: always()
+        run: test "${{ steps.fresh.outputs.exit_code }}" = "0"

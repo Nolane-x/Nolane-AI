@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_UNOPENED",
+  "candidate_line": "Neural-vNext-Native-R4-LatentGoalBelief",
+  "benchmark": "nolane-figg18-v1",
+  "fresh": {
+    "split": "fresh",
+    "indices": [120, 159],
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "episodes_expected": 160,
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false
+  }
+}
