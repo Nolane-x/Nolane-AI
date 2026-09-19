@@ -1,0 +1,195 @@
+{
+  "schema_version": 2,
+  "candidate": "Neural-vNext-Native-R2-TransitionTrace",
+  "parent": {
+    "authority": "Neural-vNext-Native-Recurrent",
+    "main_merge_commit": "1aa9d8bfac26282f01f770d990586642e33ed777",
+    "parameters": 334099,
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "post_fresh_mutation_allowed": false,
+    "successor_rule": "Reproduce the accepted parent exactly, freeze every parent parameter, then train only successor-owned transition-trace residual parameters.",
+    "checkpoint_serialization_filename": "native-vnext.pt",
+    "checkpoint_file_hash_rule": "The accepted torch.save file digest is verified only when reproducing the canonical basename native-vnext.pt; tensor authority remains independently bound by state_dict_sha256."
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_split": "train",
+    "successor_training_indices": [
+      128,
+      511
+    ],
+    "development_split": "dev",
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      40,
+      79
+    ],
+    "fresh_episodes_expected": 160,
+    "previously_consumed_fresh_indices": [
+      0,
+      39
+    ],
+    "phase1_development_indices": [
+      32,
+      63
+    ],
+    "phase2_development_indices": [
+      64,
+      95
+    ],
+    "hidden_specialist_training_indices": [
+      512,
+      1023
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:40..79 task may be instantiated by successor training or development code before a separately frozen candidate passes reproducibility and receives PRE_FRESH_LOCK authority.",
+    "post_fresh_tuning_allowed": false
+  },
+  "architecture": {
+    "parent_policy": "accepted Neural vNext Native recurrent policy, frozen",
+    "transition_trace_length": 8,
+    "transition_token_dim": 25,
+    "trace_hidden_dim": 128,
+    "trace_recurrent": "GRUCell over ordered public transition tokens with exact padding masks",
+    "residual_policy": "shared per-action residual scorer over parent action token + parent recurrent hidden + trace hidden",
+    "residual_initialization": "zero final layer, making initialization exactly parent-equivalent",
+    "private_task_state_allowed_at_inference": false,
+    "parent_parameters_trainable": false,
+    "hidden_target_residual": "second shared per-action residual head, hard-gated to public target_visible=0",
+    "hidden_target_residual_initialization": "zero final layer; phase-1 replay remains behaviorally identical",
+    "phase1_trainable_scope": "general transition residual only",
+    "phase2_trainable_scope": "hidden-target residual only; parent and general residual frozen"
+  },
+  "transition_token": {
+    "source": "public before/after observations plus public step result only",
+    "features": [
+      "before_state_norm_3",
+      "after_state_norm_3",
+      "state_delta_norm_3",
+      "before_progress",
+      "after_progress",
+      "progress_delta",
+      "information_gain",
+      "failed",
+      "changed",
+      "regime_changed",
+      "target_visible",
+      "before_state_parity_3",
+      "after_state_parity_3",
+      "public_resource_delta_2"
+    ]
+  },
+  "training": {
+    "seed": 20260919,
+    "optimizer": "AdamW",
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "teacher": "same public-exploration-first then FIGG-18 train-only oracle target as accepted parent",
+    "parent_reproduction_required_before_training": true,
+    "parent_checkpoint_hash_must_match": true,
+    "parent_state_hash_must_match": true,
+    "candidate_curricula": [
+      {
+        "name": "trace_guarded",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.01
+      },
+      {
+        "name": "trace_broad",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.005
+      }
+    ],
+    "selection_rule": [
+      "candidate must solve strictly more development episodes than the frozen parent on dev:32..63",
+      "candidate may regress no family by more than 2 solved episodes versus parent",
+      "candidate must improve at least one of regime_switch or implicit_goal_regimes",
+      "among eligible candidates maximize development solved episodes",
+      "then maximize minimum family solved episodes",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ],
+    "deterministic_runtime": {
+      "pytorch_version": "2.9.0",
+      "torch_deterministic_algorithms": true,
+      "torch_num_threads": 1,
+      "torch_num_interop_threads": 1,
+      "mkldnn_enabled": false,
+      "ATEN_CPU_CAPABILITY": "default",
+      "MKL_CBWR": "COMPATIBLE",
+      "adamw_foreach": false,
+      "adamw_fused": false,
+      "clip_grad_norm_foreach": false
+    },
+    "phase1_replay": {
+      "selected_candidate": "trace_guarded",
+      "expected_dev_block": [
+        32,
+        63
+      ],
+      "expected_total_solved": 113,
+      "expected_family_solved": {
+        "causal_prerequisites": 32,
+        "conditional_regimes": 32,
+        "implicit_goal_regimes": 21,
+        "regime_switch": 28
+      },
+      "rule": "Phase-2 training is forbidden unless the general transition residual reproduces the phase-1 behavioral evidence exactly on dev:32..63."
+    },
+    "hidden_specialists": [
+      {
+        "name": "hidden_trace_guarded",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.005
+      },
+      {
+        "name": "hidden_trace_broad",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.0025
+      }
+    ],
+    "phase2_selection_rule": [
+      "evaluate parent, phase-1 replay, and hidden specialist candidates on dev:64..95 only",
+      "candidate must solve strictly more total dev episodes than phase-1 replay",
+      "candidate must solve strictly more implicit_goal_regimes episodes than phase-1 replay",
+      "visible-target family solved counts must equal phase-1 replay exactly because the hidden head is hard-gated off when target_visible=1",
+      "regime_switch may differ only if its public target is hidden for an episode; any aggregate regression below phase-1 replay makes the candidate ineligible",
+      "among eligible candidates maximize total dev solved",
+      "then maximize implicit_goal_regimes solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
+  },
+  "claim_boundary": "R2 phase 2 remains development-only. Phase 1 used dev:32..63; hidden specialization uses a new dev:64..95 block. fresh:40..79 remains unopened and is forbidden until a candidate is frozen and bitwise reproduced."
+}

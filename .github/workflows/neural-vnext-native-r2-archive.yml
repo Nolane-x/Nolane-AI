@@ -1,0 +1,74 @@
+name: Neural vNext Native R2 Archive Accepted Checkpoint
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r2-fresh-closure
+    paths:
+      - '.github/workflows/neural-vnext-native-r2-archive.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  archive-accepted-checkpoint:
+    if: ${{ github.event.before == '960cf6dcea45f6bc49002c12494ec0c8bebfef09' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_ARMING_PARENT_HEAD: '960cf6dcea45f6bc49002c12494ec0c8bebfef09'
+      FROZEN_DEV_RUN_ID: '35441662592'
+      FROZEN_CHECKPOINT_SHA256: 'bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14'
+      FROZEN_MANIFEST_SHA256: '8386440845c6a8bc4153bce6fcad29737702521b1c82ae197532f32a48b04728'
+      FROZEN_DEV_RESULT_SHA256: 'd4d4f27bb9b79c1e900ae4f9ede5d1851e94e8406d5a34621c84c9894bb5b1d8'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse replayed archive authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$GITHUB_REF_NAME" = "codex/neural-native-r2-fresh-closure"
+
+      - name: Download exact frozen development artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r2-dev
+          path: frozen-dev-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35441662592
+
+      - name: Verify and materialize accepted checkpoint
+        run: |
+          test "$(sha256sum frozen-dev-artifact/successor.pt | awk '{print $1}')" = "$FROZEN_CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-dev-artifact/successor.manifest.json | awk '{print $1}')" = "$FROZEN_MANIFEST_SHA256"
+          test "$(sha256sum frozen-dev-artifact/successor.dev.json | awk '{print $1}')" = "$FROZEN_DEV_RESULT_SHA256"
+          mkdir -p model/neural-vnext-native-r2/accepted
+          cp frozen-dev-artifact/successor.pt model/neural-vnext-native-r2/accepted/successor.pt
+          cp frozen-dev-artifact/successor.manifest.json model/neural-vnext-native-r2/accepted/successor.manifest.json
+          cp frozen-dev-artifact/successor.dev.json model/neural-vnext-native-r2/accepted/successor.dev.json
+          cat > model/neural-vnext-native-r2/accepted/ARCHIVE_AUTHORITY.json <<'JSON'
+          {
+            "schema_version": 1,
+            "status": "ARCHIVED_ACCEPTED_CHECKPOINT",
+            "source_workflow_run_id": 35441662592,
+            "source_artifact_id": 10583544731,
+            "source_artifact_digest": "sha256:42b26e11036149a3809bcb621f3b1647296181335274a9ac1b1fd65436568898",
+            "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+            "manifest_sha256": "8386440845c6a8bc4153bce6fcad29737702521b1c82ae197532f32a48b04728",
+            "dev_result_sha256": "d4d4f27bb9b79c1e900ae4f9ede5d1851e94e8406d5a34621c84c9894bb5b1d8",
+            "claim": "Repository-archived immutable materialization of the R2 candidate accepted by fresh workflow run 35445318413."
+          }
+          JSON
+
+      - name: Commit immutable accepted materialization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f             model/neural-vnext-native-r2/accepted/successor.pt             model/neural-vnext-native-r2/accepted/successor.manifest.json             model/neural-vnext-native-r2/accepted/successor.dev.json             model/neural-vnext-native-r2/accepted/ARCHIVE_AUTHORITY.json
+          git diff --cached --quiet && { echo "accepted archive already present"; exit 1; }
+          git commit -m "model(neural-r2): archive accepted frozen checkpoint"
+          git push origin "HEAD:$GITHUB_REF_NAME"

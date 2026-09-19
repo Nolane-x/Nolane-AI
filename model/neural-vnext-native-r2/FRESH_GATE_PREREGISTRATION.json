@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R2-TransitionTrace",
+  "preregistered_before_fresh": true,
+  "frozen_intent": {
+    "selected_candidate": "hidden_trace_broad",
+    "parameters": 536085,
+    "successor_parameters": 201986,
+    "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "predev_lock_sha256": "a4745095ca236cef88cedfa23e32d778eea40aaa42b0eb0e07d131f2a0334486",
+    "fresh_opened": false
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "index_start": 40,
+    "index_end": 79,
+    "episodes_per_family": 40,
+    "episodes_expected": 160,
+    "identity_rule": "exact Cartesian product of the four locked families and integer indices 40..79; parent and successor must be evaluated on the exact same identities; no omission, substitution or duplicate",
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "maximum_family_solved_regression": 0,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "all_requirements_must_pass": true,
+    "rationale": "R2 exists specifically to improve public-transition and hidden-goal reasoning over the accepted frozen parent. Promotion therefore requires a strict total gain, a strict implicit-goal gain, and zero solved-count regression in every other family on the identical untouched fresh court."
+  },
+  "reproducibility_prerequisite": {
+    "required_before_opening": true,
+    "minimum_independent_workflow_runs": 2,
+    "checkpoint_sha256_equal": true,
+    "state_dict_sha256_equal": true,
+    "development_metrics_equal": true,
+    "selected_candidate_equal": true,
+    "fresh_unopened_equal": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false,
+    "failure_path": "record the negative result, create a new candidate, and reserve a new untouched fresh block; never retune against or reuse fresh:40..79 for promotion"
+  },
+  "claim_boundary": "This preregistration defines the promotion decision before fresh:40..79 is opened. It does not itself authorize fresh evaluation; exact candidate reproducibility and PRE_FRESH_LOCK authority are still required."
+}

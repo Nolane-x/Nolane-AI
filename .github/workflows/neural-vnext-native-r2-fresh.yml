@@ -1,0 +1,195 @@
+name: Neural vNext Native R2 Fresh Court
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r2-fresh-closure
+    paths:
+      - '.github/workflows/neural-vnext-native-r2-fresh.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: neural-vnext-native-r2-fresh-court-40-79
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    if: ${{ github.event.before == 'da9434b2269eeb9a290cf68e54a723ac5b007405' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_ARMING_PARENT_HEAD: 'da9434b2269eeb9a290cf68e54a723ac5b007405'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'bf03f9cbd6c59446d75563c57bacc95c8fece28f'
+      EXPECTED_FRESH_EVALUATOR_BLOB: 'cb9020e9ddebb638109685ec7831902a03e019ae'
+      FROZEN_DEV_RUN_ID: '35441662592'
+      FROZEN_DEV_ARTIFACT_ID: '10583544731'
+      FROZEN_DEV_ARTIFACT_NAME: 'neural-vnext-native-r2-dev'
+      FROZEN_CHECKPOINT_SHA256: 'bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14'
+      FROZEN_STATE_SHA256: '20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Refuse unbound or replayed fresh authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
+          test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
+          test "$(git hash-object model/neural-vnext-native-r2/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r2/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+
+      - name: Compile and verify frozen contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native/*.py \
+            model/neural-vnext-native/scripts/*.py \
+            model/neural-vnext-native-r2/*.py \
+            model/neural-vnext-native-r2/scripts/*.py \
+            model/neural-vnext-native-r2/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r2/tests
+
+      - name: Download exact frozen development artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r2-dev
+          path: frozen-dev-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35441662592
+
+      - name: Verify frozen artifact authority before fresh
+        run: |
+          mkdir -p fresh-output
+          python - <<'PY'
+          import json
+          import os
+          import shutil
+          from hashlib import sha256
+          from pathlib import Path
+
+          lock_path = Path("model/neural-vnext-native-r2/PRE_FRESH_LOCK.json")
+          lock = json.loads(lock_path.read_text())
+          authority = lock["candidate_authority"]
+          frozen = lock["frozen_candidate"]
+
+          expected_authority = {
+              "workflow_run_id": int(os.environ["FROZEN_DEV_RUN_ID"]),
+              "artifact_id": int(os.environ["FROZEN_DEV_ARTIFACT_ID"]),
+              "artifact_name": os.environ["FROZEN_DEV_ARTIFACT_NAME"],
+              "checkpoint_sha256": os.environ["FROZEN_CHECKPOINT_SHA256"],
+              "state_dict_sha256": os.environ["FROZEN_STATE_SHA256"],
+          }
+          for key, value in expected_authority.items():
+              assert authority[key] == value, (key, authority[key], value)
+          assert authority["status"] == "VERIFIED"
+          assert authority["mode"] == "frozen_workflow_artifact"
+
+          root = Path("frozen-dev-artifact")
+          checkpoint = root / "successor.pt"
+          manifest_path = root / "successor.manifest.json"
+          dev_path = root / "successor.dev.json"
+          assert checkpoint.is_file()
+          assert manifest_path.is_file()
+          assert dev_path.is_file()
+
+          checkpoint_sha = sha256(checkpoint.read_bytes()).hexdigest()
+          assert checkpoint_sha == frozen["checkpoint_sha256"]
+          assert checkpoint_sha == authority["checkpoint_sha256"]
+
+          manifest = json.loads(manifest_path.read_text())
+          dev = json.loads(dev_path.read_text())
+          exact = {
+              "state_dict_sha256": manifest["state_dict_sha256"],
+              "parameters": manifest["parameters"],
+              "successor_parameters": manifest["successor_parameters"],
+              "selected_candidate": manifest["selected_candidate"],
+              "selected_rank": manifest["selected_rank"],
+              "selected_eligibility": manifest["selected_eligibility"],
+              "development": manifest["dev_evaluation"],
+              "phase1_reference": manifest["phase1_phase2_dev_evaluation"],
+              "parent_reference": manifest["parent_phase2_dev_evaluation"],
+              "parent_checkpoint_sha256": manifest["parent_checkpoint_sha256"],
+              "parent_state_dict_sha256": manifest["parent_state_dict_sha256"],
+              "predev_lock_sha256": manifest["predev_lock_sha256"],
+              "fresh_opened": manifest["fresh_opened"],
+          }
+          expected = {key: frozen[key] for key in exact}
+          assert exact == expected, (expected, exact)
+          assert dev["split"] == "dev"
+          assert dev["indices"] == [64, 95]
+          assert dev["solved"] == 116
+          assert manifest["fresh_opened"] is False
+
+          shutil.copyfile(checkpoint, "fresh-output/successor.pt")
+          shutil.copyfile(manifest_path, "fresh-output/frozen-successor.manifest.json")
+          Path("fresh-output/authority.json").write_text(
+              json.dumps(
+                  {
+                      "candidate_authority": authority,
+                      "source_training_reproducibility": lock["source_training_reproducibility"],
+                      "checkpoint_sha256": checkpoint_sha,
+                  },
+                  indent=2,
+                  sort_keys=True,
+              ) + "\n"
+          )
+          print("frozen_checkpoint_sha256=" + checkpoint_sha)
+          print("frozen_state_dict_sha256=" + manifest["state_dict_sha256"])
+          PY
+
+      - name: Open frozen fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          set +e
+          python model/neural-vnext-native-r2/scripts/evaluate_fresh.py \
+            --checkpoint fresh-output/successor.pt \
+            --result fresh-output/successor.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r2-fresh-court-40-79
+          path: |
+            fresh-output/authority.json
+            fresh-output/frozen-successor.manifest.json
+            fresh-output/successor.fresh.json
+          if-no-files-found: error
+
+      - name: Enforce preregistered fresh verdict
+        if: always()
+        run: |
+          test "${{ steps.fresh.outputs.exit_code }}" = "0"

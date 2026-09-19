@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTED",
+  "authority": "Neural-vNext-Native-R2-TransitionTrace",
+  "accepted_candidate": {
+    "selected_candidate": "hidden_trace_broad",
+    "parameters": 536085,
+    "successor_parameters": 201986,
+    "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "freeze_source_head": "158c201167f20901089b0e673a804f9cb4753d09",
+    "candidate_artifact_source_head": "3bd62b110a98f6cc02a53a2e6e5e194ee1b064c9"
+  },
+  "acceptance": {
+    "development": {
+      "episodes": 128,
+      "solved": 116,
+      "solve_rate": 0.90625,
+      "parent_same_block_solved": 101,
+      "phase1_same_block_solved": 114
+    },
+    "fresh": {
+      "episodes": 160,
+      "solved": 141,
+      "solve_rate": 0.88125,
+      "parent_solved": 128,
+      "parent_solve_rate": 0.8,
+      "total_solved_delta_vs_parent": 13,
+      "families": {
+        "conditional_regimes": {
+          "candidate_solved": 40,
+          "parent_solved": 39,
+          "delta": 1
+        },
+        "regime_switch": {
+          "candidate_solved": 34,
+          "parent_solved": 28,
+          "delta": 6
+        },
+        "implicit_goal_regimes": {
+          "candidate_solved": 27,
+          "parent_solved": 26,
+          "delta": 1
+        },
+        "causal_prerequisites": {
+          "candidate_solved": 40,
+          "parent_solved": 35,
+          "delta": 5
+        }
+      }
+    },
+    "promotion_gate_passed": true
+  },
+  "reproducibility": {
+    "source_training_cross_host_status": "FAILED_CROSS_HOST_DISCLOSED",
+    "bitwise_source_retraining_claimed": false,
+    "behavioral_source_retraining_claimed": false,
+    "accepted_materialization": "repository-archived immutable frozen development artifact",
+    "frozen_checkpoint_verified_before_fresh": true,
+    "frozen_state_dict_verified_before_fresh": true,
+    "frozen_source_blobs_verified_before_fresh": true
+  },
+  "repository_archive": {
+    "storage": "git-lfs",
+    "checkpoint_path": "accepted/successor.pt",
+    "manifest_path": "accepted/successor.manifest.json",
+    "dev_result_path": "accepted/successor.dev.json",
+    "archive_authority_path": "accepted/ARCHIVE_AUTHORITY.json",
+    "git_lfs_oid": "sha256:bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "size_bytes": 2168688,
+    "archive_commit": "64ba56443245b90a6343b4be38a3b2edae5aaeba",
+    "archive_workflow_run_id": 35445675699,
+    "archive_workflow_job_id": 105904064203
+  },
+  "evidence": {
+    "pre_fresh_lock": "PRE_FRESH_LOCK.json",
+    "fresh_court": "evidence/FRESH_COURT_001.json",
+    "fresh_workflow_run_id": 35445318413,
+    "fresh_workflow_job_id": 105903134631,
+    "fresh_artifact_id": 10584793357,
+    "fresh_artifact_digest": "sha256:d75fec97d28f02a7fd6c6e9c68da5b369038f26fc0db854d34f14992688dedc8",
+    "frozen_development_artifact_id": 10583544731,
+    "frozen_development_artifact_digest": "sha256:42b26e11036149a3809bcb621f3b1647296181335274a9ac1b1fd65436568898"
+  },
+  "governance": {
+    "post_fresh_tuning_allowed": false,
+    "fresh_block_reuse_for_promotion_allowed": false,
+    "accepted_parent_parameters_mutated": false,
+    "negative_reproducibility_result_must_remain_disclosed": true
+  },
+  "claim": "Accepted repository-archived frozen-artifact transition-trace neural successor. On untouched fresh:40..79 it solved 141/160 versus the frozen parent's 128/160 while improving implicit_goal_regimes and regressing no family."
+}

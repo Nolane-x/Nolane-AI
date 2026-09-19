@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "DEV_PHASE1_ELIGIBLE_FRESH_UNOPENED",
+  "trial": "r2-dev-002-transition-trace-phase1",
+  "git_head": "9ac994d6b34883d8532d5af9ad321ac955c26f4f",
+  "workflow_run_id": 35439414061,
+  "job_id": 105887529115,
+  "artifact": {
+    "id": 10584025873,
+    "name": "neural-vnext-native-r2-dev",
+    "digest": "sha256:d837ee371e368bfcbcd95a5f4bb0956f59fb08a05ab5bdec8664cea3ecea7928",
+    "size_bytes": 3053188
+  },
+  "parent": {
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "dev_block": [32,63],
+    "solved": 102,
+    "families": {
+      "causal_prerequisites": 26,
+      "conditional_regimes": 29,
+      "implicit_goal_regimes": 21,
+      "regime_switch": 26
+    }
+  },
+  "selected_candidate": {
+    "name": "trace_guarded",
+    "full_parameters": 486420,
+    "successor_parameters": 152321,
+    "checkpoint_sha256": "494500253aa2283318812ad47b4c8fbee0c9e618a649f442727f89890c9571af",
+    "state_dict_sha256": "3feea33f03aeb97251d6af40cc3c10b737521e70b5aff515c1877cdf68dedc53",
+    "dev": {
+      "episodes": 128,
+      "solved": 113,
+      "solve_rate": 0.8828125,
+      "families": {
+        "causal_prerequisites": {"solved":32,"episodes":32,"delta_vs_parent":6},
+        "conditional_regimes": {"solved":32,"episodes":32,"delta_vs_parent":3},
+        "implicit_goal_regimes": {"solved":21,"episodes":32,"delta_vs_parent":0},
+        "regime_switch": {"solved":28,"episodes":32,"delta_vs_parent":2}
+      }
+    },
+    "eligibility": {
+      "eligible": true,
+      "total_improved": true,
+      "no_family_regression_below_minus_2": true,
+      "target_family_gain": true
+    }
+  },
+  "alternate_candidate": {
+    "name": "trace_broad",
+    "dev_solved": 112,
+    "implicit_goal_solved": 20
+  },
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Do not freeze yet. Phase 1 validates ordered transition memory and materially improves total development, causal, conditional and regime-switch capability, but hidden-goal solving remains equal to the parent. Preserve the phase-1 candidate and move hidden-goal specialization to a new development block (dev:64..95) before any fresh court is opened."
+}
