@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R3-AttributedBelief",
+  "selected_candidate": "attributed_broad",
+  "candidate_checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+  "candidate_state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+  "frozen_parent": "Neural-vNext-Native-R2-TransitionTrace",
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "indices": [
+      80,
+      119
+    ],
+    "episodes": 160,
+    "previously_consumed": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ]
+    ],
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "rationale": "R3 is structurally hard-gated off on visible-target tasks. Promotion therefore requires a strict hidden-goal and total gain while preserving exact visible-family solved counts against the identical frozen R2 parent court.",
+  "post_fresh_rule": {
+    "tuning_after_opening": false,
+    "rerun_same_fresh_after_failure": false,
+    "fresh_block_reuse_for_promotion": false
+  }
+}

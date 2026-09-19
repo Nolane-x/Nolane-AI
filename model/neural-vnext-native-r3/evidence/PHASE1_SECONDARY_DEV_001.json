@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "status": "R3_PHASE1_SECONDARY_DEV_COMPARISON_COMPLETE",
+  "claim_boundary": "POST_HOC_DEVELOPMENT_NOT_PROMOTION_COURT",
+  "workflow_run_id": 35449229308,
+  "workflow_job_id": 105913368551,
+  "source_head": "b9a0ec607c945813d62f214cc5c5c9f97cdcd908",
+  "artifact": {
+    "id": 10586278425,
+    "name": "neural-vnext-native-r3-phase1-secondary-dev",
+    "digest": "sha256:daa22020cc17bbf040a7851eb4b48a382dfa150144b5e2d6ca78696e1472829c",
+    "size_bytes": 910
+  },
+  "phase1_checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+  "phase1_state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+  "development_indices": [
+    128,
+    159
+  ],
+  "parent": {
+    "episodes": 128,
+    "solved": 118,
+    "solve_rate": 0.921875,
+    "steps": 1675,
+    "families": {
+      "causal_prerequisites": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 461
+      },
+      "conditional_regimes": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 276
+      },
+      "implicit_goal_regimes": {
+        "episodes": 32,
+        "solved": 23,
+        "steps": 481
+      },
+      "regime_switch": {
+        "episodes": 32,
+        "solved": 31,
+        "steps": 457
+      }
+    }
+  },
+  "candidate": {
+    "episodes": 128,
+    "solved": 119,
+    "solve_rate": 0.9296875,
+    "steps": 1657,
+    "families": {
+      "causal_prerequisites": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 461
+      },
+      "conditional_regimes": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 276
+      },
+      "implicit_goal_regimes": {
+        "episodes": 32,
+        "solved": 24,
+        "steps": 463
+      },
+      "regime_switch": {
+        "episodes": 32,
+        "solved": 31,
+        "steps": 457
+      }
+    }
+  },
+  "family_solved_delta_vs_parent": {
+    "causal_prerequisites": 0,
+    "conditional_regimes": 0,
+    "implicit_goal_regimes": 1,
+    "regime_switch": 0
+  },
+  "total_solved_delta_vs_parent": 1,
+  "implicit_goal_delta_vs_parent": 1,
+  "visible_target_families_exact": true,
+  "supports_freeze": true,
+  "fresh_opened": false
+}

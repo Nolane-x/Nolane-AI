@@ -1,0 +1,110 @@
+name: Neural vNext Native R3 Fresh Court
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: neural-vnext-native-r3-fresh-court-80-119
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: '__PRE_FRESH_LOCK_BLOB__'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '__FRESH_EVALUATOR_BLOB__'
+      PHASE1_CHECKPOINT_SHA256: '8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da'
+      PHASE1_MANIFEST_SHA256: '388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d'
+      PHASE1_DEV_SHA256: '85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Refuse unbound fresh authority
+        run: |
+          test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
+          test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
+          test "$(git hash-object model/neural-vnext-native-r3/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r3/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and verify frozen R3 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native/*.py \
+            model/neural-vnext-native-r2/*.py \
+            model/neural-vnext-native-r3/*.py \
+            model/neural-vnext-native-r3/scripts/*.py \
+            model/neural-vnext-native-r3/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r3/tests
+
+      - name: Download exact frozen R3 candidate artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r3-dev
+          path: frozen-r3-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35447526183
+
+      - name: Verify exact frozen candidate before fresh
+        run: |
+          test "$(sha256sum frozen-r3-artifact/r3.pt | awk '{print $1}')" = "$PHASE1_CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r3-artifact/r3.manifest.json | awk '{print $1}')" = "$PHASE1_MANIFEST_SHA256"
+          test "$(sha256sum frozen-r3-artifact/r3.dev.json | awk '{print $1}')" = "$PHASE1_DEV_SHA256"
+          mkdir -p fresh-output
+          cp frozen-r3-artifact/r3.pt fresh-output/r3.pt
+          cp frozen-r3-artifact/r3.manifest.json fresh-output/frozen-r3.manifest.json
+
+      - name: Open frozen fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          set +e
+          python model/neural-vnext-native-r3/scripts/evaluate_fresh.py \
+            --checkpoint fresh-output/r3.pt \
+            --result fresh-output/r3.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r3-fresh-court-80-119
+          path: |
+            fresh-output/frozen-r3.manifest.json
+            fresh-output/r3.fresh.json
+          if-no-files-found: error
+
+      - name: Enforce preregistered fresh verdict
+        if: always()
+        run: test "${{ steps.fresh.outputs.exit_code }}" = "0"

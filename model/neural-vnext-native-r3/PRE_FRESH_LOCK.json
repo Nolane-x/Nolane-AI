@@ -1,0 +1,237 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R3-AttributedBelief",
+  "freeze_contract_parent_head": "b9a0ec607c945813d62f214cc5c5c9f97cdcd908",
+  "claim_boundary": "R3 Phase-1 attributed_broad is frozen before fresh. It improved over exact accepted R2 on dev:96..127 and again on post-hoc secondary dev:128..159. Phase-2 continuation regressed and is frozen as a negative result. fresh:80..119 remains unopened. Workflow-level bitwise reproduction is observed, but no cross-host hardware guarantee is claimed.",
+  "frozen_candidate": {
+    "selected_candidate": "attributed_broad",
+    "parameters": 707990,
+    "successor_parameters": 171905,
+    "checkpoint_filename": "r3.pt",
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "parent_checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "parent_state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "predev_lock_sha256": "5af95e4712a03e9b4b7f39c7d52dc2a0082949a288332ea6e6564be3464f11f7",
+    "selected_rank": [
+      21,
+      114,
+      -1668,
+      "attributed_broad"
+    ],
+    "selected_eligibility": {
+      "eligible": true,
+      "family_solved_delta_vs_parent": {
+        "causal_prerequisites": 0,
+        "conditional_regimes": 0,
+        "implicit_goal_regimes": 2,
+        "regime_switch": 0
+      },
+      "implicit_goal_delta_vs_parent": 2,
+      "total_solved_delta_vs_parent": 2,
+      "visible_target_families_exact": true
+    },
+    "parent_development": {
+      "episodes": 128,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 459
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 31,
+          "steps": 315
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 19,
+          "steps": 475
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 30,
+          "steps": 470
+        }
+      },
+      "indices": [
+        96,
+        127
+      ],
+      "solve_rate": 0.875,
+      "solved": 112,
+      "split": "dev",
+      "steps": 1719
+    },
+    "development": {
+      "episodes": 128,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 459
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 31,
+          "steps": 315
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 21,
+          "steps": 424
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 30,
+          "steps": 470
+        }
+      },
+      "indices": [
+        96,
+        127
+      ],
+      "solve_rate": 0.890625,
+      "solved": 114,
+      "split": "dev",
+      "steps": 1668
+    },
+    "fresh_opened": false
+  },
+  "candidate_authority": {
+    "mode": "frozen_workflow_artifact",
+    "status": "VERIFIED",
+    "source_head": "783181e972da14d29f6c28324373ecba67b9d41f",
+    "workflow_run_id": 35447526183,
+    "artifact_id": 10586461067,
+    "artifact_name": "neural-vnext-native-r3-dev",
+    "artifact_digest": "sha256:5d477a1d7b4c12757c0b0ff5644ec940f45fc902fd489632f5ce1a7682bffef5",
+    "artifact_size_bytes": 2628930,
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "manifest_sha256": "388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d",
+    "dev_result_sha256": "85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf",
+    "selected_candidate": "attributed_broad",
+    "fresh_opened": false
+  },
+  "workflow_reproduction": {
+    "status": "BITWISE_REPRODUCED_WORKFLOW_LEVEL",
+    "exact_checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "exact_state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "workflow_run_ids": [
+      35447526183,
+      35447944086,
+      35447945617
+    ],
+    "attempts": [
+      {
+        "workflow_run_id": 35447526183,
+        "head_sha": "783181e972da14d29f6c28324373ecba67b9d41f",
+        "artifact_id": 10586461067,
+        "artifact_digest": "sha256:5d477a1d7b4c12757c0b0ff5644ec940f45fc902fd489632f5ce1a7682bffef5"
+      },
+      {
+        "workflow_run_id": 35447944086,
+        "head_sha": "36a365905039656011c5169159f7b391d9ddfa2d",
+        "artifact_id": 10586391870,
+        "artifact_digest": "sha256:33848179d936172820c9cda5351eb70565a0d9bbba8cd0144258bfc8d24fbb23"
+      },
+      {
+        "workflow_run_id": 35447945617,
+        "head_sha": "36a365905039656011c5169159f7b391d9ddfa2d",
+        "artifact_id": 10586630952,
+        "artifact_digest": "sha256:d564248d783c3f67f20e47a13c4d62e8161eb9cc7622ee522523346e5895d3b9"
+      }
+    ],
+    "critical_training_source_unchanged": true,
+    "cross_host_guarantee_claimed": false
+  },
+  "secondary_development": {
+    "status": "VERIFIED",
+    "claim_boundary": "POST_HOC_DEVELOPMENT_NOT_PROMOTION_COURT",
+    "workflow_run_id": 35449229308,
+    "artifact_id": 10586278425,
+    "artifact_digest": "sha256:daa22020cc17bbf040a7851eb4b48a382dfa150144b5e2d6ca78696e1472829c",
+    "development_indices": [
+      128,
+      159
+    ],
+    "parent_solved": 118,
+    "candidate_solved": 119,
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": 1,
+      "regime_switch": 0
+    },
+    "supports_freeze": true,
+    "fresh_opened": false
+  },
+  "phase2_negative_result": {
+    "status": "FROZEN",
+    "workflow_run_id": 35447945645,
+    "artifact_id": 10585996201,
+    "artifact_digest": "sha256:d3a252343fc4b501935d5cdd0720aad5f2136976f073d6954f0e566e8a6e6c41",
+    "phase1_replay_solved": 119,
+    "best_phase2_solved": 118,
+    "best_phase2_implicit_goal_delta_vs_phase1": -1,
+    "fresh_opened": false,
+    "gate_relaxation_allowed": false
+  },
+  "frozen_source_git_blobs": {
+    "model/neural-vnext-native-r3/PREDEV_LOCK.json": "6468cb3605a6a95300cc733831f557b233a3557d",
+    "model/neural-vnext-native-r3/PHASE2_LOCK.json": "11c7732346e93725d2e04595d6d6ad835f12e433",
+    "model/neural-vnext-native-r3/FRESH_GATE_PREREGISTRATION.json": "47df599c6ad109976a93733b752cc3e6110c4b21",
+    "model/neural-vnext-native-r3/attributed_core.py": "5c758feaf3725dd54956f5bf256fdbfcaa0f5ba9",
+    "model/neural-vnext-native-r3/attributed_training.py": "bb21f5329ff6558079445a225b086ccee95fc90e",
+    "model/neural-vnext-native-r3/scripts/train_r3_dev.py": "10eaa9c2ced62e192b6d6e22bf092c0f92a380c8",
+    "model/neural-vnext-native-r3/scripts/compare_phase1_parent_dev2.py": "b2f06f76fed0d759af28e2d0cb2d0f3126ae6095",
+    "model/neural-vnext-native-r3/scripts/evaluate_fresh.py": "981484f0f7a54d036df9bde5b6a7607ec9f9d644",
+    "model/neural-vnext-native-r3/tests/test_r3.py": "89e29238bb3b5c86339af90562e4822840872deb",
+    "model/neural-vnext-native-r3/tests/test_fresh_gate.py": "13182e7e94bb50e4879c3d6da4b93963fc3b27ab",
+    "model/neural-vnext-native-r3/evidence/PHASE2_NEGATIVE_001.json": "faf9f3354764132b6b0b5ec8f8435e9ae0587c25",
+    "model/neural-vnext-native-r3/evidence/PHASE1_SECONDARY_DEV_001.json": "915a409cf32f6787c74793b0183ad343d37e67a4",
+    "model/neural-vnext-native-r2/successor_core.py": "a4b3eb55cd376d1e62ea4b01b7c97359fb0c7d46",
+    "model/neural-vnext-native-r2/successor_training.py": "792cccdf91e5a32174885c75b91d8c5ff567f651",
+    "model/neural-vnext-native/native_core.py": "7f460eced3d270747b6493bae0e4f9e0a55df49f",
+    "model/neural-vnext-native/native_training.py": "0cae54d2465bbdf1bee9fa7246a5cd39c8b99071",
+    "model/r1.8/cogcoder/r18_benchmark.py": "0acb4d9c912e0b316b3b3a7ab2a5f1ee53b054d0"
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "index_start": 80,
+    "index_end": 119,
+    "episodes_per_family": 40,
+    "episodes_expected": 160,
+    "opened": false,
+    "identity_rule": "exact Cartesian product of four locked families and integer indices 80..119; frozen R2 parent and R3 candidate use identical identities"
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false,
+    "failure_path": "record negative result, create a new candidate, reserve a new untouched fresh block, and never retune against fresh:80..119"
+  }
+}
