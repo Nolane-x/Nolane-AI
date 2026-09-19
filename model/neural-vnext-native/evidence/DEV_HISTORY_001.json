@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-001",
+  "git_head": "bf8f9a3fd69e74c4fa7dc0bcc130091341f81993",
+  "workflow_run_id": 35421472991,
+  "artifact": {
+    "id": 10577188362,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:74cc4978aaac75fbc131ba530d2344e3225a7bc2ab9560fcae03127d066dc9e3",
+    "size_bytes": 1094077
+  },
+  "candidate": {
+    "parameters": 295043,
+    "checkpoint_sha256": "430421f500ac2c9148053fb24cbf2cfc94fa6aa4568083473e4230de02da2e92",
+    "state_dict_sha256": "3476009029fae7fdb9d021361159dad37c6d6f11e59cd17755ac30f86b11cd45"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 50,
+    "solve_rate": 0.390625,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 16, "steps": 694},
+      "conditional_regimes": {"episodes": 32, "solved": 15, "steps": 484},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 12, "steps": 478},
+      "regime_switch": {"episodes": 32, "solved": 7, "steps": 719}
+    }
+  },
+  "training_stage_observations": [
+    {"stage": "expert-1", "behavior_solve_rate": 0.9921875, "mean_label_loss": 0.9906051323425128},
+    {"stage": "expert-2", "behavior_solve_rate": 0.9921875, "mean_label_loss": 0.8689351760208867},
+    {"stage": "dagger-1", "behavior_solve_rate": 0.81640625, "mean_label_loss": 0.9080528211271529},
+    {"stage": "dagger-2", "behavior_solve_rate": 0.712890625, "mean_label_loss": 0.9329072439861343}
+  ],
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "note": "Development evidence only. Model initialization was not yet explicitly seed-bound before construction; this trial is retained for tuning/provenance and is not eligible for pre-fresh freeze."
+}
