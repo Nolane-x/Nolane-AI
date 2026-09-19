@@ -89,6 +89,8 @@ class EpisodeTrainResult:
     labelled_steps: int
     behavior_steps: int
     solved: bool
+    goal_coordinates_correct: int
+    goal_coordinates_total: int
 
 
 def train_episode(
@@ -100,15 +102,22 @@ def train_episode(
     rng: random.Random,
     teacher_mix: float,
     max_grad_norm: float,
+    goal_loss_weight: float = 0.35,
 ) -> EpisodeTrainResult:
     if not 0.0 <= float(teacher_mix) <= 1.0:
         raise ValueError("teacher_mix must lie in [0,1]")
+    if float(goal_loss_weight) < 0.0:
+        raise ValueError("goal_loss_weight must be non-negative")
+    if getattr(task, "split", None) != "train":
+        raise ValueError("goal-belief supervision is train-split only")
     memory = PublicActionMemory(len(task.action_descriptions))
     hidden = model.init_hidden(1)
     previous_feedback = [0.0, 0.0, 0.0]
     losses: list[Tensor] = []
     labelled = 0
     behavior_steps = 0
+    goal_coordinates_correct = 0
+    goal_coordinates_total = 0
 
     model.train()
     while not task.done:
@@ -131,7 +140,22 @@ def train_episode(
         )
         hidden = output["next_hidden"]
         target_tensor = torch.tensor([target], dtype=torch.long)
-        losses.append(F.cross_entropy(output["action_logits"], target_tensor))
+        policy_loss = F.cross_entropy(output["action_logits"], target_tensor)
+        private_goal = getattr(task, "_goal", None)
+        if not isinstance(private_goal, tuple) or len(private_goal) != 3:
+            raise ValueError("train-only FIGG-18 goal label is unavailable")
+        goal_target = torch.tensor(private_goal, dtype=torch.long)
+        goal_logits = output["goal_logits"][0]
+        goal_loss = torch.stack(
+            [
+                F.cross_entropy(goal_logits[index].unsqueeze(0), goal_target[index].unsqueeze(0))
+                for index in range(3)
+            ]
+        ).mean()
+        losses.append(policy_loss + float(goal_loss_weight) * goal_loss)
+        predicted_goal = goal_logits.detach().argmax(dim=-1)
+        goal_coordinates_correct += int(predicted_goal.eq(goal_target).sum().item())
+        goal_coordinates_total += 3
         labelled += 1
 
         use_teacher = rng.random() < float(teacher_mix)
@@ -155,7 +179,14 @@ def train_episode(
         behavior_steps += 1
 
     if not losses:
-        return EpisodeTrainResult(loss=0.0, labelled_steps=0, behavior_steps=behavior_steps, solved=bool(task.solved))
+        return EpisodeTrainResult(
+            loss=0.0,
+            labelled_steps=0,
+            behavior_steps=behavior_steps,
+            solved=bool(task.solved),
+            goal_coordinates_correct=0,
+            goal_coordinates_total=0,
+        )
 
     optimizer.zero_grad(set_to_none=True)
     loss = torch.stack(losses).mean()
@@ -172,6 +203,8 @@ def train_episode(
         labelled_steps=labelled,
         behavior_steps=behavior_steps,
         solved=bool(task.solved),
+        goal_coordinates_correct=goal_coordinates_correct,
+        goal_coordinates_total=goal_coordinates_total,
     )
 
 
@@ -204,6 +237,7 @@ def train_native_policy(
     learning_rate: float,
     weight_decay: float,
     max_grad_norm: float,
+    goal_loss_weight: float = 0.35,
 ) -> dict[str, Any]:
     if expert_epochs < 0:
         raise ValueError("expert_epochs must be non-negative")
@@ -226,6 +260,8 @@ def train_native_policy(
         behavior_steps = 0
         solved = 0
         episodes = 0
+        goal_coordinates_correct = 0
+        goal_coordinates_total = 0
         for family, index in _task_order(
             families=families,
             start_index=train_indices[0],
@@ -240,12 +276,15 @@ def train_native_policy(
                 rng=rng,
                 teacher_mix=teacher_mix,
                 max_grad_norm=max_grad_norm,
+                goal_loss_weight=goal_loss_weight,
             )
             if result.labelled_steps:
                 total_loss += result.loss * result.labelled_steps
                 labelled_steps += result.labelled_steps
             behavior_steps += result.behavior_steps
             solved += int(result.solved)
+            goal_coordinates_correct += result.goal_coordinates_correct
+            goal_coordinates_total += result.goal_coordinates_total
             episodes += 1
         stages.append(
             {
@@ -258,6 +297,7 @@ def train_native_policy(
                 "behavior_solved": solved,
                 "behavior_solve_rate": solved / max(1, episodes),
                 "mean_label_loss": total_loss / max(1, labelled_steps),
+                "goal_coordinate_accuracy": goal_coordinates_correct / max(1, goal_coordinates_total),
             }
         )
     return {
