@@ -1,36 +1,49 @@
-# Neural vNext Native R4 — Latent Goal Belief successor
+# Neural vNext Native R4 — fresh-accepted latent goal belief successor
 
-Status: **DEVELOPMENT ONLY; `fresh:120..159` UNOPENED**.
+Status: **FRESH ACCEPTED; durable repository archive pending**.
 
-R4 starts from the accepted R3 authority and targets the remaining weakness in `implicit_goal_regimes`. R3 learned which public action caused which transition/progress evidence; R4 adds an explicit learned latent belief over the hidden goal while preserving the accepted parent exactly.
+R4 extends accepted R3 with an explicit learned latent belief over the hidden goal. The accepted candidate is `latent_goal_guarded`; R3 remains fully frozen.
 
-## Frozen parent
+## Accepted fresh result
 
-Accepted R3 is immutable:
+On untouched `fresh:120..159`:
 
-- 707,990 physical parameters;
-- checkpoint SHA-256 `8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da`;
-- state SHA-256 `6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e`.
+- frozen R3: **146/160 = 91.25%**
+- R4: **148/160 = 92.5%**
+- total delta: **+2**
+- `implicit_goal_regimes`: **29 → 31 (+2)**
+- `conditional_regimes`: **40 → 40**
+- `regime_switch`: **38 → 38**
+- `causal_prerequisites`: **39 → 39**
 
-R4 optimizer authority is restricted to R4-owned modules.
+Every visible-target family remained exact, and every solved-count gain occurred in the intended hidden-goal family. The one-shot preregistered gate passed.
 
-## New mechanism
+Fresh workflow: `35451949227`. Fresh artifact: `10587106977`.
 
-R4 consumes only the same public action-attributed trace already available to R3. A new recurrent belief encoder produces a latent hidden-goal state, a 3 × 5 posterior head predicts goal-coordinate distributions, and a projected posterior conditions a hidden-target-only residual action scorer.
+## Frozen candidate
 
-The goal labels used by the auxiliary loss are a **train-only supervision channel**. Private goals are forbidden from inference, rollout, development and fresh evaluation. The final residual layer is zero-initialized, so an untrained R4 is exactly R3-equivalent.
+- selected candidate: `latent_goal_guarded`
+- total parameters: **877,542**
+- R4-owned parameters: **169,552**
+- checkpoint SHA-256: `167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244`
+- state SHA-256: `97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9`
 
-Visible-target safety is structural: the R4 residual is multiplied by `1 - target_visible`. Therefore the candidate must remain exactly equal to frozen R3 on visible-target families.
+Development on `dev:160..191`: frozen R3 **114/128** → R4 **117/128**. All +3 solves were in `implicit_goal_regimes` (22 → 25), with visible families exact.
 
-## Data isolation
+## Reproducibility boundary
 
-- hidden-goal train: `train:1536..2047`;
-- selection dev: `dev:160..191`;
-- reserved untouched future fresh: `fresh:120..159`;
-- consumed fresh blocks `0..39`, `40..79`, `80..119` are forbidden for R4 promotion.
+Two independent workflows at the same locked source head selected the same candidate and reproduced the exact same dev solved counts, but checkpoint/state hashes differed. This negative result is frozen in `evidence/DEV_REPRO_NEGATIVE_001.json`.
 
-No fresh task is permitted during development.
+Therefore R4 does **not** claim bitwise source-training reproducibility. Canonical authority was fixed before fresh as the **first completed successful dev run at the locked source head**: run `35451337745`, artifact `10586044507`.
 
-## Promotion rule
+## Architecture
 
-Development eligibility requires strict improvement over frozen R3 in both total solved and `implicit_goal_regimes`, with exact solved counts on all visible-target families. A separately frozen candidate must later pass the preregistered one-shot parent-relative `fresh:120..159` gate before any acceptance claim.
+R4 learns a 3 × 5 latent goal posterior from public action-attributed transition/progress history. Private hidden-goal coordinates are permitted only as train-only auxiliary labels. Inference, dev and fresh consume public observations and public episode-local memories only.
+
+The R4 residual is hard-gated by `1-target_visible`; visible-target behavior is structurally frozen R3 behavior.
+
+## Post-fresh rule
+
+`fresh:120..159` is permanently consumed. No post-fresh training, tuning, candidate mutation or reuse of this block for promotion is allowed.
+
+The remaining closure step is durable archival of the exact accepted checkpoint into the repository without retraining.

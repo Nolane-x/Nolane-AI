@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_ACCEPTED",
+  "trial": "neural-vnext-native-r4-fresh-court-001",
+  "fresh_workflow": {
+    "workflow_run_id": 35451949227,
+    "job_id": 105920528840,
+    "head_sha": "90428fae43092455f55796273f90062609806bd4",
+    "arming_parent_head": "37c4b8a203234428af0859f6aa9584277e5b41a5",
+    "artifact": {
+      "id": 10587106977,
+      "name": "neural-vnext-native-r4-fresh-court-120-159",
+      "digest": "sha256:610ff91d8048a8e71ac0ee864da797a4902954a15621890da7ba365cb3f75036",
+      "size_bytes": 5401
+    }
+  },
+  "frozen_candidate": {
+    "selected_candidate": "latent_goal_guarded",
+    "parameters": 877542,
+    "successor_parameters": 169552,
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "pre_fresh_lock_sha256": "c0b026e7cc1aff7a80714c9ccf788a5d8efb929c2759fde1bdc49a560e17348a",
+    "pre_fresh_lock_git_blob": "b703a41fbf0998749c76e197ebaa640b369171e1",
+    "canonical_dev_workflow_run_id": 35451337745,
+    "canonical_dev_artifact_id": 10586044507
+  },
+  "development_evidence": {
+    "indices": [
+      160,
+      191
+    ],
+    "parent_solved": 114,
+    "candidate_solved": 117,
+    "parent_implicit_goal_solved": 22,
+    "candidate_implicit_goal_solved": 25,
+    "total_delta": 3,
+    "implicit_goal_delta": 3,
+    "visible_target_families_exact": true
+  },
+  "source_training_reproducibility": {
+    "status": "NON_BITWISE_REPRODUCIBLE_DISCLOSED",
+    "behavioral_dev_metrics_reproduced": true,
+    "cross_run_bitwise_reproducible": false,
+    "negative_result": "DEV_REPRO_NEGATIVE_001.json"
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      120,
+      159
+    ],
+    "episodes": 160,
+    "parent": {
+      "solved": 146,
+      "solve_rate": 0.9125,
+      "steps": 2133,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 40,
+          "solved": 39,
+          "steps": 599
+        },
+        "conditional_regimes": {
+          "episodes": 40,
+          "solved": 40,
+          "steps": 347
+        },
+        "implicit_goal_regimes": {
+          "episodes": 40,
+          "solved": 29,
+          "steps": 532
+        },
+        "regime_switch": {
+          "episodes": 40,
+          "solved": 38,
+          "steps": 655
+        }
+      }
+    },
+    "candidate": {
+      "solved": 148,
+      "solve_rate": 0.925,
+      "steps": 2128,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 40,
+          "solved": 39,
+          "steps": 599
+        },
+        "conditional_regimes": {
+          "episodes": 40,
+          "solved": 40,
+          "steps": 347
+        },
+        "implicit_goal_regimes": {
+          "episodes": 40,
+          "solved": 31,
+          "steps": 527
+        },
+        "regime_switch": {
+          "episodes": 40,
+          "solved": 38,
+          "steps": 655
+        }
+      }
+    },
+    "identity_cartesian_product_verified": true,
+    "parent_candidate_identical_identities": true
+  },
+  "preregistered_promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "minimum_target_family_solved_delta": 1,
+    "target_family": "implicit_goal_regimes",
+    "required_visible_family_solved_delta": 0,
+    "actual_total_solved_delta_vs_parent": 2,
+    "actual_target_family_solved_delta_vs_parent": 2,
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": 2,
+      "regime_switch": 0
+    },
+    "all_visible_target_families_exact": true,
+    "accepted": true
+  },
+  "post_fresh": {
+    "tuning_allowed_for_this_candidate": false,
+    "same_fresh_block_rerun_for_promotion_allowed": false,
+    "candidate_mutation_invalidates_this_authority": true
+  },
+  "claim_boundary": "R4 passed its exact preregistered fresh:120..159 parent-relative court. Source training is behaviorally but not bitwise reproducible across the two disclosed dev workflows; acceptance binds the exact canonical frozen artifact."
+}
