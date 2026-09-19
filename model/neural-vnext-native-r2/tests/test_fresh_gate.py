@@ -26,17 +26,22 @@ def _lock() -> dict:
         "frozen_candidate": {
             "fresh_opened": False,
         },
-        "reproducibility_gate": {
-            "status": "PASSED",
-            "independent_attempts": [
-                {"workflow_run_id": 1},
-                {"workflow_run_id": 2},
-            ],
-            "checkpoint_sha256_equal": True,
-            "state_dict_sha256_equal": True,
-            "development_metrics_equal": True,
-            "selected_candidate_equal": True,
-            "fresh_unopened_equal": True,
+        "candidate_authority": {
+            "mode": "frozen_workflow_artifact",
+            "status": "VERIFIED",
+            "workflow_run_id": 1,
+            "artifact_id": 2,
+            "artifact_digest": "sha256:" + "a" * 64,
+            "checkpoint_sha256": "candidate-file",
+            "state_dict_sha256": "candidate-state",
+            "selected_candidate": "hidden_trace_broad",
+            "fresh_opened": False,
+        },
+        "source_training_reproducibility": {
+            "status": "FAILED_CROSS_HOST_DISCLOSED",
+            "failed_attempts": [{"workflow_run_id": 3}],
+            "cross_host_bitwise_reproducible": False,
+            "cross_host_behaviorally_reproducible": False,
         },
         "fresh_court": {
             "opened": False,
@@ -187,15 +192,21 @@ def test_load_fresh_lock_is_fail_closed(tmp_path: Path) -> None:
         evaluate_fresh.load_fresh_lock(path)
 
     lock = _lock()
-    lock["reproducibility_gate"]["status"] = "PENDING"
+    lock["candidate_authority"]["status"] = "PENDING"
     path.write_text(json.dumps(lock), encoding="utf-8")
-    with pytest.raises(ValueError, match="reproducibility_gate PASSED"):
+    with pytest.raises(ValueError, match="must be VERIFIED"):
         evaluate_fresh.load_fresh_lock(path)
 
     lock = _lock()
-    lock["reproducibility_gate"]["independent_attempts"][1]["workflow_run_id"] = 1
+    lock["source_training_reproducibility"]["status"] = "PASSED"
     path.write_text(json.dumps(lock), encoding="utf-8")
-    with pytest.raises(ValueError, match="distinct workflow runs"):
+    with pytest.raises(ValueError, match="negative result must remain disclosed"):
+        evaluate_fresh.load_fresh_lock(path)
+
+    lock = _lock()
+    lock["source_training_reproducibility"]["cross_host_bitwise_reproducible"] = True
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    with pytest.raises(ValueError, match="must not claim cross-host bitwise"):
         evaluate_fresh.load_fresh_lock(path)
 
 
