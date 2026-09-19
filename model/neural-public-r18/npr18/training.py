@@ -64,20 +64,26 @@ def train_public_r18_epoch(
             )
             memory = output["next_memory"]
             trajectory = output["action_logits_trajectory"]
-            target = batch["target_action"]
+            target_mask = batch["target_mask"]
+            if target_mask.shape != output["action_logits"].shape or not bool(target_mask.any()):
+                raise ValueError("set-valued target mask is incompatible with action logits")
             depth = trajectory.shape[1]
             weights = torch.linspace(
                 0.7, 1.3, depth, dtype=trajectory.dtype, device=trajectory.device
             )
-            ce = torch.stack(
-                [
-                    F.cross_entropy(trajectory[:, step], target)
-                    for step in range(depth)
-                ]
-            )
+            set_losses: list[Tensor] = []
+            for step in range(depth):
+                log_prob = torch.log_softmax(trajectory[:, step], dim=-1)
+                target_log_mass = torch.logsumexp(
+                    log_prob.masked_fill(~target_mask, -torch.inf),
+                    dim=-1,
+                )
+                set_losses.append(-target_log_mass.mean())
+            ce = torch.stack(set_losses)
             loss = (ce * weights).mean()
             losses.append(loss)
-            total_correct += int(output["action_logits"].argmax(-1).item() == target.item())
+            predicted = output["action_logits"].argmax(-1)
+            total_correct += int(target_mask.gather(1, predicted[:, None]).item())
             total_rows += 1
 
         episode_loss = torch.stack(losses).mean()
