@@ -141,21 +141,23 @@ def train_episode(
         hidden = output["next_hidden"]
         target_tensor = torch.tensor([target], dtype=torch.long)
         policy_loss = F.cross_entropy(output["action_logits"], target_tensor)
-        private_goal = getattr(task, "_goal", None)
-        if not isinstance(private_goal, tuple) or len(private_goal) != 3:
-            raise ValueError("train-only FIGG-18 goal label is unavailable")
-        goal_target = torch.tensor(private_goal, dtype=torch.long)
-        goal_logits = output["goal_logits"][0]
-        goal_loss = torch.stack(
-            [
-                F.cross_entropy(goal_logits[index].unsqueeze(0), goal_target[index].unsqueeze(0))
-                for index in range(3)
-            ]
-        ).mean()
+        goal_loss = policy_loss.new_zeros(())
+        if getattr(task, "family", None) == "implicit_goal_regimes":
+            private_goal = getattr(task, "_goal", None)
+            if not isinstance(private_goal, tuple) or len(private_goal) != 3:
+                raise ValueError("train-only implicit FIGG-18 goal label is unavailable")
+            goal_target = torch.tensor(private_goal, dtype=torch.long)
+            goal_logits = output["goal_logits"][0]
+            goal_loss = torch.stack(
+                [
+                    F.cross_entropy(goal_logits[index].unsqueeze(0), goal_target[index].unsqueeze(0))
+                    for index in range(3)
+                ]
+            ).mean()
+            predicted_goal = goal_logits.detach().argmax(dim=-1)
+            goal_coordinates_correct += int(predicted_goal.eq(goal_target).sum().item())
+            goal_coordinates_total += 3
         losses.append(policy_loss + float(goal_loss_weight) * goal_loss)
-        predicted_goal = goal_logits.detach().argmax(dim=-1)
-        goal_coordinates_correct += int(predicted_goal.eq(goal_target).sum().item())
-        goal_coordinates_total += 3
         labelled += 1
 
         use_teacher = rng.random() < float(teacher_mix)
