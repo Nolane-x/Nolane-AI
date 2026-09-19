@@ -211,11 +211,15 @@ def train_successor_candidate(
     scope = model.configure_successor_training()
 
     family_ranges = candidate["family_training_indices"]
+    training_families = tuple(str(value) for value in family_ranges)
+    unknown_families = set(training_families) - set(str(value) for value in benchmark_families)
+    if unknown_families:
+        raise ValueError(f"unknown successor training families: {sorted(unknown_families)}")
     summary = train_native_policy(
         model,
         make_task=make_r18_task,
         oracle_plan=oracle_plan,
-        families=tuple(str(value) for value in benchmark_families),
+        families=training_families,
         train_indices=(0, 0),
         family_train_indices=family_ranges,
         seed=int(seed) + 1,
