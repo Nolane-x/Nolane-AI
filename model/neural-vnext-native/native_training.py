@@ -257,7 +257,7 @@ def train_episode(
         for parameter in model.parameters()
         if parameter.requires_grad and parameter.grad is not None
     ]
-    torch.nn.utils.clip_grad_norm_(trainable, max_norm=float(max_grad_norm))
+    torch.nn.utils.clip_grad_norm_(trainable, max_norm=float(max_grad_norm), foreach=False)
     optimizer.step()
     return EpisodeTrainResult(
         loss=float(loss.detach().cpu()),
@@ -320,6 +320,8 @@ def train_native_policy(
         trainable_parameters,
         lr=float(learning_rate),
         weight_decay=float(weight_decay),
+        foreach=False,
+        fused=False,
     )
     if family_train_indices is None:
         family_ranges = {
