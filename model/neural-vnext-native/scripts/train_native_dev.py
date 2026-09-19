@@ -91,6 +91,7 @@ def main() -> int:
             oracle_plan=oracle_plan,
             families=families,
             train_indices=(train_indices[0], train_indices[1]),
+            family_train_indices=training["family_training_indices"],
             seed=seed,
             expert_epochs=int(candidate["expert_epochs"]),
             dagger_teacher_mix=[float(value) for value in candidate["dagger_teacher_mix"]],
