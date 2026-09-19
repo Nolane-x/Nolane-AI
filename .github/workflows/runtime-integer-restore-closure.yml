@@ -1,0 +1,47 @@
+name: Runtime Integer Restore Closure
+
+on:
+  push:
+    paths:
+      - 'nolane/external_core/execution_types.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_runtime_execution_integer_restore_closure.py'
+      - 'tests/test_refoundation_component_versions.py'
+      - '.github/workflows/runtime-integer-restore-closure.yml'
+  pull_request:
+    paths:
+      - 'nolane/external_core/execution_types.py'
+      - 'nolane/metadata/component_versions.py'
+      - 'tests/test_runtime_execution_integer_restore_closure.py'
+      - 'tests/test_refoundation_component_versions.py'
+      - '.github/workflows/runtime-integer-restore-closure.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  closure:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ['3.11', '3.13']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install test dependency
+        run: python -m pip install -q pytest
+      - name: Compile closure surfaces
+        run: |
+          python -m py_compile \
+            nolane/external_core/execution_types.py \
+            nolane/metadata/component_versions.py \
+            tests/test_runtime_execution_integer_restore_closure.py
+      - name: Run exact integer restore closure tests
+        run: |
+          python -m pytest -q \
+            tests/test_runtime_execution_integer_restore_closure.py \
+            tests/test_refoundation_component_versions.py
