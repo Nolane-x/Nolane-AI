@@ -63,30 +63,43 @@ def load_fresh_lock(path: Path) -> dict[str, Any]:
     if frozen.get("fresh_opened") is not False:
         raise ValueError("frozen candidate must attest fresh_opened=false")
 
-    reproducibility = payload.get("reproducibility_gate")
-    if not isinstance(reproducibility, dict):
-        raise ValueError("R2 PRE_FRESH_LOCK is missing reproducibility_gate")
-    if reproducibility.get("status") != "PASSED":
-        raise ValueError("R2 fresh court requires reproducibility_gate PASSED")
-    attempts = reproducibility.get("independent_attempts")
-    if not isinstance(attempts, list) or len(attempts) < 2:
-        raise ValueError("R2 fresh court requires at least two reproducibility attempts")
-    run_ids = []
-    for attempt in attempts:
-        if not isinstance(attempt, dict):
-            raise ValueError("R2 reproducibility attempt must be a mapping")
-        run_ids.append(_exact_int(attempt.get("workflow_run_id"), field="workflow_run_id"))
-    if len(run_ids) != len(set(run_ids)):
-        raise ValueError("R2 reproducibility attempts must use distinct workflow runs")
-    for field in (
-        "checkpoint_sha256_equal",
-        "state_dict_sha256_equal",
-        "development_metrics_equal",
-        "selected_candidate_equal",
-        "fresh_unopened_equal",
-    ):
-        if reproducibility.get(field) is not True:
-            raise ValueError(f"R2 reproducibility gate requires {field}=true")
+    authority = payload.get("candidate_authority")
+    if not isinstance(authority, dict):
+        raise ValueError("R2 PRE_FRESH_LOCK is missing candidate_authority")
+    if authority.get("mode") != "frozen_workflow_artifact":
+        raise ValueError("R2 fresh court requires frozen_workflow_artifact authority")
+    if authority.get("status") != "VERIFIED":
+        raise ValueError("R2 frozen artifact authority must be VERIFIED")
+    _exact_int(authority.get("workflow_run_id"), field="authority workflow_run_id")
+    _exact_int(authority.get("artifact_id"), field="authority artifact_id")
+    digest = authority.get("artifact_digest")
+    if not isinstance(digest, str) or not digest.startswith("sha256:") or len(digest) != 71:
+        raise ValueError("R2 candidate authority requires an artifact sha256 digest")
+    if authority.get("checkpoint_sha256") != frozen.get("checkpoint_sha256"):
+        raise ValueError("R2 authority checkpoint hash differs from frozen candidate")
+    if authority.get("state_dict_sha256") != frozen.get("state_dict_sha256"):
+        raise ValueError("R2 authority state hash differs from frozen candidate")
+    if authority.get("selected_candidate") != frozen.get("selected_candidate"):
+        raise ValueError("R2 authority selected candidate differs from frozen candidate")
+    if authority.get("fresh_opened") is not False:
+        raise ValueError("R2 candidate authority must attest fresh_opened=false")
+
+    source_repro = payload.get("source_training_reproducibility")
+    if not isinstance(source_repro, dict):
+        raise ValueError("R2 PRE_FRESH_LOCK must disclose source training reproducibility")
+    if source_repro.get("status") != "FAILED_CROSS_HOST_DISCLOSED":
+        raise ValueError("R2 source-training negative result must remain disclosed")
+    failures = source_repro.get("failed_attempts")
+    if not isinstance(failures, list) or not failures:
+        raise ValueError("R2 source-training disclosure requires failed attempts")
+    for failure in failures:
+        if not isinstance(failure, dict):
+            raise ValueError("R2 failed reproduction attempt must be a mapping")
+        _exact_int(failure.get("workflow_run_id"), field="failed workflow_run_id")
+    if source_repro.get("cross_host_bitwise_reproducible") is not False:
+        raise ValueError("R2 must not claim cross-host bitwise source reproducibility")
+    if source_repro.get("cross_host_behaviorally_reproducible") is not False:
+        raise ValueError("R2 must not claim cross-host behavioral source reproducibility")
     return payload
 
 
