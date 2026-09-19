@@ -245,9 +245,9 @@ class NativeRecurrentPolicy(nn.Module):
             batch_first=True,
         )
         self.recurrent = nn.GRUCell(hidden_dim * 2, hidden_dim)
-        self.goal_head = nn.Linear(hidden_dim, 15)
-        self.goal_belief_projection = nn.Linear(15, hidden_dim, bias=False)
-        self.goal_policy_norm = nn.LayerNorm(hidden_dim)
+        # Keep the original shared-policy module construction order stable.
+        # Hidden-goal specialist modules are appended afterwards so their
+        # initialization cannot perturb the base RNG stream.
         self.score = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
             nn.GELU(),
@@ -260,6 +260,18 @@ class NativeRecurrentPolicy(nn.Module):
             nn.Linear(hidden_dim // 2, 1),
         )
         self.uncertainty_head = nn.Linear(hidden_dim, 1)
+
+        self.goal_head = nn.Linear(hidden_dim, 15)
+        self.goal_belief_projection = nn.Linear(15, hidden_dim, bias=False)
+        self.goal_policy_norm = nn.LayerNorm(hidden_dim)
+        self.hidden_goal_score = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.GELU(),
+            nn.LayerNorm(hidden_dim),
+            nn.Linear(hidden_dim, 1),
+        )
+        nn.init.zeros_(self.hidden_goal_score[-1].weight)
+        nn.init.zeros_(self.hidden_goal_score[-1].bias)
 
     def architecture(self) -> dict[str, int]:
         return {
@@ -312,15 +324,24 @@ class NativeRecurrentPolicy(nn.Module):
         hidden_goal_policy = self.goal_policy_norm(
             next_hidden + self.goal_belief_projection(goal_belief)
         )
-        policy_hidden = (
-            target_visible * next_hidden
-            + hidden_target_gate * hidden_goal_policy
+        base_expanded = next_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
+        base_logits = self.score(
+            torch.cat((action_tokens, base_expanded), dim=-1)
+        ).squeeze(-1)
+        specialist_expanded = hidden_goal_policy[:, None, :].expand(
+            batch,
+            actions,
+            self.hidden_dim,
         )
-        expanded = policy_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
-        logits = self.score(torch.cat((action_tokens, expanded), dim=-1)).squeeze(-1)
+        hidden_goal_residual = self.hidden_goal_score(
+            torch.cat((action_tokens, specialist_expanded), dim=-1)
+        ).squeeze(-1)
+        logits = base_logits + hidden_target_gate * hidden_goal_residual
         logits = logits.masked_fill(~valid_actions, torch.finfo(logits.dtype).min)
         return {
             "action_logits": logits,
+            "base_action_logits": base_logits,
+            "hidden_goal_residual": hidden_goal_residual,
             "next_hidden": next_hidden,
             "goal_logits": goal_logits,
             "goal_probability": goal_probability,
