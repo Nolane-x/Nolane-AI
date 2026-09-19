@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "status": "R3_PHASE2_NEGATIVE_RESULT_FROZEN",
+  "workflow_run_id": 35447945645,
+  "workflow_job_id": 105910034835,
+  "source_head": "36a365905039656011c5169159f7b391d9ddfa2d",
+  "artifact": {
+    "id": 10585996201,
+    "name": "neural-vnext-native-r3-phase2-dev",
+    "digest": "sha256:d3a252343fc4b501935d5cdd0720aad5f2136976f073d6954f0e566e8a6e6c41",
+    "size_bytes": 3517
+  },
+  "phase1_authority": {
+    "selected_candidate": "attributed_broad",
+    "workflow_run_id": 35447526183,
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e"
+  },
+  "development_block": [
+    128,
+    159
+  ],
+  "phase1_replay": {
+    "solved": 119,
+    "episodes": 128,
+    "families": {
+      "causal_prerequisites": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 472
+      },
+      "conditional_regimes": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 276
+      },
+      "implicit_goal_regimes": {
+        "episodes": 32,
+        "solved": 24,
+        "steps": 463
+      },
+      "regime_switch": {
+        "episodes": 32,
+        "solved": 31,
+        "steps": 457
+      }
+    }
+  },
+  "attempted_candidates": [
+    {
+      "name": "phase2_conservative",
+      "solved": 118,
+      "implicit_goal_solved": 23,
+      "total_delta_vs_phase1": -1,
+      "implicit_goal_delta_vs_phase1": -1,
+      "visible_target_families_exact": true,
+      "eligible": false
+    },
+    {
+      "name": "phase2_broad",
+      "solved": 114,
+      "implicit_goal_solved": 19,
+      "total_delta_vs_phase1": -5,
+      "implicit_goal_delta_vs_phase1": -5,
+      "visible_target_families_exact": true,
+      "eligible": false
+    }
+  ],
+  "fresh_opened": false,
+  "conclusion": "Additional Phase-2 training regressed the frozen Phase-1 candidate on the new development block. No Phase-2 candidate is eligible. This negative result must remain disclosed and must not be converted into a pass by relaxing the locked gate.",
+  "next_allowed_step": "Evaluate the already-frozen Phase-1 candidate against its exact R2 parent on dev:128..159 without training. Any future fresh evaluation requires a separate PRE_FRESH_LOCK and leaves fresh:80..119 unopened until then."
+}
