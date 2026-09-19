@@ -164,7 +164,10 @@
         "OPENBLAS_NUM_THREADS": "1",
         "NUMEXPR_NUM_THREADS": "1"
       },
-      "promotion_requirement": "The exact selected checkpoint SHA-256 and state-dict SHA-256 must reproduce on an independent rerun before PRE_FRESH_LOCK may be created."
+      "promotion_requirement": "The exact selected checkpoint SHA-256 and state-dict SHA-256 must reproduce on an independent rerun before PRE_FRESH_LOCK may be created.",
+      "pytorch_version": "2.9.0",
+      "pytorch_index": "https://download.pytorch.org/whl/cpu",
+      "runtime_dependency_pinning_required": true
     }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
