@@ -19,6 +19,7 @@ for path in (ROOT, R18_ROOT):
 
 from npr18 import (  # noqa: E402
     PublicR18RecursiveCore,
+    collect_public_dagger_corpus,
     collect_public_teacher_corpus,
     evaluate_public_r18,
     load_public_r18_checkpoint,
@@ -58,6 +59,8 @@ def main() -> int:
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--train-start", type=int, default=0)
     parser.add_argument("--train-count", type=_positive, default=24)
+    parser.add_argument("--dagger-start", type=int, default=128)
+    parser.add_argument("--dagger-count", type=_positive, default=4)
     parser.add_argument("--dev-start", type=int, default=0)
     parser.add_argument("--dev-count", type=_positive, default=8)
     parser.add_argument("--epochs", type=_positive, default=2)
@@ -78,6 +81,8 @@ def main() -> int:
         raise ValueError("predevelopment lock is missing architecture authority")
     if not _inside(training_lock["allowed_indices"], args.train_start, args.train_count):
         raise ValueError("requested train indices are outside the preregistered train window")
+    if not _inside(training_lock["allowed_indices"], args.dagger_start, args.dagger_count * max(1, args.epochs - 1)):
+        raise ValueError("requested DAgger indices are outside the preregistered train window")
     if not _inside(dev_lock["allowed_indices"], args.dev_start, args.dev_count):
         raise ValueError("requested dev indices are outside the preregistered dev window")
     if args.reasoning_steps > 8:
@@ -116,6 +121,7 @@ def main() -> int:
     )
 
     epoch_rows = []
+    dagger_rows = []
     for epoch in range(args.epochs):
         metrics = train_public_r18_epoch(
             model,
@@ -123,9 +129,29 @@ def main() -> int:
             optimizer,
             generator=generator,
         )
-        row = {"epoch": epoch + 1, **metrics}
+        row = {"epoch": epoch + 1, "corpus_episodes": len(corpus), **metrics}
         epoch_rows.append(row)
         print(json.dumps({"training": row}, sort_keys=True))
+        if epoch + 1 < args.epochs:
+            dagger_start = args.dagger_start + epoch * args.dagger_count
+            dagger = collect_public_dagger_corpus(
+                model,
+                make_task=make_r18_task,
+                oracle_plan=oracle_plan,
+                start_index=dagger_start,
+                count_per_family=args.dagger_count,
+            )
+            usable = [episode for episode in dagger if episode.steps]
+            corpus.extend(usable)
+            dagger_row = {
+                "round": epoch + 1,
+                "indices": [dagger_start, dagger_start + args.dagger_count - 1],
+                "episodes": len(usable),
+                "rows": sum(len(episode.steps) for episode in usable),
+                "policy_solved": sum(int(episode.solved) for episode in usable),
+            }
+            dagger_rows.append(dagger_row)
+            print(json.dumps({"dagger": dagger_row}, sort_keys=True))
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     checkpoint = args.output_dir / "public-r18-recursive-core.pt"
@@ -139,6 +165,9 @@ def main() -> int:
         "oracle_usage": "train-target generation only",
         "model_input_boundary": "public-only",
         "epochs": epoch_rows,
+        "dagger": dagger_rows,
+        "dagger_start": args.dagger_start,
+        "dagger_count_per_family_per_round": args.dagger_count,
     }
     manifest = save_public_r18_checkpoint(
         model,
