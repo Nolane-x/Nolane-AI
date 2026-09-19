@@ -39,29 +39,11 @@
     "recurrent": "GRUCell over public observation plus public action-memory tokens",
     "action_scoring": "shared per-action neural scorer",
     "private_task_state_allowed_at_inference": false,
-    "public_conditioning": "explicit state parity plus regime-parity action memory; visible targets also expose normalized modular forward-distance features"
+    "public_conditioning": "explicit state parity plus regime-parity action memory; visible targets also expose normalized modular forward-distance features",
+    "hidden_goal_specialist": "zero-initialized residual action scorer, gated strictly to target_visible=0; appended after shared module construction so base initialization stream is unchanged"
   },
   "training": {
     "seed": 20260919,
-    "development_candidates": [
-      {
-        "name": "guarded_dagger",
-        "expert_epochs": 3,
-        "dagger_teacher_mix": [
-          0.75,
-          0.5
-        ]
-      },
-      {
-        "name": "broad_dagger",
-        "expert_epochs": 2,
-        "dagger_teacher_mix": [
-          0.75,
-          0.5,
-          0.25
-        ]
-      }
-    ],
     "selection_rule": [
       "maximize development solved episodes",
       "then maximize worst-family solved episodes",
@@ -83,9 +65,20 @@
       "visible_target_policy_invariance_required": true,
       "representation": "full 15-way categorical belief (3 coordinates x 5 values) projected to policy hidden state; no scalar expectation compression",
       "supervision_start": "only after every non-submit action has at least one public transition in the current context",
-      "unique_implicit_train_worlds": 512
+      "unique_implicit_train_worlds": 512,
+      "optimization_scope": "hidden_goal specialist only"
     },
-    "family_training_indices": {
+    "base_curriculum": {
+      "name": "guarded_shared_base",
+      "expert_epochs": 3,
+      "dagger_teacher_mix": [
+        0.75,
+        0.5
+      ],
+      "goal_loss_weight": 0,
+      "optimization_scope": "base"
+    },
+    "base_family_training_indices": {
       "conditional_regimes": [
         0,
         127
@@ -96,11 +89,50 @@
       ],
       "implicit_goal_regimes": [
         0,
-        511
+        127
       ],
       "causal_prerequisites": [
         0,
         127
+      ]
+    },
+    "hidden_goal_family_training_indices": {
+      "implicit_goal_regimes": [
+        0,
+        511
+      ]
+    },
+    "hidden_goal_specialists": [
+      {
+        "name": "hidden_guarded",
+        "expert_epochs": 3,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "goal_loss_weight": 0.75,
+        "learning_rate": 0.0007
+      },
+      {
+        "name": "hidden_broad",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "goal_loss_weight": 0.75,
+        "learning_rate": 0.0007
+      }
+    ],
+    "specialist_isolation": {
+      "shared_base_frozen_during_hidden_goal_training": true,
+      "visible_family_dev_metrics_must_equal_base": true,
+      "hidden_goal_parameter_prefixes": [
+        "goal_head.",
+        "goal_belief_projection.",
+        "goal_policy_norm.",
+        "hidden_goal_score."
       ]
     }
   },
