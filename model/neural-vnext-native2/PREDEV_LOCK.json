@@ -8,7 +8,14 @@
     "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
     "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
     "post_fresh_mutation_allowed": false,
-    "successor_rule": "reproduce exact accepted parent from source, verify state hash, freeze all parent parameters, then train successor-only residual parameters"
+    "successor_rule": "reproduce exact accepted parent from source, verify state hash, freeze all parent parameters, then train successor-only residual parameters",
+    "source_main_merge_commit": "1aa9d8bfac26282f01f770d990586642e33ed777",
+    "source_git_blobs": {
+      "model/neural-vnext-native/native_core.py": "7f460eced3d270747b6493bae0e4f9e0a55df49f",
+      "model/neural-vnext-native/native_training.py": "0cae54d2465bbdf1bee9fa7246a5cd39c8b99071",
+      "model/neural-vnext-native/PREDEV_LOCK.json": "f74301a765d48f947387ec1f4c0fe78b4190653e",
+      "model/neural-vnext-native/ACCEPTED_AUTHORITY.json": "0931721712fab78b5109fa75d8c749cb69794169"
+    }
   },
   "benchmark": {
     "name": "nolane-figg18-v1",
@@ -19,15 +26,27 @@
       "causal_prerequisites"
     ],
     "development_split": "dev",
-    "development_indices": [0, 31],
+    "development_indices": [
+      0,
+      31
+    ],
     "reserved_fresh_split": "fresh",
-    "reserved_fresh_indices": [40, 79],
+    "reserved_fresh_indices": [
+      40,
+      79
+    ],
     "reserved_fresh_episodes_expected": 160
   },
   "fresh_isolation": {
     "status": "UNOPENED",
-    "consumed_parent_fresh_indices": [0, 39],
-    "reserved_successor_fresh_indices": [40, 79],
+    "consumed_parent_fresh_indices": [
+      0,
+      39
+    ],
+    "reserved_successor_fresh_indices": [
+      40,
+      79
+    ],
     "rule": "No successor training/development code may instantiate fresh tasks. Fresh 40..79 may be opened only after a separate frozen successor lock.",
     "post_fresh_tuning_allowed": false
   },
@@ -58,9 +77,9 @@
     "seed": 20260919,
     "optimizer": "AdamW",
     "weight_decay": 0.0001,
-    "max_grad_norm": 1.0,
+    "max_grad_norm": 1,
     "parent_hash_must_match_before_successor_training": true,
-    "goal_loss_weight": 0.0,
+    "goal_loss_weight": 0,
     "selection_rule": [
       "maximize development solved episodes",
       "then maximize worst-family solved episodes",
@@ -71,28 +90,61 @@
       {
         "name": "balanced_residual",
         "expert_epochs": 1,
-        "dagger_teacher_mix": [0.75, 0.5],
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
         "learning_rate": 0.0005,
         "family_training_indices": {
-          "conditional_regimes": [0, 511],
-          "regime_switch": [0, 511],
-          "implicit_goal_regimes": [0, 511],
-          "causal_prerequisites": [0, 511]
+          "conditional_regimes": [
+            0,
+            511
+          ],
+          "regime_switch": [
+            0,
+            511
+          ],
+          "implicit_goal_regimes": [
+            0,
+            511
+          ],
+          "causal_prerequisites": [
+            0,
+            511
+          ]
         }
       },
       {
         "name": "hard_family_residual",
         "expert_epochs": 1,
-        "dagger_teacher_mix": [0.75, 0.5],
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
         "learning_rate": 0.0005,
         "family_training_indices": {
-          "conditional_regimes": [0, 511],
-          "regime_switch": [0, 1023],
-          "implicit_goal_regimes": [0, 2047],
-          "causal_prerequisites": [0, 1023]
+          "conditional_regimes": [
+            0,
+            511
+          ],
+          "regime_switch": [
+            0,
+            1023
+          ],
+          "implicit_goal_regimes": [
+            0,
+            2047
+          ],
+          "causal_prerequisites": [
+            0,
+            1023
+          ]
         }
       }
-    ]
+    ],
+    "parent_reproduction_seed": 20260919,
+    "residual_initialization_seed": 20260920,
+    "residual_training_seed": 20260920
   },
   "claim_boundary": "NVN2 is a new successor candidate. Parent fresh 0..39 is historical evidence only and cannot authorize NVN2. Any successor acceptance requires a separately frozen checkpoint and untouched fresh 40..79 court."
 }
