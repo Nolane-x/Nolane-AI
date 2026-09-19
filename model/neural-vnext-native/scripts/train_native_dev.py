@@ -97,6 +97,7 @@ def main() -> int:
             learning_rate=float(training["learning_rate"]),
             weight_decay=float(training["weight_decay"]),
             max_grad_norm=float(training["max_grad_norm"]),
+            goal_loss_weight=float(training["goal_belief"]["loss_weight"]),
         )
         dev = evaluate_policy(
             model,
