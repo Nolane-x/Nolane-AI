@@ -1,0 +1,931 @@
+{
+  "episodes": 128,
+  "families": {
+    "causal_prerequisites": {
+      "episodes": 32,
+      "solved": 32,
+      "steps": 466
+    },
+    "conditional_regimes": {
+      "episodes": 32,
+      "solved": 32,
+      "steps": 288
+    },
+    "implicit_goal_regimes": {
+      "episodes": 32,
+      "solved": 25,
+      "steps": 390
+    },
+    "regime_switch": {
+      "episodes": 32,
+      "solved": 28,
+      "steps": 514
+    }
+  },
+  "indices": [
+    160,
+    191
+  ],
+  "rows": [
+    {
+      "family": "conditional_regimes",
+      "index": 160,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 161,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 162,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 163,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 164,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 165,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 166,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 167,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 168,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 169,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 170,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 171,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 172,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 173,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 174,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 175,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 176,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 177,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 178,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 179,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 180,
+      "solved": true,
+      "split": "dev",
+      "steps": 5
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 181,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 182,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 183,
+      "solved": true,
+      "split": "dev",
+      "steps": 3
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 184,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 185,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 186,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 187,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 188,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 189,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 190,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 191,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "regime_switch",
+      "index": 160,
+      "solved": false,
+      "split": "dev",
+      "steps": 30
+    },
+    {
+      "family": "regime_switch",
+      "index": 161,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 162,
+      "solved": false,
+      "split": "dev",
+      "steps": 30
+    },
+    {
+      "family": "regime_switch",
+      "index": 163,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 164,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 165,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 166,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "regime_switch",
+      "index": 167,
+      "solved": true,
+      "split": "dev",
+      "steps": 19
+    },
+    {
+      "family": "regime_switch",
+      "index": 168,
+      "solved": true,
+      "split": "dev",
+      "steps": 19
+    },
+    {
+      "family": "regime_switch",
+      "index": 169,
+      "solved": false,
+      "split": "dev",
+      "steps": 30
+    },
+    {
+      "family": "regime_switch",
+      "index": 170,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 171,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "regime_switch",
+      "index": 172,
+      "solved": true,
+      "split": "dev",
+      "steps": 24
+    },
+    {
+      "family": "regime_switch",
+      "index": 173,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "regime_switch",
+      "index": 174,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 175,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 176,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 177,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 178,
+      "solved": false,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 179,
+      "solved": true,
+      "split": "dev",
+      "steps": 21
+    },
+    {
+      "family": "regime_switch",
+      "index": 180,
+      "solved": true,
+      "split": "dev",
+      "steps": 18
+    },
+    {
+      "family": "regime_switch",
+      "index": 181,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 182,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "regime_switch",
+      "index": 183,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "regime_switch",
+      "index": 184,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "regime_switch",
+      "index": 185,
+      "solved": true,
+      "split": "dev",
+      "steps": 18
+    },
+    {
+      "family": "regime_switch",
+      "index": 186,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "regime_switch",
+      "index": 187,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 188,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 189,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 190,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "regime_switch",
+      "index": 191,
+      "solved": true,
+      "split": "dev",
+      "steps": 5
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 160,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 161,
+      "solved": false,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 162,
+      "solved": false,
+      "split": "dev",
+      "steps": 19
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 163,
+      "solved": true,
+      "split": "dev",
+      "steps": 22
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 164,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 165,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 166,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 167,
+      "solved": true,
+      "split": "dev",
+      "steps": 2
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 168,
+      "solved": false,
+      "split": "dev",
+      "steps": 18
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 169,
+      "solved": false,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 170,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 171,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 172,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 173,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 174,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 175,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 176,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 177,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 178,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 179,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 180,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 181,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 182,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 183,
+      "solved": false,
+      "split": "dev",
+      "steps": 32
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 184,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 185,
+      "solved": false,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 186,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 187,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 188,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 189,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 190,
+      "solved": false,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 191,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 160,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 161,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 162,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 163,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 164,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 165,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 166,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 167,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 168,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 169,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 170,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 171,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 172,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 173,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 174,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 175,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 176,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 177,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 178,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 179,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 180,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 181,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 182,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 183,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 184,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 185,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 186,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 187,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 188,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 189,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 190,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 191,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    }
+  ],
+  "solve_rate": 0.9140625,
+  "solved": 117,
+  "split": "dev",
+  "steps": 1658
+}

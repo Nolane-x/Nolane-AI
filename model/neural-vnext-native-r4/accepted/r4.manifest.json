@@ -1,0 +1,721 @@
+{
+  "architecture": {
+    "attribution_hidden_dim": 128,
+    "attribution_length": 12,
+    "attribution_token_dim": 50,
+    "belief_hidden_dim": 96,
+    "goal_cardinality": 5,
+    "goal_dimensions": 3,
+    "goal_embedding_dim": 48,
+    "native_action_dim": 25,
+    "native_attention_heads": 4,
+    "native_global_dim": 29,
+    "native_hidden_dim": 128,
+    "r2_trace_hidden_dim": 128,
+    "r2_trace_length": 8,
+    "r2_trace_token_dim": 25
+  },
+  "candidate_tournament": [
+    {
+      "architecture": {
+        "belief_hidden_dim": 96,
+        "goal_embedding_dim": 48
+      },
+      "development": {
+        "episodes": 128,
+        "families": {
+          "causal_prerequisites": {
+            "episodes": 32,
+            "solved": 32,
+            "steps": 466
+          },
+          "conditional_regimes": {
+            "episodes": 32,
+            "solved": 32,
+            "steps": 288
+          },
+          "implicit_goal_regimes": {
+            "episodes": 32,
+            "solved": 25,
+            "steps": 390
+          },
+          "regime_switch": {
+            "episodes": 32,
+            "solved": 28,
+            "steps": 514
+          }
+        },
+        "indices": [
+          160,
+          191
+        ],
+        "solve_rate": 0.9140625,
+        "solved": 117,
+        "split": "dev",
+        "steps": 1658
+      },
+      "eligibility": {
+        "eligible": true,
+        "family_solved_delta_vs_parent": {
+          "causal_prerequisites": 0,
+          "conditional_regimes": 0,
+          "implicit_goal_regimes": 3,
+          "regime_switch": 0
+        },
+        "implicit_goal_delta_vs_parent": 3,
+        "total_solved_delta_vs_parent": 3,
+        "visible_target_families_exact": true
+      },
+      "name": "latent_goal_guarded",
+      "rank": [
+        25,
+        117,
+        -1658,
+        "latent_goal_guarded"
+      ],
+      "training": {
+        "frozen_parent_parameters": 707990,
+        "private_goal_usage": "train-only auxiliary labels; forbidden in rollout/dev/fresh",
+        "scope_trainable_parameters": 169552,
+        "seed": 20260920,
+        "stages": [
+          {
+            "behavior_solve_rate": 0.984375,
+            "behavior_solved": 504,
+            "behavior_steps": 4157,
+            "episodes": 512,
+            "epoch": 1,
+            "labelled_steps": 4157,
+            "mean_episode_goal_aux_loss": 1.4923798983218148,
+            "mean_episode_goal_coordinate_accuracy": 0.34524509417087573,
+            "mean_episode_residual_mse": 0.07819405154072001,
+            "mean_label_loss": 0.7140020938813758,
+            "stage": "expert",
+            "teacher_mix": 1.0
+          },
+          {
+            "behavior_solve_rate": 0.984375,
+            "behavior_solved": 504,
+            "behavior_steps": 4460,
+            "episodes": 512,
+            "epoch": 2,
+            "labelled_steps": 4460,
+            "mean_episode_goal_aux_loss": 1.2454595999442972,
+            "mean_episode_goal_coordinate_accuracy": 0.48436808055948705,
+            "mean_episode_residual_mse": 0.07807612326359958,
+            "mean_label_loss": 0.7292895850579301,
+            "stage": "dagger-1",
+            "teacher_mix": 0.75
+          },
+          {
+            "behavior_solve_rate": 0.9609375,
+            "behavior_solved": 492,
+            "behavior_steps": 5029,
+            "episodes": 512,
+            "epoch": 3,
+            "labelled_steps": 5029,
+            "mean_episode_goal_aux_loss": 1.1435968218138441,
+            "mean_episode_goal_coordinate_accuracy": 0.5362077083748678,
+            "mean_episode_residual_mse": 0.07929198749297939,
+            "mean_label_loss": 0.7715880852092637,
+            "stage": "dagger-2",
+            "teacher_mix": 0.5
+          }
+        ],
+        "successor_total_parameters": 169552,
+        "train_indices": [
+          1536,
+          2047
+        ],
+        "training_episodes_per_epoch": 512
+      }
+    },
+    {
+      "architecture": {
+        "belief_hidden_dim": 128,
+        "goal_embedding_dim": 64
+      },
+      "development": {
+        "episodes": 128,
+        "families": {
+          "causal_prerequisites": {
+            "episodes": 32,
+            "solved": 32,
+            "steps": 466
+          },
+          "conditional_regimes": {
+            "episodes": 32,
+            "solved": 32,
+            "steps": 288
+          },
+          "implicit_goal_regimes": {
+            "episodes": 32,
+            "solved": 22,
+            "steps": 472
+          },
+          "regime_switch": {
+            "episodes": 32,
+            "solved": 28,
+            "steps": 514
+          }
+        },
+        "indices": [
+          160,
+          191
+        ],
+        "solve_rate": 0.890625,
+        "solved": 114,
+        "split": "dev",
+        "steps": 1740
+      },
+      "eligibility": {
+        "eligible": false,
+        "family_solved_delta_vs_parent": {
+          "causal_prerequisites": 0,
+          "conditional_regimes": 0,
+          "implicit_goal_regimes": 0,
+          "regime_switch": 0
+        },
+        "implicit_goal_delta_vs_parent": 0,
+        "total_solved_delta_vs_parent": 0,
+        "visible_target_families_exact": true
+      },
+      "name": "latent_goal_broad",
+      "rank": [
+        22,
+        114,
+        -1740,
+        "latent_goal_broad"
+      ],
+      "training": {
+        "frozen_parent_parameters": 707990,
+        "private_goal_usage": "train-only auxiliary labels; forbidden in rollout/dev/fresh",
+        "scope_trainable_parameters": 232720,
+        "seed": 20260921,
+        "stages": [
+          {
+            "behavior_solve_rate": 0.984375,
+            "behavior_solved": 504,
+            "behavior_steps": 4157,
+            "episodes": 512,
+            "epoch": 1,
+            "labelled_steps": 4157,
+            "mean_episode_goal_aux_loss": 1.480433166725561,
+            "mean_episode_goal_coordinate_accuracy": 0.3635082925610267,
+            "mean_episode_residual_mse": 0.10250179714112306,
+            "mean_label_loss": 0.819419377450046,
+            "stage": "expert",
+            "teacher_mix": 1.0
+          },
+          {
+            "behavior_solve_rate": 0.97265625,
+            "behavior_solved": 498,
+            "behavior_steps": 4490,
+            "episodes": 512,
+            "epoch": 2,
+            "labelled_steps": 4490,
+            "mean_episode_goal_aux_loss": 1.2180773578584194,
+            "mean_episode_goal_coordinate_accuracy": 0.502330946325087,
+            "mean_episode_residual_mse": 0.14111537166172639,
+            "mean_label_loss": 0.8050095713749229,
+            "stage": "dagger-1",
+            "teacher_mix": 0.75
+          },
+          {
+            "behavior_solve_rate": 0.966796875,
+            "behavior_solved": 495,
+            "behavior_steps": 4974,
+            "episodes": 512,
+            "epoch": 3,
+            "labelled_steps": 4974,
+            "mean_episode_goal_aux_loss": 1.0369062676327303,
+            "mean_episode_goal_coordinate_accuracy": 0.5802908853003028,
+            "mean_episode_residual_mse": 0.133995258494906,
+            "mean_label_loss": 0.8445678905677163,
+            "stage": "dagger-2",
+            "teacher_mix": 0.5
+          },
+          {
+            "behavior_solve_rate": 0.923828125,
+            "behavior_solved": 473,
+            "behavior_steps": 5510,
+            "episodes": 512,
+            "epoch": 4,
+            "labelled_steps": 5510,
+            "mean_episode_goal_aux_loss": 0.8910925460222643,
+            "mean_episode_goal_coordinate_accuracy": 0.6360640730441659,
+            "mean_episode_residual_mse": 0.14780846361463773,
+            "mean_label_loss": 0.8734628916219445,
+            "stage": "dagger-3",
+            "teacher_mix": 0.25
+          }
+        ],
+        "successor_total_parameters": 232720,
+        "train_indices": [
+          1536,
+          2047
+        ],
+        "training_episodes_per_epoch": 512
+      }
+    }
+  ],
+  "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+  "dev_evaluation": {
+    "episodes": 128,
+    "families": {
+      "causal_prerequisites": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 466
+      },
+      "conditional_regimes": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 288
+      },
+      "implicit_goal_regimes": {
+        "episodes": 32,
+        "solved": 25,
+        "steps": 390
+      },
+      "regime_switch": {
+        "episodes": 32,
+        "solved": 28,
+        "steps": 514
+      }
+    },
+    "indices": [
+      160,
+      191
+    ],
+    "solve_rate": 0.9140625,
+    "solved": 117,
+    "split": "dev",
+    "steps": 1658
+  },
+  "format": "nolane-neural-vnext-native-r4-latent-goal-belief-v1",
+  "fresh_opened": false,
+  "parameters": 877542,
+  "parent_checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+  "parent_development": {
+    "episodes": 128,
+    "families": {
+      "causal_prerequisites": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 466
+      },
+      "conditional_regimes": {
+        "episodes": 32,
+        "solved": 32,
+        "steps": 288
+      },
+      "implicit_goal_regimes": {
+        "episodes": 32,
+        "solved": 22,
+        "steps": 443
+      },
+      "regime_switch": {
+        "episodes": 32,
+        "solved": 28,
+        "steps": 514
+      }
+    },
+    "indices": [
+      160,
+      191
+    ],
+    "solve_rate": 0.890625,
+    "solved": 114,
+    "split": "dev",
+    "steps": 1711
+  },
+  "parent_state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+  "predev_lock_sha256": "0ca9c146641315f9fc5bf343e7a76532c5240f22757d8b98d0809c8d809b279d",
+  "schema_version": 1,
+  "selected_candidate": "latent_goal_guarded",
+  "selected_eligibility": {
+    "eligible": true,
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": 3,
+      "regime_switch": 0
+    },
+    "implicit_goal_delta_vs_parent": 3,
+    "total_solved_delta_vs_parent": 3,
+    "visible_target_families_exact": true
+  },
+  "selected_rank": [
+    25,
+    117,
+    -1658,
+    "latent_goal_guarded"
+  ],
+  "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+  "status": "R4_DEV_ELIGIBLE_FRESH_UNOPENED",
+  "successor_parameters": 169552,
+  "training_summary": {
+    "candidate_tournament": [
+      {
+        "architecture": {
+          "belief_hidden_dim": 96,
+          "goal_embedding_dim": 48
+        },
+        "development": {
+          "episodes": 128,
+          "families": {
+            "causal_prerequisites": {
+              "episodes": 32,
+              "solved": 32,
+              "steps": 466
+            },
+            "conditional_regimes": {
+              "episodes": 32,
+              "solved": 32,
+              "steps": 288
+            },
+            "implicit_goal_regimes": {
+              "episodes": 32,
+              "solved": 25,
+              "steps": 390
+            },
+            "regime_switch": {
+              "episodes": 32,
+              "solved": 28,
+              "steps": 514
+            }
+          },
+          "indices": [
+            160,
+            191
+          ],
+          "solve_rate": 0.9140625,
+          "solved": 117,
+          "split": "dev",
+          "steps": 1658
+        },
+        "eligibility": {
+          "eligible": true,
+          "family_solved_delta_vs_parent": {
+            "causal_prerequisites": 0,
+            "conditional_regimes": 0,
+            "implicit_goal_regimes": 3,
+            "regime_switch": 0
+          },
+          "implicit_goal_delta_vs_parent": 3,
+          "total_solved_delta_vs_parent": 3,
+          "visible_target_families_exact": true
+        },
+        "name": "latent_goal_guarded",
+        "rank": [
+          25,
+          117,
+          -1658,
+          "latent_goal_guarded"
+        ],
+        "training": {
+          "frozen_parent_parameters": 707990,
+          "private_goal_usage": "train-only auxiliary labels; forbidden in rollout/dev/fresh",
+          "scope_trainable_parameters": 169552,
+          "seed": 20260920,
+          "stages": [
+            {
+              "behavior_solve_rate": 0.984375,
+              "behavior_solved": 504,
+              "behavior_steps": 4157,
+              "episodes": 512,
+              "epoch": 1,
+              "labelled_steps": 4157,
+              "mean_episode_goal_aux_loss": 1.4923798983218148,
+              "mean_episode_goal_coordinate_accuracy": 0.34524509417087573,
+              "mean_episode_residual_mse": 0.07819405154072001,
+              "mean_label_loss": 0.7140020938813758,
+              "stage": "expert",
+              "teacher_mix": 1.0
+            },
+            {
+              "behavior_solve_rate": 0.984375,
+              "behavior_solved": 504,
+              "behavior_steps": 4460,
+              "episodes": 512,
+              "epoch": 2,
+              "labelled_steps": 4460,
+              "mean_episode_goal_aux_loss": 1.2454595999442972,
+              "mean_episode_goal_coordinate_accuracy": 0.48436808055948705,
+              "mean_episode_residual_mse": 0.07807612326359958,
+              "mean_label_loss": 0.7292895850579301,
+              "stage": "dagger-1",
+              "teacher_mix": 0.75
+            },
+            {
+              "behavior_solve_rate": 0.9609375,
+              "behavior_solved": 492,
+              "behavior_steps": 5029,
+              "episodes": 512,
+              "epoch": 3,
+              "labelled_steps": 5029,
+              "mean_episode_goal_aux_loss": 1.1435968218138441,
+              "mean_episode_goal_coordinate_accuracy": 0.5362077083748678,
+              "mean_episode_residual_mse": 0.07929198749297939,
+              "mean_label_loss": 0.7715880852092637,
+              "stage": "dagger-2",
+              "teacher_mix": 0.5
+            }
+          ],
+          "successor_total_parameters": 169552,
+          "train_indices": [
+            1536,
+            2047
+          ],
+          "training_episodes_per_epoch": 512
+        }
+      },
+      {
+        "architecture": {
+          "belief_hidden_dim": 128,
+          "goal_embedding_dim": 64
+        },
+        "development": {
+          "episodes": 128,
+          "families": {
+            "causal_prerequisites": {
+              "episodes": 32,
+              "solved": 32,
+              "steps": 466
+            },
+            "conditional_regimes": {
+              "episodes": 32,
+              "solved": 32,
+              "steps": 288
+            },
+            "implicit_goal_regimes": {
+              "episodes": 32,
+              "solved": 22,
+              "steps": 472
+            },
+            "regime_switch": {
+              "episodes": 32,
+              "solved": 28,
+              "steps": 514
+            }
+          },
+          "indices": [
+            160,
+            191
+          ],
+          "solve_rate": 0.890625,
+          "solved": 114,
+          "split": "dev",
+          "steps": 1740
+        },
+        "eligibility": {
+          "eligible": false,
+          "family_solved_delta_vs_parent": {
+            "causal_prerequisites": 0,
+            "conditional_regimes": 0,
+            "implicit_goal_regimes": 0,
+            "regime_switch": 0
+          },
+          "implicit_goal_delta_vs_parent": 0,
+          "total_solved_delta_vs_parent": 0,
+          "visible_target_families_exact": true
+        },
+        "name": "latent_goal_broad",
+        "rank": [
+          22,
+          114,
+          -1740,
+          "latent_goal_broad"
+        ],
+        "training": {
+          "frozen_parent_parameters": 707990,
+          "private_goal_usage": "train-only auxiliary labels; forbidden in rollout/dev/fresh",
+          "scope_trainable_parameters": 232720,
+          "seed": 20260921,
+          "stages": [
+            {
+              "behavior_solve_rate": 0.984375,
+              "behavior_solved": 504,
+              "behavior_steps": 4157,
+              "episodes": 512,
+              "epoch": 1,
+              "labelled_steps": 4157,
+              "mean_episode_goal_aux_loss": 1.480433166725561,
+              "mean_episode_goal_coordinate_accuracy": 0.3635082925610267,
+              "mean_episode_residual_mse": 0.10250179714112306,
+              "mean_label_loss": 0.819419377450046,
+              "stage": "expert",
+              "teacher_mix": 1.0
+            },
+            {
+              "behavior_solve_rate": 0.97265625,
+              "behavior_solved": 498,
+              "behavior_steps": 4490,
+              "episodes": 512,
+              "epoch": 2,
+              "labelled_steps": 4490,
+              "mean_episode_goal_aux_loss": 1.2180773578584194,
+              "mean_episode_goal_coordinate_accuracy": 0.502330946325087,
+              "mean_episode_residual_mse": 0.14111537166172639,
+              "mean_label_loss": 0.8050095713749229,
+              "stage": "dagger-1",
+              "teacher_mix": 0.75
+            },
+            {
+              "behavior_solve_rate": 0.966796875,
+              "behavior_solved": 495,
+              "behavior_steps": 4974,
+              "episodes": 512,
+              "epoch": 3,
+              "labelled_steps": 4974,
+              "mean_episode_goal_aux_loss": 1.0369062676327303,
+              "mean_episode_goal_coordinate_accuracy": 0.5802908853003028,
+              "mean_episode_residual_mse": 0.133995258494906,
+              "mean_label_loss": 0.8445678905677163,
+              "stage": "dagger-2",
+              "teacher_mix": 0.5
+            },
+            {
+              "behavior_solve_rate": 0.923828125,
+              "behavior_solved": 473,
+              "behavior_steps": 5510,
+              "episodes": 512,
+              "epoch": 4,
+              "labelled_steps": 5510,
+              "mean_episode_goal_aux_loss": 0.8910925460222643,
+              "mean_episode_goal_coordinate_accuracy": 0.6360640730441659,
+              "mean_episode_residual_mse": 0.14780846361463773,
+              "mean_label_loss": 0.8734628916219445,
+              "stage": "dagger-3",
+              "teacher_mix": 0.25
+            }
+          ],
+          "successor_total_parameters": 232720,
+          "train_indices": [
+            1536,
+            2047
+          ],
+          "training_episodes_per_epoch": 512
+        }
+      }
+    ],
+    "fresh_opened": false,
+    "parent_development": {
+      "episodes": 128,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 466
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 288
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 22,
+          "steps": 443
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 28,
+          "steps": 514
+        }
+      },
+      "indices": [
+        160,
+        191
+      ],
+      "solve_rate": 0.890625,
+      "solved": 114,
+      "split": "dev",
+      "steps": 1711
+    },
+    "runtime": {
+      "deterministic_algorithms": true,
+      "float32_matmul_precision": "highest",
+      "mkldnn_enabled": false,
+      "num_interop_threads": 1,
+      "num_threads": 1,
+      "seed": 20260920
+    },
+    "selected_candidate": "latent_goal_guarded",
+    "selected_eligibility": {
+      "eligible": true,
+      "family_solved_delta_vs_parent": {
+        "causal_prerequisites": 0,
+        "conditional_regimes": 0,
+        "implicit_goal_regimes": 3,
+        "regime_switch": 0
+      },
+      "implicit_goal_delta_vs_parent": 3,
+      "total_solved_delta_vs_parent": 3,
+      "visible_target_families_exact": true
+    },
+    "selected_rank": [
+      25,
+      117,
+      -1658,
+      "latent_goal_guarded"
+    ],
+    "selected_training": {
+      "frozen_parent_parameters": 707990,
+      "private_goal_usage": "train-only auxiliary labels; forbidden in rollout/dev/fresh",
+      "scope_trainable_parameters": 169552,
+      "seed": 20260920,
+      "stages": [
+        {
+          "behavior_solve_rate": 0.984375,
+          "behavior_solved": 504,
+          "behavior_steps": 4157,
+          "episodes": 512,
+          "epoch": 1,
+          "labelled_steps": 4157,
+          "mean_episode_goal_aux_loss": 1.4923798983218148,
+          "mean_episode_goal_coordinate_accuracy": 0.34524509417087573,
+          "mean_episode_residual_mse": 0.07819405154072001,
+          "mean_label_loss": 0.7140020938813758,
+          "stage": "expert",
+          "teacher_mix": 1.0
+        },
+        {
+          "behavior_solve_rate": 0.984375,
+          "behavior_solved": 504,
+          "behavior_steps": 4460,
+          "episodes": 512,
+          "epoch": 2,
+          "labelled_steps": 4460,
+          "mean_episode_goal_aux_loss": 1.2454595999442972,
+          "mean_episode_goal_coordinate_accuracy": 0.48436808055948705,
+          "mean_episode_residual_mse": 0.07807612326359958,
+          "mean_label_loss": 0.7292895850579301,
+          "stage": "dagger-1",
+          "teacher_mix": 0.75
+        },
+        {
+          "behavior_solve_rate": 0.9609375,
+          "behavior_solved": 492,
+          "behavior_steps": 5029,
+          "episodes": 512,
+          "epoch": 3,
+          "labelled_steps": 5029,
+          "mean_episode_goal_aux_loss": 1.1435968218138441,
+          "mean_episode_goal_coordinate_accuracy": 0.5362077083748678,
+          "mean_episode_residual_mse": 0.07929198749297939,
+          "mean_label_loss": 0.7715880852092637,
+          "stage": "dagger-2",
+          "teacher_mix": 0.5
+        }
+      ],
+      "successor_total_parameters": 169552,
+      "train_indices": [
+        1536,
+        2047
+      ],
+      "training_episodes_per_epoch": 512
+    }
+  }
+}
