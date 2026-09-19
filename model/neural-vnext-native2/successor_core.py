@@ -15,6 +15,7 @@ if str(PARENT_ROOT) not in sys.path:
 from native_core import (  # noqa: E402
     ACTION_FEATURE_DIM,
     GLOBAL_FEATURE_DIM,
+    TARGET_VISIBLE_FEATURE_INDEX,
     NativeRecurrentPolicy,
 )
 
@@ -120,8 +121,12 @@ class SuccessorResidualPolicy(nn.Module):
         residual_logits = self.residual_score(
             torch.cat((action_tokens, residual_expanded), dim=-1)
         ).squeeze(-1)
+        target_visible = global_features[
+            :, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1
+        ].clamp(0.0, 1.0)
+        gated_residual_logits = target_visible * residual_logits
 
-        logits = parent_output["action_logits"] + residual_logits
+        logits = parent_output["action_logits"] + gated_residual_logits
         logits = logits.masked_fill(
             ~valid_actions,
             torch.finfo(logits.dtype).min,
@@ -131,6 +136,8 @@ class SuccessorResidualPolicy(nn.Module):
             "action_logits": logits,
             "parent_action_logits": parent_output["action_logits"],
             "successor_residual_logits": residual_logits,
+            "successor_gated_residual_logits": gated_residual_logits,
+            "target_visible_gate": target_visible,
             "next_hidden": next_hidden,
         }
 
