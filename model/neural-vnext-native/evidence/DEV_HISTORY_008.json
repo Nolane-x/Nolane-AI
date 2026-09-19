@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-008-2k-specialist-objective-ablation",
+  "git_head": "4081aca3cd120a6b11e2732d840b0300f803bf3d",
+  "workflow_run_id": 35425110585,
+  "artifact": {
+    "id": 10578934163,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:d8c34e0da932fc7ef61cd32036585547c69bb34867d8a6bbc07761c0f6e661cf",
+    "size_bytes": 1244455
+  },
+  "selected_candidate": "hidden_policy_only",
+  "selected_rank": [114, 25, -1858],
+  "candidate": {
+    "parameters": 334099,
+    "checkpoint_sha256": "29a44a9bd9cea5ec8b54a94206fa7d2065c10787a210ec52a6e5ec45c9bde5cc",
+    "state_dict_sha256": "7b02774d3237d35ec145b1daf42fe2f08d25146134c78452d6b07bfb08d1c40f"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 114,
+    "solve_rate": 0.890625,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 31, "steps": 509},
+      "conditional_regimes": {"episodes": 32, "solved": 32, "steps": 309},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 25, "steps": 512},
+      "regime_switch": {"episodes": 32, "solved": 26, "steps": 528}
+    }
+  },
+  "specialist_ablation": {
+    "hidden_policy_only": {"implicit_goal_solved": 25, "goal_loss_weight": 0.0},
+    "hidden_light_goal": {"implicit_goal_solved": 23, "goal_loss_weight": 0.25},
+    "hidden_strong_goal": {"implicit_goal_solved": 24, "goal_loss_weight": 0.75}
+  },
+  "reproducibility_observation": {
+    "previous_same_base_dev_solved": 99,
+    "current_base_dev_solved": 96,
+    "expected_if_bitwise_deterministic": "identical base checkpoint and dev metrics",
+    "status": "BLOCKING"
+  },
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Retain the policy-only specialist result as dev evidence but do not freeze it. Enforce deterministic PyTorch/runtime execution and reproduce the exact selected checkpoint before any fresh court is opened."
+}
