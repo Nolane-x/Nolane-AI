@@ -84,10 +84,15 @@ def _configure_deterministic_runtime(seed: int) -> dict[str, Any]:
         # Safe when a parent runtime already initialized the interop pool.
         pass
     torch.use_deterministic_algorithms(True)
+    torch.backends.mkldnn.enabled = False
+    torch.set_float32_matmul_precision("highest")
+    torch.set_flush_denormal(True)
     torch.manual_seed(int(seed))
     return {
         "seed": int(seed),
         "deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
+        "mkldnn_enabled": bool(torch.backends.mkldnn.enabled),
+        "float32_matmul_precision": str(torch.get_float32_matmul_precision()),
         "num_threads": int(torch.get_num_threads()),
         "num_interop_threads": int(torch.get_num_interop_threads()),
     }
