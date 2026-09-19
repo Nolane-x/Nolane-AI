@@ -83,8 +83,9 @@
     "goal_belief": {
       "coordinate_classes": 5,
       "loss_weight": 0.35,
-      "supervision_scope": "train-only FIGG-18 goal label; never serialized into inference features",
-      "inference": "recurrent hidden -> 3x5 neural goal logits -> soft expected goal embedding -> policy scorer"
+      "supervision_scope": "train-only implicit_goal_regimes hidden goal label; visible-target families contribute zero auxiliary goal loss",
+      "inference": "recurrent hidden -> 3x5 neural goal logits -> soft expected goal embedding; embedding is gated into the policy only when public target_visible=0",
+      "visible_target_policy_invariance_required": true
     }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
