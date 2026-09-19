@@ -285,7 +285,7 @@ def state_dict_sha256(state_dict: Mapping[str, Tensor]) -> str:
         digest.update(b"\0")
         digest.update(json.dumps(list(value.shape), separators=(",", ":")).encode("ascii"))
         digest.update(b"\0")
-        digest.update(value.view(torch.uint8).numpy().tobytes())
+        digest.update(value.reshape(-1).view(torch.uint8).numpy().tobytes())
         digest.update(b"\0")
     return digest.hexdigest()
 
