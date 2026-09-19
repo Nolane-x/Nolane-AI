@@ -32,13 +32,14 @@
     "post_fresh_tuning_allowed": false
   },
   "architecture": {
-    "public_global_features": 23,
-    "public_action_features": 18,
+    "public_global_features": 29,
+    "public_action_features": 25,
     "hidden_dim": 128,
     "attention_heads": 4,
     "recurrent": "GRUCell over public observation plus public action-memory tokens",
     "action_scoring": "shared per-action neural scorer",
-    "private_task_state_allowed_at_inference": false
+    "private_task_state_allowed_at_inference": false,
+    "public_conditioning": "explicit state parity plus regime-parity action memory; visible targets also expose normalized modular forward-distance features"
   },
   "training": {
     "seed": 20260919,
