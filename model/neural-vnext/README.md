@@ -25,7 +25,7 @@ The candidate now has an executable path from verified neural teacher states to 
 1. `nvnext.pipeline.load_verified_training_cache(...)` accepts only proof-verified `expert` or `dagger` states.
 2. Training cache provenance is fail-closed against every locked R2.3/vNext fresh index **1080–1159**.
 3. `run_training_epoch(...)` drives the existing multi-depth objective over reproducible 2–4-step recurrent curricula.
-4. `scripts/train_vnext.py` loads the exact accepted R2.3 one-weight checkpoint, verifies its SHA-256, runs warmup/joint training, and freezes a candidate delta.
+4. `scripts/train_vnext.py` verifies the exact accepted R2.3 one-weight SHA-256, extracts only its locked `r23_ultra_delta` neural reasoner (without instantiating retired R1.9/R2.0 runtime modules), runs warmup/joint training, and freezes a candidate delta.
 5. Freeze authority binds the complete reasoner tensor state, adaptive-depth policy, exact predevelopment lock, parent checkpoint, physical parameter count, training-cache digest and bundle digest.
 6. `scripts/evaluate_fresh_gate.py` refuses a changed/unfrozen bundle and evaluates only the preregistered 160 neural-only episodes at indices 1120–1159.
 7. Promotion requires **at least +8 solved episodes** over the frozen R2.3 parent and **zero family regressions**. A passing gate is evidence for promotion; it does not rewrite accepted release metadata automatically.
