@@ -6,7 +6,12 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch import Tensor, nn
 
-from native_core import NativeRecurrentPolicy, parameter_count, state_dict_sha256
+from native_core import (
+    NativeRecurrentPolicy,
+    TARGET_VISIBLE_FEATURE_INDEX,
+    parameter_count,
+    state_dict_sha256,
+)
 
 
 TRACE_TOKEN_DIM = 25
@@ -148,14 +153,23 @@ class NativeR2TransitionPolicy(nn.Module):
             self.trace_hidden_dim,
             self.trace_hidden_dim,
         )
+        residual_input = parent_hidden * 2 + self.trace_hidden_dim
         self.residual_score = nn.Sequential(
-            nn.Linear(parent_hidden * 2 + self.trace_hidden_dim, parent_hidden),
+            nn.Linear(residual_input, parent_hidden),
+            nn.GELU(),
+            nn.LayerNorm(parent_hidden),
+            nn.Linear(parent_hidden, 1),
+        )
+        self.hidden_target_residual_score = nn.Sequential(
+            nn.Linear(residual_input, parent_hidden),
             nn.GELU(),
             nn.LayerNorm(parent_hidden),
             nn.Linear(parent_hidden, 1),
         )
         nn.init.zeros_(self.residual_score[-1].weight)
         nn.init.zeros_(self.residual_score[-1].bias)
+        nn.init.zeros_(self.hidden_target_residual_score[-1].weight)
+        nn.init.zeros_(self.hidden_target_residual_score[-1].bias)
 
     def train(self, mode: bool = True) -> "NativeR2TransitionPolicy":
         super().train(mode)
@@ -173,12 +187,39 @@ class NativeR2TransitionPolicy(nn.Module):
             "parent_attention_heads": int(self.parent.attention_heads),
         }
 
-    def successor_parameters(self) -> list[nn.Parameter]:
+    def general_parameters(self) -> list[nn.Parameter]:
+        modules = (
+            self.trace_encoder,
+            self.trace_recurrent,
+            self.residual_score,
+        )
         return [
             parameter
-            for name, parameter in self.named_parameters()
-            if not name.startswith("parent.") and parameter.requires_grad
+            for module in modules
+            for parameter in module.parameters()
         ]
+
+    def hidden_target_parameters(self) -> list[nn.Parameter]:
+        return list(self.hidden_target_residual_score.parameters())
+
+    def successor_parameters(self) -> list[nn.Parameter]:
+        return self.general_parameters() + self.hidden_target_parameters()
+
+    def parameters_for_scope(self, scope: str) -> list[nn.Parameter]:
+        if scope == "general":
+            return self.general_parameters()
+        if scope == "hidden_target":
+            return self.hidden_target_parameters()
+        if scope == "all":
+            return self.successor_parameters()
+        raise ValueError(f"unknown successor training scope {scope!r}")
+
+    def set_training_scope(self, scope: str) -> None:
+        selected = {id(parameter) for parameter in self.parameters_for_scope(scope)}
+        for parameter in self.parent.parameters():
+            parameter.requires_grad_(False)
+        for parameter in self.successor_parameters():
+            parameter.requires_grad_(id(parameter) in selected)
 
     def successor_parameter_count(self) -> int:
         return sum(parameter.numel() for parameter in self.successor_parameters())
@@ -246,21 +287,30 @@ class NativeR2TransitionPolicy(nn.Module):
             actions,
             self.trace_hidden_dim,
         )
-        residual = self.residual_score(
-            torch.cat(
-                (
-                    action_tokens,
-                    parent_expanded,
-                    trace_expanded,
-                ),
-                dim=-1,
-            )
+        residual_input = torch.cat(
+            (
+                action_tokens,
+                parent_expanded,
+                trace_expanded,
+            ),
+            dim=-1,
+        )
+        residual = self.residual_score(residual_input).squeeze(-1)
+        hidden_target_residual = self.hidden_target_residual_score(
+            residual_input
         ).squeeze(-1)
-        residual = residual.masked_fill(
+        target_visible = global_features[
+            :, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1
+        ].clamp(0.0, 1.0)
+        hidden_target_gate = 1.0 - target_visible
+        hidden_target_residual = hidden_target_residual * hidden_target_gate
+        residual = residual.masked_fill(~valid_actions, 0.0)
+        hidden_target_residual = hidden_target_residual.masked_fill(
             ~valid_actions,
             0.0,
         )
-        logits = (parent_logits + residual).masked_fill(
+        combined_residual = residual + hidden_target_residual
+        logits = (parent_logits + combined_residual).masked_fill(
             ~valid_actions,
             torch.finfo(parent_logits.dtype).min,
         )
@@ -268,6 +318,8 @@ class NativeR2TransitionPolicy(nn.Module):
             "action_logits": logits,
             "parent_action_logits": parent_logits,
             "residual_logits": residual,
+            "hidden_target_residual_logits": hidden_target_residual,
+            "combined_residual_logits": combined_residual,
             "next_parent_hidden": next_parent_hidden,
             "trace_hidden": trace_hidden,
         }
