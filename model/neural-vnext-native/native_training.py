@@ -21,6 +21,44 @@ from native_core import (
 )
 
 CHECKPOINT_FORMAT = "nolane-neural-vnext-native-recurrent-v1"
+HIDDEN_GOAL_PARAMETER_PREFIXES = (
+    "goal_head.",
+    "goal_belief_projection.",
+    "goal_policy_norm.",
+    "hidden_goal_score.",
+)
+
+
+def configure_training_scope(
+    model: NativeRecurrentPolicy,
+    scope: str,
+) -> dict[str, int]:
+    """Set an explicit optimization authority boundary on model parameters."""
+
+    if scope not in {"all", "base", "hidden_goal"}:
+        raise ValueError(f"unknown training scope: {scope}")
+    trainable = 0
+    frozen = 0
+    for name, parameter in model.named_parameters():
+        is_hidden_goal = name.startswith(HIDDEN_GOAL_PARAMETER_PREFIXES)
+        enabled = (
+            scope == "all"
+            or (scope == "base" and not is_hidden_goal)
+            or (scope == "hidden_goal" and is_hidden_goal)
+        )
+        parameter.requires_grad_(enabled)
+        count = parameter.numel()
+        if enabled:
+            trainable += count
+        else:
+            frozen += count
+    if trainable < 1:
+        raise ValueError(f"training scope {scope!r} exposes no trainable parameters")
+    return {
+        "scope": scope,
+        "trainable_parameters": trainable,
+        "frozen_parameters": frozen,
+    }
 
 
 def sha256_file(path: str | Path) -> str:
@@ -160,7 +198,8 @@ def train_episode(
         policy_loss = F.cross_entropy(output["action_logits"], target_tensor)
         goal_loss = policy_loss.new_zeros(())
         if (
-            getattr(task, "family", None) == "implicit_goal_regimes"
+            float(goal_loss_weight) > 0.0
+            and getattr(task, "family", None) == "implicit_goal_regimes"
             and hidden_goal_supervision_ready(observation, memory)
         ):
             private_goal = getattr(task, "_goal", None)
@@ -270,8 +309,15 @@ def train_native_policy(
         raise ValueError("at least one training epoch is required")
     torch.manual_seed(int(seed))
     rng = random.Random(int(seed))
+    trainable_parameters = [
+        parameter
+        for parameter in model.parameters()
+        if parameter.requires_grad
+    ]
+    if not trainable_parameters:
+        raise ValueError("model exposes no trainable parameters")
     optimizer = torch.optim.AdamW(
-        model.parameters(),
+        trainable_parameters,
         lr=float(learning_rate),
         weight_decay=float(weight_decay),
     )
