@@ -8,7 +8,9 @@
     "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
     "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
     "post_fresh_mutation_allowed": false,
-    "successor_rule": "Reproduce the accepted parent exactly, freeze every parent parameter, then train only successor-owned transition-trace residual parameters."
+    "successor_rule": "Reproduce the accepted parent exactly, freeze every parent parameter, then train only successor-owned transition-trace residual parameters.",
+    "checkpoint_serialization_filename": "native-vnext.pt",
+    "checkpoint_file_hash_rule": "The accepted torch.save file digest is verified only when reproducing the canonical basename native-vnext.pt; tensor authority remains independently bound by state_dict_sha256."
   },
   "benchmark": {
     "name": "nolane-figg18-v1",
@@ -19,13 +21,25 @@
       "causal_prerequisites"
     ],
     "training_split": "train",
-    "successor_training_indices": [128, 511],
+    "successor_training_indices": [
+      128,
+      511
+    ],
     "development_split": "dev",
-    "development_indices": [32, 63],
+    "development_indices": [
+      32,
+      63
+    ],
     "fresh_split": "fresh",
-    "fresh_indices": [40, 79],
+    "fresh_indices": [
+      40,
+      79
+    ],
     "fresh_episodes_expected": 160,
-    "previously_consumed_fresh_indices": [0, 39]
+    "previously_consumed_fresh_indices": [
+      0,
+      39
+    ]
   },
   "fresh_isolation": {
     "status": "UNOPENED",
@@ -66,7 +80,7 @@
     "seed": 20260919,
     "optimizer": "AdamW",
     "weight_decay": 0.0001,
-    "max_grad_norm": 1.0,
+    "max_grad_norm": 1,
     "teacher": "same public-exploration-first then FIGG-18 train-only oracle target as accepted parent",
     "parent_reproduction_required_before_training": true,
     "parent_checkpoint_hash_must_match": true,
@@ -75,14 +89,21 @@
       {
         "name": "trace_guarded",
         "expert_epochs": 2,
-        "dagger_teacher_mix": [0.75, 0.5],
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
         "learning_rate": 0.0005,
         "residual_l2_weight": 0.01
       },
       {
         "name": "trace_broad",
         "expert_epochs": 1,
-        "dagger_teacher_mix": [0.75, 0.5, 0.25],
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
         "learning_rate": 0.0005,
         "residual_l2_weight": 0.005
       }
