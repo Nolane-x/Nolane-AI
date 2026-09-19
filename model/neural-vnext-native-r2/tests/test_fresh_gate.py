@@ -235,3 +235,108 @@ def test_r2_train_dev_fresh_seed_identities_are_disjoint() -> None:
     nonfresh_seeds = set(seen) - fresh_seeds
     assert fresh_seeds
     assert fresh_seeds.isdisjoint(nonfresh_seeds)
+
+
+def _checkpoint_authority_fixture() -> tuple[dict, dict]:
+    development = {
+        "split": "dev",
+        "indices": [64, 95],
+        "episodes": 128,
+        "solved": 116,
+        "solve_rate": 0.90625,
+        "steps": 1700,
+        "families": {
+            "conditional_regimes": {"episodes": 32, "solved": 31, "steps": 290},
+            "regime_switch": {"episodes": 32, "solved": 31, "steps": 472},
+            "implicit_goal_regimes": {"episodes": 32, "solved": 22, "steps": 456},
+            "causal_prerequisites": {"episodes": 32, "solved": 32, "steps": 482},
+        },
+    }
+    eligibility = {
+        "eligible": True,
+        "total_improved": True,
+        "implicit_goal_improved": True,
+        "visible_target_families_exact": True,
+        "regime_switch_non_regression": True,
+        "family_solved_delta_vs_phase1": {
+            "conditional_regimes": 0,
+            "regime_switch": 0,
+            "implicit_goal_regimes": 2,
+            "causal_prerequisites": 0,
+        },
+    }
+    phase1 = {"split": "dev", "indices": [64, 95], "solved": 114}
+    parent = {"split": "dev", "indices": [64, 95], "solved": 101}
+    frozen = {
+        "checkpoint_sha256": "candidate-file",
+        "state_dict_sha256": "candidate-state",
+        "predev_lock_sha256": "predev",
+        "parameters": 536085,
+        "successor_parameters": 201986,
+        "parent_checkpoint_sha256": "parent-file",
+        "parent_state_dict_sha256": "parent-state",
+        "selected_candidate": "hidden_trace_broad",
+        "selected_rank": [116, 22, -1700],
+        "selected_eligibility": eligibility,
+        "development": development,
+        "phase1_reference": phase1,
+        "parent_reference": parent,
+        "fresh_opened": False,
+    }
+    metadata = {
+        key: frozen[key]
+        for key in (
+            "checkpoint_sha256",
+            "state_dict_sha256",
+            "predev_lock_sha256",
+            "parameters",
+            "successor_parameters",
+            "parent_checkpoint_sha256",
+            "parent_state_dict_sha256",
+        )
+    }
+    metadata["training_summary"] = {
+        "selected_candidate": "hidden_trace_broad",
+        "selected_rank": [116, 22, -1700],
+        "selected_eligibility": eligibility,
+        "fresh_opened": False,
+        "phase2_tournament": [
+            {
+                "name": "hidden_trace_broad",
+                "development": development,
+                "eligibility": eligibility,
+            }
+        ],
+        "phase1_on_phase2_dev": phase1,
+        "parent_phase2_dev": parent,
+    }
+    return {"frozen_candidate": frozen}, metadata
+
+
+def test_verify_checkpoint_binds_full_development_authority(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    lock, metadata = _checkpoint_authority_fixture()
+    model = object()
+    monkeypatch.setattr(
+        evaluate_fresh,
+        "load_successor_checkpoint",
+        lambda _path: (model, metadata),
+    )
+    restored, observed = evaluate_fresh.verify_checkpoint(
+        lock,
+        tmp_path / "successor.pt",
+    )
+    assert restored is model
+    assert observed is metadata
+
+    tampered = json.loads(json.dumps(metadata))
+    tampered["training_summary"]["phase2_tournament"][0]["development"]["solved"] = 115
+    monkeypatch.setattr(
+        evaluate_fresh,
+        "load_successor_checkpoint",
+        lambda _path: (model, tampered),
+    )
+    with pytest.raises(ValueError, match="development evidence mismatch"):
+        evaluate_fresh.verify_checkpoint(lock, tmp_path / "successor.pt")
