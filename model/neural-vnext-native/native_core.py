@@ -246,7 +246,7 @@ class NativeRecurrentPolicy(nn.Module):
         )
         self.recurrent = nn.GRUCell(hidden_dim * 2, hidden_dim)
         self.goal_head = nn.Linear(hidden_dim, 15)
-        self.goal_belief_projection = nn.Linear(3, hidden_dim, bias=False)
+        self.goal_belief_projection = nn.Linear(15, hidden_dim, bias=False)
         self.goal_policy_norm = nn.LayerNorm(hidden_dim)
         self.score = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
@@ -306,16 +306,11 @@ class NativeRecurrentPolicy(nn.Module):
         )
         goal_logits = self.goal_head(next_hidden).view(batch, 3, 5)
         goal_probability = torch.softmax(goal_logits, dim=-1)
-        goal_values = torch.arange(
-            5,
-            device=goal_logits.device,
-            dtype=goal_logits.dtype,
-        ) / 4.0
-        goal_expectation = (goal_probability * goal_values[None, None, :]).sum(dim=-1)
+        goal_belief = goal_probability.reshape(batch, 15)
         target_visible = global_features[:, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1].clamp(0.0, 1.0)
         hidden_target_gate = 1.0 - target_visible
         hidden_goal_policy = self.goal_policy_norm(
-            next_hidden + self.goal_belief_projection(goal_expectation)
+            next_hidden + self.goal_belief_projection(goal_belief)
         )
         policy_hidden = (
             target_visible * next_hidden
@@ -328,7 +323,7 @@ class NativeRecurrentPolicy(nn.Module):
             "action_logits": logits,
             "next_hidden": next_hidden,
             "goal_logits": goal_logits,
-            "goal_expectation": goal_expectation,
+            "goal_probability": goal_probability,
             "value": self.value_head(next_hidden).squeeze(-1),
             "uncertainty": torch.sigmoid(self.uncertainty_head(next_hidden)).squeeze(-1),
         }
