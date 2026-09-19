@@ -1,0 +1,98 @@
+name: Neural vNext Native S1 Dev
+
+on:
+  push:
+    paths:
+      - 'model/neural-vnext-native-s1/**'
+      - '.github/workflows/neural-vnext-native-s1-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-s1/**'
+      - '.github/workflows/neural-vnext-native-s1-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  s1-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_PARENT_CHECKPOINT_SHA256: '7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+
+      - name: Download accepted parent authority artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-fresh-court-0-39
+          path: parent-artifact
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35430019167
+
+      - name: Verify accepted parent checkpoint
+        run: |
+          parent_checkpoint="$(find parent-artifact -name native-vnext.pt -print -quit)"
+          test -n "$parent_checkpoint"
+          actual="$(sha256sum "$parent_checkpoint" | awk '{print $1}')"
+          echo "parent_checkpoint=$parent_checkpoint" >> "$GITHUB_ENV"
+          echo "parent_checkpoint_sha256=$actual"
+          test "$actual" = "$EXPECTED_PARENT_CHECKPOINT_SHA256"
+
+      - name: Compile S1
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native-s1/*.py \
+            model/neural-vnext-native-s1/scripts/*.py \
+            model/neural-vnext-native-s1/tests/*.py
+
+      - name: Run S1 neural contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-s1:model/neural-vnext-native:model/r1.8
+        run: python -m pytest -q model/neural-vnext-native-s1/tests
+
+      - name: Train S1 on train and evaluate only new dev 32-63
+        env:
+          PYTHONPATH: model/neural-vnext-native-s1:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p s1-output
+          python model/neural-vnext-native-s1/scripts/train_s1_dev.py \
+            --parent-checkpoint "$parent_checkpoint" \
+            --checkpoint s1-output/neural-vnext-native-s1.pt \
+            --manifest s1-output/neural-vnext-native-s1.manifest.json \
+            --dev-result s1-output/neural-vnext-native-s1.dev.json
+          cat s1-output/neural-vnext-native-s1.manifest.json
+
+      - name: Upload S1 dev-only candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-s1-dev
+          path: s1-output/
+          if-no-files-found: error
