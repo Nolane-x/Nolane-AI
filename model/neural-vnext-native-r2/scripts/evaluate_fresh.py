@@ -24,6 +24,22 @@ from successor_training import evaluate_successor, load_successor_checkpoint  # 
 
 
 CANDIDATE_IDENTITY = "Neural-vNext-Native-R2-TransitionTrace"
+LOCKED_FRESH_FAMILIES = (
+    "conditional_regimes",
+    "regime_switch",
+    "implicit_goal_regimes",
+    "causal_prerequisites",
+)
+LOCKED_FRESH_INDEX_START = 40
+LOCKED_FRESH_INDEX_END = 79
+LOCKED_FRESH_EPISODES = 160
+LOCKED_PROMOTION_GATE = {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "maximum_family_solved_regression": 0,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "all_requirements_must_pass": True,
+}
 
 
 def _sha256_file(path: Path) -> str:
@@ -57,6 +73,16 @@ def load_fresh_lock(path: Path) -> dict[str, Any]:
     court = payload.get("fresh_court")
     if not isinstance(court, dict) or court.get("opened") is not False:
         raise ValueError("R2 fresh court lock must attest opened=false")
+    if tuple(court.get("families", ())) != LOCKED_FRESH_FAMILIES:
+        raise ValueError("R2 fresh families differ from preregistered identities")
+    if court.get("index_start") != LOCKED_FRESH_INDEX_START:
+        raise ValueError("R2 fresh index_start differs from preregistration")
+    if court.get("index_end") != LOCKED_FRESH_INDEX_END:
+        raise ValueError("R2 fresh index_end differs from preregistration")
+    if court.get("episodes_expected") != LOCKED_FRESH_EPISODES:
+        raise ValueError("R2 fresh episode count differs from preregistration")
+    if payload.get("promotion_gate") != LOCKED_PROMOTION_GATE:
+        raise ValueError("R2 promotion gate differs from preregistration")
     frozen = payload.get("frozen_candidate")
     if not isinstance(frozen, dict):
         raise ValueError("R2 PRE_FRESH_LOCK is missing frozen_candidate")
