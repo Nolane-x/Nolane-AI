@@ -82,7 +82,19 @@ def test_frozen_fresh_gate_passes_exact_plus_eight_without_family_regression() -
 
 def test_frozen_fresh_gate_fails_closed_on_any_family_regression() -> None:
     parent = _parent_rows()
-    candidate = _candidate_with_eight_clean_gains(parent)
+    candidate = [dict(row) for row in parent]
+
+    gains = 0
+    for row in candidate:
+        if (
+            row["family"] != "causal_prerequisites"
+            and not row["solved"]
+            and gains < 9
+        ):
+            row["solved"] = True
+            gains += 1
+    assert gains == 9
+
     victim = next(
         row
         for row in candidate
@@ -102,6 +114,7 @@ def test_frozen_fresh_gate_fails_closed_on_any_family_regression() -> None:
         candidate_manifest=_manifest(),
     )
 
+    assert result["candidate_solved_gain"] == 8
     assert "causal_prerequisites" in result["family_regressions"]
     assert result["promotion_gate"]["passed"] is False
     assert result["status"] == "FAIL_FROZEN_CONFIRMATORY_FRESH"
