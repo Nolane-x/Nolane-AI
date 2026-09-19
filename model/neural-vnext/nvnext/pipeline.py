@@ -19,6 +19,7 @@ from .training import (
 
 CACHE_FORMAT = "nolane-neural-vnext-verified-state-cache-v1"
 CANDIDATE_FORMAT = "nolane-neural-vnext-multidepth-delta-v1"
+R23_ONE_WEIGHT_FORMAT = "nolane-neural-r2.3-ultra-recursive-physical-one-weight-v1"
 PARENT_FRESH_RANGE = (1080, 1119)
 MODEL_INPUT_KEYS = (
     "state",
@@ -171,6 +172,64 @@ def _validate_record(raw: Mapping[str, object], *, forbidden_indices: frozenset[
         proof_weight=float(proof_weight),
         inputs=inputs,
     )
+
+
+
+def load_locked_r23_reasoner(
+    path: str | Path,
+    *,
+    reasoner_factory: Callable[..., nn.Module],
+    expected_sha256: str,
+    expected_physical_parameters: int,
+) -> tuple[nn.Module, dict[str, object]]:
+    """Load only the R2.3 neural reasoner from the hash-locked one-weight bundle.
+
+    vNext training does not need to instantiate the historical R1.9/R2.0/R2.1
+    runtime chain embedded in the one-weight artifact. Loading only r23_ultra_delta
+    keeps the training path neural-only and avoids depending on retired runtime
+    modules while preserving exact parent artifact authority through SHA-256.
+    """
+    if not isinstance(expected_sha256, str) or len(expected_sha256) != 64:
+        raise ValueError("expected_sha256 must be a SHA-256 digest")
+    if type(expected_physical_parameters) is not int or expected_physical_parameters < 1:
+        raise ValueError("expected_physical_parameters must be a positive exact integer")
+    actual_sha256 = sha256_file(path)
+    if actual_sha256 != expected_sha256:
+        raise ValueError(
+            f"parent checkpoint SHA-256 mismatch: {actual_sha256} != {expected_sha256}"
+        )
+    payload = torch.load(Path(path), map_location="cpu", weights_only=True)
+    if not isinstance(payload, dict) or payload.get("format") != R23_ONE_WEIGHT_FORMAT:
+        raise ValueError("unsupported Neural R2.3 one-weight format")
+    physical_parameters = payload.get("physical_parameters")
+    if type(physical_parameters) is not int or physical_parameters != expected_physical_parameters:
+        raise ValueError(
+            "R2.3 one-weight physical parameter authority does not match the predevelopment lock"
+        )
+    delta = payload.get("r23_ultra_delta")
+    if not isinstance(delta, Mapping):
+        raise ValueError("R2.3 one-weight is missing r23_ultra_delta")
+    architecture = delta.get("architecture")
+    state = delta.get("state_dict")
+    if not isinstance(architecture, Mapping) or not isinstance(state, Mapping):
+        raise ValueError("R2.3 neural delta is missing architecture/state_dict")
+    normalized_state: dict[str, Tensor] = {}
+    for name, value in state.items():
+        if not isinstance(name, str) or not isinstance(value, Tensor):
+            raise ValueError("R2.3 neural delta state_dict must contain named tensors only")
+        normalized_state[name] = value.float() if value.is_floating_point() else value
+    reasoner = reasoner_factory(**dict(architecture))
+    incompatible = reasoner.load_state_dict(normalized_state, strict=True)
+    if incompatible.missing_keys or incompatible.unexpected_keys:
+        raise ValueError("R2.3 neural delta is incompatible with its architecture")
+    reasoner.eval()
+    metadata = {
+        "one_weight_sha256": actual_sha256,
+        "physical_parameters": physical_parameters,
+        "reasoner_parameters": sum(parameter.numel() for parameter in reasoner.parameters()),
+        "architecture": dict(architecture),
+    }
+    return reasoner, metadata
 
 
 def load_verified_training_cache(
