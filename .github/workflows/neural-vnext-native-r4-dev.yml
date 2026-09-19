@@ -83,8 +83,8 @@ jobs:
           assert metadata["state_dict_sha256"] == "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
           assert metadata["parameters"] == 877542
           assert metadata["successor_parameters"] == 169552
-          assert metadata["selected_candidate"] == "latent_goal_guarded"
-          assert metadata["fresh_opened"] is False
+          assert metadata["training_summary"]["selected_candidate"] == "latent_goal_guarded"
+          assert metadata["training_summary"]["fresh_opened"] is False
           assert model.parent is not None
           print("accepted_r4_checkpoint_authority=verified")
           PY
