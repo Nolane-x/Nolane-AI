@@ -244,6 +244,9 @@ class NativeRecurrentPolicy(nn.Module):
             batch_first=True,
         )
         self.recurrent = nn.GRUCell(hidden_dim * 2, hidden_dim)
+        self.goal_head = nn.Linear(hidden_dim, 15)
+        self.goal_belief_projection = nn.Linear(3, hidden_dim, bias=False)
+        self.goal_policy_norm = nn.LayerNorm(hidden_dim)
         self.score = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
             nn.GELU(),
@@ -300,12 +303,25 @@ class NativeRecurrentPolicy(nn.Module):
             torch.cat((global_token, attended[:, 0, :]), dim=-1),
             hidden,
         )
-        expanded = next_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
+        goal_logits = self.goal_head(next_hidden).view(batch, 3, 5)
+        goal_probability = torch.softmax(goal_logits, dim=-1)
+        goal_values = torch.arange(
+            5,
+            device=goal_logits.device,
+            dtype=goal_logits.dtype,
+        ) / 4.0
+        goal_expectation = (goal_probability * goal_values[None, None, :]).sum(dim=-1)
+        policy_hidden = self.goal_policy_norm(
+            next_hidden + self.goal_belief_projection(goal_expectation)
+        )
+        expanded = policy_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
         logits = self.score(torch.cat((action_tokens, expanded), dim=-1)).squeeze(-1)
         logits = logits.masked_fill(~valid_actions, torch.finfo(logits.dtype).min)
         return {
             "action_logits": logits,
             "next_hidden": next_hidden,
+            "goal_logits": goal_logits,
+            "goal_expectation": goal_expectation,
             "value": self.value_head(next_hidden).squeeze(-1),
             "uncertainty": torch.sigmoid(self.uncertainty_head(next_hidden)).squeeze(-1),
         }
