@@ -1,0 +1,71 @@
+name: Neural R1.6 Snapshot Recovery
+
+on:
+  push:
+    branches:
+      - codex/neural-r16-snapshot-recovery
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reassemble and inspect snapshot
+        run: |
+          set -euxo pipefail
+          mkdir -p recovered
+          cat snapshots/r1.6/current-source/chunk-*.bin > recovered/current-source.gz
+          sha256sum recovered/current-source.gz | tee recovered/current-source.gz.sha256
+          file recovered/current-source.gz | tee recovered/current-source.gz.file
+          python - <<'PY'
+          import gzip, hashlib, pathlib
+          src = pathlib.Path("recovered/current-source.gz")
+          raw = gzip.decompress(src.read_bytes())
+          out = pathlib.Path("recovered/current-source.recovered")
+          out.write_bytes(raw)
+          print("compressed_bytes", src.stat().st_size)
+          print("recovered_bytes", len(raw))
+          print("recovered_sha256", hashlib.sha256(raw).hexdigest())
+          print("prefix_hex", raw[:64].hex())
+          print("prefix_repr", repr(raw[:256]))
+          PY
+          file recovered/current-source.recovered | tee recovered/current-source.recovered.file
+          python - <<'PY'
+          import pathlib, tarfile, zipfile, json
+          p = pathlib.Path("recovered/current-source.recovered")
+          result = {
+              "is_tar": tarfile.is_tarfile(p),
+              "is_zip": zipfile.is_zipfile(p),
+              "size": p.stat().st_size,
+          }
+          if result["is_tar"]:
+              with tarfile.open(p) as tf:
+                  result["members"] = tf.getnames()
+          elif result["is_zip"]:
+              with zipfile.ZipFile(p) as zf:
+                  result["members"] = zf.namelist()
+          else:
+              try:
+                  text = p.read_text(encoding="utf-8")
+                  result["utf8"] = True
+                  result["line_count"] = len(text.splitlines())
+                  result["first_lines"] = text.splitlines()[:20]
+              except UnicodeDecodeError:
+                  result["utf8"] = False
+          pathlib.Path("recovered/inspection.json").write_text(
+              json.dumps(result, indent=2, sort_keys=True) + "\n",
+              encoding="utf-8",
+          )
+          print(json.dumps(result, indent=2, sort_keys=True))
+          PY
+      - name: Upload recovered snapshot
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-r16-current-source-recovered
+          path: recovered/
+          if-no-files-found: error
+          retention-days: 7
