@@ -50,12 +50,12 @@ _COMPONENT_REVISIONS.update(
         "external.requirements": 2,
         "external.planning": 5,
         "external.architecture": 6,
-        "external.integration": 24,
+        "external.integration": 25,
         "external.context": 5,
         "external.invokable_cores": 3,
         "external.execution.workspace": 5,
-        "external.execution.executor": 10,
-        "external.execution.control": 27,
+        "external.execution.executor": 11,
+        "external.execution.control": 28,
         "external.coding.claims": 2,
         "external.coding.patches": 2,
         "external.coding.control": 4,
@@ -69,7 +69,7 @@ _COMPONENT_REVISIONS.update(
         "evaluation.release": 2,
         "evaluation.scaling": 1,
         "evaluation.campaign": 5,
-        "neural.inference_bridge": 9,
+        "neural.inference_bridge": 10,
     }
 )
 
