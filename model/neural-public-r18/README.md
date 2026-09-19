@@ -10,6 +10,7 @@ The candidate is a self-contained trainable recurrent policy:
 
 - order-sensitive learned byte encoders for the rendered public observation and public action descriptions;
 - recurrent episodic memory updated only from the current public observation, the previously selected public action and public transition feedback;
+- deterministic per-action memory derived solely from public transition deltas (attempt/context counts, progress/information/failure, state/resource/gate effects), projected through trainable neural layers;
 - a weight-shared recurrent reasoning cell over the current action set;
 - trainable action/value/ponder heads;
 - end-to-end BPTT over teacher episodes.
