@@ -24,6 +24,9 @@ def _lock() -> dict:
         "status": "FROZEN_FRESH_UNOPENED",
         "candidate": "Neural-vNext-Native-R2-TransitionTrace",
         "frozen_candidate": {
+            "checkpoint_sha256": "candidate-file",
+            "state_dict_sha256": "candidate-state",
+            "selected_candidate": "hidden_trace_broad",
             "fresh_opened": False,
         },
         "candidate_authority": {
