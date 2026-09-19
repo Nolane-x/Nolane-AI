@@ -3,7 +3,7 @@ from __future__ import annotations
 import torch
 
 from .core import PublicR18RecursiveCore, encode_public_actions, encode_public_text
-from .data import PublicActionMemory
+from .data import PublicActionMemory, public_scalar_features
 
 R18_FAMILIES = (
     "conditional_regimes",
@@ -54,6 +54,10 @@ def run_public_episode(
                 action_tokens=action_tokens.unsqueeze(0),
                 action_mask=action_mask.unsqueeze(0),
                 action_memory=action_memory.unsqueeze(0),
+                public_scalars=torch.tensor(
+                    [public_scalar_features(before)],
+                    dtype=torch.float32,
+                ),
                 memory=memory,
                 previous_action=torch.tensor([previous_action], dtype=torch.long),
                 previous_feedback=torch.tensor(
