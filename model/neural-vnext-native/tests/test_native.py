@@ -158,6 +158,31 @@ def test_goal_belief_cannot_perturb_visible_target_policy() -> None:
     before = model.forward_step(vg.unsqueeze(0), va.unsqueeze(0), vv.unsqueeze(0), hidden)["action_logits"]
 
     with torch.no_grad():
+        global_token = model.global_encoder(vg.unsqueeze(0))
+        action_tokens = model.action_encoder(va.unsqueeze(0))
+        attended, _ = model.action_attention(
+            global_token[:, None, :],
+            action_tokens,
+            action_tokens,
+            key_padding_mask=~vv.unsqueeze(0),
+            need_weights=False,
+        )
+        next_hidden = model.recurrent(
+            torch.cat((global_token, attended[:, 0, :]), dim=-1),
+            hidden,
+        )
+        legacy_logits = model.score(
+            torch.cat(
+                (
+                    action_tokens,
+                    next_hidden[:, None, :].expand(1, action_tokens.shape[1], model.hidden_dim),
+                ),
+                dim=-1,
+            )
+        ).squeeze(-1)
+    assert torch.allclose(before, legacy_logits, atol=1e-6)
+
+    with torch.no_grad():
         model.goal_belief_projection.weight.fill_(1000.0)
         model.goal_head.weight.fill_(1000.0)
         model.goal_head.bias.fill_(1000.0)
