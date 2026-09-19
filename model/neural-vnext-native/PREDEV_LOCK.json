@@ -45,11 +45,6 @@
     "seed": 20260919,
     "development_candidates": [
       {
-        "name": "expert4",
-        "expert_epochs": 4,
-        "dagger_teacher_mix": []
-      },
-      {
         "name": "guarded_dagger",
         "expert_epochs": 3,
         "dagger_teacher_mix": [
@@ -82,10 +77,31 @@
     "model_initialization_seed_bound_before_construction": true,
     "goal_belief": {
       "coordinate_classes": 5,
-      "loss_weight": 0.35,
+      "loss_weight": 0.75,
       "supervision_scope": "train-only implicit_goal_regimes hidden goal label; visible-target families contribute zero auxiliary goal loss",
       "inference": "recurrent hidden -> 3x5 neural goal logits -> soft expected goal embedding; embedding is gated into the policy only when public target_visible=0",
-      "visible_target_policy_invariance_required": true
+      "visible_target_policy_invariance_required": true,
+      "representation": "full 15-way categorical belief (3 coordinates x 5 values) projected to policy hidden state; no scalar expectation compression",
+      "supervision_start": "only after every non-submit action has at least one public transition in the current context",
+      "unique_implicit_train_worlds": 512
+    },
+    "family_training_indices": {
+      "conditional_regimes": [
+        0,
+        127
+      ],
+      "regime_switch": [
+        0,
+        127
+      ],
+      "implicit_goal_regimes": [
+        0,
+        511
+      ],
+      "causal_prerequisites": [
+        0,
+        127
+      ]
     }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
