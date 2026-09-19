@@ -1,4 +1,4 @@
-name: Neural vNext Native R2 Dev
+name: Neural vNext Native R2 Accepted Authority
 
 on:
   push:
@@ -15,24 +15,19 @@ permissions:
   contents: read
 
 jobs:
-  r2-dev:
+  accepted-authority:
     runs-on: ubuntu-24.04
-    timeout-minutes: 60
+    timeout-minutes: 20
     env:
-      PYTHONHASHSEED: '0'
-      OMP_NUM_THREADS: '1'
-      MKL_NUM_THREADS: '1'
-      OPENBLAS_NUM_THREADS: '1'
-      NUMEXPR_NUM_THREADS: '1'
-      OMP_DYNAMIC: 'FALSE'
-      MKL_DYNAMIC: 'FALSE'
-      MKL_CBWR: 'COMPATIBLE'
-      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
-      ATEN_CPU_CAPABILITY: 'default'
-      EXPECTED_PARENT_CHECKPOINT_SHA256: '7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b'
-      EXPECTED_PARENT_STATE_SHA256: 'ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098'
+      EXPECTED_CHECKPOINT_SHA256: 'bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14'
+      EXPECTED_STATE_SHA256: '20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf'
+      EXPECTED_MANIFEST_SHA256: '8386440845c6a8bc4153bce6fcad29737702521b1c82ae197532f32a48b04728'
+      EXPECTED_DEV_RESULT_SHA256: 'd4d4f27bb9b79c1e900ae4f9ede5d1851e94e8406d5a34621c84c9894bb5b1d8'
+      EXPECTED_CHECKPOINT_SIZE: '2168688'
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - uses: actions/setup-python@v5
         with:
@@ -48,57 +43,64 @@ jobs:
           assert torch.__version__.startswith("2.9.0")
           PY
 
-      - name: Compile parent and successor neural lines
+      - name: Verify repository-archived accepted materialization
         run: |
-          python -m py_compile \
-            model/neural-vnext-native/*.py \
-            model/neural-vnext-native/scripts/*.py \
-            model/neural-vnext-native-r2/*.py \
-            model/neural-vnext-native-r2/scripts/*.py \
-            model/neural-vnext-native-r2/tests/*.py
+          test -f model/neural-vnext-native-r2/accepted/successor.pt
+          test "$(stat -c %s model/neural-vnext-native-r2/accepted/successor.pt)" = "$EXPECTED_CHECKPOINT_SIZE"
+          test "$(sha256sum model/neural-vnext-native-r2/accepted/successor.pt | awk '{print $1}')" = "$EXPECTED_CHECKPOINT_SHA256"
+          test "$(sha256sum model/neural-vnext-native-r2/accepted/successor.manifest.json | awk '{print $1}')" = "$EXPECTED_MANIFEST_SHA256"
+          test "$(sha256sum model/neural-vnext-native-r2/accepted/successor.dev.json | awk '{print $1}')" = "$EXPECTED_DEV_RESULT_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
 
-      - name: Run successor contracts
+          root = Path("model/neural-vnext-native-r2")
+          archive = json.loads((root / "accepted/ARCHIVE_AUTHORITY.json").read_text())
+          accepted = json.loads((root / "ACCEPTED_AUTHORITY.json").read_text())
+          closure = json.loads((root / "evidence/ACCEPTANCE_CLOSURE.json").read_text())
+          fresh = json.loads((root / "evidence/FRESH_COURT_001.json").read_text())
+
+          assert archive["status"] == "ARCHIVED_ACCEPTED_CHECKPOINT"
+          assert archive["checkpoint_sha256"] == "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14"
+          assert accepted["status"] == "ACCEPTED"
+          assert accepted["accepted_candidate"]["checkpoint_sha256"] == archive["checkpoint_sha256"]
+          assert accepted["accepted_candidate"]["state_dict_sha256"] == "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf"
+          assert accepted["repository_archive"]["git_lfs_oid"] == "sha256:bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14"
+          assert accepted["repository_archive"]["size_bytes"] == 2168688
+          assert closure["status"] == "ACCEPTANCE_CLOSED"
+          assert closure["accepted_materialization_archived_in_repository"] is True
+          assert fresh["status"] == "FRESH_ACCEPTED"
+          assert fresh["preregistered_promotion_gate"]["accepted"] is True
+          assert fresh["fresh_court"]["candidate"]["solved"] == 141
+          assert fresh["fresh_court"]["parent"]["solved"] == 128
+          assert fresh["source_training_reproducibility"]["cross_host_bitwise_reproducible"] is False
+          PY
+
+      - name: Compile neural source and contracts
+        run: |
+          python -m py_compile             model/neural-vnext-native/*.py             model/neural-vnext-native/scripts/*.py             model/neural-vnext-native-r2/*.py             model/neural-vnext-native-r2/scripts/*.py             model/neural-vnext-native-r2/tests/*.py
+
+      - name: Run R2 contracts
         env:
           PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
         run: python -m pytest -q model/neural-vnext-native-r2/tests
 
-      - name: Reproduce accepted parent from source
-        env:
-          PYTHONPATH: model/neural-vnext-native:model/r1.8
-        run: |
-          mkdir -p r2-output
-          python model/neural-vnext-native/scripts/train_native_dev.py \
-            --checkpoint r2-output/native-vnext.pt \
-            --manifest r2-output/parent.manifest.json \
-            --dev-result r2-output/parent.dev.json
-          actual_checkpoint="$(sha256sum r2-output/native-vnext.pt | awk '{print $1}')"
-          test "$actual_checkpoint" = "$EXPECTED_PARENT_CHECKPOINT_SHA256"
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          manifest = json.loads(Path("r2-output/parent.manifest.json").read_text())
-          actual = manifest["state_dict_sha256"]
-          expected = "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098"
-          print("parent_state_dict_sha256=" + actual)
-          assert actual == expected
-          assert manifest["fresh_opened"] is False
-          PY
-
-      - name: Train successor and evaluate new dev block only
+      - name: Load accepted checkpoint and verify embedded authority
         env:
           PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
         run: |
-          python model/neural-vnext-native-r2/scripts/train_successor_dev.py \
-            --parent-checkpoint r2-output/native-vnext.pt \
-            --checkpoint r2-output/successor.pt \
-            --manifest r2-output/successor.manifest.json \
-            --dev-result r2-output/successor.dev.json
-          cat r2-output/successor.manifest.json
+          python - <<'PY'
+          from pathlib import Path
+          from successor_training import load_successor_checkpoint
 
-      - name: Upload R2 dev-only evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: neural-vnext-native-r2-dev
-          path: r2-output/
-          if-no-files-found: error
+          path = Path("model/neural-vnext-native-r2/accepted/successor.pt")
+          model, metadata = load_successor_checkpoint(path)
+          assert metadata["checkpoint_sha256"] == "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14"
+          assert metadata["state_dict_sha256"] == "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf"
+          assert metadata["parameters"] == 536085
+          assert metadata["successor_parameters"] == 201986
+          assert metadata["training_summary"]["selected_candidate"] == "hidden_trace_broad"
+          assert metadata["training_summary"]["fresh_opened"] is False
+          assert model.parent is not None
+          print("accepted_checkpoint_authority=verified")
+          PY

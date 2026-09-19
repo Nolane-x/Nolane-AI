@@ -12,8 +12,9 @@ R2 is the first accepted successor to Neural vNext Native. The accepted parent r
 - checkpoint SHA-256: `bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14`
 - state-dict SHA-256: `20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf`
 - frozen development artifact: run `35441662592`, artifact `10583544731`
+- durable repository checkpoint: `accepted/successor.pt` via Git LFS, **2,168,688 bytes**
 
-Canonical acceptance metadata is in `ACCEPTED_AUTHORITY.json`. The immutable one-shot fresh result is summarized in `evidence/FRESH_COURT_001.json`, and final closure is recorded in `evidence/ACCEPTANCE_CLOSURE.json`.
+Canonical acceptance metadata is in `ACCEPTED_AUTHORITY.json`. The immutable one-shot fresh result is summarized in `evidence/FRESH_COURT_001.json`, final closure is in `evidence/ACCEPTANCE_CLOSURE.json`, and durable checkpoint archival provenance is in `accepted/ARCHIVE_AUTHORITY.json`.
 
 ## Parent boundary
 
@@ -23,7 +24,7 @@ The accepted Neural vNext Native parent remains unchanged:
 - checkpoint SHA-256: `7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b`
 - state-dict SHA-256: `ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098`
 
-R2 optimizer authority is restricted to successor-owned modules.
+R2 optimizer authority was restricted to successor-owned modules.
 
 ## New neural capability
 
@@ -32,8 +33,6 @@ R2 adds an ordered eight-transition public trace. Each token is derived only fro
 The residual final layer is zero-initialized, so the untrained successor begins parent-equivalent.
 
 ## Development selection
-
-The accepted candidate was selected on a new development block rather than the parent court.
 
 On `dev:64..95`:
 
@@ -74,7 +73,19 @@ Observed:
 - `implicit_goal_regimes`: 26 → **27** (`+1`)
 - `causal_prerequisites`: 35 → **40** (`+5`)
 
-All preregistered requirements passed. Fresh workflow run: `35445318413`; immutable artifact: `10584793357`.
+All preregistered requirements passed. Fresh workflow run: `35445318413`; immutable fresh artifact: `10584793357`.
+
+## Durable accepted materialization
+
+R2 cannot honestly rely on source retraining as its canonical reconstruction path, because cross-host source training produced a disclosed negative result. Therefore the exact accepted checkpoint was archived into the repository after fresh acceptance without retraining or mutation.
+
+- path: `model/neural-vnext-native-r2/accepted/successor.pt`
+- storage: Git LFS
+- LFS object SHA-256: `bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14`
+- size: **2,168,688 bytes**
+- archive commit: `64ba56443245b90a6343b4be38a3b2edae5aaeba`
+
+CI checks out LFS content, verifies the exact file hash/size, verifies acceptance metadata, runs all R2 contracts, and loads the accepted checkpoint. CI no longer retrains the accepted parent or successor as a promotion authority.
 
 ## Reproducibility boundary
 
@@ -82,9 +93,7 @@ R2 deliberately does **not** claim cross-host source-training reproducibility.
 
 A same-source/same-image/same-PyTorch/same-seed reproduction attempt diverged before successor training, including a different frozen-parent state hash and dev score. That negative result is retained in `FRESH_GATE_PREREGISTRATION_AMENDMENT_001.json` and `PRE_FRESH_LOCK.json`.
 
-Because of that result, fresh evaluation used the exact development artifact frozen before fresh. The workflow verified the checkpoint hash, state-dict hash, selected-candidate identity, development evidence, parent authority and all frozen source blobs before opening the court.
-
-The accepted claim is therefore narrower and auditable: **R2 is an accepted immutable frozen-artifact successor, not a cross-host bitwise source-retrainable successor.**
+The accepted claim is narrower and auditable: **R2 is a repository-archived immutable frozen-artifact successor, not a cross-host bitwise source-retrainable successor.**
 
 ## Post-fresh rule
 

@@ -27,8 +27,13 @@
   "evidence_chain": [
     "../PRE_FRESH_LOCK.json",
     "FRESH_COURT_001.json",
-    "../ACCEPTED_AUTHORITY.json"
+    "../ACCEPTED_AUTHORITY.json",
+    "../accepted/ARCHIVE_AUTHORITY.json"
   ],
+  "accepted_materialization_archived_in_repository": true,
+  "repository_archive_commit": "64ba56443245b90a6343b4be38a3b2edae5aaeba",
+  "repository_checkpoint_path": "../accepted/successor.pt",
+  "repository_checkpoint_storage": "git-lfs",
   "frozen_source_mutated_after_fresh": false,
   "post_fresh_training_performed": false,
   "post_fresh_tuning_performed": false,
