@@ -1,7 +1,11 @@
 name: Neural vNext Native R2 Fresh Court
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/neural-native-r2-fresh-closure
+    paths:
+      - '.github/workflows/neural-vnext-native-r2-fresh.yml'
 
 permissions:
   contents: read
@@ -13,6 +17,7 @@ concurrency:
 
 jobs:
   fresh-court:
+    if: ${{ github.event.before == 'da9434b2269eeb9a290cf68e54a723ac5b007405' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -26,8 +31,9 @@ jobs:
       MKL_CBWR: 'COMPATIBLE'
       KMP_DETERMINISTIC_REDUCTION: 'TRUE'
       ATEN_CPU_CAPABILITY: 'default'
-      EXPECTED_PRE_FRESH_LOCK_BLOB: '__PRE_FRESH_LOCK_BLOB__'
-      EXPECTED_FRESH_EVALUATOR_BLOB: '__FRESH_EVALUATOR_BLOB__'
+      EXPECTED_ARMING_PARENT_HEAD: 'da9434b2269eeb9a290cf68e54a723ac5b007405'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'bf03f9cbd6c59446d75563c57bacc95c8fece28f'
+      EXPECTED_FRESH_EVALUATOR_BLOB: 'cb9020e9ddebb638109685ec7831902a03e019ae'
       FROZEN_DEV_RUN_ID: '35441662592'
       FROZEN_DEV_ARTIFACT_ID: '10583544731'
       FROZEN_DEV_ARTIFACT_NAME: 'neural-vnext-native-r2-dev'
@@ -36,8 +42,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Refuse unbound fresh authority
+      - name: Refuse unbound or replayed fresh authority
         run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
           test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
           test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
           test "$(git hash-object model/neural-vnext-native-r2/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
