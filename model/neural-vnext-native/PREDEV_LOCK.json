@@ -65,7 +65,7 @@
       "visible_target_policy_invariance_required": true,
       "representation": "full 15-way categorical belief (3 coordinates x 5 values) projected to policy hidden state; no scalar expectation compression",
       "supervision_start": "only after every non-submit action has at least one public transition in the current context",
-      "unique_implicit_train_worlds": 512,
+      "unique_implicit_train_worlds": 2048,
       "optimization_scope": "hidden_goal specialist only"
     },
     "base_curriculum": {
@@ -99,22 +99,34 @@
     "hidden_goal_family_training_indices": {
       "implicit_goal_regimes": [
         0,
-        511
+        2047
       ]
     },
     "hidden_goal_specialists": [
       {
-        "name": "hidden_guarded",
-        "expert_epochs": 3,
+        "name": "hidden_policy_only",
+        "expert_epochs": 2,
         "dagger_teacher_mix": [
           0.75,
-          0.5
+          0.5,
+          0.25
         ],
-        "goal_loss_weight": 0.75,
+        "goal_loss_weight": 0,
         "learning_rate": 0.0007
       },
       {
-        "name": "hidden_broad",
+        "name": "hidden_light_goal",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "goal_loss_weight": 0.25,
+        "learning_rate": 0.0007
+      },
+      {
+        "name": "hidden_strong_goal",
         "expert_epochs": 2,
         "dagger_teacher_mix": [
           0.75,
@@ -134,6 +146,12 @@
         "goal_policy_norm.",
         "hidden_goal_score."
       ]
+    },
+    "specialist_scaling": {
+      "purpose": "dev-only objective ablation on a frozen shared base",
+      "unique_implicit_train_worlds": 2048,
+      "candidate_initialization": "each specialist resets to the exact same shared-base state",
+      "selection_authority": "development split only; fresh remains unopened"
     }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
