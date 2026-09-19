@@ -312,11 +312,14 @@ class NativeRecurrentPolicy(nn.Module):
             dtype=goal_logits.dtype,
         ) / 4.0
         goal_expectation = (goal_probability * goal_values[None, None, :]).sum(dim=-1)
-        target_visible = global_features[:, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1]
-        hidden_target_gate = 1.0 - target_visible.clamp(0.0, 1.0)
-        policy_hidden = self.goal_policy_norm(
-            next_hidden
-            + hidden_target_gate * self.goal_belief_projection(goal_expectation)
+        target_visible = global_features[:, TARGET_VISIBLE_FEATURE_INDEX : TARGET_VISIBLE_FEATURE_INDEX + 1].clamp(0.0, 1.0)
+        hidden_target_gate = 1.0 - target_visible
+        hidden_goal_policy = self.goal_policy_norm(
+            next_hidden + self.goal_belief_projection(goal_expectation)
+        )
+        policy_hidden = (
+            target_visible * next_hidden
+            + hidden_target_gate * hidden_goal_policy
         )
         expanded = policy_hidden[:, None, :].expand(batch, actions, self.hidden_dim)
         logits = self.score(torch.cat((action_tokens, expanded), dim=-1)).squeeze(-1)
