@@ -197,3 +197,41 @@ def test_load_fresh_lock_is_fail_closed(tmp_path: Path) -> None:
     path.write_text(json.dumps(lock), encoding="utf-8")
     with pytest.raises(ValueError, match="distinct workflow runs"):
         evaluate_fresh.load_fresh_lock(path)
+
+
+def test_r2_train_dev_fresh_seed_identities_are_disjoint() -> None:
+    ranges = {
+        "train": ((128, 511), (512, 1023)),
+        "dev": ((32, 63), (64, 95)),
+        "fresh": ((40, 79),),
+    }
+    families = (
+        "conditional_regimes",
+        "regime_switch",
+        "implicit_goal_regimes",
+        "causal_prerequisites",
+    )
+    seen: dict[int, tuple[str, str, int]] = {}
+    for split, blocks in ranges.items():
+        for start, end in blocks:
+            for family in families:
+                for index in range(start, end + 1):
+                    task = evaluate_fresh.make_r18_task(family, split, index)
+                    identity = (split, family, index)
+                    assert task.split == split
+                    assert f":{split}:" in task.task_id
+                    assert task.seed not in seen, (
+                        task.seed,
+                        seen.get(task.seed),
+                        identity,
+                    )
+                    seen[task.seed] = identity
+
+    fresh_seeds = {
+        seed
+        for seed, (split, _family, _index) in seen.items()
+        if split == "fresh"
+    }
+    nonfresh_seeds = set(seen) - fresh_seeds
+    assert fresh_seeds
+    assert fresh_seeds.isdisjoint(nonfresh_seeds)
