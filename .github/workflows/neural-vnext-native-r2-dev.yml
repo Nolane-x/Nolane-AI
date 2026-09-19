@@ -1,0 +1,104 @@
+name: Neural vNext Native R2 Dev
+
+on:
+  push:
+    paths:
+      - 'model/neural-vnext-native-r2/**'
+      - '.github/workflows/neural-vnext-native-r2-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r2/**'
+      - '.github/workflows/neural-vnext-native-r2-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r2-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_PARENT_CHECKPOINT_SHA256: '7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b'
+      EXPECTED_PARENT_STATE_SHA256: 'ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+
+      - name: Compile parent and successor neural lines
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native/*.py \
+            model/neural-vnext-native/scripts/*.py \
+            model/neural-vnext-native-r2/*.py \
+            model/neural-vnext-native-r2/scripts/*.py \
+            model/neural-vnext-native-r2/tests/*.py
+
+      - name: Run successor contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: python -m pytest -q model/neural-vnext-native-r2/tests
+
+      - name: Reproduce accepted parent from source
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r2-output
+          python model/neural-vnext-native/scripts/train_native_dev.py \
+            --checkpoint r2-output/parent.pt \
+            --manifest r2-output/parent.manifest.json \
+            --dev-result r2-output/parent.dev.json
+          actual_checkpoint="$(sha256sum r2-output/parent.pt | awk '{print $1}')"
+          test "$actual_checkpoint" = "$EXPECTED_PARENT_CHECKPOINT_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("r2-output/parent.manifest.json").read_text())
+          actual = manifest["state_dict_sha256"]
+          expected = "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098"
+          print("parent_state_dict_sha256=" + actual)
+          assert actual == expected
+          assert manifest["fresh_opened"] is False
+          PY
+
+      - name: Train successor and evaluate new dev block only
+        env:
+          PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python model/neural-vnext-native-r2/scripts/train_successor_dev.py \
+            --parent-checkpoint r2-output/parent.pt \
+            --checkpoint r2-output/successor.pt \
+            --manifest r2-output/successor.manifest.json \
+            --dev-result r2-output/successor.dev.json
+          cat r2-output/successor.manifest.json
+
+      - name: Upload R2 dev-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r2-dev
+          path: r2-output/
+          if-no-files-found: error
