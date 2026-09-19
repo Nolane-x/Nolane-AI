@@ -83,6 +83,23 @@ def public_exploration_teacher(task: Any, memory: PublicActionMemory, oracle_pla
     return int(plan[0])
 
 
+def hidden_goal_supervision_ready(
+    observation: Mapping[str, Any],
+    memory: PublicActionMemory,
+) -> bool:
+    """Require public evidence for every non-submit action before exact hidden-goal labels.
+
+    This prevents impossible early-state supervision from training the recurrent
+    goal head to memorize priors before the episode has exposed action effects.
+    """
+
+    submit = _submit_index(observation)
+    return all(
+        action == submit or memory.seen_in_context(observation, action) > 0
+        for action in range(len(observation["actions"]))
+    )
+
+
 @dataclass(frozen=True)
 class EpisodeTrainResult:
     loss: float
@@ -142,7 +159,10 @@ def train_episode(
         target_tensor = torch.tensor([target], dtype=torch.long)
         policy_loss = F.cross_entropy(output["action_logits"], target_tensor)
         goal_loss = policy_loss.new_zeros(())
-        if getattr(task, "family", None) == "implicit_goal_regimes":
+        if (
+            getattr(task, "family", None) == "implicit_goal_regimes"
+            and hidden_goal_supervision_ready(observation, memory)
+        ):
             private_goal = getattr(task, "_goal", None)
             if not isinstance(private_goal, tuple) or len(private_goal) != 3:
                 raise ValueError("train-only implicit FIGG-18 goal label is unavailable")
@@ -212,16 +232,18 @@ def train_episode(
 
 def _task_order(
     *,
-    families: Sequence[str],
-    start_index: int,
-    end_index: int,
+    family_ranges: Mapping[str, tuple[int, int]],
     rng: random.Random,
 ) -> list[tuple[str, int]]:
-    rows = [
-        (str(family), int(index))
-        for family in families
-        for index in range(int(start_index), int(end_index) + 1)
-    ]
+    rows: list[tuple[str, int]] = []
+    for family, bounds in family_ranges.items():
+        start_index, end_index = int(bounds[0]), int(bounds[1])
+        if start_index < 0 or end_index < start_index:
+            raise ValueError(f"invalid training range for {family}: {bounds}")
+        rows.extend(
+            (str(family), int(index))
+            for index in range(start_index, end_index + 1)
+        )
     rng.shuffle(rows)
     return rows
 
@@ -233,6 +255,7 @@ def train_native_policy(
     oracle_plan: Any,
     families: Sequence[str],
     train_indices: tuple[int, int],
+    family_train_indices: Mapping[str, Sequence[int]] | None = None,
     seed: int,
     expert_epochs: int,
     dagger_teacher_mix: Sequence[float],
@@ -252,6 +275,21 @@ def train_native_policy(
         lr=float(learning_rate),
         weight_decay=float(weight_decay),
     )
+    if family_train_indices is None:
+        family_ranges = {
+            str(family): (int(train_indices[0]), int(train_indices[1]))
+            for family in families
+        }
+    else:
+        family_ranges: dict[str, tuple[int, int]] = {}
+        for family in families:
+            bounds = family_train_indices.get(str(family))
+            if bounds is None or len(bounds) != 2:
+                raise ValueError(f"missing exact training bounds for {family}")
+            family_ranges[str(family)] = (int(bounds[0]), int(bounds[1]))
+        extras = set(str(key) for key in family_train_indices) - set(str(family) for family in families)
+        if extras:
+            raise ValueError(f"unexpected family training bounds: {sorted(extras)}")
     stages: list[dict[str, Any]] = []
 
     schedule = [("expert", 1.0)] * int(expert_epochs)
@@ -265,9 +303,7 @@ def train_native_policy(
         goal_coordinates_correct = 0
         goal_coordinates_total = 0
         for family, index in _task_order(
-            families=families,
-            start_index=train_indices[0],
-            end_index=train_indices[1],
+            family_ranges=family_ranges,
             rng=rng,
         ):
             result = train_episode(
@@ -305,7 +341,14 @@ def train_native_policy(
     return {
         "seed": int(seed),
         "train_indices": list(train_indices),
-        "training_episodes_per_epoch": len(families) * (train_indices[1] - train_indices[0] + 1),
+        "family_train_indices": {
+            family: list(bounds)
+            for family, bounds in family_ranges.items()
+        },
+        "training_episodes_per_epoch": sum(
+            bounds[1] - bounds[0] + 1
+            for bounds in family_ranges.values()
+        ),
         "stages": stages,
     }
 
