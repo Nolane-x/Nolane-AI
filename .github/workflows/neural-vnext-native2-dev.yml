@@ -1,0 +1,77 @@
+name: Neural vNext Native-2 Dev
+
+on:
+  push:
+    paths:
+      - 'model/neural-vnext-native2/**'
+      - '.github/workflows/neural-vnext-native2-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native2/**'
+      - '.github/workflows/neural-vnext-native2-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native2-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+
+      - name: Compile Native-2
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native2/*.py \
+            model/neural-vnext-native2/scripts/*.py \
+            model/neural-vnext-native2/tests/*.py
+
+      - name: Run Native-2 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native2:model/neural-vnext-native:model/r1.8
+        run: python -m pytest -q model/neural-vnext-native2/tests
+
+      - name: Reproduce accepted parent and train Native-2 dev tournament
+        env:
+          PYTHONPATH: model/neural-vnext-native2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p native2-output
+          python model/neural-vnext-native2/scripts/train_successor_dev.py \
+            --checkpoint native2-output/native2.pt \
+            --manifest native2-output/native2.manifest.json \
+            --dev-result native2-output/native2.dev.json
+          cat native2-output/native2.manifest.json
+
+      - name: Upload Native-2 dev-only artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native2-dev
+          path: native2-output/
+          if-no-files-found: error
