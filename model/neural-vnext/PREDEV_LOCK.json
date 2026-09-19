@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCK_CANDIDATE_ONLY",
+  "candidate": "Neural-vNext-MultiDepth-Recursive",
+  "parent": {
+    "version": "Neural-R2.3-Ultra-Recursive-DAgger-Gated",
+    "one_weight_sha256": "77bc7ef2ff1e4ab9a5ff7a149913fd1388509803b6b8fdbd7c2d0257c74af026",
+    "physical_parameters": 79858099,
+    "accepted_reasoning_steps_release": 1
+  },
+  "candidate_architecture": {
+    "trainable_parameter_delta": 0,
+    "physical_parameter_ceiling": 80000000,
+    "maximum_recurrent_depth": 4,
+    "minimum_adaptive_depth": 2,
+    "weight_sharing": true,
+    "learned_continue_signal": "existing ponder_head"
+  },
+  "training_scope": {
+    "allowed": [
+      "existing R2.3 expert training states",
+      "existing R2.3 on-policy DAgger training states",
+      "new training-only DAgger rollouts that exclude locked fresh indices"
+    ],
+    "forbidden": [
+      "R2.3 fresh blocks 1080-1119",
+      "vNext confirmatory fresh blocks before freeze",
+      "External Core success labels as neural training targets"
+    ]
+  },
+  "confirmatory_fresh": {
+    "block_1_indices": [1120, 1139],
+    "block_2_indices": [1140, 1159],
+    "episodes_expected": 160,
+    "access_rule": "candidate weights, adaptive-depth policy and all thresholds must be frozen before first access"
+  },
+  "promotion_gates": {
+    "candidate_solved_minimum_gain_over_parent": 8,
+    "family_regressions_allowed": 0,
+    "post_fresh_weight_changes_allowed": false,
+    "post_fresh_threshold_changes_allowed": false,
+    "neural_only_required": true,
+    "hybrid_runtime_evidence_can_authorize_neural_promotion": false
+  }
+}
