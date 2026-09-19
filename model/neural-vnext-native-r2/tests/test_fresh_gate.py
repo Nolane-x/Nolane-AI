@@ -26,6 +26,18 @@ def _lock() -> dict:
         "frozen_candidate": {
             "fresh_opened": False,
         },
+        "reproducibility_gate": {
+            "status": "PASSED",
+            "independent_attempts": [
+                {"workflow_run_id": 1},
+                {"workflow_run_id": 2},
+            ],
+            "checkpoint_sha256_equal": True,
+            "state_dict_sha256_equal": True,
+            "development_metrics_equal": True,
+            "selected_candidate_equal": True,
+            "fresh_unopened_equal": True,
+        },
         "fresh_court": {
             "opened": False,
             "families": [
@@ -172,4 +184,16 @@ def test_load_fresh_lock_is_fail_closed(tmp_path: Path) -> None:
     lock["candidate"] = "wrong"
     path.write_text(json.dumps(lock), encoding="utf-8")
     with pytest.raises(ValueError, match="candidate identity"):
+        evaluate_fresh.load_fresh_lock(path)
+
+    lock = _lock()
+    lock["reproducibility_gate"]["status"] = "PENDING"
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    with pytest.raises(ValueError, match="reproducibility_gate PASSED"):
+        evaluate_fresh.load_fresh_lock(path)
+
+    lock = _lock()
+    lock["reproducibility_gate"]["independent_attempts"][1]["workflow_run_id"] = 1
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    with pytest.raises(ValueError, match="distinct workflow runs"):
         evaluate_fresh.load_fresh_lock(path)
