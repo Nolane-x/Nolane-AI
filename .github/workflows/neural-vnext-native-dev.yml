@@ -24,6 +24,11 @@ jobs:
       MKL_NUM_THREADS: '1'
       OPENBLAS_NUM_THREADS: '1'
       NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
