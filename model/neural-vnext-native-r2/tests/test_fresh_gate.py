@@ -63,6 +63,7 @@ def _lock() -> dict:
             "maximum_family_solved_regression": 0,
             "target_family": "implicit_goal_regimes",
             "minimum_target_family_solved_delta": 1,
+            "all_requirements_must_pass": True,
         },
     }
 
@@ -210,6 +211,18 @@ def test_load_fresh_lock_is_fail_closed(tmp_path: Path) -> None:
     lock["source_training_reproducibility"]["cross_host_bitwise_reproducible"] = True
     path.write_text(json.dumps(lock), encoding="utf-8")
     with pytest.raises(ValueError, match="must not claim cross-host bitwise"):
+        evaluate_fresh.load_fresh_lock(path)
+
+    lock = _lock()
+    lock["fresh_court"]["index_start"] = 39
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    with pytest.raises(ValueError, match="index_start differs"):
+        evaluate_fresh.load_fresh_lock(path)
+
+    lock = _lock()
+    lock["promotion_gate"]["maximum_family_solved_regression"] = 1
+    path.write_text(json.dumps(lock), encoding="utf-8")
+    with pytest.raises(ValueError, match="promotion gate differs"):
         evaluate_fresh.load_fresh_lock(path)
 
 
