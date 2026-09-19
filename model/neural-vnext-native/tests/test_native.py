@@ -25,6 +25,7 @@ from native_core import (  # noqa: E402
     parameter_count,
 )
 from native_training import (  # noqa: E402
+    configure_training_scope,
     load_checkpoint,
     public_exploration_teacher,
     save_checkpoint,
@@ -186,6 +187,8 @@ def test_goal_belief_cannot_perturb_visible_target_policy() -> None:
         model.goal_belief_projection.weight.fill_(1000.0)
         model.goal_head.weight.fill_(1000.0)
         model.goal_head.bias.fill_(1000.0)
+        for parameter in model.hidden_goal_score.parameters():
+            parameter.fill_(1000.0)
     after = model.forward_step(vg.unsqueeze(0), va.unsqueeze(0), vv.unsqueeze(0), hidden)["action_logits"]
     assert torch.allclose(before, after, atol=1e-6)
 
@@ -250,3 +253,26 @@ def test_family_specific_training_ranges_are_executed() -> None:
         "implicit_goal_regimes": [0, 1],
     }
     assert summary["stages"][0]["episodes"] == 3
+
+
+def test_hidden_goal_specialist_is_zero_init_and_scope_isolated() -> None:
+    torch.manual_seed(41)
+    model = NativeRecurrentPolicy(hidden_dim=64, attention_heads=4)
+    assert torch.count_nonzero(model.hidden_goal_score[-1].weight).item() == 0
+    assert torch.count_nonzero(model.hidden_goal_score[-1].bias).item() == 0
+
+    base_scope = configure_training_scope(model, "base")
+    assert base_scope["trainable_parameters"] > 0
+    assert model.score[0].weight.requires_grad is True
+    assert model.recurrent.weight_hh.requires_grad is True
+    assert model.goal_head.weight.requires_grad is False
+    assert model.goal_belief_projection.weight.requires_grad is False
+    assert model.hidden_goal_score[0].weight.requires_grad is False
+
+    specialist_scope = configure_training_scope(model, "hidden_goal")
+    assert specialist_scope["trainable_parameters"] > 0
+    assert model.score[0].weight.requires_grad is False
+    assert model.recurrent.weight_hh.requires_grad is False
+    assert model.goal_head.weight.requires_grad is True
+    assert model.goal_belief_projection.weight.requires_grad is True
+    assert model.hidden_goal_score[0].weight.requires_grad is True
