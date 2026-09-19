@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R4-PublicGoalConsistencyBelief",
+  "parent": {
+    "authority": "Neural-vNext-Native-R3-AttributedBelief",
+    "main_merge_commit": "9e040b7ca1b0aac0d64ef943ad3a14ceb7ff5a9a",
+    "parameters": 707990,
+    "checkpoint_path": "model/neural-vnext-native-r3/accepted/r3.pt",
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "parent_parameters_trainable": false,
+    "post_fresh_mutation_allowed": false
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_split": "train",
+    "hidden_training_indices": [
+      2048,
+      2559
+    ],
+    "development_split": "dev",
+    "development_indices": [
+      160,
+      191
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      120,
+      159
+    ],
+    "fresh_episodes_expected": 160,
+    "previously_consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "R4 may train only on train:2048..2559 and select only on dev:160..191. fresh:120..159 must never be instantiated before a separate PRE_FRESH_LOCK.",
+    "post_fresh_tuning_allowed": false,
+    "previous_fresh_reuse_allowed": false
+  },
+  "architecture": {
+    "parent_policy": "accepted Neural vNext Native R3, frozen",
+    "public_goal_space": "all 5^3 = 125 candidate goals",
+    "consistency_signal": "public state + public progress_signal only",
+    "belief_feature_dim": 142,
+    "belief_hidden_dim": 128,
+    "posterior_representation": "125 exact-consistency posterior probabilities + 15 coordinate marginals + normalized candidate-count + confidence",
+    "residual_policy": "hidden-target-only residual over frozen native action token + frozen recurrent hidden + frozen R2 trace + frozen R3 attribution state + R4 public goal-belief encoding",
+    "residual_initialization": "zero final layer, making initialization exactly R3-equivalent",
+    "target_visible_gate": "R4 residual multiplied by 1-target_visible; visible-target behavior is exactly frozen R3",
+    "private_task_state_allowed_at_inference": false
+  },
+  "training": {
+    "seed": 20260921,
+    "optimizer": "AdamW",
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "family_scope": [
+      "implicit_goal_regimes"
+    ],
+    "teacher": "same train-only public-exploration-first/oracle supervision used by accepted predecessors",
+    "candidates": [
+      {
+        "name": "belief_guarded",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0004,
+        "residual_l2_weight": 0.003
+      },
+      {
+        "name": "belief_broad",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.0015
+      }
+    ],
+    "selection_rule": [
+      "evaluate exact frozen R3 parent and every R4 candidate on dev:160..191 only",
+      "candidate must strictly improve implicit_goal_regimes solved count versus frozen R3",
+      "candidate must strictly improve total solved count versus frozen R3",
+      "conditional_regimes, regime_switch and causal_prerequisites solved counts must equal frozen R3 exactly because R4 is hard-gated off when target_visible=1",
+      "among eligible candidates maximize implicit_goal_regimes solved",
+      "then maximize total dev solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
+  },
+  "claim_boundary": "R4 is development-only. The exact accepted R3 parent is frozen. R4 learns only a hidden-target residual fed by a public consistency belief; fresh:120..159 remains unopened."
+}

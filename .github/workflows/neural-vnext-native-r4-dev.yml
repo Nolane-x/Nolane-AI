@@ -1,0 +1,98 @@
+name: Neural vNext Native R4 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r4-public-goal-belief
+    paths:
+      - 'model/neural-vnext-native-r4/**'
+      - '.github/workflows/neural-vnext-native-r4-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r4/**'
+      - '.github/workflows/neural-vnext-native-r4-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r4-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  r4-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_PARENT_CHECKPOINT_SHA256: '8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da'
+      EXPECTED_PARENT_STATE_SHA256: '6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Verify exact accepted R3 parent
+        env:
+          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          parent=model/neural-vnext-native-r3/accepted/r3.pt
+          test -f "$parent"
+          test "$(sha256sum "$parent" | awk '{print $1}')" = "$EXPECTED_PARENT_CHECKPOINT_SHA256"
+          python - <<'PY'
+          from attributed_training import load_r3_checkpoint
+          model, metadata = load_r3_checkpoint("model/neural-vnext-native-r3/accepted/r3.pt")
+          assert metadata["state_dict_sha256"] == "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e"
+          assert metadata["training_summary"]["selected_candidate"] == "attributed_broad"
+          print("accepted_r3_parent=verified")
+          PY
+
+      - name: Compile R4 source
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native-r4/*.py \
+            model/neural-vnext-native-r4/scripts/*.py \
+            model/neural-vnext-native-r4/tests/*.py
+
+      - name: Run R4 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: python -m pytest -q model/neural-vnext-native-r4/tests
+
+      - name: Train R4 candidates and evaluate new dev block only
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r4-output
+          python model/neural-vnext-native-r4/scripts/train_r4_dev.py \
+            --checkpoint r4-output/r4.pt \
+            --manifest r4-output/r4.manifest.json \
+            --dev-result r4-output/r4.dev.json
+          cat r4-output/r4.manifest.json
+
+      - name: Upload R4 dev-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r4-dev
+          path: r4-output/
+          if-no-files-found: error
