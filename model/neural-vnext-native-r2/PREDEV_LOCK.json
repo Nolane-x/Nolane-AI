@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "candidate": "Neural-vNext-Native-R2-TransitionTrace",
   "parent": {
     "authority": "Neural-vNext-Native-Recurrent",
@@ -26,10 +26,6 @@
       511
     ],
     "development_split": "dev",
-    "development_indices": [
-      32,
-      63
-    ],
     "fresh_split": "fresh",
     "fresh_indices": [
       40,
@@ -39,6 +35,18 @@
     "previously_consumed_fresh_indices": [
       0,
       39
+    ],
+    "phase1_development_indices": [
+      32,
+      63
+    ],
+    "phase2_development_indices": [
+      64,
+      95
+    ],
+    "hidden_specialist_training_indices": [
+      512,
+      1023
     ]
   },
   "fresh_isolation": {
@@ -55,7 +63,11 @@
     "residual_policy": "shared per-action residual scorer over parent action token + parent recurrent hidden + trace hidden",
     "residual_initialization": "zero final layer, making initialization exactly parent-equivalent",
     "private_task_state_allowed_at_inference": false,
-    "parent_parameters_trainable": false
+    "parent_parameters_trainable": false,
+    "hidden_target_residual": "second shared per-action residual head, hard-gated to public target_visible=0",
+    "hidden_target_residual_initialization": "zero final layer; phase-1 replay remains behaviorally identical",
+    "phase1_trainable_scope": "general transition residual only",
+    "phase2_trainable_scope": "hidden-target residual only; parent and general residual frozen"
   },
   "transition_token": {
     "source": "public before/after observations plus public step result only",
@@ -128,7 +140,56 @@
       "adamw_foreach": false,
       "adamw_fused": false,
       "clip_grad_norm_foreach": false
-    }
+    },
+    "phase1_replay": {
+      "selected_candidate": "trace_guarded",
+      "expected_dev_block": [
+        32,
+        63
+      ],
+      "expected_total_solved": 113,
+      "expected_family_solved": {
+        "causal_prerequisites": 32,
+        "conditional_regimes": 32,
+        "implicit_goal_regimes": 21,
+        "regime_switch": 28
+      },
+      "rule": "Phase-2 training is forbidden unless the general transition residual reproduces the phase-1 behavioral evidence exactly on dev:32..63."
+    },
+    "hidden_specialists": [
+      {
+        "name": "hidden_trace_guarded",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.005
+      },
+      {
+        "name": "hidden_trace_broad",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0005,
+        "residual_l2_weight": 0.0025
+      }
+    ],
+    "phase2_selection_rule": [
+      "evaluate parent, phase-1 replay, and hidden specialist candidates on dev:64..95 only",
+      "candidate must solve strictly more total dev episodes than phase-1 replay",
+      "candidate must solve strictly more implicit_goal_regimes episodes than phase-1 replay",
+      "visible-target family solved counts must equal phase-1 replay exactly because the hidden head is hard-gated off when target_visible=1",
+      "regime_switch may differ only if its public target is hidden for an episode; any aggregate regression below phase-1 replay makes the candidate ineligible",
+      "among eligible candidates maximize total dev solved",
+      "then maximize implicit_goal_regimes solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
   },
-  "claim_boundary": "R2 is a new successor candidate, not a mutation of the accepted parent. Development uses a new dev block and future promotion must use fresh:40..79. Accepted parent authority and fresh:0..39 remain immutable."
+  "claim_boundary": "R2 phase 2 remains development-only. Phase 1 used dev:32..63; hidden specialization uses a new dev:64..95 block. fresh:40..79 remains unopened and is forbidden until a candidate is frozen and bitwise reproduced."
 }
