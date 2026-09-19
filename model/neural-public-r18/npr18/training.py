@@ -50,12 +50,14 @@ def train_public_r18_epoch(
                 action_bytes=model.action_bytes,
                 max_actions=model.max_actions,
                 action_memory_dim=model.action_memory_dim,
+                public_scalar_dim=model.public_scalar_dim,
             )
             output = model(
                 observation_tokens=batch["observation_tokens"],
                 action_tokens=batch["action_tokens"],
                 action_mask=batch["action_mask"],
                 action_memory=batch["action_memory"],
+                public_scalars=batch["public_scalars"],
                 memory=memory,
                 previous_action=batch["previous_action"],
                 previous_feedback=batch["previous_feedback"],
