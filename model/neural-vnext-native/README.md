@@ -22,9 +22,9 @@ The neural policy is action-order equivariant: a shared action encoder and share
 
 ## Training
 
-The preregistered development program is in `PREDEV_LOCK.json`.
+The preregistered development program is in `PREDEV_LOCK.json`. Model initialization is seed-bound **before construction**. Development performs a bounded, preregistered curriculum tournament (`expert4`, `guarded_dagger`, `broad_dagger`) and selects only by dev evidence: solved episodes, then worst-family solved count, then fewer action steps, then lexical name.
 
-Training uses only FIGG-18 `train` worlds. The teacher first requires public exploration of unseen non-submit action slots in the current public regime. After those slots have evidence, the FIGG-18 oracle supplies a training-only action target. DAgger epochs then mix teacher and learned-policy behavior so supervision covers learner-induced states.
+Training uses only FIGG-18 `train` worlds. The teacher first requires public exploration of unseen non-submit action slots in the current public regime. After those slots have evidence, the FIGG-18 oracle supplies a training-only action target. DAgger candidates mix teacher and learned-policy behavior so supervision covers learner-induced states.
 
 The `dev` split is used for iteration. The `fresh` split is explicitly forbidden to training and development code.
 
@@ -54,3 +54,7 @@ Any tuning after fresh consumption invalidates promotion for that candidate.
 ## Claim boundary
 
 This native line is not automatically a successor to R2.3. Historical R2.3 and a native candidate evaluated on a different fresh block are not treated as directly interchangeable measurements. Promotion language requires its own frozen fresh evidence.
+
+## Development provenance
+
+The first development-only run is retained at `evidence/DEV_HISTORY_001.json`. It reached 50/128 dev episodes (39.0625%) but is explicitly non-promotable because the model initialization seed had not yet been bound before construction. Fresh remained unopened. The deterministic curriculum tournament supersedes that run for candidate selection.
