@@ -1,0 +1,130 @@
+name: Neural R3 Phase1 Generalization Audit
+
+on:
+  push:
+    branches:
+      - codex/neural-r3-phase1-generalization-audit
+    paths:
+      - '.github/workflows/neural-r3-phase1-generalization-audit.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Download exact Phase-1 R3 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r3-dev
+          path: phase1-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35447526183
+
+      - name: Evaluate frozen R2 and frozen Phase-1 R3 on already-open dev 128..159
+        env:
+          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p audit-output
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          import torch
+
+          from cogcoder.r18_benchmark import make_r18_task
+          from successor_training import evaluate_successor
+          from attributed_training import evaluate_r3, load_r3_checkpoint
+
+          torch.set_num_threads(1)
+          try:
+              torch.set_num_interop_threads(1)
+          except RuntimeError:
+              pass
+          torch.use_deterministic_algorithms(True)
+          torch.backends.mkldnn.enabled = False
+
+          checkpoint = Path("phase1-artifact/r3.pt")
+          model, metadata = load_r3_checkpoint(checkpoint)
+          assert metadata["checkpoint_sha256"] == "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da"
+          assert metadata["state_dict_sha256"] == "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e"
+          families = (
+              "conditional_regimes",
+              "regime_switch",
+              "implicit_goal_regimes",
+              "causal_prerequisites",
+          )
+          parent = evaluate_successor(
+              model.parent,
+              make_task=make_r18_task,
+              families=families,
+              split="dev",
+              indices=(128, 159),
+          )
+          r3 = evaluate_r3(
+              model,
+              make_task=make_r18_task,
+              families=families,
+              split="dev",
+              indices=(128, 159),
+          )
+          deltas = {
+              family: r3["families"][family]["solved"] - parent["families"][family]["solved"]
+              for family in families
+          }
+          payload = {
+              "schema_version": 1,
+              "status": "R3_PHASE1_GENERALIZATION_AUDIT",
+              "checkpoint_sha256": metadata["checkpoint_sha256"],
+              "state_dict_sha256": metadata["state_dict_sha256"],
+              "split": "dev",
+              "indices": [128, 159],
+              "parent": parent,
+              "r3_phase1": r3,
+              "family_solved_delta_vs_r2": deltas,
+              "total_solved_delta_vs_r2": r3["solved"] - parent["solved"],
+              "fresh_opened": False,
+          }
+          Path("audit-output/result.json").write_text(
+              json.dumps(payload, indent=2, sort_keys=True) + "\n"
+          )
+          print(json.dumps({
+              "parent_solved": parent["solved"],
+              "parent_families": parent["families"],
+              "r3_solved": r3["solved"],
+              "r3_families": r3["families"],
+              "family_delta": deltas,
+              "total_delta": payload["total_solved_delta_vs_r2"],
+              "fresh_opened": False,
+          }, sort_keys=True))
+          PY
+
+      - name: Upload audit evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-r3-phase1-generalization-audit
+          path: audit-output/result.json
+          if-no-files-found: error
