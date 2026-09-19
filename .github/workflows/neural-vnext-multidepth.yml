@@ -28,7 +28,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - name: Install neural test dependencies
         run: |
-          python -m pip install -q pytest
+          python -m pip install -q pytest numpy
           python - <<'PY' || python -m pip install -q torch --index-url https://download.pytorch.org/whl/cpu
           import torch
           print(torch.__version__)
@@ -37,10 +37,17 @@ jobs:
         run: |
           python -m py_compile \
             model/neural-vnext/nvnext/*.py \
+            model/neural-vnext/scripts/*.py \
             model/neural-vnext/tests/*.py
+      - name: Smoke executable Neural vNext CLIs
+        env:
+          PYTHONPATH: .:model/neural-vnext:model/neural-r2.3:model/neural-r2.1
+        run: |
+          python model/neural-vnext/scripts/train_vnext.py --help >/dev/null
+          python model/neural-vnext/scripts/evaluate_fresh_gate.py --help >/dev/null
       - name: Run Neural vNext tests
         env:
-          PYTHONPATH: model/neural-vnext:model/neural-r2.3:model/neural-r2.1
+          PYTHONPATH: .:model/neural-vnext:model/neural-r2.3:model/neural-r2.1
         run: python -m pytest -q model/neural-vnext/tests
       - name: Verify frozen parent Neural R2.3 authority
         run: python model/neural-r2.3/scripts/verify_neural_r23.py
