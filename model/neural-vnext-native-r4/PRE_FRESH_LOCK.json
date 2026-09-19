@@ -1,0 +1,201 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R4-LatentGoalBelief",
+  "freeze_governance_head": "797679d49e399d6b9e26807c2877a51b204ba04b",
+  "candidate_training_source_head": "d18f7fbb71d860e81c33a6c22c2751765fb45f3f",
+  "claim_boundary": "This lock freezes exact R4 artifact authority before fresh. R4 reproduced exact dev behavior across two workflows but not bitwise checkpoint/state bytes, so no bitwise source-training reproducibility claim is permitted.",
+  "frozen_candidate": {
+    "selected_candidate": "latent_goal_guarded",
+    "parameters": 877542,
+    "successor_parameters": 169552,
+    "checkpoint_filename": "r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "predev_lock_sha256": "0ca9c146641315f9fc5bf343e7a76532c5240f22757d8b98d0809c8d809b279d",
+    "parent_checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "parent_state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "selected_rank": [
+      25,
+      117,
+      -1658,
+      "latent_goal_guarded"
+    ],
+    "selected_eligibility": {
+      "eligible": true,
+      "visible_target_families_exact": true,
+      "implicit_goal_delta_vs_parent": 3,
+      "total_solved_delta_vs_parent": 3,
+      "family_solved_delta_vs_parent": {
+        "causal_prerequisites": 0,
+        "conditional_regimes": 0,
+        "implicit_goal_regimes": 3,
+        "regime_switch": 0
+      }
+    },
+    "parent_development": {
+      "split": "dev",
+      "indices": [
+        160,
+        191
+      ],
+      "episodes": 128,
+      "solved": 114,
+      "solve_rate": 0.890625,
+      "steps": 1711,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 466
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 288
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 22,
+          "steps": 443
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 28,
+          "steps": 514
+        }
+      }
+    },
+    "development": {
+      "split": "dev",
+      "indices": [
+        160,
+        191
+      ],
+      "episodes": 128,
+      "solved": 117,
+      "solve_rate": 0.9140625,
+      "steps": 1658,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 466
+        },
+        "conditional_regimes": {
+          "episodes": 32,
+          "solved": 32,
+          "steps": 288
+        },
+        "implicit_goal_regimes": {
+          "episodes": 32,
+          "solved": 25,
+          "steps": 390
+        },
+        "regime_switch": {
+          "episodes": 32,
+          "solved": 28,
+          "steps": 514
+        }
+      }
+    },
+    "fresh_opened": false
+  },
+  "candidate_authority": {
+    "mode": "frozen_workflow_artifact",
+    "status": "VERIFIED",
+    "workflow_run_id": 35451337745,
+    "job_id": 105918906059,
+    "source_head": "d18f7fbb71d860e81c33a6c22c2751765fb45f3f",
+    "artifact_id": 10586044507,
+    "artifact_name": "neural-vnext-native-r4-dev",
+    "artifact_digest": "sha256:c255d0b238e11ce6b7d4015ee121bee30e101798ddd6a935113108776111851e",
+    "artifact_size_bytes": 3258572,
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "manifest_sha256": "899bf7eae191064527891bf3d2ca68d289e3672540777f68fa05723e083ad9c1",
+    "dev_result_sha256": "c4a3a197b38fb82fdbde4d7a21b7cc317eb10020c6f7635308b4f0769ca0d8d1",
+    "selected_candidate": "latent_goal_guarded",
+    "fresh_opened": false,
+    "selection_rule": "first completed successful dev run at locked source head"
+  },
+  "source_training_reproducibility": {
+    "status": "NON_BITWISE_REPRODUCIBLE_DISCLOSED",
+    "cross_run_bitwise_reproducible": false,
+    "behavioral_dev_metrics_reproduced": true,
+    "canonical_selection_rule": "first completed successful dev run at locked source head",
+    "canonical_workflow_run_id": 35451337745,
+    "attempts": [
+      {
+        "workflow_run_id": 35451337745,
+        "job_id": 105918906059,
+        "artifact_id": 10586044507,
+        "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+        "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+        "selected_candidate": "latent_goal_guarded",
+        "candidate_dev_solved": 117
+      },
+      {
+        "workflow_run_id": 35451322719,
+        "job_id": 105918868237,
+        "artifact_id": 10587201366,
+        "checkpoint_sha256": "f9ea6d7a2953a12fca69390f6593b2932bfe921e6c3e6f66e6d847c8f9b8be16",
+        "state_dict_sha256": "f20de064f01472ce1f9ce59ecfb76ba94fc8e8fadffd3c9f406f63ca34a37f85",
+        "selected_candidate": "latent_goal_guarded",
+        "candidate_dev_solved": 117
+      }
+    ],
+    "negative_result_evidence": "evidence/DEV_REPRO_NEGATIVE_001.json"
+  },
+  "frozen_source_git_blobs": {
+    "model/neural-vnext-native-r4/PREDEV_LOCK.json": "52db4923da88db01f63efe06498afc391083603c",
+    "model/neural-vnext-native-r4/FRESH_GATE_PREREGISTRATION.json": "f4c092362fbc2ad8ffa538458525dd7589a723b8",
+    "model/neural-vnext-native-r4/latent_goal_core.py": "7577f0188f51e0e69d9dc97eeb334c942660ce8c",
+    "model/neural-vnext-native-r4/latent_goal_training.py": "6dd2c2c5c05603a320a87b9ce56a92beadff24cd",
+    "model/neural-vnext-native-r4/scripts/train_r4_dev.py": "cfce390ed59f5b92bd9e282f615e5cb4a2c694cf",
+    "model/neural-vnext-native-r4/scripts/evaluate_fresh.py": "9c3ed0125a1528cf7544c8fef884113554442e89",
+    "model/neural-vnext-native-r4/tests/test_r4.py": "c6318f6dd6ecb1543aafa976b20aaa638211b9d3",
+    "model/neural-vnext-native-r4/tests/test_fresh_gate.py": "c1fb532636fb72fac33761fd540f5f3d26cce608",
+    "model/neural-vnext-native-r4/evidence/DEV_REPRO_NEGATIVE_001.json": "b37d929f3004dd2fa444de726a71a9e3f1d334ea",
+    ".github/workflows/neural-vnext-native-r4-dev.yml": "1bc0b1b2283d1ba783f91e122809f9f18f9dc600",
+    "model/neural-vnext-native-r3/attributed_core.py": "5c758feaf3725dd54956f5bf256fdbfcaa0f5ba9",
+    "model/neural-vnext-native-r3/attributed_training.py": "bb21f5329ff6558079445a225b086ccee95fc90e",
+    "model/neural-vnext-native-r2/successor_core.py": "a4b3eb55cd376d1e62ea4b01b7c97359fb0c7d46",
+    "model/neural-vnext-native/native_core.py": "7f460eced3d270747b6493bae0e4f9e0a55df49f",
+    "model/r1.8/cogcoder/r18_benchmark.py": "0acb4d9c912e0b316b3b3a7ab2a5f1ee53b054d0"
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "index_start": 120,
+    "index_end": 159,
+    "episodes_expected": 160,
+    "opened": false,
+    "identity_rule": "exact Cartesian product of the four locked families and integer indices 120..159; frozen R3 parent and R4 candidate use identical identities"
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false,
+    "failure_path": "record negative result, create a new candidate, reserve a new untouched fresh block, and never retune against fresh:120..159"
+  }
+}
