@@ -62,6 +62,31 @@ def load_fresh_lock(path: Path) -> dict[str, Any]:
         raise ValueError("R2 PRE_FRESH_LOCK is missing frozen_candidate")
     if frozen.get("fresh_opened") is not False:
         raise ValueError("frozen candidate must attest fresh_opened=false")
+
+    reproducibility = payload.get("reproducibility_gate")
+    if not isinstance(reproducibility, dict):
+        raise ValueError("R2 PRE_FRESH_LOCK is missing reproducibility_gate")
+    if reproducibility.get("status") != "PASSED":
+        raise ValueError("R2 fresh court requires reproducibility_gate PASSED")
+    attempts = reproducibility.get("independent_attempts")
+    if not isinstance(attempts, list) or len(attempts) < 2:
+        raise ValueError("R2 fresh court requires at least two reproducibility attempts")
+    run_ids = []
+    for attempt in attempts:
+        if not isinstance(attempt, dict):
+            raise ValueError("R2 reproducibility attempt must be a mapping")
+        run_ids.append(_exact_int(attempt.get("workflow_run_id"), field="workflow_run_id"))
+    if len(run_ids) != len(set(run_ids)):
+        raise ValueError("R2 reproducibility attempts must use distinct workflow runs")
+    for field in (
+        "checkpoint_sha256_equal",
+        "state_dict_sha256_equal",
+        "development_metrics_equal",
+        "selected_candidate_equal",
+        "fresh_unopened_equal",
+    ):
+        if reproducibility.get(field) is not True:
+            raise ValueError(f"R2 reproducibility gate requires {field}=true")
     return payload
 
 
