@@ -1,0 +1,79 @@
+name: Neural vNext Native R3 Archive Accepted Checkpoint
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r3-attributed-belief
+    paths:
+      - '.github/workflows/neural-vnext-native-r3-archive.yml'
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  archive-accepted-checkpoint:
+    if: ${{ github.event.before == 'ce6eaf4d5d25c19d6d6d45cac5ab295540dadac0' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      EXPECTED_ARMING_PARENT_HEAD: 'ce6eaf4d5d25c19d6d6d45cac5ab295540dadac0'
+      PHASE1_RUN_ID: '35447526183'
+      CHECKPOINT_SHA256: '8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da'
+      MANIFEST_SHA256: '388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d'
+      DEV_SHA256: '85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Refuse replayed archive authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$GITHUB_REF_NAME" = "codex/neural-native-r3-attributed-belief"
+
+      - name: Download exact frozen accepted R3 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r3-dev
+          path: frozen-r3-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35447526183
+
+      - name: Verify and materialize accepted checkpoint
+        run: |
+          test "$(sha256sum frozen-r3-artifact/r3.pt | awk '{print $1}')" = "$CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r3-artifact/r3.manifest.json | awk '{print $1}')" = "$MANIFEST_SHA256"
+          test "$(sha256sum frozen-r3-artifact/r3.dev.json | awk '{print $1}')" = "$DEV_SHA256"
+          mkdir -p model/neural-vnext-native-r3/accepted
+          cp frozen-r3-artifact/r3.pt model/neural-vnext-native-r3/accepted/r3.pt
+          cp frozen-r3-artifact/r3.manifest.json model/neural-vnext-native-r3/accepted/r3.manifest.json
+          cp frozen-r3-artifact/r3.dev.json model/neural-vnext-native-r3/accepted/r3.dev.json
+          cat > model/neural-vnext-native-r3/accepted/ARCHIVE_AUTHORITY.json <<'JSON'
+          {
+            "schema_version": 1,
+            "status": "ARCHIVED_ACCEPTED_CHECKPOINT",
+            "source_workflow_run_id": 35447526183,
+            "source_artifact_id": 10586461067,
+            "source_artifact_digest": "sha256:5d477a1d7b4c12757c0b0ff5644ec940f45fc902fd489632f5ce1a7682bffef5",
+            "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+            "manifest_sha256": "388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d",
+            "dev_result_sha256": "85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf",
+            "fresh_acceptance_workflow_run_id": 35449613862,
+            "claim": "Repository-archived immutable materialization of the R3 candidate accepted by the one-shot fresh:80..119 court."
+          }
+          JSON
+
+      - name: Commit immutable accepted materialization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f \
+            model/neural-vnext-native-r3/accepted/r3.pt \
+            model/neural-vnext-native-r3/accepted/r3.manifest.json \
+            model/neural-vnext-native-r3/accepted/r3.dev.json \
+            model/neural-vnext-native-r3/accepted/ARCHIVE_AUTHORITY.json
+          git diff --cached --quiet && { echo "accepted R3 archive already present"; exit 1; }
+          git commit -m "model(neural-r3): archive accepted frozen checkpoint"
+          git push origin "HEAD:$GITHUB_REF_NAME"
