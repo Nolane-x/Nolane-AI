@@ -16,6 +16,37 @@ R18_FAMILIES = (
     "causal_prerequisites",
 )
 ACTION_MEMORY_DIM = 10
+PUBLIC_SCALAR_DIM = 15
+
+
+def public_scalar_features(observation: dict[str, object]) -> tuple[float, ...]:
+    state = _state3(observation)
+    raw_target = observation.get("target")
+    target_visible = isinstance(raw_target, list) and len(raw_target) == 3
+    if target_visible:
+        target = (float(raw_target[0]), float(raw_target[1]), float(raw_target[2]))
+        delta = tuple(max(-1.0, min(1.0, (target[i] - state[i]) / 4.0)) for i in range(3))
+    else:
+        target = (0.0, 0.0, 0.0)
+        delta = (0.0, 0.0, 0.0)
+    progress = float(observation.get("progress_signal", 0.0))
+    budget = float(observation.get("budget_remaining", 0.0)) / 32.0
+    step = float(observation.get("step", 0.0)) / 32.0
+    charge, gate = _resource_pair(observation)
+    values = (
+        *(value / 4.0 for value in state),
+        *(value / 4.0 for value in target),
+        float(target_visible),
+        *delta,
+        progress,
+        max(0.0, min(1.0, budget)),
+        max(0.0, min(1.0, step)),
+        max(0.0, min(1.0, charge / 3.0)),
+        max(0.0, min(1.0, gate)),
+    )
+    if len(values) != PUBLIC_SCALAR_DIM:
+        raise AssertionError("public scalar feature width drifted")
+    return tuple(float(value) for value in values)
 
 
 def _context_key(observation: dict[str, object]) -> str:
@@ -119,6 +150,7 @@ class PublicTeacherStep:
     observation_text: str
     action_descriptions: tuple[str, ...]
     action_memory: tuple[tuple[float, ...], ...]
+    public_scalars: tuple[float, ...]
     previous_action: int
     previous_feedback: tuple[float, float, float]
     target_action: int
@@ -241,6 +273,7 @@ def collect_public_teacher_episode(
                 observation_text=task.render_observation(),
                 action_descriptions=descriptions,
                 action_memory=memory_features,
+                public_scalars=public_scalar_features(observation),
                 previous_action=previous_action,
                 previous_feedback=previous_feedback,
                 target_action=target,
@@ -286,9 +319,14 @@ def tensorize_public_step(
     action_bytes: int,
     max_actions: int,
     action_memory_dim: int,
+    public_scalar_dim: int,
 ) -> dict[str, Tensor]:
     if action_memory_dim != ACTION_MEMORY_DIM:
         raise ValueError("unsupported public action-memory dimension")
+    if public_scalar_dim != PUBLIC_SCALAR_DIM:
+        raise ValueError("unsupported public scalar dimension")
+    if len(row.public_scalars) != public_scalar_dim:
+        raise ValueError("public scalar row has invalid width")
     action_tokens, action_mask = encode_public_actions(
         row.action_descriptions,
         max_actions=max_actions,
@@ -309,6 +347,7 @@ def tensorize_public_step(
         "action_tokens": action_tokens.unsqueeze(0),
         "action_mask": action_mask.unsqueeze(0),
         "action_memory": action_memory.unsqueeze(0),
+        "public_scalars": torch.tensor([row.public_scalars], dtype=torch.float32),
         "previous_action": torch.tensor([row.previous_action], dtype=torch.long),
         "previous_feedback": torch.tensor(
             [row.previous_feedback],
