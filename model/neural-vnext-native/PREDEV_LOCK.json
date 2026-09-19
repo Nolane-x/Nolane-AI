@@ -24,7 +24,7 @@
   },
   "architecture": {
     "public_global_features": 23,
-    "public_action_features": 17,
+    "public_action_features": 18,
     "hidden_dim": 128,
     "attention_heads": 4,
     "recurrent": "GRUCell over public observation plus public action-memory tokens",
