@@ -58,3 +58,16 @@ This native line is not automatically a successor to R2.3. Historical R2.3 and a
 ## Development provenance
 
 The first development-only run is retained at `evidence/DEV_HISTORY_001.json`. It reached 50/128 dev episodes (39.0625%) but is explicitly non-promotable because the model initialization seed had not yet been bound before construction. Fresh remained unopened. The deterministic curriculum tournament supersedes that run for candidate selection.
+
+
+## Hidden-goal v2 development line
+
+After dev-only trials exposed hidden-goal inference as the remaining bottleneck, the current development line keeps the strong parity-conditioned public transition memory and changes only the hidden-target path:
+
+- visible-target episodes hard-bypass the goal transform and retain the legacy parity policy path;
+- hidden-target episodes keep the full 3x5 categorical neural goal belief instead of compressing it to scalar coordinate expectations;
+- exact hidden-goal labels are train-only and begin only after every non-submit action has public transition evidence in the current context;
+- `implicit_goal_regimes` uses unique train indices `0..511`; the other three families remain at `0..127`;
+- dev remains `0..31` and fresh remains unopened.
+
+The prior dev trials are retained in `evidence/DEV_HISTORY_001.json` through `DEV_HISTORY_005.json`. They are tuning evidence only and have no promotion authority.
