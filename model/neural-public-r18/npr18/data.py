@@ -240,6 +240,105 @@ def _shortest_oracle_target_set(task, *, oracle_plan) -> tuple[int, ...]:
     return tuple(targets or (int(best[0]),))
 
 
+def _teacher_targets_for_state(
+    task,
+    *,
+    action_memory: PublicActionMemory,
+    post_gate_explored: set[int],
+    oracle_plan,
+) -> tuple[int, tuple[int, ...]]:
+    plan = oracle_plan(copy.deepcopy(task))
+    if not plan:
+        raise RuntimeError("teacher oracle returned an empty plan")
+    observation = task.observe()
+    descriptions = tuple(str(value) for value in task.action_descriptions)
+    proposals = _public_exploration_actions(
+        task,
+        action_memory=action_memory,
+        post_gate_explored=post_gate_explored,
+    )
+    oracle_targets = _shortest_oracle_target_set(task, oracle_plan=oracle_plan)
+    target_actions = oracle_targets
+    target = int(oracle_targets[0])
+    if proposals and task.budget_remaining > len(plan) + 1:
+        safe_proposals: list[int] = []
+        for proposal in proposals:
+            branch = copy.deepcopy(task)
+            result = branch.step(int(proposal))
+            if result.done:
+                if result.solved:
+                    safe_proposals.append(int(proposal))
+                continue
+            try:
+                oracle_plan(copy.deepcopy(branch))
+            except RuntimeError:
+                continue
+            safe_proposals.append(int(proposal))
+        if safe_proposals:
+            target_actions = tuple(sorted(set(safe_proposals)))
+            target = min(
+                target_actions,
+                key=lambda index: descriptions[index],
+            )
+    return target, tuple(target_actions)
+
+
+def _record_step(
+    task,
+    *,
+    action_memory: PublicActionMemory,
+    previous_action: int,
+    previous_feedback: tuple[float, float, float],
+    target_action: int,
+    target_actions: tuple[int, ...],
+) -> PublicTeacherStep:
+    observation = task.observe()
+    descriptions = tuple(str(value) for value in task.action_descriptions)
+    return PublicTeacherStep(
+        observation_text=task.render_observation(),
+        action_descriptions=descriptions,
+        action_memory=action_memory.features(
+            observation,
+            action_count=len(descriptions),
+        ),
+        public_scalars=public_scalar_features(observation),
+        previous_action=previous_action,
+        previous_feedback=previous_feedback,
+        target_action=int(target_action),
+        target_actions=tuple(int(value) for value in target_actions),
+    )
+
+
+def _update_public_rollout_state(
+    action_memory: PublicActionMemory,
+    *,
+    action: int,
+    before: dict[str, object],
+    result,
+    post_gate_explored: set[int],
+) -> tuple[float, float, float]:
+    action_memory.update(
+        action=action,
+        before=before,
+        after=result.observation,
+        progress_delta=float(result.progress_delta),
+        information_gain=float(result.information_gain),
+        failed=bool(result.failed),
+    )
+    resources = (
+        result.observation.get("resources")
+        if isinstance(result.observation, dict)
+        else None
+    )
+    if isinstance(resources, dict) and int(resources.get("gate_open", 0)):
+        post_gate_explored.add(action)
+    return (
+        float(result.progress_delta),
+        float(result.information_gain),
+        float(result.failed),
+    )
+
+
 def collect_public_teacher_episode(
     task,
     *,
@@ -260,79 +359,32 @@ def collect_public_teacher_episode(
     )
 
     while not task.done and len(rows) < limit:
-        plan = oracle_plan(copy.deepcopy(task))
-        if not plan:
-            break
-        observation = task.observe()
-        descriptions = tuple(str(value) for value in task.action_descriptions)
-        proposals = _public_exploration_actions(
+        target, target_actions = _teacher_targets_for_state(
             task,
             action_memory=action_memory,
             post_gate_explored=post_gate_explored,
-        )
-        oracle_targets = _shortest_oracle_target_set(task, oracle_plan=oracle_plan)
-        target_actions = oracle_targets
-        target = int(oracle_targets[0])
-        if proposals and task.budget_remaining > len(plan) + 1:
-            safe_proposals: list[int] = []
-            for proposal in proposals:
-                branch = copy.deepcopy(task)
-                result = branch.step(int(proposal))
-                if result.done:
-                    if result.solved:
-                        safe_proposals.append(int(proposal))
-                    continue
-                try:
-                    oracle_plan(copy.deepcopy(branch))
-                except RuntimeError:
-                    continue
-                safe_proposals.append(int(proposal))
-            if safe_proposals:
-                target_actions = tuple(sorted(set(safe_proposals)))
-                target = min(
-                    target_actions,
-                    key=lambda index: descriptions[index],
-                )
-
-        memory_features = action_memory.features(
-            observation,
-            action_count=len(descriptions),
+            oracle_plan=oracle_plan,
         )
         rows.append(
-            PublicTeacherStep(
-                observation_text=task.render_observation(),
-                action_descriptions=descriptions,
-                action_memory=memory_features,
-                public_scalars=public_scalar_features(observation),
+            _record_step(
+                task,
+                action_memory=action_memory,
                 previous_action=previous_action,
                 previous_feedback=previous_feedback,
                 target_action=target,
-                target_actions=tuple(target_actions),
+                target_actions=target_actions,
             )
         )
-
+        before = task.observe()
         result = task.step(target)
-        action_memory.update(
+        previous_feedback = _update_public_rollout_state(
+            action_memory,
             action=target,
-            before=observation,
-            after=result.observation,
-            progress_delta=float(result.progress_delta),
-            information_gain=float(result.information_gain),
-            failed=bool(result.failed),
+            before=before,
+            result=result,
+            post_gate_explored=post_gate_explored,
         )
-        resources = (
-            result.observation.get("resources")
-            if isinstance(result.observation, dict)
-            else None
-        )
-        if isinstance(resources, dict) and int(resources.get("gate_open", 0)):
-            post_gate_explored.add(target)
         previous_action = target
-        previous_feedback = (
-            float(result.progress_delta),
-            float(result.information_gain),
-            float(result.failed),
-        )
 
     return PublicTeacherEpisode(
         task_id=task.task_id,
@@ -341,6 +393,117 @@ def collect_public_teacher_episode(
         steps=tuple(rows),
         solved=bool(task.solved),
     )
+
+
+def collect_public_dagger_episode(
+    model,
+    task,
+    *,
+    oracle_plan,
+    max_steps: int | None = None,
+) -> PublicTeacherEpisode:
+    """Collect labels on states reached by the current neural policy.
+
+    Oracle access is label-side only. Environment transitions are chosen by the
+    neural policy itself, so the resulting corpus exposes recovery states that
+    teacher-forced imitation never visits.
+    """
+    if task.split != "train":
+        raise ValueError("public DAgger collection is train-split only")
+    action_memory = PublicActionMemory(max_actions=model.max_actions)
+    post_gate_explored: set[int] = set()
+    previous_action = -1
+    previous_feedback = (0.0, 0.0, 0.0)
+    rows: list[PublicTeacherStep] = []
+    memory = model.initial_memory(1)
+    limit = (
+        task.budget_remaining
+        if max_steps is None
+        else min(task.budget_remaining, int(max_steps))
+    )
+    model.eval()
+
+    with torch.no_grad():
+        while not task.done and len(rows) < limit:
+            try:
+                target, target_actions = _teacher_targets_for_state(
+                    task,
+                    action_memory=action_memory,
+                    post_gate_explored=post_gate_explored,
+                    oracle_plan=oracle_plan,
+                )
+            except RuntimeError:
+                break
+            row = _record_step(
+                task,
+                action_memory=action_memory,
+                previous_action=previous_action,
+                previous_feedback=previous_feedback,
+                target_action=target,
+                target_actions=target_actions,
+            )
+            rows.append(row)
+            batch = tensorize_public_step(
+                row,
+                observation_bytes=model.observation_bytes,
+                action_bytes=model.action_bytes,
+                max_actions=model.max_actions,
+                action_memory_dim=model.action_memory_dim,
+                public_scalar_dim=model.public_scalar_dim,
+            )
+            output = model(
+                observation_tokens=batch["observation_tokens"],
+                action_tokens=batch["action_tokens"],
+                action_mask=batch["action_mask"],
+                action_memory=batch["action_memory"],
+                public_scalars=batch["public_scalars"],
+                memory=memory,
+                previous_action=batch["previous_action"],
+                previous_feedback=batch["previous_feedback"],
+            )
+            memory = output["next_memory"]
+            action = int(output["action_logits"].argmax(dim=-1).item())
+            before = task.observe()
+            result = task.step(action)
+            previous_feedback = _update_public_rollout_state(
+                action_memory,
+                action=action,
+                before=before,
+                result=result,
+                post_gate_explored=post_gate_explored,
+            )
+            previous_action = action
+
+    return PublicTeacherEpisode(
+        task_id=task.task_id,
+        family=task.family,
+        index=int(task.index),
+        steps=tuple(rows),
+        solved=bool(task.solved),
+    )
+
+
+def collect_public_dagger_corpus(
+    model,
+    *,
+    make_task,
+    oracle_plan,
+    start_index: int,
+    count_per_family: int,
+) -> list[PublicTeacherEpisode]:
+    if type(start_index) is not int or start_index < 0:
+        raise ValueError("start_index must be a non-negative exact integer")
+    if type(count_per_family) is not int or count_per_family < 1:
+        raise ValueError("count_per_family must be a positive exact integer")
+    return [
+        collect_public_dagger_episode(
+            model,
+            make_task(family, "train", index),
+            oracle_plan=oracle_plan,
+        )
+        for family in R18_FAMILIES
+        for index in range(start_index, start_index + count_per_family)
+    ]
 
 
 def tensorize_public_step(
