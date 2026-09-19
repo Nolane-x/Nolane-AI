@@ -1,7 +1,11 @@
 name: Neural vNext Native R3 Fresh Court
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/neural-native-r3-attributed-belief
+    paths:
+      - '.github/workflows/neural-vnext-native-r3-fresh.yml'
 
 permissions:
   contents: read
@@ -13,6 +17,7 @@ concurrency:
 
 jobs:
   fresh-court:
+    if: ${{ github.event.before == '0150864d745b5624fa01785a59c1174506476526' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
@@ -26,8 +31,9 @@ jobs:
       MKL_CBWR: 'COMPATIBLE'
       KMP_DETERMINISTIC_REDUCTION: 'TRUE'
       ATEN_CPU_CAPABILITY: 'default'
-      EXPECTED_PRE_FRESH_LOCK_BLOB: '__PRE_FRESH_LOCK_BLOB__'
-      EXPECTED_FRESH_EVALUATOR_BLOB: '__FRESH_EVALUATOR_BLOB__'
+      EXPECTED_ARMING_PARENT_HEAD: '0150864d745b5624fa01785a59c1174506476526'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: '36dfe29e8b82327a7eb23e23dc24be3d02fb5c33'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '981484f0f7a54d036df9bde5b6a7607ec9f9d644'
       PHASE1_CHECKPOINT_SHA256: '8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da'
       PHASE1_MANIFEST_SHA256: '388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d'
       PHASE1_DEV_SHA256: '85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf'
@@ -36,8 +42,9 @@ jobs:
         with:
           lfs: true
 
-      - name: Refuse unbound fresh authority
+      - name: Refuse unbound or replayed fresh authority
         run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
           test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
           test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
           test "$(git hash-object model/neural-vnext-native-r3/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
