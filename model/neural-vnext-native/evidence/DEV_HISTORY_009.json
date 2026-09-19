@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REPRODUCIBILITY_PASSED_FRESH_UNOPENED",
+  "trial": "native-dev-009-cross-hardware-reproducibility",
+  "source_head": "24452b366eb6ba57ddcda9cdc670eba514cc1d0c",
+  "workflow_run_id": 35427444674,
+  "attempts": [
+    {
+      "attempt": 1,
+      "job_id": 105855730054,
+      "artifact_id": 10579662905,
+      "artifact_zip_digest": "sha256:0184f0225b62e1eeb11502b2799ac6f4fe7930bd856d7451196c8338346ab316"
+    },
+    {
+      "attempt": 2,
+      "job_id": 105858145291,
+      "artifact_id": 10580096516,
+      "artifact_zip_digest": "sha256:f28657e702d60cd55748a3fd882fdc6a09a9a4996d5184e6347eef881811a556"
+    }
+  ],
+  "runtime": {
+    "pytorch": "2.9.0+cpu",
+    "deterministic_algorithms": true,
+    "mkldnn_enabled": false,
+    "threads": 1,
+    "interop_threads": 1,
+    "ATEN_CPU_CAPABILITY": "default",
+    "MKL_CBWR": "COMPATIBLE",
+    "adamw_foreach": false,
+    "adamw_fused": false,
+    "clip_grad_norm_foreach": false
+  },
+  "candidate": {
+    "selected_candidate": "hidden_strong_goal",
+    "parameters": 334099,
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "predev_lock_sha256": "d6212f9e4acfd7b5f7a887168a4f43c041e616c0f13587ec694979d5f6bd2ca0"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 104,
+    "solve_rate": 0.8125,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 26, "steps": 531},
+      "conditional_regimes": {"episodes": 32, "solved": 30, "steps": 330},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 24, "steps": 410},
+      "regime_switch": {"episodes": 32, "solved": 24, "steps": 518}
+    }
+  },
+  "reproduction": {
+    "checkpoint_sha256_equal": true,
+    "state_dict_sha256_equal": true,
+    "selected_candidate_equal": true,
+    "development_metrics_equal": true
+  },
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Reproducibility gate passed. Candidate is eligible for a separate PRE_FRESH_LOCK and one untouched 160-episode fresh court. No further training or dev selection is permitted for this frozen candidate."
+}

@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-004-goal-belief-v1",
+  "git_head": "58a8aca7b44d793f5b6f972c865befd782a62065",
+  "workflow_run_id": 35422269233,
+  "artifact": {
+    "id": 10576959830,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:023e6104e840d2338ecf2c2408f1d31946547bf6d20adb408a6e3c225b60e439",
+    "size_bytes": 1113702
+  },
+  "selected_candidate": "broad_dagger",
+  "selected_rank": [87, 1, -2384],
+  "candidate": {
+    "parameters": 299282,
+    "checkpoint_sha256": "d942a3186b7801908b895741589612cef71ea22be4a6ca8e8ff90f44837632ce",
+    "state_dict_sha256": "441edbd1c68dd0922082fdc46e7d37310b5a1371561a7efc9794e729b7973f24"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 87,
+    "solve_rate": 0.6796875,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 29, "steps": 501},
+      "conditional_regimes": {"episodes": 32, "solved": 31, "steps": 372},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 1, "steps": 978},
+      "regime_switch": {"episodes": 32, "solved": 26, "steps": 533}
+    }
+  },
+  "diagnosis": "The auxiliary goal head reached high train coordinate accuracy while implicit-goal dev collapsed. The objective was dominated by families where the target is already public, allowing shortcut learning that did not transfer to hidden-goal inference.",
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Reject this candidate. Restrict auxiliary goal supervision and goal-policy influence to hidden-target episodes only."
+}

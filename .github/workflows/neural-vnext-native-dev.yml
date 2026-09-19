@@ -1,0 +1,71 @@
+name: Neural vNext Native Dev
+
+on:
+  push:
+    paths:
+      - 'model/neural-vnext-native/**'
+      - '.github/workflows/neural-vnext-native-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native/**'
+      - '.github/workflows/neural-vnext-native-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+      - name: Compile native neural line
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native/*.py \
+            model/neural-vnext-native/scripts/*.py \
+            model/neural-vnext-native/tests/*.py
+      - name: Run native neural contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: python -m pytest -q model/neural-vnext-native/tests
+      - name: Train on train split and evaluate dev only
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p native-output
+          python model/neural-vnext-native/scripts/train_native_dev.py \
+            --checkpoint native-output/native-vnext.pt \
+            --manifest native-output/native-vnext.manifest.json \
+            --dev-result native-output/native-vnext.dev.json
+          cat native-output/native-vnext.manifest.json
+      - name: Upload dev-only candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-dev
+          path: native-output/
+          if-no-files-found: error

@@ -21,23 +21,44 @@ Recent commits labeled Neural R2.54 through R2.61 primarily hardened Evaluation,
 
 The exact-integer restore closure following R2.61 is intentionally named as runtime hardening and receives no Neural R-number.
 
-## Current capability baseline
+## Current neural capability authority
 
-- Frozen neural capability asset: `model/neural-r2.3`.
-- Physical parameter count of the accepted R2.3 neural asset: 79,858,099.
-- R2.4 provides the current shared cognition / confidence / evidence contract around that asset; contract hardening is not automatically a new neural checkpoint.
-- Future Neural Core work starts from this measured capability baseline and must publish neural-only evidence separately from hybrid-runtime evidence.
+Two authorities are intentionally distinguished rather than conflated:
+
+1. **Historical accepted baseline — R2.3**
+   - path: `model/neural-r2.3`
+   - physical parameter count: **79,858,099**
+   - retained historical hashes/evidence remain valid provenance;
+   - the original one-weight binary and 11,539-state expert/DAgger cache are not present in repository authority, so this lineage is not the source-reproducible training authority.
+
+2. **Current source-reproducible accepted line — Neural vNext Native**
+   - path: `model/neural-vnext-native`
+   - authority: `model/neural-vnext-native/ACCEPTED_AUTHORITY.json`
+   - physical parameter count: **334,099**
+   - checkpoint SHA-256: `7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b`
+   - state-dict SHA-256: `ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098`
+   - dev: **104/128**
+   - untouched preregistered fresh court: **133/160 = 83.125%**
+   - family fresh solves: conditional 36/40, regime-switch 31/40, implicit-goal 30/40, causal-prerequisites 36/40;
+   - bitwise checkpoint/state reproduction passed before fresh opening;
+   - post-fresh tuning for this candidate is forbidden.
+
+R2.3 and Neural vNext Native used different fresh blocks/training programs. Their raw scores must not be treated as an apples-to-apples ranking. R2.3 remains historical accepted evidence; Neural vNext Native is the current accepted source-reproducible neural capability line.
+
+R2.4 continues to provide shared cognition/confidence/evidence contracts around historical assets; contract hardening is not automatically a neural checkpoint upgrade.
 
 ## Required evaluation ladder
 
-Every future neural capability candidate must distinguish at least:
+Every future neural capability successor must distinguish at least:
 
 1. frozen parent neural-only;
 2. candidate neural-only;
 3. candidate neural + minimal generic tools;
 4. candidate neural + full permitted External Core.
 
-The Neural Core claim is authorized only by (1) versus (2). Hybrid gains from (3) or (4) are system-level evidence and may not be relabeled as neural gains.
+The Neural Core claim is authorized only by neural-only evidence. Hybrid gains from tool/runtime layers are system-level evidence and may not be relabeled as neural gains.
+
+For a successor to Neural vNext Native, the candidate must be frozen before a new untouched fresh block is opened. Fresh indices already consumed by the accepted Native court (`fresh:0..39`) may not be reused as a promotion court.
 
 ## Anti-scope-drift rule
 

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-002-deterministic-tournament",
+  "git_head": "1c6a06eb4b58ef628a4b1b6aa7a955b54fe4269b",
+  "workflow_run_id": 35421660738,
+  "artifact": {
+    "id": 10577728956,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:8575fd97019bf1535ff7779fd9f55e0aca315b19fc8660e2d849349485440b59",
+    "size_bytes": 1096584
+  },
+  "selected_candidate": "broad_dagger",
+  "selected_rank": [55, 4, -2811],
+  "candidate": {
+    "parameters": 295043,
+    "checkpoint_sha256": "13cc1060af3d01c65359b237b4695e9ffb743a225dfa90c5ce418412af9353a9",
+    "state_dict_sha256": "418f72f0e6c5abcc377e13314349d58ef63a8a37d11b34c3384bf7c6555621dc"
+  },
+  "development_candidates": {
+    "expert4": {
+      "solved": 33,
+      "worst_family_solved": 1,
+      "steps": 2854,
+      "families": {
+        "causal_prerequisites": 1,
+        "conditional_regimes": 16,
+        "implicit_goal_regimes": 10,
+        "regime_switch": 6
+      }
+    },
+    "guarded_dagger": {
+      "solved": 45,
+      "worst_family_solved": 7,
+      "steps": 3082,
+      "families": {
+        "causal_prerequisites": 14,
+        "conditional_regimes": 11,
+        "implicit_goal_regimes": 13,
+        "regime_switch": 7
+      }
+    },
+    "broad_dagger": {
+      "solved": 55,
+      "worst_family_solved": 4,
+      "steps": 2811,
+      "families": {
+        "causal_prerequisites": 25,
+        "conditional_regimes": 16,
+        "implicit_goal_regimes": 4,
+        "regime_switch": 10
+      }
+    }
+  },
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Do not freeze. Development exposed a parity-conditioned-effect bottleneck and an implicit-goal family collapse in the aggregate winner."
+}

@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-007-frozen-base-hidden-specialist",
+  "git_head": "d85a8ef9b68d1635c9a2d7fa0dbab10f87cc1b4b",
+  "workflow_run_id": 35424594993,
+  "candidate": {
+    "parameters": 334099,
+    "checkpoint_sha256": "d2b4e61ff07f1e228f6c651612b4264f918a07ed32bae24bdb1c70fcea467f6b",
+    "state_dict_sha256": "19fc91a8b5fc44e2aeb6ea34a46454d26e13b00f92ae640d7818c66f6a7ecd55"
+  },
+  "selected_candidate": "hidden_broad",
+  "selected_rank": [110, 18, -1843],
+  "development": {
+    "episodes": 128,
+    "solved": 110,
+    "solve_rate": 0.859375,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 32, "steps": 463},
+      "conditional_regimes": {"episodes": 32, "solved": 32, "steps": 297},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 18, "steps": 591},
+      "regime_switch": {"episodes": 32, "solved": 28, "steps": 492}
+    }
+  },
+  "base": {
+    "parameters": 296707,
+    "dev_solved": 99,
+    "implicit_goal_solved": 7
+  },
+  "specialist": {
+    "trainable_parameters": 37392,
+    "base_frozen_parameters": 296707,
+    "visible_family_metrics_preserved_exactly": true,
+    "implicit_goal_gain_over_base": 11
+  },
+  "contracts": {"count": 9, "passed": 9},
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Do not freeze yet. Hidden specialist is effective and isolated, but implicit-goal remains 18/32. Continue dev-only specialist scaling and objective ablation with the shared base frozen."
+}

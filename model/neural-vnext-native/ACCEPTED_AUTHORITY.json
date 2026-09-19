@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTED",
+  "authority": "Neural-vNext-Native-Recurrent",
+  "accepted_candidate": {
+    "selected_candidate": "hidden_strong_goal",
+    "parameters": 334099,
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "freeze_source_head": "24452b366eb6ba57ddcda9cdc670eba514cc1d0c"
+  },
+  "acceptance": {
+    "development": {
+      "episodes": 128,
+      "solved": 104,
+      "solve_rate": 0.8125
+    },
+    "fresh": {
+      "episodes": 160,
+      "solved": 133,
+      "solve_rate": 0.83125,
+      "families": {
+        "conditional_regimes": {"solved": 36, "episodes": 40},
+        "regime_switch": {"solved": 31, "episodes": 40},
+        "implicit_goal_regimes": {"solved": 30, "episodes": 40},
+        "causal_prerequisites": {"solved": 36, "episodes": 40}
+      }
+    },
+    "reproducibility": {
+      "bitwise_checkpoint_reproduced": true,
+      "bitwise_state_dict_reproduced": true,
+      "cross_hardware_cpu_path_locked": true,
+      "fresh_workflow_reproduced_checkpoint_before_opening": true
+    }
+  },
+  "evidence": {
+    "development_reproducibility": "evidence/DEV_HISTORY_009.json",
+    "pre_fresh_lock": "PRE_FRESH_LOCK.json",
+    "fresh_court": "evidence/FRESH_COURT_001.json",
+    "fresh_workflow_run_id": 35430019167,
+    "fresh_artifact_id": 10580931602,
+    "fresh_artifact_digest": "sha256:7a361cc60f0940348310895b308ad6fd99aaace9f1e1bb5e3564dcfccb81faff"
+  },
+  "governance": {
+    "post_fresh_tuning_allowed": false,
+    "fresh_block_reuse_for_promotion_allowed": false,
+    "historical_r2_3_retained": true,
+    "direct_numeric_comparison_to_r2_3_authorized": false
+  },
+  "claim": "Accepted self-contained reproducible neural capability line with source-trainable weights and an untouched preregistered fresh-court pass."
+}

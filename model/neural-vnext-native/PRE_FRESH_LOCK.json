@@ -1,0 +1,74 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-Recurrent",
+  "freeze_source_head": "24452b366eb6ba57ddcda9cdc670eba514cc1d0c",
+  "frozen_source_git_blobs": {
+    "model/neural-vnext-native/PREDEV_LOCK.json": "f74301a765d48f947387ec1f4c0fe78b4190653e",
+    "model/neural-vnext-native/native_core.py": "7f460eced3d270747b6493bae0e4f9e0a55df49f",
+    "model/neural-vnext-native/native_training.py": "0cae54d2465bbdf1bee9fa7246a5cd39c8b99071",
+    "model/neural-vnext-native/scripts/train_native_dev.py": "ac9ef91a0ff82ba7e42d1c8b8722d0d555261406",
+    "model/r1.8/cogcoder/r18_benchmark.py": "0acb4d9c912e0b316b3b3a7ab2a5f1ee53b054d0",
+    ".github/workflows/neural-vnext-native-dev.yml": "ce70ff73b6df6a2b44c34beefee0fe280abd5157"
+  },
+  "frozen_candidate": {
+    "selected_candidate": "hidden_strong_goal",
+    "parameters": 334099,
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "predev_lock_sha256": "d6212f9e4acfd7b5f7a887168a4f43c041e616c0f13587ec694979d5f6bd2ca0",
+    "dev": {
+      "episodes": 128,
+      "solved": 104,
+      "solve_rate": 0.8125,
+      "families": {
+        "conditional_regimes": 30,
+        "regime_switch": 24,
+        "implicit_goal_regimes": 24,
+        "causal_prerequisites": 26
+      }
+    }
+  },
+  "reproducibility_gate": {
+    "status": "PASSED",
+    "workflow_run_id": 35427444674,
+    "independent_attempts": [
+      {"attempt": 1, "job_id": 105855730054},
+      {"attempt": 2, "job_id": 105858145291}
+    ],
+    "checkpoint_sha256_equal": true,
+    "state_dict_sha256_equal": true,
+    "development_metrics_equal": true
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "index_start": 0,
+    "index_end": 39,
+    "episodes_per_family": 40,
+    "episodes_expected": 160,
+    "identity_rule": "exact Cartesian product of the four locked families and integer indices 0..39; no omission, substitution or duplicate",
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved": 112,
+    "minimum_total_solve_rate": 0.7,
+    "minimum_solved_per_family": 20,
+    "maximum_integrity_violations": 0,
+    "all_requirements_must_pass": true,
+    "rationale": "Preregister a material generalization floor before fresh: retain at least 70% overall solve rate and at least 50% in every family while preserving exact candidate/source identity."
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "failure_path": "create a new candidate and reserve a new untouched fresh block; do not reuse fresh 0..39"
+  },
+  "claim_boundary": "Passing this court accepts the self-contained reproducible Neural vNext Native line under its preregistered gate. It does not claim direct numerical superiority over the historical R2.3 score because the courts differ."
+}

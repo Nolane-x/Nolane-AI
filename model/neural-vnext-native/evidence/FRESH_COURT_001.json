@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_ACCEPTED",
+  "trial": "native-fresh-court-001",
+  "fresh_workflow": {
+    "workflow_run_id": 35430019167,
+    "job_id": 105862808015,
+    "head_sha": "5a9d3ff8032f09529ba1d51af061b01632aa0ee9",
+    "artifact": {
+      "id": 10580931602,
+      "name": "neural-vnext-native-fresh-court-0-39",
+      "digest": "sha256:7a361cc60f0940348310895b308ad6fd99aaace9f1e1bb5e3564dcfccb81faff",
+      "size_bytes": 1246411
+    }
+  },
+  "frozen_candidate": {
+    "freeze_source_head": "24452b366eb6ba57ddcda9cdc670eba514cc1d0c",
+    "selected_candidate": "hidden_strong_goal",
+    "parameters": 334099,
+    "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "predev_lock_sha256": "d6212f9e4acfd7b5f7a887168a4f43c041e616c0f13587ec694979d5f6bd2ca0",
+    "pre_fresh_lock_git_blob": "02134ff4876eddf5647e47b729ea48685649d591"
+  },
+  "pre_fresh_reproduction": {
+    "authority_files_verified": true,
+    "contracts_passed": 13,
+    "contracts_total": 13,
+    "reproduced_checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "reproduced_state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "fresh_opened_before_reproduction": false
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "indices": [0, 39],
+    "episodes": 160,
+    "solved": 133,
+    "solve_rate": 0.83125,
+    "families_result": {
+      "conditional_regimes": {"episodes": 40, "solved": 36, "steps": 377},
+      "regime_switch": {"episodes": 40, "solved": 31, "steps": 591},
+      "implicit_goal_regimes": {"episodes": 40, "solved": 30, "steps": 524},
+      "causal_prerequisites": {"episodes": 40, "solved": 36, "steps": 632}
+    },
+    "identity_cartesian_product_verified": true,
+    "duplicates": 0,
+    "omissions": 0
+  },
+  "preregistered_promotion_gate": {
+    "minimum_total_solved": 112,
+    "minimum_total_solve_rate": 0.7,
+    "minimum_solved_per_family": 20,
+    "actual_total_solved": 133,
+    "actual_total_solve_rate": 0.83125,
+    "total_solved_pass": true,
+    "total_solve_rate_pass": true,
+    "family_pass": {
+      "conditional_regimes": true,
+      "regime_switch": true,
+      "implicit_goal_regimes": true,
+      "causal_prerequisites": true
+    },
+    "accepted": true
+  },
+  "post_fresh": {
+    "tuning_allowed_for_this_candidate": false,
+    "same_fresh_block_rerun_for_promotion_allowed": false,
+    "candidate_mutation_invalidates_this_authority": true
+  },
+  "claim_boundary": "This fresh result accepts the reproducible Neural vNext Native line under its preregistered FIGG-18 fresh court. It does not directly replace the historical R2.3 numerical evidence because the fresh blocks and training programs differ."
+}

@@ -1,0 +1,187 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-Recurrent",
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_split": "train",
+    "training_indices": [
+      0,
+      127
+    ],
+    "development_split": "dev",
+    "development_indices": [
+      0,
+      31
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      0,
+      39
+    ],
+    "fresh_episodes_expected": 160
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh task may be instantiated by training or development code before a checkpoint digest is frozen in a separate pre-fresh lock.",
+    "post_fresh_tuning_allowed": false
+  },
+  "architecture": {
+    "public_global_features": 29,
+    "public_action_features": 25,
+    "hidden_dim": 128,
+    "attention_heads": 4,
+    "recurrent": "GRUCell over public observation plus public action-memory tokens",
+    "action_scoring": "shared per-action neural scorer",
+    "private_task_state_allowed_at_inference": false,
+    "public_conditioning": "explicit state parity plus regime-parity action memory; visible targets also expose normalized modular forward-distance features",
+    "hidden_goal_specialist": "zero-initialized residual action scorer, gated strictly to target_visible=0; appended after shared module construction so base initialization stream is unchanged"
+  },
+  "training": {
+    "seed": 20260919,
+    "selection_rule": [
+      "maximize development solved episodes",
+      "then maximize worst-family solved episodes",
+      "then minimize development action steps",
+      "then lexical candidate name"
+    ],
+    "optimizer": "AdamW",
+    "learning_rate": 0.0007,
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "teacher": "public-exploration-first then FIGG-18 oracle supervision",
+    "fresh_split_forbidden": true,
+    "model_initialization_seed_bound_before_construction": true,
+    "goal_belief": {
+      "coordinate_classes": 5,
+      "loss_weight": 0.75,
+      "supervision_scope": "train-only implicit_goal_regimes hidden goal label; visible-target families contribute zero auxiliary goal loss",
+      "inference": "recurrent hidden -> 3x5 neural goal logits -> soft expected goal embedding; embedding is gated into the policy only when public target_visible=0",
+      "visible_target_policy_invariance_required": true,
+      "representation": "full 15-way categorical belief (3 coordinates x 5 values) projected to policy hidden state; no scalar expectation compression",
+      "supervision_start": "only after every non-submit action has at least one public transition in the current context",
+      "unique_implicit_train_worlds": 2048,
+      "optimization_scope": "hidden_goal specialist only"
+    },
+    "base_curriculum": {
+      "name": "guarded_shared_base",
+      "expert_epochs": 3,
+      "dagger_teacher_mix": [
+        0.75,
+        0.5
+      ],
+      "goal_loss_weight": 0,
+      "optimization_scope": "base"
+    },
+    "base_family_training_indices": {
+      "conditional_regimes": [
+        0,
+        127
+      ],
+      "regime_switch": [
+        0,
+        127
+      ],
+      "implicit_goal_regimes": [
+        0,
+        127
+      ],
+      "causal_prerequisites": [
+        0,
+        127
+      ]
+    },
+    "hidden_goal_family_training_indices": {
+      "implicit_goal_regimes": [
+        0,
+        2047
+      ]
+    },
+    "hidden_goal_specialists": [
+      {
+        "name": "hidden_policy_only",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "goal_loss_weight": 0,
+        "learning_rate": 0.0007
+      },
+      {
+        "name": "hidden_light_goal",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "goal_loss_weight": 0.25,
+        "learning_rate": 0.0007
+      },
+      {
+        "name": "hidden_strong_goal",
+        "expert_epochs": 2,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "goal_loss_weight": 0.75,
+        "learning_rate": 0.0007
+      }
+    ],
+    "specialist_isolation": {
+      "shared_base_frozen_during_hidden_goal_training": true,
+      "visible_family_dev_metrics_must_equal_base": true,
+      "hidden_goal_parameter_prefixes": [
+        "goal_head.",
+        "goal_belief_projection.",
+        "goal_policy_norm.",
+        "hidden_goal_score."
+      ]
+    },
+    "specialist_scaling": {
+      "purpose": "dev-only objective ablation on a frozen shared base",
+      "unique_implicit_train_worlds": 2048,
+      "candidate_initialization": "each specialist resets to the exact same shared-base state",
+      "selection_authority": "development split only; fresh remains unopened"
+    },
+    "deterministic_runtime": {
+      "torch_deterministic_algorithms": true,
+      "torch_num_threads": 1,
+      "torch_num_interop_threads": 1,
+      "environment": {
+        "PYTHONHASHSEED": "0",
+        "OMP_NUM_THREADS": "1",
+        "MKL_NUM_THREADS": "1",
+        "OPENBLAS_NUM_THREADS": "1",
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_DYNAMIC": "FALSE",
+        "MKL_DYNAMIC": "FALSE",
+        "MKL_CBWR": "COMPATIBLE",
+        "KMP_DETERMINISTIC_REDUCTION": "TRUE",
+        "ATEN_CPU_CAPABILITY": "default"
+      },
+      "promotion_requirement": "The exact selected checkpoint SHA-256 and state-dict SHA-256 must reproduce on an independent rerun before PRE_FRESH_LOCK may be created.",
+      "pytorch_version": "2.9.0",
+      "pytorch_index": "https://download.pytorch.org/whl/cpu",
+      "runtime_dependency_pinning_required": true,
+      "mkldnn_enabled": false,
+      "adamw_foreach": false,
+      "adamw_fused": false,
+      "clip_grad_norm_foreach": false,
+      "float32_matmul_precision": "highest",
+      "flush_denormal": true,
+      "cpu_dispatch": "ATEN_CPU_CAPABILITY=default",
+      "mkl_conditional_numerical_reproducibility": "MKL_CBWR=COMPATIBLE"
+    }
+  },
+  "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
+}

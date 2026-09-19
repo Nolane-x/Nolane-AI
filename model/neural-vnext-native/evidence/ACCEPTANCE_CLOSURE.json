@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-Recurrent",
+  "accepted_candidate": "hidden_strong_goal",
+  "parameters": 334099,
+  "checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+  "state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+  "development": {"solved": 104, "episodes": 128, "solve_rate": 0.8125},
+  "fresh": {"solved": 133, "episodes": 160, "solve_rate": 0.83125, "accepted": true},
+  "fresh_workflow_run_id": 35430019167,
+  "fresh_workflow_job_id": 105862808015,
+  "fresh_artifact_id": 10580931602,
+  "evidence_chain": [
+    "DEV_HISTORY_009.json",
+    "../PRE_FRESH_LOCK.json",
+    "FRESH_COURT_001.json",
+    "../ACCEPTED_AUTHORITY.json"
+  ],
+  "frozen_source_mutated_after_fresh": false,
+  "post_fresh_training_performed": false,
+  "post_fresh_tuning_performed": false,
+  "fresh_block_reused": false,
+  "closure_rule": "Future neural capability work must start a new candidate and use a new untouched fresh block."
+}

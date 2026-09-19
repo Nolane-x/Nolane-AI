@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "status": "DEV_ONLY_FRESH_UNOPENED",
+  "trial": "native-dev-006-categorical-belief-4x-implicit",
+  "git_head": "5016dd73813a115d6fcdeea7c5fdb28a0b4fb135",
+  "workflow_run_id": 35424140878,
+  "artifact": {
+    "id": 10577943392,
+    "name": "neural-vnext-native-dev",
+    "digest": "sha256:4e9c3bf63468b352192c15022a93b644d4b5ca26e7902c4bba5eb4448eef22fa",
+    "size_bytes": 1121283
+  },
+  "selected_candidate": "guarded_dagger",
+  "selected_rank": [92, 10, -1976],
+  "candidate": {
+    "parameters": 300818,
+    "checkpoint_sha256": "b9a45ddff749f9864a4ff2ef8273f19d98ba82521467a6f1e93ff616c074ec5e",
+    "state_dict_sha256": "ddb6a8b75ab2b87cbe94e61f0cd38a07bba45b054e081807ff47b1529e0fd9cc"
+  },
+  "development": {
+    "episodes": 128,
+    "solved": 92,
+    "solve_rate": 0.71875,
+    "families": {
+      "causal_prerequisites": {"episodes": 32, "solved": 28, "steps": 540},
+      "conditional_regimes": {"episodes": 32, "solved": 30, "steps": 332},
+      "implicit_goal_regimes": {"episodes": 32, "solved": 10, "steps": 540},
+      "regime_switch": {"episodes": 32, "solved": 24, "steps": 564}
+    }
+  },
+  "contracts": {"count": 8, "passed": 8},
+  "diagnosis": "Full categorical belief plus 4x unique implicit-goal training improved implicit dev materially, but oversampling hidden-goal episodes updated shared parameters and reduced the previously near-saturated visible families. The remaining issue is multi-task interference, not lack of hidden-goal signal.",
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Reject for freeze. Train the shared base once, freeze it, and move hidden-goal improvement into a gated residual specialist that cannot modify visible-target logits."
+}

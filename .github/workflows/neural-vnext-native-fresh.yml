@@ -1,0 +1,114 @@
+name: Neural vNext Native Fresh Court
+
+on:
+  push:
+    branches:
+      - codex/neural-vnext-native-rebuild
+    paths:
+      - '.github/workflows/neural-vnext-native-fresh.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-fresh-court-0-39
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: '02134ff4876eddf5647e47b729ea48685649d591'
+      EXPECTED_FRESH_EVALUATOR_BLOB: 'b0e77913227c6ea54fac0e7a6bf16892de4f1d92'
+      EXPECTED_CHECKPOINT_SHA256: '7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b'
+      EXPECTED_STATE_SHA256: 'ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098'
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Verify frozen fresh authority files
+        run: |
+          test "$(git hash-object model/neural-vnext-native/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+          python - <<'PY'
+          import torch
+          print("torch_version=" + torch.__version__)
+          assert torch.__version__.startswith("2.9.0")
+          PY
+
+      - name: Compile and verify fresh gate contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile \
+            model/neural-vnext-native/*.py \
+            model/neural-vnext-native/scripts/*.py \
+            model/neural-vnext-native/tests/*.py
+          python -m pytest -q model/neural-vnext-native/tests
+
+      - name: Reproduce frozen checkpoint from source before fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p fresh-output
+          python model/neural-vnext-native/scripts/train_native_dev.py \
+            --checkpoint fresh-output/native-vnext.pt \
+            --manifest fresh-output/native-vnext.manifest.json \
+            --dev-result fresh-output/native-vnext.dev.json
+          actual_checkpoint="$(sha256sum fresh-output/native-vnext.pt | awk '{print $1}')"
+          test "$actual_checkpoint" = "$EXPECTED_CHECKPOINT_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest = json.loads(Path("fresh-output/native-vnext.manifest.json").read_text())
+          expected = "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098"
+          actual = manifest["state_dict_sha256"]
+          print("reproduced_state_dict_sha256=" + actual)
+          assert actual == expected
+          assert manifest["fresh_opened"] is False
+          PY
+
+      - name: Open frozen fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native:model/r1.8
+        run: |
+          set +e
+          python model/neural-vnext-native/scripts/evaluate_fresh.py \
+            --checkpoint fresh-output/native-vnext.pt \
+            --result fresh-output/native-vnext.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-fresh-court-0-39
+          path: fresh-output/
+          if-no-files-found: error
+
+      - name: Enforce preregistered fresh verdict
+        if: always()
+        run: |
+          test "${{ steps.fresh.outputs.exit_code }}" = "0"
