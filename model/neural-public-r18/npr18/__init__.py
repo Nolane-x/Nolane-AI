@@ -6,6 +6,7 @@ from .core import (
     public_r18_parameter_count,
 )
 from .data import (
+    PublicActionMemory,
     PublicTeacherEpisode,
     PublicTeacherStep,
     collect_public_teacher_corpus,
@@ -24,6 +25,7 @@ __all__ = (
     "CHECKPOINT_FORMAT",
     "PublicR18Architecture",
     "PublicR18RecursiveCore",
+    "PublicActionMemory",
     "PublicTeacherEpisode",
     "PublicTeacherStep",
     "collect_public_teacher_corpus",
