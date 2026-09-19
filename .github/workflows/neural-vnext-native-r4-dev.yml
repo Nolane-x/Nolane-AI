@@ -1,0 +1,74 @@
+name: Neural vNext Native R4 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r4-latent-goal-belief
+    paths:
+      - 'model/neural-vnext-native-r4/**'
+      - '.github/workflows/neural-vnext-native-r4-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r4/**'
+      - '.github/workflows/neural-vnext-native-r4-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r4-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and run R4 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile             model/neural-vnext-native-r4/*.py             model/neural-vnext-native-r4/scripts/*.py             model/neural-vnext-native-r4/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r4/tests
+
+      - name: Verify accepted R3 parent authority
+        run: |
+          test "$(stat -c %s model/neural-vnext-native-r3/accepted/r3.pt)" = "2854493"
+          test "$(sha256sum model/neural-vnext-native-r3/accepted/r3.pt | awk '{print $1}')" = "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da"
+
+      - name: Train R4 candidates and evaluate new dev only
+        env:
+          PYTHONPATH: model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r4-output
+          python model/neural-vnext-native-r4/scripts/train_r4_dev.py             --checkpoint r4-output/r4.pt             --manifest r4-output/r4.manifest.json             --dev-result r4-output/r4.dev.json
+          cat r4-output/r4.manifest.json
+
+      - name: Upload R4 dev-only evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r4-dev
+          path: r4-output/
+          if-no-files-found: error
