@@ -9,7 +9,7 @@ import torch
 from torch import Tensor, nn
 
 GLOBAL_FEATURE_DIM = 23
-ACTION_FEATURE_DIM = 17
+ACTION_FEATURE_DIM = 18
 REGIME_LABELS = ("amber", "violet", "cobalt", "ivory", "sable", "mint", "coral", "silver")
 
 
