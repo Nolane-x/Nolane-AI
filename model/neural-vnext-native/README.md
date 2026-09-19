@@ -1,73 +1,119 @@
-# Neural vNext Native — self-contained recurrent rebuild
+# Neural vNext Native — accepted reproducible recurrent neural line
 
-Status: **development candidate; fresh unopened**
+Status: **ACCEPTED** under its preregistered untouched FIGG-18 fresh court.
 
-This line exists because the accepted historical R2.3 evidence retained hashes and metrics but not the binary one-weight checkpoint or the 11,539-state expert+DAgger cache. Neural vNext Native restores a reproducible neural path that can be trained, frozen, and evaluated entirely from repository source.
+Neural vNext Native exists because the historical accepted R2.3 lineage retained hashes and metrics but not the one-weight checkpoint binary or the 11,539-state expert/DAgger cache. This line restores an end-to-end neural capability path that can be trained, reproduced, frozen, audited and evaluated entirely from repository source.
 
-## Core boundary
+## Accepted authority
 
-Inference receives only information present in the public FIGG-18 observation plus episode-local memory derived from public transitions:
+The accepted frozen candidate is:
 
-- normalized public state;
-- visible target when the benchmark exposes one;
+- selected candidate: `hidden_strong_goal`
+- physical parameters: **334,099**
+- freeze source head: `24452b366eb6ba57ddcda9cdc670eba514cc1d0c`
+- checkpoint SHA-256: `7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b`
+- state-dict SHA-256: `ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098`
+
+Canonical acceptance metadata is in `ACCEPTED_AUTHORITY.json`. Development reproducibility evidence is in `evidence/DEV_HISTORY_009.json`; untouched fresh evidence is in `evidence/FRESH_COURT_001.json`.
+
+## Public inference boundary
+
+Inference receives only public FIGG-18 observations plus episode-local memory derived from public transitions:
+
+- normalized public state and state parity;
+- visible target and modular forward distance only when the benchmark exposes the target;
 - progress signal, remaining budget and step;
 - public resource/gate values;
 - public regime identity;
 - previous public feedback;
-- per-action public transition memory.
+- per-action public transition memory, including regime/parity-conditioned effects.
 
-Private goal/rule fields are never encoded into model inputs.
+Private goal/rule fields are never serialized into inference features.
 
-The neural policy is action-order equivariant: a shared action encoder and shared scorer operate over action-memory tokens, while a multi-head attention summary and GRUCell maintain recurrent episode state. This is important because FIGG-18 shuffles action order per world.
+The policy is action-order equivariant: a shared action encoder/scorer operates over action-memory tokens, multi-head attention summarizes the current action set, and a GRUCell carries recurrent episode state.
 
-## Training
+For hidden-target worlds, a gated residual specialist is appended to the frozen shared base. Visible-target logits bypass that specialist exactly. This prevents hidden-goal training from regressing visible-target families.
 
-The preregistered development program is in `PREDEV_LOCK.json`. Model initialization is seed-bound **before construction**. Development performs a bounded, preregistered curriculum tournament (`expert4`, `guarded_dagger`, `broad_dagger`) and selects only by dev evidence: solved episodes, then worst-family solved count, then fewer action steps, then lexical name.
+## Training program
 
-Training uses only FIGG-18 `train` worlds. The teacher first requires public exploration of unseen non-submit action slots in the current public regime. After those slots have evidence, the FIGG-18 oracle supplies a training-only action target. DAgger candidates mix teacher and learned-policy behavior so supervision covers learner-induced states.
+`PREDEV_LOCK.json` preregisters the train/dev program. The accepted line uses:
 
-The `dev` split is used for iteration. The `fresh` split is explicitly forbidden to training and development code.
+- deterministic model initialization;
+- a shared-base stage over all four train families;
+- a frozen-base hidden-goal specialist stage;
+- 2,048 unique `implicit_goal_regimes` train worlds for specialist training;
+- a bounded specialist objective tournament selected only on dev evidence;
+- no fresh data in training or development.
 
-Run:
+The train-only oracle is used solely as supervision. Model inputs remain public-observation-only.
 
-```bash
-PYTHONPATH=model/neural-vnext-native:model/r1.8 \
-python model/neural-vnext-native/scripts/train_native_dev.py \
-  --checkpoint /tmp/native-vnext.pt \
-  --manifest /tmp/native-vnext.manifest.json \
-  --dev-result /tmp/native-vnext.dev.json
-```
+## Reproducibility authority
 
-## Fresh court
+The candidate is not accepted merely because one run produced a good score. The training runtime is pinned to a cross-run CPU path:
 
-Fresh indices `0..39` across all four FIGG-18 families are preregistered as a 160-episode untouched court.
+- PyTorch `2.9.0+cpu`;
+- deterministic algorithms enabled;
+- one intra-op and one inter-op thread;
+- MKLDNN disabled;
+- `ATEN_CPU_CAPABILITY=default`;
+- `MKL_CBWR=COMPATIBLE`;
+- deterministic reduction/runtime flags;
+- AdamW fused/foreach paths disabled;
+- gradient clipping foreach disabled.
 
-They must not be instantiated until:
+Two independent workflow attempts reproduced the exact checkpoint SHA, state-dict SHA and development metrics. The one-shot fresh workflow then reproduced the same checkpoint again from frozen source before creating any fresh task.
 
-1. development is complete;
-2. an exact checkpoint tensor digest and checkpoint SHA-256 are frozen in a separate pre-fresh lock;
-3. training source/configuration are frozen;
-4. the fresh evaluator verifies the exact frozen checkpoint before creating any fresh task.
+## Development result
 
-Any tuning after fresh consumption invalidates promotion for that candidate.
+Frozen dev result: **104/128 = 81.25%**.
 
-## Claim boundary
+- `conditional_regimes`: 30/32
+- `regime_switch`: 24/32
+- `implicit_goal_regimes`: 24/32
+- `causal_prerequisites`: 26/32
 
-This native line is not automatically a successor to R2.3. Historical R2.3 and a native candidate evaluated on a different fresh block are not treated as directly interchangeable measurements. Promotion language requires its own frozen fresh evidence.
+Development history, including rejected candidates and determinism blockers, is retained under `evidence/DEV_HISTORY_*.json`.
 
-## Development provenance
+## Untouched fresh court
 
-The first development-only run is retained at `evidence/DEV_HISTORY_001.json`. It reached 50/128 dev episodes (39.0625%) but is explicitly non-promotable because the model initialization seed had not yet been bound before construction. Fresh remained unopened. The deterministic curriculum tournament supersedes that run for candidate selection.
+`PRE_FRESH_LOCK.json` froze the exact candidate, source blobs, fresh identities and promotion thresholds before the fresh split was opened.
 
+Court:
 
-## Hidden-goal v2 development line
+- benchmark: `nolane-figg18-v1`
+- split: `fresh`
+- four families
+- indices `0..39`
+- exactly **160** episodes
+- exact Cartesian-product identity check; duplicates and omissions fail closed
 
-After dev-only trials exposed hidden-goal inference as the remaining bottleneck, the current development line keeps the strong parity-conditioned public transition memory and changes only the hidden-target path:
+Preregistered acceptance floor:
 
-- visible-target episodes hard-bypass the goal transform and retain the legacy parity policy path;
-- hidden-target episodes keep the full 3x5 categorical neural goal belief instead of compressing it to scalar coordinate expectations;
-- exact hidden-goal labels are train-only and begin only after every non-submit action has public transition evidence in the current context;
-- `implicit_goal_regimes` uses unique train indices `0..511`; the other three families remain at `0..127`;
-- dev remains `0..31` and fresh remains unopened.
+- at least **112/160** solved;
+- at least **70%** overall;
+- at least **20/40** solved in every family;
+- zero integrity violations.
 
-The prior dev trials are retained in `evidence/DEV_HISTORY_001.json` through `DEV_HISTORY_005.json`. They are tuning evidence only and have no promotion authority.
+Observed fresh result: **133/160 = 83.125% — ACCEPTED**.
+
+- `conditional_regimes`: 36/40
+- `regime_switch`: 31/40
+- `implicit_goal_regimes`: 30/40
+- `causal_prerequisites`: 36/40
+
+Workflow run: `35430019167`. The immutable fresh artifact and aggregate evidence are referenced by `evidence/FRESH_COURT_001.json`.
+
+## Post-fresh rule
+
+This candidate is closed after fresh opening:
+
+- no post-fresh tuning;
+- no candidate mutation under this authority;
+- no reuse of fresh indices `0..39` for a new promotion attempt;
+- a future successor must be a new frozen candidate with a new untouched fresh block.
+
+## Relationship to historical R2.3
+
+Historical R2.3 remains preserved as accepted historical evidence. Neural vNext Native is the current **source-reproducible accepted neural line**.
+
+Its 133/160 fresh result must not be presented as a direct numerical replacement for the historical R2.3 result because the fresh blocks and training programs differ. The accepted claim is narrower and stronger in a different dimension: the Native line is trainable from repository source, bitwise reproducible under its locked CPU path, and passed its own preregistered untouched fresh court.
