@@ -194,10 +194,10 @@ class ExecutionBudget:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionBudget':
         return cls(
-            max_steps=int(state['max_steps']),
-            max_tool_calls=int(state['max_tool_calls']),
-            max_external_core_calls=int(state['max_external_core_calls']),
-            max_compute_units=int(state['max_compute_units']),
+            max_steps=state['max_steps'],
+            max_tool_calls=state['max_tool_calls'],
+            max_external_core_calls=state['max_external_core_calls'],
+            max_compute_units=state['max_compute_units'],
         )
 
 
@@ -224,10 +224,10 @@ class ExecutionCounters:
     @classmethod
     def from_state(cls, state: Mapping[str, Any]) -> 'ExecutionCounters':
         return cls(
-            steps=int(state.get('steps', 0)),
-            tool_calls=int(state.get('tool_calls', 0)),
-            external_core_calls=int(state.get('external_core_calls', 0)),
-            compute_units=int(state.get('compute_units', 0)),
+            steps=state.get('steps', 0),
+            tool_calls=state.get('tool_calls', 0),
+            external_core_calls=state.get('external_core_calls', 0),
+            compute_units=state.get('compute_units', 0),
         )
 
 
