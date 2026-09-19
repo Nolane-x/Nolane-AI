@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTRATION_AMENDED_BEFORE_FRESH",
+  "candidate": "Neural-vNext-Native-R2-TransitionTrace",
+  "amends": "FRESH_GATE_PREREGISTRATION.json",
+  "fresh_opened": false,
+  "reason": {
+    "category": "cross_host_source_training_non_reproducibility",
+    "description": "A new GitHub-hosted ubuntu-24.04 run using the same repository source, PyTorch 2.9.0+cpu, deterministic-algorithm flags, single-thread configuration and locked seeds failed to reproduce the already accepted parent before successor training began. The divergence changes the parent state_dict and development behavior, so source-to-checkpoint bitwise portability cannot be asserted for this training stack.",
+    "reference_success_run": {
+      "workflow_run_id": 35441662592,
+      "job_id": 105893404432,
+      "parent_checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+      "parent_state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+      "parent_dev_solved": 104
+    },
+    "failed_reproduction_run": {
+      "workflow_run_id": 35442844247,
+      "job_id": 105896565983,
+      "artifact_id": 10584229251,
+      "artifact_digest": "sha256:4561a1e604526fe913b24594ed0a29b47b98bdb3f4db460e70b3d2dc4d4aaafc",
+      "parent_checkpoint_sha256": "b9d1c787e5f333e09b5536a604e2f00d1a91b532a9ae0000e1bcc5c2f7f5a8a7",
+      "parent_state_dict_sha256": "138e0a4c5ce31523e931ea01ac3694313340c8959ca414cb383b1af4ec41bdd2",
+      "parent_dev_solved": 110,
+      "failure_stage": "reproduce accepted parent from source",
+      "successor_training_started": false
+    },
+    "common_runtime_evidence": {
+      "runner_image": "ubuntu-24.04",
+      "runner_image_version": "20260907.300.1",
+      "runner_version": "2.337.0",
+      "torch": "2.9.0+cpu",
+      "python": "3.11",
+      "deterministic_algorithms": true,
+      "mkldnn_enabled": false,
+      "torch_num_threads": 1,
+      "torch_num_interop_threads": 1,
+      "ATEN_CPU_CAPABILITY": "default",
+      "MKL_CBWR": "COMPATIBLE"
+    }
+  },
+  "unchanged_fresh_performance_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "maximum_family_solved_regression": 0,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "all_requirements_must_pass": true
+  },
+  "amended_candidate_authority": {
+    "mode": "frozen_workflow_artifact",
+    "status": "PREREGISTERED",
+    "workflow_run_id": 35441662592,
+    "job_id": 105893404432,
+    "artifact_id": 10583544731,
+    "artifact_name": "neural-vnext-native-r2-dev",
+    "artifact_digest": "sha256:42b26e11036149a3809bcb621f3b1647296181335274a9ac1b1fd65436568898",
+    "artifact_size_bytes": 3238548,
+    "checkpoint_filename": "successor.pt",
+    "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "selected_candidate": "hidden_trace_broad",
+    "parameters": 536085,
+    "successor_parameters": 201986,
+    "development_solved": 116,
+    "fresh_opened": false,
+    "rule": "Fresh evaluation may consume only this exact frozen artifact after verifying its checkpoint hash, state hash, selected candidate, parameter audit, development authority and fresh_opened=false. No retraining may substitute a different state."
+  },
+  "source_training_claim": {
+    "cross_host_bitwise_reproducible": false,
+    "cross_host_behaviorally_reproducible": false,
+    "promotion_requires_source_retraining": false,
+    "negative_result_must_remain_disclosed": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false
+  },
+  "claim_boundary": "This amendment changes only candidate materialization authority because cross-host source training failed before fresh was opened. The previously preregistered fresh performance gate and fresh identities are unchanged. Any accepted R2 claim must explicitly state that the tested candidate is frozen-artifact reproducible, not cross-host source-training reproducible."
+}
