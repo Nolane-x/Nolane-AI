@@ -8,8 +8,8 @@ from typing import Any, Mapping, Sequence
 import torch
 from torch import Tensor, nn
 
-GLOBAL_FEATURE_DIM = 23
-ACTION_FEATURE_DIM = 18
+GLOBAL_FEATURE_DIM = 29
+ACTION_FEATURE_DIM = 25
 REGIME_LABELS = ("amber", "violet", "cobalt", "ivory", "sable", "mint", "coral", "silver")
 
 
@@ -28,6 +28,7 @@ class ActionStat:
     last_progress_delta: float = 0.0
     mean_progress_delta: float = 0.0
     last_information_gain: float = 0.0
+    best_progress_delta: float = -1.0
     failures: int = 0
     changed: int = 0
     last_resource_delta: list[float] = field(default_factory=lambda: [0.0, 0.0])
@@ -48,6 +49,7 @@ class ActionStat:
         self.last_state_delta = [float(value) for value in state_delta]
         self.last_progress_delta = float(progress_delta)
         self.last_information_gain = float(information_gain)
+        self.best_progress_delta = max(self.best_progress_delta, float(progress_delta))
         self.last_resource_delta = [float(value) for value in resource_delta]
         for index, value in enumerate(state_delta):
             self.mean_state_delta[index] += (float(value) - self.mean_state_delta[index]) / n
@@ -67,15 +69,27 @@ class PublicActionMemory:
         self.action_count = action_count
         self.total = [ActionStat() for _ in range(action_count)]
         self.by_context: dict[tuple[str, int], ActionStat] = {}
+        self.by_regime_parity: dict[tuple[str, tuple[int, int, int], int], ActionStat] = {}
 
     @staticmethod
     def context_key(observation: Mapping[str, Any]) -> str:
         regime = observation.get("regime")
         return str(regime) if isinstance(regime, str) else "prereq"
 
+    @staticmethod
+    def parity_key(observation: Mapping[str, Any]) -> tuple[int, int, int]:
+        state = observation.get("state")
+        if not isinstance(state, list) or len(state) != 3:
+            raise ValueError("public observation state must contain three coordinates")
+        return tuple(int(value) % 2 for value in state)
+
     def context_stat(self, observation: Mapping[str, Any], action: int) -> ActionStat:
         key = (self.context_key(observation), int(action))
         return self.by_context.setdefault(key, ActionStat())
+
+    def local_stat(self, observation: Mapping[str, Any], action: int) -> ActionStat:
+        key = (self.context_key(observation), self.parity_key(observation), int(action))
+        return self.by_regime_parity.setdefault(key, ActionStat())
 
     def seen_in_context(self, observation: Mapping[str, Any], action: int) -> int:
         key = (self.context_key(observation), int(action))
@@ -114,6 +128,7 @@ class PublicActionMemory:
         )
         self.total[int(action)].update(**kwargs)
         self.context_stat(before, int(action)).update(**kwargs)
+        self.local_stat(before, int(action)).update(**kwargs)
 
 
 def encode_public_state(
@@ -124,14 +139,24 @@ def encode_public_state(
 ) -> tuple[Tensor, Tensor, Tensor]:
     """Encode one FIGG-18 public state without private task fields."""
 
-    state = [float(value) / 4.0 for value in observation["state"]]
+    raw_state = [int(value) for value in observation["state"]]
+    state = [float(value) / 4.0 for value in raw_state]
+    parity = [float(value % 2) for value in raw_state]
     target_raw = observation.get("target")
     target_visible = isinstance(target_raw, list) and len(target_raw) == 3
     target = [float(value) / 4.0 for value in target_raw] if target_visible else [0.0, 0.0, 0.0]
+    modulus = 4 if "resources" in observation else 5
+    distance = (
+        [float((int(goal) - value) % modulus) / float(modulus - 1) for value, goal in zip(raw_state, target_raw)]
+        if target_visible
+        else [0.0, 0.0, 0.0]
+    )
     resources = observation.get("resources") or {}
     global_values = (
         state
+        + parity
         + target
+        + distance
         + [1.0 if target_visible else 0.0]
         + [float(observation["progress_signal"])]
         + [min(1.0, float(observation["budget_remaining"]) / 32.0)]
@@ -149,6 +174,7 @@ def encode_public_state(
     for action, description in enumerate(descriptions):
         total = memory.total[action]
         context = memory.context_stat(observation, action)
+        local = memory.local_stat(observation, action)
         count = max(1, context.count)
         rows.append(
             [
@@ -164,6 +190,11 @@ def encode_public_state(
                 float(context.changed) / count,
                 *context.last_resource_delta,
                 *context.mean_resource_delta,
+                min(1.0, local.count / 3.0),
+                *local.last_state_delta,
+                local.last_progress_delta,
+                local.best_progress_delta,
+                context.best_progress_delta,
             ]
         )
     if any(len(row) != ACTION_FEATURE_DIM for row in rows):
