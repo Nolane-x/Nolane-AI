@@ -221,3 +221,32 @@ def test_goal_supervision_rejects_non_train_split() -> None:
         assert "train-split only" in str(exc)
     else:
         raise AssertionError("goal supervision must reject non-train split")
+
+
+def test_family_specific_training_ranges_are_executed() -> None:
+    torch.manual_seed(37)
+    model = NativeRecurrentPolicy(hidden_dim=64, attention_heads=4)
+    summary = train_native_policy(
+        model,
+        make_task=make_r18_task,
+        oracle_plan=oracle_plan,
+        families=("conditional_regimes", "implicit_goal_regimes"),
+        train_indices=(0, 0),
+        family_train_indices={
+            "conditional_regimes": (0, 0),
+            "implicit_goal_regimes": (0, 1),
+        },
+        seed=37,
+        expert_epochs=1,
+        dagger_teacher_mix=(),
+        learning_rate=1e-3,
+        weight_decay=0.0,
+        max_grad_norm=1.0,
+        goal_loss_weight=0.75,
+    )
+    assert summary["training_episodes_per_epoch"] == 3
+    assert summary["family_train_indices"] == {
+        "conditional_regimes": [0, 0],
+        "implicit_goal_regimes": [0, 1],
+    }
+    assert summary["stages"][0]["episodes"] == 3
