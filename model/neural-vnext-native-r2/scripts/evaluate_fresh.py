@@ -128,10 +128,44 @@ def verify_checkpoint(
     if summary.get("fresh_opened") is not False:
         raise ValueError("R2 checkpoint metadata must attest fresh_opened=false")
 
+    expected_rank = frozen.get("selected_rank")
+    if not isinstance(expected_rank, list) or len(expected_rank) != 3:
+        raise ValueError("R2 frozen candidate is missing selected_rank")
+    observed_rank = summary.get("selected_rank")
+    if observed_rank != expected_rank:
+        raise ValueError(
+            f"R2 selected rank mismatch: expected {expected_rank}, got {observed_rank}"
+        )
+
+    expected_eligibility = frozen.get("selected_eligibility")
+    if not isinstance(expected_eligibility, dict) or expected_eligibility.get("eligible") is not True:
+        raise ValueError("R2 frozen candidate must carry eligible development authority")
+    if summary.get("selected_eligibility") != expected_eligibility:
+        raise ValueError("R2 selected eligibility mismatch")
+
     expected_dev = frozen.get("development")
-    observed_dev = summary.get("selected_development")
-    if expected_dev is not None and observed_dev is not None and observed_dev != expected_dev:
+    if not isinstance(expected_dev, dict):
+        raise ValueError("R2 frozen candidate is missing development evidence")
+    tournament = summary.get("phase2_tournament")
+    if not isinstance(tournament, list):
+        raise ValueError("R2 checkpoint phase2 tournament is unavailable")
+    selected_rows = [
+        row for row in tournament
+        if isinstance(row, dict) and row.get("name") == frozen.get("selected_candidate")
+    ]
+    if len(selected_rows) != 1:
+        raise ValueError("R2 selected candidate is not unique in phase2 tournament")
+    observed_dev = selected_rows[0].get("development")
+    observed_eligibility = selected_rows[0].get("eligibility")
+    if observed_dev != expected_dev:
         raise ValueError("R2 frozen development evidence mismatch")
+    if observed_eligibility != expected_eligibility:
+        raise ValueError("R2 tournament eligibility evidence mismatch")
+
+    if summary.get("phase1_on_phase2_dev") != frozen.get("phase1_reference"):
+        raise ValueError("R2 phase1 reference evidence mismatch")
+    if summary.get("parent_phase2_dev") != frozen.get("parent_reference"):
+        raise ValueError("R2 parent reference evidence mismatch")
     return model, metadata
 
 
