@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-R3-AttributedBelief",
+  "accepted_candidate": "attributed_broad",
+  "parameters": 707990,
+  "successor_parameters": 171905,
+  "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+  "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+  "fresh": {
+    "candidate_solved": 147,
+    "parent_solved": 142,
+    "episodes": 160,
+    "candidate_solve_rate": 0.91875,
+    "parent_solve_rate": 0.8875,
+    "accepted": true
+  },
+  "fresh_workflow_run_id": 35449613862,
+  "fresh_workflow_job_id": 105914377140,
+  "fresh_artifact_id": 10585529581,
+  "fresh_artifact_digest": "sha256:3637f3112e58589ed28a2f51825d723fc8fd8f53853972061d6ef78009f69d0c",
+  "evidence_chain": [
+    "../PRE_FRESH_LOCK.json",
+    "PHASE2_NEGATIVE_001.json",
+    "PHASE1_SECONDARY_DEV_001.json",
+    "FRESH_COURT_001.json",
+    "../ACCEPTED_AUTHORITY.json"
+  ],
+  "post_fresh_training_performed": false,
+  "post_fresh_tuning_performed": false,
+  "fresh_block_reused": false,
+  "accepted_materialization_archived_in_repository": false,
+  "closure_rule": "Archive the exact accepted checkpoint without retraining. Future neural successors must use a new frozen candidate and a new untouched fresh block; fresh:80..119 is permanently consumed."
+}

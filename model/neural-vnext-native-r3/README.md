@@ -1,56 +1,86 @@
-# Neural vNext Native R3 — Action-Attributed Feedback Belief
+# Neural vNext Native R3 — accepted action-attributed hidden-goal successor
 
-Status: **DEVELOPMENT ONLY — fresh:80..119 unopened**.
+Status: **ACCEPTED** under the preregistered parent-relative FIGG-18 court `fresh:80..119`.
 
-R3 starts from the accepted R2 authority merged at `32999ae86a5a5c5f846dc233a2344ad4b4d2958d`. The exact R2 checkpoint in Git LFS is the parent authority; R3 does not retrain or mutate R2.
+R3 extends accepted R2 without mutating it. The hypothesis is narrow: R2 remembers ordered public transitions, but R3 additionally binds the selected action to the public transition/progress evidence that followed it. The R3 residual is hard-gated off whenever the target is visible.
 
-## Motivation
+## Accepted authority
 
-R2 improved the untouched fresh court from the frozen parent's 128/160 to 141/160, but `implicit_goal_regimes` remained the weakest family at 27/40.
+- selected candidate: `attributed_broad`
+- total physical parameters: **707,990**
+- R3-owned parameters: **171,905**
+- checkpoint SHA-256: `8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da`
+- state-dict SHA-256: `6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e`
+- parent: accepted R2 checkpoint `bb18c0b0...`
 
-R2's transition trace retains ordered public state/feedback changes, while the accepted Native action memory retains per-action aggregate statistics. What is still missing is an ordered memory that explicitly binds **which public action evidence preceded each observed transition and progress change**.
+Canonical metadata is in `ACCEPTED_AUTHORITY.json`. Fresh evidence is in `evidence/FRESH_COURT_001.json`.
 
-R3 tests that specific hypothesis rather than merely increasing width or depth.
+## Development evidence
 
-## Architecture
+Primary `dev:96..127`:
 
-Each R3 attribution token is exactly:
+- frozen R2: **112/128**
+- R3: **114/128**
+- `implicit_goal_regimes`: 19 → **21**
+- all visible-target family solved counts exact
 
-- the selected action's 25-dimensional public action-feature row **before** the action;
-- the 25-dimensional R2 public transition token observed **after** the action.
+The exact frozen Phase-1 candidate was then observed on the separate development block `dev:128..159`:
 
-The resulting 50-dimensional tokens are kept in an ordered length-12 trace and encoded by a new GRUCell.
+- frozen R2: **118/128**
+- frozen R3: **119/128**
+- `implicit_goal_regimes`: 23 → **24**
+- all visible-target family solved counts exact
 
-A successor-only residual scorer receives:
+This second comparison is explicitly post-hoc development evidence, not a preregistered promotion court.
 
-1. the frozen Native action token;
-2. the frozen Native recurrent hidden state;
-3. the frozen R2 transition-trace hidden state;
-4. the R3 action-attribution hidden state.
+## Negative Phase-2 result
 
-The R3 final layer is zero-initialized. At initialization R3 is exactly behaviorally equivalent to R2.
+Further training was tested and rejected rather than hidden:
 
-The R3 residual is multiplied by `1 - target_visible`. Therefore visible-target episodes bypass R3 exactly; R3 is allowed to change only hidden-target behavior.
+- frozen Phase-1 replay: **119/128**, implicit-goal **24/32**
+- best Phase-2 candidate: **118/128**, implicit-goal **23/32**
+- broader Phase-2 candidate: **114/128**, implicit-goal **19/32**
 
-## Locked data boundary
+The gate was not relaxed. Phase-2 is preserved as a negative result in `evidence/PHASE2_NEGATIVE_001.json`.
 
-`PREDEV_LOCK.json` freezes:
+## Workflow-level reproduction
 
-- R2 parent checkpoint: `bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14`
-- R2 state dict: `20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf`
-- R3 train: `train:1024..1535`, hidden-goal family only
-- R3 dev: `dev:96..127`
-- reserved untouched future fresh: `fresh:80..119`
-- consumed fresh blocks: `0..39` and `40..79`
+Before fresh, multiple workflow executions reproduced the exact Phase-1 checkpoint and state hashes. This supports workflow-level bitwise reproduction. It is **not** promoted into a cross-host hardware guarantee.
 
-No R3 training or dev code is permitted to instantiate `fresh:80..119`.
+Fresh evaluation consumed the exact frozen artifact rather than retraining the candidate.
 
-## Development promotion rule
+## Untouched fresh court
 
-A development candidate is eligible only if on `dev:96..127` it:
+`PRE_FRESH_LOCK.json` froze candidate identity, artifact authority, source blobs, evidence and the promotion gate before opening `fresh:80..119`.
 
-- strictly improves `implicit_goal_regimes` solved count versus frozen R2;
-- strictly improves total solved count versus frozen R2;
-- matches frozen R2 solved counts exactly on `conditional_regimes`, `regime_switch`, and `causal_prerequisites`.
+Preregistered requirements:
 
-Fresh evaluation is not authorized by development success. A later candidate must first be frozen with exact checkpoint/state/source authority and a separate PRE_FRESH_LOCK.
+1. R3 must solve strictly more total episodes than frozen R2;
+2. R3 must strictly improve `implicit_goal_regimes`;
+3. `conditional_regimes`, `regime_switch`, and `causal_prerequisites` solved counts must remain **exactly equal** to R2.
+
+Observed on 160 untouched episodes:
+
+- frozen R2: **142/160 = 88.75%**
+- R3: **147/160 = 91.875%**
+- total delta: **+5**
+
+Family results:
+
+- `conditional_regimes`: 39 → **39** (exact)
+- `regime_switch`: 37 → **37** (exact)
+- `causal_prerequisites`: 40 → **40** (exact)
+- `implicit_goal_regimes`: 26 → **31** (**+5**)
+
+Every solved-count gain came from the intended hidden-goal family while visible behavior stayed exact. Workflow run: `35449613862`; immutable fresh artifact: `10585529581`.
+
+## Post-fresh rule
+
+`fresh:80..119` is permanently consumed.
+
+- no post-fresh tuning;
+- no mutation under this accepted authority;
+- no rerun of the same fresh block for a new promotion attempt;
+- future successors require a new candidate and untouched fresh identities.
+
+The remaining closure step is durable repository archival of the exact accepted checkpoint without retraining.
