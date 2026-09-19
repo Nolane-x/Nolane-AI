@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCK_SELF_CONTAINED_RECOVERY_CANDIDATE",
+  "candidate": "Neural-Public-R18-Recursive-Core",
+  "claim_boundary": "Independent neural-only recovery lineage. It does not replace or promote over accepted Neural R2.3 without a valid frozen parent-versus-candidate court.",
+  "architecture": {
+    "input_boundary": "public FIGG-18 rendered observation + public action descriptions + previous public transition feedback + model recurrent memory only",
+    "oracle_interface_at_inference": false,
+    "external_core_interface_at_inference": false,
+    "weight_shared_reasoning": true,
+    "physical_parameter_ceiling": 10000000
+  },
+  "training": {
+    "split": "train",
+    "allowed_indices": [0, 255],
+    "teacher": "public exploration curriculum plus oracle labels on train only",
+    "oracle_may_select_training_targets": true,
+    "oracle_state_may_enter_neural_inputs": false,
+    "external_core_success_labels_allowed": false
+  },
+  "development": {
+    "split": "dev",
+    "allowed_indices": [0, 79],
+    "oracle_action_selection_allowed": false,
+    "minimum_requirement_before_freeze": "non-zero solved count in every family and reproducible closed-loop neural-only evidence"
+  },
+  "confirmatory_fresh": {
+    "split": "fresh",
+    "reserved_indices": [1160, 1199],
+    "episodes_expected": 160,
+    "status": "CLOSED_UNTIL_WEIGHTS_AND_ALL_THRESHOLDS_FROZEN",
+    "post_fresh_weight_changes_allowed": false
+  }
+}
