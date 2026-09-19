@@ -162,12 +162,25 @@
         "OMP_NUM_THREADS": "1",
         "MKL_NUM_THREADS": "1",
         "OPENBLAS_NUM_THREADS": "1",
-        "NUMEXPR_NUM_THREADS": "1"
+        "NUMEXPR_NUM_THREADS": "1",
+        "OMP_DYNAMIC": "FALSE",
+        "MKL_DYNAMIC": "FALSE",
+        "MKL_CBWR": "COMPATIBLE",
+        "KMP_DETERMINISTIC_REDUCTION": "TRUE",
+        "ATEN_CPU_CAPABILITY": "default"
       },
       "promotion_requirement": "The exact selected checkpoint SHA-256 and state-dict SHA-256 must reproduce on an independent rerun before PRE_FRESH_LOCK may be created.",
       "pytorch_version": "2.9.0",
       "pytorch_index": "https://download.pytorch.org/whl/cpu",
-      "runtime_dependency_pinning_required": true
+      "runtime_dependency_pinning_required": true,
+      "mkldnn_enabled": false,
+      "adamw_foreach": false,
+      "adamw_fused": false,
+      "clip_grad_norm_foreach": false,
+      "float32_matmul_precision": "highest",
+      "flush_denormal": true,
+      "cpu_dispatch": "ATEN_CPU_CAPABILITY=default",
+      "mkl_conditional_numerical_reproducibility": "MKL_CBWR=COMPATIBLE"
     }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
