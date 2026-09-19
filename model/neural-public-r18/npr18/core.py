@@ -159,6 +159,7 @@ class PublicR18RecursiveCore(nn.Module):
         byte_dim: int = 32,
         hidden_dim: int = 192,
         action_memory_dim: int = 10,
+        public_scalar_dim: int = 15,
         reasoning_steps: int = 3,
         ff_mult: int = 2,
     ) -> None:
@@ -173,6 +174,7 @@ class PublicR18RecursiveCore(nn.Module):
         self.byte_dim = int(byte_dim)
         self.hidden_dim = int(hidden_dim)
         self.action_memory_dim = int(action_memory_dim)
+        self.public_scalar_dim = int(public_scalar_dim)
         self.reasoning_steps = int(reasoning_steps)
         self.ff_mult = int(ff_mult)
 
@@ -185,6 +187,11 @@ class PublicR18RecursiveCore(nn.Module):
             max_bytes=action_bytes,
             byte_dim=byte_dim,
             output_dim=hidden_dim,
+        )
+        self.public_scalar_projection = nn.Sequential(
+            nn.Linear(public_scalar_dim, hidden_dim),
+            nn.GELU(),
+            nn.LayerNorm(hidden_dim),
         )
         self.feedback_projection = nn.Sequential(
             nn.Linear(4, hidden_dim),
@@ -216,6 +223,7 @@ class PublicR18RecursiveCore(nn.Module):
             "byte_dim": self.byte_dim,
             "hidden_dim": self.hidden_dim,
             "action_memory_dim": self.action_memory_dim,
+            "public_scalar_dim": self.public_scalar_dim,
             "reasoning_steps": self.reasoning_steps,
             "ff_mult": self.ff_mult,
         }
@@ -232,6 +240,7 @@ class PublicR18RecursiveCore(nn.Module):
         action_tokens: Tensor,
         action_mask: Tensor,
         action_memory: Tensor,
+        public_scalars: Tensor,
         memory: Tensor,
         previous_action: Tensor,
         previous_feedback: Tensor,
@@ -245,6 +254,8 @@ class PublicR18RecursiveCore(nn.Module):
             raise ValueError("action_mask must be bool [batch, max_actions]")
         if action_memory.shape != (batch, self.max_actions, self.action_memory_dim):
             raise ValueError("action_memory has invalid shape")
+        if public_scalars.shape != (batch, self.public_scalar_dim):
+            raise ValueError("public_scalars has invalid shape")
         if memory.shape != (batch, self.hidden_dim):
             raise ValueError("memory has invalid shape")
         if previous_action.shape != (batch,) or previous_action.dtype != torch.long:
@@ -255,6 +266,8 @@ class PublicR18RecursiveCore(nn.Module):
             raise ValueError("each sample needs at least one legal public action")
 
         observation = self.observation_encoder(observation_tokens)
+        scalar_context = self.public_scalar_projection(public_scalars)
+        observation = self.memory_norm(observation + scalar_context)
         flat_actions = action_tokens.reshape(batch * self.max_actions, self.action_bytes)
         action_encoded = self.action_encoder(flat_actions).reshape(
             batch, self.max_actions, self.hidden_dim
