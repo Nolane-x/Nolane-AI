@@ -68,10 +68,10 @@ jobs:
         run: |
           mkdir -p r2-output
           python model/neural-vnext-native/scripts/train_native_dev.py \
-            --checkpoint r2-output/parent.pt \
+            --checkpoint r2-output/native-vnext.pt \
             --manifest r2-output/parent.manifest.json \
             --dev-result r2-output/parent.dev.json
-          actual_checkpoint="$(sha256sum r2-output/parent.pt | awk '{print $1}')"
+          actual_checkpoint="$(sha256sum r2-output/native-vnext.pt | awk '{print $1}')"
           test "$actual_checkpoint" = "$EXPECTED_PARENT_CHECKPOINT_SHA256"
           python - <<'PY'
           import json
@@ -89,7 +89,7 @@ jobs:
           PYTHONPATH: model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
         run: |
           python model/neural-vnext-native-r2/scripts/train_successor_dev.py \
-            --parent-checkpoint r2-output/parent.pt \
+            --parent-checkpoint r2-output/native-vnext.pt \
             --checkpoint r2-output/successor.pt \
             --manifest r2-output/successor.manifest.json \
             --dev-result r2-output/successor.dev.json
