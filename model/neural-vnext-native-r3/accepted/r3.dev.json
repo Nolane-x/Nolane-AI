@@ -1,0 +1,931 @@
+{
+  "episodes": 128,
+  "families": {
+    "causal_prerequisites": {
+      "episodes": 32,
+      "solved": 32,
+      "steps": 459
+    },
+    "conditional_regimes": {
+      "episodes": 32,
+      "solved": 31,
+      "steps": 315
+    },
+    "implicit_goal_regimes": {
+      "episodes": 32,
+      "solved": 21,
+      "steps": 424
+    },
+    "regime_switch": {
+      "episodes": 32,
+      "solved": 30,
+      "steps": 470
+    }
+  },
+  "indices": [
+    96,
+    127
+  ],
+  "rows": [
+    {
+      "family": "conditional_regimes",
+      "index": 96,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 97,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 98,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 99,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 100,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 101,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 102,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 103,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 104,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 105,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 106,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 107,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 108,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 109,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 110,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 111,
+      "solved": true,
+      "split": "dev",
+      "steps": 5
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 112,
+      "solved": true,
+      "split": "dev",
+      "steps": 7
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 113,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 114,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 115,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 116,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 117,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 118,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 119,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 120,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 121,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 122,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 123,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 124,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 125,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 126,
+      "solved": false,
+      "split": "dev",
+      "steps": 23
+    },
+    {
+      "family": "conditional_regimes",
+      "index": 127,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "regime_switch",
+      "index": 96,
+      "solved": false,
+      "split": "dev",
+      "steps": 25
+    },
+    {
+      "family": "regime_switch",
+      "index": 97,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 98,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 99,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "regime_switch",
+      "index": 100,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 101,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 102,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 103,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "regime_switch",
+      "index": 104,
+      "solved": false,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 105,
+      "solved": true,
+      "split": "dev",
+      "steps": 19
+    },
+    {
+      "family": "regime_switch",
+      "index": 106,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 107,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "regime_switch",
+      "index": 108,
+      "solved": true,
+      "split": "dev",
+      "steps": 4
+    },
+    {
+      "family": "regime_switch",
+      "index": 109,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 110,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 111,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 112,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 113,
+      "solved": true,
+      "split": "dev",
+      "steps": 3
+    },
+    {
+      "family": "regime_switch",
+      "index": 114,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 115,
+      "solved": true,
+      "split": "dev",
+      "steps": 3
+    },
+    {
+      "family": "regime_switch",
+      "index": 116,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 117,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 118,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 119,
+      "solved": true,
+      "split": "dev",
+      "steps": 23
+    },
+    {
+      "family": "regime_switch",
+      "index": 120,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 121,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "regime_switch",
+      "index": 122,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "regime_switch",
+      "index": 123,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "regime_switch",
+      "index": 124,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "regime_switch",
+      "index": 125,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "regime_switch",
+      "index": 126,
+      "solved": true,
+      "split": "dev",
+      "steps": 18
+    },
+    {
+      "family": "regime_switch",
+      "index": 127,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 96,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 97,
+      "solved": false,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 98,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 99,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 100,
+      "solved": true,
+      "split": "dev",
+      "steps": 11
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 101,
+      "solved": false,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 102,
+      "solved": false,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 103,
+      "solved": false,
+      "split": "dev",
+      "steps": 4
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 104,
+      "solved": false,
+      "split": "dev",
+      "steps": 2
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 105,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 106,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 107,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 108,
+      "solved": true,
+      "split": "dev",
+      "steps": 6
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 109,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 110,
+      "solved": true,
+      "split": "dev",
+      "steps": 18
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 111,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 112,
+      "solved": false,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 113,
+      "solved": false,
+      "split": "dev",
+      "steps": 32
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 114,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 115,
+      "solved": false,
+      "split": "dev",
+      "steps": 19
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 116,
+      "solved": true,
+      "split": "dev",
+      "steps": 3
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 117,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 118,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 119,
+      "solved": true,
+      "split": "dev",
+      "steps": 10
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 120,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 121,
+      "solved": true,
+      "split": "dev",
+      "steps": 9
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 122,
+      "solved": true,
+      "split": "dev",
+      "steps": 28
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 123,
+      "solved": true,
+      "split": "dev",
+      "steps": 21
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 124,
+      "solved": false,
+      "split": "dev",
+      "steps": 29
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 125,
+      "solved": false,
+      "split": "dev",
+      "steps": 2
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 126,
+      "solved": false,
+      "split": "dev",
+      "steps": 22
+    },
+    {
+      "family": "implicit_goal_regimes",
+      "index": 127,
+      "solved": true,
+      "split": "dev",
+      "steps": 8
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 96,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 97,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 98,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 99,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 100,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 101,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 102,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 103,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 104,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 105,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 106,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 107,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 108,
+      "solved": true,
+      "split": "dev",
+      "steps": 15
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 109,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 110,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 111,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 112,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 113,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 114,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 115,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 116,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 117,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 118,
+      "solved": true,
+      "split": "dev",
+      "steps": 12
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 119,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 120,
+      "solved": true,
+      "split": "dev",
+      "steps": 17
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 121,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 122,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 123,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 124,
+      "solved": true,
+      "split": "dev",
+      "steps": 16
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 125,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 126,
+      "solved": true,
+      "split": "dev",
+      "steps": 13
+    },
+    {
+      "family": "causal_prerequisites",
+      "index": 127,
+      "solved": true,
+      "split": "dev",
+      "steps": 14
+    }
+  ],
+  "solve_rate": 0.890625,
+  "solved": 114,
+  "split": "dev",
+  "steps": 1668
+}
