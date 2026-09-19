@@ -20,6 +20,7 @@ from native_core import (  # noqa: E402
     GLOBAL_FEATURE_DIM,
     NativeRecurrentPolicy,
     PublicActionMemory,
+    TARGET_VISIBLE_FEATURE_INDEX,
     encode_public_state,
     parameter_count,
 )
@@ -137,3 +138,61 @@ def test_checkpoint_round_trip_binds_neural_tensor_digest(tmp_path: Path) -> Non
     assert metadata["parameters"] == parameter_count(model)
     for name, tensor in model.state_dict().items():
         assert torch.equal(tensor.cpu(), restored.state_dict()[name].cpu())
+
+
+def test_goal_belief_cannot_perturb_visible_target_policy() -> None:
+    torch.manual_seed(29)
+    model = NativeRecurrentPolicy(hidden_dim=64, attention_heads=4)
+    model.eval()
+
+    visible_task = make_r18_task("conditional_regimes", "train", 9)
+    visible_observation = visible_task.observe()
+    visible_memory = PublicActionMemory(len(visible_task.action_descriptions))
+    vg, va, vv = encode_public_state(
+        visible_observation,
+        visible_memory,
+        previous_feedback=(0.0, 0.0, 0.0),
+    )
+    assert float(vg[TARGET_VISIBLE_FEATURE_INDEX]) == 1.0
+    hidden = model.init_hidden(1)
+    before = model.forward_step(vg.unsqueeze(0), va.unsqueeze(0), vv.unsqueeze(0), hidden)["action_logits"]
+
+    with torch.no_grad():
+        model.goal_belief_projection.weight.fill_(1000.0)
+        model.goal_head.weight.fill_(1000.0)
+        model.goal_head.bias.fill_(1000.0)
+    after = model.forward_step(vg.unsqueeze(0), va.unsqueeze(0), vv.unsqueeze(0), hidden)["action_logits"]
+    assert torch.allclose(before, after, atol=1e-6)
+
+    implicit_task = make_r18_task("implicit_goal_regimes", "train", 9)
+    implicit_observation = implicit_task.observe()
+    implicit_memory = PublicActionMemory(len(implicit_task.action_descriptions))
+    ig, ia, iv = encode_public_state(
+        implicit_observation,
+        implicit_memory,
+        previous_feedback=(0.0, 0.0, 0.0),
+    )
+    assert float(ig[TARGET_VISIBLE_FEATURE_INDEX]) == 0.0
+
+
+def test_goal_supervision_rejects_non_train_split() -> None:
+    from native_training import train_episode
+
+    torch.manual_seed(31)
+    model = NativeRecurrentPolicy(hidden_dim=64, attention_heads=4)
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-3)
+    dev_task = make_r18_task("implicit_goal_regimes", "dev", 0)
+    try:
+        train_episode(
+            model,
+            dev_task,
+            optimizer,
+            oracle_plan=oracle_plan,
+            rng=__import__("random").Random(31),
+            teacher_mix=1.0,
+            max_grad_norm=1.0,
+        )
+    except ValueError as exc:
+        assert "train-split only" in str(exc)
+    else:
+        raise AssertionError("goal supervision must reject non-train split")
