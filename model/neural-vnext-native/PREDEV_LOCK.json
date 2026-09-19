@@ -79,7 +79,13 @@
     "max_grad_norm": 1,
     "teacher": "public-exploration-first then FIGG-18 oracle supervision",
     "fresh_split_forbidden": true,
-    "model_initialization_seed_bound_before_construction": true
+    "model_initialization_seed_bound_before_construction": true,
+    "goal_belief": {
+      "coordinate_classes": 5,
+      "loss_weight": 0.35,
+      "supervision_scope": "train-only FIGG-18 goal label; never serialized into inference features",
+      "inference": "recurrent hidden -> 3x5 neural goal logits -> soft expected goal embedding -> policy scorer"
+    }
   },
   "claim_boundary": "This native line exists to restore a fully reproducible neural training/evaluation path from repository source. It is not promoted over R2.3 unless a separately frozen candidate passes an untouched fresh court. Results on a different fresh index block are not directly substituted for historical R2.3 evidence."
 }
