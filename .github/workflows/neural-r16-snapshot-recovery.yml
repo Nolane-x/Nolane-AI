@@ -21,41 +21,42 @@ jobs:
           cat snapshots/r1.6/current-source/chunk-*.bin > recovered/current-source.gz
           sha256sum recovered/current-source.gz | tee recovered/current-source.gz.sha256
           file recovered/current-source.gz | tee recovered/current-source.gz.file
-          python - <<'PY'
-          import gzip, hashlib, pathlib
-          src = pathlib.Path("recovered/current-source.gz")
-          raw = gzip.decompress(src.read_bytes())
-          out = pathlib.Path("recovered/current-source.recovered")
-          out.write_bytes(raw)
-          print("compressed_bytes", src.stat().st_size)
-          print("recovered_bytes", len(raw))
-          print("recovered_sha256", hashlib.sha256(raw).hexdigest())
-          print("prefix_hex", raw[:64].hex())
-          print("prefix_repr", repr(raw[:256]))
-          PY
+          set +e
+          gzip -dc recovered/current-source.gz > recovered/current-source.recovered 2> recovered/gzip.stderr
+          gzip_status=$?
+          set -e
+          printf '%s\n' "$gzip_status" > recovered/gzip.exit-code
+          wc -c recovered/current-source.recovered | tee recovered/current-source.recovered.bytes
+          sha256sum recovered/current-source.recovered | tee recovered/current-source.recovered.sha256
           file recovered/current-source.recovered | tee recovered/current-source.recovered.file
+          cat recovered/gzip.stderr || true
           python - <<'PY'
           import pathlib, tarfile, zipfile, json
           p = pathlib.Path("recovered/current-source.recovered")
+          raw = p.read_bytes()
           result = {
+              "gzip_exit_code": int(pathlib.Path("recovered/gzip.exit-code").read_text().strip()),
               "is_tar": tarfile.is_tarfile(p),
               "is_zip": zipfile.is_zipfile(p),
-              "size": p.stat().st_size,
+              "size": len(raw),
+              "prefix_hex": raw[:64].hex(),
+              "prefix_repr": repr(raw[:256]),
           }
           if result["is_tar"]:
-              with tarfile.open(p) as tf:
+              with tarfile.open(p, errorlevel=0) as tf:
                   result["members"] = tf.getnames()
           elif result["is_zip"]:
               with zipfile.ZipFile(p) as zf:
                   result["members"] = zf.namelist()
           else:
               try:
-                  text = p.read_text(encoding="utf-8")
+                  text = raw.decode("utf-8")
                   result["utf8"] = True
                   result["line_count"] = len(text.splitlines())
-                  result["first_lines"] = text.splitlines()[:20]
-              except UnicodeDecodeError:
+                  result["first_lines"] = text.splitlines()[:30]
+              except UnicodeDecodeError as exc:
                   result["utf8"] = False
+                  result["utf8_error"] = str(exc)
           pathlib.Path("recovered/inspection.json").write_text(
               json.dumps(result, indent=2, sort_keys=True) + "\n",
               encoding="utf-8",
