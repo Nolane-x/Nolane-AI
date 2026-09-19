@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "FRESH_ACCEPTED_ARCHIVE_PENDING",
+  "status": "ACCEPTED",
   "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
   "accepted_candidate": {
     "selected_candidate": "latent_goal_guarded",
@@ -57,10 +57,21 @@
     "exact_state_dict_reproduced": false,
     "canonical_selection_rule": "first completed successful dev run at locked source head",
     "canonical_workflow_run_id": 35451337745,
-    "cross_host_or_cross_run_bitwise_guarantee_claimed": false
+    "cross_host_or_cross_run_bitwise_guarantee_claimed": false,
+    "accepted_materialization": "repository-archived immutable canonical workflow artifact"
   },
   "repository_archive": {
-    "status": "PENDING",
+    "status": "VERIFIED",
+    "storage": "git-lfs",
+    "checkpoint_path": "accepted/r4.pt",
+    "manifest_path": "accepted/r4.manifest.json",
+    "dev_result_path": "accepted/r4.dev.json",
+    "archive_authority_path": "accepted/ARCHIVE_AUTHORITY.json",
+    "git_lfs_oid": "sha256:167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "size_bytes": 3539102,
+    "archive_commit": "c74347a96d0862f462154c7777ba7e50e9050653",
+    "archive_workflow_run_id": 35452197659,
+    "archive_workflow_job_id": 105921188781,
     "source_artifact_id": 10586044507,
     "source_artifact_digest": "sha256:c255d0b238e11ce6b7d4015ee121bee30e101798ddd6a935113108776111851e"
   },
@@ -78,5 +89,6 @@
     "fresh_block_reuse_for_promotion_allowed": false,
     "accepted_r3_parent_mutated": false,
     "negative_reproduction_result_must_remain_disclosed": true
-  }
+  },
+  "claim": "Accepted repository-archived latent hidden-goal belief successor. On untouched fresh:120..159 it solved 148/160 versus frozen R3's 146/160; all +2 solved gains occurred in implicit_goal_regimes while every visible-target family remained exact."
 }

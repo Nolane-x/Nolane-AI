@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "FRESH_ACCEPTED_ARCHIVE_PENDING",
+  "status": "ACCEPTANCE_CLOSED",
   "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
   "accepted_candidate": "latent_goal_guarded",
   "parameters": 877542,
@@ -26,11 +26,17 @@
     "../PRE_FRESH_LOCK.json",
     "DEV_REPRO_NEGATIVE_001.json",
     "FRESH_COURT_001.json",
-    "../ACCEPTED_AUTHORITY.json"
+    "../ACCEPTED_AUTHORITY.json",
+    "../accepted/ARCHIVE_AUTHORITY.json"
   ],
+  "accepted_materialization_archived_in_repository": true,
+  "repository_archive_commit": "c74347a96d0862f462154c7777ba7e50e9050653",
+  "repository_checkpoint_path": "../accepted/r4.pt",
+  "repository_checkpoint_storage": "git-lfs",
+  "source_training_cross_run_bitwise_reproducibility_claimed": false,
+  "behavioral_dev_reproduction_observed": true,
   "post_fresh_training_performed": false,
   "post_fresh_tuning_performed": false,
   "fresh_block_reused": false,
-  "accepted_materialization_archived_in_repository": false,
-  "closure_rule": "Archive the exact canonical accepted artifact without retraining; after archival, future successors require a new frozen candidate and a new untouched fresh block."
+  "closure_rule": "Future neural successors must start from a new candidate authority and use a new untouched fresh block; fresh:120..159 is permanently consumed for promotion."
 }
