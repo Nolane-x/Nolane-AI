@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "status": "DEV_BLOCKED_BEFORE_SUCCESSOR_TRAINING_FRESH_UNOPENED",
+  "trial": "r2-dev-001-parent-checkpoint-basename",
+  "git_head": "8ef0ecc1ba0fa789b99f3128360065e955245ff1",
+  "workflow_run_id": 35438761472,
+  "job_id": 105885836413,
+  "contracts": {
+    "compile_passed": true,
+    "successor_contracts_passed": true
+  },
+  "parent_reproduction": {
+    "expected_checkpoint_sha256": "7de154972ed8e06aaf64064d4d1a6d3ee99331955b3ffb0cfdd8813643fb4f4b",
+    "observed_checkpoint_sha256": "3efdaea032dcd20b3eef577ce07fc1a862647b582cf35ebab037bf105bce1144",
+    "expected_state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "observed_state_dict_sha256": "ddd0e7d8744ed18c782febece06f419ec6fd339f62a5159fa1432b5a9d7c4098",
+    "development_solved": 104,
+    "development_episodes": 128,
+    "diagnosis": "Parent tensor state and metrics reproduced exactly. The torch.save archive file digest changed because R2 wrote the checkpoint with basename parent.pt instead of the accepted canonical basename native-vnext.pt; PyTorch ZIP serialization embeds the archive root name."
+  },
+  "successor_training_started": false,
+  "fresh_opened": false,
+  "promotion_authority": false,
+  "decision": "Keep exact parent file-hash and tensor-hash gates. Reproduce using canonical basename native-vnext.pt, then rerun the untouched successor dev program."
+}
