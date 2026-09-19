@@ -37,7 +37,14 @@ jobs:
         run: |
           python -m py_compile \
             model/neural-vnext/nvnext/*.py \
+            model/neural-vnext/scripts/*.py \
             model/neural-vnext/tests/*.py
+      - name: Smoke executable Neural vNext CLIs
+        env:
+          PYTHONPATH: model/neural-vnext:model/neural-r2.3:model/neural-r2.1
+        run: |
+          python model/neural-vnext/scripts/train_vnext.py --help >/dev/null
+          python model/neural-vnext/scripts/evaluate_fresh_gate.py --help >/dev/null
       - name: Run Neural vNext tests
         env:
           PYTHONPATH: model/neural-vnext:model/neural-r2.3:model/neural-r2.1
