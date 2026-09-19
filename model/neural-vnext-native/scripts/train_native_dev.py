@@ -76,6 +76,23 @@ def _assert_visible_families_preserved(
             )
 
 
+def _configure_deterministic_runtime(seed: int) -> dict[str, Any]:
+    torch.set_num_threads(1)
+    try:
+        torch.set_num_interop_threads(1)
+    except RuntimeError:
+        # Safe when a parent runtime already initialized the interop pool.
+        pass
+    torch.use_deterministic_algorithms(True)
+    torch.manual_seed(int(seed))
+    return {
+        "seed": int(seed),
+        "deterministic_algorithms": bool(torch.are_deterministic_algorithms_enabled()),
+        "num_threads": int(torch.get_num_threads()),
+        "num_interop_threads": int(torch.get_num_interop_threads()),
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description=(
@@ -105,6 +122,7 @@ def main() -> int:
     dev_indices = tuple(int(value) for value in benchmark["development_indices"])
     families = tuple(str(value) for value in benchmark["families"])
     seed = int(training["seed"])
+    deterministic_runtime = _configure_deterministic_runtime(seed)
 
     base_cfg = training.get("base_curriculum")
     base_family_ranges = training.get("base_family_training_indices")
@@ -262,6 +280,7 @@ def main() -> int:
 
     training_summary = {
         "seed": seed,
+        "deterministic_runtime": deterministic_runtime,
         "selected_candidate": best_name,
         "selected_rank": list(best_rank),
         "selected_training": best_training,
@@ -296,6 +315,7 @@ def main() -> int:
         json.dumps(
             {
                 "status": "DEV_TOURNAMENT_COMPLETE_FRESH_UNOPENED",
+                "deterministic_runtime": deterministic_runtime,
                 "selected_candidate": best_name,
                 "selected_rank": list(best_rank),
                 "parameters": parameter_count(best_model),
