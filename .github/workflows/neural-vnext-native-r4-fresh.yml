@@ -1,7 +1,11 @@
 name: Neural vNext Native R4 Fresh Court
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - codex/neural-native-r4-latent-goal-belief
+    paths:
+      - '.github/workflows/neural-vnext-native-r4-fresh.yml'
 
 permissions:
   contents: read
@@ -13,6 +17,7 @@ concurrency:
 
 jobs:
   fresh-court:
+    if: ${{ github.event.before == '37c4b8a203234428af0859f6aa9584277e5b41a5' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 35
     env:
@@ -26,8 +31,9 @@ jobs:
       MKL_CBWR: 'COMPATIBLE'
       KMP_DETERMINISTIC_REDUCTION: 'TRUE'
       ATEN_CPU_CAPABILITY: 'default'
-      EXPECTED_PRE_FRESH_LOCK_BLOB: '__PRE_FRESH_LOCK_BLOB__'
-      EXPECTED_FRESH_EVALUATOR_BLOB: '__FRESH_EVALUATOR_BLOB__'
+      EXPECTED_ARMING_PARENT_HEAD: '37c4b8a203234428af0859f6aa9584277e5b41a5'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'b703a41fbf0998749c76e197ebaa640b369171e1'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '9c3ed0125a1528cf7544c8fef884113554442e89'
       CANONICAL_DEV_RUN_ID: '35451337745'
       CANONICAL_DEV_ARTIFACT_ID: '10586044507'
       CANONICAL_CHECKPOINT_SHA256: '167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244'
@@ -39,8 +45,9 @@ jobs:
         with:
           lfs: true
 
-      - name: Refuse unbound fresh authority
+      - name: Refuse unbound or replayed fresh authority
         run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
           test "$EXPECTED_PRE_FRESH_LOCK_BLOB" != "__PRE_FRESH_LOCK_BLOB__"
           test "$EXPECTED_FRESH_EVALUATOR_BLOB" != "__FRESH_EVALUATOR_BLOB__"
           test "$(git hash-object model/neural-vnext-native-r4/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
