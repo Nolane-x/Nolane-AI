@@ -1,83 +1,15 @@
 name: Neural vNext Native R3 Phase-1 Secondary Dev Replay
 
 on:
-  push:
-    branches:
-      - codex/neural-native-r3-attributed-belief
-    paths:
-      - 'model/neural-vnext-native-r3/scripts/compare_phase1_parent_dev2.py'
-      - 'model/neural-vnext-native-r3/evidence/PHASE2_NEGATIVE_001.json'
-      - '.github/workflows/neural-vnext-native-r3-phase1-secondary-dev.yml'
-  pull_request:
-    paths:
-      - 'model/neural-vnext-native-r3/scripts/compare_phase1_parent_dev2.py'
-      - 'model/neural-vnext-native-r3/evidence/PHASE2_NEGATIVE_001.json'
-      - '.github/workflows/neural-vnext-native-r3-phase1-secondary-dev.yml'
+  workflow_dispatch:
 
 permissions:
   contents: read
-  actions: read
-
-concurrency:
-  group: neural-vnext-native-r3-phase1-secondary-dev-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
-  secondary-dev-replay:
+  historical-secondary-dev:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    env:
-      PHASE1_RUN_ID: '35447526183'
-      PHASE1_CHECKPOINT_SHA256: '8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da'
-      PHASE1_MANIFEST_SHA256: '388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d'
-      PHASE1_DEV_SHA256: '85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf'
     steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install pinned neural dependencies
-        run: |
-          python -m pip install -q pytest numpy
-          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
-
-      - name: Download exact frozen R3 Phase-1 artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: neural-vnext-native-r3-dev
-          path: phase1-artifact
-          github-token: ${{ github.token }}
-          repository: Nolane-x/Nolane-AI
-          run-id: 35447526183
-
-      - name: Verify exact Phase-1 materialization
-        run: |
-          test "$(sha256sum phase1-artifact/r3.pt | awk '{print $1}')" = "$PHASE1_CHECKPOINT_SHA256"
-          test "$(sha256sum phase1-artifact/r3.manifest.json | awk '{print $1}')" = "$PHASE1_MANIFEST_SHA256"
-          test "$(sha256sum phase1-artifact/r3.dev.json | awk '{print $1}')" = "$PHASE1_DEV_SHA256"
-
-      - name: Run R3 contracts
-        env:
-          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
-        run: python -m pytest -q model/neural-vnext-native-r3/tests
-
-      - name: Compare frozen Phase-1 against frozen R2 on secondary dev
-        env:
-          PYTHONPATH: model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
-        run: |
-          mkdir -p r3-secondary-dev-output
-          python model/neural-vnext-native-r3/scripts/compare_phase1_parent_dev2.py \
-            --phase1-checkpoint phase1-artifact/r3.pt \
-            --result r3-secondary-dev-output/phase1-vs-r2.dev2.json
-          cat r3-secondary-dev-output/phase1-vs-r2.dev2.json
-
-      - name: Upload immutable secondary-dev evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: neural-vnext-native-r3-phase1-secondary-dev
-          path: r3-secondary-dev-output/
-          if-no-files-found: error
+      - run: |
+          echo "R3 secondary dev comparison is frozen historical evidence."
+          echo "Canonical evidence: model/neural-vnext-native-r3/evidence/PHASE1_SECONDARY_DEV_001.json"

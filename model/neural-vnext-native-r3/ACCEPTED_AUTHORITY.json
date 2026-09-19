@@ -68,7 +68,19 @@
       35447945617
     ],
     "cross_host_guarantee_claimed": false,
-    "accepted_materialization": "exact frozen workflow artifact"
+    "accepted_materialization": "repository-archived immutable frozen workflow artifact"
+  },
+  "repository_archive": {
+    "storage": "git-lfs",
+    "checkpoint_path": "accepted/r3.pt",
+    "manifest_path": "accepted/r3.manifest.json",
+    "dev_result_path": "accepted/r3.dev.json",
+    "archive_authority_path": "accepted/ARCHIVE_AUTHORITY.json",
+    "git_lfs_oid": "sha256:8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "size_bytes": 2854493,
+    "archive_commit": "9067ce9224981012a4b8e527348a74d246911a21",
+    "archive_workflow_run_id": 35449787071,
+    "archive_workflow_job_id": 105914828952
   },
   "evidence": {
     "pre_fresh_lock": "PRE_FRESH_LOCK.json",
@@ -87,5 +99,5 @@
     "accepted_r2_parent_mutated": false,
     "phase2_negative_result_must_remain_disclosed": true
   },
-  "claim": "Accepted action-attributed hidden-goal neural successor. On untouched fresh:80..119 it solved 147/160 versus frozen R2's 142/160; all +5 solved gains occurred in implicit_goal_regimes while every visible-target family remained exact."
+  "claim": "Accepted repository-archived action-attributed hidden-goal successor. On untouched fresh:80..119 it solved 147/160 versus frozen R2's 142/160; all +5 solved gains occurred in implicit_goal_regimes while every visible-target family remained exact."
 }

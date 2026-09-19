@@ -24,11 +24,15 @@
     "PHASE2_NEGATIVE_001.json",
     "PHASE1_SECONDARY_DEV_001.json",
     "FRESH_COURT_001.json",
-    "../ACCEPTED_AUTHORITY.json"
+    "../ACCEPTED_AUTHORITY.json",
+    "../accepted/ARCHIVE_AUTHORITY.json"
   ],
+  "accepted_materialization_archived_in_repository": true,
+  "repository_archive_commit": "9067ce9224981012a4b8e527348a74d246911a21",
+  "repository_checkpoint_path": "../accepted/r3.pt",
+  "repository_checkpoint_storage": "git-lfs",
   "post_fresh_training_performed": false,
   "post_fresh_tuning_performed": false,
   "fresh_block_reused": false,
-  "accepted_materialization_archived_in_repository": false,
-  "closure_rule": "Archive the exact accepted checkpoint without retraining. Future neural successors must use a new frozen candidate and a new untouched fresh block; fresh:80..119 is permanently consumed."
+  "closure_rule": "Future neural successors must start from a new candidate authority and use a new untouched fresh block; fresh:80..119 is permanently consumed."
 }
