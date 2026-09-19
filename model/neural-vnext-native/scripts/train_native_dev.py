@@ -4,6 +4,7 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from typing import Any, Mapping
 
 import torch
 
@@ -19,6 +20,7 @@ for path in (ROOT, R18_ROOT):
 from cogcoder.r18_benchmark import make_r18_task, oracle_plan  # noqa: E402
 from native_core import NativeRecurrentPolicy, parameter_count  # noqa: E402
 from native_training import (  # noqa: E402
+    configure_training_scope,
     evaluate_policy,
     load_lock,
     save_checkpoint,
@@ -27,7 +29,7 @@ from native_training import (  # noqa: E402
 )
 
 
-def _candidate_rank(dev: dict[str, object]) -> tuple[int, int, int]:
+def _candidate_rank(dev: Mapping[str, Any]) -> tuple[int, int, int]:
     families = dev["families"]
     if not isinstance(families, dict) or not families:
         raise ValueError("development result is missing family metrics")
@@ -37,9 +39,49 @@ def _candidate_rank(dev: dict[str, object]) -> tuple[int, int, int]:
     return solved, worst_family, -steps
 
 
+def _compact_dev(dev: Mapping[str, Any]) -> dict[str, Any]:
+    return {key: value for key, value in dev.items() if key != "rows"}
+
+
+def _new_model(architecture: Mapping[str, Any]) -> NativeRecurrentPolicy:
+    return NativeRecurrentPolicy(
+        global_dim=int(architecture["public_global_features"]),
+        action_dim=int(architecture["public_action_features"]),
+        hidden_dim=int(architecture["hidden_dim"]),
+        attention_heads=int(architecture["attention_heads"]),
+    )
+
+
+def _clone_state_dict(model: NativeRecurrentPolicy) -> dict[str, torch.Tensor]:
+    return {
+        name: tensor.detach().cpu().clone()
+        for name, tensor in model.state_dict().items()
+    }
+
+
+def _assert_visible_families_preserved(
+    base_dev: Mapping[str, Any],
+    candidate_dev: Mapping[str, Any],
+) -> None:
+    for family in (
+        "conditional_regimes",
+        "regime_switch",
+        "causal_prerequisites",
+    ):
+        if candidate_dev["families"][family] != base_dev["families"][family]:
+            raise AssertionError(
+                f"hidden-goal specialist changed visible family {family}: "
+                f"base={base_dev['families'][family]} "
+                f"candidate={candidate_dev['families'][family]}"
+            )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Deterministically tune Neural vNext Native on FIGG-18 dev only. Fresh is never instantiated."
+        description=(
+            "Train a deterministic shared Neural vNext Native base, freeze it, "
+            "then tune hidden-goal residual specialists on dev only. Fresh is never instantiated."
+        )
     )
     parser.add_argument("--lock", type=Path, default=ROOT / "PREDEV_LOCK.json")
     parser.add_argument("--checkpoint", required=True, type=Path)
@@ -63,42 +105,111 @@ def main() -> int:
     dev_indices = tuple(int(value) for value in benchmark["development_indices"])
     families = tuple(str(value) for value in benchmark["families"])
     seed = int(training["seed"])
-    candidates = training.get("development_candidates")
-    if not isinstance(candidates, list) or not candidates:
-        raise ValueError("development_candidates must be a non-empty list")
 
-    best_model: NativeRecurrentPolicy | None = None
-    best_name: str | None = None
-    best_rank: tuple[int, int, int] | None = None
-    best_dev: dict[str, object] | None = None
-    best_training: dict[str, object] | None = None
-    tournament: list[dict[str, object]] = []
+    base_cfg = training.get("base_curriculum")
+    base_family_ranges = training.get("base_family_training_indices")
+    specialist_candidates = training.get("hidden_goal_specialists")
+    specialist_ranges = training.get("hidden_goal_family_training_indices")
+    if not isinstance(base_cfg, dict):
+        raise ValueError("base_curriculum must be an object")
+    if not isinstance(base_family_ranges, dict):
+        raise ValueError("base_family_training_indices must be an object")
+    if not isinstance(specialist_candidates, list) or not specialist_candidates:
+        raise ValueError("hidden_goal_specialists must be a non-empty list")
+    if not isinstance(specialist_ranges, dict):
+        raise ValueError("hidden_goal_family_training_indices must be an object")
 
-    for candidate in candidates:
+    # Stage A: one shared base, trained with the hidden-goal specialist frozen.
+    torch.manual_seed(seed)
+    base_model = _new_model(architecture)
+    base_scope = configure_training_scope(base_model, "base")
+    base_summary = train_native_policy(
+        base_model,
+        make_task=make_r18_task,
+        oracle_plan=oracle_plan,
+        families=families,
+        train_indices=(train_indices[0], train_indices[1]),
+        family_train_indices=base_family_ranges,
+        seed=seed,
+        expert_epochs=int(base_cfg["expert_epochs"]),
+        dagger_teacher_mix=[float(value) for value in base_cfg["dagger_teacher_mix"]],
+        learning_rate=float(training["learning_rate"]),
+        weight_decay=float(training["weight_decay"]),
+        max_grad_norm=float(training["max_grad_norm"]),
+        goal_loss_weight=0.0,
+    )
+    base_dev = evaluate_policy(
+        base_model,
+        make_task=make_r18_task,
+        families=families,
+        split="dev",
+        indices=(dev_indices[0], dev_indices[1]),
+    )
+    base_rank = _candidate_rank(base_dev)
+    print(
+        json.dumps(
+            {
+                "status": "DEV_BASE_COMPLETE_FRESH_UNOPENED",
+                "candidate": "base_only",
+                "rank": list(base_rank),
+                "dev_solved": base_dev["solved"],
+                "dev_episodes": base_dev["episodes"],
+                "families": base_dev["families"],
+                "scope": base_scope,
+            },
+            sort_keys=True,
+        )
+    )
+
+    base_state = _clone_state_dict(base_model)
+    best_model = base_model
+    best_name = "base_only"
+    best_rank = base_rank
+    best_dev = base_dev
+    best_training: dict[str, Any] = {
+        "kind": "base_only",
+        "base": base_summary,
+        "scope": base_scope,
+    }
+    tournament: list[dict[str, Any]] = [
+        {
+            "name": "base_only",
+            "rank": list(base_rank),
+            "development": _compact_dev(base_dev),
+            "training": base_summary,
+            "scope": base_scope,
+        }
+    ]
+
+    # Stage B: reset to the exact base for every specialist candidate, freeze the
+    # shared core, and expose only hidden-goal residual parameters to the optimizer.
+    for candidate in specialist_candidates:
         if not isinstance(candidate, dict):
-            raise ValueError("development candidate entries must be objects")
+            raise ValueError("hidden_goal_specialists entries must be objects")
         name = str(candidate["name"])
         torch.manual_seed(seed)
-        model = NativeRecurrentPolicy(
-            global_dim=int(architecture["public_global_features"]),
-            action_dim=int(architecture["public_action_features"]),
-            hidden_dim=int(architecture["hidden_dim"]),
-            attention_heads=int(architecture["attention_heads"]),
-        )
-        summary = train_native_policy(
+        model = _new_model(architecture)
+        model.load_state_dict(base_state, strict=True)
+        scope = configure_training_scope(model, "hidden_goal")
+        specialist_summary = train_native_policy(
             model,
             make_task=make_r18_task,
             oracle_plan=oracle_plan,
-            families=families,
-            train_indices=(train_indices[0], train_indices[1]),
-            family_train_indices=training["family_training_indices"],
+            families=("implicit_goal_regimes",),
+            train_indices=(
+                int(specialist_ranges["implicit_goal_regimes"][0]),
+                int(specialist_ranges["implicit_goal_regimes"][1]),
+            ),
+            family_train_indices={
+                "implicit_goal_regimes": specialist_ranges["implicit_goal_regimes"],
+            },
             seed=seed,
             expert_epochs=int(candidate["expert_epochs"]),
             dagger_teacher_mix=[float(value) for value in candidate["dagger_teacher_mix"]],
-            learning_rate=float(training["learning_rate"]),
+            learning_rate=float(candidate.get("learning_rate", training["learning_rate"])),
             weight_decay=float(training["weight_decay"]),
             max_grad_norm=float(training["max_grad_norm"]),
-            goal_loss_weight=float(training["goal_belief"]["loss_weight"]),
+            goal_loss_weight=float(candidate.get("goal_loss_weight", training["goal_belief"]["loss_weight"])),
         )
         dev = evaluate_policy(
             model,
@@ -107,47 +218,54 @@ def main() -> int:
             split="dev",
             indices=(dev_indices[0], dev_indices[1]),
         )
+        _assert_visible_families_preserved(base_dev, dev)
         rank = _candidate_rank(dev)
         tournament.append(
             {
                 "name": name,
-                "expert_epochs": int(candidate["expert_epochs"]),
-                "dagger_teacher_mix": [float(value) for value in candidate["dagger_teacher_mix"]],
                 "rank": list(rank),
-                "development": {key: value for key, value in dev.items() if key != "rows"},
-                "training": summary,
+                "development": _compact_dev(dev),
+                "training": specialist_summary,
+                "scope": scope,
+                "visible_families_preserved": True,
             }
         )
         print(
             json.dumps(
                 {
-                    "status": "DEV_CANDIDATE_COMPLETE_FRESH_UNOPENED",
+                    "status": "DEV_HIDDEN_GOAL_SPECIALIST_COMPLETE_FRESH_UNOPENED",
                     "candidate": name,
                     "rank": list(rank),
                     "dev_solved": dev["solved"],
                     "dev_episodes": dev["episodes"],
                     "families": dev["families"],
+                    "scope": scope,
+                    "visible_families_preserved": True,
                 },
                 sort_keys=True,
             )
         )
-        better = best_rank is None or rank > best_rank
-        tied_but_lexical = rank == best_rank and best_name is not None and name < best_name
+
+        better = rank > best_rank
+        tied_but_lexical = rank == best_rank and name < best_name
         if better or tied_but_lexical:
             best_model = model
             best_name = name
             best_rank = rank
             best_dev = dev
-            best_training = summary
-
-    if best_model is None or best_name is None or best_dev is None or best_training is None:
-        raise AssertionError("development tournament did not produce a candidate")
+            best_training = {
+                "kind": "base_plus_hidden_goal_specialist",
+                "base": base_summary,
+                "specialist": specialist_summary,
+                "scope": scope,
+            }
 
     training_summary = {
         "seed": seed,
         "selected_candidate": best_name,
         "selected_rank": list(best_rank),
         "selected_training": best_training,
+        "base_development": _compact_dev(base_dev),
         "selection_rule": list(training["selection_rule"]),
         "tournament": tournament,
         "fresh_opened": False,
@@ -160,15 +278,20 @@ def main() -> int:
     )
     manifest["selected_candidate"] = best_name
     manifest["selected_rank"] = list(best_rank)
-    manifest["dev_evaluation"] = {
-        key: value for key, value in best_dev.items() if key != "rows"
-    }
+    manifest["base_dev_evaluation"] = _compact_dev(base_dev)
+    manifest["dev_evaluation"] = _compact_dev(best_dev)
     manifest["fresh_opened"] = False
 
     args.manifest.parent.mkdir(parents=True, exist_ok=True)
     args.dev_result.parent.mkdir(parents=True, exist_ok=True)
-    args.manifest.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    args.dev_result.write_text(json.dumps(best_dev, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    args.manifest.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    args.dev_result.write_text(
+        json.dumps(best_dev, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     print(
         json.dumps(
             {
@@ -178,6 +301,7 @@ def main() -> int:
                 "parameters": parameter_count(best_model),
                 "checkpoint_sha256": manifest["checkpoint_sha256"],
                 "state_dict_sha256": manifest["state_dict_sha256"],
+                "base_dev_solved": base_dev["solved"],
                 "dev_solved": best_dev["solved"],
                 "dev_episodes": best_dev["episodes"],
                 "dev_solve_rate": best_dev["solve_rate"],
