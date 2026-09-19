@@ -11,9 +11,10 @@ import torch
 HERE = Path(__file__).resolve()
 VNEXT_ROOT = HERE.parents[1]
 MODEL_ROOT = HERE.parents[2]
+REPO_ROOT = HERE.parents[3]
 R23_ROOT = MODEL_ROOT / "neural-r2.3"
 R21_ROOT = MODEL_ROOT / "neural-r2.1"
-for root in (VNEXT_ROOT, R23_ROOT, R21_ROOT):
+for root in (REPO_ROOT, VNEXT_ROOT, R23_ROOT, R21_ROOT):
     text = str(root)
     if text not in sys.path:
         sys.path.insert(0, text)
