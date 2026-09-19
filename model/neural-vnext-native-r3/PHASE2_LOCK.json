@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "status": "PHASE2_PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R3-AttributedBelief-Phase2",
+  "phase1_authority": {
+    "selected_candidate": "attributed_broad",
+    "source_head": "783181e972da14d29f6c28324373ecba67b9d41f",
+    "workflow_run_id": 35447526183,
+    "artifact_id": 10586461067,
+    "artifact_name": "neural-vnext-native-r3-dev",
+    "artifact_digest": "sha256:5d477a1d7b4c12757c0b0ff5644ec940f45fc902fd489632f5ce1a7682bffef5",
+    "checkpoint_filename": "r3.pt",
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "manifest_sha256": "388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d",
+    "dev_result_sha256": "85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf",
+    "development_indices": [
+      96,
+      127
+    ],
+    "development_solved": 114,
+    "implicit_goal_solved": 21,
+    "fresh_opened": false
+  },
+  "frozen_r2_parent": {
+    "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "trainable": false
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_split": "train",
+    "phase2_training_indices": [
+      1536,
+      2047
+    ],
+    "development_split": "dev",
+    "phase2_development_indices": [
+      128,
+      159
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      80,
+      119
+    ],
+    "fresh_episodes_expected": 160,
+    "previous_development_blocks": [
+      [
+        96,
+        127
+      ]
+    ],
+    "previously_consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "Phase-2 may instantiate only train:1536..2047 and dev:128..159. fresh:80..119 remains forbidden.",
+    "post_fresh_tuning_allowed": false
+  },
+  "training": {
+    "seed": 20260920,
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "candidates": [
+      {
+        "name": "phase2_conservative",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0002,
+        "residual_l2_weight": 0.002
+      },
+      {
+        "name": "phase2_broad",
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0003,
+        "residual_l2_weight": 0.001
+      }
+    ],
+    "selection_rule": [
+      "start every phase-2 candidate from the exact frozen attributed_broad phase-1 checkpoint",
+      "evaluate phase-1 replay and phase-2 candidates on dev:128..159 only",
+      "candidate must strictly improve implicit_goal_regimes solved count versus exact phase-1 replay",
+      "candidate must strictly improve total solved count versus exact phase-1 replay",
+      "conditional_regimes, regime_switch and causal_prerequisites solved counts must equal phase-1 replay exactly",
+      "among eligible candidates maximize implicit_goal_regimes solved",
+      "then maximize total solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
+  },
+  "claim_boundary": "Phase-2 development only. No result from dev:128..159 authorizes fresh. fresh:80..119 remains unopened until a separate freeze/reproducibility gate."
+}

@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "R3_PHASE1_DEV_ELIGIBLE_FRESH_UNOPENED",
+  "source_head": "783181e972da14d29f6c28324373ecba67b9d41f",
+  "workflow_run_id": 35447526183,
+  "job_id": 105908929764,
+  "artifact": {
+    "id": 10586461067,
+    "name": "neural-vnext-native-r3-dev",
+    "digest": "sha256:5d477a1d7b4c12757c0b0ff5644ec940f45fc902fd489632f5ce1a7682bffef5",
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "manifest_sha256": "388b47e71cd83069c40af0ccad495bf340f19a037fb09ddbf3bb26deb4fccb8d",
+    "dev_result_sha256": "85f8b1250b288d9e67327126f4b3895becb6c8be7c2ede926040dae3e6c1abdf"
+  },
+  "frozen_r2_parent": {
+    "checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf"
+  },
+  "dev_block": [
+    96,
+    127
+  ],
+  "parent": {
+    "solved": 112,
+    "episodes": 128,
+    "families": {
+      "conditional_regimes": 31,
+      "regime_switch": 30,
+      "implicit_goal_regimes": 19,
+      "causal_prerequisites": 32
+    }
+  },
+  "candidates": [
+    {
+      "name": "attributed_guarded",
+      "solved": 113,
+      "implicit_goal_solved": 20,
+      "eligible": true
+    },
+    {
+      "name": "attributed_broad",
+      "solved": 114,
+      "implicit_goal_solved": 21,
+      "eligible": true
+    }
+  ],
+  "selected_candidate": "attributed_broad",
+  "selected_rank": [
+    21,
+    114,
+    -1668,
+    "attributed_broad"
+  ],
+  "parameters": 707990,
+  "successor_parameters": 171905,
+  "fresh_opened": false,
+  "claim_boundary": "Phase-1 development evidence only. fresh:80..119 remains unopened."
+}

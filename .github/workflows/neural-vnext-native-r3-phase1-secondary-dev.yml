@@ -1,0 +1,15 @@
+name: Neural vNext Native R3 Phase-1 Secondary Dev Replay
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-secondary-dev:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo "R3 secondary dev comparison is frozen historical evidence."
+          echo "Canonical evidence: model/neural-vnext-native-r3/evidence/PHASE1_SECONDARY_DEV_001.json"

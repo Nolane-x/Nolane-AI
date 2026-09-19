@@ -1,0 +1,15 @@
+name: Neural vNext Native R3 Phase 2 Dev
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  historical-phase2-negative:
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo "R3 Phase-2 is closed as a negative development result."
+          echo "Canonical evidence: model/neural-vnext-native-r3/evidence/PHASE2_NEGATIVE_001.json"

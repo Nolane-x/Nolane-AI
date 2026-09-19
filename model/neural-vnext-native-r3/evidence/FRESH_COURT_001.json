@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_ACCEPTED",
+  "trial": "neural-vnext-native-r3-fresh-court-001",
+  "fresh_workflow": {
+    "workflow_run_id": 35449613862,
+    "job_id": 105914377140,
+    "head_sha": "6665f922de595ca24a1b4a88e716863c9b650202",
+    "arming_parent_head": "0150864d745b5624fa01785a59c1174506476526",
+    "artifact": {
+      "id": 10585529581,
+      "name": "neural-vnext-native-r3-fresh-court-80-119",
+      "digest": "sha256:3637f3112e58589ed28a2f51825d723fc8fd8f53853972061d6ef78009f69d0c",
+      "size_bytes": 4998
+    }
+  },
+  "frozen_candidate": {
+    "selected_candidate": "attributed_broad",
+    "parameters": 707990,
+    "successor_parameters": 171905,
+    "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+    "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+    "parent_checkpoint_sha256": "bb18c0b0f398400aa0d8ab5a7a646c0ed57eec46cfb3415abe2693ab46a30c14",
+    "parent_state_dict_sha256": "20a2dcefbe6d5f22184569186716a31053231aa0599b3b52d4650fc30084f2bf",
+    "pre_fresh_lock_sha256": "7e2e905932a3839e914f4675e5bb4fd29c4cba7e494ccf18a64785735344a2b4",
+    "pre_fresh_lock_git_blob": "36dfe29e8b82327a7eb23e23dc24be3d02fb5c33"
+  },
+  "development_evidence": {
+    "primary": {
+      "indices": [
+        96,
+        127
+      ],
+      "parent_solved": 112,
+      "candidate_solved": 114,
+      "implicit_goal_delta_vs_parent": 2,
+      "visible_target_families_exact": true
+    },
+    "secondary_post_hoc": {
+      "indices": [
+        128,
+        159
+      ],
+      "parent_solved": 118,
+      "candidate_solved": 119,
+      "implicit_goal_delta_vs_parent": 1,
+      "visible_target_families_exact": true,
+      "claim_boundary": "POST_HOC_DEVELOPMENT_NOT_PROMOTION_COURT"
+    },
+    "phase2_continuation": {
+      "status": "NEGATIVE_RESULT",
+      "phase1_replay_solved": 119,
+      "best_phase2_solved": 118,
+      "best_phase2_implicit_goal_delta_vs_phase1": -1
+    }
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      80,
+      119
+    ],
+    "episodes": 160,
+    "parent": {
+      "solved": 142,
+      "solve_rate": 0.8875,
+      "steps": 2185,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 40,
+          "solved": 40,
+          "steps": 570
+        },
+        "conditional_regimes": {
+          "episodes": 40,
+          "solved": 39,
+          "steps": 410
+        },
+        "implicit_goal_regimes": {
+          "episodes": 40,
+          "solved": 26,
+          "steps": 600
+        },
+        "regime_switch": {
+          "episodes": 40,
+          "solved": 37,
+          "steps": 605
+        }
+      }
+    },
+    "candidate": {
+      "solved": 147,
+      "solve_rate": 0.91875,
+      "steps": 2145,
+      "families": {
+        "causal_prerequisites": {
+          "episodes": 40,
+          "solved": 40,
+          "steps": 570
+        },
+        "conditional_regimes": {
+          "episodes": 40,
+          "solved": 39,
+          "steps": 410
+        },
+        "implicit_goal_regimes": {
+          "episodes": 40,
+          "solved": 31,
+          "steps": 560
+        },
+        "regime_switch": {
+          "episodes": 40,
+          "solved": 37,
+          "steps": 605
+        }
+      }
+    },
+    "identity_cartesian_product_verified": true,
+    "parent_candidate_identical_identities": true
+  },
+  "preregistered_promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "actual_total_solved_delta_vs_parent": 5,
+    "actual_target_family_solved_delta_vs_parent": 5,
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": 5,
+      "regime_switch": 0
+    },
+    "all_visible_target_families_exact": true,
+    "accepted": true
+  },
+  "post_fresh": {
+    "tuning_allowed_for_this_candidate": false,
+    "same_fresh_block_rerun_for_promotion_allowed": false,
+    "candidate_mutation_invalidates_this_authority": true
+  },
+  "claim_boundary": "R3 is accepted as the exact frozen attributed_broad artifact under its preregistered parent-relative fresh court. Workflow-level bitwise reproduction was observed before fresh; no cross-host hardware guarantee is claimed."
+}

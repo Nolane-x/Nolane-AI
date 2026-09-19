@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-R3-AttributedBelief",
+  "accepted_candidate": "attributed_broad",
+  "parameters": 707990,
+  "successor_parameters": 171905,
+  "checkpoint_sha256": "8c2ba53e81b51d1418cbb7abead6380808dc558cde02af9e63bf8020f92e95da",
+  "state_dict_sha256": "6ecf000191d6212953c8f3a77b5f3de697795f9797c75da70ddd838003531c1e",
+  "fresh": {
+    "candidate_solved": 147,
+    "parent_solved": 142,
+    "episodes": 160,
+    "candidate_solve_rate": 0.91875,
+    "parent_solve_rate": 0.8875,
+    "accepted": true
+  },
+  "fresh_workflow_run_id": 35449613862,
+  "fresh_workflow_job_id": 105914377140,
+  "fresh_artifact_id": 10585529581,
+  "fresh_artifact_digest": "sha256:3637f3112e58589ed28a2f51825d723fc8fd8f53853972061d6ef78009f69d0c",
+  "evidence_chain": [
+    "../PRE_FRESH_LOCK.json",
+    "PHASE2_NEGATIVE_001.json",
+    "PHASE1_SECONDARY_DEV_001.json",
+    "FRESH_COURT_001.json",
+    "../ACCEPTED_AUTHORITY.json",
+    "../accepted/ARCHIVE_AUTHORITY.json"
+  ],
+  "accepted_materialization_archived_in_repository": true,
+  "repository_archive_commit": "9067ce9224981012a4b8e527348a74d246911a21",
+  "repository_checkpoint_path": "../accepted/r3.pt",
+  "repository_checkpoint_storage": "git-lfs",
+  "post_fresh_training_performed": false,
+  "post_fresh_tuning_performed": false,
+  "fresh_block_reused": false,
+  "closure_rule": "Future neural successors must start from a new candidate authority and use a new untouched fresh block; fresh:80..119 is permanently consumed."
+}
