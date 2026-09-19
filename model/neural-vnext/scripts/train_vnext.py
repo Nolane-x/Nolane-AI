@@ -11,15 +11,14 @@ import torch
 HERE = Path(__file__).resolve()
 VNEXT_ROOT = HERE.parents[1]
 MODEL_ROOT = HERE.parents[2]
-REPO_ROOT = HERE.parents[3]
 R23_ROOT = MODEL_ROOT / "neural-r2.3"
-R21_ROOT = MODEL_ROOT / "neural-r2.1"
-for root in (REPO_ROOT, VNEXT_ROOT, R23_ROOT, R21_ROOT):
+for root in (VNEXT_ROOT, R23_ROOT):
     text = str(root)
     if text not in sys.path:
         sys.path.insert(0, text)
 
 from nvnext.pipeline import (  # noqa: E402
+    load_locked_r23_reasoner,
     load_predev_lock,
     load_verified_training_cache,
     run_training_epoch,
@@ -28,7 +27,7 @@ from nvnext.pipeline import (  # noqa: E402
     sha256_json_file,
 )
 from nvnext.training import make_vnext_optimizer  # noqa: E402
-from r23.standalone import load_r23_one_weight  # noqa: E402
+from r23.ultra_core import ScaledRecursiveDistilledReasoner  # noqa: E402
 
 
 def _positive_int(value: str) -> int:
@@ -88,19 +87,23 @@ def main() -> int:
         raise ValueError("predevelopment lock is missing parent/candidate architecture")
 
     expected_parent_sha = parent.get("one_weight_sha256")
-    actual_parent_sha = sha256_file(args.parent_checkpoint)
-    if actual_parent_sha != expected_parent_sha:
-        raise ValueError(
-            f"parent checkpoint SHA-256 mismatch: {actual_parent_sha} != {expected_parent_sha}"
-        )
+    physical_parameters = parent.get("physical_parameters")
+    if not isinstance(expected_parent_sha, str):
+        raise ValueError("parent one-weight SHA-256 authority is missing")
+    if type(physical_parameters) is not int:
+        raise ValueError("parent physical parameter authority must be an exact integer")
     if args.max_depth > architecture.get("maximum_recurrent_depth", 0):
         raise ValueError("requested training depth exceeds preregistered maximum")
     if args.min_depth < architecture.get("minimum_adaptive_depth", 10**9):
         raise ValueError("requested minimum depth is below preregistered minimum")
 
-    _parent, _rollout, _executive, _router, reasoner, _meta = load_r23_one_weight(
-        args.parent_checkpoint
+    reasoner, parent_meta = load_locked_r23_reasoner(
+        args.parent_checkpoint,
+        reasoner_factory=ScaledRecursiveDistilledReasoner,
+        expected_sha256=expected_parent_sha,
+        expected_physical_parameters=physical_parameters,
     )
+    actual_parent_sha = str(parent_meta["one_weight_sha256"])
     records = load_verified_training_cache(args.training_cache, predev_lock=lock)
 
     torch.manual_seed(args.seed)
@@ -154,10 +157,6 @@ def main() -> int:
         "halt_threshold": args.halt_threshold,
         "stability_steps": args.stability_steps,
     }
-    physical_parameters = parent.get("physical_parameters")
-    if type(physical_parameters) is not int:
-        raise ValueError("parent physical parameter authority must be an exact integer")
-
     manifest = save_frozen_candidate(
         reasoner,
         args.output,
