@@ -1,6 +1,6 @@
 # Neural vNext Native R34 — trajectory-mechanism supervision
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R34 is the first successor after R31-R33 to change the **learning structure** rather than merely changing the static label surface.
 
@@ -41,3 +41,22 @@ The rescue selector remains identical to R33 and reads only the direct joint res
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No same-dev retuning is permitted. Confirmation and fresh remain closed unless the exact locked candidate strictly improves both total solved count and implicit-goal solved count while preserving visible-target families exactly.
+
+
+## Locked development result
+
+R34 trained on **4,956** action-pair counterfactual rows: **493 both-fail**, **299 rescue**, **1,712 harm**, and **2,452 both-solve**.
+
+The auxiliary tasks genuinely learned: terminal-mechanism accuracy reached about **81.8–82.9%**, trajectory MAE reached about **0.126–0.133**, and joint-outcome accuracy reached about **78.1–78.9%** across ensemble heads. Despite that, the unchanged rescue selector still failed every preregistered guard setting. Broad settings retained low rescue precision and harm; stricter settings collapsed rescue coverage.
+
+On dev:2016..2047:
+- accepted R11: **121/128**, implicit-goal **28/32**
+- R34: **121/128**, implicit-goal **28/32**
+- visible-target family solved counts: exact
+- overrides: **0**
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+This is stronger evidence than a simple classifier failure: coarse failure/trajectory structure is learnable, but auxiliary supervision alone does not make rare rescue separable. The next architecture should make **predicted branch sequence structure part of the decision computation itself**.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
