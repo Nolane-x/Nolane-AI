@@ -1149,7 +1149,7 @@ def fit_rescue_guard(
     }
 
 
-def rollout_r36(
+def rollout_r37(
     parent: Any,
     model: NativeR37DistributionallyRobustSetRankerEnsemble,
     task: Any,
@@ -1219,7 +1219,7 @@ def rollout_r36(
     }
 
 
-def evaluate_r36(
+def evaluate_r37(
     parent: Any,
     model: NativeR37DistributionallyRobustSetRankerEnsemble,
     *,
@@ -1241,7 +1241,7 @@ def evaluate_r36(
     for family in families:
         fs = fst = fov = fguard = episodes = 0
         for index in range(int(indices[0]), int(indices[1]) + 1):
-            result = rollout_r36(
+            result = rollout_r37(
                 parent,
                 model,
                 make_task(str(family), str(split), int(index)),
