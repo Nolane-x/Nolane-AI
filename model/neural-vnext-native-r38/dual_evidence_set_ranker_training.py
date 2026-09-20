@@ -1060,75 +1060,75 @@ def fit_rescue_guard(
     for selection_threshold in selection_thresholds:
         for rescue_threshold in rescue_thresholds:
             for harm_ceiling in harm_ceilings:
-            blocks: list[dict[str, Any]] = []
-            total_selected = total_rescue = total_harm = 0
-            for block_index, rows in enumerate(block_rows):
-                selected = rescued = harmed = 0
-                groups = _group_rows(rows)
-                for group in groups:
-                    row, _ = _select_action_row(
-                        model,
-                        group,
-                        selection_threshold=float(selection_threshold),
-                        rescue_threshold=float(rescue_threshold),
-                        harm_ceiling=float(harm_ceiling),
+                blocks: list[dict[str, Any]] = []
+                total_selected = total_rescue = total_harm = 0
+                for block_index, rows in enumerate(block_rows):
+                    selected = rescued = harmed = 0
+                    groups = _group_rows(rows)
+                    for group in groups:
+                        row, _ = _select_action_row(
+                            model,
+                            group,
+                            selection_threshold=float(selection_threshold),
+                            rescue_threshold=float(rescue_threshold),
+                            harm_ceiling=float(harm_ceiling),
+                        )
+                        if row is None:
+                            continue
+                        selected += 1
+                        rescued += int(row["class_id"] == RESCUE_CLASS)
+                        harmed += int(row["class_id"] == HARM_CLASS)
+                    precision = rescued / max(1, selected)
+                    blocks.append(
+                        {
+                            "block_index": int(block_index),
+                            "candidate_rows": len(rows),
+                            "decision_groups": len(groups),
+                            "selected_actions": selected,
+                            "rescue_actions": rescued,
+                            "harm_actions": harmed,
+                            "rescue_precision": precision,
+                        }
                     )
-                    if row is None:
-                        continue
-                    selected += 1
-                    rescued += int(row["class_id"] == RESCUE_CLASS)
-                    harmed += int(row["class_id"] == HARM_CLASS)
-                precision = rescued / max(1, selected)
-                blocks.append(
+                    total_selected += selected
+                    total_rescue += rescued
+                    total_harm += harmed
+                worst_precision = min(
+                    (float(block["rescue_precision"]) for block in blocks),
+                    default=0.0,
+                )
+                block_coverage_ok = all(
+                    int(block["selected_actions"]) >= int(minimum_block_selections)
+                    for block in blocks
+                )
+                block_precision_ok = all(
+                    float(block["rescue_precision"]) >= float(minimum_precision)
+                    for block in blocks
+                )
+                harm_ok = (total_harm == 0) if require_zero_harm else True
+                eligible = bool(
+                    total_selected >= int(minimum_total_selections)
+                    and block_coverage_ok
+                    and block_precision_ok
+                    and harm_ok
+                )
+                candidates.append(
                     {
-                        "block_index": int(block_index),
-                        "candidate_rows": len(rows),
-                        "decision_groups": len(groups),
-                        "selected_actions": selected,
-                        "rescue_actions": rescued,
-                        "harm_actions": harmed,
-                        "rescue_precision": precision,
+                        "selection_threshold": float(selection_threshold),
+                        "rescue_threshold": float(rescue_threshold),
+                        "harm_ceiling": float(harm_ceiling),
+                        "selected_actions": total_selected,
+                        "rescue_actions": total_rescue,
+                        "harm_actions": total_harm,
+                        "rescue_precision": total_rescue / max(1, total_selected),
+                        "worst_block_precision": worst_precision,
+                        "block_coverage_ok": block_coverage_ok,
+                        "block_precision_ok": block_precision_ok,
+                        "harm_ok": harm_ok,
+                        "eligible": eligible,
+                        "blocks": blocks,
                     }
                 )
-                total_selected += selected
-                total_rescue += rescued
-                total_harm += harmed
-            worst_precision = min(
-                (float(block["rescue_precision"]) for block in blocks),
-                default=0.0,
-            )
-            block_coverage_ok = all(
-                int(block["selected_actions"]) >= int(minimum_block_selections)
-                for block in blocks
-            )
-            block_precision_ok = all(
-                float(block["rescue_precision"]) >= float(minimum_precision)
-                for block in blocks
-            )
-            harm_ok = (total_harm == 0) if require_zero_harm else True
-            eligible = bool(
-                total_selected >= int(minimum_total_selections)
-                and block_coverage_ok
-                and block_precision_ok
-                and harm_ok
-            )
-            candidates.append(
-                {
-                    "selection_threshold": float(selection_threshold),
-                    "rescue_threshold": float(rescue_threshold),
-                    "harm_ceiling": float(harm_ceiling),
-                    "selected_actions": total_selected,
-                    "rescue_actions": total_rescue,
-                    "harm_actions": total_harm,
-                    "rescue_precision": total_rescue / max(1, total_selected),
-                    "worst_block_precision": worst_precision,
-                    "block_coverage_ok": block_coverage_ok,
-                    "block_precision_ok": block_precision_ok,
-                    "harm_ok": harm_ok,
-                    "eligible": eligible,
-                    "blocks": blocks,
-                }
-            )
     eligible = [row for row in candidates if row["eligible"]]
     selected = (
         max(
