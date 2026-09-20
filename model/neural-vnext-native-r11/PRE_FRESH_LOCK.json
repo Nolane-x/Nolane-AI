@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "candidate_authority": {
+    "mode": "deterministic_source_and_config",
+    "source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+    "learned_successor_parameters": 0,
+    "physical_parameters": 877542
+  },
+  "parent_authority": {
+    "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+    "accepted_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "r9_public_planner_blob_sha": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "r9_planner_runtime_blob_sha": "b36faed53f3668cef9aceb3e99bfff4a1093b590",
+    "r4_checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "r4_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "r4_state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "primary": {
+    "evidence_path": "evidence/PRIMARY_DEV_REPRO_001.json",
+    "evidence_blob_sha": "34e65f56632b8dafca069bc612cdceb527d8a0ef",
+    "parent_solved": 119,
+    "candidate_solved": 120,
+    "total_delta": 1,
+    "implicit_goal_delta": 1,
+    "promotion_metrics_reproduced": true,
+    "trajectory_bitwise_reproduced": false
+  },
+  "confirmation": {
+    "evidence_path": "evidence/CONFIRMATION_REPRO_001.json",
+    "evidence_blob_sha": "2ca6b47b725c5cd477910a9010457f07fc332a11",
+    "parent_solved": 120,
+    "candidate_solved": 121,
+    "total_delta": 1,
+    "implicit_goal_delta": 1,
+    "promotion_metrics_reproduced": true,
+    "trajectory_bitwise_reproduced": false,
+    "attempts": [
+      {
+        "workflow_run_id": 35486872465,
+        "run_attempt": 1,
+        "artifact_id": 10598011320,
+        "artifact_digest": "sha256:be814e677d6d51f4c504da540d125560b64588f1a02b778a605888fd6f66d137"
+      },
+      {
+        "workflow_run_id": 35486872465,
+        "run_attempt": 2,
+        "artifact_id": 10597736953,
+        "artifact_digest": "sha256:2b6d9446f7287e81174945c9289a080a5b4e8964ce678a2385f9e6ef2a0a2caf"
+      }
+    ]
+  },
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r11/causal_version_space.py": "b13657c388d589751919be001d618f6fac2b0643",
+    "model/neural-vnext-native-r11/causal_runtime.py": "9ae28255bd417094b262df948d62860f61116a01",
+    "model/neural-vnext-native-r11/PREDEV_LOCK.json": "d2e12711ccc570b43edf797c485f50e3e62f36d5"
+  },
+  "fresh_evaluator_blob_sha": "595afc4ad819899978318da7ae370d0ae9ac7afe",
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "indices": [
+      240,
+      279
+    ],
+    "episodes_expected": 160,
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_r9": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta_vs_r9": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true,
+    "step_counts_are_not_promotion_authority": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false,
+    "failure_path": "record negative result and close R11 without merge; any successor must use a new untouched fresh block"
+  },
+  "claim_boundary": "Primary and confirmation promotion metrics reproduced, while trajectory step counts did not. R11 fresh promotion is governed only by preregistered solved-count deltas and visible-family exactness; no bitwise trajectory claim is made."
+}

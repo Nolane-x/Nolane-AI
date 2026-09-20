@@ -1,0 +1,72 @@
+name: Neural vNext Native R11 Accepted Authority
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'model/neural-vnext-native-r11/**'
+      - '.github/workflows/neural-vnext-native-r11-accepted.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-accepted-authority:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify accepted R11 source and evidence authority
+        run: |
+          test "$(git hash-object model/neural-vnext-native-r11/causal_version_space.py)" = "b13657c388d589751919be001d618f6fac2b0643"
+          test "$(git hash-object model/neural-vnext-native-r11/causal_runtime.py)" = "9ae28255bd417094b262df948d62860f61116a01"
+          test "$(git hash-object model/neural-vnext-native-r11/evidence/FRESH_COURT_001.json)" = "48d6c0154c7d0163c72886459154ec4dfd46b826"
+          test "$(git hash-object model/neural-vnext-native-r11/ACCEPTED_AUTHORITY.json)" = "f8e8fac794fd339e261e9245ef7b46e1367683f1"
+          test "$(git hash-object model/neural-vnext-native-r9/ACCEPTED_AUTHORITY.json)" = "f3c829cdeb4fa3e2cfadd69ca4c583997b466049"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          authority=json.loads(Path('model/neural-vnext-native-r11/ACCEPTED_AUTHORITY.json').read_text())
+          fresh=json.loads(Path('model/neural-vnext-native-r11/evidence/FRESH_COURT_001.json').read_text())
+          primary=json.loads(Path('model/neural-vnext-native-r11/evidence/PRIMARY_DEV_REPRO_001.json').read_text())
+          confirm=json.loads(Path('model/neural-vnext-native-r11/evidence/CONFIRMATION_REPRO_001.json').read_text())
+          assert authority['status']=='ACCEPTED'
+          assert authority['successor']['selected_candidate']=='causal_horizon1'
+          assert authority['successor']['selected_config']=={'horizon':1,'max_support':3}
+          assert authority['successor']['learned_parameters']==0
+          assert authority['reproducibility']['primary_trajectory_bitwise_reproduced'] is False
+          assert authority['reproducibility']['confirmation_trajectory_bitwise_reproduced'] is False
+          assert primary['primary_development']['candidate_solved']==120
+          assert confirm['promotion_metrics']['candidate_solved']==121
+          assert fresh['status']=='FRESH_ACCEPTED'
+          assert fresh['court']['parent_solved']==146
+          assert fresh['court']['candidate_solved']==149
+          assert fresh['promotion_gate']['target_family_solved_delta_vs_r9']==3
+          assert fresh['promotion_gate']['all_visible_target_families_exact'] is True
+          assert fresh['governance']['rerun_allowed'] is False
+          PY
+
+      - name: Verify frozen learned substrate
+        run: |
+          test "$(sha256sum model/neural-vnext-native-r4/accepted/r4.pt | awk '{print $1}')" = "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244"
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and run R11 contracts without reopening fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r11/causal_version_space.py model/neural-vnext-native-r11/causal_runtime.py
+          python -m pytest -q model/neural-vnext-native-r11/tests

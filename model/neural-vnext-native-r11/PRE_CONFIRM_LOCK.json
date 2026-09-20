@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_CONFIRMATION_UNOPENED",
+  "candidate": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "parent_authority": {
+    "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+    "accepted_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "r9_public_planner_blob_sha": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "r9_planner_runtime_blob_sha": "b36faed53f3668cef9aceb3e99bfff4a1093b590",
+    "r4_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "r4_state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "primary_evidence": {
+    "path": "evidence/PRIMARY_DEV_REPRO_001.json",
+    "blob_sha": "34e65f56632b8dafca069bc612cdceb527d8a0ef",
+    "promotion_metrics_reproduced": true,
+    "trajectory_bitwise_reproduced": false,
+    "parent_solved": 119,
+    "candidate_solved": 120,
+    "total_delta": 1,
+    "implicit_goal_delta": 1
+  },
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r11/causal_version_space.py": "b13657c388d589751919be001d618f6fac2b0643",
+    "model/neural-vnext-native-r11/causal_runtime.py": "9ae28255bd417094b262df948d62860f61116a01",
+    "model/neural-vnext-native-r11/scripts/evaluate_r11_dev.py": "e9df9982bf277a03a466896c3356e29c161a964a",
+    "model/neural-vnext-native-r11/PREDEV_LOCK.json": "d2e12711ccc570b43edf797c485f50e3e62f36d5",
+    ".github/workflows/neural-vnext-native-r11-dev.yml": "77e62a9a98857c5b4c61af43ce35df8bb6940b17"
+  },
+  "confirmation": {
+    "split": "dev",
+    "indices": [
+      576,
+      607
+    ],
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "opened": false
+  },
+  "gate": {
+    "minimum_total_solved_delta_vs_r9": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta_vs_r9": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true,
+    "step_counts_are_not_promotion_authority": true
+  },
+  "fresh": {
+    "split": "fresh",
+    "indices": [
+      240,
+      279
+    ],
+    "opened": false
+  },
+  "governance": {
+    "source_or_config_mutation_before_confirmation": false,
+    "tuning_between_primary_and_confirmation": false,
+    "fresh_opening_before_confirmation_pass": false,
+    "confirmation_failure_path": "close R11 before fresh; fresh:240..279 remains untouched"
+  }
+}

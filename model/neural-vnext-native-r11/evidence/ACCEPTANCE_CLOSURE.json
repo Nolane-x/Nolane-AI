@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "parent_authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "learned_successor_parameters": 0,
+  "physical_learned_parameters": 877542,
+  "primary_development": {
+    "indices": [
+      544,
+      575
+    ],
+    "parent_solved": 119,
+    "candidate_solved": 120,
+    "total_delta": 1,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true,
+    "promotion_metrics_reproduced": true,
+    "trajectory_bitwise_reproduced": false
+  },
+  "confirmation": {
+    "indices": [
+      576,
+      607
+    ],
+    "parent_solved": 120,
+    "candidate_solved": 121,
+    "total_delta": 1,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true,
+    "promotion_metrics_reproduced": true,
+    "trajectory_bitwise_reproduced": false
+  },
+  "fresh": {
+    "indices": [
+      240,
+      279
+    ],
+    "parent_solved": 146,
+    "candidate_solved": 149,
+    "total_delta": 3,
+    "implicit_goal_delta": 3,
+    "visible_target_families_exact": true,
+    "status": "PASSED"
+  },
+  "fresh_block_consumed": true,
+  "post_fresh_tuning_performed": false,
+  "same_fresh_rerun_performed": false,
+  "merge_to_main_allowed": true,
+  "claim_boundary": "R11 adds a deterministic certified causal version-space planner over accepted R9; it adds zero learned neural parameters. Promotion solved counts reproduced before fresh, but primary/confirmation trajectory step counts were not bitwise reproducible and are not promotion authority."
+}

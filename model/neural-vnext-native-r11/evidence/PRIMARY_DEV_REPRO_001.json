@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "status": "PROMOTION_METRICS_REPRODUCED_TRAJECTORY_NONBITWISE",
+  "candidate": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "primary_development": {
+    "split": "dev",
+    "indices": [
+      544,
+      575
+    ],
+    "parent_solved": 119,
+    "candidate_solved": 120,
+    "total_delta": 1,
+    "parent_implicit_goal_solved": 28,
+    "candidate_implicit_goal_solved": 29,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true,
+    "selected_candidate_reproduced": true,
+    "solved_counts_reproduced": true,
+    "eligibility_reproduced": true
+  },
+  "executions": [
+    {
+      "workflow_run_id": 35486663246,
+      "job_id": 106014197400,
+      "artifact_id": 10597555903,
+      "artifact_name": "neural-vnext-native-r11-dev",
+      "artifact_digest": "sha256:eb919c8df2ce073b2b717cd149e45fba024e33d02c87611101ea192890919a94",
+      "r11_manifest_sha256": "2c43aafe703efd6c5752736eb84c68f2a573a6213394699795566f02e3b80ed4",
+      "r11_dev_sha256": "13f7db0d6a78a6d56990ec2c15d5915f8411850d73aa77dc4eee11bb2fecd347",
+      "parent_total_steps": 1639,
+      "selected_total_steps": 1631
+    },
+    {
+      "workflow_run_id": 35486686941,
+      "job_id": 106014261583,
+      "artifact_id": 10597891252,
+      "artifact_name": "neural-vnext-native-r11-dev",
+      "artifact_digest": "sha256:4aaf2abc6edfb679815dda13795ca5d43eb968f345817dcf4dc94cb366ed9f86",
+      "r11_manifest_sha256": "6c913a7961dce94d0cbf8e9c42e44a9e1ab595d4ffefbfed7f3288fdb40c10ba",
+      "r11_dev_sha256": "4715bb0028fccfe0e9c93e3c4588c0907dcdd8722115aa146afd3a787dc5254c",
+      "parent_total_steps": 1651,
+      "selected_total_steps": 1643
+    }
+  ],
+  "nondeterminism": {
+    "inner_json_byte_identical": false,
+    "trajectory_step_counts_identical": false,
+    "affected_family": "causal_prerequisites",
+    "solved_counts_identical": true,
+    "selected_candidate_identical": true,
+    "selected_eligibility_identical": true,
+    "selection_impact": "none; causal_horizon1 is the only eligible candidate in both runs, while horizons 2/3 regress solved count",
+    "claim_boundary": "No bitwise or trajectory-level reproducibility claim is made for R11 primary development. Promotion-relevant solved counts and the selected deterministic config reproduced across two exact-source workflows."
+  },
+  "confirmation_opened": false,
+  "fresh_opened": false
+}

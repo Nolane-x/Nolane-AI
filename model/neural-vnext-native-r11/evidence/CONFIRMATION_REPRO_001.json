@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "PROMOTION_METRICS_REPRODUCED_TRAJECTORY_NONBITWISE",
+  "candidate": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+  "court": {
+    "split": "dev",
+    "indices": [
+      576,
+      607
+    ],
+    "episodes": 128
+  },
+  "promotion_metrics": {
+    "parent_solved": 120,
+    "candidate_solved": 121,
+    "total_delta": 1,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true
+  },
+  "attempts": [
+    {
+      "workflow_run_id": 35486872465,
+      "run_attempt": 1,
+      "job_id": 106014753237,
+      "artifact_id": 10598011320,
+      "artifact_digest": "sha256:be814e677d6d51f4c504da540d125560b64588f1a02b778a605888fd6f66d137",
+      "confirmation_json_sha256": "b9e7ff75c7a82e14c9a0f7b3d8dedb7688d0d11aa1bf10a2daad3c1884efce71",
+      "parent_causal_prerequisites_steps": 456,
+      "candidate_causal_prerequisites_steps": 456
+    },
+    {
+      "workflow_run_id": 35486872465,
+      "run_attempt": 2,
+      "job_id": 106015047791,
+      "artifact_id": 10597736953,
+      "artifact_digest": "sha256:2b6d9446f7287e81174945c9289a080a5b4e8964ce678a2385f9e6ef2a0a2caf",
+      "confirmation_json_sha256": "a200b2e5492346bc4d899ccc09166280dea9081e0d70d3c6906759904e6bfbba",
+      "parent_causal_prerequisites_steps": 463,
+      "candidate_causal_prerequisites_steps": 463
+    }
+  ],
+  "nondeterminism": {
+    "confirmation_json_byte_identical": false,
+    "trajectory_step_counts_identical": false,
+    "solved_counts_identical": true,
+    "gate_result_identical": true,
+    "selected_config_unchanged": true,
+    "affected_family": "causal_prerequisites",
+    "claim_boundary": "R11 confirmation reproduced promotion-relevant solved counts across two exact-source attempts but not trajectory step counts. Step counts are not promotion authority."
+  },
+  "fresh_opened": false
+}

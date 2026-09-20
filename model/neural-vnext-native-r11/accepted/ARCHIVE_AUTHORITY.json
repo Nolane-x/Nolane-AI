@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "status": "ARCHIVED_ACCEPTED_AUTHORITY",
+  "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "archive_mode": "source_config_plus_parent_authority",
+  "parent_authority": {
+    "accepted_r9_authority_path": "model/neural-vnext-native-r9/ACCEPTED_AUTHORITY.json",
+    "accepted_r9_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "r4_checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "r4_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244"
+  },
+  "source_blobs": {
+    "model/neural-vnext-native-r11/causal_version_space.py": "b13657c388d589751919be001d618f6fac2b0643",
+    "model/neural-vnext-native-r11/causal_runtime.py": "9ae28255bd417094b262df948d62860f61116a01",
+    "model/neural-vnext-native-r11/PREDEV_LOCK.json": "d2e12711ccc570b43edf797c485f50e3e62f36d5"
+  },
+  "config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "evidence": {
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "fresh_evidence_blob_sha": "48d6c0154c7d0163c72886459154ec4dfd46b826",
+    "fresh_workflow_run_id": 35487147712,
+    "fresh_artifact_id": 10598086827,
+    "fresh_artifact_digest": "sha256:06597a315dd7ef23024d47d48cc68905087c079dfc802b7546d41535e0de809c"
+  },
+  "note": "R11 owns no trained tensor checkpoint. Durable authority is exact certified-causal source/config layered on accepted R9 and the accepted R4 learned checkpoint."
+}
