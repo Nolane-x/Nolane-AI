@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R36-DecisionSetRanker",
+  "source_head": "de28187ef57c3890fe4cd4dfdfcc46284336166a",
+  "development": {
+    "split": "dev",
+    "indices": [2144, 2175],
+    "parent_solved": 118,
+    "candidate_solved": 118,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 25,
+    "candidate_implicit_goal_solved": 25,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "b687ad99de48b37aaace3ab014d953dc62bf4875e785bb124736e0a64bf0f170",
+    "state_dict_sha256": "840dc6c4d385f172422358f7494e58b287965061cb22379c287e65ecc0775fe1",
+    "successor_parameters": 383529,
+    "physical_parameters": 1261071
+  },
+  "set_training": {
+    "rows": 5148,
+    "groups": 1716,
+    "class_counts": {
+      "both_fail": 486,
+      "rescue": 246,
+      "harm": 1864,
+      "both_solve": 2552
+    },
+    "final_head_metrics": [
+      {
+        "selected_rescue_groups": 79,
+        "selected_harm_groups": 1,
+        "null_accuracy_no_rescue": 0.9960758665794637,
+        "outcome_accuracy": 0.8387723387723388
+      },
+      {
+        "selected_rescue_groups": 81,
+        "selected_harm_groups": 1,
+        "null_accuracy_no_rescue": 0.9908436886854153,
+        "outcome_accuracy": 0.8329448329448329
+      },
+      {
+        "selected_rescue_groups": 81,
+        "selected_harm_groups": 2,
+        "null_accuracy_no_rescue": 0.9928057553956835,
+        "outcome_accuracy": 0.8393550893550894
+      }
+    ]
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "zero_harm_threshold_pairs": 15,
+    "best_zero_harm_observed": {
+      "rescue_threshold": 0.35,
+      "harm_ceiling": 0.05,
+      "selected_actions": 4,
+      "rescue_actions": 2,
+      "harm_actions": 0,
+      "rescue_precision": 0.5,
+      "block_results": [
+        {"selected": 1, "rescue": 0, "harm": 0},
+        {"selected": 2, "rescue": 2, "harm": 0},
+        {"selected": 0, "rescue": 0, "harm": 0},
+        {"selected": 1, "rescue": 0, "harm": 0}
+      ]
+    },
+    "finding": "Decision-set training materially improved safety: every preregistered threshold pair in the observed grid avoided selected harm. The remaining failure was cross-block rescue coverage. Reliable rescue selection concentrated in one guard block while other blocks selected no rescue or almost always kept R11."
+  },
+  "interpretation": "R36 validates set-level decision modeling as a safer objective but rejects ordinary ERM over decision groups as sufficient for cross-block rescue coverage. The next controlled change should preserve the architecture, selector and zero-harm guard while making training distributionally robust across identity strata and rescue-present groups.",
+  "execution": {
+    "workflow_run_id": 35508430963,
+    "job_id": 106072038493,
+    "artifact_id": 10604168211,
+    "artifact_digest": "sha256:f2857f24da53c92e313357cb75cfd139f5a1d4533dab3e38385d0870db4e7626"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [2176, 2207],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
