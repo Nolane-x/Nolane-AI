@@ -21,7 +21,8 @@ from latent_state_rescue_core import (
     NEUTRAL_CLASS,
     RESCUE_CLASS,
     NativeR31LatentStateRescueEnsemble,
-    encode_latent_action_rescue_features,\n    encode_parent_latent_context,
+    encode_latent_action_rescue_features,
+    encode_parent_latent_context,
     encode_public_goal_features,
     goal_index,
 )
