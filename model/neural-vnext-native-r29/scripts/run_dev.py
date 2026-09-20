@@ -26,7 +26,7 @@ for path in (ROOT, R11_ROOT, R9_ROOT, R4_ROOT, R3_ROOT, R2_ROOT, NATIVE_ROOT, R1
 from cogcoder.r18_benchmark import make_r18_task
 from latent_goal_training import load_r4_checkpoint
 from causal_runtime import evaluate_r11
-from counterfactual_rescue_core import NativeR29CounterfactualRescueEnsemble
+from certified_rescue_core import NativeR29CertifiedRescueEnsemble
 from certified_rescue_training import (
     calibrate_temperature,
     collect_goal_dataset,
@@ -154,7 +154,7 @@ def main() -> int:
     )
 
     torch.manual_seed(int(training["seed"]))
-    model = NativeR29CounterfactualRescueEnsemble(
+    model = NativeR29CertifiedRescueEnsemble(
         ensemble_size=int(architecture["ensemble_size"]),
         goal_hidden_dim=int(architecture["goal_hidden_dim"]),
         rescue_hidden_dim=int(architecture["rescue_hidden_dim"]),
