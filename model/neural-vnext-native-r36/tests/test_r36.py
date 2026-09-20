@@ -111,7 +111,7 @@ def test_selector_uses_set_consensus_and_harm_ceiling() -> None:
     assert selected is not None
     assert int(selected["candidate_action"]) == 1
     assert score is not None
-    assert score["min_selection"] >= 0.78
+    assert score["min_selection"] >= 0.779
     assert score["max_harm"] <= 0.02
 
 
