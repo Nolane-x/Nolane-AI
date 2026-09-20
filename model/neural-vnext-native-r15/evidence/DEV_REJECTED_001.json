@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R15-BroadSupportDiagnostic",
+  "source_head": "a4ef88ae6b16f1ebaf9ba8f467c56c1333be5299",
+  "parent_authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "development": {
+    "split": "dev",
+    "indices": [
+      800,
+      831
+    ],
+    "parent": {
+      "solved": 122,
+      "implicit_goal_solved": 28
+    },
+    "candidates": [
+      {
+        "name": "diagnostic_support12_expected",
+        "solved": 122,
+        "implicit_goal_solved": 28,
+        "diagnostic_decisions": 0,
+        "overrides_vs_r11": 0
+      },
+      {
+        "name": "diagnostic_support24_expected",
+        "solved": 122,
+        "implicit_goal_solved": 28,
+        "diagnostic_decisions": 0,
+        "overrides_vs_r11": 0
+      },
+      {
+        "name": "diagnostic_support24_pareto",
+        "solved": 122,
+        "implicit_goal_solved": 28,
+        "diagnostic_decisions": 0,
+        "overrides_vs_r11": 0
+      }
+    ]
+  },
+  "reproduction": {
+    "workflow_runs": [
+      {
+        "run_id": 35490271364,
+        "job_id": 106023900747
+      },
+      {
+        "run_id": 35490281532,
+        "job_id": 106023928883
+      }
+    ],
+    "promotion_metrics_identical": true
+  },
+  "interpretation": "The broad-support diagnostic mechanism never fired. While hidden-goal support was >3, the R11 causal version space lacked unanimous next-state certificates for a safe diagnostic override; once certificates became available, support had already narrowed into accepted R11 authority.",
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      832,
+      863
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

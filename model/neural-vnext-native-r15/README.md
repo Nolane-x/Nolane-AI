@@ -1,22 +1,21 @@
-# Neural vNext Native R15 — broad-support diagnostic causal successor
+# Neural vNext Native R15 — development-rejected broad-support diagnostic successor
 
-Status: **DEVELOPMENT ONLY; confirmation and fresh UNOPENED**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R15 is deliberately complementary to accepted R11.
+R15 preserved accepted R11 exactly whenever hidden-goal support was ≤3 and attempted to add certified information-gathering actions only while support was broader.
 
-R14 showed that replacing R11 decisions after the public hidden-goal posterior has already narrowed to ≤3 hypotheses can hurt. R15 therefore makes **no change at all** in that region.
+On locked `dev:800..831`:
 
-When support is still broad, R11 falls back to its earlier parent behavior. R15 asks whether a certified causal action can safely produce a more informative next `progress_signal`.
+- accepted R11: **122/128**, implicit-goal **28/32**
+- all three R15 candidates: **122/128**, implicit **28/32**
+- R15 diagnostic decisions: **0**
+- overrides vs R11: **0**
+- visible-target families remained exact.
 
-A candidate override is allowed only when it reduces expected posterior support after the next public feedback and passes its preregistered immediate-distance guard versus the accepted R11 reference.
+The result reproduced in runs `35490271364` and `35490281532`.
 
-No learned parameters are added. No private goal is read.
+The negative result identifies a timing bottleneck: broad posterior support and certified causal knowledge rarely overlap. R15 waited for a certificate; by the time a certificate existed, accepted R11 was already active.
 
-Locked identities:
-
-- primary dev: `dev:800..831`
-- confirmation: `dev:832..863`
-- fresh: `fresh:280..319`
-- consumed fresh: `0..279`
-
-Visible-target behavior and all R11 low-support decisions remain exact parent authority.
+- confirmation `dev:832..863` was never opened;
+- `fresh:280..319` remains untouched;
+- R15 closes without merge.
