@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R20-ActiveIdentification",
+  "parent_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_indices": [
+      1120,
+      1151
+    ],
+    "confirmation_indices": [
+      1152,
+      1183
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:280..319 task may be instantiated before exact R20 confirmation passes.",
+    "post_fresh_tuning_allowed": false
+  },
+  "mechanism": {
+    "goal": "test whether early real public probes can acquire the causal evidence R11 needs, avoiding learned-model hallucination entirely",
+    "new_parameters": 0,
+    "private_goal_inference_use": false,
+    "visible_target_rule": "accepted R11 exact",
+    "probe_rule": "only replace R11 when its causal layer reports broad posterior fallback or no certified causal advantage, and only with a context-unseen non-submit actuator",
+    "evidence_rule": "the probe transition is real environment evidence and is immediately written into the same public memories used by accepted R11"
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "probe_once_early4",
+        "max_probes": 1,
+        "max_probe_step": 4,
+        "minimum_budget_remaining": 12
+      },
+      {
+        "name": "probe_twice_early6",
+        "max_probes": 2,
+        "max_probe_step": 6,
+        "minimum_budget_remaining": 12
+      },
+      {
+        "name": "probe_once_early8",
+        "max_probes": 1,
+        "max_probe_step": 8,
+        "minimum_budget_remaining": 10
+      }
+    ],
+    "promotion_gate": [
+      "strict total solved gain on dev:1120..1151",
+      "implicit_goal_regimes solved gain >=1",
+      "visible-target families exact"
+    ]
+  },
+  "confirmation": {
+    "status": "PREREGISTERED_UNOPENED",
+    "indices": [
+      1152,
+      1183
+    ],
+    "rule": "exact source and selected config only"
+  },
+  "claim_boundary": "R20 is a mechanism diagnostic over accepted R11, not a new neural checkpoint. Fresh remains unopened unless strict disjoint confirmation passes."
+}

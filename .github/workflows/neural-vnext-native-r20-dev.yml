@@ -1,0 +1,54 @@
+name: Neural vNext Native R20 Dev
+on:
+  push:
+    branches: [codex/neural-native-r20-active-identification]
+    paths: ['model/neural-vnext-native-r20/**','.github/workflows/neural-vnext-native-r20-dev.yml']
+  pull_request:
+    branches: [main]
+    paths: ['model/neural-vnext-native-r20/**','.github/workflows/neural-vnext-native-r20-dev.yml']
+permissions: {contents: read}
+concurrency:
+  group: neural-vnext-native-r20-dev-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  r20-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with: {lfs: true}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R20 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r20:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r20/*.py model/neural-vnext-native-r20/scripts/*.py model/neural-vnext-native-r20/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r20/tests
+      - name: Run locked R20 active-identification dev
+        env:
+          PYTHONPATH: model/neural-vnext-native-r20:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: python model/neural-vnext-native-r20/scripts/run_dev.py --output r20-output
+      - name: Enforce fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          l=json.loads(Path('model/neural-vnext-native-r20/PREDEV_LOCK.json').read_text())
+          r=json.loads(Path('r20-output/r20.dev.json').read_text())
+          assert l['fresh_isolation']['status']=='UNOPENED'
+          assert l['benchmark']['fresh_indices']==[280,319]
+          assert r['fresh_opened'] is False
+          PY
+      - name: Upload R20 development artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r20-dev
+          path: r20-output/r20.dev.json
+          if-no-files-found: error
+          retention-days: 90
