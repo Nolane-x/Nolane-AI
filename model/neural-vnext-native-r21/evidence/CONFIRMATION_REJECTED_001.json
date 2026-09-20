@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "status": "CONFIRMATION_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R21-SupervisedGoalBelief",
+  "source_head": "bc1bf61436ac1f7288227415f15a1bd4f9cf8554",
+  "frozen_checkpoint": {
+    "checkpoint_sha256": "4b11f7580bb35e90c54d697d4fbad238640a16cd69c6f7a771f670eaf8e2718c",
+    "state_dict_sha256": "a3329d41d5138701617fc096d226045e0cae22f9e56945de3e35440ac795ca7e",
+    "selected_candidate": "goalblend100",
+    "selected_config": {
+      "beta": 1,
+      "max_support": 3,
+      "temperature": 2
+    },
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "primary": {
+    "indices": [
+      1184,
+      1215
+    ],
+    "parent_solved": 116,
+    "candidate_solved": 117,
+    "total_delta": 1,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true,
+    "reproduced_inner_files": true
+  },
+  "confirmation": {
+    "workflow_run_id": 35495563132,
+    "job_id": 106037754959,
+    "artifact_id": 10599644791,
+    "artifact_name": "neural-vnext-native-r21-confirmation-1216-1247",
+    "artifact_digest": "sha256:4cb009b24bf949114566c8e2a5fee45be917c5ec81ae98133849183f2d3bee2d",
+    "confirmation_json_sha256": "2e242d5016709ef550ed268b45e169b7f56ebdd4651e469e1a90fc5556e68b0a",
+    "indices": [
+      1216,
+      1247
+    ],
+    "parent_solved": 116,
+    "candidate_solved": 115,
+    "total_delta": -1,
+    "parent_implicit_goal_solved": 27,
+    "candidate_implicit_goal_solved": 26,
+    "implicit_goal_delta": -1,
+    "visible_target_families_exact": true
+  },
+  "finding": "The exact primary-winning supervised goal-belief checkpoint reversed on the disjoint confirmation block. The learned posterior produced more overrides (12 vs 6 in primary) and reduced implicit-goal solved count by one; this is treated as generalization failure, not as a threshold-tuning opportunity.",
+  "governance": {
+    "post_confirmation_retuning_of_this_checkpoint_allowed": false,
+    "confirmation_indices_consumed_for_r21": true,
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_confirmation_reuse_for_promotion_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "status": "REJECTED_BEFORE_FRESH",
+  "candidate": "Neural-vNext-Native-R21-SupervisedGoalBelief",
+  "reason": "disjoint confirmation reversed the primary gain",
+  "primary_status": "PASSED",
+  "confirmation_status": "FAILED",
+  "fresh_status": "UNOPENED",
+  "fresh_indices": [
+    280,
+    319
+  ],
+  "accepted_parent_remains": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "next_successor_rule": "Use a new candidate identity and new train/dev/confirmation identities; do not retune R21 against dev:1216..1247."
+}
