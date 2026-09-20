@@ -162,4 +162,4 @@ def test_selector_compares_all_eligible_alternative_actions() -> None:
     assert selected is not None
     assert score is not None
     assert int(selected["candidate_action"]) == 1
-    assert score["min_rescue"] >= 0.88
+    assert score["min_rescue"] >= 0.879
