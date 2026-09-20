@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R37-DistributionallyRobustSetRanker",
+  "status": "DEV_REJECTED",
+  "workflow_run_id": 35509746932,
+  "parent_dev": {
+    "solved": 120,
+    "implicit_goal_regimes": 28
+  },
+  "candidate_dev": {
+    "solved": 120,
+    "implicit_goal_regimes": 28,
+    "overrides_vs_r11": 0
+  },
+  "eligibility": {
+    "eligible": false,
+    "total_solved_delta_vs_parent": 0,
+    "implicit_goal_delta_vs_parent": 0,
+    "visible_target_families_exact": true
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "require_zero_harm": true,
+    "diagnostic_low_threshold": {
+      "selection_threshold": 0.35,
+      "harm_ceiling": 0.1,
+      "selected_actions": 19,
+      "rescue_actions": 2,
+      "harm_actions": 0,
+      "rescue_precision": 0.10526315789473684,
+      "block_selected_actions": [
+        7,
+        4,
+        4,
+        4
+      ],
+      "block_rescue_actions": [
+        0,
+        1,
+        0,
+        1
+      ]
+    }
+  },
+  "confirmation_opened": false,
+  "fresh_opened": false,
+  "conclusion": "GroupDRO did not calibrate set-selection confidence into cross-block rescue precision. Next controlled change should gate on direct rescue probability in addition to set-selection confidence."
+}
