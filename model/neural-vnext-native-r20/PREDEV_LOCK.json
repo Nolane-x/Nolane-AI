@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R20-AdvantageConsensus",
+  "hypothesis": "Train an ensemble to estimate action advantage over accepted R11, then allow only train-calibrated consensus overrides. This targets R12 overfit and R16-R18 model-error failures without replacing the accepted fallback.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "hidden_training_indices": [
+      5248,
+      5503
+    ],
+    "calibration_indices": [
+      5504,
+      5631
+    ],
+    "development_indices": [
+      1120,
+      1151
+    ],
+    "confirmation_indices": [
+      1152,
+      1183
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ]
+  },
+  "training": {
+    "seed": 20260920,
+    "ensemble_size": 3,
+    "posterior_embedding_dim": 24,
+    "hidden_dim": 96,
+    "learning_rate": 0.00035,
+    "weight_decay": 0.0001,
+    "pairwise_weight": 0.75,
+    "max_grad_norm": 1,
+    "minimum_calibration_precision": 0.95,
+    "minimum_calibration_count": 8,
+    "candidate_configs": [
+      {
+        "name": "consensus_guarded",
+        "max_support": 3
+      },
+      {
+        "name": "consensus_broad",
+        "max_support": 6
+      }
+    ]
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "no_private_goal_at_inference": true,
+    "oracle_teacher_train_only": true,
+    "calibration_train_only": true,
+    "no_dev_threshold_tuning": true,
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [
+      280,
+      319
+    ],
+    "consumed_before_r20": [
+      0,
+      279
+    ]
+  }
+}

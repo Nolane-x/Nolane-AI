@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R20-AdvantageConsensus",
+  "status": "UNOPENED",
+  "reserved_fresh_indices": [
+    280,
+    319
+  ],
+  "prerequisite": "Only an exact R20 checkpoint/config that passes locked primary dev and disjoint confirmation may arm a single-use fresh court.",
+  "failure_rule": "Any primary or confirmation failure closes R20 without opening fresh.",
+  "post_fresh_rule": "Once opened, fresh:280..319 is consumed regardless of verdict; no post-fresh tuning or replay."
+}
