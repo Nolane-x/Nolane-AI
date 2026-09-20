@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R31-LatentStateRescue",
+  "source_head": "264e390a85a9545f52798524c38382e644220118",
+  "development": {
+    "split": "dev",
+    "indices": [1824, 1855],
+    "parent_solved": 117,
+    "candidate_solved": 117,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 27,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "70ff93915b9e86712301ffe151c6c36dff88739ba2a9b65482a7dccc14ab9679",
+    "state_dict_sha256": "18637e0c0ff128f57a3c195fc9f626d2416144c9460ce9e6e96ca2dbf9b670ee",
+    "goal_successor_parameters": 107799,
+    "rescue_successor_parameters": 162633,
+    "successor_parameters": 270432,
+    "physical_parameters": 1147974
+  },
+  "counterfactual_training": {
+    "rows": 5118,
+    "class_counts": {
+      "neutral": 3029,
+      "rescue": 283,
+      "harm": 1806
+    },
+    "certification": {
+      "r11_certified_rows": 1329,
+      "candidate_certified_rows": 980,
+      "dual_certified_rows": 313,
+      "candidate_uncertified_rows": 4138
+    }
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "observed_pattern": "Latent context changed local selector behavior but did not produce cross-block separation. Across the locked threshold grid at least one guard block had zero rescue precision, and selected harmful actions remained.",
+    "best_observed_local_block_precision": 0.2857142857142857,
+    "worst_block_precision_at_all_locked_thresholds": 0.0
+  },
+  "interpretation": "Appending the complete 528-dimensional accepted-R4 pre-action latent state does not solve rescue-vs-harm separability. The next experiment should change the learning target rather than add more state features: R30/R31 collapse four terminal outcome combinations into three classes, with the neutral class conflating both-solve and both-fail. A factorized terminal-value objective can predict baseline solve and candidate solve separately before deriving rescue/harm risk.",
+  "execution": {
+    "workflow_run_id": 35501936133,
+    "job_id": 106055115156,
+    "artifact_id": 10602398843,
+    "artifact_digest": "sha256:c0f9ef6f7103ed76988e91987ffe43764dc716054a49e176be214f9042ed3923"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1856, 1887],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
