@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R38-DualEvidenceSetRanker",
+  "status": "DEV_REJECTED",
+  "workflow_run_id": 35511077910,
+  "workflow_job_id": 106079012000,
+  "checkpoint_sha256": "e0cd04de171b9183df88a40dd82d7a3f74be9392fa66d3e07c9a6c00979b5fd6",
+  "state_dict_sha256": "f2cf8a6163b70bd272b58cd42ca164fc1a46c122dcda681dc762a33bcc280d93",
+  "parent_dev": {
+    "solved": 120,
+    "family_solved": {
+      "causal_prerequisites": 32,
+      "conditional_regimes": 31,
+      "implicit_goal_regimes": 28,
+      "regime_switch": 29
+    }
+  },
+  "candidate_dev": {
+    "solved": 120,
+    "family_solved": {
+      "causal_prerequisites": 32,
+      "conditional_regimes": 31,
+      "implicit_goal_regimes": 28,
+      "regime_switch": 29
+    },
+    "overrides_vs_r11": 0,
+    "rescue_guarded_steps": 0
+  },
+  "eligibility": {
+    "eligible": false,
+    "total_solved_delta_vs_parent": 0,
+    "implicit_goal_delta_vs_parent": 0,
+    "visible_target_families_exact": true
+  },
+  "set_training": {
+    "rows": 5052,
+    "class_counts": {
+      "both_fail": 548,
+      "both_solve": 2466,
+      "harm": 1755,
+      "rescue": 283
+    },
+    "certification": {
+      "candidate_certified_rows": 932,
+      "candidate_uncertified_rows": 4120,
+      "dual_certified_rows": 295,
+      "r11_certified_rows": 1221
+    }
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "selection_threshold_candidates": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "direct_rescue_threshold_candidates": [
+      0.55,
+      0.65,
+      0.75,
+      0.85
+    ],
+    "harm_ceiling_candidates": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "all_preregistered_combinations_selected_zero_actions": true,
+    "all_guard_blocks_selected_zero_actions": true,
+    "selected_harm": 0
+  },
+  "confirmation_opened": false,
+  "fresh_opened": false,
+  "conclusion": "The R37 four-way outcome head is not calibrated strongly enough to serve directly as a selective-rescue confidence gate. R39 should train a dedicated rescue-confidence head and calibrate it using disjoint train-only identities rather than retuning R38 thresholds."
+}
