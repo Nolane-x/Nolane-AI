@@ -325,7 +325,9 @@ def main() -> int:
         "runtime": runtime,
         "private_boundary": {
             "private_goal_used_only_for_goal_training": True,
-            "joint_outcome_labels_use_terminal_outcomes_only": True,\n            "terminal_mechanism_labels_use_public_terminal_event_only": True,\n            "trajectory_labels_are_training_only": True,
+            "joint_outcome_labels_use_terminal_outcomes_only": True,
+            "terminal_mechanism_labels_use_public_terminal_event_only": True,
+            "trajectory_labels_are_training_only": True,
             "all_alternative_actions_labeled": True,
             "inference_private_goal_use": False,
         },
