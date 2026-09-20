@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R39-BinaryRescueConfidence",
+  "status": "DEV_REJECTED",
+  "workflow_run_id": 35511943873,
+  "workflow_job_id": 106081251422,
+  "checkpoint_sha256": "35c9aa058608e5e98f0d5c323a06d7661176f4615b095a5830d8a52779100fee",
+  "state_dict_sha256": "8626044d90785b52998769c2d093c5cd5b07ce6a776bc2bc64171853a8d4fb0a",
+  "parent_dev": {
+    "solved": 118,
+    "family_solved": {
+      "causal_prerequisites": 32,
+      "conditional_regimes": 32,
+      "implicit_goal_regimes": 25,
+      "regime_switch": 29
+    }
+  },
+  "candidate_dev": {
+    "solved": 118,
+    "family_solved": {
+      "causal_prerequisites": 32,
+      "conditional_regimes": 32,
+      "implicit_goal_regimes": 25,
+      "regime_switch": 29
+    },
+    "overrides_vs_r11": 0,
+    "rescue_guarded_steps": 0
+  },
+  "eligibility": {
+    "eligible": false,
+    "total_solved_delta_vs_parent": 0,
+    "implicit_goal_delta_vs_parent": 0,
+    "visible_target_families_exact": true
+  },
+  "set_training": {
+    "rows": 5097,
+    "class_counts": {
+      "both_fail": 545,
+      "both_solve": 2498,
+      "harm": 1771,
+      "rescue": 283
+    },
+    "certification": {
+      "candidate_certified_rows": 939,
+      "candidate_uncertified_rows": 4158,
+      "dual_certified_rows": 313,
+      "r11_certified_rows": 1308
+    }
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "selection_threshold_candidates": [
+      0.2,
+      0.3,
+      0.4
+    ],
+    "binary_rescue_threshold_candidates": [
+      0.5,
+      0.6,
+      0.7,
+      0.8
+    ],
+    "harm_ceiling_candidates": [
+      0.05,
+      0.1,
+      0.2
+    ],
+    "strongest_observed_nonharm_setting": {
+      "selected_actions": 2,
+      "rescue_actions": 1,
+      "harm_actions": 0,
+      "rescue_precision": 0.5,
+      "block_selected_actions": [
+        1,
+        1,
+        0,
+        0
+      ],
+      "block_rescue_actions": [
+        1,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "confirmation_opened": false,
+  "fresh_opened": false,
+  "conclusion": "Dedicated binary rescue confidence produced a sparse but real safe signal. The next controlled change should let rescue confidence participate in candidate proposal rather than only vetoing the set-selection head's proposal."
+}
