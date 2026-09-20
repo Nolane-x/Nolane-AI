@@ -19,7 +19,7 @@ permissions:
 
 concurrency:
   group: neural-vnext-native-r24-dev-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   r24-dev:
