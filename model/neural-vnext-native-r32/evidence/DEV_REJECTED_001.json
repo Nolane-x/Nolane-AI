@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R32-FactorizedTerminalValue",
+  "source_head": "ece8f9b9bbffc0c9c2001cec487e4fbf4b0c90fe",
+  "development": {
+    "split": "dev",
+    "indices": [1888, 1919],
+    "parent_solved": 119,
+    "candidate_solved": 119,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 26,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "3ede6511ce0769ab26784c6fe2ddcec764b56ab7eace8a3cd207b1b2143e9e6d",
+    "state_dict_sha256": "ff6f6ce2f7454b7188d2a0029bd6ad59fa2f8d1c5d0c622b1c1435d7d972f45e",
+    "goal_successor_parameters": 107799,
+    "value_successor_parameters": 153219,
+    "successor_parameters": 261018,
+    "physical_parameters": 1138560
+  },
+  "terminal_value_training": {
+    "pair_rows": 5112,
+    "pair_outcomes": {
+      "both_fail": 512,
+      "both_solve": 2505,
+      "harm": 1821,
+      "rescue": 274
+    },
+    "value_examples": 6816,
+    "solved_examples": 4221,
+    "failed_examples": 2595,
+    "final_head_accuracy_range": [0.8890845070422535, 0.8956866197183099],
+    "final_head_brier_range": [0.07769840822813097, 0.0814137320283433]
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "observed_pattern": "Per-action terminal solve prediction learned well on its own objective, but multiplying independently predicted candidate/R11 probabilities produced sparse or unsafe rescue selections. Strict settings selected almost nothing; broader settings admitted harm and retained poor cross-block rescue precision."
+  },
+  "interpretation": "R32 rejects the hypothesis that independent per-action solve probabilities are sufficient for safe rescue selection. The likely missing quantity is the joint counterfactual relationship between candidate and R11 outcomes. The next controlled experiment should model all four joint terminal outcomes directly: both-fail, rescue, harm, and both-solve, avoiding both the R31 neutral collapse and the R32 conditional-independence approximation.",
+  "execution": {
+    "workflow_run_id": 35502549944,
+    "job_id": 106056791536,
+    "artifact_id": 10603250620
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1920, 1951],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
