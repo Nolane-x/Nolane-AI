@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "status": "UNOPENED",
+  "candidate": "Neural-vNext-Native-R38-DualEvidenceSetRanker",
+  "benchmark": "nolane-figg18-v1",
+  "fresh_indices": [
+    280,
+    319
+  ],
+  "single_use": true,
+  "required_preconditions": [
+    "primary development passes locked promotion gate",
+    "exact frozen checkpoint and dual-evidence selector pass disjoint confirmation",
+    "visible-target family solved counts remain exact on both courts",
+    "no post-primary or post-confirmation retuning"
+  ],
+  "post_fresh_tuning_allowed": false,
+  "same_block_rerun_allowed": false
+}
