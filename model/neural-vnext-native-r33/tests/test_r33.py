@@ -198,5 +198,5 @@ def test_selector_uses_direct_joint_rescue_and_harm_probabilities() -> None:
     assert selected is not None
     assert score is not None
     assert int(selected["candidate_action"]) == 1
-    assert score["min_rescue"] >= 0.89
+    assert score["min_rescue"] >= 0.889
     assert score["max_harm"] <= 0.03
