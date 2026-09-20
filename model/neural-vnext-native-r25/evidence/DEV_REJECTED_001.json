@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R25-SelectiveErrorCorrection",
+  "source_head": "db9fb0c2f6e12b9631e7b44cd41e34eb4073b8f4",
+  "development": {
+    "split": "dev",
+    "indices": [1440, 1471],
+    "parent_solved": 124,
+    "candidate_solved": 124,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 31,
+    "candidate_implicit_goal_solved": 31,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0,
+    "guarded_steps": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "69a73cf7c330ecde760db457d2fb435131a7bf036a428f66ba207f021005d4d8",
+    "state_dict_sha256": "c036bf29236c0c15333894f8243bc561091e5160085a95e01425f8d4ea567956",
+    "successor_parameters": 75846,
+    "physical_parameters": 953388
+  },
+  "action_guard": {
+    "enabled": false,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12,
+    "candidates": [
+      {"threshold": 0.5, "eligible_rows": 74, "override_rows": 70, "correct_override_rows": 15, "override_precision": 0.21428571428571427, "eligible": false},
+      {"threshold": 0.6, "eligible_rows": 43, "override_rows": 41, "correct_override_rows": 12, "override_precision": 0.2926829268292683, "eligible": false},
+      {"threshold": 0.7, "eligible_rows": 25, "override_rows": 24, "correct_override_rows": 8, "override_precision": 0.3333333333333333, "eligible": false},
+      {"threshold": 0.8, "eligible_rows": 15, "override_rows": 14, "correct_override_rows": 7, "override_precision": 0.5, "eligible": false},
+      {"threshold": 0.9, "eligible_rows": 1, "override_rows": 1, "correct_override_rows": 0, "override_precision": 0.0, "eligible": false}
+    ],
+    "finding": "Separating R11 error detection from correction did not establish a high-precision override channel. Higher detector thresholds improved precision somewhat, peaking at 50% on 14 overrides, still far below the preregistered 90% requirement. The guard correctly failed closed before development."
+  },
+  "execution": {
+    "workflow_run_id": 35497341903,
+    "job_id": 106042657601,
+    "artifact_id": 10601136414,
+    "artifact_digest": "sha256:27efa91e8a7e3ae87f569cecbea9fb311e49c5d82e6a2f216a4e77bf70b65911"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1472, 1503],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
