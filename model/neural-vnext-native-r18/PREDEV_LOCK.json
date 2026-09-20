@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R18-SafeFirstStep",
+  "parent_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_indices": [
+      992,
+      1023
+    ],
+    "confirmation_indices": [
+      1024,
+      1055
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:280..319 task may be instantiated before exact R18 confirmation passes.",
+    "post_fresh_tuning_allowed": false
+  },
+  "mechanism": {
+    "goal": "retain learned-dynamics rescue signal while forbidding alternative actions whose advantage exists only through compounded imagined rollout",
+    "training_private_goal_use": false,
+    "training_oracle_action_use": false,
+    "inference_private_goal_use": false,
+    "visible_target_rule": "accepted R11 exact",
+    "alternative_rule": "executed alternative is evaluated only by its one-step predicted next state",
+    "parent_reference_rule": "R11 may receive one extra imagined continuation, making replacement harder rather than easier",
+    "distinction_from_r17": "no alternative action is ever selected because of a predicted second step"
+  },
+  "training": {
+    "train_indices": [
+      4864,
+      5119
+    ],
+    "calibration_indices": [
+      5120,
+      5247
+    ],
+    "probe_steps": 8,
+    "ensemble_seeds": [
+      20260951,
+      20260952,
+      20260953
+    ],
+    "hidden_dim": 64,
+    "epochs": 8,
+    "batch_size": 64,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001
+  },
+  "calibration_gate": {
+    "minimum_precision": 0.97,
+    "minimum_coverage": 128,
+    "threshold_candidates": [
+      0.99,
+      0.97,
+      0.95,
+      0.9,
+      0.85,
+      0.8,
+      0.75,
+      0.7
+    ]
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "safe90_guarded",
+        "confidence_floor": 0.9,
+        "max_support": 3,
+        "minimum_advantage": 0.25
+      },
+      {
+        "name": "safe90_broad",
+        "confidence_floor": 0.9,
+        "max_support": 6,
+        "minimum_advantage": 0.25
+      },
+      {
+        "name": "safe85_broad",
+        "confidence_floor": 0.85,
+        "max_support": 6,
+        "minimum_advantage": 0.25
+      }
+    ],
+    "promotion_gate": [
+      "strict total solved gain on dev:992..1023",
+      "implicit_goal_regimes solved gain >= 1",
+      "visible-target families exact"
+    ]
+  },
+  "confirmation": {
+    "status": "PREREGISTERED_UNOPENED",
+    "indices": [
+      1024,
+      1055
+    ],
+    "rule": "exact frozen checkpoint/config only; no retraining/reselection"
+  },
+  "claim_boundary": "R18 is development-only; fresh:280..319 remains unopened unless exact selected authority passes disjoint confirmation."
+}

@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R18-SafeFirstStep",
+  "reserved_fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "status": "UNOPENED"
+  },
+  "failure_rule": "Any dev/confirmation failure closes R18 without opening fresh.",
+  "post_fresh_rule": "If opened later, fresh is one-shot and permanently consumed."
+}
