@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R17-ModelBasedNeuralPlanning",
+  "source_head": "8dc72a7e1fbf5839b626aae8550f727578edb060",
+  "workflow_run_id": 35492299837,
+  "job_id": 106029212526,
+  "artifact_id": 10599164290,
+  "artifact_digest": "sha256:16e380c94c005649fca8a93ec4c156bc5cbd9c8a0c8691d55d166633a1d8a05c",
+  "development": {
+    "split": "dev",
+    "indices": [
+      928,
+      959
+    ],
+    "parent": {
+      "solved": 123,
+      "implicit_goal_solved": 27,
+      "unsolved_implicit_indices": [
+        933,
+        936,
+        947,
+        955,
+        956
+      ]
+    },
+    "calibration": {
+      "threshold": 0.7,
+      "eligible": 1116,
+      "correct": 1097,
+      "precision": 0.9829749103942652
+    },
+    "successor_parameters": 114477,
+    "candidates": [
+      {
+        "name": "mbp_h2_guarded",
+        "solved": 120,
+        "implicit_goal_solved": 24,
+        "total_delta": -3,
+        "implicit_delta": -3,
+        "overrides": 9
+      },
+      {
+        "name": "mbp_h2_broad",
+        "solved": 121,
+        "implicit_goal_solved": 25,
+        "total_delta": -2,
+        "implicit_delta": -2,
+        "overrides": 10
+      },
+      {
+        "name": "mbp_h3_broad",
+        "solved": 121,
+        "implicit_goal_solved": 25,
+        "total_delta": -2,
+        "implicit_delta": -2,
+        "overrides": 9
+      }
+    ],
+    "counterexample": {
+      "episode": 947,
+      "parent_solved": false,
+      "candidate_solved": true,
+      "parent_steps": 13,
+      "candidate_steps": 9,
+      "selected_depth": 1
+    },
+    "harm_pattern": "Several parent-solved episodes were broken by decisions whose selected imagined sequence depth was 2; compounded learned-model rollout error dominated the isolated rescue."
+  },
+  "finding": "Learned dynamics can expose a genuinely useful alternative action, but multi-step imagined rollouts are not safe enough. A new successor may use multi-step modeling only as a parent reference while requiring the executed alternative itself to be a one-step high-confidence improvement.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      960,
+      991
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

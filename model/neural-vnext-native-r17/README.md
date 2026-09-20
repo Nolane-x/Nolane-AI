@@ -1,20 +1,29 @@
-# Neural vNext Native R17 — model-based neural planning
+# Neural vNext Native R17 — development-rejected model-based neural planning
 
-Status: **DEVELOPMENT LOCKED; fresh unopened**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R17 combines the two strongest negative findings so far:
+R17 combined R10's multi-step objective with R16's learned public dynamics model.
 
-- R10: multi-step search had almost no coverage because exact symbolic transition memory was too sparse.
-- R16: a learned public world model reached ~99% train-only calibrated transition precision and changed trajectories, but one-step use did not improve solved count.
+## Locked dev result
 
-R17 therefore trains a fresh, disjoint public dynamics ensemble and uses it for **2–3 step model-based planning**. Accepted R11 remains the exact fallback.
+On `dev:928..959`:
 
-No private goal or oracle action enters world-model training or inference. Counterfactual rollouts never fabricate hidden-goal progress feedback; they advance only public state/parity/step/budget features.
+- accepted R11: **123/128**, implicit-goal **27/32**
+- `mbp_h2_guarded`: **120/128**, implicit **24/32**
+- `mbp_h2_broad`: **121/128**, implicit **25/32**
+- `mbp_h3_broad`: **121/128**, implicit **25/32**
+- visible-target families stayed exact.
 
-Locked identities:
+Train-only transition calibration: **1097/1116 = 98.30%** at threshold 0.70.
 
-- train: `4480..4735`
-- train-only calibration: `4736..4863`
-- primary dev: `928..959`
-- confirmation: `960..991`
-- reserved fresh: `280..319` — **UNOPENED**
+The negative aggregate hides one important positive counterexample: implicit episode **947** changed from accepted-R11 **fail (13 steps)** to R17 **solve (9 steps)**. That successful decision used a one-step selected action. Most harmful changes depended on imagined depth-2 continuations.
+
+## Closure
+
+The strict solved-count gate rejects R17. No threshold or horizon is retuned on this dev block.
+
+- confirmation `960..991`: unopened
+- fresh `280..319`: unopened and untouched
+- no merge
+
+The next successor must use new identities and may test a safer boundary: use lookahead to evaluate the parent reference, but only execute an alternative whose own selected plan is already a one-step high-confidence improvement.
