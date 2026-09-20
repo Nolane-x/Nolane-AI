@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R20-AdvantageConsensus",
+  "source_head": "7aadcf17bf2c998f149b29dff90b6e3bedd3b112",
+  "exact_head_runs": [
+    {
+      "run_id": 35493629069,
+      "job_id": 106032671089,
+      "artifact_id": 10600126577,
+      "artifact_digest": "sha256:a2740ab8fd7e8c25718badf90ca6ebd18bb54107f161f580e8c2bf511688bf22"
+    },
+    {
+      "run_id": 35493636431,
+      "job_id": 106032690924,
+      "artifact_id": 10599627688,
+      "artifact_digest": "sha256:a0348eba9d9afc5cfd407387da94a1cc1134984ec241fdfbc7d8e96dcb5b7449"
+    }
+  ],
+  "reproducibility": {
+    "checkpoint_sha256": "634b3740612067805299a0e1c9b50783fb74dfebee622d22a87e471fa1507469",
+    "successor_state_dict_sha256": "1231d88c0c5222e46f88c768b5ce865c20561c5904be6fe33b4016fa6600bb54",
+    "exact_checkpoint_reproduced": true,
+    "exact_successor_state_reproduced": true,
+    "zip_digest_reproduced": false
+  },
+  "parameters": {
+    "physical": 989865,
+    "successor": 112323
+  },
+  "development": {
+    "indices": [
+      1120,
+      1151
+    ],
+    "parent": {
+      "solved": 122,
+      "implicit_goal_solved": 29
+    },
+    "candidates": [
+      {
+        "name": "consensus_guarded",
+        "max_support": 3,
+        "calibration": {
+          "status": "FAIL_CLOSED",
+          "opportunities": 147,
+          "minimum_precision": 0.95,
+          "minimum_count": 8,
+          "threshold": null
+        },
+        "solved": 122,
+        "implicit_goal_solved": 29,
+        "overrides_vs_r11": 0,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "consensus_broad",
+        "max_support": 6,
+        "calibration": {
+          "status": "FAIL_CLOSED",
+          "opportunities": 159,
+          "minimum_precision": 0.95,
+          "minimum_count": 8,
+          "threshold": null
+        },
+        "solved": 122,
+        "implicit_goal_solved": 29,
+        "overrides_vs_r11": 0,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      }
+    ]
+  },
+  "finding": "The learned ensemble produced many train-only consensus alternative opportunities, but no threshold could establish the preregistered >=95% teacher precision with >=8 accepted examples. The fail-closed calibration therefore allowed zero dev overrides. This rejects action-advantage distillation under the locked design; no calibration or threshold is relaxed after observing the result.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1152,
+      1183
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

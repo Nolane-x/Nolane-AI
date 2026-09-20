@@ -1,32 +1,41 @@
-# Neural vNext Native R20 — advantage consensus distillation
+# Neural vNext Native R20 — development-rejected advantage consensus
 
-Status: **PRIMARY DEV LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R20 tests a learned Neural Core mechanism over accepted R11 without replacing the accepted fallback.
+R20 trained three neural action-advantage scorers and required all three to agree on the same alternative action. Override margins were calibrated only on a disjoint train-only block; calibration had to demonstrate at least 95% teacher precision on at least 8 accepted opportunities.
 
-Three independently initialized neural advantage scorers are trained only on `implicit_goal_regimes/train`. The train-only teacher may use the benchmark oracle, but inference never reads the private goal.
+## Locked result
 
-At inference an alternative action is allowed only when:
+On `dev:1120..1151`:
 
-1. all three scorers independently choose the same alternative over R11;
-2. the public hidden-goal posterior support is within the preregistered support cap;
-3. the minimum ensemble advantage margin passes a threshold selected only on a disjoint train-only calibration block.
+- accepted R11: **122/128**, implicit-goal **29/32**
+- `consensus_guarded`: **122/128**, implicit **29/32**, 0 overrides
+- `consensus_broad`: **122/128**, implicit **29/32**, 0 overrides
+- visible-target family solved counts remained exact.
 
-Otherwise R20 returns accepted R11 exactly.
+The exact learned artifact reproduced across independent push/PR executions:
 
-## Locked identities
+- checkpoint SHA-256: `634b3740612067805299a0e1c9b50783fb74dfebee622d22a87e471fa1507469`
+- successor state SHA-256: `1231d88c0c5222e46f88c768b5ce865c20561c5904be6fe33b4016fa6600bb54`
+- successor parameters: **112,323**
+- physical parameters: **989,865**
 
-- train: `5248..5503`
-- train-only calibration: `5504..5631`
-- primary dev: `1120..1151`
-- disjoint confirmation: `1152..1183`
-- reserved fresh: `280..319` — **UNOPENED**
+## Falsification result
 
-Candidate configs are fixed before dev:
+Train-only calibration observed:
 
-- `consensus_guarded`: support <= 3
-- `consensus_broad`: support <= 6
+- support <=3: **147** consensus alternative opportunities
+- support <=6: **159** consensus alternative opportunities
 
-Calibration requires at least 95% teacher precision over at least 8 accepted override opportunities. If calibration cannot establish that, the candidate fails closed.
+But no threshold satisfied the preregistered requirement of **>=95% teacher precision with >=8 accepted examples**. Both candidates therefore failed closed and became behaviorally identical to R11 on dev.
 
-Strict promotion still requires total solved gain, implicit-goal solved gain, and exact visible-family solved counts versus accepted R11.
+The calibration requirement is not relaxed after seeing this result.
+
+## Closure
+
+- confirmation `1152..1183`: never opened
+- fresh `280..319`: never opened and remains untouched
+- no retuning on `dev:1120..1151`
+- R20 closes without merge
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
