@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R23-ConformalActionConsensus",
+  "status": "UNOPENED",
+  "reserved_fresh_indices": [
+    280,
+    319
+  ],
+  "prerequisite": "Only an exact frozen R23 checkpoint/config that passes primary and disjoint confirmation may arm fresh.",
+  "failure_rule": "Primary or confirmation failure closes R23 without fresh.",
+  "post_fresh_rule": "Once opened, fresh:280..319 is permanently consumed regardless of verdict; no replay or post-fresh tuning."
+}

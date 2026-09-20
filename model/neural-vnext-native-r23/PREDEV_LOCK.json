@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R23-ConformalActionConsensus",
+  "hypothesis": "Goal identity need not be perfectly calibrated when multiple public-consistent goals imply the same causal action. R23 uses a conformal goal set only as an action-equivalence set, and calibrates override precision against true-goal causal actions on disjoint train-only identities.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "hidden_training_indices": [
+      6400,
+      6655
+    ],
+    "conformal_fit_indices": [
+      6656,
+      6719
+    ],
+    "action_guard_validation_indices": [
+      6720,
+      6783
+    ],
+    "development_indices": [
+      1312,
+      1343
+    ],
+    "confirmation_indices": [
+      1344,
+      1375
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ]
+  },
+  "training": {
+    "seed": 20260923,
+    "ensemble_size": 3,
+    "hidden_dim": 96,
+    "epochs": 8,
+    "batch_size": 128,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "temperature_candidates": [
+      0.5,
+      0.75,
+      1,
+      1.5,
+      2
+    ],
+    "alpha_candidates": [
+      0.1,
+      0.2,
+      0.3,
+      0.4
+    ],
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12,
+    "max_support": 3
+  },
+  "private_label_boundary": {
+    "private_goal_label_allowed_only_for_train_split": true,
+    "inference_private_goal_use": false,
+    "exact_public_support_is_hard_mask": true,
+    "train_only_teacher_action_may_use_private_goal": true
+  },
+  "calibration_boundary": {
+    "temperature_and_conformal_q_fit_use_train_only": true,
+    "action_guard_selection_uses_disjoint_train_only_validation": true,
+    "dev_based_guard_tuning": false,
+    "teacher_action_role": "calibration only; never available at dev, fresh, or deployment"
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [
+      280,
+      319
+    ],
+    "consumed_before_r23": [
+      0,
+      279
+    ]
+  }
+}
