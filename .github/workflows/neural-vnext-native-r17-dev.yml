@@ -1,0 +1,74 @@
+name: Neural vNext Native R17 Dev
+
+on:
+  push:
+    branches: [codex/neural-native-r17-model-based-planning]
+    paths:
+      - 'model/neural-vnext-native-r17/**'
+      - '.github/workflows/neural-vnext-native-r17-dev.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'model/neural-vnext-native-r17/**'
+      - '.github/workflows/neural-vnext-native-r17-dev.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r17-dev-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  r17-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with: {lfs: true}
+      - uses: actions/setup-python@v5
+        with: {python-version: '3.11'}
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R17 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r17:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r17/*.py model/neural-vnext-native-r17/scripts/*.py model/neural-vnext-native-r17/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r17/tests
+      - name: Train dynamics ensemble and run locked model-based dev
+        env:
+          PYTHONPATH: model/neural-vnext-native-r17:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: python model/neural-vnext-native-r17/scripts/run_dev.py --output r17-output
+      - name: Enforce fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r17/PREDEV_LOCK.json').read_text())
+          result=json.loads(Path('r17-output/r17.dev.json').read_text())
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert result['fresh_opened'] is False
+          assert lock['benchmark']['fresh_indices']==[280,319]
+          PY
+      - name: Upload R17 development artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r17-dev
+          path: |
+            r17-output/r17.pt
+            r17-output/r17.dev.json
+          if-no-files-found: error
+          retention-days: 90

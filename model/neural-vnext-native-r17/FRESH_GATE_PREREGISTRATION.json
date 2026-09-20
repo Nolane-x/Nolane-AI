@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R17-ModelBasedNeuralPlanning",
+  "reserved_fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "status": "UNOPENED"
+  },
+  "required_before_fresh": [
+    "strict dev pass on dev:928..959",
+    "freeze exact checkpoint and selected config",
+    "strict confirmation pass on dev:960..991",
+    "commit PRE_FRESH_LOCK before arming fresh"
+  ],
+  "failure_rule": "Any dev or confirmation failure closes R17 without opening fresh:280..319.",
+  "post_fresh_rule": "Once opened, fresh is permanently consumed regardless of verdict."
+}

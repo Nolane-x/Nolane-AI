@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R17-ModelBasedNeuralPlanning",
+  "parent_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+  "accepted_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "learned_substrate": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "learned_substrate_parameters": 877542
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_indices": [
+      928,
+      959
+    ],
+    "confirmation_indices": [
+      960,
+      991
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:280..319 task may be instantiated before exact R17 confirmation passes.",
+    "post_fresh_tuning_allowed": false,
+    "previous_fresh_reuse_allowed": false
+  },
+  "mechanism": {
+    "goal": "use learned public dynamics for multi-step model-based planning, addressing R10 sparse symbolic lookahead and R16 one-step neutrality together",
+    "training_private_goal_use": false,
+    "training_oracle_action_use": false,
+    "inference_private_goal_use": false,
+    "visible_target_rule": "return accepted R11 exactly",
+    "parent_fallback": "accepted R11 exact fallback whenever posterior gate, ensemble agreement, confidence, or reference-modelability fails",
+    "hypothetical_progress_rule": "goal-dependent progress feedback is never fabricated during model rollouts; it remains fixed while only public state/parity/step/budget features advance",
+    "distinction_from_r16": "R17 plans over sequences of learned transitions; it is not a threshold or margin retune of the rejected one-step R16 policy"
+  },
+  "training": {
+    "train_indices": [
+      4480,
+      4735
+    ],
+    "calibration_indices": [
+      4736,
+      4863
+    ],
+    "probe_steps": 8,
+    "ensemble_seeds": [
+      20260941,
+      20260942,
+      20260943
+    ],
+    "hidden_dim": 64,
+    "epochs": 8,
+    "batch_size": 64,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001
+  },
+  "calibration_gate": {
+    "minimum_precision": 0.97,
+    "minimum_coverage": 128,
+    "threshold_candidates": [
+      0.99,
+      0.97,
+      0.95,
+      0.9,
+      0.85,
+      0.8,
+      0.75,
+      0.7
+    ]
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "mbp_h2_guarded",
+        "max_support": 3,
+        "horizon": 2,
+        "minimum_advantage": 0.25
+      },
+      {
+        "name": "mbp_h2_broad",
+        "max_support": 6,
+        "horizon": 2,
+        "minimum_advantage": 0.25
+      },
+      {
+        "name": "mbp_h3_broad",
+        "max_support": 6,
+        "horizon": 3,
+        "minimum_advantage": 0.25
+      }
+    ],
+    "promotion_gate": [
+      "strict total solved gain over accepted R11 on dev:928..959",
+      "implicit_goal_regimes solved gain >= 1",
+      "visible-target family solved counts exactly equal accepted R11"
+    ]
+  },
+  "confirmation": {
+    "status": "PREREGISTERED_UNOPENED",
+    "indices": [
+      960,
+      991
+    ],
+    "rule": "exact frozen checkpoint, threshold and selected config; no retraining/reselection"
+  },
+  "claim_boundary": "R17 development only. Fresh:280..319 remains unopened until disjoint confirmation of the exact selected checkpoint/config passes."
+}
