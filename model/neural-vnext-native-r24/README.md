@@ -1,52 +1,57 @@
-# Neural vNext Native R24 — sequential public evidence filter
+# Neural vNext Native R24 — development-rejected sequential public evidence filter
 
-Status: **PREDEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R24 is a learned Neural Core successor experiment over accepted R11.
+R24 tested a learned sequential evidence representation over accepted R11. Instead of fitting a snapshot-to-goal/action mapping, each public transition emitted a learned evidence increment over the 125 hidden-goal hypotheses and evidence accumulated through the episode.
 
-## Why this mechanism
-
-R21 demonstrated that supervised hidden-goal learning can produce a real primary gain, but the exact frozen checkpoint reversed on disjoint confirmation. R22/R23 then made snapshot belief increasingly conservative and failed closed from insufficient precision or coverage.
-
-R24 changes the representation rather than relaxing a gate.
-
-Each public transition produces a learned **evidence increment** over the 125 hidden-goal hypotheses. These increments are accumulated through the episode. Exact public consistency remains a hard support mask, and accepted R11 remains the behavioral fallback.
-
-The model receives no private goal at inference.
-
-## Locked learned architecture
+## Learned architecture
 
 - 3 independently initialized evidence heads
 - hidden dimension: 96
-- expected successor parameters: **83,607**
-- accepted R4 learned substrate remains frozen
-- evidence inputs: before/after public state, selected public action features, public progress/information/failure feedback, step and remaining budget
-- evidence is additive across time rather than a direct snapshot classifier
+- successor parameters: **83,607**
+- total physical learned parameters with accepted R4 substrate: **961,149**
+- checkpoint SHA-256: `cd8b0c73c76324475eb61dc92aa604e931c0d40c0a4baabe7633a4fbca5db2e6`
+- state SHA-256: `06850a9ee528caa939ada1e99a963d850c36c5dfdaa6040486ed9bb38ec31296`
 
-## Safety/generalization boundary
+Private hidden-goal labels were train-only. Dev/inference remained public-only and exact public consistency remained a hard support mask.
 
-Before any neural override:
+## Train-only action guard result
 
-- at least 2 public transitions must have been observed;
-- exact public support must be between 2 and 6 hypotheses;
-- all neural heads must agree on the top goal;
-- train-only calibrated confidence must pass;
-- a disjoint train-only action guard must demonstrate at least 90% teacher-action precision over at least 12 actual R11-changing opportunities;
-- at most **one** neural override is permitted per episode.
+The sequential representation produced substantially more possible R11-changing decisions than R23, but precision remained too low:
 
-If the calibration gate fails, R24 becomes exact accepted R11 behavior.
+- threshold 0.45: **21/33 = 63.64%**
+- threshold 0.55: **21/33 = 63.64%**
+- threshold 0.65: **20/31 = 64.52%**
+- threshold 0.75: **19/29 = 65.52%**
+- threshold 0.85: **19/28 = 67.86%**
+- preregistered requirement: **>=90% precision and >=12 overrides**
 
-## Locked identities
+No candidate met the locked calibration gate, so the neural override path was disabled before development.
 
-- training: `train:6784..7039`
-- temperature fit: `train:7040..7103`
-- action-guard validation: `train:7104..7167`
-- primary dev: `dev:1376..1407`
-- confirmation: `dev:1408..1439`
-- reserved fresh: `fresh:280..319`
+## Primary development
 
-The fresh block is **UNOPENED**.
+On `dev:1376..1407`:
 
-## Promotion rule
+- accepted R11: **120/128**
+- R24: **120/128**
+- implicit-goal: **27/32 → 27/32**
+- neural overrides: **0**
+- visible-target family solved counts: exact
 
-R24 must strictly improve both total solved and `implicit_goal_regimes` solved count versus accepted R11 while preserving exact solved counts for every visible-target family. A primary pass is insufficient: the exact frozen checkpoint/config must pass the disjoint confirmation court before fresh may be opened.
+R24 is therefore rejected at development.
+
+## Governance
+
+- confirmation `1408..1439`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no threshold relaxation or same-dev retuning
+- PR closes without merge
+- a successor must use a new mechanism identity and new train/dev/confirmation identities
+
+Workflow: `35496988556`.
+
+Artifact: `10600736393`.
+
+Artifact digest: `sha256:5b4d611b1c163821bd2edd281d1f7977914b972ed01fe2ff6023cb6e6a60e9f2`.
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
