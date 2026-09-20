@@ -1,20 +1,18 @@
-# Neural vNext Native R19 — neural goal posterior fusion
+# Neural vNext Native R19 — development-rejected goal posterior fusion
 
-Status: **DEVELOPMENT LOCKED; fresh unopened**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R19 stops using learned dynamics as the controller. Instead it reuses an already-accepted neural signal that R11 does not directly exploit in its causal distance objective: **R4 hidden-goal probabilities**.
+On locked `dev:1056..1087`:
 
-The public consistency posterior remains the hard support authority. R19 multiplies the probability mass inside that support by the factorized R4 neural goal prior (with a preregistered fusion exponent), renormalizes, and passes that fused posterior into the unchanged R11 causal planner.
+- accepted R11: **119/128**, implicit **27/32**
+- alpha 0.25: **118/128**, implicit **26/32**
+- alpha 0.50: **118/128**, implicit **26/32**
+- alpha 1.00: **119/128**, implicit **27/32**
 
-Therefore R19:
+Visible-target family solved counts stayed exact.
 
-- cannot introduce a goal hypothesis rejected by public evidence;
-- adds **0 parameters**;
-- reads no private goal at inference;
-- leaves visible-target behavior exact;
-- changes only how R11 ranks still-publicly-possible hidden goals.
+R19 added zero parameters and never broadened public support, but the accepted R4 neural goal prior did not improve the causal planner's solved count. The strict gate rejects R19.
 
-Locked:
-- primary dev `1056..1087`
-- confirmation `1088..1119`
-- reserved fresh `280..319` — **UNOPENED**
+- confirmation `1088..1119`: unopened
+- fresh `280..319`: unopened and untouched
+- no merge

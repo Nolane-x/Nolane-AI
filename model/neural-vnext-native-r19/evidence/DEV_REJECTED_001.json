@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R19-GoalPosteriorFusion",
+  "source_head": "55a4bb8387bd0ebe51e299f0e12f673683b19aae",
+  "workflow_run_id": 35492681938,
+  "job_id": 106030202808,
+  "artifact_id": 10599139665,
+  "artifact_digest": "sha256:57effeb2a00dd8327cf9f68596d625360d03a3991e8a982be1dcd8ff6f41d1f2",
+  "development": {
+    "split": "dev",
+    "indices": [
+      1056,
+      1087
+    ],
+    "parent": {
+      "solved": 119,
+      "implicit_goal_solved": 27
+    },
+    "candidates": [
+      {
+        "name": "fusion_alpha025",
+        "solved": 118,
+        "implicit_goal_solved": 26,
+        "total_delta": -1,
+        "implicit_delta": -1,
+        "overrides": 3
+      },
+      {
+        "name": "fusion_alpha050",
+        "solved": 118,
+        "implicit_goal_solved": 26,
+        "total_delta": -1,
+        "implicit_delta": -1,
+        "overrides": 3
+      },
+      {
+        "name": "fusion_alpha100",
+        "solved": 119,
+        "implicit_goal_solved": 27,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "overrides": 5
+      }
+    ]
+  },
+  "finding": "Reweighting exact public goal support with accepted R4 neural goal probabilities did not improve solved count. The causal planner should keep public consistency as its posterior measure in this campaign.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1088,
+      1119
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "merge_to_main_allowed": false
+  }
+}
