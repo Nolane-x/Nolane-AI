@@ -1,0 +1,153 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R13-SelectiveNeuralCausal",
+  "parent_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "selected_candidate": "causal_horizon1",
+    "selected_config": {
+      "horizon": 1,
+      "max_support": 3
+    }
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "parameters": 877542,
+    "trainable": false
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "hidden_training_indices": [
+      4096,
+      4479
+    ],
+    "calibration_indices": [
+      4480,
+      4607
+    ],
+    "development_indices": [
+      672,
+      703
+    ],
+    "confirmation_indices": [
+      704,
+      735
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "fresh_episodes_expected": 160,
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:280..319 task may be instantiated during R13 training, train-only calibration, primary dev, or confirmation.",
+    "post_fresh_tuning_allowed": false,
+    "previous_fresh_reuse_allowed": false
+  },
+  "mechanism": {
+    "goal": "retain a learned causal residual while preventing uncalibrated overrides of accepted R11",
+    "base_residual": "R12-style neural residual trained only on train:4096..4479",
+    "selective_gate": "override accepted R11 only when proposal logit margin exceeds a threshold selected on disjoint train-only calibration:4480..4607",
+    "threshold_selection": "maximize true-positive approved overrides subject to >=90% precision against train-only oracle actions; if no eligible threshold exists, disable overrides",
+    "dev_not_used_for_threshold": true,
+    "visible_target_rule": "visible targets return exact frozen R4 logits",
+    "private_goal_inference_use": false,
+    "train_only_private_authority": "oracle actions are used only on train split for residual supervision and threshold calibration"
+  },
+  "training": {
+    "seed": 20260925,
+    "optimizer": "AdamW",
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "calibration_precision_floor": 0.9,
+    "canonical_artifact_rule": "first successful push workflow at locked source head if exact-source workflows reproduce promotion metrics",
+    "candidates": [
+      {
+        "name": "selective_guarded",
+        "posterior_embedding_dim": 32,
+        "residual_hidden_dim": 128,
+        "max_support": 3,
+        "parent_margin": 1,
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75
+        ],
+        "learning_rate": 0.00035,
+        "residual_l2_weight": 0.002
+      },
+      {
+        "name": "selective_broad",
+        "posterior_embedding_dim": 48,
+        "residual_hidden_dim": 160,
+        "max_support": 6,
+        "parent_margin": 1,
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.0004,
+        "residual_l2_weight": 0.002
+      }
+    ],
+    "selection_rule": [
+      "threshold for each candidate is selected before dev using only train:4480..4607",
+      "compare candidates against accepted R11 on dev:672..703 only",
+      "strict total solved gain",
+      "strict implicit_goal_regimes solved gain",
+      "visible-target family solved counts exactly equal accepted R11",
+      "rank by implicit solved, total solved, fewer steps, lexical name"
+    ]
+  },
+  "confirmation": {
+    "status": "PREREGISTERED_UNOPENED",
+    "indices": [
+      704,
+      735
+    ],
+    "exact_same_checkpoint_required": true
+  },
+  "claim_boundary": "R13 development only. Base neural residual trains on train:4096..4479; override threshold is selected on disjoint train:4480..4607. dev:672..703 is first non-train selection evidence. confirmation/fresh remain unopened."
+}
