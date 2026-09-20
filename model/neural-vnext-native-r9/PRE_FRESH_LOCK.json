@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "candidate_authority": {
+    "mode": "deterministic_source_and_config",
+    "source_head": "f0931798c1b7c50fe527654abe6a25b0024f73de",
+    "successor_parameters": 0,
+    "physical_parameters": 877542
+  },
+  "parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "primary_development": {
+    "evidence": "evidence/PRIMARY_DEV_REPRO_001.json",
+    "evidence_blob_sha": "0b4c2d508cac800304dcc3898112e4243a9c08c7",
+    "indices": [
+      416,
+      447
+    ],
+    "parent_solved": 115,
+    "candidate_solved": 120,
+    "total_delta": 5,
+    "implicit_goal_delta": 5,
+    "exact_inner_files_reproduced": true
+  },
+  "confirmation": {
+    "evidence": "evidence/CONFIRMATION_001.json",
+    "evidence_blob_sha": "45cbb41a68f5824943203092c4c69292d72b084a",
+    "indices": [
+      448,
+      479
+    ],
+    "parent_solved": 114,
+    "candidate_solved": 116,
+    "total_delta": 2,
+    "implicit_goal_delta": 2,
+    "artifact_id": 10597103996,
+    "artifact_digest": "sha256:472ab78c6aa8ad45d8ea55c5c14e973bdf6861c9c9fc5681da1b17ed0329eb67",
+    "confirmation_json_sha256": "c058491301fc5c7b0d623adc6d6292a0bd15ca1dd5c854548eeefe0521194e97"
+  },
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r9/public_planner.py": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "model/neural-vnext-native-r9/planner_runtime.py": "b36faed53f3668cef9aceb3e99bfff4a1093b590",
+    "model/neural-vnext-native-r9/PREDEV_LOCK.json": "a6710e609fe86765af8488397db32cc42f6c0113",
+    "model/neural-vnext-native-r9/FRESH_GATE_PREREGISTRATION.json": "90d25380fd69a5b271e849e4939a2f60df84fbe2"
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "index_start": 200,
+    "index_end": 239,
+    "episodes_expected": 160,
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "post_fresh_rule": {
+    "tuning_after_opening_for_this_candidate": false,
+    "rerun_same_fresh_after_failure": false,
+    "candidate_mutation_after_opening": "invalidates this court",
+    "fresh_block_reuse_for_promotion": false,
+    "failure_path": "record negative result, close R9 without merge, and reserve a new untouched fresh block for any new successor"
+  },
+  "claim_boundary": "R9 is a deterministic public counterfactual planner wrapped around frozen accepted R4. Primary and disjoint confirmation gains were observed before fresh. No claim is made that R9 adds learned parameters; it adds zero successor parameters."
+}

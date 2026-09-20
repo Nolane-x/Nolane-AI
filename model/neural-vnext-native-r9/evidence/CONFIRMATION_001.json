@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "status": "R9_CONFIRMATION_ACCEPTED",
+  "candidate": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "source_head": "f0931798c1b7c50fe527654abe6a25b0024f73de",
+  "workflow_run_id": 35485183125,
+  "job_id": 106010122150,
+  "artifact_id": 10597103996,
+  "artifact_name": "neural-vnext-native-r9-confirmation-448-479",
+  "artifact_digest": "sha256:472ab78c6aa8ad45d8ea55c5c14e973bdf6861c9c9fc5681da1b17ed0329eb67",
+  "confirmation_json_sha256": "c058491301fc5c7b0d623adc6d6292a0bd15ca1dd5c854548eeefe0521194e97",
+  "court": {
+    "split": "dev",
+    "indices": [
+      448,
+      479
+    ],
+    "episodes": 128,
+    "parent_solved": 114,
+    "candidate_solved": 116,
+    "total_delta": 2,
+    "parent_implicit_goal_solved": 21,
+    "candidate_implicit_goal_solved": 23,
+    "implicit_goal_delta": 2,
+    "visible_target_families_exact": true
+  },
+  "fresh_opened": false
+}

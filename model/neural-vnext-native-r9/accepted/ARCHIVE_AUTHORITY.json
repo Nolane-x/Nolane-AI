@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "status": "ARCHIVED_ACCEPTED_AUTHORITY",
+  "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "archive_mode": "source_config_plus_parent_checkpoint",
+  "parent_checkpoint": {
+    "path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "source_blobs": {
+    "model/neural-vnext-native-r9/public_planner.py": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "model/neural-vnext-native-r9/planner_runtime.py": "b36faed53f3668cef9aceb3e99bfff4a1093b590"
+  },
+  "config": {
+    "max_support": 3
+  },
+  "evidence": {
+    "accepted_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "fresh_evidence_blob_sha": "3731bf1f0a4c9947146af62895af31f2fabc5250",
+    "fresh_workflow_run_id": 35485340986,
+    "fresh_artifact_id": 10596294292,
+    "fresh_artifact_digest": "sha256:bdf8fde882f477ba3bcdef1eef5d06ae0fb6c6842b0c0a93f156db6230fd71c9"
+  },
+  "note": "R9 owns no trained tensor checkpoint; durable authority is the exact deterministic source/config bound to the accepted R4 checkpoint."
+}

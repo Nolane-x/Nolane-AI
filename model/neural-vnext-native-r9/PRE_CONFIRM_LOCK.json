@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_CONFIRMATION_UNOPENED",
+  "candidate": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "source_head": "f0931798c1b7c50fe527654abe6a25b0024f73de",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "primary_evidence": "evidence/PRIMARY_DEV_REPRO_001.json",
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r9/public_planner.py": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "model/neural-vnext-native-r9/planner_runtime.py": "b36faed53f3668cef9aceb3e99bfff4a1093b590",
+    "model/neural-vnext-native-r9/scripts/evaluate_r9_dev.py": "da3a03066c7c66868f8761685154befbf82bb5ac",
+    "model/neural-vnext-native-r9/PREDEV_LOCK.json": "a6710e609fe86765af8488397db32cc42f6c0113",
+    "model/neural-vnext-native-r9/FRESH_GATE_PREREGISTRATION.json": "90d25380fd69a5b271e849e4939a2f60df84fbe2",
+    ".github/workflows/neural-vnext-native-r9-dev.yml": "0e2af4fba27f2d4be2da599a7c8756e81b7cc5d2"
+  },
+  "confirmation": {
+    "split": "dev",
+    "indices": [
+      448,
+      479
+    ],
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "opened": false
+  },
+  "gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "fresh": {
+    "split": "fresh",
+    "indices": [
+      200,
+      239
+    ],
+    "opened": false
+  },
+  "governance": {
+    "candidate_mutation_before_confirmation": false,
+    "tuning_between_primary_and_confirmation": false,
+    "fresh_opening_before_confirmation_pass": false,
+    "failure_path": "close R9 before fresh; fresh:200..239 remains untouched"
+  }
+}
