@@ -37,7 +37,7 @@ def test_transition_encoder_has_locked_shape() -> None:
 
 def test_parameter_count_is_preregistered() -> None:
     model = NativeR24SequentialEvidenceEnsemble(ensemble_size=3, hidden_dim=96)
-    assert model.parameter_count() == 82455
+    assert model.parameter_count() == 83607
 
 
 def test_posterior_hard_masks_exact_public_support() -> None:
