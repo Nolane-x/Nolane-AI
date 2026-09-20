@@ -58,23 +58,23 @@ jobs:
           from pathlib import Path
           lock=json.loads(Path('model/neural-vnext-native-r37/PREDEV_LOCK.json').read_text())
           fresh=json.loads(Path('model/neural-vnext-native-r37/FRESH_GATE_PREREGISTRATION.json').read_text())
-          assert lock['candidate']=='Neural-vNext-Native-R37-DecisionSetRanker'
+          assert lock['candidate']=='Neural-vNext-Native-R37-DistributionallyRobustSetRanker'
           assert lock['architecture']['pair_feature_dim']==774
           assert lock['architecture']['explicit_keep_r11_null_option'] is True
           assert lock['architecture']['expected_goal_successor_parameters']==107799
           assert lock['architecture']['expected_set_successor_parameters']==275730
           assert lock['architecture']['expected_successor_parameters']==383529
           assert lock['architecture']['expected_physical_parameters']==1261071
-          assert lock['decision_target']['runtime_uses_full_alternative_set'] is True
-          assert lock['decision_target']['permutation_equivariant'] is True
+          assert lock['distributional_training']['strata_are_contiguous_over_locked_set_training_range'] is True
+          assert lock['distributional_training']['group_dro'] is True
           assert lock['training']['listwise_loss_weight']==1.0
           assert lock['training']['harm_mass_weight']==0.75
           assert lock['training']['stratum_count']==8
           assert lock['training']['group_dro_eta']==0.15
           assert lock['training']['rescue_group_listwise_multiplier']==3.0
           assert lock['distributional_training']['selector_unchanged_from_r36'] is True
-          assert lock['benchmark']['development_indices']==[2144,2175]
-          assert lock['benchmark']['confirmation_indices']==[2176,2207]
+          assert lock['benchmark']['development_indices']==[2208,2239]
+          assert lock['benchmark']['confirmation_indices']==[2240,2271]
           assert lock['benchmark']['fresh_indices']==[280,319]
           assert len(lock['benchmark']['rescue_guard_blocks'])==4
           assert lock['training']['require_zero_selected_harm'] is True
