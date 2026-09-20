@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R30-ActionConditionedRescue",
+  "source_head": "90bb3702a6f8932c582656fe2b4f2136e351e3d2",
+  "development": {
+    "split": "dev",
+    "indices": [1760, 1791],
+    "parent_solved": 118,
+    "candidate_solved": 118,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 28,
+    "candidate_implicit_goal_solved": 28,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "55b536aec94ecaa7e7695ae73643e72f725924a216e1438b3cf9497059e18400",
+    "state_dict_sha256": "3d35cdc0880fa83df132c01c0ad414fb7ba0c91c623bb09d5c4475dd46a46c3f",
+    "goal_successor_parameters": 107799,
+    "rescue_successor_parameters": 61257,
+    "successor_parameters": 169056,
+    "physical_parameters": 1046598
+  },
+  "counterfactual_training": {
+    "rows": 5064,
+    "class_counts": {
+      "neutral": 3046,
+      "rescue": 298,
+      "harm": 1720
+    },
+    "certification": {
+      "r11_certified_rows": 1245,
+      "candidate_certified_rows": 960,
+      "dual_certified_rows": 306,
+      "candidate_uncertified_rows": 4104
+    },
+    "finding": "All-action enumeration solved R29's rescue-coverage collapse: 298 rescue examples were retained, including thousands of uncertified alternative-action rows. Coverage is no longer the primary bottleneck."
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "finding": "No preregistered threshold pair separated rescue from harm. At rescue threshold 0.45 / harm ceiling 0.05 the selector chose 185 actions with 21 rescues and 15 harms (11.35% rescue precision); stricter thresholds reduced coverage without approaching the locked cross-block precision and zero-harm gate."
+  },
+  "interpretation": "The failure moved again: candidate coverage and certification filtering are no longer limiting, but local public/action/consequence features remain insufficient to identify terminal rescue safely. The accepted R4 recurrent/latent internal representation was not exposed to the R30 rescue classifier and is the next preregistered variable to test.",
+  "execution": {
+    "workflow_run_id": 35501254834,
+    "job_id": 106053296809,
+    "artifact_id": 10601888628,
+    "artifact_digest": "sha256:30b34c6e6ca2236090452fbf9761ea96e7e540d3741849cf02fff307f22bc2fe"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1792, 1823],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
