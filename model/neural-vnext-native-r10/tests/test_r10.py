@@ -85,11 +85,13 @@ def test_multistep_can_choose_certified_better_first_action() -> None:
     # with a known second transition to the exact goal.
     _remember(memory,1,start,[0,1,0])
     parity_state=_obs([0,1,0])
-    _remember(memory,2,parity_state,[2,0,0])
+    _remember(memory,2,parity_state,[1,1,0])
 
     posterior=torch.zeros(GOAL_HYPOTHESIS_COUNT)
-    # Lexicographic goal [2,0,0] => index 50.
-    posterior[50]=1.0
+    # Goal [1,1,0] gives equal one-step distance through action 0/1,
+    # while only action 1 has a fully known second step to the goal.
+    # Lexicographic index = 1*25 + 1*5 = 30.
+    posterior[30]=1.0
     action,info=choose_public_multistep_action(
         observation=start,
         memory=memory,
