@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTED",
+  "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "parent_authority": {
+    "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+    "accepted_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "r9_public_planner_blob_sha": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "r9_planner_runtime_blob_sha": "b36faed53f3668cef9aceb3e99bfff4a1093b590"
+  },
+  "learned_substrate": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "successor": {
+    "selected_candidate": "causal_horizon1",
+    "selected_config": {
+      "horizon": 1,
+      "max_support": 3
+    },
+    "learned_parameters": 0,
+    "behavior_source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+    "frozen_source_blobs": {
+      "model/neural-vnext-native-r11/causal_version_space.py": "b13657c388d589751919be001d618f6fac2b0643",
+      "model/neural-vnext-native-r11/causal_runtime.py": "9ae28255bd417094b262df948d62860f61116a01",
+      "model/neural-vnext-native-r11/PREDEV_LOCK.json": "d2e12711ccc570b43edf797c485f50e3e62f36d5"
+    }
+  },
+  "accepted_metrics": {
+    "primary": {
+      "parent": 119,
+      "candidate": 120,
+      "total_delta": 1,
+      "implicit_goal_delta": 1
+    },
+    "confirmation": {
+      "parent": 120,
+      "candidate": 121,
+      "total_delta": 1,
+      "implicit_goal_delta": 1
+    },
+    "fresh": {
+      "parent": 146,
+      "candidate": 149,
+      "total_delta": 3,
+      "implicit_goal_delta": 3
+    }
+  },
+  "reproducibility": {
+    "primary_promotion_metrics_reproduced": true,
+    "confirmation_promotion_metrics_reproduced": true,
+    "primary_trajectory_bitwise_reproduced": false,
+    "confirmation_trajectory_bitwise_reproduced": false,
+    "step_counts_are_promotion_authority": false
+  },
+  "evidence": {
+    "primary": "evidence/PRIMARY_DEV_REPRO_001.json",
+    "confirmation": "evidence/CONFIRMATION_REPRO_001.json",
+    "fresh": "evidence/FRESH_COURT_001.json",
+    "acceptance_closure": "evidence/ACCEPTANCE_CLOSURE.json",
+    "fresh_workflow_run_id": 35487147712,
+    "fresh_artifact_id": 10598086827,
+    "fresh_artifact_digest": "sha256:06597a315dd7ef23024d47d48cc68905087c079dfc802b7546d41535e0de809c",
+    "fresh_result_sha256": "017df285c026ad9bd71bee1586172e5db93ff8f7020b0674325303cd880f4112",
+    "fresh_evidence_blob_sha": "48d6c0154c7d0163c72886459154ec4dfd46b826",
+    "acceptance_closure_blob_sha": "2abc23fb98b3f3ff67292c824c9d51a558cd9b72"
+  },
+  "invariants": {
+    "inference_private_goal_use": false,
+    "visible_target_override": false,
+    "visible_target_family_solved_counts_exact_on_primary_confirmation_fresh": true,
+    "fresh_240_279_consumed": true,
+    "post_fresh_tuning_allowed": false,
+    "fresh_rerun_allowed": false
+  },
+  "claim_boundary": "Accepted R11 is not a new neural checkpoint. It is accepted R9 plus exact deterministic certified-causal source/config, ultimately bound to the frozen accepted R4 learned checkpoint. R11 learned successor parameter delta is zero."
+}

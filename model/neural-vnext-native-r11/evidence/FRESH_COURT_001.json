@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_ACCEPTED",
+  "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "selected_candidate": "causal_horizon1",
+  "selected_config": {
+    "horizon": 1,
+    "max_support": 3
+  },
+  "source_head": "9fb2f70b45ed7ffa9ec1bc46dd04c1408bb5c969",
+  "arming_commit": "540c1045cc24df5f8288d13d6b1c07c50d842bc7",
+  "workflow_run_id": 35487147712,
+  "job_id": 106015523508,
+  "artifact_id": 10598086827,
+  "artifact_name": "neural-vnext-native-r11-fresh-court-240-279",
+  "artifact_digest": "sha256:06597a315dd7ef23024d47d48cc68905087c079dfc802b7546d41535e0de809c",
+  "fresh_result_sha256": "017df285c026ad9bd71bee1586172e5db93ff8f7020b0674325303cd880f4112",
+  "court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      240,
+      279
+    ],
+    "episodes": 160,
+    "parent_authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+    "parent_solved": 146,
+    "candidate_solved": 149,
+    "total_delta": 3,
+    "parent_families": {
+      "conditional_regimes": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 325
+      },
+      "regime_switch": {
+        "episodes": 40,
+        "solved": 38,
+        "steps": 631
+      },
+      "implicit_goal_regimes": {
+        "episodes": 40,
+        "solved": 29,
+        "steps": 530
+      },
+      "causal_prerequisites": {
+        "episodes": 40,
+        "solved": 40,
+        "steps": 591
+      }
+    },
+    "candidate_families": {
+      "conditional_regimes": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 325,
+        "causal_decisions": 0,
+        "overrides_vs_r9": 0
+      },
+      "regime_switch": {
+        "episodes": 40,
+        "solved": 38,
+        "steps": 631,
+        "causal_decisions": 0,
+        "overrides_vs_r9": 0
+      },
+      "implicit_goal_regimes": {
+        "episodes": 40,
+        "solved": 32,
+        "steps": 515,
+        "causal_decisions": 20,
+        "overrides_vs_r9": 20
+      },
+      "causal_prerequisites": {
+        "episodes": 40,
+        "solved": 40,
+        "steps": 591,
+        "causal_decisions": 0,
+        "overrides_vs_r9": 0
+      }
+    }
+  },
+  "promotion_gate": {
+    "accepted": true,
+    "total_solved_delta_vs_r9": 3,
+    "target_family": "implicit_goal_regimes",
+    "target_family_solved_delta_vs_r9": 3,
+    "all_visible_target_families_exact": true,
+    "family_solved_delta_vs_r9": {
+      "conditional_regimes": 0,
+      "regime_switch": 0,
+      "implicit_goal_regimes": 3,
+      "causal_prerequisites": 0
+    },
+    "step_counts_used_for_promotion": false
+  },
+  "reproducibility_boundary": {
+    "primary_promotion_metrics_reproduced": true,
+    "confirmation_promotion_metrics_reproduced": true,
+    "primary_trajectory_bitwise_reproduced": false,
+    "confirmation_trajectory_bitwise_reproduced": false,
+    "claim": "R11 promotion authority is solved-count deltas and visible-family exactness. No bitwise trajectory reproducibility claim is made."
+  },
+  "governance": {
+    "fresh_block_consumed": true,
+    "fresh_block_reuse_for_promotion_allowed": false,
+    "rerun_allowed": false,
+    "post_fresh_tuning_allowed": false,
+    "candidate_mutation_after_fresh_allowed": false
+  }
+}
