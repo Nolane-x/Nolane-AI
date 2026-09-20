@@ -1,6 +1,6 @@
 # Neural vNext Native R38 — dual-evidence decision-set rescue ranker
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R36/R37 established two useful facts: whole-set ranking can avoid selected harm, but relative set-selection confidence alone is not a calibrated rescue probability. R37 could cover all guard blocks at a low set threshold with zero harm, yet only 2/19 selected actions were true rescues.
 
@@ -58,3 +58,23 @@ Identical to R37:
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No same-dev retuning is permitted.
+
+
+## Locked development result
+
+R38 completed its preregistered primary development court without opening confirmation or fresh.
+
+- accepted R11: **120/128**
+- R38: **120/128**
+- implicit-goal: **28/32 → 28/32**
+- visible-target family solved counts: exact
+- overrides: **0**
+- guard: **disabled**
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+The direct-rescue gate removed the false-positive behavior seen in R37, but collapsed selective coverage completely. Across the entire locked grid of selection thresholds (0.20/0.30/0.40), direct rescue thresholds (0.55/0.65/0.75/0.85), and harm ceilings (0.05/0.10/0.20), the selector chose **zero actions in every guard block**.
+
+This falsifies the hypothesis that the existing four-way outcome probability can simply be used as a calibrated selective-rescue probability. The next successor should not lower the threshold after observing this court. Instead it should train a dedicated rescue-confidence signal, calibrated on disjoint train-only identities, while retaining the safe set-ranker and harm controls.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
