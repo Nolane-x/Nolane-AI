@@ -1,6 +1,6 @@
 # Neural vNext Native R33 — joint terminal outcome
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R33 tests a narrower hypothesis than R32. The pairwise representation returns to the same **774-dimensional candidate-vs-R11 feature surface used by R31**. The only conceptual target change is that the old neutral class is split into its two physically different terminal outcomes.
 
@@ -35,3 +35,21 @@ The selector uses the ensemble's **direct rescue probability** and **direct harm
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No primary-dev retuning is allowed. Confirmation and fresh remain closed unless the exact locked candidate strictly improves solved counts while preserving visible-target families exactly.
+
+
+## Locked development result
+
+R33 retained **5,151** all-action counterfactual rows: **434 both-fail**, **289 rescue**, **1,844 harm**, and **2,584 both-solve**.
+
+The direct four-way target did not repair safe rescue selection. The preregistered guard failed closed: broad thresholds admitted harm with very low rescue precision, while strict thresholds collapsed rescue coverage to zero or near-zero. No override was therefore permitted.
+
+On dev:1952..1983:
+- accepted R11: **120/128**, implicit-goal **27/32**
+- R33: **120/128**, implicit-goal **27/32**
+- visible-target family solved counts: exact
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+R31-R33 now jointly indicate that the bottleneck is not merely feature width or label factorization. The next controlled variable should be **trajectory-conditioned failure mechanism modeling** rather than another static action classifier.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
