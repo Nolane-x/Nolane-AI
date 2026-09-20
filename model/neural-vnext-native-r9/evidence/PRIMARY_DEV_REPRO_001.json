@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "status": "R9_PRIMARY_DEV_BITWISE_REPRODUCED",
+  "candidate": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "source_head": "f0931798c1b7c50fe527654abe6a25b0024f73de",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "primary_development": {
+    "split": "dev",
+    "indices": [
+      416,
+      447
+    ],
+    "parent_solved": 115,
+    "candidate_solved": 120,
+    "total_delta": 5,
+    "parent_implicit_goal_solved": 23,
+    "candidate_implicit_goal_solved": 28,
+    "implicit_goal_delta": 5,
+    "visible_target_families_exact": true,
+    "candidate_steps": 1651,
+    "candidate_implicit_steps": 440,
+    "candidate_submit_guards": 28,
+    "candidate_planner_overrides": 27
+  },
+  "executions": [
+    {
+      "workflow_run_id": 35481379833,
+      "job_id": 105999707574,
+      "artifact_id": 10595713294,
+      "artifact_digest": "sha256:77a40e6aac11ceedf77f27d2ba73eb0d0f15b0a5b677b24000d500497f1a61c9"
+    },
+    {
+      "workflow_run_id": 35481367041,
+      "job_id": 105999673001,
+      "artifact_id": 10596157321,
+      "artifact_digest": "sha256:c29b8df518403dc9f08b36287d284a74bc72e5f61558a5f5bf5c0e6316ed8b07"
+    }
+  ],
+  "inner_files": {
+    "r9.dev.json": {
+      "sha256": "e8233920259f54b07dd6cb47dfb9961b25f9c71e84a74ce4b76ce761af5d97f0",
+      "byte_identical": true
+    },
+    "r9.manifest.json": {
+      "sha256": "b4d5dd584aeeeee85070cc20827a5f41767d4400fc2f85d872d38ac164b2f548",
+      "byte_identical": true
+    }
+  },
+  "zip_digest_reproduced": false,
+  "zip_digest_note": "Artifact ZIP digests differ because archive/container metadata differs; both frozen inner JSON files are byte-identical.",
+  "fresh_opened": false
+}

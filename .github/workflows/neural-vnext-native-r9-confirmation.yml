@@ -1,0 +1,70 @@
+name: Neural vNext Native R9 Confirmation
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r9-public-counterfactual-planner
+    paths:
+      - 'model/neural-vnext-native-r9/PRE_CONFIRM_LOCK.json'
+      - 'model/neural-vnext-native-r9/evidence/PRIMARY_DEV_REPRO_001.json'
+      - 'model/neural-vnext-native-r9/scripts/evaluate_confirmation.py'
+      - '.github/workflows/neural-vnext-native-r9-confirmation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  confirmation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Verify frozen R9 source authority
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r9/PRE_CONFIRM_LOCK.json').read_text())
+          assert lock['status']=='FROZEN_CONFIRMATION_UNOPENED'
+          assert lock['selected_candidate']=='planner_narrow'
+          assert lock['selected_config']=={'max_support':3}
+          assert lock['confirmation']=={
+              'split':'dev',
+              'indices':[448,479],
+              'families':['conditional_regimes','regime_switch','implicit_goal_regimes','causal_prerequisites'],
+              'opened':False,
+          }
+          assert lock['fresh']=={'split':'fresh','indices':[200,239],'opened':False}
+          for relative, expected in lock['frozen_source_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',relative],text=True).strip()
+              assert actual==expected,(relative,expected,actual)
+          PY
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile locked confirmation evaluator
+        env:
+          PYTHONPATH: model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r9/scripts/evaluate_confirmation.py
+      - name: Open disjoint R9 confirmation court once for this frozen source
+        env:
+          PYTHONPATH: model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r9-confirmation
+          python model/neural-vnext-native-r9/scripts/evaluate_confirmation.py --result r9-confirmation/confirmation.json
+      - name: Upload immutable confirmation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r9-confirmation-448-479
+          path: r9-confirmation/confirmation.json
+          if-no-files-found: error
+          retention-days: 90
