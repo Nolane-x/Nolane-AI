@@ -1,0 +1,116 @@
+name: Neural vNext Native R31 Dev
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'model/neural-vnext-native-r31/latent_state_rescue_core.py'
+      - 'model/neural-vnext-native-r31/latent_state_rescue_training.py'
+      - 'model/neural-vnext-native-r31/PREDEV_LOCK.json'
+      - 'model/neural-vnext-native-r31/FRESH_GATE_PREREGISTRATION.json'
+      - 'model/neural-vnext-native-r31/scripts/**'
+      - 'model/neural-vnext-native-r31/tests/**'
+      - '.github/workflows/neural-vnext-native-r31-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r31-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  r31-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R31 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r31:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r31/*.py model/neural-vnext-native-r31/scripts/*.py model/neural-vnext-native-r31/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r31/tests
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r31/PREDEV_LOCK.json').read_text())
+          fresh=json.loads(Path('model/neural-vnext-native-r31/FRESH_GATE_PREREGISTRATION.json').read_text())
+          assert lock['candidate']=='Neural-vNext-Native-R31-LatentStateRescue'
+          assert lock['architecture']['base_action_rescue_feature_dim']==246
+          assert lock['architecture']['latent_context_dim']==528
+          assert lock['architecture']['latent_action_rescue_feature_dim']==774
+          assert lock['architecture']['expected_goal_successor_parameters']==107799
+          assert lock['architecture']['expected_rescue_successor_parameters']==162633
+          assert lock['architecture']['expected_successor_parameters']==270432
+          assert lock['architecture']['expected_physical_parameters']==1147974
+          assert lock['controlled_change']['latent_context_trainable'] is False
+          assert lock['controlled_change']['latent_context_future_branch_information'] is False
+          assert lock['controlled_change']['latent_context_private_goal_information'] is False
+          assert lock['benchmark']['development_indices']==[1824,1855]
+          assert lock['benchmark']['confirmation_indices']==[1856,1887]
+          assert lock['benchmark']['fresh_indices']==[280,319]
+          assert len(lock['benchmark']['rescue_guard_blocks'])==4
+          assert lock['training']['max_overrides_per_episode']==1
+          assert lock['training']['require_zero_selected_harm'] is True
+          assert lock['private_boundary']['inference_private_goal_use'] is False
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert fresh['status']=='UNOPENED'
+          PY
+      - name: Train latent-state rescue policy and run locked R31 primary court
+        env:
+          PYTHONPATH: model/neural-vnext-native-r31:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r31-output
+          python model/neural-vnext-native-r31/scripts/run_dev.py \
+            --checkpoint r31-output/r31.pt \
+            --manifest r31-output/r31.manifest.json \
+            --dev-result r31-output/r31.dev.json
+      - name: Enforce confirmation and fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('r31-output/r31.manifest.json').read_text())
+          assert manifest['confirmation_opened'] is False
+          assert manifest['fresh_opened'] is False
+          assert manifest['private_boundary']['inference_private_goal_use'] is False
+          assert manifest['private_boundary']['all_alternative_actions_labeled'] is True
+          assert manifest['selected_config']['max_overrides_per_episode']==1
+          assert manifest['status'] in {
+              'R31_DEV_ELIGIBLE_CONFIRMATION_UNOPENED_FRESH_UNOPENED',
+              'R31_DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED',
+          }
+          PY
+      - name: Upload deterministic dev authority
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r31-dev
+          path: |
+            r31-output/r31.pt
+            r31-output/r31.manifest.json
+            r31-output/r31.dev.json
+          if-no-files-found: error
+          retention-days: 90
