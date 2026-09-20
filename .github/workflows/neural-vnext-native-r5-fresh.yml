@@ -1,0 +1,25 @@
+name: Neural vNext Native R5 Fresh Court
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r5-public-consistency
+    paths:
+      - '.github/workflows/neural-vnext-native-r5-fresh.yml'
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: neural-vnext-native-r5-fresh-court-160-199
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    if: ${{ false }}
+    runs-on: ubuntu-24.04
+    steps:
+      - run: |
+          echo "R5 fresh workflow is staged but intentionally unbound."
+          exit 1
