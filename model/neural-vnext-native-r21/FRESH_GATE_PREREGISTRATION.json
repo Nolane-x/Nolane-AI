@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R21-SupervisedGoalBelief",
+  "status": "UNOPENED",
+  "reserved_fresh_indices": [
+    280,
+    319
+  ],
+  "prerequisite": "Only an exact frozen R21 checkpoint/config that passes primary dev and disjoint confirmation may arm fresh.",
+  "failure_rule": "Primary or confirmation failure closes R21 without fresh.",
+  "post_fresh_rule": "Once opened, fresh:280..319 is permanently consumed regardless of verdict; no replay or post-fresh tuning."
+}
