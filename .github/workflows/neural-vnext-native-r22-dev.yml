@@ -1,0 +1,94 @@
+name: Neural vNext Native R22 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r22-conformal-goal-belief
+    paths:
+      - 'model/neural-vnext-native-r22/**'
+      - '.github/workflows/neural-vnext-native-r22-dev.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'model/neural-vnext-native-r22/**'
+      - '.github/workflows/neural-vnext-native-r22-dev.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r22-dev-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  r22-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R22 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r22:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r22/*.py model/neural-vnext-native-r22/scripts/*.py model/neural-vnext-native-r22/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r22/tests
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r22/PREDEV_LOCK.json').read_text())
+          fresh=json.loads(Path('model/neural-vnext-native-r22/FRESH_GATE_PREREGISTRATION.json').read_text())
+          assert lock['benchmark']['development_indices']==[1248,1279]
+          assert lock['benchmark']['confirmation_indices']==[1280,1311]
+          assert lock['benchmark']['fresh_indices']==[280,319]
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert fresh['status']=='UNOPENED'
+          assert lock['private_label_boundary']['inference_private_goal_use'] is False
+          assert lock['calibration_boundary']['dev_based_guard_tuning'] is False
+          PY
+      - name: Train, calibrate, and run locked R22 primary court
+        env:
+          PYTHONPATH: model/neural-vnext-native-r22:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r22-output
+          python model/neural-vnext-native-r22/scripts/run_dev.py             --checkpoint r22-output/r22.pt             --manifest r22-output/r22.manifest.json             --dev-result r22-output/r22.dev.json
+      - name: Enforce fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('r22-output/r22.manifest.json').read_text())
+          assert manifest['fresh_opened'] is False
+          assert manifest['private_label_boundary']['inference_private_goal_use'] is False
+          assert manifest['status'] in {'R22_DEV_ELIGIBLE_FRESH_UNOPENED','R22_DEV_REJECTED_FRESH_UNOPENED'}
+          PY
+      - name: Upload deterministic dev authority
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r22-dev
+          path: |
+            r22-output/r22.pt
+            r22-output/r22.manifest.json
+            r22-output/r22.dev.json
+          if-no-files-found: error
+          retention-days: 90
