@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "CONFIRMATION_REJECTED_FRESH_UNOPENED",
+  "authority": "Neural-vNext-Native-R12-NeuralCausalResidual",
+  "source_head": "cce7228fa1cb1c0f8cee0c24f3260c3a1c2f1353",
+  "frozen_checkpoint": {
+    "selected_candidate": "neural_causal_broad",
+    "checkpoint_sha256": "830cc54af53309757f7558d5725a525766a346984e41e8702e7cc49035c7852c",
+    "successor_state_dict_sha256": "b1ae10542cfa15a5dabc7869c118cd41af055f0ef95175c913488b7080b53b03",
+    "parameters": 944807,
+    "successor_parameters": 67265,
+    "canonical_dev_run_id": 35488892361,
+    "canonical_dev_artifact_id": 10598582271
+  },
+  "primary": {
+    "split": "dev",
+    "indices": [
+      608,
+      639
+    ],
+    "parent_solved": 122,
+    "candidate_solved": 124,
+    "total_delta": 2,
+    "parent_implicit_goal_solved": 29,
+    "candidate_implicit_goal_solved": 31,
+    "implicit_goal_delta": 2,
+    "visible_target_families_exact": true,
+    "checkpoint_bitwise_reproduced": true,
+    "promotion_metrics_reproduced": true
+  },
+  "confirmation": {
+    "split": "dev",
+    "indices": [
+      640,
+      671
+    ],
+    "workflow_run_id": 35489209358,
+    "job_id": 106021086108,
+    "artifact_id": 10598885228,
+    "artifact_name": "neural-vnext-native-r12-confirmation-640-671",
+    "artifact_digest": "sha256:2a4b375d5fa05d2b6470d4966d9ba08d85f4960e43d5f9cf9bec84cf061dbfbe",
+    "confirmation_json_sha256": "7ed382dbd8b9a365f9bcb7a56e9eeae1565f502982829ebf345952576a83a37c",
+    "parent_solved": 123,
+    "candidate_solved": 121,
+    "total_delta": -2,
+    "parent_implicit_goal_solved": 29,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": -2,
+    "visible_target_families_exact": true,
+    "gate_accepted": false
+  },
+  "interpretation": "The learned neural causal residual improved the locked primary court but reversed sign on disjoint confirmation. This is treated as genuine development overfit; the exact checkpoint is rejected before fresh.",
+  "governance": {
+    "confirmation_consumed": true,
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "post_confirmation_tuning_same_candidate_allowed": false,
+    "same_checkpoint_promotion_allowed": false,
+    "merge_to_main_allowed": false,
+    "next_legal_step": "Create a new successor identity with new train/dev identities. fresh:280..319 remains untouched until a separately preregistered successor passes its own primary and confirmation."
+  }
+}

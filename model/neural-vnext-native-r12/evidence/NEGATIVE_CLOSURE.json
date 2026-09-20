@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "status": "REJECTED_CLOSED",
+  "authority": "Neural-vNext-Native-R12-NeuralCausalResidual",
+  "reason": "DISJOINT_CONFIRMATION_REGRESSION",
+  "primary_total_delta": 2,
+  "confirmation_total_delta": -2,
+  "primary_implicit_goal_delta": 2,
+  "confirmation_implicit_goal_delta": -2,
+  "visible_target_regression_observed": false,
+  "fresh_opened": false,
+  "fresh_block_consumed": false,
+  "fresh_indices": [
+    280,
+    319
+  ],
+  "post_confirmation_training_performed": false,
+  "post_confirmation_tuning_performed": false,
+  "merge_to_main_allowed": false,
+  "claim_boundary": "R12 checkpoint reproducibility was strong, but behavioral generalization failed on preregistered disjoint confirmation. It is not an accepted successor."
+}
