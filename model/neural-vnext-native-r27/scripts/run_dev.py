@@ -199,7 +199,8 @@ def main() -> int:
         ],
         max_support=int(training["max_support"]),
         minimum_precision=float(training["minimum_override_precision"]),
-        minimum_total_override_rows=int(training["minimum_total_override_rows"]),\n        minimum_block_override_rows=int(training["minimum_block_override_rows"]),
+        minimum_total_override_rows=int(training["minimum_total_override_rows"]),
+        minimum_block_override_rows=int(training["minimum_block_override_rows"]),
     )
     mass_threshold = (
         None
