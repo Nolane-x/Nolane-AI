@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R7-ThresholdConsistency",
+  "source_head": "4ee201f012c6fc7d0d9614bf112bd52271472286",
+  "workflow_run_id": 35480846567,
+  "job_id": 105998246079,
+  "development": {
+    "split": "dev",
+    "indices": [
+      288,
+      319
+    ],
+    "parent": {
+      "solved": 119,
+      "implicit_goal_solved": 26,
+      "steps": 1629
+    },
+    "candidates": [
+      {
+        "name": "threshold_exact",
+        "solved": 119,
+        "implicit_goal_solved": 26,
+        "steps": 1597,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "threshold_narrow",
+        "solved": 119,
+        "implicit_goal_solved": 26,
+        "steps": 1644,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "threshold_moderate",
+        "solved": 119,
+        "implicit_goal_solved": 26,
+        "steps": 1633,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      }
+    ]
+  },
+  "gate": {
+    "requires_strict_total_gain": true,
+    "requires_strict_implicit_goal_gain": true,
+    "requires_visible_family_exact": true,
+    "eligible_candidate": false
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      200,
+      239
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  },
+  "note": "threshold_exact improved efficiency by 32 steps at equal solved count, but the preregistered solve-count promotion gate was not relaxed after observing the result."
+}
