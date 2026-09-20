@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R24-SequentialEvidenceFilter",
+  "hypothesis": "R21-R23 learned mostly snapshot-level hidden-goal belief and either reversed on confirmation or failed closed from weak coverage. R24 instead learns additive public transition evidence and accumulates it across an episode. This should improve generalization by making each transition contribute a reusable evidence increment rather than fitting a direct snapshot-to-goal/action mapping.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "hidden_training_indices": [6784, 7039],
+    "temperature_fit_indices": [7040, 7103],
+    "action_guard_validation_indices": [7104, 7167],
+    "development_indices": [1376, 1407],
+    "confirmation_indices": [1408, 1439],
+    "fresh_indices": [280, 319]
+  },
+  "architecture": {
+    "ensemble_size": 3,
+    "hidden_dim": 96,
+    "expected_successor_parameters": 82455,
+    "mechanism": "additive sequential public transition evidence"
+  },
+  "training": {
+    "seed": 20260924,
+    "epochs": 6,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "temperature_candidates": [0.5, 0.75, 1.0, 1.5, 2.0],
+    "confidence_threshold_candidates": [0.45, 0.55, 0.65, 0.75, 0.85],
+    "max_support": 6,
+    "minimum_evidence_steps": 2,
+    "max_overrides_per_episode": 1,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12
+  },
+  "private_label_boundary": {
+    "private_goal_label_allowed_only_for_train_split": true,
+    "inference_private_goal_use": false,
+    "exact_public_support_is_hard_mask": true,
+    "dev_or_fresh_teacher_action_use": false
+  },
+  "calibration_boundary": {
+    "temperature_fit_is_train_only": true,
+    "action_guard_is_disjoint_train_only": true,
+    "dev_based_threshold_tuning": false,
+    "confirmation_based_retuning": false,
+    "teacher_action_role": "train-only calibration; never available at dev, fresh, or deployment"
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true,
+    "fresh_rerun_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [280, 319],
+    "consumed_before_r24": [0, 279]
+  }
+}
