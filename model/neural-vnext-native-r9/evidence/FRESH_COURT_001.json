@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_ACCEPTED",
+  "candidate": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "source_head": "f0931798c1b7c50fe527654abe6a25b0024f73de",
+  "arming_parent_head": "78a15fa2ef55864b93c33e12354247b8ebd280d0",
+  "arming_commit": "3a24e88e8e4e2c9f441126d79e1dbf49ff1be545",
+  "workflow_run_id": 35485340986,
+  "job_id": 106010559042,
+  "artifact_id": 10596294292,
+  "artifact_name": "neural-vnext-native-r9-fresh-court-200-239",
+  "artifact_digest": "sha256:bdf8fde882f477ba3bcdef1eef5d06ae0fb6c6842b0c0a93f156db6230fd71c9",
+  "fresh_result_sha256": "34ab7ede90370ed663288273ee56f882195b2db04d1bc81f7e7940241c11a0d8",
+  "pre_fresh_lock_sha256": "15e0b2566b0ca4ff20225a4b9120be945907fac8abc02234a12c9cd8e0c3c917",
+  "court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      200,
+      239
+    ],
+    "episodes": 160,
+    "parent_solved": 140,
+    "candidate_solved": 142,
+    "total_delta": 2,
+    "parent_families": {
+      "conditional_regimes": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 388
+      },
+      "regime_switch": {
+        "episodes": 40,
+        "solved": 37,
+        "steps": 639
+      },
+      "implicit_goal_regimes": {
+        "episodes": 40,
+        "solved": 25,
+        "steps": 644
+      },
+      "causal_prerequisites": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 606
+      }
+    },
+    "candidate_families": {
+      "conditional_regimes": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 388,
+        "overrides": 0,
+        "planner_overrides": 0,
+        "submit_guards": 0
+      },
+      "regime_switch": {
+        "episodes": 40,
+        "solved": 37,
+        "steps": 639,
+        "overrides": 0,
+        "planner_overrides": 0,
+        "submit_guards": 0
+      },
+      "implicit_goal_regimes": {
+        "episodes": 40,
+        "solved": 27,
+        "steps": 577,
+        "overrides": 61,
+        "planner_overrides": 34,
+        "submit_guards": 27
+      },
+      "causal_prerequisites": {
+        "episodes": 40,
+        "solved": 39,
+        "steps": 606,
+        "overrides": 0,
+        "planner_overrides": 0,
+        "submit_guards": 0
+      }
+    }
+  },
+  "promotion_gate": {
+    "accepted": true,
+    "total_solved_delta_vs_parent": 2,
+    "target_family": "implicit_goal_regimes",
+    "target_family_solved_delta_vs_parent": 2,
+    "all_visible_target_families_exact": true,
+    "family_solved_delta_vs_parent": {
+      "conditional_regimes": 0,
+      "regime_switch": 0,
+      "implicit_goal_regimes": 2,
+      "causal_prerequisites": 0
+    }
+  },
+  "governance": {
+    "fresh_block_consumed": true,
+    "rerun_allowed": false,
+    "post_fresh_tuning_allowed": false,
+    "candidate_mutation_after_fresh_allowed": false,
+    "fresh_block_reuse_for_promotion_allowed": false
+  }
+}

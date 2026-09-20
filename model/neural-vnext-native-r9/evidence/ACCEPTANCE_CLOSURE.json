@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "status": "ACCEPTANCE_CLOSED",
+  "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "selected_candidate": "planner_narrow",
+  "selected_config": {
+    "max_support": 3
+  },
+  "primary_development": {
+    "indices": [
+      416,
+      447
+    ],
+    "parent_solved": 115,
+    "candidate_solved": 120,
+    "total_delta": 5,
+    "implicit_goal_delta": 5,
+    "status": "PASSED"
+  },
+  "confirmation": {
+    "indices": [
+      448,
+      479
+    ],
+    "parent_solved": 114,
+    "candidate_solved": 116,
+    "total_delta": 2,
+    "implicit_goal_delta": 2,
+    "status": "PASSED"
+  },
+  "fresh": {
+    "indices": [
+      200,
+      239
+    ],
+    "parent_solved": 140,
+    "candidate_solved": 142,
+    "total_delta": 2,
+    "implicit_goal_delta": 2,
+    "status": "PASSED"
+  },
+  "visible_target_family_regression_observed": false,
+  "learned_successor_parameters": 0,
+  "physical_parameters": 877542,
+  "accepted_parent_neural_checkpoint": "model/neural-vnext-native-r4/accepted/r4.pt",
+  "fresh_block_consumed": true,
+  "post_fresh_tuning_performed": false,
+  "same_fresh_rerun_performed": false,
+  "merge_to_main_allowed": true,
+  "claim_boundary": "R9 improves the accepted R4 authority through a deterministic public counterfactual decision layer. It does not add learned neural parameters; the learned substrate remains the frozen accepted R4 checkpoint."
+}
