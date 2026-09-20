@@ -17,9 +17,113 @@ concurrency:
 
 jobs:
   fresh-court:
-    if: ${{ false }}
+    if: ${{ github.event.before == '69dbd71332ff5d9224c9f09e8ef00a2687f20edc' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+      EXPECTED_ARMING_PARENT_HEAD: '69dbd71332ff5d9224c9f09e8ef00a2687f20edc'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'de6feb0b342f3e73a7bf957790df0f94d2274193'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '0788e271e652e9994641fee45f21bce2090eb006'
+      CANONICAL_DEV_RUN_ID: '35477573222'
+      CANONICAL_DEV_ARTIFACT_ID: '10594428103'
+      CANONICAL_CHECKPOINT_SHA256: '6188ee06c481d9ace7b6a9e5bab9d913574230916f7a54facb7117b54431b576'
+      CANONICAL_STATE_SHA256: 'ee8c64602d200a57b1b5953f4cbc9b8d7ac42acdfb6c7db6af37deb4a2022731'
+      CANONICAL_MANIFEST_SHA256: '9cf9b0b7bd901a3131b4b55b6f3dbb7296a867581d73704d80a5319ea001d987'
+      CANONICAL_DEV_SHA256: '671bee551c31ea81684b0c859f6281d67aebe88955a4871d400da222bf74749d'
     steps:
-      - run: |
-          echo "R5 fresh workflow is staged but intentionally unbound."
-          exit 1
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Refuse unbound or replayed fresh authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$GITHUB_REF_NAME" = "codex/neural-native-r5-public-consistency"
+          test "$(git hash-object model/neural-vnext-native-r5/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r5/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and verify frozen R5 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r5:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile             model/neural-vnext-native-r5/*.py             model/neural-vnext-native-r5/scripts/*.py             model/neural-vnext-native-r5/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r5/tests
+
+      - name: Download exact canonical frozen R5 artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r5-dev
+          path: frozen-r5-artifact
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35477573222
+
+      - name: Verify exact frozen R5 artifact before fresh
+        run: |
+          test "$(stat -c %s frozen-r5-artifact/r5.pt)" = "4093457"
+          test "$(sha256sum frozen-r5-artifact/r5.pt | awk '{print $1}')" = "$CANONICAL_CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r5-artifact/r5.manifest.json | awk '{print $1}')" = "$CANONICAL_MANIFEST_SHA256"
+          test "$(sha256sum frozen-r5-artifact/r5.dev.json | awk '{print $1}')" = "$CANONICAL_DEV_SHA256"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock = json.loads(Path("model/neural-vnext-native-r5/PRE_FRESH_LOCK.json").read_text())
+          manifest = json.loads(Path("frozen-r5-artifact/r5.manifest.json").read_text())
+          assert lock["candidate_authority"]["workflow_run_id"] == int("35477573222")
+          assert lock["candidate_authority"]["artifact_id"] == int("10594428103")
+          assert manifest["checkpoint_sha256"] == lock["frozen_candidate"]["checkpoint_sha256"]
+          assert manifest["state_dict_sha256"] == lock["frozen_candidate"]["state_dict_sha256"]
+          assert manifest["selected_candidate"] == "public_consistency_broad"
+          assert manifest["dev_evaluation"] == lock["frozen_candidate"]["development"]
+          assert manifest["parent_development"] == lock["frozen_candidate"]["parent_development"]
+          assert manifest["fresh_opened"] is False
+          PY
+          mkdir -p fresh-output
+          cp frozen-r5-artifact/r5.pt fresh-output/r5.pt
+          cp frozen-r5-artifact/r5.manifest.json fresh-output/frozen-r5.manifest.json
+          cp model/neural-vnext-native-r5/PRE_FRESH_LOCK.json fresh-output/PRE_FRESH_LOCK.json
+
+      - name: Open frozen fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r5:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          set +e
+          python model/neural-vnext-native-r5/scripts/evaluate_fresh.py             --checkpoint fresh-output/r5.pt             --result fresh-output/r5.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r5-fresh-court-160-199
+          path: |
+            fresh-output/PRE_FRESH_LOCK.json
+            fresh-output/frozen-r5.manifest.json
+            fresh-output/r5.fresh.json
+          if-no-files-found: error
+
+      - name: Enforce preregistered fresh verdict
+        if: always()
+        run: test "${{ steps.fresh.outputs.exit_code }}" = "0"
