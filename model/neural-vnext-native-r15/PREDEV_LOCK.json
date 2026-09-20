@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R15-BroadSupportDiagnostic",
+  "r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "main_merge_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "causal_version_space_blob_sha": "b13657c388d589751919be001d618f6fac2b0643",
+    "causal_runtime_blob_sha": "9ae28255bd417094b262df948d62860f61116a01",
+    "selected_config": {
+      "horizon": 1,
+      "max_support": 3
+    },
+    "learned_successor_parameters": 0,
+    "physical_parameters": 877542,
+    "r4_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "r4_state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "frozen": true
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_split": "dev",
+    "development_indices": [
+      800,
+      831
+    ],
+    "confirmation_split": "dev",
+    "confirmation_indices": [
+      832,
+      863
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "fresh_episodes_expected": 160,
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "namespace_audit": {
+    "exact_main_search_dev_800_831_matches": 0,
+    "exact_main_search_dev_832_863_matches": 0,
+    "exact_main_search_r15_matches": 0,
+    "fresh_280_319_consumed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "R15 development may instantiate dev:800..831 only. Confirmation dev:832..863 and fresh:280..319 remain unopened until exact selection is frozen.",
+    "post_fresh_tuning_allowed": false,
+    "consumed_fresh_reuse_allowed": false
+  },
+  "mechanism": {
+    "learned_successor_parameters": 0,
+    "parent_behavior": "accepted R11 is exact authority whenever hidden-goal support <=3",
+    "complementary_region": "R15 may act only when hidden-goal support is >3 and <= candidate max_support",
+    "diagnostic_objective": "among certified public causal actions, reduce expected posterior support after the next public progress feedback",
+    "reference_guard": "diagnostic action must not worsen immediate expected/worst distance versus the accepted R11 reference, or must Pareto-dominate its per-goal distance vector",
+    "minimum_expected_support_gain": 0.25,
+    "visible_target_behavior": "exact accepted R11/R9/R4; never overridden",
+    "private_goal_use": "none",
+    "training": "none"
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "diagnostic_support12_expected",
+        "max_support": 12,
+        "guard_mode": "expected_worst_ref"
+      },
+      {
+        "name": "diagnostic_support24_expected",
+        "max_support": 24,
+        "guard_mode": "expected_worst_ref"
+      },
+      {
+        "name": "diagnostic_support24_pareto",
+        "max_support": 24,
+        "guard_mode": "pareto_ref"
+      }
+    ],
+    "rule": [
+      "evaluate accepted R11 and all R15 candidates on dev:800..831 only",
+      "strict implicit_goal_regimes solved gain versus accepted R11",
+      "strict total solved gain versus accepted R11",
+      "visible-target family solved counts exact",
+      "then maximize implicit solved, total solved, minimize steps, lexical name"
+    ]
+  },
+  "confirmation_gate": {
+    "identities": [
+      832,
+      863
+    ],
+    "exact_selected_config_required": true,
+    "strict_total_solved_gain_vs_r11": 1,
+    "strict_implicit_goal_gain_vs_r11": 1,
+    "visible_target_family_solved_delta_required": 0,
+    "no_mutation_between_primary_and_confirmation": true
+  },
+  "fresh_gate": {
+    "identities": [
+      280,
+      319
+    ],
+    "minimum_total_solved_delta_vs_r11": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta_vs_r11": 1,
+    "visible_target_family_solved_delta_required": 0,
+    "no_post_fresh_tuning": true,
+    "no_same_block_retry_after_failure": true
+  },
+  "claim_boundary": "R15 is development-only and adds no learned parameters. It never replaces accepted R11 decisions once posterior support is <=3."
+}
