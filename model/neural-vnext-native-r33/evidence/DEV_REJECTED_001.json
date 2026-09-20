@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R33-JointTerminalOutcome",
+  "source_head": "2ba3f28e220f0bad82245ded88ea86e128790ada",
+  "development": {
+    "split": "dev",
+    "indices": [1952, 1983],
+    "parent_solved": 120,
+    "candidate_solved": 120,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 27,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "c4277439853add989d1fe6c9a6ca58e50c9c8fdb6243541dff411a909c5614fd",
+    "state_dict_sha256": "699905c658e72b587950eb2d8053b0b646eacfdfded51c9c1e6a20be1606d0d7",
+    "goal_successor_parameters": 107799,
+    "outcome_successor_parameters": 162828,
+    "successor_parameters": 270627,
+    "physical_parameters": 1148169
+  },
+  "joint_training": {
+    "rows": 5151,
+    "class_counts": {
+      "both_fail": 434,
+      "rescue": 289,
+      "harm": 1844,
+      "both_solve": 2584
+    },
+    "certification": {
+      "r11_certified_rows": 1314,
+      "candidate_certified_rows": 921,
+      "dual_certified_rows": 270,
+      "candidate_uncertified_rows": 4230
+    }
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "observed_pattern": "Direct four-way joint prediction still failed cross-block rescue separation. At broad thresholds selected actions included harm and low rescue precision; at strict thresholds rescue coverage collapsed to zero or near-zero. At least one guard block had zero rescue precision throughout the locked grid."
+  },
+  "interpretation": "R33 rejects the hypothesis that label factorization alone solves rescue selection. Across R31-R33, representation expansion, independent terminal value prediction, and direct joint terminal outcome prediction all fail at the same decision boundary. The next experiment must model failure mechanism over trajectory/history rather than treating the decision as a static pair classification.",
+  "execution": {
+    "workflow_run_id": 35504032098,
+    "job_id": 106060677076,
+    "artifact_id": 10602529601,
+    "artifact_digest": "sha256:ad6007ed3543e135503aa1d493c96cc7ca4d1b10cc4df61b5a3f1e7c55a1334e"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1984, 2015],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
