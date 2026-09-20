@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R20-ActiveIdentification",
+  "source_head": "4fa6c284eb57659f8b72da4493a9fe4108a51223",
+  "workflow_run_id": 35492807431,
+  "job_id": 106030526232,
+  "artifact_id": 10599895920,
+  "artifact_digest": "sha256:306b2dadc2e330b096d07985ec6cf43468ec1214e6e48a3e79eba2142780e63b",
+  "development": {
+    "split": "dev",
+    "indices": [
+      1120,
+      1151
+    ],
+    "parent": {
+      "solved": 122,
+      "implicit_goal_solved": 29
+    },
+    "candidates": [
+      {
+        "name": "probe_once_early4",
+        "solved": 120,
+        "implicit_goal_solved": 27,
+        "total_delta": -2,
+        "implicit_delta": -2,
+        "probes": 32,
+        "overrides": 32
+      },
+      {
+        "name": "probe_twice_early6",
+        "solved": 122,
+        "implicit_goal_solved": 29,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "probes": 62,
+        "overrides": 62
+      },
+      {
+        "name": "probe_once_early8",
+        "solved": 120,
+        "implicit_goal_solved": 27,
+        "total_delta": -2,
+        "implicit_delta": -2,
+        "probes": 32,
+        "overrides": 32
+      }
+    ]
+  },
+  "finding": "Unconditional real probing is not sufficient. Two probes were net-neutral and one probe was harmful, so active identification needs a learned or otherwise selective probe-value criterion rather than a blanket exploration rule.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1152,
+      1183
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

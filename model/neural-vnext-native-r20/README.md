@@ -1,14 +1,22 @@
-# Neural vNext Native R20 — active public system identification
+# Neural vNext Native R20 — development-rejected active identification
 
-Status: **DEVELOPMENT LOCKED; fresh unopened**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R20 is a mechanism diagnostic after R16–R19 showed that imagined neural dynamics and neural posterior fusion did not safely beat accepted R11.
+On locked `dev:1120..1151`:
 
-R20 does not predict a transition. When R11 reports that it lacks a certified causal advantage (or is falling back because the hidden-goal posterior is broad), R20 may spend one or two early actions on a **real, context-unseen public actuator**. The actual observed transition is then written into the same public causal/action memories used by R11, and control returns to R11 immediately.
+- accepted R11: **122/128**, implicit **29/32**
+- probe once (early ≤4): **120/128**, implicit **27/32**
+- probe twice (early ≤6): **122/128**, implicit **29/32**
+- probe once (early ≤8): **120/128**, implicit **27/32**
 
-This tests whether the remaining bottleneck is active evidence acquisition rather than model capacity.
+Visible-target family solved counts remained exact.
 
-Locked:
-- primary dev `1120..1151`
-- confirmation `1152..1183`
-- reserved fresh `280..319` — **UNOPENED**
+R20 proves that acquiring real transition evidence is not automatically beneficial: blind probes can break solved episodes, while two-probe exploration was only net-neutral.
+
+The strict gate rejects R20.
+
+- confirmation `1152..1183`: unopened
+- fresh `280..319`: unopened and untouched
+- no retuning on this dev block
+
+The next mechanism must learn **which** public probe is worth taking from train-only paired outcomes rather than probing unconditionally.
