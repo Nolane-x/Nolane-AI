@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R34-TrajectoryMechanism",
+  "source_head": "9742f10c09b84d1a25b70ee59a6c0ba912f34927",
+  "development": {
+    "split": "dev",
+    "indices": [2016, 2047],
+    "parent_solved": 121,
+    "candidate_solved": 121,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 28,
+    "candidate_implicit_goal_solved": 28,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "0fecdc560b3e0ef856f99e6b4664b774de7d9ffc368985350e144334349e925e",
+    "state_dict_sha256": "0f2263ea0ca002b2ba29a6ab1c71e4bd498ac1403469c21a31637f7d19deb0bb",
+    "goal_successor_parameters": 107799,
+    "mechanism_successor_parameters": 165558,
+    "successor_parameters": 273357,
+    "physical_parameters": 1150899
+  },
+  "mechanism_training": {
+    "rows": 4956,
+    "class_counts": {
+      "both_fail": 493,
+      "rescue": 299,
+      "harm": 1712,
+      "both_solve": 2452
+    },
+    "final_head_metrics": [
+      {
+        "joint_accuracy": 0.7885391444713479,
+        "baseline_mechanism_accuracy": 0.829499596448749,
+        "candidate_mechanism_accuracy": 0.8190072639225182,
+        "trajectory_mae": 0.13257085651616304
+      },
+      {
+        "joint_accuracy": 0.7887409200968523,
+        "baseline_mechanism_accuracy": 0.817998385794996,
+        "candidate_mechanism_accuracy": 0.8200161420500404,
+        "trajectory_mae": 0.13190368551511356
+      },
+      {
+        "joint_accuracy": 0.7806698950766747,
+        "baseline_mechanism_accuracy": 0.8238498789346247,
+        "candidate_mechanism_accuracy": 0.8272800645682001,
+        "trajectory_mae": 0.12565619970541794
+      }
+    ]
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "observed_pattern": "Auxiliary terminal mechanism and trajectory heads learned measurable signal, but direct rescue selection did not improve. Broad thresholds retained low rescue precision with multiple harms; thresholds >=0.65 selected zero rescues across multiple blocks while still admitting harm."
+  },
+  "interpretation": "R34 rejects the hypothesis that trajectory/failure-mechanism supervision is sufficient when used only as auxiliary shaping of a static pair representation. The auxiliary tasks themselves learned, so the next controlled architecture should make predicted branch sequence structure part of the decision computation rather than merely a side loss. This differs from R16-R18 one-step public dynamics planning: the next model should directly forecast short branch outcome sequences under the fixed accepted-R11 continuation policy.",
+  "execution": {
+    "workflow_run_id": 35506271382,
+    "job_id": 106066506409,
+    "artifact_id": 10603866800,
+    "artifact_digest": "sha256:d86bc9111118cad19abfb15944809e2c1c0398e8362c358f6f13169ff2da756d"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [2048, 2079],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
