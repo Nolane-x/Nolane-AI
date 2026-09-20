@@ -1,30 +1,29 @@
-# Neural vNext Native R23 — conformal action consensus
+# Neural vNext Native R23 — development-rejected conformal action consensus
 
-Status: **PRE-DEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R23 keeps the learned hidden-goal ensemble but changes the promotion question. The model does not need to identify the exact hidden goal when every goal in its conformal prediction set implies the same causal action.
+R23 tested a stronger interpretation of uncertain hidden-goal belief: exact goal identity was not required when every goal in a conformal prediction set implied the same accepted causal action.
 
-Train-only calibration therefore measures **override action precision**, not exact goal precision.
+Train-only calibration measured action-level override precision versus the true-goal causal teacher action.
 
-At inference:
+On `dev:1312..1343`:
 
-1. exact public consistency defines the hard goal support;
-2. the neural ensemble defines a conformal-style subset inside that support;
-3. R23 computes the accepted R11 causal action separately for every goal in that subset;
-4. it may override only when all those goals imply the same action and the train-only action guard was accepted;
-5. otherwise behavior is exactly accepted R11.
+- accepted R11: **120/128**
+- R23: **120/128**
+- implicit-goal: **26/32 → 26/32**
+- overrides vs R11: **0**
+- visible-target family solved counts: exact
 
-Private goal labels and true-goal teacher actions are used only on train identities for training/calibration. They are unavailable at dev/fresh/inference.
+The action guard improved precision compared with R22 but lacked coverage:
 
-Locked identities:
+- alpha 0.1: **3/3 candidate overrides correct (100%)**
+- locked minimum override rows: **12**
+- therefore guard status: **disabled / fail-closed**
 
-- train: `6400..6655`
-- conformal fit: `6656..6719`
-- train-only action-guard validation: `6720..6783`
-- primary dev: `1312..1343`
-- confirmation: `1344..1375`
-- fresh: `280..319` — **UNOPENED**
+The gate was not weakened after observing development. Both exact-head workflow runs reproduced the same checkpoint/state digests and promotion-relevant result.
 
-The train-only action guard requires at least 12 candidate overrides and at least 90% precision versus the true-goal causal teacher action.
+- confirmation `1344..1375`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no retuning on `dev:1312..1343`
 
-Strict promotion still requires total solved gain, implicit-goal solved gain, and exact visible-target family solved counts.
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.

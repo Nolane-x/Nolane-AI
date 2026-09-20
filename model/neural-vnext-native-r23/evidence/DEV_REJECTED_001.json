@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R23-ConformalActionConsensus",
+  "source_head": "831e5e912a3b3c1390aac5d24151026d571c060c",
+  "development": {
+    "split": "dev",
+    "indices": [
+      1312,
+      1343
+    ],
+    "parent_solved": 120,
+    "candidate_solved": 120,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 26,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0,
+    "consensus_steps": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "01de5f46000be93dd3fe36f73e4c9e8e2c280d0249ebe2b2522454df98087f5d",
+    "state_dict_sha256": "c25bcc425c1b3f689ca2a1fe17850bceab4f88154a4740974d2e09023be81ac1",
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "action_guard": {
+    "enabled": false,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12,
+    "best_precision_candidate": {
+      "alpha": 0.1,
+      "q": 0.8434093445539474,
+      "consensus_rows": 215,
+      "override_rows": 3,
+      "correct_override_rows": 3,
+      "override_precision": 1,
+      "eligible": false
+    },
+    "finding": "Action-equivalence improved calibration quality: alpha 0.1 produced 100% correct candidate overrides, but only 3 override opportunities. Locked minimum coverage was 12, so R23 correctly failed closed rather than lowering coverage after seeing development."
+  },
+  "executions": [
+    {
+      "workflow_run_id": 35496261699,
+      "artifact_id": 10600960761,
+      "artifact_digest": "sha256:5df5f5aa31ac38ec518dc9158148d6667c1c2d85eb7ab7d5bacaddfdf1c4ecca"
+    },
+    {
+      "workflow_run_id": 35496248968,
+      "artifact_id": 10601160093,
+      "artifact_digest": "sha256:98c2ad77aaf15a474acde70eb907ec4ac41daf322857d08341ab44fa04e86ca0"
+    }
+  ],
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1344,
+      1375
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
