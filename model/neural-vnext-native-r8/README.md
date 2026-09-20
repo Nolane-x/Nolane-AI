@@ -1,24 +1,18 @@
-# Neural vNext Native R8 — public belief correction
+# Neural vNext Native R8 — development-rejected public belief correction
 
-Status: **DEVELOPMENT ONLY; fresh:200..239 UNOPENED**.
+Status: **DEV REJECTED; fresh never opened**.
 
-R8 starts from accepted R4 after R5 failed fresh and R6/R7 failed locked development gates.
+R8 added zero trainable parameters and corrected frozen R4 goal probabilities from public state/progress constraints when hidden-goal support became narrow.
 
-Instead of training another residual, R8 corrects the **goal belief fed into the already accepted frozen R4 neural goal-action scorer** when public evidence has sufficiently narrowed the hidden-goal hypothesis set.
+On locked `dev:352..383` frozen R4 solved **119/128** with implicit-goal **24/32**. Every R8 configuration also solved **119/128** with implicit-goal **24/32** and the same total 1,620 steps.
 
-## Key property
+Correction did activate on hidden-goal steps (189–365 steps depending on configuration), but did not change aggregate action behavior enough to improve solved count.
 
-R8 adds **zero trainable parameters**.
+The strict promotion gate was not relaxed.
 
-When evidence is broad or the target is visible, R8 returns exact frozen R4 action logits. When public state/progress constraints narrow support below a preregistered threshold, R8 replaces or blends R4 goal probabilities with the public posterior marginals, then uses the frozen R4 goal projection and action scorer.
+- confirmation `dev:384..415` was never opened;
+- `fresh:200..239` remains untouched;
+- R8 closes without merge;
+- no repeated selection against `dev:352..383`.
 
-No private goal is read.
-
-## Isolation
-
-- selection dev: `dev:352..383`
-- reserved fresh: `fresh:200..239`
-- consumed fresh: `0..199`
-- training: none
-
-Strict solved-count improvement is required. A separate disjoint confirmation block must be preregistered before any fresh opening.
+Canonical evidence: `evidence/DEV_REJECTED_001.json`.

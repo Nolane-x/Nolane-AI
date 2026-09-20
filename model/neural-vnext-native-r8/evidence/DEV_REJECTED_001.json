@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R8-BeliefCorrection",
+  "source_head": "8d35379d4b412fc585f17da3acf1ec5596068766",
+  "workflow_run_id": 35481181750,
+  "job_id": 105999165789,
+  "development": {
+    "split": "dev",
+    "indices": [
+      352,
+      383
+    ],
+    "parent": {
+      "solved": 119,
+      "implicit_goal_solved": 24,
+      "steps": 1620
+    },
+    "candidates": [
+      {
+        "name": "belief_correct_exact",
+        "solved": 119,
+        "implicit_goal_solved": 24,
+        "steps": 1620,
+        "correction_active_steps": 189
+      },
+      {
+        "name": "belief_correct_narrow",
+        "solved": 119,
+        "implicit_goal_solved": 24,
+        "steps": 1620,
+        "correction_active_steps": 322
+      },
+      {
+        "name": "belief_blend_narrow",
+        "solved": 119,
+        "implicit_goal_solved": 24,
+        "steps": 1620,
+        "correction_active_steps": 322
+      },
+      {
+        "name": "belief_blend_moderate",
+        "solved": 119,
+        "implicit_goal_solved": 24,
+        "steps": 1620,
+        "correction_active_steps": 365
+      }
+    ]
+  },
+  "finding": "Public belief correction changed internal goal beliefs on many hidden-goal steps but did not change any aggregate behavior/steps/solved count on the locked court.",
+  "governance": {
+    "confirmation_opened": false,
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      200,
+      239
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
