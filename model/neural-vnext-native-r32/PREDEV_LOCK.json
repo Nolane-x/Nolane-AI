@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R32-FactorizedTerminalValue",
+  "hypothesis": "R30 and R31 retained thousands of real all-action counterfactual rows but learned a three-class intervention label where neutral conflated both-solve and both-fail terminal outcomes. R31 further showed that adding the complete accepted-R4 latent state did not repair cross-block separability. R32 changes the learning target: learn the terminal solve value of each first action independently under an R11 continuation, then derive rescue and harm pairwise by comparing candidate value with the R11 action value.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "r31_negative_control": {
+    "status": "DEV_REJECTED",
+    "workflow_run_id": 35501936133,
+    "training_pair_rows": 5118,
+    "rescue_rows": 283,
+    "harm_rows": 1806,
+    "dev_parent_solved": 117,
+    "dev_candidate_solved": 117,
+    "guard_enabled": false,
+    "finding": "528 additional accepted-R4 latent dimensions were insufficient; learning target is the controlled variable changed by R32"
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "goal_training_indices": [13824, 14335],
+    "temperature_fit_indices": [14336, 14463],
+    "value_training_indices": [14464, 14847],
+    "rescue_guard_blocks": [
+      [14848, 14911],
+      [14912, 14975],
+      [14976, 15039],
+      [15040, 15103]
+    ],
+    "development_indices": [1888, 1919],
+    "confirmation_indices": [1920, 1951],
+    "fresh_indices": [280, 319]
+  },
+  "architecture": {
+    "ensemble_size": 3,
+    "goal_hidden_dim": 96,
+    "value_hidden_dim": 64,
+    "public_goal_feature_dim": 146,
+    "latent_context_dim": 528,
+    "action_value_feature_dim": 727,
+    "action_value_feature_components": {
+      "public_goal": 146,
+      "single_action_features": 25,
+      "optional_certified_next_state_onehot": 15,
+      "accepted_r4_latent_context": 528,
+      "action_value_scalars": 13
+    },
+    "expected_goal_successor_parameters": 107799,
+    "expected_value_successor_parameters": 153219,
+    "expected_successor_parameters": 261018,
+    "expected_physical_parameters": 1138560,
+    "mechanism": "per-action terminal solve Q under one first action followed by accepted R11 continuation"
+  },
+  "learning_target": {
+    "value_label": "terminal solved boolean after selected first action then accepted R11 continuation",
+    "r11_action_labeled_once_per_decision": true,
+    "every_valid_alternative_labeled": true,
+    "three_class_rescue_classifier_removed": true,
+    "both_solve_label": 1,
+    "both_fail_label": 0,
+    "rescue_derivation": "per-head candidate_solve_probability * (1 - r11_solve_probability)",
+    "harm_derivation": "per-head r11_solve_probability * (1 - candidate_solve_probability)",
+    "selector_requires_positive_advantage_in_every_head": true
+  },
+  "training": {
+    "seed": 20261002,
+    "goal_epochs": 10,
+    "value_epochs": 12,
+    "batch_size": 128,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "temperature_candidates": [0.5, 0.75, 1.0, 1.5, 2.0],
+    "max_support": 16,
+    "max_counterfactual_decision_steps_per_episode": 5,
+    "rescue_threshold_candidates": [0.05, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7],
+    "harm_ceiling_candidates": [0.01, 0.025, 0.05, 0.1, 0.2],
+    "minimum_rescue_precision": 0.75,
+    "minimum_total_selected_actions": 12,
+    "minimum_block_selected_actions": 2,
+    "require_zero_selected_harm": true,
+    "max_overrides_per_episode": 1
+  },
+  "controlled_change": {
+    "preserved_from_r31": [
+      "accepted R4 latent context is inference-only and frozen",
+      "supervised public goal ensemble and exact public support mask",
+      "all valid alternative actions are counterfactually evaluated",
+      "causal certification is an optional feature rather than an eligibility filter",
+      "maximum one override per episode",
+      "cross-block guard and zero selected harm requirement",
+      "strict solved-count promotion gate"
+    ],
+    "r32_change": "replace three-class pairwise rescue/harm/neutral classifier with a binary per-action terminal solve-value ensemble and derive rescue/harm from candidate-vs-R11 values",
+    "no_same_dev_retuning": true
+  },
+  "private_boundary": {
+    "private_goal_allowed_only_for_goal_belief_training": true,
+    "terminal_value_labels_use_terminal_outcomes_only": true,
+    "accepted_r4_latent_context_is_pre_action_only": true,
+    "inference_private_goal_use": false,
+    "dev_or_fresh_counterfactual_teacher_use": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true,
+    "fresh_rerun_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [280, 319],
+    "consumed_before_r32": [0, 279]
+  }
+}
