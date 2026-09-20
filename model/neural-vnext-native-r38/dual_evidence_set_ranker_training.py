@@ -1257,6 +1257,7 @@ def evaluate_r38(
                 model,
                 make_task(str(family), str(split), int(index)),
                 temperature=float(temperature),
+                selection_threshold=selection_threshold,
                 rescue_threshold=rescue_threshold,
                 harm_ceiling=harm_ceiling,
                 max_support=int(max_support),
