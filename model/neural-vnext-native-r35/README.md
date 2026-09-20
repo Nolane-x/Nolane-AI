@@ -1,6 +1,6 @@
 # Neural vNext Native R35 — fixed-policy branch sequence decoder
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R35 changes how counterfactual future structure enters the decision.
 
@@ -45,3 +45,22 @@ The rescue selector remains the same strict direct rescue/harm selector used in 
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No same-dev retuning is permitted.
+
+
+## Locked development result
+
+R35 trained on **5,052** action-pair rows with **237 true rescues**. Its recurrent branch forecasts learned substantial signal: final sequence binary accuracy reached roughly **93.1–93.3%**, continuous sequence MAE roughly **0.121–0.123**, and joint terminal accuracy roughly **78.9–79.9%**.
+
+Despite that, the unchanged guard failed. Some blocks showed localized rescue enrichment, but no threshold achieved the locked combination of per-block precision, coverage, and zero harm.
+
+On dev:2080..2111:
+- accepted R11: **119/128**, implicit-goal **26/32**
+- R35: **119/128**, implicit-goal **26/32**
+- visible-target families: exact
+- overrides: **0**
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+Interpretation: branch forecasting quality is no longer the dominant problem. R30-R35 all train candidates row-wise, while runtime makes a **set decision** among alternatives. The next controlled successor should train on complete decision groups and optimize relative rescue ranking directly.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
