@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_CONFIRMATION_UNOPENED",
+  "candidate": "Neural-vNext-Native-R21-SupervisedGoalBelief",
+  "source_head": "bc1bf61436ac1f7288227415f15a1bd4f9cf8554",
+  "selected_candidate": "goalblend100",
+  "selected_config": {
+    "beta": 1,
+    "max_support": 3,
+    "temperature": 2
+  },
+  "parent_authority": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "frozen_checkpoint": {
+    "workflow_run_id": 35493974594,
+    "artifact_id": 10600142112,
+    "artifact_name": "neural-vnext-native-r21-dev",
+    "artifact_digest": "sha256:07b232d4de5bb27fa192213cbe572ff18de5e20726a38951985e382d6f298839",
+    "checkpoint_sha256": "4b11f7580bb35e90c54d697d4fbad238640a16cd69c6f7a771f670eaf8e2718c",
+    "state_dict_sha256": "a3329d41d5138701617fc096d226045e0cae22f9e56945de3e35440ac795ca7e",
+    "manifest_sha256": "b009de6c15b4a484738a375f5145432eb0e0d246322644df0f7c334b8dc90556",
+    "dev_result_sha256": "8c9eabefa523135b518901260e548afa6dcab4bb35d954d7d8d7037b779f0be4",
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r21/goal_belief_core.py": "0d551f08a263c92567e77ead72631e9587b8b5f3",
+    "model/neural-vnext-native-r21/goal_belief_training.py": "d2aea20af7011145672419d4ea059c4e2a73e066",
+    "model/neural-vnext-native-r21/scripts/run_dev.py": "d5e59574cf1827985ce0af9abebdaf4be7d5ad2d",
+    "model/neural-vnext-native-r21/PREDEV_LOCK.json": "f7e6c4abe884736565873a319ab7ee25e354f854",
+    "model/neural-vnext-native-r21/FRESH_GATE_PREREGISTRATION.json": "8dc14450623937c2048ebb6e640b4e344c2ec9f6"
+  },
+  "primary_evidence": "evidence/PRIMARY_DEV_REPRO_001.json",
+  "confirmation": {
+    "split": "dev",
+    "indices": [
+      1216,
+      1247
+    ],
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "opened": false
+  },
+  "gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "opened": false
+  },
+  "governance": {
+    "retraining_between_primary_and_confirmation": false,
+    "source_or_config_mutation_before_confirmation": false,
+    "fresh_opening_before_confirmation_pass": false,
+    "failure_path": "close R21 before fresh; fresh:280..319 remains untouched"
+  }
+}

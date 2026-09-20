@@ -1,0 +1,101 @@
+name: Neural vNext Native R21 Confirmation
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r21-supervised-goal-belief
+    paths:
+      - 'model/neural-vnext-native-r21/PRE_CONFIRM_LOCK.json'
+      - 'model/neural-vnext-native-r21/evidence/PRIMARY_DEV_REPRO_001.json'
+      - 'model/neural-vnext-native-r21/scripts/evaluate_confirmation.py'
+      - '.github/workflows/neural-vnext-native-r21-confirmation.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  confirmation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      EXPECTED_CHECKPOINT_SHA256: '4b11f7580bb35e90c54d697d4fbad238640a16cd69c6f7a771f670eaf8e2718c'
+      EXPECTED_MANIFEST_SHA256: 'b009de6c15b4a484738a375f5145432eb0e0d246322644df0f7c334b8dc90556'
+      EXPECTED_DEV_SHA256: '8c9eabefa523135b518901260e548afa6dcab4bb35d954d7d8d7037b779f0be4'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify frozen R21 source authority
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r21/PRE_CONFIRM_LOCK.json').read_text())
+          assert lock['status']=='FROZEN_CONFIRMATION_UNOPENED'
+          assert lock['selected_candidate']=='goalblend100'
+          assert lock['selected_config']=={'beta':1.0,'max_support':3,'temperature':2.0}
+          assert lock['confirmation']['indices']==[1216,1247]
+          assert lock['confirmation']['opened'] is False
+          assert lock['fresh']=={'split':'fresh','indices':[280,319],'opened':False}
+          for relative,expected in lock['frozen_source_blobs'].items():
+              actual=subprocess.check_output(['git','hash-object',relative],text=True).strip()
+              assert actual==expected,(relative,expected,actual)
+          PY
+
+      - name: Download exact frozen R21 primary artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: neural-vnext-native-r21-dev
+          path: frozen-r21
+          github-token: ${{ github.token }}
+          repository: Nolane-x/Nolane-AI
+          run-id: 35493974594
+
+      - name: Verify exact frozen artifact bytes
+        run: |
+          test "$(sha256sum frozen-r21/r21.pt | awk '{print $1}')" = "$EXPECTED_CHECKPOINT_SHA256"
+          test "$(sha256sum frozen-r21/r21.manifest.json | awk '{print $1}')" = "$EXPECTED_MANIFEST_SHA256"
+          test "$(sha256sum frozen-r21/r21.dev.json | awk '{print $1}')" = "$EXPECTED_DEV_SHA256"
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile locked R21 confirmation evaluator
+        env:
+          PYTHONPATH: model/neural-vnext-native-r21:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r21/scripts/evaluate_confirmation.py
+
+      - name: Open disjoint R21 confirmation court once for frozen candidate
+        id: confirmation
+        env:
+          PYTHONPATH: model/neural-vnext-native-r21:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r21-confirmation
+          set +e
+          python model/neural-vnext-native-r21/scripts/evaluate_confirmation.py             --checkpoint frozen-r21/r21.pt             --manifest frozen-r21/r21.manifest.json             --primary-result frozen-r21/r21.dev.json             --result r21-confirmation/confirmation.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable confirmation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r21-confirmation-1216-1247
+          path: r21-confirmation/confirmation.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce preregistered confirmation verdict
+        if: always()
+        run: test "${{ steps.confirmation.outputs.exit_code }}" = "0"

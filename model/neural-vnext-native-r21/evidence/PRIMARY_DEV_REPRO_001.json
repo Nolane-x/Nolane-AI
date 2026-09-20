@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "R21_PRIMARY_DEV_BITWISE_REPRODUCED",
+  "candidate": "Neural-vNext-Native-R21-SupervisedGoalBelief",
+  "source_head": "bc1bf61436ac1f7288227415f15a1bd4f9cf8554",
+  "selected_candidate": "goalblend100",
+  "selected_config": {
+    "beta": 1,
+    "max_support": 3,
+    "temperature": 2
+  },
+  "primary_development": {
+    "split": "dev",
+    "indices": [
+      1184,
+      1215
+    ],
+    "parent_authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "parent_solved": 116,
+    "candidate_solved": 117,
+    "total_delta": 1,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 1,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 6,
+    "neural_fused_steps": 218
+  },
+  "checkpoint": {
+    "sha256": "4b11f7580bb35e90c54d697d4fbad238640a16cd69c6f7a771f670eaf8e2718c",
+    "state_dict_sha256": "a3329d41d5138701617fc096d226045e0cae22f9e56945de3e35440ac795ca7e",
+    "size_bytes": 440761,
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "executions": [
+    {
+      "workflow_run_id": 35493974594,
+      "job_id": 106033592028,
+      "artifact_id": 10600142112,
+      "artifact_digest": "sha256:07b232d4de5bb27fa192213cbe572ff18de5e20726a38951985e382d6f298839"
+    },
+    {
+      "workflow_run_id": 35493966294,
+      "job_id": 106033571714,
+      "artifact_id": 10600127314,
+      "artifact_digest": "sha256:ad12651efeb9c9cc71fb08f499580de74d0d40f4ffed609308e08335e13fa547"
+    }
+  ],
+  "inner_files": {
+    "r21.pt": {
+      "sha256": "4b11f7580bb35e90c54d697d4fbad238640a16cd69c6f7a771f670eaf8e2718c",
+      "byte_identical": true
+    },
+    "r21.manifest.json": {
+      "sha256": "b009de6c15b4a484738a375f5145432eb0e0d246322644df0f7c334b8dc90556",
+      "byte_identical": true
+    },
+    "r21.dev.json": {
+      "sha256": "8c9eabefa523135b518901260e548afa6dcab4bb35d954d7d8d7037b779f0be4",
+      "byte_identical": true
+    }
+  },
+  "zip_digest_reproduced": false,
+  "zip_digest_note": "GitHub artifact ZIP container digests differ, while every promotion-relevant inner file is byte-identical.",
+  "fresh_opened": false
+}
