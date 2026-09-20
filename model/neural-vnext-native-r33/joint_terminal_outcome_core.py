@@ -263,7 +263,7 @@ class NativeR33JointTerminalOutcomeEnsemble(nn.Module):
             raise ValueError("ensemble_size must be >=2")
         self.ensemble_size = int(ensemble_size)
         self.goal_hidden_dim = int(goal_hidden_dim)
-        self.outcome_hidden_dim = int(rescue_hidden_dim)
+        self.outcome_hidden_dim = int(outcome_hidden_dim)
         self.goal_heads = nn.ModuleList(
             [_GoalBeliefHead(self.goal_hidden_dim) for _ in range(self.ensemble_size)]
         )
@@ -278,7 +278,7 @@ class NativeR33JointTerminalOutcomeEnsemble(nn.Module):
         return {
             "r33_ensemble_size": self.ensemble_size,
             "r33_goal_hidden_dim": self.goal_hidden_dim,
-            "r31_rescue_hidden_dim": self.outcome_hidden_dim,
+            "r33_outcome_hidden_dim": self.outcome_hidden_dim,
             "r33_public_goal_feature_dim": PUBLIC_GOAL_FEATURE_DIM,
             "r33_base_pair_feature_dim": BASE_ACTION_RESCUE_FEATURE_DIM,
             "r33_latent_context_dim": LATENT_CONTEXT_DIM,
