@@ -26,7 +26,7 @@ from causal_version_space import (
     choose_public_causal_action,
 )
 from causal_runtime import evaluate_r11
-from neural_causal_core import (
+from selective_neural_core import (
     CAUSAL_FEATURE_DIM,
     NativeR13SelectiveNeuralCausalPolicy,
 )
