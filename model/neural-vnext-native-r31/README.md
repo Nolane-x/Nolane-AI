@@ -1,6 +1,6 @@
 # Neural vNext Native R31 — latent-state action-conditioned rescue
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R31 is a controlled successor experiment over accepted R11. R30 already removed the major candidate-coverage failure of R29: it retained 5,064 action-conditioned counterfactual rows, including 298 true rescue rows. R30 still failed because its public/action/consequence feature surface could not safely separate rescue from harm.
 
@@ -41,3 +41,21 @@ All-action generation, terminal counterfactual labels, optional certification ge
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 R31 may open confirmation only after a strict primary solved-count gain with visible-target families exact. Fresh remains inaccessible until the exact frozen candidate passes confirmation unchanged.
+
+
+## Locked development result
+
+R31 retained **5,118** all-action counterfactual rows: **283 rescue**, **1,806 harm**, and **3,029 neutral**. The added 528-dimensional accepted-R4 latent context changed the score surface, but it did not create stable cross-block rescue/harm separation.
+
+The preregistered guard failed closed: at every locked threshold pair at least one guard block had **0% rescue precision**, while harmful selections remained elsewhere. No override was therefore permitted on primary dev.
+
+On dev:1824..1855:
+- accepted R11: **117/128**, implicit-goal **27/32**
+- R31: **117/128**, implicit-goal **27/32**
+- visible-target families: exact
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+The controlled R30→R31 result rejects the hypothesis that simply exposing the complete accepted-R4 latent inference state is sufficient. The next controlled variable should be the **learning target**: predict candidate terminal solve and R11 terminal solve separately, rather than collapsing both-solve and both-fail into one neutral class.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
