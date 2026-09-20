@@ -16,7 +16,97 @@ concurrency:
 
 jobs:
   fresh-court:
-    if: ${{ github.event.before == 'UNARMED_STAGING_SENTINEL' }}
+    if: ${{ github.event.before == 'ccbaf25936b0a378a02b842a0e2d9cffe19e0f97' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      EXPECTED_ARMING_PARENT_HEAD: 'ccbaf25936b0a378a02b842a0e2d9cffe19e0f97'
+      EXPECTED_PRE_FRESH_LOCK_BLOB: 'ad8a1463e3b800315ba485e26a38789dfb022a7c'
+      EXPECTED_FRESH_EVALUATOR_BLOB: '595afc4ad819899978318da7ae370d0ae9ac7afe'
+      EXPECTED_CAUSAL_CORE_BLOB: 'b13657c388d589751919be001d618f6fac2b0643'
+      EXPECTED_CAUSAL_RUNTIME_BLOB: '9ae28255bd417094b262df948d62860f61116a01'
+      EXPECTED_PRIMARY_EVIDENCE_BLOB: '34e65f56632b8dafca069bc612cdceb527d8a0ef'
+      EXPECTED_CONFIRMATION_EVIDENCE_BLOB: '2ca6b47b725c5cd477910a9010457f07fc332a11'
+      EXPECTED_R9_AUTHORITY_BLOB: 'f3c829cdeb4fa3e2cfadd69ca4c583997b466049'
     steps:
-      - run: echo "staging workflow must never open fresh"
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Refuse unbound or replayed R11 fresh authority
+        run: |
+          test "${{ github.event.before }}" = "$EXPECTED_ARMING_PARENT_HEAD"
+          test "$GITHUB_REF_NAME" = "codex/neural-native-r11-causal-version-space"
+          test "$(git hash-object model/neural-vnext-native-r11/PRE_FRESH_LOCK.json)" = "$EXPECTED_PRE_FRESH_LOCK_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r11/scripts/evaluate_fresh.py)" = "$EXPECTED_FRESH_EVALUATOR_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r11/causal_version_space.py)" = "$EXPECTED_CAUSAL_CORE_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r11/causal_runtime.py)" = "$EXPECTED_CAUSAL_RUNTIME_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r11/evidence/PRIMARY_DEV_REPRO_001.json)" = "$EXPECTED_PRIMARY_EVIDENCE_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r11/evidence/CONFIRMATION_REPRO_001.json)" = "$EXPECTED_CONFIRMATION_EVIDENCE_BLOB"
+          test "$(git hash-object model/neural-vnext-native-r9/ACCEPTED_AUTHORITY.json)" = "$EXPECTED_R9_AUTHORITY_BLOB"
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r11/PRE_FRESH_LOCK.json').read_text())
+          assert lock['status']=='FROZEN_FRESH_UNOPENED'
+          assert lock['selected_candidate']=='causal_horizon1'
+          assert lock['selected_config']=={'horizon':1,'max_support':3}
+          assert lock['primary']['total_delta']==1
+          assert lock['primary']['implicit_goal_delta']==1
+          assert lock['primary']['promotion_metrics_reproduced'] is True
+          assert lock['primary']['trajectory_bitwise_reproduced'] is False
+          assert lock['confirmation']['total_delta']==1
+          assert lock['confirmation']['implicit_goal_delta']==1
+          assert lock['confirmation']['promotion_metrics_reproduced'] is True
+          assert lock['confirmation']['trajectory_bitwise_reproduced'] is False
+          assert lock['fresh_court']['indices']==[240,279]
+          assert lock['fresh_court']['opened'] is False
+          PY
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and verify frozen R11 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r11/*.py model/neural-vnext-native-r11/scripts/*.py model/neural-vnext-native-r11/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r11/tests
+
+      - name: Open frozen R11 fresh court exactly once
+        id: fresh
+        env:
+          PYTHONPATH: model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p fresh-output
+          cp model/neural-vnext-native-r11/PRE_FRESH_LOCK.json fresh-output/PRE_FRESH_LOCK.json
+          cp model/neural-vnext-native-r11/evidence/PRIMARY_DEV_REPRO_001.json fresh-output/PRIMARY_DEV_REPRO_001.json
+          cp model/neural-vnext-native-r11/evidence/CONFIRMATION_REPRO_001.json fresh-output/CONFIRMATION_REPRO_001.json
+          set +e
+          python model/neural-vnext-native-r11/scripts/evaluate_fresh.py --result fresh-output/r11.fresh.json
+          code=$?
+          echo "exit_code=$code" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload immutable R11 fresh evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r11-fresh-court-240-279
+          path: |
+            fresh-output/PRE_FRESH_LOCK.json
+            fresh-output/PRIMARY_DEV_REPRO_001.json
+            fresh-output/CONFIRMATION_REPRO_001.json
+            fresh-output/r11.fresh.json
+          if-no-files-found: error
+          retention-days: 90
+
+      - name: Enforce preregistered R11 fresh verdict
+        if: always()
+        run: test "${{ steps.fresh.outputs.exit_code }}" = "0"
