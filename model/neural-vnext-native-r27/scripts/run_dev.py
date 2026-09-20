@@ -103,7 +103,7 @@ def main() -> int:
     args = parser.parse_args()
 
     lock = json.loads(args.lock.read_text(encoding="utf-8"))
-    if lock.get("candidate") != "Neural-vNext-Native-R27-ActionMassConsensus":
+    if lock.get("candidate") != "Neural-vNext-Native-R27-RobustActionMass":
         raise ValueError("unexpected R27 candidate")
     if (
         lock["fresh_isolation"]["status"] != "UNOPENED"
@@ -257,7 +257,7 @@ def main() -> int:
         },
         "parent_development": _compact(parent_dev),
         "dev_evaluation": _compact(candidate),
-        "selected_candidate": "action_mass_consensus",
+        "selected_candidate": "robust_action_mass_consensus",
         "selected_config": selected_config,
         "selected_eligibility": eligibility,
         "confirmation_opened": False,
