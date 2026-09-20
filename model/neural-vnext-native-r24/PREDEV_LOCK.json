@@ -33,7 +33,7 @@
   "architecture": {
     "ensemble_size": 3,
     "hidden_dim": 96,
-    "expected_successor_parameters": 82455,
+    "expected_successor_parameters": 83607,
     "mechanism": "additive sequential public transition evidence"
   },
   "training": {
