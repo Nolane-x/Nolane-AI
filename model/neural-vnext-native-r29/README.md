@@ -1,74 +1,62 @@
-# Neural vNext Native R29 — certified counterfactual rescue geometry
+# Neural vNext Native R29 — development-rejected certified rescue geometry
 
-Status: **PREDEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R29 follows the strongest evidence from R28: single-action interventions can genuinely rescue or harm terminal episodes, but pre-action state/action features did not distinguish those outcomes.
+R29 added exact public causal next-state geometry and a three-class neutral/rescue/harm learner.
 
-## Learned mechanism
+## Learned authority
 
-R29 has two learned subsystems.
-
-1. A three-head public hidden-goal/action-mass ensemble proposes an alternative action.
-2. A three-head rescue-geometry classifier predicts **neutral / rescue / harm**.
-
-Unlike R28, the rescue classifier additionally sees public consequence geometry that is available before intervention and certified by R11's causal version space:
-
-- certified next state under R11;
-- certified next state under the candidate;
-- causal-rule counts for both;
-- expected distance from current, R11-next and candidate-next states under the public neural posterior;
-- candidate-vs-R11 distance advantage;
-- candidate-vs-R11 action-mass margin;
-- rule-count advantage.
-
-If either next state is not certified, the neural path falls back to accepted R11.
-
-## Parameter authority
-
-- goal-belief successor: **107,799**
-- certified rescue-geometry successor: **59,721**
+- goal successor parameters: **107,799**
+- rescue-geometry parameters: **59,721**
 - total successor parameters: **167,520**
-- physical learned parameters including accepted R4: **1,045,062**
-- rescue feature dimension: **238**
+- physical learned parameters: **1,045,062**
+- checkpoint SHA-256: `52a7a01eb8c2001d3d0916ea7cde7180c242aa49d6d1f8b0d61d96b899c62753`
+- state SHA-256: `9e46261031e4ea07c764ef0a40a347493d09a2a525760e2e28a5b299e9a815ba`
 
-## Counterfactual labels
+## Counterfactual training result
 
-Only train identities are branched.
+The dual-certification requirement sharply reduced the useful intervention court:
 
-- **neutral**: no terminal fail/solve flip;
-- **rescue**: candidate branch solves while R11 branch fails;
-- **harm**: R11 branch solves while candidate branch fails.
+- **86 rows total**
+- **72 neutral**
+- **4 rescue**
+- **10 harm**
 
-After the single differing first action, both branches use accepted R11. The rescue/harm labels require no private goal.
+This is much narrower than R28's 209 rows / 19 rescues / 19 harms.
 
-## Locked identities
+## Guard — failed closed
 
-- goal training: `train:9984..10495`
-- temperature fit: `train:10496..10623`
-- rescue-geometry training: `train:10624..11007`
-- guard blocks: `11008..11071`, `11072..11135`, `11136..11199`, `11200..11263`
-- primary dev: `dev:1696..1727`
-- confirmation: `dev:1728..1759`
-- reserved fresh: `fresh:280..319`
+No preregistered rescue-threshold × harm-ceiling pair achieved the locked cross-block rescue gate. Even the most permissive pairs produced at most two predicted rows across the four blocks and **zero true rescues**.
 
-## Locked intervention gate
+Thus the neural path was disabled before primary development.
 
-Candidate generation requires all three goal heads to agree on an alternative causal action with minimum action mass >= **0.55**, support size 2..8, and both R11/candidate next states certified.
+## Primary development
 
-Guard selection searches only the preregistered train-only grid:
+On `dev:1696..1727`:
 
-- rescue threshold: 0.4 / 0.5 / 0.6 / 0.7 / 0.8 / 0.9
-- harm ceiling: 0.05 / 0.10 / 0.20
+- accepted R11: **120/128**
+- R29: **120/128**
+- implicit-goal: **27/32 → 27/32**
+- overrides: **0**
+- visible-target solved counts: exact
 
-A pair is eligible only if:
+## Interpretation
 
-- rescue precision >= **75% in every guard block**;
-- at least 2 predicted interventions per block;
-- at least 12 predicted interventions overall;
-- **zero true harm rows** among predicted interventions.
+The failure is now localized further. Certified consequence geometry is public and principled, but requiring a **single action-mass candidate plus dual exact certification** collapses the rescue data distribution before the learner can discover useful intervention structure.
 
-At inference all rescue heads must exceed the selected rescue threshold and every harm probability must remain below the selected harm ceiling. At most one neural override is allowed per episode. Visible-target families never enter this path.
+The next successor should stop treating candidate generation as fixed. It should learn terminal rescue/harm **for every available alternative action**, using certification as an optional feature rather than an eligibility requirement.
 
-## Promotion
+## Governance
 
-Primary promotion requires a strict total solved gain and a strict `implicit_goal_regimes` solved gain with exact visible-target family solved counts. A primary winner must pass disjoint confirmation with the exact frozen checkpoint/config before fresh may be opened.
+- confirmation `1728..1759`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no post-dev tuning
+- closes without merge
+
+Workflow: `35500141888`.
+
+Artifact: `10602410861`.
+
+Artifact digest: `sha256:7b02b3e50a23fc56419d2e1d6dc780081dbc41fb334625ae6cea0051cafc4c2d`.
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
