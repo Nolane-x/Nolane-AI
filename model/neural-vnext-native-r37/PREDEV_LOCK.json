@@ -1,0 +1,143 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R37-DistributionallyRobustSetRanker",
+  "hypothesis": "R36 materially improved safety: the complete preregistered guard grid selected zero harm, but rescue coverage concentrated in one identity block. R37 preserves the R36 set architecture, null option, selector and guard exactly, and changes only train-time distribution handling. Decision groups are partitioned into eight contiguous identity strata, visited round-robin, optimized with GroupDRO over stratum mean loss, and rescue-present listwise loss is upweighted. The goal is cross-stratum rescue coverage without sacrificing R36's zero-harm behavior.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "negative_control": {
+    "r36": {
+      "status": "DEV_REJECTED",
+      "training_rows": 5148,
+      "training_groups": 1716,
+      "zero_harm_threshold_pairs": 15,
+      "finding": "set-level ERM achieved strong safety but rescue coverage collapsed across three of four guard blocks"
+    }
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "goal_training_indices": [20224, 20735],
+    "temperature_fit_indices": [20736, 20863],
+    "set_training_indices": [20864, 21247],
+    "rescue_guard_blocks": [
+      [21248, 21311],
+      [21312, 21375],
+      [21376, 21439],
+      [21440, 21503]
+    ],
+    "development_indices": [2208, 2239],
+    "confirmation_indices": [2240, 2271],
+    "fresh_indices": [280, 319]
+  },
+  "architecture": {
+    "ensemble_size": 3,
+    "goal_hidden_dim": 96,
+    "set_hidden_dim": 64,
+    "pair_feature_dim": 774,
+    "joint_outcome_classes": ["both_fail", "rescue", "harm", "both_solve"],
+    "pooling": ["mean", "max"],
+    "explicit_keep_r11_null_option": true,
+    "expected_goal_successor_parameters": 107799,
+    "expected_set_successor_parameters": 275730,
+    "expected_successor_parameters": 383529,
+    "expected_physical_parameters": 1261071
+  },
+  "training": {
+    "seed": 20261007,
+    "goal_epochs": 10,
+    "set_epochs": 12,
+    "batch_size": 32,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "listwise_loss_weight": 1.0,
+    "harm_mass_weight": 0.75,
+    "stratum_count": 8,
+    "group_dro_eta": 0.15,
+    "rescue_group_listwise_multiplier": 3.0,
+    "temperature_candidates": [0.5, 0.75, 1.0, 1.5, 2.0],
+    "max_support": 16,
+    "max_counterfactual_decision_steps_per_episode": 5,
+    "rescue_threshold_candidates": [0.35, 0.45, 0.55, 0.65, 0.75],
+    "harm_ceiling_candidates": [0.05, 0.1, 0.2],
+    "minimum_rescue_precision": 0.75,
+    "minimum_total_selected_actions": 12,
+    "minimum_block_selected_actions": 2,
+    "require_zero_selected_harm": true,
+    "max_overrides_per_episode": 1
+  },
+  "distributional_training": {
+    "identity_strata": 8,
+    "strata_are_contiguous_over_locked_set_training_range": true,
+    "epoch_traversal": "round_robin_across_strata_until_exhausted",
+    "group_dro": true,
+    "group_dro_eta": 0.15,
+    "group_dro_unit": "stratum_mean_complete_decision_set_loss",
+    "rescue_present_listwise_multiplier": 3.0,
+    "harm_mass_weight_unchanged_from_r36": true,
+    "selector_unchanged_from_r36": true
+  },
+  "controlled_change": {
+    "comparison_parent": "R36 decision-set listwise rescue ranker",
+    "preserved": [
+      "774-dimensional candidate-vs-R11 feature representation",
+      "permutation-equivariant mean/max set architecture",
+      "explicit keep-R11 null option",
+      "four-way row outcome calibration",
+      "listwise rescue-set objective",
+      "harm mass penalty 0.75",
+      "selector thresholds and unanimity rule",
+      "cross-block 75% precision requirement",
+      "zero selected harm requirement",
+      "maximum one override per episode",
+      "strict solved-count promotion criteria"
+    ],
+    "r37_change": "round-robin identity strata plus GroupDRO and rescue-present listwise reweighting at train time",
+    "same_dev_retuning_allowed": false
+  },
+  "private_boundary": {
+    "private_goal_allowed_only_for_goal_belief_training": true,
+    "listwise rescue labels use terminal branch outcomes only": true,
+    "future_branch_information_used_as_inference_input": false,
+    "identity_stratum uses public training index only": true,
+    "inference_private_goal_use": false,
+    "dev_or_fresh_counterfactual_teacher_use": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true,
+    "fresh_rerun_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [280, 319],
+    "consumed_before_r37": [0, 279]
+  }
+}
