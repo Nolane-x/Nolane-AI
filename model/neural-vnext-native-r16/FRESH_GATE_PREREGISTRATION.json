@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R16-PublicDynamicsEnsemble",
+  "reserved_fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "status": "UNOPENED"
+  },
+  "required_before_fresh": [
+    "strict development promotion gate pass on dev:864..895",
+    "exact selected checkpoint/config frozen before confirmation",
+    "strict disjoint confirmation gate pass on dev:896..927",
+    "PRE_FRESH_LOCK committed before any fresh evaluator is armed"
+  ],
+  "failure_rule": "Any development or confirmation failure closes R16 without opening fresh:280..319.",
+  "post_fresh_rule": "Once opened, fresh:280..319 is consumed regardless of verdict; no retuning or replay."
+}
