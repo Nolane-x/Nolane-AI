@@ -140,7 +140,7 @@
     "model/neural-vnext-native-r5/scripts/train_r5_dev.py": "379f183a7c74c9ecceb2df40621fd05820b143f5",
     "model/neural-vnext-native-r5/scripts/evaluate_fresh.py": "0788e271e652e9994641fee45f21bce2090eb006",
     "model/neural-vnext-native-r5/tests/test_r5.py": "4cd54b2002e46c7190478d603e5552c44cb0ba8f",
-    "model/neural-vnext-native-r5/tests/test_fresh_gate.py": "fb16e9e903ce7cb8dc40caf71ec03a01ba830873",
+    "model/neural-vnext-native-r5/tests/test_fresh_gate.py": "e6cee10e61baf36eacb0e4fbc685fc1fa78be59c",
     "model/neural-vnext-native-r5/evidence/DEV_REPRO_001.json": "a28abf293a7a6abedce87482302003028e8d7c32",
     ".github/workflows/neural-vnext-native-r5-dev.yml": "6ebca62a2842710a75cb46c36c0f08380c6981cd",
     "model/neural-vnext-native-r4/latent_goal_core.py": "7577f0188f51e0e69d9dc97eeb334c942660ce8c",
