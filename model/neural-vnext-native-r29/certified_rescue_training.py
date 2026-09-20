@@ -16,10 +16,13 @@ from successor_core import PublicTransitionTrace
 from attributed_core import PublicActionAttributedTrace
 from public_planner import GOAL_HYPOTHESIS_COUNT, GOAL_TABLE, PublicGoalConsistencyBelief
 from causal_version_space import PublicCausalRuleMemory, choose_public_causal_action
-from counterfactual_rescue_core import (
-    NativeR29CounterfactualRescueEnsemble,
+from certified_rescue_core import (
+    HARM_CLASS,
+    NEUTRAL_CLASS,
+    RESCUE_CLASS,
+    NativeR29CertifiedRescueEnsemble,
     encode_public_goal_features,
-    encode_rescue_features,
+    encode_rescue_geometry_features,
     goal_index,
 )
 
@@ -198,7 +201,7 @@ def collect_goal_dataset(
 
 
 def train_goal_ensemble(
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     dataset: Mapping[str, Tensor],
     *,
     seed: int,
@@ -256,7 +259,7 @@ def train_goal_ensemble(
 
 
 def calibrate_temperature(
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     dataset: Mapping[str, Tensor],
     *,
     candidates: Sequence[float],
@@ -485,7 +488,7 @@ def _branch_outcome(
 
 def collect_rescue_rows(
     parent: Any,
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     *,
     make_task: Any,
     indices: tuple[int, int],
@@ -755,7 +758,7 @@ def fit_rescue_guard(
 
 def rollout_r29(
     parent: Any,
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     task: Any,
     *,
     temperature: float,
@@ -823,7 +826,7 @@ def rollout_r29(
 
 def evaluate_r29(
     parent: Any,
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     *,
     make_task: Any,
     families: Sequence[str],
@@ -886,7 +889,7 @@ def evaluate_r29(
 
 
 def save_checkpoint(
-    model: NativeR29CounterfactualRescueEnsemble,
+    model: NativeR29CertifiedRescueEnsemble,
     path: str | Path,
     *,
     parent_checkpoint_sha256: str,
