@@ -1,6 +1,6 @@
 # Neural vNext Native R32 — factorized terminal action value
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R32 changes the learning target rather than adding more representation.
 
@@ -46,3 +46,21 @@ An alternative is eligible only when every head has positive advantage, conserva
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No development threshold retuning is permitted. Confirmation opens only if the locked primary candidate strictly improves total and implicit-goal solved counts while preserving visible-target family solved counts exactly.
+
+
+## Locked development result
+
+R32 trained on **5,112** paired counterfactual rows: **274 rescue**, **1,821 harm**, **2,505 both-solve**, and **512 both-fail**. The binary terminal-value objective itself learned strongly (final ensemble-head accuracy about **88.9–89.6%**, Brier about **0.078–0.081**), but the derived independent-probability rescue score did not generalize into a safe selector.
+
+The preregistered guard failed closed. Conservative thresholds selected almost no actions; broader thresholds admitted harmful actions and poor cross-block rescue precision. Therefore R32 executed **0 overrides** on primary development.
+
+On dev:1888..1919:
+- accepted R11: **119/128**, implicit-goal **26/32**
+- R32: **119/128**, implicit-goal **26/32**
+- visible-target family solved counts: exact
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+The next controlled target is a direct **four-way joint terminal outcome** model: both-fail / rescue / harm / both-solve. This preserves the distinction R31 lost without making R32's independence assumption.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
