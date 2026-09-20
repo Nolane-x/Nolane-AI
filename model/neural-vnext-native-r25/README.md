@@ -1,59 +1,55 @@
-# Neural vNext Native R25 — selective R11 error correction
+# Neural vNext Native R25 — development-rejected selective R11 error correction
 
-Status: **PREDEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R25 is a learned Neural Core successor experiment over accepted R11.
+R25 separated the intervention problem into a learned R11-mistake detector and a mistake-only action corrector.
 
-## Mechanism
-
-R25 explicitly separates two questions that earlier successors mixed together:
-
-1. **Is accepted R11 likely wrong on this public state?**
-2. **If it is wrong, which public action should replace it?**
-
-Each of three neural heads contains:
-
-- an R11-mistake detector trained on every train-only hidden-goal decision;
-- an action scorer trained only on rows where the true-goal causal teacher disagrees with R11.
-
-The action scorer consumes action features directly, so its output is action-order aware only through public action representations rather than a fixed action ID vocabulary.
-
-## Locked learned architecture
+## Learned authority
 
 - ensemble size: 3
 - hidden dimension: 64
 - successor parameters: **75,846**
-- accepted R4 learned substrate remains frozen
-- total expected learned parameters: **953,388**
+- total physical learned parameters: **953,388**
+- checkpoint SHA-256: `69a73cf7c330ecde760db457d2fb435131a7bf036a428f66ba207f021005d4d8`
+- state SHA-256: `c036bf29236c0c15333894f8243bc561091e5160085a95e01425f8d4ea567956`
 
-Public inputs include exact support, public state, progress/budget/step, prior public feedback, R11 causal-decision diagnostics, R11 selected-action features, and candidate-action features.
+Private hidden goals were used only to construct train-only teacher labels. Dev/inference remained public-only.
 
-Private hidden goals are used only to construct train-only teacher labels.
+## Train-only guard result
 
-## Guard
+No preregistered detector threshold achieved the required **>=90% precision with >=12 actual overrides**:
 
-An override is possible only when:
+- 0.5: **15/70 = 21.43%**
+- 0.6: **12/41 = 29.27%**
+- 0.7: **8/24 = 33.33%**
+- 0.8: **7/14 = 50.00%**
+- 0.9: **0/1 = 0%**
 
-- the episode is hidden-goal;
-- exact public support is at most 6;
-- all three correction heads agree on the same replacement action;
-- every detector head exceeds the same train-only calibrated mistake threshold;
-- the replacement differs from R11;
-- the selected train-only guard achieves at least 90% teacher-action precision on at least 12 real R11-changing rows;
-- at most one neural override occurs per episode.
+The guard therefore failed closed before primary development.
 
-If no threshold qualifies, R25 becomes exact R11 behavior.
+## Primary development
 
-## Locked identities
+On `dev:1440..1471`:
 
-- training: `train:7168..7423`
-- disjoint guard validation: `train:7424..7487`
-- primary dev: `dev:1440..1471`
-- confirmation: `dev:1472..1503`
-- reserved fresh: `fresh:280..319`
+- accepted R11: **124/128**
+- R25: **124/128**
+- implicit-goal: **31/32 → 31/32**
+- neural overrides: **0**
+- visible-target family solved counts: exact
 
-Fresh remains **UNOPENED**.
+R25 is rejected at development.
 
-## Promotion
+## Governance
 
-Primary promotion requires +1 or better total solved, +1 or better `implicit_goal_regimes` solved, and exact visible-target family solved counts. A primary pass cannot open fresh: the frozen checkpoint/config must first pass confirmation unchanged.
+- confirmation `1472..1503`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no threshold relaxation or same-dev retuning
+- closes without merge
+
+Workflow: `35497341903`.
+
+Artifact: `10601136414`.
+
+Artifact digest: `sha256:27efa91e8a7e3ae87f569cecbea9fb311e49c5d82e6a2f216a4e77bf70b65911`.
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
