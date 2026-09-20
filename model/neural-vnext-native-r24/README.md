@@ -18,7 +18,7 @@ The model receives no private goal at inference.
 
 - 3 independently initialized evidence heads
 - hidden dimension: 96
-- expected successor parameters: **82,455**
+- expected successor parameters: **83,607**
 - accepted R4 learned substrate remains frozen
 - evidence inputs: before/after public state, selected public action features, public progress/information/failure feedback, step and remaining budget
 - evidence is additive across time rather than a direct snapshot classifier
