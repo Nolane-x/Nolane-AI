@@ -1,0 +1,115 @@
+name: Neural vNext Native R32 Dev
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'model/neural-vnext-native-r32/factorized_terminal_value_core.py'
+      - 'model/neural-vnext-native-r32/factorized_terminal_value_training.py'
+      - 'model/neural-vnext-native-r32/PREDEV_LOCK.json'
+      - 'model/neural-vnext-native-r32/FRESH_GATE_PREREGISTRATION.json'
+      - 'model/neural-vnext-native-r32/scripts/**'
+      - 'model/neural-vnext-native-r32/tests/**'
+      - '.github/workflows/neural-vnext-native-r32-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r32-dev-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  r32-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      MKL_CBWR: 'COMPATIBLE'
+      KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R32 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r32:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r32/*.py model/neural-vnext-native-r32/scripts/*.py model/neural-vnext-native-r32/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r32/tests
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r32/PREDEV_LOCK.json').read_text())
+          fresh=json.loads(Path('model/neural-vnext-native-r32/FRESH_GATE_PREREGISTRATION.json').read_text())
+          assert lock['candidate']=='Neural-vNext-Native-R32-FactorizedTerminalValue'
+          assert lock['architecture']['action_value_feature_dim']==727
+          assert lock['architecture']['expected_goal_successor_parameters']==107799
+          assert lock['architecture']['expected_value_successor_parameters']==153219
+          assert lock['architecture']['expected_successor_parameters']==261018
+          assert lock['architecture']['expected_physical_parameters']==1138560
+          assert lock['learning_target']['three_class_rescue_classifier_removed'] is True
+          assert lock['learning_target']['r11_action_labeled_once_per_decision'] is True
+          assert lock['learning_target']['every_valid_alternative_labeled'] is True
+          assert lock['learning_target']['selector_requires_positive_advantage_in_every_head'] is True
+          assert lock['benchmark']['development_indices']==[1888,1919]
+          assert lock['benchmark']['confirmation_indices']==[1920,1951]
+          assert lock['benchmark']['fresh_indices']==[280,319]
+          assert len(lock['benchmark']['rescue_guard_blocks'])==4
+          assert lock['training']['max_overrides_per_episode']==1
+          assert lock['training']['require_zero_selected_harm'] is True
+          assert lock['private_boundary']['inference_private_goal_use'] is False
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert fresh['status']=='UNOPENED'
+          PY
+      - name: Train terminal value ensemble and run locked R32 primary court
+        env:
+          PYTHONPATH: model/neural-vnext-native-r32:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r32-output
+          python model/neural-vnext-native-r32/scripts/run_dev.py \
+            --checkpoint r32-output/r32.pt \
+            --manifest r32-output/r32.manifest.json \
+            --dev-result r32-output/r32.dev.json
+      - name: Enforce confirmation and fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          manifest=json.loads(Path('r32-output/r32.manifest.json').read_text())
+          assert manifest['confirmation_opened'] is False
+          assert manifest['fresh_opened'] is False
+          assert manifest['private_boundary']['inference_private_goal_use'] is False
+          assert manifest['private_boundary']['r11_terminal_value_labeled_once_per_decision'] is True
+          assert manifest['selected_config']['max_overrides_per_episode']==1
+          assert manifest['status'] in {
+              'R32_DEV_ELIGIBLE_CONFIRMATION_UNOPENED_FRESH_UNOPENED',
+              'R32_DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED',
+          }
+          PY
+      - name: Upload deterministic dev authority
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r32-dev
+          path: |
+            r32-output/r32.pt
+            r32-output/r32.manifest.json
+            r32-output/r32.dev.json
+          if-no-files-found: error
+          retention-days: 90
