@@ -95,7 +95,8 @@ def _class_counts(rows: list[Mapping[str, Any]]) -> dict[str, int]:
     return {
         "both_fail": sum(int(row["class_id"] == 0) for row in rows),
         "rescue": sum(int(row["class_id"] == 1) for row in rows),
-        "harm": sum(int(row["class_id"] == 2) for row in rows),\n        "both_solve": sum(int(row["class_id"] == 3) for row in rows),
+        "harm": sum(int(row["class_id"] == 2) for row in rows),
+        "both_solve": sum(int(row["class_id"] == 3) for row in rows),
     }
 
 
