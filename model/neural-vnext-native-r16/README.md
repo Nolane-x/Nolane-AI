@@ -1,26 +1,31 @@
-# Neural vNext Native R16 — public dynamics ensemble
+# Neural vNext Native R16 — development-rejected public dynamics ensemble
 
-Status: **DEVELOPMENT LOCKED; fresh unopened**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R16 is the next learned Neural Core experiment after accepted R11.
+R16 moved learning from direct action residuals to a public transition world model. Three independently initialized set-aware neural dynamics models were trained without private goals or oracle action labels.
 
-Instead of learning a direct action residual (the R12 failure mode), R16 learns the **public transition dynamics** of hidden-goal tasks. Three independently initialized set-aware neural world models observe only public state/action-memory features and predict the next-state delta for each opaque actuator.
+## Locked dev result
 
-A neural prediction may affect control only when:
+On `dev:864..895`:
 
-1. all ensemble members agree on the entire 3-coordinate transition;
-2. confidence clears a threshold selected on a disjoint **train-only calibration** range;
-3. the public hidden-goal posterior is inside the preregistered support gate;
-4. the predicted action is strictly better than accepted R11 by the locked distance margin.
+- accepted R11: **120/128**, implicit-goal **28/32**
+- `dynamics_guarded`: **120/128**, implicit **28/32**, 1 override
+- `dynamics_broad`: **120/128**, implicit **28/32**, 6 overrides
+- visible-target family solved counts remained exact.
 
-Otherwise R16 returns accepted R11 exactly.
+Train-only calibration selected threshold **0.75** with **981/989 exact transitions = 99.19% precision**.
 
-No private goal or oracle action is used to train the world model. Visible-target episodes structurally return R11 unchanged.
+R16 added **114,477 learned successor parameters**.
 
-Locked ranges:
+The model was behaviorally useful but not promotion-eligible: guarded R16 shortened implicit episode 888 from **26 steps to 11** while preserving its solved result, yet no previously unsolved episode became solved.
 
-- world-model train: `train:4096..4351`
-- train-only calibration: `train:4352..4479`
-- primary dev: `dev:864..895`
-- confirmation: `dev:896..927`
-- reserved fresh: `fresh:280..319` — **UNOPENED**
+## Closure
+
+The strict solved-count gate was not relaxed.
+
+- confirmation `dev:896..927` was never opened;
+- `fresh:280..319` was never instantiated and remains untouched;
+- no retuning on `dev:864..895`;
+- R16 closes without merge.
+
+The negative result motivates a distinct successor: use learned dynamics for multi-step model-based planning on new train/dev identities rather than another one-step policy.

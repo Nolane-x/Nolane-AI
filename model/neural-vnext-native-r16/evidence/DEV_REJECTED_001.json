@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R16-PublicDynamicsEnsemble",
+  "source_head": "f8f1a925ef72e5be57c80a052f3c8d3253d10dc0",
+  "workflow_run_id": 35492082291,
+  "job_id": 106028645074,
+  "artifact_id": 10598689813,
+  "artifact_digest": "sha256:4870f5e1d7290f7baf72255de64861ec9c21aa7e5b7652681c7bfba39d4362b0",
+  "development": {
+    "split": "dev",
+    "indices": [
+      864,
+      895
+    ],
+    "parent": {
+      "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+      "solved": 120,
+      "implicit_goal_solved": 28
+    },
+    "calibration": {
+      "threshold": 0.75,
+      "eligible": 989,
+      "correct": 981,
+      "precision": 0.9919110212335692
+    },
+    "successor_parameters": 114477,
+    "candidates": [
+      {
+        "name": "dynamics_guarded",
+        "max_support": 3,
+        "solved": 120,
+        "implicit_goal_solved": 28,
+        "overrides_vs_r11": 1,
+        "neural_dynamics_decisions": 1,
+        "total_delta": 0,
+        "implicit_delta": 0
+      },
+      {
+        "name": "dynamics_broad",
+        "max_support": 6,
+        "solved": 120,
+        "implicit_goal_solved": 28,
+        "overrides_vs_r11": 6,
+        "neural_dynamics_decisions": 6,
+        "total_delta": 0,
+        "implicit_delta": 0
+      }
+    ],
+    "diagnostic_note": "The guarded candidate changed implicit episode 888 from 26 steps to 11 while preserving solved=true, showing useful learned dynamics without promotion-relevant solved-count gain."
+  },
+  "finding": "The learned public transition model generalized with high exact-transition precision, but one-step counterfactual use did not improve solved count. The next mechanism should test model-based multi-step planning on new identities rather than retune R16.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      896,
+      927
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
