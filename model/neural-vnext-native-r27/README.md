@@ -1,57 +1,54 @@
-# Neural vNext Native R27 — distributionally robust action-mass consensus
+# Neural vNext Native R27 — development-rejected robust action-mass consensus
 
-Status: **PREDEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R27 keeps the learned action-equivalence representation introduced by R26, but changes the training/calibration procedure to directly address R26's calibration-transfer failure.
+R27 kept R26's learned action-equivalence mechanism but replaced single-block calibration with four disjoint train-only guard blocks.
 
-## Motivation
+## Learned authority
 
-R26 achieved **92.59–100%** train-only action precision at several thresholds, yet reduced primary implicit-goal solves by three on new identities. A single calibration block was therefore not a reliable generalization authority.
+- successor parameters: **107,799**
+- physical learned parameters: **985,341**
+- checkpoint SHA-256: `bb087dec6fe1e0b68a1b5a24650c7434010515c30e1584d78c73177c0f9cbe10`
+- state SHA-256: `7f22a64937503cd29cb102b951c02b802b3950552c1df7b55608396f60244ba5`
 
-R27 does not tune against the failed R26 development block. It uses entirely new train/calibration/development identities.
+## Robust train-only guard
 
-## Learned architecture
+The selected threshold was **0.95**:
 
-The neural architecture remains:
+- block 8512..8575: **24/24 = 100%**
+- block 8576..8639: **24/24 = 100%**
+- block 8640..8703: **30/30 = 100%**
+- block 8704..8767: **18/19 = 94.74%**
+- aggregate: **96/97 = 98.97%**
+- worst block precision: **94.74%**
 
-- 3 public hidden-goal heads
-- hidden dimension 96
-- **107,799 successor parameters**
-- **985,341 physical learned parameters** including the frozen accepted R4 substrate
-- exact public support hard mask
-- per-head goal probability aggregated into causal action mass
+This is the first Native successor in this line where train-only action precision and cross-block robustness both cleared the locked gate.
 
-## Robust calibration
+## Primary development — rejected
 
-R27 expands training and uses **four disjoint train-only guard blocks**:
+On `dev:1568..1599`:
 
-- 8512..8575
-- 8576..8639
-- 8640..8703
-- 8704..8767
+- accepted R11: **117/128**
+- R27: **117/128**
+- implicit-goal: **24/32 → 24/32**
+- neural overrides: **2**
+- visible-target family solved counts: exact
 
-A threshold is eligible only if:
+R27 therefore fails the strict promotion rule.
 
-- point precision is at least 90% **inside every block**;
-- each block contains at least 5 actual R11-changing overrides;
-- aggregate coverage is at least 24 overrides;
-- all other inference invariants remain satisfied.
+The important negative result is that **teacher-action correctness is not sufficient evidence of episode-level rescue value**. A future learned successor should predict whether an intervention changes the terminal episode outcome, not merely whether it agrees with a true-goal one-step teacher.
 
-Candidate thresholds are fixed before execution: 0.65, 0.75, 0.85, 0.90, 0.95, 0.975.
+## Governance
 
-No development score participates in threshold selection.
+- confirmation `1600..1631`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no post-dev threshold retuning
+- closes without merge
 
-## Locked identities
+Workflow: `35499188271`.
 
-- training: `train:7872..8383`
-- temperature fit: `train:8384..8511`
-- robust guard blocks: `train:8512..8767`
-- primary dev: `dev:1568..1599`
-- confirmation: `dev:1600..1631`
-- reserved fresh: `fresh:280..319`
+Artifact: `10601758836`.
 
-Fresh remains **UNOPENED**.
+Artifact digest: `sha256:c2b1a84e073b93017bbd1112331da377517c708cf33983a664ea269c59990291`.
 
-## Promotion
-
-Primary requires a strict total solved gain and a strict `implicit_goal_regimes` gain with exact visible-target family solved counts. Even a primary winner must pass disjoint confirmation unchanged before fresh is opened.
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
