@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R35-BranchSequenceDecoder",
+  "source_head": "8658e93514bbb0daedd9a7545ded64be40109529",
+  "development": {
+    "split": "dev",
+    "indices": [2080, 2111],
+    "parent_solved": 119,
+    "candidate_solved": 119,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 26,
+    "candidate_implicit_goal_solved": 26,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "f77e1d03dc8c6379b94125a3f4d738774baa3fd39409bc6c086a2f13a85432c1",
+    "state_dict_sha256": "8b47850ec6e09a19f7f7b1401c6eef42e2fe9ce65fe91a121977a6bca79adfb7",
+    "successor_parameters": 391515,
+    "physical_parameters": 1269057
+  },
+  "sequence_training": {
+    "rows": 5052,
+    "class_counts": {
+      "both_fail": 465,
+      "rescue": 237,
+      "harm": 1816,
+      "both_solve": 2534
+    },
+    "final_head_metrics": [
+      {"joint_accuracy": 0.7986935866983373, "sequence_binary_accuracy": 0.9310669041963578, "sequence_continuous_mae": 0.1215337807787978},
+      {"joint_accuracy": 0.7889944576405384, "sequence_binary_accuracy": 0.9326256927949327, "sequence_continuous_mae": 0.1225137909410748},
+      {"joint_accuracy": 0.7933491686460807, "sequence_binary_accuracy": 0.9326586830298231, "sequence_continuous_mae": 0.12112752212701608}
+    ]
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_precision": 0.75,
+    "require_zero_harm": true,
+    "finding": "Branch sequence forecasting learned strongly, but row-wise rescue probabilities remained unstable across decision blocks. Some blocks reached local rescue precision up to 0.60-0.67 at strict thresholds while other blocks selected zero rescues or admitted harm. No locked threshold achieved cross-block precision, coverage, and zero-harm requirements."
+  },
+  "interpretation": "R35 rejects the hypothesis that better individual candidate branch forecasting alone solves rescue selection. The remaining mismatch is objective structure: rows are trained independently even though runtime chooses one action from an entire alternative set. R36 should train a permutation-equivariant decision-set/listwise ranker so rescue supervision is relative within each decision group rather than only row-wise.",
+  "execution": {
+    "workflow_run_id": 35507081962,
+    "job_id": 106068615836,
+    "artifact_id": 10604656837,
+    "artifact_digest": "sha256:57906adb6bf55ce82f64ed3f87c2ffb20dcb4e819bec6629f0075ecf9248bff8"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [2112, 2143],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
