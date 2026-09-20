@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R25-SelectiveErrorCorrection",
+  "hypothesis": "R20 and R24 mixed confidence and correction quality into one direct-action decision, while R21-R23 focused on hidden-goal inference. R25 factorizes the problem: one learned detector predicts whether accepted R11 is wrong, and a separate action scorer is trained only on R11 mistake rows. This may improve precision because the correction model specializes on the rare subset where changing R11 is justified.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_indices": [7168, 7423],
+    "guard_validation_indices": [7424, 7487],
+    "development_indices": [1440, 1471],
+    "confirmation_indices": [1472, 1503],
+    "fresh_indices": [280, 319]
+  },
+  "architecture": {
+    "ensemble_size": 3,
+    "hidden_dim": 64,
+    "expected_successor_parameters": 75846,
+    "mechanism": "selective R11 error detector plus mistake-only action corrector"
+  },
+  "training": {
+    "seed": 20260925,
+    "epochs": 6,
+    "detector_batch_size": 128,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "detector_threshold_candidates": [0.5, 0.6, 0.7, 0.8, 0.9],
+    "max_support": 6,
+    "max_overrides_per_episode": 1,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12
+  },
+  "private_label_boundary": {
+    "private_goal_allowed_only_for_train_teacher_construction": true,
+    "inference_private_goal_use": false,
+    "dev_or_fresh_teacher_action_use": false,
+    "exact_public_support_is_input_authority": true
+  },
+  "calibration_boundary": {
+    "guard_validation_is_disjoint_train_only": true,
+    "dev_based_threshold_tuning": false,
+    "confirmation_based_retuning": false,
+    "teacher_action_role": "train-only target and calibration authority; never available at dev, fresh, or deployment"
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true,
+    "fresh_rerun_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [280, 319],
+    "consumed_before_r25": [0, 279]
+  }
+}
