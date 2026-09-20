@@ -63,7 +63,7 @@ jobs:
           assert lock['benchmark']['fresh_indices']==[280,319]
           assert lock['fresh_isolation']['status']=='UNOPENED'
           assert fresh['status']=='UNOPENED'
-          assert lock['architecture']['expected_successor_parameters']==82455
+          assert lock['architecture']['expected_successor_parameters']==83607
           assert lock['private_label_boundary']['inference_private_goal_use'] is False
           assert lock['calibration_boundary']['dev_based_threshold_tuning'] is False
           assert lock['training']['max_overrides_per_episode']==1
