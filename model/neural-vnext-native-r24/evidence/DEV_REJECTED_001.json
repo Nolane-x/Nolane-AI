@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R24-SequentialEvidenceFilter",
+  "source_head": "5042e859f86db04acd59f639997757319bc92c8e",
+  "development": {
+    "split": "dev",
+    "indices": [1376, 1407],
+    "parent_solved": 120,
+    "candidate_solved": 120,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 27,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0,
+    "guarded_steps": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "cd8b0c73c76324475eb61dc92aa604e931c0d40c0a4baabe7633a4fbca5db2e6",
+    "state_dict_sha256": "06850a9ee528caa939ada1e99a963d850c36c5dfdaa6040486ed9bb38ec31296",
+    "successor_parameters": 83607,
+    "physical_parameters": 961149
+  },
+  "selected_config": {
+    "temperature": 2.0,
+    "max_support": 6,
+    "minimum_evidence_steps": 2,
+    "max_overrides_per_episode": 1,
+    "guard_enabled": false,
+    "threshold": null
+  },
+  "action_guard": {
+    "enabled": false,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12,
+    "candidates": [
+      {"threshold": 0.45, "eligible_rows": 242, "override_rows": 33, "correct_override_rows": 21, "override_precision": 0.6363636363636364, "eligible": false},
+      {"threshold": 0.55, "eligible_rows": 236, "override_rows": 33, "correct_override_rows": 21, "override_precision": 0.6363636363636364, "eligible": false},
+      {"threshold": 0.65, "eligible_rows": 221, "override_rows": 31, "correct_override_rows": 20, "override_precision": 0.6451612903225806, "eligible": false},
+      {"threshold": 0.75, "eligible_rows": 200, "override_rows": 29, "correct_override_rows": 19, "override_precision": 0.6551724137931034, "eligible": false},
+      {"threshold": 0.85, "eligible_rows": 175, "override_rows": 28, "correct_override_rows": 19, "override_precision": 0.6785714285714286, "eligible": false}
+    ],
+    "finding": "Sequential evidence increased the number of candidate override opportunities, but train-only action precision remained only 63.6%-67.9%, far below the preregistered 90% requirement. The guard therefore correctly failed closed. This rejects the learned transition-evidence mechanism under the locked design; the threshold is not relaxed after observing development."
+  },
+  "execution": {
+    "workflow_run_id": 35496988556,
+    "job_id": 106041675638,
+    "artifact_id": 10600736393,
+    "artifact_digest": "sha256:5b4d611b1c163821bd2edd281d1f7977914b972ed01fe2ff6023cb6e6a60e9f2"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1408, 1439],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
