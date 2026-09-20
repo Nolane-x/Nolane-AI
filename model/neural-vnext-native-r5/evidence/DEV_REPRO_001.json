@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "status": "R5_DEV_BITWISE_REPRODUCED_WORKFLOW_LEVEL",
+  "candidate_line": "Neural-vNext-Native-R5-PublicConsistency",
+  "source_head": "04ff9c7e8cc5c11ffcd4a496eecfbb3bc6393eae",
+  "canonical_selection_rule": "first completed successful workflow execution at the locked source head",
+  "canonical_workflow_run_id": 35477573222,
+  "canonical_job_id": 105989361778,
+  "canonical_artifact_id": 10594428103,
+  "canonical_artifact_name": "neural-vnext-native-r5-dev",
+  "canonical_artifact_digest": "sha256:c56496d48f4744d052d478210e81fe8e61ce4a44080aeb5c146038ebaab31370",
+  "canonical_artifact_size_bytes": 3763768,
+  "exact_inner_files": {
+    "r5.pt": {
+      "size_bytes": 4093457,
+      "sha256": "6188ee06c481d9ace7b6a9e5bab9d913574230916f7a54facb7117b54431b576"
+    },
+    "r5.manifest.json": {
+      "size_bytes": 18071,
+      "sha256": "9cf9b0b7bd901a3131b4b55b6f3dbb7296a867581d73704d80a5319ea001d987"
+    },
+    "r5.dev.json": {
+      "size_bytes": 27587,
+      "sha256": "671bee551c31ea81684b0c859f6281d67aebe88955a4871d400da222bf74749d"
+    }
+  },
+  "attempts": [
+    {
+      "workflow_run_id": 35477573222,
+      "job_id": 105989361778,
+      "event": "pull_request",
+      "completed_at": "2026-09-20T00:05:24Z",
+      "artifact_id": 10594428103,
+      "artifact_digest": "sha256:c56496d48f4744d052d478210e81fe8e61ce4a44080aeb5c146038ebaab31370",
+      "checkpoint_sha256": "6188ee06c481d9ace7b6a9e5bab9d913574230916f7a54facb7117b54431b576",
+      "state_dict_sha256": "ee8c64602d200a57b1b5953f4cbc9b8d7ac42acdfb6c7db6af37deb4a2022731",
+      "manifest_sha256": "9cf9b0b7bd901a3131b4b55b6f3dbb7296a867581d73704d80a5319ea001d987",
+      "dev_result_sha256": "671bee551c31ea81684b0c859f6281d67aebe88955a4871d400da222bf74749d",
+      "selected_candidate": "public_consistency_broad",
+      "candidate_dev_solved": 119
+    },
+    {
+      "workflow_run_id": 35477568922,
+      "job_id": 105989350370,
+      "event": "push",
+      "completed_at": "2026-09-20T00:05:45Z",
+      "artifact_id": 10594981214,
+      "artifact_digest": "sha256:72a15dcd4e61b23295b403fcdb3b2c6fe8d66c370fefe2fe9b2de9cc0f2cee17",
+      "checkpoint_sha256": "6188ee06c481d9ace7b6a9e5bab9d913574230916f7a54facb7117b54431b576",
+      "state_dict_sha256": "ee8c64602d200a57b1b5953f4cbc9b8d7ac42acdfb6c7db6af37deb4a2022731",
+      "manifest_sha256": "9cf9b0b7bd901a3131b4b55b6f3dbb7296a867581d73704d80a5319ea001d987",
+      "dev_result_sha256": "671bee551c31ea81684b0c859f6281d67aebe88955a4871d400da222bf74749d",
+      "selected_candidate": "public_consistency_broad",
+      "candidate_dev_solved": 119
+    }
+  ],
+  "observed": {
+    "exact_checkpoint_reproduced": true,
+    "exact_state_dict_reproduced": true,
+    "exact_manifest_reproduced": true,
+    "exact_dev_result_reproduced": true,
+    "exact_behavioral_dev_metrics_reproduced": true,
+    "artifact_zip_digest_reproduced": false,
+    "artifact_zip_digest_note": "ZIP container metadata differed while every frozen inner file was byte-identical."
+  },
+  "claim_boundary": "Exact R5 dev files were bitwise reproduced across two GitHub workflow executions on the same locked source head. This is workflow-level evidence only; no universal cross-host or cross-hardware bitwise guarantee is claimed.",
+  "fresh_opened": false
+}
