@@ -1,20 +1,18 @@
-# Neural vNext Native R18 — safe first-step learned dynamics
+# Neural vNext Native R18 — development-rejected safe first-step dynamics
 
-Status: **DEVELOPMENT LOCKED; fresh unopened**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R18 is a new successor after R17's mixed result. R17 proved learned dynamics can rescue an R11 failure, but decisions that relied on imagined depth-2 trajectories broke several parent-solved episodes.
+On locked `dev:992..1023`:
 
-R18 therefore imposes a hard boundary:
+- accepted R11: **118/128**, implicit **28/32**
+- `safe90_guarded`: **118/128**, implicit **28/32**, 0 overrides
+- `safe90_broad`: **117/128**, implicit **27/32**, 1 override
+- `safe85_broad`: **117/128**, implicit **27/32**, 1 override
 
-- an alternative action is scored only by its **one-step** high-confidence neural transition;
-- R11's reference is allowed one extra imagined continuation, which makes R11 harder to replace;
-- no alternative is ever selected because of an imagined second step;
-- visible-target episodes return accepted R11 exactly.
+Train-only exact-transition calibration was **1054/1067 = 98.78%** at threshold 0.80.
 
-New identities:
+The safety boundary prevented compounded rollout harm, but the remaining neural-dynamics override was still harmful and the guarded candidate became behaviorally identical to R11. The strict solved-count gate rejects R18.
 
-- train `4864..5119`
-- train-only calibration `5120..5247`
-- primary dev `992..1023`
-- confirmation `1024..1055`
-- fresh `280..319` — **UNOPENED**
+- confirmation `1024..1055`: unopened
+- fresh `280..319`: unopened and untouched
+- no merge / no retune on this dev block

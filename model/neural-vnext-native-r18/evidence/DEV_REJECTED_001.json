@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R18-SafeFirstStep",
+  "source_head": "1263370e6317f28ee55344515ca342abcaf28257",
+  "workflow_run_id": 35492505149,
+  "job_id": 106029742067,
+  "artifact_id": 10598989811,
+  "artifact_digest": "sha256:752216b8cccd4ffc3268f472b65f9114ce32623efaae59e389e74c085fe84380",
+  "development": {
+    "split": "dev",
+    "indices": [
+      992,
+      1023
+    ],
+    "parent": {
+      "solved": 118,
+      "implicit_goal_solved": 28
+    },
+    "calibration": {
+      "threshold": 0.8,
+      "eligible": 1067,
+      "correct": 1054,
+      "precision": 0.9878163074039362
+    },
+    "successor_parameters": 114477,
+    "candidates": [
+      {
+        "name": "safe90_guarded",
+        "solved": 118,
+        "implicit_goal_solved": 28,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "overrides": 0
+      },
+      {
+        "name": "safe90_broad",
+        "solved": 117,
+        "implicit_goal_solved": 27,
+        "total_delta": -1,
+        "implicit_delta": -1,
+        "overrides": 1
+      },
+      {
+        "name": "safe85_broad",
+        "solved": 117,
+        "implicit_goal_solved": 27,
+        "total_delta": -1,
+        "implicit_delta": -1,
+        "overrides": 1
+      }
+    ]
+  },
+  "finding": "High-confidence safe-first-step gating either made no decisions or produced a harmful single override. Learned dynamics should no longer be used as the controller path in this campaign.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1024,
+      1055
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
