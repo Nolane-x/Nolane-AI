@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R13-SelectiveNeuralCausalResidual",
+  "source_head": "6d84789622ed466a9517a369d9d8bacd94728533",
+  "parent_authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "development": {
+    "split": "dev",
+    "indices": [
+      672,
+      703
+    ],
+    "parent": {
+      "solved": 118,
+      "implicit_goal_solved": 27,
+      "steps": 1612
+    },
+    "candidates": [
+      {
+        "name": "selective_guarded",
+        "solved": 118,
+        "implicit_goal_solved": 27,
+        "steps": 1612,
+        "overrides_vs_r11": 0,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "selective_broad",
+        "solved": 118,
+        "implicit_goal_solved": 27,
+        "steps": 1612,
+        "overrides_vs_r11": 0,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      }
+    ]
+  },
+  "reproduction": {
+    "workflow_runs": [
+      {
+        "run_id": 35489561157,
+        "job_id": 106022030639,
+        "conclusion": "failure_after_no_eligible_candidate"
+      },
+      {
+        "run_id": 35489562880,
+        "job_id": 106022034994,
+        "conclusion": "failure_after_no_eligible_candidate"
+      }
+    ],
+    "promotion_metrics_identical": true
+  },
+  "interpretation": "Train-only calibration failed closed: neither learned candidate was allowed to override accepted R11 on the locked development court, so both exactly matched R11 aggregate behavior and failed the preregistered strict gain gate.",
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      704,
+      735
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "post_result_threshold_relaxation_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

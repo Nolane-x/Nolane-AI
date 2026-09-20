@@ -1,20 +1,30 @@
-# Neural vNext Native R13 — selective neural causal residual
+# Neural vNext Native R13 — development-rejected selective neural causal residual
 
-Status: **DEVELOPMENT ONLY; confirmation/fresh UNOPENED**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R12 proved that a learned causal residual can improve one dev court and still reverse sign on a disjoint confirmation court. R13 therefore changes the mechanism rather than retuning R12.
+R13 started from accepted R11 and attempted to make the learned causal residual from R12 safer. Override thresholds were calibrated only on a disjoint train-only calibration range before development; the calibration rule had to fail closed if it could not establish the preregistered precision requirement.
 
-R13 trains a neural causal residual on one train-only range, then selects a **minimum override margin** on a disjoint train-only calibration range. At inference, a neural proposal may override accepted R11 only when its proposal-vs-R11 logit margin exceeds that calibrated threshold.
+## Locked development result
 
-The threshold is selected without dev/fresh data. It must achieve at least 90% precision against train-only oracle actions; otherwise overrides are disabled.
+On `dev:672..703`:
 
-## Locked identities
+- accepted R11: **118/128**
+- `selective_guarded`: **118/128**
+- `selective_broad`: **118/128**
+- accepted R11 implicit-goal: **27/32**
+- both R13 candidates implicit-goal: **27/32**
+- both candidates made **0 overrides vs R11**
+- visible-target family solved counts stayed exact.
 
-- residual training: `train:4096..4479`
-- train-only calibration: `train:4480..4607`
-- primary dev: `dev:672..703`
-- confirmation: `dev:704..735`
-- reserved fresh: `fresh:280..319`
-- consumed fresh: `0..279`
+The same promotion-relevant metrics appeared in both exact-head workflow runs `35489561157` and `35489562880`.
 
-Visible targets return exact frozen R4 logits. Inference uses public evidence only.
+The strict solved-count gate was not relaxed after observing this result.
+
+## Closure
+
+- confirmation `dev:704..735` was never opened;
+- `fresh:280..319` was never instantiated and remains untouched;
+- no repeated tuning against `dev:672..703`;
+- R13 closes without merge.
+
+This negative result is preserved because it distinguishes a safe fail-closed calibration from a successful successor: safety alone was not enough to improve solved count.
