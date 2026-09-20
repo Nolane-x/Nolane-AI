@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "status": "FROZEN_CONFIRMATION_UNOPENED",
+  "candidate": "Neural-vNext-Native-R12-NeuralCausalResidual",
+  "source_head": "cce7228fa1cb1c0f8cee0c24f3260c3a1c2f1353",
+  "selected_candidate": "neural_causal_broad",
+  "selected_config": {
+    "posterior_embedding_dim": 48,
+    "residual_hidden_dim": 160,
+    "max_support": 6,
+    "parent_margin": 1
+  },
+  "frozen_candidate": {
+    "checkpoint_sha256": "830cc54af53309757f7558d5725a525766a346984e41e8702e7cc49035c7852c",
+    "successor_state_dict_sha256": "b1ae10542cfa15a5dabc7869c118cd41af055f0ef95175c913488b7080b53b03",
+    "parameters": 944807,
+    "successor_parameters": 67265,
+    "canonical_workflow_run_id": 35488892361,
+    "canonical_artifact_id": 10598582271,
+    "canonical_artifact_digest": "sha256:fc5ce29ccd9dec7348f84b5e0c5f698b2eaa3865ba2ebff1281c427bc70b5b01",
+    "checkpoint_size_bytes": 284222,
+    "manifest_sha256": "5baa476a8e3a56b9f3d9de1ab66c5defa422b783149a3dcd7b5ba68dd3c3808c",
+    "dev_sha256": "037bbbf057d44efb4c46d0b107f5b1d983d906cbd1d53012ef24f98f5c14d3dd"
+  },
+  "parent_authority": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "learned_parent_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "learned_parent_state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9"
+  },
+  "primary": {
+    "evidence_path": "evidence/PRIMARY_DEV_REPRO_001.json",
+    "parent_solved": 122,
+    "candidate_solved": 124,
+    "total_delta": 2,
+    "implicit_goal_delta": 2,
+    "visible_target_families_exact": true
+  },
+  "frozen_source_blobs": {
+    "model/neural-vnext-native-r12/neural_causal_core.py": "2eca6e8e775a6d1e048646ade5f987e95ab1d853",
+    "model/neural-vnext-native-r12/neural_causal_training.py": "80ec85d5d5fd00f4fd91a901509132b75f1fb7c9",
+    "model/neural-vnext-native-r12/scripts/train_r12_dev.py": "0e03635dac9b224ab8019b9403158022b81fae24",
+    "model/neural-vnext-native-r12/PREDEV_LOCK.json": "c2f232c56cb77cc1005b46f957e79263f493d4c2",
+    "model/neural-vnext-native-r12/FRESH_GATE_PREREGISTRATION.json": "32d3bd5ef00797e330264b221568f0fd7386aa1e"
+  },
+  "confirmation": {
+    "split": "dev",
+    "indices": [
+      640,
+      671
+    ],
+    "episodes": 128,
+    "opened": false
+  },
+  "gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "opened": false
+  },
+  "governance": {
+    "exact_same_checkpoint_required": true,
+    "training_after_primary_before_confirmation": false,
+    "config_mutation_before_confirmation": false,
+    "fresh_opening_before_confirmation_pass": false
+  }
+}

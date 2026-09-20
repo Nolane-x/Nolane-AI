@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "BITWISE_REPRODUCED_WORKFLOW_LEVEL",
+  "candidate": "Neural-vNext-Native-R12-NeuralCausalResidual",
+  "source_head": "cce7228fa1cb1c0f8cee0c24f3260c3a1c2f1353",
+  "selected_candidate": "neural_causal_broad",
+  "selected_config": {
+    "posterior_embedding_dim": 48,
+    "residual_hidden_dim": 160,
+    "max_support": 6,
+    "parent_margin": 1
+  },
+  "parameters": 944807,
+  "successor_parameters": 67265,
+  "checkpoint_sha256": "830cc54af53309757f7558d5725a525766a346984e41e8702e7cc49035c7852c",
+  "successor_state_dict_sha256": "b1ae10542cfa15a5dabc7869c118cd41af055f0ef95175c913488b7080b53b03",
+  "development": {
+    "split": "dev",
+    "indices": [
+      608,
+      639
+    ],
+    "episodes": 128,
+    "parent_solved": 122,
+    "candidate_solved": 124,
+    "total_delta": 2,
+    "parent_implicit_goal_solved": 29,
+    "candidate_implicit_goal_solved": 31,
+    "implicit_goal_delta": 2,
+    "visible_target_families_exact": true
+  },
+  "canonical_authority": {
+    "rule": "first successful push workflow at locked source head",
+    "workflow_run_id": 35488892361,
+    "job_id": 106020217792,
+    "artifact_id": 10598582271,
+    "artifact_name": "neural-vnext-native-r12-dev",
+    "artifact_digest": "sha256:fc5ce29ccd9dec7348f84b5e0c5f698b2eaa3865ba2ebff1281c427bc70b5b01"
+  },
+  "reproduction_run": {
+    "workflow_run_id": 35488903655,
+    "job_id": 106020248118,
+    "artifact_id": 10598578641,
+    "artifact_name": "neural-vnext-native-r12-dev",
+    "artifact_digest": "sha256:9542ed411521dc8975df35b43e746a3ee26f999ee774488a67c322fca5eb4f3"
+  },
+  "inner_files": {
+    "r12.pt": {
+      "sha256": "830cc54af53309757f7558d5725a525766a346984e41e8702e7cc49035c7852c",
+      "size_bytes": 284222,
+      "byte_identical": true
+    },
+    "r12.manifest.json": {
+      "sha256": "5baa476a8e3a56b9f3d9de1ab66c5defa422b783149a3dcd7b5ba68dd3c3808c",
+      "size_bytes": 22678,
+      "byte_identical": true
+    },
+    "r12.dev.json": {
+      "sha256": "037bbbf057d44efb4c46d0b107f5b1d983d906cbd1d53012ef24f98f5c14d3dd",
+      "size_bytes": 21443,
+      "byte_identical": true
+    }
+  },
+  "claim_boundary": "R12 checkpoint, successor tensor state, manifest, dev result, selected candidate, and promotion metrics reproduced bitwise across push/PR workflows at the locked source head. ZIP digests differ only at artifact-container level.",
+  "confirmation_opened": false,
+  "fresh_opened": false
+}
