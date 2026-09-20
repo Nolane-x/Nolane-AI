@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R26-ActionMassConsensus",
+  "source_head": "164c006ebb764a6ce76fb8425fbb7454d664058f",
+  "development": {
+    "split": "dev",
+    "indices": [1504, 1535],
+    "parent_solved": 120,
+    "candidate_solved": 117,
+    "total_delta": -3,
+    "parent_implicit_goal_solved": 28,
+    "candidate_implicit_goal_solved": 25,
+    "implicit_goal_delta": -3,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 14,
+    "guarded_steps": 139
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "1ad81a52406fccc4233e95a40f51c17dccc3fb138768576e71d3ba908cd05b38",
+    "state_dict_sha256": "72a964a565cfe82d96cb3eb6d488c07cfb4e9f86a91515ac302a3d190f1b6ad4",
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "selected_config": {
+    "temperature": 2.0,
+    "mass_threshold": 0.65,
+    "max_support": 8,
+    "max_overrides_per_episode": 1
+  },
+  "action_guard": {
+    "enabled": true,
+    "minimum_override_precision": 0.9,
+    "minimum_override_rows": 12,
+    "selected": {
+      "mass_threshold": 0.65,
+      "eligible_rows": 344,
+      "override_rows": 27,
+      "correct_override_rows": 25,
+      "override_precision": 0.9259259259259259
+    },
+    "candidates": [
+      {"mass_threshold": 0.55, "override_rows": 37, "correct_override_rows": 28, "override_precision": 0.7567567567567568, "eligible": false},
+      {"mass_threshold": 0.65, "override_rows": 27, "correct_override_rows": 25, "override_precision": 0.9259259259259259, "eligible": true},
+      {"mass_threshold": 0.75, "override_rows": 21, "correct_override_rows": 20, "override_precision": 0.9523809523809523, "eligible": true},
+      {"mass_threshold": 0.85, "override_rows": 20, "correct_override_rows": 20, "override_precision": 1.0, "eligible": true},
+      {"mass_threshold": 0.9, "override_rows": 20, "correct_override_rows": 20, "override_precision": 1.0, "eligible": true},
+      {"mass_threshold": 0.95, "override_rows": 19, "correct_override_rows": 19, "override_precision": 1.0, "eligible": true}
+    ],
+    "finding": "Action-mass consensus solved the train-only precision/coverage problem that blocked R23-R25, but that precision did not transfer to the locked primary dev identities. The selected 0.65 guard produced 14 dev overrides and reduced implicit-goal solved count by three. This is treated as calibration/distribution generalization failure, not an invitation to tune on dev."
+  },
+  "execution": {
+    "workflow_run_id": 35497564155,
+    "job_id": 106043272869,
+    "artifact_id": 10600861899,
+    "artifact_digest": "sha256:c19261c84be0f77d6a18c51a45dc3cd587209703a05fc7cee3c9f38a6acc1405"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1536, 1567],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
