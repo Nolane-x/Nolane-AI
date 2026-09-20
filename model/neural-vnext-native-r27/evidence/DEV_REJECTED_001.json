@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R27-RobustActionMass",
+  "source_head": "16b636696fdbc8951566f8eff88b2500f2832611",
+  "development": {
+    "split": "dev",
+    "indices": [1568, 1599],
+    "parent_solved": 117,
+    "candidate_solved": 117,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 24,
+    "candidate_implicit_goal_solved": 24,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 2,
+    "guarded_steps": 125
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "bb087dec6fe1e0b68a1b5a24650c7434010515c30e1584d78c73177c0f9cbe10",
+    "state_dict_sha256": "7f22a64937503cd29cb102b951c02b802b3950552c1df7b55608396f60244ba5",
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "selected_config": {
+    "temperature": 2.0,
+    "mass_threshold": 0.95,
+    "max_support": 8,
+    "max_overrides_per_episode": 1
+  },
+  "robust_guard": {
+    "enabled": true,
+    "minimum_override_precision": 0.9,
+    "minimum_total_override_rows": 24,
+    "minimum_block_override_rows": 5,
+    "selected": {
+      "mass_threshold": 0.95,
+      "override_rows": 97,
+      "correct_override_rows": 96,
+      "override_precision": 0.9896907216494846,
+      "worst_block_precision": 0.9473684210526315,
+      "blocks": [
+        {"indices": [8512, 8575], "override_rows": 24, "correct_override_rows": 24, "override_precision": 1.0},
+        {"indices": [8576, 8639], "override_rows": 24, "correct_override_rows": 24, "override_precision": 1.0},
+        {"indices": [8640, 8703], "override_rows": 30, "correct_override_rows": 30, "override_precision": 1.0},
+        {"indices": [8704, 8767], "override_rows": 19, "correct_override_rows": 18, "override_precision": 0.9473684210526315}
+      ]
+    },
+    "finding": "Cross-block robust calibration fixed R26's train-block overconfidence: the selected threshold generalized across four disjoint train-only blocks with 98.97% aggregate action precision and 94.74% worst-block precision. However, this was not sufficient for episode-level capability gain. On locked primary dev, only two overrides occurred and neither increased solved count. Action correctness is therefore not equivalent to episode rescue value."
+  },
+  "execution": {
+    "workflow_run_id": 35499188271,
+    "job_id": 106047758229,
+    "artifact_id": 10601758836,
+    "artifact_digest": "sha256:c2b1a84e073b93017bbd1112331da377517c708cf33983a664ea269c59990291"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1600, 1631],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
