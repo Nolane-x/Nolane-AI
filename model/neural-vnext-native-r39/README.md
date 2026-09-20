@@ -1,6 +1,6 @@
 # Neural vNext Native R39 — binary rescue confidence
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R37 showed that set-selection confidence can produce coverage but poor rescue precision. R38 added the four-way outcome head's direct rescue probability to the gate and collapsed coverage to zero across the entire locked grid.
 
@@ -53,3 +53,23 @@ At runtime, the selector still requires unanimous candidate preference, selectio
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
 No same-dev retuning is permitted.
+
+
+## Locked development result
+
+R39 completed its preregistered primary development court without opening confirmation or fresh.
+
+- accepted R11: **118/128**
+- R39: **118/128**
+- implicit-goal: **25/32 → 25/32**
+- visible-target family solved counts: exact
+- overrides: **0**
+- guard: **disabled**
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+The dedicated binary rescue head restored a small amount of selective signal compared with R38. Under the locked guard grid, the best non-harm settings selected two candidate actions total, including one true rescue and zero harm. However, selection remained concentrated in only two guard blocks and never met the preregistered coverage requirement.
+
+This rejects the hypothesis that adding binary rescue confidence alone is sufficient. The remaining mismatch is now between **candidate proposal** and **rescue confidence**: the set-selection head chooses the proposal first, and the binary head only vetoes that proposal afterward. A successor should change proposal selection itself so that rescue-confidence participates in which candidate is proposed, while preserving the same zero-harm and cross-block promotion gates.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
