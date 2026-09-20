@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R22-ConformalGoalBelief",
+  "source_head": "6fafd5e1d1a5a6ba1b3cfe44377ecd9ef4c504a3",
+  "development": {
+    "split": "dev",
+    "indices": [
+      1248,
+      1279
+    ],
+    "parent_solved": 122,
+    "candidate_solved": 122,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 28,
+    "candidate_implicit_goal_solved": 28,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0,
+    "guarded_steps": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "ba7c915f32b01370fe5744758369f9340f71021d235f9c3c6961a60998ab3ccf",
+    "state_dict_sha256": "c2b3842ce47f2d7960b24223a3b43ad25fca545635baef70ae6d08cb89fbfa34",
+    "successor_parameters": 107799,
+    "physical_parameters": 985341
+  },
+  "calibration": {
+    "enabled": false,
+    "minimum_precision": 0.9,
+    "best_candidate": {
+      "alpha": 0.2,
+      "q": 0.7351084649562836,
+      "gated_rows": 167,
+      "correct_rows": 133,
+      "precision": 0.7964071856287425,
+      "eligible": false
+    },
+    "finding": "Goal-level singleton confidence never reached the preregistered 90% train-only precision threshold, so the mechanism correctly failed closed and produced zero overrides."
+  },
+  "executions": [
+    {
+      "workflow_run_id": 35495968162,
+      "artifact_id": 10600845065,
+      "artifact_digest": "sha256:0c8fc73ecd712b4b2d01631a6fa6fc9b5c9afb1bd62b73aac3fbd062edc45708"
+    },
+    {
+      "workflow_run_id": 35495975989,
+      "artifact_id": 10600264645,
+      "artifact_digest": "sha256:70b6610812e6565d71ccf2b1904018ec881211d8c17f1a6ec161a4f9a0f25ce1"
+    }
+  ],
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      1280,
+      1311
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

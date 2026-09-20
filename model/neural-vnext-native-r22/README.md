@@ -1,29 +1,34 @@
-# Neural vNext Native R22 — conformal singleton goal belief
+# Neural vNext Native R22 — development-rejected conformal singleton goal belief
 
-Status: **PRE-DEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R22 is a learned Neural Core successor over accepted R11. It addresses the R21 confirmation failure by replacing continuous neural posterior fusion with a fail-closed singleton gate.
+R22 attempted to repair R21's confirmation overfit by permitting neural intervention only when a train-only conformal-style prediction set collapsed to one public-consistent goal and all three neural heads agreed.
 
-The neural ensemble is supervised on hidden-goal labels only on train identities. A disjoint train-only calibration split fits temperature and conformal-style nonconformity thresholds. A second train-only validation split chooses among preregistered alpha values only when empirical singleton precision is at least 90%.
+The safety gate behaved correctly but proved too strict for this learned signal.
 
-At inference, private goal labels are unavailable. R22 may replace the public posterior only when:
+On `dev:1248..1279`:
 
-- public support contains 2–3 goals;
-- the conformal prediction set is a singleton;
-- all three neural heads agree on that singleton;
-- accepted R11 has not already reached public progress-complete.
+- accepted R11: **122/128**
+- R22: **122/128**
+- implicit-goal: **28/32 → 28/32**
+- overrides vs R11: **0**
+- guarded steps: **0**
+- visible-target family solved counts: exact
 
-Otherwise behavior is exactly accepted R11.
+Train-only calibration:
 
-Locked identities:
+- best preregistered alpha: **0.2**
+- gated validation rows: **167**
+- correct rows: **133**
+- empirical precision: **79.64%**
+- required precision: **90%**
 
-- train: `6016..6271`
-- conformal fit: `6272..6335`
-- train-only guard validation: `6336..6399`
-- primary dev: `1248..1279`
-- confirmation: `1280..1311`
-- fresh: `280..319` — **UNOPENED**
+Because no guard candidate met the locked precision requirement, R22 failed closed instead of weakening the gate after seeing development.
 
-Strict promotion still requires total solved gain, implicit-goal solved gain, and exact visible-target family solved counts.
+The same promotion-relevant result and checkpoint/state digests reproduced in both exact-head workflow runs.
 
-Claim boundary: the threshold is conformal-style; no IID coverage guarantee is claimed for dependent trajectory rows.
+- confirmation `1280..1311`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no retuning on `dev:1248..1279`
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
