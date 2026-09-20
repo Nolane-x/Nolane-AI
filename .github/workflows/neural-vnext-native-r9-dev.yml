@@ -1,0 +1,66 @@
+name: Neural vNext Native R9 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r9-public-counterfactual-planner
+    paths:
+      - 'model/neural-vnext-native-r9/**'
+      - '.github/workflows/neural-vnext-native-r9-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r9/**'
+      - '.github/workflows/neural-vnext-native-r9-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r9-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R9 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r9/*.py model/neural-vnext-native-r9/scripts/*.py model/neural-vnext-native-r9/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r9/tests
+      - name: Run R9 deterministic dev court
+        env:
+          PYTHONPATH: model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r9-dev
+          python model/neural-vnext-native-r9/scripts/evaluate_r9_dev.py --manifest r9-dev/r9.manifest.json --dev-result r9-dev/r9.dev.json
+      - name: Enforce fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r9/PREDEV_LOCK.json').read_text())
+          manifest=json.loads(Path('r9-dev/r9.manifest.json').read_text())
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert lock['benchmark']['fresh_indices']==[200,239]
+          assert manifest['fresh_opened'] is False
+          assert manifest['status']=='R9_DEV_ELIGIBLE_FRESH_UNOPENED'
+          PY
+      - name: Upload deterministic dev authority
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r9-dev
+          path: |
+            r9-dev/r9.manifest.json
+            r9-dev/r9.dev.json
+          if-no-files-found: error
+          retention-days: 90
