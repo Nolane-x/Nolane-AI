@@ -1,0 +1,93 @@
+name: Neural vNext Native R12 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r12-neural-causal-residual
+    paths:
+      - 'model/neural-vnext-native-r12/**'
+      - '.github/workflows/neural-vnext-native-r12-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r12/**'
+      - '.github/workflows/neural-vnext-native-r12-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  r12-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      PYTHONHASHSEED: '0'
+      OMP_NUM_THREADS: '1'
+      MKL_NUM_THREADS: '1'
+      OPENBLAS_NUM_THREADS: '1'
+      NUMEXPR_NUM_THREADS: '1'
+      OMP_DYNAMIC: 'FALSE'
+      MKL_DYNAMIC: 'FALSE'
+      ATEN_CPU_CAPABILITY: 'default'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Verify accepted R11 parent authority
+        run: |
+          test "$(git hash-object model/neural-vnext-native-r11/ACCEPTED_AUTHORITY.json)" = "f8e8fac794fd339e261e9245ef7b46e1367683f1"
+          test "$(git hash-object model/neural-vnext-native-r11/causal_version_space.py)" = "b13657c388d589751919be001d618f6fac2b0643"
+          test "$(git hash-object model/neural-vnext-native-r11/causal_runtime.py)" = "9ae28255bd417094b262df948d62860f61116a01"
+          test "$(sha256sum model/neural-vnext-native-r4/accepted/r4.pt | awk '{print $1}')" = "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244"
+
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Compile and run R12 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r12:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r12/*.py model/neural-vnext-native-r12/scripts/*.py model/neural-vnext-native-r12/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r12/tests
+
+      - name: Run accepted-R11 R12 neural dev tournament
+        env:
+          PYTHONPATH: model/neural-vnext-native-r12:model/neural-vnext-native-r11:model/neural-vnext-native-r9:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r12-dev
+          python model/neural-vnext-native-r12/scripts/train_r12_dev.py             --checkpoint r12-dev/r12.pt             --manifest r12-dev/r12.manifest.json             --dev-result r12-dev/r12.dev.json
+
+      - name: Enforce confirmation and fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          lock=json.loads(Path('model/neural-vnext-native-r12/PREDEV_LOCK.json').read_text())
+          gate=json.loads(Path('model/neural-vnext-native-r12/FRESH_GATE_PREREGISTRATION.json').read_text())
+          manifest=json.loads(Path('r12-dev/r12.manifest.json').read_text())
+          assert lock['confirmation']['status']=='PREREGISTERED_UNOPENED'
+          assert lock['benchmark']['confirmation_indices']==[640,671]
+          assert lock['fresh_isolation']['status']=='UNOPENED'
+          assert lock['benchmark']['fresh_indices']==[280,319]
+          assert gate['fresh']['opened'] is False
+          assert manifest['fresh_opened'] is False
+          assert manifest['status']=='R12_DEV_ELIGIBLE_FRESH_UNOPENED'
+          PY
+
+      - name: Upload frozen R12 development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r12-dev
+          path: |
+            r12-dev/r12.pt
+            r12-dev/r12.manifest.json
+            r12-dev/r12.dev.json
+          if-no-files-found: error
+          retention-days: 90

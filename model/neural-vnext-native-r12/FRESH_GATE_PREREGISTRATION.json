@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "status": "PREREGISTERED_UNOPENED",
+  "candidate": "Neural-vNext-Native-R12-NeuralCausalResidual",
+  "parent_authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "fresh": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "opened": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0,
+    "all_requirements_must_pass": true
+  },
+  "governance": {
+    "confirmation_required_before_fresh": true,
+    "no_post_fresh_tuning": true,
+    "no_same_block_retry_after_failure": true,
+    "no_reuse_of_consumed_fresh_blocks": true
+  }
+}
