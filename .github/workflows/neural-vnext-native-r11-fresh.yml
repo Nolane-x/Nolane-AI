@@ -1,0 +1,22 @@
+name: Neural vNext Native R11 Fresh Court
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r11-causal-version-space
+    paths:
+      - '.github/workflows/neural-vnext-native-r11-fresh.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: neural-vnext-native-r11-fresh-court-240-279
+  cancel-in-progress: false
+
+jobs:
+  fresh-court:
+    if: ${{ github.event.before == 'UNARMED_STAGING_SENTINEL' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "staging workflow must never open fresh"
