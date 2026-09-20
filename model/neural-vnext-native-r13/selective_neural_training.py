@@ -608,7 +608,14 @@ def calibrate_override_margin(
         while not task.done:
             observation = task.observe()
             belief.update(observation)
-            plan = oracle_plan(task)
+            try:
+                plan = oracle_plan(task)
+            except RuntimeError:
+                # Train-only calibration has no trustworthy oracle label
+                # once the current public trajectory is outside the
+                # remaining-budget solvable set. Fail closed: do not
+                # manufacture a positive/negative override label.
+                break
             if not plan:
                 break
             oracle_action = int(plan[0])
