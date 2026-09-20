@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R35-BranchSequenceDecoder",
+  "hypothesis": "R34 showed that terminal mechanism and trajectory supervision are learnable but do not help when they only regularize a static pair classifier. R35 keeps the same 774-dimensional pre-action pair representation, four-way joint terminal target, direct rescue/harm selector, guard, and continuation policy, but makes predicted branch sequence structure part of the decision computation itself. Separate recurrent decoders forecast short baseline and candidate sequences under fixed accepted-R11 continuation, and their final latent states are consumed by the joint rescue head.",
+  "accepted_r11_parent": {
+    "authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+    "accepted_authority_blob_sha": "f8e8fac794fd339e261e9245ef7b46e1367683f1",
+    "accepted_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14"
+  },
+  "learned_parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "physical_parameters": 877542
+  },
+  "negative_controls": {
+    "r16_r18": "one-step public neural dynamics and model-based planning learned transitions but did not promote",
+    "r34": {
+      "status": "DEV_REJECTED",
+      "auxiliary_terminal_mechanism_accuracy_range": [0.817998385794996, 0.829499596448749],
+      "trajectory_mae_range": [0.12565619970541794, 0.13257085651616304],
+      "finding": "trajectory/failure structure was learnable but remained only auxiliary and did not create safe rescue selection"
+    }
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "goal_training_indices": [17664, 18175],
+    "temperature_fit_indices": [18176, 18303],
+    "sequence_training_indices": [18304, 18687],
+    "rescue_guard_blocks": [
+      [18688, 18751],
+      [18752, 18815],
+      [18816, 18879],
+      [18880, 18943]
+    ],
+    "development_indices": [2080, 2111],
+    "confirmation_indices": [2112, 2143],
+    "fresh_indices": [280, 319]
+  },
+  "architecture": {
+    "ensemble_size": 3,
+    "goal_hidden_dim": 96,
+    "decoder_hidden_dim": 64,
+    "pair_feature_dim": 774,
+    "branch_sequence_horizon": 6,
+    "branch_sequence_channels": ["progress_delta", "information_gain", "done", "solved"],
+    "time_embedding_dim": 16,
+    "joint_outcome_classes": ["both_fail", "rescue", "harm", "both_solve"],
+    "expected_goal_successor_parameters": 107799,
+    "expected_sequence_successor_parameters": 283716,
+    "expected_successor_parameters": 391515,
+    "expected_physical_parameters": 1269057
+  },
+  "training": {
+    "seed": 20261005,
+    "goal_epochs": 10,
+    "sequence_epochs": 12,
+    "batch_size": 128,
+    "learning_rate": 0.0008,
+    "weight_decay": 0.0001,
+    "sequence_loss_weight": 0.5,
+    "temperature_candidates": [0.5, 0.75, 1.0, 1.5, 2.0],
+    "max_support": 16,
+    "max_counterfactual_decision_steps_per_episode": 5,
+    "rescue_threshold_candidates": [0.45, 0.55, 0.65, 0.75, 0.85],
+    "harm_ceiling_candidates": [0.05, 0.1, 0.2, 0.3],
+    "minimum_rescue_precision": 0.75,
+    "minimum_total_selected_actions": 12,
+    "minimum_block_selected_actions": 2,
+    "require_zero_selected_harm": true,
+    "max_overrides_per_episode": 1
+  },
+  "sequence_target": {
+    "policy": "take branch first action once, then follow accepted R11 only",
+    "horizon": 6,
+    "channels": ["progress_delta", "information_gain", "done", "solved"],
+    "terminal_padding": "zero progress/information with done=1 and terminal solved bit",
+    "future_branch_sequence_used_as_inference_input": false,
+    "sequence_decoder_outputs_feed_joint_decision_head": true
+  },
+  "controlled_change": {
+    "comparison_parent": "R34 static shared pair trunk with trajectory auxiliary supervision",
+    "preserved": [
+      "774-dimensional pre-action pair representation",
+      "accepted R4 latent context",
+      "all valid alternative action counterfactual enumeration",
+      "four-way joint terminal label",
+      "direct rescue/harm selector thresholds",
+      "cross-block 75% rescue precision requirement",
+      "zero selected harm requirement",
+      "maximum one override per episode",
+      "strict solved-count promotion gate"
+    ],
+    "r35_change": "replace static outcome trunk with separate recurrent baseline/candidate branch sequence decoders and feed both final sequence latents into the joint outcome head",
+    "learned_public_world_state_rollout_planning": false,
+    "fixed_continuation_policy": "accepted R11",
+    "same_dev_retuning_allowed": false
+  },
+  "private_boundary": {
+    "private_goal_allowed_only_for_goal_belief_training": true,
+    "sequence_labels_use branch public step results and terminal solved outcome only": true,
+    "future_branch_information_used_as_input": false,
+    "inference_private_goal_use": false,
+    "dev_or_fresh_counterfactual_teacher_use": false
+  },
+  "promotion_gate": {
+    "minimum_total_solved_delta_vs_parent": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta": 1,
+    "visible_target_families": [
+      "conditional_regimes",
+      "regime_switch",
+      "causal_prerequisites"
+    ],
+    "required_visible_family_solved_delta": 0
+  },
+  "governance": {
+    "confirmation_must_use_exact_frozen_checkpoint_and_config": true,
+    "same_dev_retuning_allowed": false,
+    "fresh_requires_primary_and_confirmation_pass": true,
+    "fresh_rerun_allowed": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "reserved_indices": [280, 319],
+    "consumed_before_r35": [0, 279]
+  }
+}
