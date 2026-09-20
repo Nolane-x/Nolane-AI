@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R28-CounterfactualRescueValue",
+  "source_head": "733ef222f435ac3c9f34adee5ef9c5947f71cdcd",
+  "development": {
+    "split": "dev",
+    "indices": [1632, 1663],
+    "parent_solved": 116,
+    "candidate_solved": 116,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 24,
+    "candidate_implicit_goal_solved": 24,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "0f584de4de765bfc1d78b464ed03802c48cc192d4693cb684b4cdd1caf3841da",
+    "state_dict_sha256": "813d14dff51475c7b11ad27c23c86ae65d737f3637b77ed3c31435f5b42842e9",
+    "successor_parameters": 159834,
+    "physical_parameters": 1037376
+  },
+  "counterfactual_training": {
+    "rows": 209,
+    "positive_rescue_rows": 19,
+    "harm_rows": 19,
+    "finding": "Terminal fail-to-solve and solve-to-fail interventions both exist in the train distribution. The intervention problem is therefore non-degenerate, but the pre-action rescue feature representation did not separate beneficial from harmful alternatives."
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "minimum_rescue_precision": 0.75,
+    "minimum_total_predicted_rows": 12,
+    "minimum_block_predicted_rows": 2,
+    "require_zero_harm": true,
+    "threshold_0_5": {
+      "predicted_rows": 13,
+      "rescue_rows": 1,
+      "harm_rows": 2,
+      "rescue_precision": 0.07692307692307693
+    },
+    "finding": "Higher thresholds rapidly collapsed coverage and did not recover rescue precision. The learned gate failed closed, preserving exact R11 behavior on dev."
+  },
+  "execution": {
+    "workflow_run_id": 35499509678,
+    "job_id": 106048629242,
+    "artifact_id": 10600639805,
+    "artifact_digest": "sha256:7402c2dddde1e03ed1584e4ea025e2f34f18f91962c24ada2c3e43f4687fb52b"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1664, 1695],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
