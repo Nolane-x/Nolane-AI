@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "candidate": "Neural-vNext-Native-R19-GoalPosteriorFusion",
+  "reserved_fresh": {
+    "split": "fresh",
+    "indices": [
+      280,
+      319
+    ],
+    "episodes_expected": 160,
+    "status": "UNOPENED"
+  },
+  "failure_rule": "Any dev/confirmation failure closes R19 without fresh.",
+  "post_fresh_rule": "If later opened, fresh is one-shot and permanently consumed."
+}

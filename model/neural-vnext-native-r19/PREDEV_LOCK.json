@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R19-GoalPosteriorFusion",
+  "parent_main_commit": "6e0aaf24e470a57ee17dc0385fd399848af90b14",
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_indices": [
+      1056,
+      1087
+    ],
+    "confirmation_indices": [
+      1088,
+      1119
+    ],
+    "fresh_indices": [
+      280,
+      319
+    ],
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ],
+      [
+        240,
+        279
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:280..319 task may be instantiated before exact R19 confirmation passes.",
+    "post_fresh_tuning_allowed": false
+  },
+  "mechanism": {
+    "goal": "use accepted R4 learned hidden-goal probabilities only to reweight goal hypotheses already permitted by exact public consistency, while leaving R11 causal action logic unchanged",
+    "new_parameters": 0,
+    "private_goal_inference_use": false,
+    "support_invariant": "fusion cannot add a public-inconsistent goal hypothesis and cannot remove support by hard thresholding",
+    "visible_target_rule": "R11 remains exact because visible public posterior is a singleton",
+    "distinction_from_r6": "R19 directly changes the posterior measure used by R11 expected-distance causal planning; it is not a residual confidence gate"
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "fusion_alpha025",
+        "alpha": 0.25
+      },
+      {
+        "name": "fusion_alpha050",
+        "alpha": 0.5
+      },
+      {
+        "name": "fusion_alpha100",
+        "alpha": 1
+      }
+    ],
+    "promotion_gate": [
+      "strict total solved gain on dev:1056..1087",
+      "implicit_goal_regimes solved gain >=1",
+      "visible-target families exact"
+    ]
+  },
+  "confirmation": {
+    "status": "PREREGISTERED_UNOPENED",
+    "indices": [
+      1088,
+      1119
+    ],
+    "rule": "exact source and selected alpha only; no reselection"
+  },
+  "claim_boundary": "R19 is development-only. It adds zero parameters and tests whether already-accepted R4 neural goal belief can improve R11 planning without broadening public support."
+}
