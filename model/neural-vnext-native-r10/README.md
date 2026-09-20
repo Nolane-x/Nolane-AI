@@ -1,24 +1,29 @@
-# Neural vNext Native R10 — multi-step public counterfactual planner
+# Neural vNext Native R10 — development-rejected multi-step counterfactual planner
 
-Status: **DEVELOPMENT ONLY; confirmation and fresh UNOPENED**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R10 starts from accepted R9. It keeps R9's accepted hidden-goal support threshold (`max_support=3`) fixed and tests only one new capability: conservative multi-step planning over public transition effects already observed in episode memory.
+R10 preserved accepted R9 as the exact fallback and tested conservative 2–4 step search using only transitions already observed at the exact public regime + full state-parity key.
 
-R10 adds **zero learned parameters**.
+## Locked primary result
 
-## Locked courts
+On `dev:480..511`:
 
-- primary selection: `dev:480..511`
-- disjoint confirmation: `dev:512..543`
-- reserved fresh: `fresh:240..279`
-- consumed fresh: `0..239`
+- accepted R9: **119/128**, implicit-goal **27/32**, 1,713 steps
+- R10 depth 2: **119/128**, implicit **27/32**, 1,713 steps
+- R10 depth 3: **119/128**, implicit **27/32**, 1,713 steps
+- R10 depth 4: **119/128**, implicit **27/32**, 1,713 steps
 
-## Mechanism
+Visible-target family solved counts stayed exact.
 
-R9 remains the exact fallback. R10 may override it only when every transition in a 2–4 step candidate path has already been observed at the exact public regime + state-parity key.
+Each depth produced only one multi-step decision/override across the entire court. The exact full-parity transition model was therefore too sparse to add useful planning coverage.
 
-The first R10 action may not be worse than R9's first action under the same known public model, and the complete known path must have strictly lower expected hidden-goal distance than the best known continuation beginning with R9's action.
+The strict solved-count promotion gate was not relaxed.
 
-Visible-target episodes are never overridden. No private goal is read.
+## Closure
 
-No confirmation or fresh identity may be instantiated during primary development.
+- confirmation `dev:512..543` was never opened;
+- `fresh:240..279` was never instantiated and remains untouched;
+- no repeated tuning against `dev:480..511`;
+- R10 closes without merge.
+
+Canonical evidence: `evidence/DEV_REJECTED_001.json`.

@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R10-MultistepCounterfactual",
+  "source_head": "93b00aaf6f8c06355c3314b3fc95ba2bf0877d3b",
+  "workflow_run_id": 35486385521,
+  "job_id": 106013432099,
+  "parent_authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+  "development": {
+    "split": "dev",
+    "indices": [
+      480,
+      511
+    ],
+    "parent": {
+      "solved": 119,
+      "implicit_goal_solved": 27,
+      "steps": 1713
+    },
+    "candidates": [
+      {
+        "name": "lookahead_depth2",
+        "horizon": 2,
+        "solved": 119,
+        "implicit_goal_solved": 27,
+        "steps": 1713,
+        "overrides_vs_r9": 1,
+        "multistep_decisions": 1,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "lookahead_depth3",
+        "horizon": 3,
+        "solved": 119,
+        "implicit_goal_solved": 27,
+        "steps": 1713,
+        "overrides_vs_r9": 1,
+        "multistep_decisions": 1,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      },
+      {
+        "name": "lookahead_depth4",
+        "horizon": 4,
+        "solved": 119,
+        "implicit_goal_solved": 27,
+        "steps": 1713,
+        "overrides_vs_r9": 1,
+        "multistep_decisions": 1,
+        "total_delta": 0,
+        "implicit_delta": 0,
+        "visible_exact": true
+      }
+    ]
+  },
+  "finding": "Exact regime+full-parity transition memory was too sparse for deeper lookahead: every horizon made only one multistep decision and did not change solved count or action steps versus accepted R9.",
+  "governance": {
+    "selected_candidate": null,
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      512,
+      543
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      240,
+      279
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
