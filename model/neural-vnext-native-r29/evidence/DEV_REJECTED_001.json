@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_CONFIRMATION_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R29-CertifiedRescueGeometry",
+  "source_head": "d2b65f8f2dd9efa78d9629650d26f28ddcf6582c",
+  "development": {
+    "split": "dev",
+    "indices": [1696, 1727],
+    "parent_solved": 120,
+    "candidate_solved": 120,
+    "total_delta": 0,
+    "parent_implicit_goal_solved": 27,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 0,
+    "visible_target_families_exact": true,
+    "overrides_vs_r11": 0
+  },
+  "learned_candidate": {
+    "checkpoint_sha256": "52a7a01eb8c2001d3d0916ea7cde7180c242aa49d6d1f8b0d61d96b899c62753",
+    "state_dict_sha256": "9e46261031e4ea07c764ef0a40a347493d09a2a525760e2e28a5b299e9a815ba",
+    "goal_successor_parameters": 107799,
+    "rescue_successor_parameters": 59721,
+    "successor_parameters": 167520,
+    "physical_parameters": 1045062
+  },
+  "counterfactual_training": {
+    "rows": 86,
+    "class_counts": {
+      "neutral": 72,
+      "rescue": 4,
+      "harm": 10
+    },
+    "finding": "Requiring both R11 and candidate next states to be exactly certified greatly reduced training coverage and disproportionately removed rescue examples. The three-class geometry learner therefore saw only four rescue rows across the locked rescue-training identities."
+  },
+  "rescue_guard": {
+    "enabled": false,
+    "finding": "No rescue-threshold/harm-ceiling pair met block coverage and rescue precision. The most permissive combinations predicted at most two rows in the full four-block court and zero true rescues. The gate correctly failed closed."
+  },
+  "execution": {
+    "workflow_run_id": 35500141888,
+    "job_id": 106050350164,
+    "artifact_id": 10602410861,
+    "artifact_digest": "sha256:7b02b3e50a23fc56419d2e1d6dc780081dbc41fb334625ae6cea0051cafc4c2d"
+  },
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [1728, 1759],
+    "fresh_opened": false,
+    "reserved_fresh_block": [280, 319],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}
