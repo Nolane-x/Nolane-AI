@@ -1,6 +1,6 @@
 # Neural vNext Native R30 — action-conditioned counterfactual rescue
 
-Status: **PREDEVELOPMENT LOCKED; PRIMARY DEV PENDING**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
 R30 is a Neural Core successor experiment over accepted R11. It directly addresses the two negative findings established by R28 and R29:
 
@@ -38,4 +38,19 @@ The guard is evaluated at the same granularity used at inference: alternatives a
 - confirmation: dev:1792..1823
 - reserved fresh: fresh:280..319 — **UNOPENED**
 
-Fresh remains inaccessible unless primary and confirmation pass with the exact frozen checkpoint/configuration.
+## Locked development result
+
+The all-action collector produced **5,064** train rows: **298 rescue**, **1,720 harm**, and **3,046 neutral**. Only **306** rows were dual-certified; **4,104** candidate rows were uncertified and were retained rather than discarded.
+
+The guard failed closed. No threshold pair met the preregistered cross-block 75% rescue precision plus zero-harm requirement. The candidate therefore executed **0 overrides** on primary dev.
+
+On dev:1760..1791:
+- accepted R11: **118/128**, implicit-goal **28/32**
+- R30: **118/128**, implicit-goal **28/32**
+- visible-target families: exact
+- confirmation: **UNOPENED**
+- fresh: **UNOPENED**
+
+Interpretation: R30 fixed R29's coverage collapse, so coverage is no longer the main failure. The remaining bottleneck is representation: the rescue classifier still cannot distinguish terminal rescue from harm using local public/action/geometry features. In particular it does not consume the accepted R4 latent/recurrent internal state.
+
+Canonical negative evidence: evidence/DEV_REJECTED_001.json.
