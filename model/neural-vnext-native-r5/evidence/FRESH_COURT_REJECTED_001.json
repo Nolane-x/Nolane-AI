@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "status": "FRESH_REJECTED",
+  "authority": "Neural-vNext-Native-R5-PublicConsistency",
+  "candidate": {
+    "selected_candidate": "public_consistency_broad",
+    "parameters": 1013511,
+    "successor_parameters": 135969,
+    "checkpoint_sha256": "6188ee06c481d9ace7b6a9e5bab9d913574230916f7a54facb7117b54431b576",
+    "state_dict_sha256": "ee8c64602d200a57b1b5953f4cbc9b8d7ac42acdfb6c7db6af37deb4a2022731"
+  },
+  "development": {
+    "split": "dev",
+    "indices": [
+      192,
+      223
+    ],
+    "episodes": 128,
+    "parent_solved": 117,
+    "candidate_solved": 119,
+    "total_delta": 2,
+    "parent_implicit_goal_solved": 25,
+    "candidate_implicit_goal_solved": 27,
+    "implicit_goal_delta": 2,
+    "visible_target_families_exact": true
+  },
+  "fresh_court": {
+    "benchmark": "nolane-figg18-v1",
+    "split": "fresh",
+    "indices": [
+      160,
+      199
+    ],
+    "episodes": 160,
+    "workflow_run_id": 35478051023,
+    "job_id": 105990651568,
+    "artifact_id": 10594294126,
+    "artifact_name": "neural-vnext-native-r5-fresh-court-160-199",
+    "artifact_digest": "sha256:63d50d4d1062883b263e702222b8a967467c09ba7726d5d919cd8090033d64e5",
+    "parent_solved": 142,
+    "candidate_solved": 140,
+    "total_delta": -2,
+    "family_solved_delta_vs_parent": {
+      "causal_prerequisites": 0,
+      "conditional_regimes": 0,
+      "implicit_goal_regimes": -2,
+      "regime_switch": 0
+    },
+    "parent_implicit_goal_solved": 29,
+    "candidate_implicit_goal_solved": 27,
+    "all_visible_target_families_exact": true,
+    "preregistered_gate_accepted": false
+  },
+  "governance": {
+    "fresh_block_consumed": true,
+    "fresh_block_reuse_for_promotion_allowed": false,
+    "post_fresh_tuning_allowed": false,
+    "same_candidate_retry_allowed": false,
+    "rejected_candidate_may_be_promoted": false,
+    "failure_path": "Close this candidate as a negative result. Any successor must use a new candidate identity and a new untouched fresh block."
+  },
+  "claim_boundary": "R5 improved its locked development court but reversed sign on untouched fresh:160..199. The court is consumed and the R5 candidate is rejected. No episode-level fresh result may be used to retune this candidate."
+}

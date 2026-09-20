@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "status": "REJECTED_CLOSED",
+  "authority": "Neural-vNext-Native-R5-PublicConsistency",
+  "fresh_workflow_run_id": 35478051023,
+  "fresh_artifact_id": 10594294126,
+  "fresh_artifact_digest": "sha256:63d50d4d1062883b263e702222b8a967467c09ba7726d5d919cd8090033d64e5",
+  "parent_fresh_solved": 142,
+  "candidate_fresh_solved": 140,
+  "implicit_goal_delta": -2,
+  "visible_target_families_exact": true,
+  "promotion_gate_passed": false,
+  "post_fresh_training_performed": false,
+  "post_fresh_tuning_performed": false,
+  "fresh_block_reused": false,
+  "merge_to_main_allowed": false,
+  "next_legal_step": "Create a new successor from accepted R4 with new train/dev identities and untouched fresh identities beginning after consumed fresh:160..199."
+}
