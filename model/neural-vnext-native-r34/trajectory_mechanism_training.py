@@ -18,7 +18,10 @@ from public_planner import GOAL_HYPOTHESIS_COUNT, GOAL_TABLE, PublicGoalConsiste
 from causal_version_space import PublicCausalRuleMemory, choose_public_causal_action
 from trajectory_mechanism_core import (
     BOTH_FAIL_CLASS,
-    BOTH_SOLVE_CLASS,\n    MECHANISM_SOLVED,\n    MECHANISM_REJECTED_SUBMIT,\n    MECHANISM_BUDGET_EXHAUSTED,
+    BOTH_SOLVE_CLASS,
+    MECHANISM_SOLVED,
+    MECHANISM_REJECTED_SUBMIT,
+    MECHANISM_BUDGET_EXHAUSTED,
     HARM_CLASS,
     RESCUE_CLASS,
     NativeR34TrajectoryMechanismEnsemble,
@@ -880,49 +883,6 @@ def _score_action_row(
             output["trajectory"].std(dim=0, unbiased=False).mean().item()
         ),
     }
-
-
-def _select_action_row(
-    model: NativeR34TrajectoryMechanismEnsemble,
-    rows: Sequence[Mapping[str, Any]],
-    *,
-    rescue_threshold: float,
-    harm_ceiling: float,
-) -> tuple[Mapping[str, Any] | None, dict[str, float] | None]:
-    eligible: list[tuple[tuple[float, ...], Mapping[str, Any], dict[str, float]]] = []
-    with torch.no_grad():
-        for row in rows:
-            score = _score_action_row(model, row)
-            if (
-                score["min_rescue"] < float(rescue_threshold)
-                or score["max_harm"] > float(harm_ceiling)
-            ):
-                continue
-            key = (
-                score["min_rescue"] - score["max_harm"],
-                score["min_rescue"],
-                -score["max_harm"],
-                score["mean_rescue"],
-                float(row.get("candidate_mean_mass", 0.0)),
-                -float(row["candidate_action"]),
-            )
-            eligible.append((key, row, score))
-    if not eligible:
-        return None, None
-    _, row, score = max(eligible, key=lambda item: item[0])
-    return row, score
-
-
-def _group_rows(rows: Sequence[Mapping[str, Any]]) -> list[list[Mapping[str, Any]]]:
-    groups: dict[tuple[int, int], list[Mapping[str, Any]]] = {}
-    order: list[tuple[int, int]] = []
-    for row in rows:
-        key = (int(row["task_index"]), int(row["step"]))
-        if key not in groups:
-            groups[key] = []
-            order.append(key)
-        groups[key].append(row)
-    return [groups[key] for key in order]
 
 
 def _select_action_row(
