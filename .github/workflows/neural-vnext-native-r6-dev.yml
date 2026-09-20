@@ -1,0 +1,83 @@
+name: Neural vNext Native R6 Dev
+
+on:
+  push:
+    branches:
+      - codex/neural-native-r6-calibrated-consistency
+    paths:
+      - 'model/neural-vnext-native-r6/**'
+      - '.github/workflows/neural-vnext-native-r6-dev.yml'
+  pull_request:
+    paths:
+      - 'model/neural-vnext-native-r6/**'
+      - '.github/workflows/neural-vnext-native-r6-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONHASHSEED: '0'
+  OMP_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  NUMEXPR_NUM_THREADS: '1'
+  OMP_DYNAMIC: 'FALSE'
+  MKL_DYNAMIC: 'FALSE'
+  MKL_CBWR: 'COMPATIBLE'
+  KMP_DETERMINISTIC_REDUCTION: 'TRUE'
+  ATEN_CPU_CAPABILITY: 'default'
+
+jobs:
+  r6-dev:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install pinned neural dependencies
+        run: |
+          python -m pip install -q pytest numpy
+          python -m pip install -q torch==2.9.0 --index-url https://download.pytorch.org/whl/cpu
+      - name: Compile and run R6 contracts
+        env:
+          PYTHONPATH: model/neural-vnext-native-r6:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          python -m py_compile model/neural-vnext-native-r6/*.py model/neural-vnext-native-r6/scripts/*.py model/neural-vnext-native-r6/tests/*.py
+          python -m pytest -q model/neural-vnext-native-r6/tests
+      - name: Run frozen-parent R6 dev tournament
+        env:
+          PYTHONPATH: model/neural-vnext-native-r6:model/neural-vnext-native-r4:model/neural-vnext-native-r3:model/neural-vnext-native-r2:model/neural-vnext-native:model/r1.8
+        run: |
+          mkdir -p r6-dev
+          python model/neural-vnext-native-r6/scripts/train_r6_dev.py             --checkpoint r6-dev/r6.pt             --manifest r6-dev/r6.manifest.json             --dev-result r6-dev/r6.dev.json
+      - name: Enforce development-only fresh isolation
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          root = Path('model/neural-vnext-native-r6')
+          lock = json.loads((root / 'PREDEV_LOCK.json').read_text())
+          gate = json.loads((root / 'FRESH_GATE_PREREGISTRATION.json').read_text())
+          manifest = json.loads(Path('r6-dev/r6.manifest.json').read_text())
+          assert lock['fresh_isolation']['status'] == 'UNOPENED'
+          assert lock['benchmark']['fresh_indices'] == [160, 199]
+          assert gate['status'] == 'PREREGISTERED_UNOPENED'
+          assert gate['fresh']['opened'] is False
+          assert manifest['fresh_opened'] is False
+          assert manifest['status'] == 'R6_DEV_ELIGIBLE_FRESH_UNOPENED'
+          PY
+      - name: Upload frozen development artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: neural-vnext-native-r6-dev
+          path: |
+            r6-dev/r6.pt
+            r6-dev/r6.manifest.json
+            r6-dev/r6.dev.json
+          if-no-files-found: error
+          retention-days: 90

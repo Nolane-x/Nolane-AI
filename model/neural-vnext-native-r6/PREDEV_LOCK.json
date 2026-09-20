@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R6-CalibratedConsistency",
+  "parent": {
+    "authority": "Neural-vNext-Native-R4-LatentGoalBelief",
+    "main_merge_commit": "741c93f9828f696352e3366e73d172d93baa67c7",
+    "parameters": 877542,
+    "checkpoint_path": "model/neural-vnext-native-r4/accepted/r4.pt",
+    "checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "post_fresh_mutation_allowed": false,
+    "parent_parameters_trainable": false
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "training_split": "train",
+    "hidden_training_indices": [
+      2560,
+      3071
+    ],
+    "development_split": "dev",
+    "development_indices": [
+      224,
+      255
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      200,
+      239
+    ],
+    "fresh_episodes_expected": 160,
+    "previously_consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ]
+    ]
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "No fresh:200..239 task may be instantiated by R6 training or development code before a separately frozen candidate receives PRE_FRESH_LOCK authority.",
+    "post_fresh_tuning_allowed": false,
+    "previous_fresh_reuse_allowed": false
+  },
+  "architecture": {
+    "parent_policy": "accepted Neural vNext Native R4 latent-goal belief policy, frozen",
+    "mechanism": "enumerate the 125 public-consistent hidden-goal hypotheses, compare their marginals with frozen R4 latent goal probabilities, and permit a successor residual only in proportion to public evidence confidence and parent/posterior agreement",
+    "private_goal_use": "none in R6 inference or posterior construction; training uses only the same train-split oracle action teacher authority already used by accepted predecessors",
+    "inference_boundary": "public observations, public progress/transition feedback, frozen R4 public-derived latent state, and episode-local public memories only",
+    "uncertainty_rule": "uniform or weak public evidence yields calibration_gate=0 or near 0 and therefore exact/near fallback to frozen R4",
+    "target_visible_gate": "R6 residual multiplied by calibration_gate and 1-target_visible; visible-target behavior is exactly frozen R4",
+    "residual_initialization": "zero final layer, making untrained R6 exactly R4-equivalent",
+    "consistency_fallback": "if decimal rounding yields no exact shell after intersection, keep only the closest public progress shell; never inspect private task goal"
+  },
+  "training": {
+    "seed": 20260922,
+    "optimizer": "AdamW",
+    "weight_decay": 0.0001,
+    "max_grad_norm": 1,
+    "family_scope": [
+      "implicit_goal_regimes"
+    ],
+    "teacher": "same public-exploration-first then FIGG-18 train-only oracle action target used by accepted predecessors",
+    "candidates": [
+      {
+        "name": "calibrated_consistency_conservative",
+        "consistency_embedding_dim": 64,
+        "residual_hidden_dim": 128,
+        "calibration_power": 2,
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.00035,
+        "residual_l2_weight": 0.002
+      },
+      {
+        "name": "calibrated_consistency_balanced",
+        "consistency_embedding_dim": 96,
+        "residual_hidden_dim": 160,
+        "calibration_power": 1.5,
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5,
+          0.25
+        ],
+        "learning_rate": 0.0004,
+        "residual_l2_weight": 0.0015
+      },
+      {
+        "name": "calibrated_consistency_soft",
+        "consistency_embedding_dim": 96,
+        "residual_hidden_dim": 160,
+        "calibration_power": 1,
+        "expert_epochs": 1,
+        "dagger_teacher_mix": [
+          0.75,
+          0.5
+        ],
+        "learning_rate": 0.00035,
+        "residual_l2_weight": 0.0015
+      }
+    ],
+    "selection_rule": [
+      "evaluate frozen R4 parent and every R6 candidate on dev:224..255 only",
+      "candidate must solve strictly more implicit_goal_regimes episodes than frozen R4",
+      "candidate must solve strictly more total dev episodes than frozen R4",
+      "conditional_regimes, regime_switch and causal_prerequisites solved counts must equal frozen R4 exactly",
+      "among eligible candidates maximize implicit_goal_regimes solved",
+      "then maximize total dev solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
+  },
+  "claim_boundary": "R6 is development-only. It may train only successor-owned calibrated-consistency modules on train:2560..3071 and select only on dev:224..255. fresh:200..239 remains unopened."
+}
