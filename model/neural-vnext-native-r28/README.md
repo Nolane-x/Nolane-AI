@@ -1,72 +1,69 @@
-# Neural vNext Native R28 — counterfactual episode rescue value
+# Neural vNext Native R28 — development-rejected counterfactual rescue value
 
-Status: **PREDEVELOPMENT LOCKED; FRESH UNOPENED**.
+Status: **DEV REJECTED; CONFIRMATION AND FRESH UNOPENED**.
 
-R28 changes the learned target after R27 showed that highly precise teacher-action agreement is not enough to increase solved episodes.
+R28 was the first Native successor in this line to supervise intervention using paired terminal counterfactual outcomes rather than teacher-action agreement.
 
-## Core idea
+## Learned authority
 
-R28 contains two learned components:
-
-1. **public goal/action-mass ensemble** — generates a plausible alternative action from public evidence;
-2. **counterfactual rescue ensemble** — predicts whether taking that one alternative now, then returning to accepted R11, changes the terminal episode outcome from **R11 fail → solve**.
-
-The rescue target is therefore aligned directly with the promotion metric instead of with one-step teacher agreement.
-
-## Counterfactual supervision
-
-Only on train identities, the collector deep-copies the exact current FIGG-18 task and public runtime state into two branches:
-
-- branch A takes R11's current action, then follows accepted R11;
-- branch B takes the neural candidate action once, then follows accepted R11.
-
-Labels:
-
-- **rescue = 1** only when B solves and A fails;
-- **harm = 1** when A solves and B fails;
-- all other pairs are neutral.
-
-No private goal is required to create rescue/harm labels.
-
-## Learned architecture
-
-- three goal-belief heads, hidden 96
-- three rescue-value heads, hidden 64
 - goal successor parameters: **107,799**
 - rescue successor parameters: **52,035**
 - total successor parameters: **159,834**
-- total physical learned parameters with frozen accepted R4: **1,037,376**
+- total physical learned parameters: **1,037,376**
+- checkpoint SHA-256: `0f584de4de765bfc1d78b464ed03802c48cc192d4693cb684b4cdd1caf3841da`
+- state SHA-256: `813d14dff51475c7b11ad27c23c86ae65d737f3637b77ed3c31435f5b42842e9`
 
-## Locked identities
+## Counterfactual evidence
 
-- goal training: `train:8768..9279`
-- temperature fit: `train:9280..9407`
-- rescue training: `train:9408..9727`
-- rescue guard blocks: `9728..9791`, `9792..9855`, `9856..9919`, `9920..9983`
-- primary dev: `dev:1632..1663`
-- confirmation: `dev:1664..1695`
-- reserved fresh: `fresh:280..319`
+The train-only paired branch collector produced **209** intervention rows:
 
-## Locked intervention rule
+- **19 true rescue rows**: candidate branch solves while R11 branch fails;
+- **19 true harm rows**: R11 branch solves while candidate branch fails;
+- remaining rows are terminally neutral.
 
-The action-mass generator requires:
+This is an important positive scientific result despite candidate rejection: there are real single-action interventions capable of changing terminal success in both directions.
 
-- all three goal heads select the same causal action;
-- minimum action mass >= **0.65**;
-- exact public support in 2..8;
-- candidate differs from R11.
+## Rescue guard — failed closed
 
-Then all three rescue heads must exceed the selected train-only rescue threshold.
+The pre-action rescue representation could not identify those rows robustly.
 
-Rescue threshold selection uses four disjoint train-only blocks and requires:
+At threshold 0.5 the four-block guard predicted 13 interventions but only:
 
-- rescue precision >= **75% in every block**;
-- at least 2 predicted rows in every block;
-- at least 12 predicted rows total;
-- **zero predicted harm** across all blocks.
+- **1 true rescue**
+- **2 harms**
+- rescue precision **7.69%**
 
-At most one override is allowed per episode. Visible-target episodes never enter the R28 neural path.
+Higher thresholds collapsed coverage without producing a valid rescue gate. The guard therefore disabled all neural overrides before primary dev.
 
-## Promotion
+## Primary development
 
-Primary requires +1 or better total solved and +1 or better `implicit_goal_regimes` solved with exact visible-target family solved counts. An exact frozen primary winner must pass confirmation unchanged before fresh can open.
+On `dev:1632..1663`:
+
+- accepted R11: **116/128**
+- R28: **116/128**
+- implicit-goal: **24/32 → 24/32**
+- neural overrides: **0**
+- visible-target family solved counts: exact
+
+R28 is rejected at development.
+
+## Interpretation
+
+The failed variable is now more specific: terminal rescue exists, but **state/action/action-mass features before intervention are insufficient to distinguish rescue from harm**.
+
+The next successor should encode certified public counterfactual consequence geometry — predicted R11 next state versus predicted candidate next state, public expected-distance changes, causal rule certainty, and neural posterior geometry — before estimating terminal rescue value.
+
+## Governance
+
+- confirmation `1664..1695`: **UNOPENED**
+- fresh `280..319`: **UNOPENED**
+- no post-dev threshold retuning
+- closes without merge
+
+Workflow: `35499509678`.
+
+Artifact: `10600639805`.
+
+Artifact digest: `sha256:7402c2dddde1e03ed1584e4ea025e2f34f18f91962c24ada2c3e43f4687fb52b`.
+
+Canonical negative evidence: `evidence/DEV_REJECTED_001.json`.
