@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "status": "DEV_REJECTED_FRESH_UNOPENED",
+  "candidate": "Neural-vNext-Native-R14-BeliefTreeCausal",
+  "source_head": "e6f2f41d4de35ce3d99e2b315b591466b4933e73",
+  "parent_authority": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "development": {
+    "split": "dev",
+    "indices": [
+      736,
+      767
+    ],
+    "parent": {
+      "solved": 125,
+      "implicit_goal_solved": 30
+    },
+    "candidates": [
+      {
+        "name": "belief_tree_h2_guarded",
+        "solved": 124,
+        "implicit_goal_solved": 29,
+        "overrides_vs_r11": 4,
+        "total_delta": -1,
+        "implicit_delta": -1,
+        "visible_exact": true
+      },
+      {
+        "name": "belief_tree_h3_guarded",
+        "solved": 122,
+        "implicit_goal_solved": 27,
+        "overrides_vs_r11": 11,
+        "total_delta": -3,
+        "implicit_delta": -3,
+        "visible_exact": true
+      },
+      {
+        "name": "belief_tree_h2_pareto",
+        "solved": 123,
+        "implicit_goal_solved": 28,
+        "overrides_vs_r11": 2,
+        "total_delta": -2,
+        "implicit_delta": -2,
+        "visible_exact": true
+      }
+    ]
+  },
+  "reproduction": {
+    "workflow_runs": [
+      {
+        "run_id": 35490092504,
+        "job_id": 106023442834
+      },
+      {
+        "run_id": 35490105260,
+        "job_id": 106023475678
+      }
+    ],
+    "promotion_relevant_solved_counts_identical": true,
+    "trajectory_steps_bitwise_reproduced": false,
+    "step_counts_promotion_authority": false
+  },
+  "interpretation": "Observation-aware branching over future progress feedback did not improve the already-strong accepted R11 low-support decision region. Every R14 override policy reduced implicit-goal solved count; deeper belief-tree intervention was worse.",
+  "governance": {
+    "confirmation_opened": false,
+    "confirmation_indices": [
+      768,
+      799
+    ],
+    "fresh_opened": false,
+    "reserved_fresh_block": [
+      280,
+      319
+    ],
+    "reserved_fresh_block_consumed": false,
+    "same_dev_retuning_allowed": false,
+    "merge_to_main_allowed": false
+  }
+}

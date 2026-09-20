@@ -1,34 +1,22 @@
-# Neural vNext Native R14 — belief-tree certified causal successor
+# Neural vNext Native R14 — development-rejected belief-tree causal successor
 
-Status: **DEVELOPMENT ONLY; confirmation and fresh UNOPENED**.
+Status: **DEV REJECTED; confirmation and fresh never opened**.
 
-R14 starts from accepted R11 and adds no learned parameters.
+R14 tested an observation-aware extension of accepted R11: after a hypothetical certified action, it modeled the public progress feedback that would partition the hidden-goal posterior and planned separately inside each branch.
 
-R11 already learns nothing new at inference: it builds a public causal version space and uses a counterfactual only when all surviving rules agree. Its accepted configuration plans one step ahead. R14 keeps that exact fallback but changes the planning state.
+On locked `dev:736..767`:
 
-## New mechanism
+- accepted R11: **125/128**, implicit-goal **30/32**
+- `belief_tree_h2_guarded`: **124/128**, implicit **29/32**
+- `belief_tree_h3_guarded`: **122/128**, implicit **27/32**
+- `belief_tree_h2_pareto`: **123/128**, implicit **28/32**
+- visible-target family solved counts remained exact.
 
-R14 models **future public feedback** inside the planner.
+Promotion-relevant solved counts reproduced across runs `35490092504` and `35490105260`. Step counts differed slightly between executions and are not promotion authority.
 
-After a hypothetical certified action, the next public `progress_signal` reveals a distance shell. R14 partitions the current hidden-goal posterior into the goal hypotheses that would produce each possible shell, then plans separately inside each observation branch.
+The result rejects intervention inside R11's already-selected low-support causal decision region. Deeper belief-tree intervention was more harmful.
 
-This is a small exact belief-state tree over at most three surviving public goal hypotheses.
-
-Candidates:
-
-- `belief_tree_h2_guarded`
-- `belief_tree_h3_guarded`
-- `belief_tree_h2_pareto`
-
-No private goal is read. Visible-target episodes are exact accepted R11/R9/R4 behavior.
-
-## Locked identities
-
-- primary dev: `dev:736..767`
-- confirmation: `dev:768..799`
-- reserved fresh: `fresh:280..319`
-- consumed fresh: `0..279`
-
-R12 and R13 reserved `fresh:280..319` but never opened it; it remains untouched.
-
-Promotion requires strict total and implicit-goal solved-count gain with exact visible-target family solved counts. Primary success alone cannot authorize fresh.
+- confirmation `dev:768..799` was never opened;
+- `fresh:280..319` remains untouched;
+- no retuning on `dev:736..767`;
+- R14 closes without merge.
