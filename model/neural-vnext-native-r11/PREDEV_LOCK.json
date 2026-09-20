@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "status": "PREDEVELOPMENT_LOCKED",
+  "candidate": "Neural-vNext-Native-R11-CausalVersionSpace",
+  "r9_parent": {
+    "authority": "Neural-vNext-Native-R9-PublicCounterfactualPlanner",
+    "main_merge_commit": "3000571226eead843cdb28f802bb47ea060f8b8e",
+    "accepted_authority_path": "model/neural-vnext-native-r9/ACCEPTED_AUTHORITY.json",
+    "accepted_authority_blob_sha": "f3c829cdeb4fa3e2cfadd69ca4c583997b466049",
+    "public_planner_blob_sha": "5bf3057e36e2a3163c85d55ffda6de6edf5e1eee",
+    "planner_runtime_blob_sha": "b36faed53f3668cef9aceb3e99bfff4a1093b590",
+    "selected_config": {
+      "max_support": 3
+    },
+    "learned_successor_parameters": 0,
+    "physical_parameters": 877542,
+    "r4_checkpoint_sha256": "167e845e9aa2bfe8a6431478723c777ee8a2f8e77c452192d74cd31d1959a244",
+    "r4_state_dict_sha256": "97f114dd202b0e533c01db1adf69efe35b67db02a713d7b40dc619afd3cd2aa9",
+    "frozen": true
+  },
+  "benchmark": {
+    "name": "nolane-figg18-v1",
+    "families": [
+      "conditional_regimes",
+      "regime_switch",
+      "implicit_goal_regimes",
+      "causal_prerequisites"
+    ],
+    "development_split": "dev",
+    "development_indices": [
+      544,
+      575
+    ],
+    "confirmation_split": "dev",
+    "confirmation_indices": [
+      576,
+      607
+    ],
+    "fresh_split": "fresh",
+    "fresh_indices": [
+      240,
+      279
+    ],
+    "fresh_episodes_expected": 160,
+    "consumed_fresh_blocks": [
+      [
+        0,
+        39
+      ],
+      [
+        40,
+        79
+      ],
+      [
+        80,
+        119
+      ],
+      [
+        120,
+        159
+      ],
+      [
+        160,
+        199
+      ],
+      [
+        200,
+        239
+      ]
+    ]
+  },
+  "namespace_audit": {
+    "exact_main_lock_search_fresh_240_279_matches": 0,
+    "exact_main_lock_search_dev_544_575_matches": 0,
+    "exact_main_lock_search_dev_576_607_matches": 0,
+    "r10_confirmation_and_fresh_opened": false
+  },
+  "fresh_isolation": {
+    "status": "UNOPENED",
+    "rule": "R11 primary development may instantiate dev:544..575 only. Confirmation dev:576..607 and fresh:240..279 remain unopened until an exact selected deterministic config is frozen.",
+    "post_fresh_tuning_allowed": false,
+    "consumed_fresh_reuse_allowed": false
+  },
+  "mechanism": {
+    "learned_successor_parameters": 0,
+    "parent_behavior": "exact accepted R9 planner_narrow max_support=3",
+    "causal_version_space": "For each public regime/action, enumerate every FIGG-18 factorized rule (target dimension, condition parity dimension, even delta 1/2) consistent with all public transitions observed in the episode.",
+    "certified_prediction": "A counterfactual next state may be used only when every still-consistent causal rule predicts exactly the same next state.",
+    "planning": "depth 1..3 over certified public causal predictions; accepted R9 is exact fallback",
+    "conservative_first_step_guard": "first expected distance may not be worse than accepted R9 under the same certified model",
+    "visible_target_behavior": "exact accepted R9/R4; never overridden",
+    "private_goal_use": "none",
+    "training": "none"
+  },
+  "selection": {
+    "candidates": [
+      {
+        "name": "causal_horizon1",
+        "horizon": 1,
+        "max_support": 3
+      },
+      {
+        "name": "causal_horizon2",
+        "horizon": 2,
+        "max_support": 3
+      },
+      {
+        "name": "causal_horizon3",
+        "horizon": 3,
+        "max_support": 3
+      }
+    ],
+    "rule": [
+      "evaluate accepted R9 and all R11 candidates on dev:544..575 only",
+      "candidate must strictly improve implicit_goal_regimes solved count versus accepted R9",
+      "candidate must strictly improve total solved count versus accepted R9",
+      "conditional_regimes, regime_switch and causal_prerequisites solved counts must equal accepted R9 exactly",
+      "among eligible candidates maximize implicit_goal_regimes solved",
+      "then maximize total solved",
+      "then minimize action steps",
+      "then lexical candidate name"
+    ]
+  },
+  "confirmation_gate": {
+    "identities": [
+      576,
+      607
+    ],
+    "exact_selected_config_required": true,
+    "strict_total_solved_gain_vs_r9": 1,
+    "strict_implicit_goal_gain_vs_r9": 1,
+    "visible_target_family_solved_delta_required": 0,
+    "no_mutation_between_primary_and_confirmation": true
+  },
+  "fresh_gate": {
+    "identities": [
+      240,
+      279
+    ],
+    "minimum_total_solved_delta_vs_r9": 1,
+    "target_family": "implicit_goal_regimes",
+    "minimum_target_family_solved_delta_vs_r9": 1,
+    "visible_target_family_solved_delta_required": 0,
+    "no_post_fresh_tuning": true,
+    "no_same_block_retry_after_failure": true
+  },
+  "claim_boundary": "R11 is development-only. It adds no learned parameters. Causal generalization is used only when the complete public version space agrees; otherwise behavior falls back to accepted R9."
+}
